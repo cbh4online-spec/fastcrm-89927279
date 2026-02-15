@@ -497,16 +497,54 @@ function evaluateRecommendationInvariant(
   };
 }
 
+// Safe expression tokens - only allow comparisons, logical ops, and property access
+const SAFE_EXPRESSION_PATTERN = /^[a-zA-Z0-9_.\s&|!=<>()'"+-]+$/;
+
 function evaluateCondition(
   id: string,
   expression: string,
   context: Record<string, unknown>
 ): ConditionResult {
   try {
-    // Simple expression evaluation (in production, use a proper parser)
-    const fn = new Function(...Object.keys(context), `return ${expression}`);
-    const result = fn(...Object.values(context));
-    
+    // Validate expression against whitelist to prevent code injection
+    if (!SAFE_EXPRESSION_PATTERN.test(expression)) {
+      return {
+        conditionId: id,
+        passed: false,
+        message: `Unsafe expression rejected: contains disallowed characters`,
+      };
+    }
+
+    // Block dangerous patterns
+    const dangerousPatterns = [
+      /\bfunction\b/i, /\breturn\b/i, /\beval\b/i, /\bimport\b/i,
+      /\brequire\b/i, /\bconstructor\b/i, /\bprototype\b/i,
+      /\b__proto__\b/i, /\bwindow\b/i, /\bdocument\b/i,
+      /\bglobalThis\b/i, /\bprocess\b/i, /\bDeno\b/i,
+      /\balert\b/i, /\bfetch\b/i, /\bXMLHttpRequest\b/i,
+    ];
+
+    for (const pattern of dangerousPatterns) {
+      if (pattern.test(expression)) {
+        return {
+          conditionId: id,
+          passed: false,
+          message: `Unsafe expression rejected: contains blocked keyword`,
+        };
+      }
+    }
+
+    // Simple safe evaluation: resolve context variables and evaluate comparisons
+    let resolved = expression;
+    for (const [key, value] of Object.entries(context)) {
+      const regex = new RegExp(`\\b${key}\\b`, 'g');
+      resolved = resolved.replace(regex, JSON.stringify(value));
+    }
+
+    // Only allow simple boolean/comparison expressions via JSON-safe eval
+    const fn = new Function(`"use strict"; return (${resolved})`);
+    const result = fn();
+
     return {
       conditionId: id,
       passed: Boolean(result),
