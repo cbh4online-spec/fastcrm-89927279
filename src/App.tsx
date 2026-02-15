@@ -52,6 +52,7 @@ import AIAssistants from "./pages/AIAssistants";
 import ConversationalEngine from "./pages/ConversationalEngine";
 import MarketingHomepage from "./pages/MarketingHomepage";
 import FastCRMLanding from "./pages/FastCRMLanding";
+import VerticalLandingPage from "./pages/VerticalLandingPage";
 import ProposalView from "./pages/ProposalView";
 import CommunicationTemplates from "./pages/CommunicationTemplates";
 
@@ -478,6 +479,14 @@ const App = () => (
               <Route path="/c2c/:workspaceSlug/invite/:token" element={<C2CSellerInviteActivation />} />
               <Route path="/c2c/:workspaceSlug/seller/:sellerId" element={<C2CPublicSellerProfile />} />
               
+              {/* Vertical Landing Pages */}
+              <Route path="/clinicas" element={<VerticalLandingPage />} />
+              <Route path="/imobiliarias" element={<VerticalLandingPage />} />
+              <Route path="/formacao" element={<VerticalLandingPage />} />
+              <Route path="/condominios" element={<VerticalLandingPage />} />
+              <Route path="/agencias" element={<VerticalLandingPage />} />
+              <Route path="/empresas" element={<VerticalLandingPage />} />
+
               {/* Public FastClub Landing */}
               <Route path="/fastclub" element={<FastClubLandingPage />} />
               <Route path="/club/fastclub/apply" element={<FastClubApplyPage />} />
