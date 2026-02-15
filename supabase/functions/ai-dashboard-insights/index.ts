@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,11 +26,56 @@ serve(async (req) => {
   }
 
   try {
-    const { dashboardData, userName, workspaceName } = await req.json() as {
+    // === Authentication ===
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userId = claimsData.claims.sub;
+
+    const { dashboardData, userName, workspaceName, workspaceId } = await req.json() as {
       dashboardData: DashboardData;
       userName?: string;
       workspaceName?: string;
+      workspaceId?: string;
     };
+
+    // === Workspace membership verification ===
+    if (workspaceId) {
+      const { data: member } = await supabaseClient
+        .from("workspace_members")
+        .select("role")
+        .eq("workspace_id", workspaceId)
+        .eq("user_id", userId)
+        .single();
+
+      if (!member) {
+        return new Response(JSON.stringify({ error: "Not a workspace member" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -135,7 +181,6 @@ Gera o resumo do dashboard com insights acionáveis.`;
     // Parse JSON from response
     let parsed;
     try {
-      // Try to extract JSON from the response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         parsed = JSON.parse(jsonMatch[0]);
@@ -144,7 +189,6 @@ Gera o resumo do dashboard com insights acionáveis.`;
       }
     } catch (parseError) {
       console.error("Failed to parse AI response:", content);
-      // Return fallback response
       parsed = {
         greeting: `Olá, ${userName || "Utilizador"}!`,
         dayStatus: dashboardData.hotLeads > 0 
@@ -162,8 +206,7 @@ Gera o resumo do dashboard com insights acionáveis.`;
 
   } catch (error: unknown) {
     console.error("Dashboard insights error:", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: message }), {
+    return new Response(JSON.stringify({ error: "An error occurred processing your request" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
