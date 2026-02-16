@@ -2636,6 +2636,264 @@ export type Database = {
           },
         ]
       }
+      bio_analytics_daily: {
+        Row: {
+          bio_page_id: string
+          clicks: number
+          date: string
+          id: string
+          leads: number
+          purchases: number
+          revenue: number
+          top_links: Json | null
+          top_sources: Json | null
+          uniques: number
+          views: number
+        }
+        Insert: {
+          bio_page_id: string
+          clicks?: number
+          date: string
+          id?: string
+          leads?: number
+          purchases?: number
+          revenue?: number
+          top_links?: Json | null
+          top_sources?: Json | null
+          uniques?: number
+          views?: number
+        }
+        Update: {
+          bio_page_id?: string
+          clicks?: number
+          date?: string
+          id?: string
+          leads?: number
+          purchases?: number
+          revenue?: number
+          top_links?: Json | null
+          top_sources?: Json | null
+          uniques?: number
+          views?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bio_analytics_daily_bio_page_id_fkey"
+            columns: ["bio_page_id"]
+            isOneToOne: false
+            referencedRelation: "bio_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bio_blocks: {
+        Row: {
+          bio_page_id: string
+          block_type: string
+          content: Json
+          created_at: string
+          id: string
+          is_visible: boolean
+          order_index: number
+          rules: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          bio_page_id: string
+          block_type: string
+          content?: Json
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          order_index?: number
+          rules?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          bio_page_id?: string
+          block_type?: string
+          content?: Json
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          order_index?: number
+          rules?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bio_blocks_bio_page_id_fkey"
+            columns: ["bio_page_id"]
+            isOneToOne: false
+            referencedRelation: "bio_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bio_blocks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bio_events: {
+        Row: {
+          bio_page_id: string
+          block_id: string | null
+          created_at: string
+          device: string | null
+          event_type: string
+          id: string
+          referrer: string | null
+          revenue: number
+          source: string | null
+          utm_json: Json | null
+          visitor_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          bio_page_id: string
+          block_id?: string | null
+          created_at?: string
+          device?: string | null
+          event_type: string
+          id?: string
+          referrer?: string | null
+          revenue?: number
+          source?: string | null
+          utm_json?: Json | null
+          visitor_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          bio_page_id?: string
+          block_id?: string | null
+          created_at?: string
+          device?: string | null
+          event_type?: string
+          id?: string
+          referrer?: string | null
+          revenue?: number
+          source?: string | null
+          utm_json?: Json | null
+          visitor_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bio_events_bio_page_id_fkey"
+            columns: ["bio_page_id"]
+            isOneToOne: false
+            referencedRelation: "bio_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bio_pages: {
+        Row: {
+          background_style: Json | null
+          created_at: string
+          custom_css: string | null
+          id: string
+          name: string
+          og_image: string | null
+          primary_color: string | null
+          seo_description: string | null
+          seo_title: string | null
+          slug: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          background_style?: Json | null
+          created_at?: string
+          custom_css?: string | null
+          id?: string
+          name: string
+          og_image?: string | null
+          primary_color?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          background_style?: Json | null
+          created_at?: string
+          custom_css?: string | null
+          id?: string
+          name?: string
+          og_image?: string | null
+          primary_color?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bio_pages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bio_qr_codes: {
+        Row: {
+          bio_page_id: string
+          created_at: string
+          id: string
+          name: string | null
+          scans: number
+          short_code: string
+          uniques: number
+          workspace_id: string
+        }
+        Insert: {
+          bio_page_id: string
+          created_at?: string
+          id?: string
+          name?: string | null
+          scans?: number
+          short_code: string
+          uniques?: number
+          workspace_id: string
+        }
+        Update: {
+          bio_page_id?: string
+          created_at?: string
+          id?: string
+          name?: string | null
+          scans?: number
+          short_code?: string
+          uniques?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bio_qr_codes_bio_page_id_fkey"
+            columns: ["bio_page_id"]
+            isOneToOne: false
+            referencedRelation: "bio_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bio_qr_codes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blueprint_apply_logs: {
         Row: {
           applied_by: string

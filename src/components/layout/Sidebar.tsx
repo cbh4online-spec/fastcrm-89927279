@@ -270,6 +270,7 @@ const navigationGroups: NavGroup[] = [
       { name: "Pesquisa Web", href: "/dashboard/prospecting/web-search", icon: Search, tooltip: "Pesquisar na web", moduleSlug: "web-search-services" },
       { name: "Automações", href: "/dashboard/automations", icon: Zap, tooltip: "Workflows automáticos" },
       { name: "Funis", href: "/dashboard/funnels", icon: Globe, tooltip: "Funis de conversão" },
+      { name: "Bio OS", href: "/dashboard/bio", icon: Link2, tooltip: "Páginas Bio e micro-sites", highlight: true, moduleSlug: "bio-os" },
     ],
   },
   // RELATÓRIOS
