@@ -285,3 +285,6 @@ verify_jwt = false
 
 [functions.bio-ai-builder]
 verify_jwt = false
+
+[functions.bio-generate-image]
+verify_jwt = false
