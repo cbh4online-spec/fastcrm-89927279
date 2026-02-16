@@ -28,7 +28,7 @@ function rowToConfig(row: VerticalTemplateRow): VerticalConfig {
 export default function VerticalLandingPage() {
   const location = useLocation();
   const params = useParams<{ slug?: string }>();
-  // Support both /slug (static) and /v/:slug (dynamic) routes
+  // All verticals use /:slug pattern
   const slug = params.slug || location.pathname.replace("/", "");
   const staticConfig = getVerticalBySlug(slug);
 

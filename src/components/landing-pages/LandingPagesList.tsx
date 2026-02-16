@@ -222,7 +222,7 @@ export function LandingPagesList() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.open(`${getPublicBaseUrl()}/v/${tpl.slug}`, "_blank")}
+                      onClick={() => window.open(`${getPublicBaseUrl()}/${tpl.slug}`, "_blank")}
                     >
                       <ExternalLink className="h-3 w-3 mr-1" />
                       Abrir
