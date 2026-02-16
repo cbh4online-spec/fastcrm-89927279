@@ -269,7 +269,7 @@ const navigationGroups: NavGroup[] = [
       { name: "Google Local", href: "/dashboard/prospecting/google-local", icon: MapPin, tooltip: "Pesquisar no Google Maps", moduleSlug: "google-local-services" },
       { name: "Pesquisa Web", href: "/dashboard/prospecting/web-search", icon: Search, tooltip: "Pesquisar na web", moduleSlug: "web-search-services" },
       { name: "Automações", href: "/dashboard/automations", icon: Zap, tooltip: "Workflows automáticos" },
-      { name: "Landing Pages", href: "/dashboard/landing-pages", icon: Globe, tooltip: "Páginas de captura" },
+      { name: "Funis", href: "/dashboard/funnels", icon: Globe, tooltip: "Funis de conversão" },
     ],
   },
   // RELATÓRIOS
