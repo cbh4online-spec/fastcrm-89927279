@@ -1,83 +1,70 @@
 
-# Analytics e Metricas de Conversao para Templates Verticais AIDA
+
+# Geracao Automatica com IA de Conteudo AIDA
 
 ## Objetivo
 
-Criar um sistema completo de analytics para as landing pages verticais AIDA, permitindo medir page views, submissoes de formulario e taxa de conversao por template -- tudo visivel nos cards da pagina de Landing Pages.
+Adicionar um botao "Gerar com IA" no builder de templates verticais que, a partir apenas do nome da area de negocio (ex: "Restaurantes"), gera automaticamente todo o conteudo AIDA: dor principal, resultado prometido, 4 dores, 6 modulos, 4 antes/4 depois, ROI, CTAs, persona AI e SEO.
 
-## O que vai mudar
+## Como funciona
 
-### 1. Nova tabela: `vertical_landing_events`
+1. O utilizador escreve o nome da vertical (ex: "Ginasios") no campo "Nome da Vertical"
+2. Clica no botao "Gerar com IA" que aparece ao lado
+3. O sistema chama uma edge function que usa o Lovable AI (Gemini Flash) com tool calling para gerar toda a estrutura
+4. O formulario e preenchido automaticamente com o conteudo gerado
+5. O utilizador pode editar qualquer campo antes de guardar
 
-Tabela para registar eventos anonimos nas landing pages verticais (views e submissoes):
+## Plano Tecnico
 
-| Coluna | Tipo | Descricao |
-|---|---|---|
-| id | uuid (PK) | Identificador |
-| template_slug | text | Slug da vertical (ex: "clinicas") |
-| template_id | uuid (nullable) | ID do template custom (null para estaticos) |
-| workspace_id | uuid (nullable) | Workspace associado |
-| event_type | text | "view" ou "form_submit" |
-| session_id | text | ID de sessao anonimo (browser) |
-| referrer | text | Origem do trafego |
-| device_type | text | "mobile" ou "desktop" |
-| created_at | timestamptz | Timestamp do evento |
+### 1. Edge Function: `generate-vertical-template`
 
-RLS: INSERT publico (qualquer visitante pode registar), SELECT apenas para membros do workspace autenticados. Sem dados pessoais (PII-free).
+Nova edge function que recebe `{ nome: string }` e retorna toda a estrutura do template.
 
-### 2. Componente tracker: `VerticalLandingTracker.tsx`
+- Modelo: `google/gemini-3-flash-preview` (rapido e eficiente para este caso)
+- Utiliza tool calling para garantir output estruturado (sem parsing JSON manual)
+- System prompt em portugues, focado no metodo AIDA e no contexto FastCRM
+- Tool schema com todos os campos do `VerticalConfig`
 
-Componente invisivel colocado no `VerticalLandingTemplate` que:
-- Regista um evento "view" por sessao/slug (debounce via sessionStorage, seguindo o padrao do `StoreProductViewTracker`)
-- Gera um session_id anonimo (localStorage)
-- Captura device_type e referrer
+Estrutura da tool:
 
-### 3. Tracking de submissao no formulario
-
-Actualizar `VerticalCTAForm.tsx` para registar um evento "form_submit" apos submissao bem sucedida (sem guardar PII -- apenas slug, session_id e device_type).
-
-### 4. Hook: `useVerticalLandingAnalytics.ts`
-
-Hook React Query que agrega os dados para exibicao:
-- `useVerticalLandingKPIs(slug)` -- retorna views, submissoes e taxa de conversao para um slug
-- `useAllVerticalKPIs()` -- retorna KPIs agregados para todos os templates (para os cards)
-
-### 5. Metricas nos cards da Landing Pages List
-
-Actualizar `LandingPagesList.tsx` para mostrar em cada card de template vertical:
-- Numero de views (icone de olho)
-- Numero de submissoes (icone de formulario)
-- Taxa de conversao em percentagem (submissoes/views)
-
-Exemplo visual num card:
 ```text
-+----------------------------+
-|  Clinicas         [AIDA]   |
-|  /clinicas                 |
-|  "Perde 40% dos pacien..." |
-|                            |
-|  👁 342   📋 28   📈 8.2%  |
-|  [Publicado] · 6 modulos   |
-|  [Abrir]                   |
-+----------------------------+
+generate_vertical_template({
+  dor_principal: string,
+  resultado_prometido: string,
+  dores: string[4],
+  modulos_ativos: [{nome, desc, icon}][6],
+  antes_depois: {antes: string[4], depois: string[4]},
+  roi_exemplo: {clientes_extra, valor_medio, periodo},
+  cta_principal: string,
+  cta_secundario: string,
+  ai_persona_nome: string,
+  seo: {title, description}
+})
 ```
 
-## Plano Tecnico Detalhado
+### 2. Actualizar `VerticalTemplateBuilder.tsx`
+
+- Adicionar botao "Gerar com IA" ao lado do campo "Nome da Vertical" (tab Identidade)
+- Estado de loading durante a geracao
+- Ao receber resposta, preenche todos os campos do formulario
+- Manter slug auto-gerado a partir do nome
+- Toast de sucesso/erro
+
+### 3. Actualizar `supabase/functions/deno.json` (se necessario)
+
+Registar a nova edge function.
 
 ### Ficheiros a criar
-- Migracao SQL para `vertical_landing_events`
-- `src/components/vertical-landing/VerticalLandingTracker.tsx`
-- `src/hooks/useVerticalLandingAnalytics.ts`
+
+- `supabase/functions/generate-vertical-template/index.ts`
 
 ### Ficheiros a editar
-- `src/components/vertical-landing/VerticalLandingTemplate.tsx` -- adicionar `VerticalLandingTracker`
-- `src/components/vertical-landing/VerticalCTAForm.tsx` -- registar evento "form_submit"
-- `src/components/landing-pages/LandingPagesList.tsx` -- mostrar KPIs nos cards
 
-### Sequencia de implementacao
-1. Criar tabela `vertical_landing_events` com RLS
-2. Criar `VerticalLandingTracker` (seguindo padrao do `StoreProductViewTracker`)
-3. Integrar tracker no `VerticalLandingTemplate`
-4. Adicionar tracking de submissao no `VerticalCTAForm`
-5. Criar hook `useVerticalLandingAnalytics`
-6. Mostrar metricas nos cards da `LandingPagesList`
+- `src/components/landing-pages/VerticalTemplateBuilder.tsx` -- botao "Gerar com IA" + logica de chamada
+
+### Sequencia
+
+1. Criar edge function `generate-vertical-template`
+2. Adicionar botao e logica de IA no builder
+3. Deploy e teste
+
