@@ -288,3 +288,6 @@ verify_jwt = false
 
 [functions.bio-generate-image]
 verify_jwt = false
+
+[functions.bio-smart-link]
+verify_jwt = false

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useBioBlocks, useCreateBioBlock, useDeleteBioBlock, useUpdateBioBlock, useReorderBioBlocks, type BioBlock, type BioBlockType } from "@/hooks/useBioBlocks";
 import type { BioPage } from "@/hooks/useBioPages";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BioBlockPreviewCard } from "./BioBlockPreviewCard";
 import { BioImageUploader } from "./BioImageUploader";
+import { BioSmartLinkGenerator } from "./BioSmartLinkGenerator";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import {
   Link, Type, Image, MousePointerClick, Share2, Minus,
@@ -15,6 +16,61 @@ import {
   Smartphone, Monitor, Sparkles, LayoutGrid,
 } from "lucide-react";
 
+// ── Debounced Input helpers ───────────────────────────────────
+function DebouncedInput({ value, onDebouncedChange, blockId, delay = 500, ...props }: {
+  value: string;
+  onDebouncedChange: (val: string) => void;
+  blockId: string;
+  delay?: number;
+} & Omit<React.ComponentProps<typeof Input>, "value" | "onChange">) {
+  const [local, setLocal] = useState(value);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => { setLocal(value); }, [blockId]); // reset on block switch
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    setLocal(v);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => onDebouncedChange(v), delay);
+  }, [onDebouncedChange, delay]);
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  return <Input {...props} value={local} onChange={handleChange} />;
+}
+
+function DebouncedTextarea({ value, onDebouncedChange, blockId, delay = 500, ...props }: {
+  value: string;
+  onDebouncedChange: (val: string) => void;
+  blockId: string;
+  delay?: number;
+} & Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, "value" | "onChange">) {
+  const [local, setLocal] = useState(value);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => { setLocal(value); }, [blockId]);
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const v = e.target.value;
+    setLocal(v);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => onDebouncedChange(v), delay);
+  }, [onDebouncedChange, delay]);
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  return (
+    <textarea
+      {...props}
+      value={local}
+      onChange={handleChange}
+      className="w-full border rounded-md p-2 text-sm min-h-[100px] bg-background"
+    />
+  );
+}
+
+// ── Block types config ────────────────────────────────────────
 const BLOCK_TYPES: { type: BioBlockType; label: string; icon: React.ElementType; defaultContent: Record<string, unknown> }[] = [
   { type: "hero", label: "Hero", icon: Sparkles, defaultContent: { title: "Título Principal", subtitle: "Subtítulo descritivo", cta_text: "Saiba Mais", cta_url: "" } },
   { type: "feature", label: "Feature", icon: LayoutGrid, defaultContent: { title: "Feature", subtitle: "Descrição da feature", cta_text: "Ver mais" } },
@@ -71,6 +127,14 @@ export function BioBlockEditor({ pageId, page }: BioBlockEditorProps) {
     });
   };
 
+  const handleSmartGenerated = (block: BioBlock, data: Record<string, string>) => {
+    updateBlock.mutate({
+      id: block.id,
+      bio_page_id: pageId,
+      content: { ...block.content, ...data } as Record<string, unknown>,
+    });
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-4">
       {/* Block Library */}
@@ -117,12 +181,9 @@ export function BioBlockEditor({ pageId, page }: BioBlockEditorProps) {
               background: "linear-gradient(145deg, hsl(var(--foreground) / 0.9), hsl(var(--foreground) / 0.95))",
             }}
           >
-            {/* Notch */}
             {previewMode === "mobile" && (
               <div className="absolute top-3 left-1/2 -translate-x-1/2 w-28 h-6 bg-foreground rounded-b-2xl z-10" />
             )}
-
-            {/* Screen */}
             <div className="rounded-[2rem] overflow-hidden bg-background" style={{ minHeight: previewMode === "mobile" ? 680 : 500 }}>
               <ScrollArea className="h-full" style={{ maxHeight: previewMode === "mobile" ? 680 : 500 }}>
                 <div className="p-5 pt-10 space-y-3">
@@ -137,7 +198,6 @@ export function BioBlockEditor({ pageId, page }: BioBlockEditorProps) {
                         } ${!block.is_visible ? "opacity-40" : ""}`}
                         onClick={() => setSelectedBlockId(block.id)}
                       >
-                        {/* Reorder controls */}
                         <div className="absolute -left-1 top-1/2 -translate-y-1/2 -translate-x-full flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                           <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); moveBlock(index, "up"); }} disabled={index === 0}>
                             <ChevronUp className="h-3 w-3" />
@@ -146,7 +206,6 @@ export function BioBlockEditor({ pageId, page }: BioBlockEditorProps) {
                             <ChevronDown className="h-3 w-3" />
                           </Button>
                         </div>
-
                         <BioBlockPreviewCard block={block} primaryColor={page.primary_color} index={index} />
                       </div>
                     ))
@@ -181,7 +240,11 @@ export function BioBlockEditor({ pageId, page }: BioBlockEditorProps) {
                   </Button>
                 </div>
               </div>
-              <BlockProperties block={selectedBlock} onUpdate={(key, value) => updateContent(selectedBlock, key, value)} />
+              <BlockProperties
+                block={selectedBlock}
+                onUpdate={(key, value) => updateContent(selectedBlock, key, value)}
+                onSmartGenerated={(data) => handleSmartGenerated(selectedBlock, data)}
+              />
             </CardContent>
           </Card>
         ) : (
@@ -192,11 +255,37 @@ export function BioBlockEditor({ pageId, page }: BioBlockEditorProps) {
   );
 }
 
-function BlockProperties({ block, onUpdate }: { block: BioBlock; onUpdate: (key: string, value: unknown) => void }) {
+// ── Block Properties with debounced inputs + smart link ───────
+function BlockProperties({ block, onUpdate, onSmartGenerated }: {
+  block: BioBlock;
+  onUpdate: (key: string, value: unknown) => void;
+  onSmartGenerated: (data: Record<string, string>) => void;
+}) {
   const content = block.content as Record<string, string>;
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id || "";
+  const supportsSmartLink = ["hero", "feature", "link", "button"].includes(block.block_type);
 
+  return (
+    <div className="space-y-4">
+      {supportsSmartLink && (
+        <BioSmartLinkGenerator
+          blockType={block.block_type}
+          workspaceId={workspaceId}
+          onGenerated={onSmartGenerated}
+        />
+      )}
+      <BlockFields block={block} content={content} onUpdate={onUpdate} workspaceId={workspaceId} />
+    </div>
+  );
+}
+
+function BlockFields({ block, content, onUpdate, workspaceId }: {
+  block: BioBlock;
+  content: Record<string, string>;
+  onUpdate: (key: string, value: unknown) => void;
+  workspaceId: string;
+}) {
   switch (block.block_type) {
     case "hero":
     case "feature":
@@ -204,19 +293,19 @@ function BlockProperties({ block, onUpdate }: { block: BioBlock; onUpdate: (key:
         <div className="space-y-3">
           <div>
             <label className="text-xs font-medium">Título</label>
-            <Input value={content.title || ""} onChange={(e) => onUpdate("title", e.target.value)} placeholder="Título do bloco" />
+            <DebouncedInput blockId={block.id} value={content.title || ""} onDebouncedChange={(v) => onUpdate("title", v)} placeholder="Título do bloco" />
           </div>
           <div>
             <label className="text-xs font-medium">Subtítulo</label>
-            <Input value={content.subtitle || ""} onChange={(e) => onUpdate("subtitle", e.target.value)} placeholder="Subtítulo" />
+            <DebouncedInput blockId={block.id} value={content.subtitle || ""} onDebouncedChange={(v) => onUpdate("subtitle", v)} placeholder="Subtítulo" />
           </div>
           <div>
             <label className="text-xs font-medium">Texto do CTA</label>
-            <Input value={content.cta_text || ""} onChange={(e) => onUpdate("cta_text", e.target.value)} placeholder="Saiba Mais" />
+            <DebouncedInput blockId={block.id} value={content.cta_text || ""} onDebouncedChange={(v) => onUpdate("cta_text", v)} placeholder="Saiba Mais" />
           </div>
           <div>
             <label className="text-xs font-medium">URL do CTA</label>
-            <Input value={content.cta_url || ""} onChange={(e) => onUpdate("cta_url", e.target.value)} placeholder="https://..." />
+            <DebouncedInput blockId={block.id} value={content.cta_url || ""} onDebouncedChange={(v) => onUpdate("cta_url", v)} placeholder="https://..." />
           </div>
           <div>
             <label className="text-xs font-medium">Imagem de fundo</label>
@@ -235,11 +324,11 @@ function BlockProperties({ block, onUpdate }: { block: BioBlock; onUpdate: (key:
         <div className="space-y-3">
           <div>
             <label className="text-xs font-medium">Texto</label>
-            <Input value={content.text || ""} onChange={(e) => onUpdate("text", e.target.value)} placeholder="Texto do link" />
+            <DebouncedInput blockId={block.id} value={content.text || ""} onDebouncedChange={(v) => onUpdate("text", v)} placeholder="Texto do link" />
           </div>
           <div>
             <label className="text-xs font-medium">URL</label>
-            <Input value={content.url || ""} onChange={(e) => onUpdate("url", e.target.value)} placeholder="https://..." />
+            <DebouncedInput blockId={block.id} value={content.url || ""} onDebouncedChange={(v) => onUpdate("url", v)} placeholder="https://..." />
           </div>
         </div>
       );
@@ -247,11 +336,7 @@ function BlockProperties({ block, onUpdate }: { block: BioBlock; onUpdate: (key:
       return (
         <div>
           <label className="text-xs font-medium">Conteúdo</label>
-          <textarea
-            className="w-full border rounded-md p-2 text-sm min-h-[100px] bg-background"
-            value={content.text || ""}
-            onChange={(e) => onUpdate("text", e.target.value)}
-          />
+          <DebouncedTextarea blockId={block.id} value={content.text || ""} onDebouncedChange={(v) => onUpdate("text", v)} />
         </div>
       );
     case "image":
@@ -268,7 +353,7 @@ function BlockProperties({ block, onUpdate }: { block: BioBlock; onUpdate: (key:
           </div>
           <div>
             <label className="text-xs font-medium">Alt Text</label>
-            <Input value={content.alt || ""} onChange={(e) => onUpdate("alt", e.target.value)} placeholder="Descrição da imagem" />
+            <DebouncedInput blockId={block.id} value={content.alt || ""} onDebouncedChange={(v) => onUpdate("alt", v)} placeholder="Descrição da imagem" />
           </div>
         </div>
       );
@@ -278,9 +363,10 @@ function BlockProperties({ block, onUpdate }: { block: BioBlock; onUpdate: (key:
           {["instagram", "facebook", "twitter", "linkedin", "youtube", "tiktok"].map((network) => (
             <div key={network}>
               <label className="text-xs font-medium capitalize">{network}</label>
-              <Input
+              <DebouncedInput
+                blockId={block.id}
                 value={(content as any)[network] || ""}
-                onChange={(e) => onUpdate(network, e.target.value)}
+                onDebouncedChange={(v) => onUpdate(network, v)}
                 placeholder={`URL do ${network}`}
               />
             </div>
