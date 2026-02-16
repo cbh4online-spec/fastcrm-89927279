@@ -448,6 +448,14 @@ function CRMRoutes() {
                 <Route path="/product/:slug" element={<PublicProductSheet />} />
                 <Route path="/p/:slug" element={<PublicProposalPage />} />
                 <Route path="/super-admin" element={<SuperAdmin />} />
+                {/* Vertical Landing Pages (static + dynamic, catch-all at the end) */}
+                <Route path="/clinicas" element={<VerticalLandingPage />} />
+                <Route path="/imobiliarias" element={<VerticalLandingPage />} />
+                <Route path="/formacao" element={<VerticalLandingPage />} />
+                <Route path="/condominios" element={<VerticalLandingPage />} />
+                <Route path="/agencias" element={<VerticalLandingPage />} />
+                <Route path="/empresas" element={<VerticalLandingPage />} />
+                <Route path="/:slug" element={<VerticalLandingPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <GDPRBanner />
@@ -479,15 +487,6 @@ const App = () => (
               <Route path="/c2c/:workspaceSlug/invite/:token" element={<C2CSellerInviteActivation />} />
               <Route path="/c2c/:workspaceSlug/seller/:sellerId" element={<C2CPublicSellerProfile />} />
               
-              {/* Vertical Landing Pages (static + dynamic, catch-all at the end) */}
-              <Route path="/clinicas" element={<VerticalLandingPage />} />
-              <Route path="/imobiliarias" element={<VerticalLandingPage />} />
-              <Route path="/formacao" element={<VerticalLandingPage />} />
-              <Route path="/condominios" element={<VerticalLandingPage />} />
-              <Route path="/agencias" element={<VerticalLandingPage />} />
-              <Route path="/empresas" element={<VerticalLandingPage />} />
-              <Route path="/:slug" element={<VerticalLandingPage />} />
-
               {/* Public FastClub Landing */}
               <Route path="/fastclub" element={<FastClubLandingPage />} />
               <Route path="/club/fastclub/apply" element={<FastClubApplyPage />} />
