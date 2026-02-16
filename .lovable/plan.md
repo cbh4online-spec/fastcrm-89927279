@@ -1,52 +1,55 @@
 
-# Corrigir URLs dos Templates Dinamicos: remover `/v/` do path
+# Mockup de Dashboard Dinamico por Vertical
 
-## Problema
+## Objectivo
 
-Os templates dinamicos (criados via DB) usam o prefixo `/v/` no URL (ex: `/v/ginasios`), enquanto os estaticos usam o slug directo (ex: `/clinicas`). Todos devem seguir o mesmo padrao: `https://fastcrm.metodopare.ai/{slug}`.
+Substituir a imagem estatica do dashboard (`vertical-dashboard-mockup.png`) por um componente React que renderiza um mockup visual do CRM personalizado com o nome da vertical, modulos e cores especificas. Assim, "Ginasios" mostra um pipeline com termos de ginasios, "Clinicas" com termos clinicos, etc.
 
-## O que vai mudar
+## Abordagem
 
-### 1. Rota no `src/App.tsx`
+Criar um componente `DashboardMockup` em React/CSS que simula visualmente um dashboard CRM com dados dinamicos vindos do `VerticalConfig`:
 
-Substituir a rota `/v/:slug` por `/:slug` e mover para o final das rotas (catch-all) para nao interferir com outras rotas existentes:
+- **Sidebar** com nome da vertical e icones dos modulos
+- **Pipeline Kanban** com colunas ("Novo Lead", "Em Contacto", "Proposta", "Fechado") e cards com nomes ficticios relevantes ao sector
+- **Mini stats** no topo (total contactos, oportunidades abertas, valor pipeline)
+- **Cores** adaptadas a `config.cores.primaria`
 
-```text
-- <Route path="/v/:slug" element={<VerticalLandingPage />} />
-+ <Route path="/:slug" element={<VerticalLandingPage />} />
-```
+Tudo renderizado como HTML/CSS (sem imagem), com o gradiente de fade na base mantido.
 
-Esta rota catch-all deve ser a **ultima** rota definida, para que todas as outras rotas especificas tenham prioridade.
+## Plano Tecnico
 
-### 2. Logica no `src/pages/VerticalLandingPage.tsx`
+### 1. Criar componente `src/components/vertical-landing/DashboardMockup.tsx`
 
-Simplificar a extraccao do slug -- agora vem sempre de `params.slug` ou do pathname directamente (sem prefixo `/v/`):
-
-```text
-const slug = params.slug || location.pathname.replace("/", "");
-```
-
-Isto ja funciona correctamente, apenas o comentario precisa de ser actualizado.
-
-### 3. Link nos cards em `src/components/landing-pages/LandingPagesList.tsx`
-
-Corrigir o URL de abertura dos templates custom:
+Componente que recebe `VerticalConfig` e renderiza:
 
 ```text
-- window.open(`${getPublicBaseUrl()}/v/${tpl.slug}`, "_blank")
-+ window.open(`${getPublicBaseUrl()}/${tpl.slug}`, "_blank")
++------------------------------------------+
+| FastCRM    | Novo Lead | Contacto | ...  |
+|  [Vertical]|  Card 1   |  Card 3  |      |
+|  Modulo 1  |  Card 2   |  Card 4  |      |
+|  Modulo 2  |           |          |      |
+|  ...       |           |          |      |
++------------------------------------------+
 ```
 
-### 4. Remover rotas estaticas redundantes (opcional mas recomendado)
+- Dados ficticios por vertical mapeados internamente (ex: para Ginasios -> "João Silva - Plano Premium", para Clinicas -> "Maria Costa - Consulta Dermatologia")
+- Fallback generico para verticais dinamicas sem mapeamento especifico (usa o nome da vertical nos titulos)
+- Escala reduzida (`transform: scale(0.7)` ou similar) para parecer um screenshot real
+- Fundo escuro consistente com o tema dark da landing page
 
-Com a rota `/:slug` como catch-all, as rotas estaticas individuais (`/clinicas`, `/imobiliarias`, etc.) tornam-se redundantes e podem ser removidas para simplificar.
+### 2. Editar `src/components/vertical-landing/VerticalHero.tsx`
 
-## Ficheiros a editar
+- Remover import da imagem estatica `dashboardMockup`
+- Substituir o `<img>` pelo novo `<DashboardMockup config={config} />`
+- Manter a animacao framer-motion e o gradiente de fade existentes
 
-- `src/App.tsx` -- substituir `/v/:slug` por `/:slug` (e opcionalmente remover rotas estaticas individuais)
-- `src/components/landing-pages/LandingPagesList.tsx` -- corrigir URL de `/v/${slug}` para `/${slug}`
-- `src/pages/VerticalLandingPage.tsx` -- actualizar comentario
+### Ficheiros
 
-## Risco
+- **Criar**: `src/components/vertical-landing/DashboardMockup.tsx`
+- **Editar**: `src/components/vertical-landing/VerticalHero.tsx`
 
-A rota `/:slug` como catch-all pode capturar URLs que nao sao templates. O `VerticalLandingPage` ja trata este caso mostrando a pagina NotFound quando o slug nao existe, portanto o comportamento e seguro.
+### Notas
+
+- O componente e puramente visual (decorativo), sem interactividade
+- Funciona para verticais estaticas e dinamicas (usa `config.nome` e `config.modulos_ativos` directamente)
+- Nao requer chamadas a API nem edge functions
