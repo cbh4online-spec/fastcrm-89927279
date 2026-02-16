@@ -47,6 +47,7 @@ export function FunnelsList() {
   const [builderMode, setBuilderMode] = useState<"new" | null>(null);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [managingTemplateId, setManagingTemplateId] = useState<string | null>(null);
+  const [managingSlug, setManagingSlug] = useState<string | null>(null);
   const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
 
   const handleCreate = async () => {
@@ -76,12 +77,13 @@ export function FunnelsList() {
     return `${getPublicBaseUrl()}/${slug}`;
   };
 
-  // Show vertical funnel manager
-  if (managingTemplateId) {
+  // Show vertical funnel manager (custom DB template or static)
+  if (managingTemplateId || managingSlug) {
     return (
       <VerticalFunnelManager
-        templateId={managingTemplateId}
-        onBack={() => setManagingTemplateId(null)}
+        templateId={managingTemplateId ?? undefined}
+        slug={managingSlug ?? undefined}
+        onBack={() => { setManagingTemplateId(null); setManagingSlug(null); }}
       />
     );
   }
@@ -171,6 +173,14 @@ export function FunnelsList() {
                     variant="outline"
                     size="sm"
                     className="flex-1"
+                    onClick={() => setManagingSlug(vertical.slug)}
+                  >
+                    <Pencil className="h-3 w-3 mr-1" />
+                    Editar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => window.open(getVerticalPublicUrl(vertical.slug), "_blank")}
                   >
                     <ExternalLink className="h-3 w-3 mr-1" />
