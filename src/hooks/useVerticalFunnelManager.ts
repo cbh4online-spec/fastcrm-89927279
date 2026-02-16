@@ -186,15 +186,13 @@ export interface VerticalTemplateStatRow {
 }
 
 export function useVerticalTemplateStats(templateSlug: string | null, dateFrom?: string, dateTo?: string) {
-  const { currentWorkspace } = useWorkspace();
   return useQuery({
     queryKey: ["vertical_template_stats", templateSlug, dateFrom, dateTo],
     queryFn: async () => {
-      if (!templateSlug || !currentWorkspace?.id) return [];
+      if (!templateSlug) return [];
       let q = (supabase as any)
         .from("vertical_landing_events")
         .select("event_type, section, visitor_id")
-        .eq("workspace_id", currentWorkspace.id)
         .eq("template_slug", templateSlug);
       if (dateFrom) q = q.gte("created_at", dateFrom);
       if (dateTo) q = q.lte("created_at", dateTo);
@@ -221,6 +219,6 @@ export function useVerticalTemplateStats(templateSlug: string | null, dateFrom?:
         rate: d.allViews > 0 ? (d.submissions / d.allViews) * 100 : 0,
       })) as VerticalTemplateStatRow[];
     },
-    enabled: !!templateSlug && !!currentWorkspace?.id,
+    enabled: !!templateSlug,
   });
 }
