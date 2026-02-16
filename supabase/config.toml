@@ -282,3 +282,6 @@ verify_jwt = false
 
 [functions.funnel-ai-strategist]
 verify_jwt = false
+
+[functions.bio-ai-builder]
+verify_jwt = false

@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Globe, Eye, Trash2, ExternalLink, PenLine } from "lucide-react";
+import { Plus, Globe, Eye, Trash2, ExternalLink, PenLine, Sparkles } from "lucide-react";
 import { BioPageBuilder } from "@/components/bio/BioPageBuilder";
+import { BioAIWizard } from "@/components/bio/BioAIWizard";
 
 function BioOSContent() {
   const { data: pages = [], isLoading } = useBioPages();
@@ -19,6 +20,7 @@ function BioOSContent() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newSlug, setNewSlug] = useState("");
+  const [aiWizardOpen, setAiWizardOpen] = useState(false);
 
   if (selectedPageId) {
     return (
@@ -44,9 +46,13 @@ function BioOSContent() {
             <h1 className="text-2xl font-bold">Bio OS</h1>
             <p className="text-muted-foreground text-sm">Crie páginas bio e micro-sites com tracking integrado</p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-2" /> Nova Página</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setAiWizardOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-2" /> Criar com IA
+            </Button>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button><Plus className="h-4 w-4 mr-2" /> Nova Página</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -67,7 +73,13 @@ function BioOSContent() {
                 </Button>
               </div>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
+          <BioAIWizard
+            open={aiWizardOpen}
+            onOpenChange={setAiWizardOpen}
+            onPageCreated={(id) => setSelectedPageId(id)}
+          />
         </div>
 
         {isLoading ? (
