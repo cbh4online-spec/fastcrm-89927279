@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
-import { Plus, Globe, GlobeLock, Trash2, Pencil, ExternalLink } from "lucide-react";
+import { Plus, Globe, GlobeLock, Trash2, Pencil, ExternalLink, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { CreateLandingPageDialog } from "./CreateLandingPageDialog";
 import { LandingPageBuilder } from "./LandingPageBuilder";
 import { formatDistanceToNow } from "date-fns";
+import { verticalConfigs } from "@/config/verticalConfigs";
 
 export function LandingPagesList() {
   const { data: pages, isLoading } = useLandingPages();
@@ -45,6 +46,10 @@ export function LandingPagesList() {
     return `${getPublicBaseUrl()}/p/${currentWorkspace?.slug}/${slug}`;
   };
 
+  const getVerticalPublicUrl = (slug: string) => {
+    return `${getPublicBaseUrl()}/${slug}`;
+  };
+
   if (editingPageId) {
     return (
       <LandingPageBuilder
@@ -66,6 +71,64 @@ export function LandingPagesList() {
           New Page
         </Button>
       </div>
+
+      {/* Templates Verticais AIDA */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <h2 className="text-lg font-semibold">Templates Verticais (AIDA)</h2>
+          <Badge variant="secondary" className="text-xs">6 activos</Badge>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {Object.values(verticalConfigs).map((vertical) => (
+            <Card key={vertical.slug} className="group hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="text-lg">{vertical.nome}</CardTitle>
+                    <p className="text-sm text-muted-foreground">/{vertical.slug}</p>
+                  </div>
+                  <Badge
+                    className="text-xs"
+                    style={{ backgroundColor: vertical.cores.accent, color: "#fff" }}
+                  >
+                    AIDA
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {vertical.dor_principal}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">
+                    <Globe className="h-3 w-3 mr-1" />
+                    Publicado
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {vertical.modulos_ativos.length} módulos
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 pt-2 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => window.open(getVerticalPublicUrl(vertical.slug), "_blank")}
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Abrir
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Páginas Customizadas */}
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold">Páginas Customizadas</h2>
 
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -162,6 +225,7 @@ export function LandingPagesList() {
           ))}
         </div>
       )}
+      </div>
 
       <CreateLandingPageDialog
         open={createDialogOpen}
