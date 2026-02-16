@@ -1,56 +1,93 @@
 
-# Integrar Templates Verticais AIDA na Gestao de Landing Pages
 
-## Problema
+# Builder de Templates Verticais AIDA
 
-A pagina de Landing Pages (`/dashboard/landing-pages`) mostra apenas as landing pages customizadas criadas via base de dados. Os 6 templates verticais AIDA (clinicas, imobiliarias, formacao, condominios, agencias, empresas) existem apenas como configuracao estatica e nao aparecem nesta secao -- tornando impossivel geri-los a partir do painel.
+## Objetivo
 
-## Solucao
+Criar um builder visual que permite criar novos templates verticais AIDA para qualquer area de negocio, guardando-os na base de dados. Isto permite escalar para alem dos 6 templates estaticos actuais (clinicas, imobiliarias, formacao, condominios, agencias, empresas).
 
-Adicionar uma secao de "Templates Verticais" na pagina de Landing Pages que mostra os 6 templates AIDA lado a lado com as paginas customizadas. Cada card vertical tera:
-- Nome e slug da vertical
-- Badge "AIDA Template"
-- Estado publicado (rota publica ativa)
-- Botao para ver/abrir a pagina publica
-- Botao para editar a configuracao (futura funcionalidade)
+## Como funciona
+
+Na pagina de Landing Pages, ao lado do botao "New Page", aparecera um botao "+ Novo Template AIDA". Ao clicar, abre um builder multi-step que guia o utilizador a preencher todos os campos do template (nome, slug, dores, modulos, cores, CTAs, SEO, etc.). O template e guardado na base de dados e fica imediatamente disponivel como pagina publica.
 
 ## Plano Tecnico
 
-### Ficheiro a editar: `src/components/landing-pages/LandingPagesList.tsx`
+### 1. Tabela na base de dados: `vertical_templates`
 
-1. Importar `verticalConfigs` de `@/config/verticalConfigs.ts`
-2. Adicionar secao "Templates Verticais AIDA" com tabs ou separador visual acima das paginas customizadas
-3. Renderizar cards para cada vertical com:
-   - Titulo (ex: "Clinicas"), slug (ex: `/clinicas`)
-   - Badge "AIDA" com cor accent da vertical
-   - Link externo para abrir a pagina publica (ex: `https://fastcrm.lovable.app/clinicas`)
-   - Estado sempre "Published" (rotas publicas ativas)
-4. Manter a secao existente de paginas customizadas abaixo, com toda a funcionalidade atual intacta
+Nova tabela para guardar templates verticais criados pelo utilizador:
 
-### Estrutura visual
+| Coluna | Tipo | Descricao |
+|---|---|---|
+| id | uuid (PK) | Identificador unico |
+| workspace_id | uuid (FK) | Workspace do criador |
+| slug | text (unique) | URL slug (ex: "restaurantes") |
+| nome | text | Nome da vertical |
+| dor_principal | text | Dor principal do publico-alvo |
+| resultado_prometido | text | Resultado prometido |
+| dores | jsonb | Array de 4 dores |
+| modulos_ativos | jsonb | Array de modulos com nome, desc, icon |
+| antes_depois | jsonb | Objecto com arrays antes/depois |
+| roi_exemplo | jsonb | Objecto com clientes_extra, valor_medio, periodo |
+| cores | jsonb | Objecto com primaria e accent |
+| cta_principal | text | Texto do CTA principal |
+| cta_secundario | text | Texto do CTA secundario |
+| ai_persona_nome | text | Nome da persona AI |
+| seo | jsonb | Objecto com title, description, canonical |
+| is_published | boolean | Se esta publicado |
+| created_at | timestamptz | Data de criacao |
+| updated_at | timestamptz | Data de actualizacao |
+| created_by | uuid | User que criou |
 
-```text
-+------------------------------------------+
-|  Landing Pages                   [+ New]  |
-+------------------------------------------+
-|  TEMPLATES VERTICAIS (AIDA)               |
-|  +----------+ +----------+ +----------+  |
-|  | Clinicas | | Imobili. | | Formacao |  |
-|  | /clinicas| | /imobil. | | /formac. |  |
-|  | [Abrir]  | | [Abrir]  | | [Abrir]  |  |
-|  +----------+ +----------+ +----------+  |
-|  +----------+ +----------+ +----------+  |
-|  | Condomin.| | Agencias | | Empresas |  |
-|  +----------+ +----------+ +----------+  |
-+------------------------------------------+
-|  PAGINAS CUSTOMIZADAS                     |
-|  (lista existente com create/edit/delete) |
-+------------------------------------------+
-```
+RLS: Membros do workspace podem ler; admins/owners podem criar/editar/apagar.
 
-### Detalhes
+### 2. Componente: `VerticalTemplateBuilder.tsx`
 
-- Os cards verticais usam a cor `accent` de cada `verticalConfig` para o badge
-- Link externo aponta para a rota publica da app (ex: `/clinicas`)
-- Nao e necessaria migracao de base de dados
-- Nao e necessario novo componente -- alteracao apenas no `LandingPagesList.tsx`
+Builder com tabs para organizar os campos:
+
+- **Tab "Identidade"**: Nome, slug (auto-gerado), dor principal, resultado prometido
+- **Tab "Dores"**: 4 campos de texto para as dores do publico
+- **Tab "Solucao"**: Modulos ativos (nome, descricao, icone) -- ate 6 modulos com add/remove
+- **Tab "Transformacao"**: Antes/Depois (4 itens cada)
+- **Tab "ROI"**: Clientes extra, valor medio, periodo
+- **Tab "Aparencia"**: Cores primaria e accent com color picker
+- **Tab "CTAs & SEO"**: CTA principal, CTA secundario, SEO title, description
+
+Cada tab tem um botao "Gerar com IA" que usa o Lovable AI para sugerir conteudo baseado no nome da vertical e area de negocio.
+
+Botoes no topo: Voltar, Preview, Guardar, Publicar.
+
+### 3. Preview
+
+Reutiliza o componente `VerticalLandingTemplate` existente, passando os dados do formulario convertidos para o formato `VerticalConfig`.
+
+### 4. Rota dinamica
+
+Actualizar o `App.tsx` para suportar templates dinamicos da base de dados: adicionar uma rota catch-all `/:slug` que verifica primeiro os configs estaticos e depois a tabela `vertical_templates`.
+
+### 5. Integracao na Landing Pages List
+
+- Botao "+ Novo Template AIDA" no header
+- Templates da BD aparecem na mesma grelha dos templates estaticos, com badges "AIDA" e "Custom"
+- Botoes: Abrir, Editar, Eliminar (para os da BD)
+
+### 6. Hook: `useVerticalTemplates.ts`
+
+Hook React Query para CRUD dos templates:
+- `useVerticalTemplates()` -- lista todos do workspace
+- `useVerticalTemplate(id)` -- busca um por ID
+- `useCreateVerticalTemplate()` -- criar
+- `useUpdateVerticalTemplate()` -- actualizar
+- `useDeleteVerticalTemplate()` -- eliminar
+
+### Ficheiros a criar
+
+- `src/components/landing-pages/VerticalTemplateBuilder.tsx` -- Builder principal
+- `src/hooks/useVerticalTemplates.ts` -- Hook CRUD
+- Migracao SQL para tabela `vertical_templates`
+
+### Ficheiros a editar
+
+- `src/components/landing-pages/LandingPagesList.tsx` -- Adicionar botao, listar templates da BD
+- `src/pages/VerticalLandingPage.tsx` -- Fallback para templates da BD
+- `src/App.tsx` -- Rota dinamica para novos slugs
+
