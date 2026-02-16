@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
@@ -15,6 +16,7 @@ import {
 import {
   useFunnelSteps, useCreateFunnelStep, useDeleteFunnelStep, useUpdateFunnelStep
 } from "@/hooks/useFunnels";
+import { useFunnelVariations, useCreateVariation, useDeleteVariation, useUpdateVariation } from "@/hooks/useFunnelVariations";
 import { cn } from "@/lib/utils";
 import { FunnelStepEditor } from "../FunnelStepEditor";
 
@@ -50,7 +52,15 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
   const [newStepType, setNewStepType] = useState("page");
   const [stepSubTab, setStepSubTab] = useState("overview");
 
+  // Variation state
+  const [variationDialogOpen, setVariationDialogOpen] = useState(false);
+  const [variationName, setVariationName] = useState("");
+
   const selectedStep = steps.find((s) => s.id === selectedStepId) || steps[0] || null;
+  const { data: variations = [] } = useFunnelVariations(selectedStep?.id ?? null);
+  const createVariation = useCreateVariation();
+  const deleteVariation = useDeleteVariation();
+  const updateVariation = useUpdateVariation();
 
   const handleAddStep = async () => {
     if (!newStepName) return;
@@ -70,6 +80,17 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
       await deleteStep.mutateAsync({ id: stepId, funnelId });
       if (selectedStepId === stepId) setSelectedStepId(null);
     }
+  };
+
+  const handleCreateVariation = async () => {
+    if (!variationName || !selectedStep) return;
+    await createVariation.mutateAsync({
+      step_id: selectedStep.id,
+      name: variationName,
+      traffic_percentage: 50,
+    });
+    setVariationDialogOpen(false);
+    setVariationName("");
   };
 
   return (
@@ -131,20 +152,21 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
             <div className="space-y-4">
               <Card className="p-6">
                 <div className="flex gap-6">
-                  {/* Page preview */}
+                  {/* Control */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        CONTROL
-                      </Badge>
+                      <Badge variant="outline" className="text-xs">CONTROL</Badge>
+                      {variations.length > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          {100 - variations.reduce((sum, v) => sum + v.traffic_percentage, 0)}% tráfego
+                        </span>
+                      )}
                     </div>
                     <div className="w-48 h-64 border rounded-lg bg-muted/30 flex items-center justify-center text-muted-foreground text-sm">
                       {STEP_TYPE_ICONS[selectedStep.step_type]} Pré-visualização
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button size="sm">
-                        Editar
-                      </Button>
+                      <Button size="sm">Editar</Button>
                       <Button variant="outline" size="icon" className="h-8 w-8">
                         <ExternalLink className="h-3 w-3" />
                       </Button>
@@ -154,33 +176,80 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
                     </div>
                   </div>
 
-                  {/* Split test placeholder */}
-                  <div className="flex-1 flex items-center justify-center">
-                    <div className="text-center space-y-3">
-                      <div className="w-20 h-20 mx-auto bg-muted rounded-full flex items-center justify-center">
-                        <span className="text-2xl">🔀</span>
+                  {/* Split test area */}
+                  {variations.length === 0 ? (
+                    <>
+                      <div className="flex-1 flex items-center justify-center">
+                        <div className="text-center space-y-3">
+                          <div className="w-20 h-20 mx-auto bg-muted rounded-full flex items-center justify-center">
+                            <span className="text-2xl">🔀</span>
+                          </div>
+                          <h4 className="font-medium">Start Split Test</h4>
+                          <p className="text-sm text-muted-foreground max-w-xs">
+                            Optimiza a geração de leads e vendas com testes A/B.
+                          </p>
+                        </div>
                       </div>
-                      <h4 className="font-medium">Start Split Test</h4>
-                      <p className="text-sm text-muted-foreground max-w-xs">
-                        Optimiza a geração de leads e vendas com testes A/B.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Variation placeholder */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        VARIATION
-                      </Badge>
-                    </div>
-                    <div className="w-48 h-64 border-2 border-dashed rounded-lg flex items-center justify-center">
-                      <Button variant="link" size="sm">
+                      <div className="space-y-3">
+                        <Badge variant="outline" className="text-xs">VARIATION</Badge>
+                        <div className="w-48 h-64 border-2 border-dashed rounded-lg flex items-center justify-center">
+                          <Button variant="link" size="sm" onClick={() => setVariationDialogOpen(true)}>
+                            <Plus className="h-3 w-3 mr-1" />
+                            Criar variação
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex-1 space-y-4">
+                      {variations.map((v) => (
+                        <Card key={v.id} className="p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-xs">{v.name}</Badge>
+                              {v.conversion_rate !== null && (
+                                <Badge variant="outline" className="text-xs">
+                                  {v.conversion_rate}% conv.
+                                </Badge>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => deleteVariation.mutate({ id: v.id, stepId: selectedStep.id })}
+                            >
+                              <Trash2 className="h-3 w-3 text-destructive" />
+                            </Button>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span>Tráfego</span>
+                              <span>{v.traffic_percentage}%</span>
+                            </div>
+                            <Slider
+                              value={[v.traffic_percentage]}
+                              min={5}
+                              max={95}
+                              step={5}
+                              onValueChange={([val]) =>
+                                updateVariation.mutate({ id: v.id, traffic_percentage: val })
+                              }
+                            />
+                          </div>
+                        </Card>
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setVariationDialogOpen(true)}
+                      >
                         <Plus className="h-3 w-3 mr-1" />
-                        Criar variação
+                        Adicionar Variação
                       </Button>
                     </div>
-                  </div>
+                  )}
                 </div>
               </Card>
 
@@ -241,6 +310,31 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleAddStep} disabled={!newStepName}>Adicionar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Variation Dialog */}
+      <Dialog open={variationDialogOpen} onOpenChange={setVariationDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Criar Variação A/B</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nome da Variação</Label>
+              <Input
+                value={variationName}
+                onChange={(e) => setVariationName(e.target.value)}
+                placeholder="Ex: Variação B"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVariationDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreateVariation} disabled={!variationName || createVariation.isPending}>
+              Criar Variação
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

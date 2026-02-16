@@ -8,6 +8,8 @@ import { FunnelStatsTab } from "./tabs/FunnelStatsTab";
 import { FunnelSalesTab } from "./tabs/FunnelSalesTab";
 import { FunnelEventsTab } from "./tabs/FunnelEventsTab";
 import { FunnelSettingsTab } from "./tabs/FunnelSettingsTab";
+import { FunnelProductsTab } from "./tabs/FunnelProductsTab";
+import { FunnelAIInsightsTab } from "./tabs/FunnelAIInsightsTab";
 
 interface FunnelBuilderProps {
   funnelId: string;
@@ -50,8 +52,10 @@ export function FunnelBuilder({ funnelId, onBack }: FunnelBuilderProps) {
           <TabsTrigger value="steps">Steps</TabsTrigger>
           <TabsTrigger value="stats">Stats</TabsTrigger>
           <TabsTrigger value="sales">Sales</TabsTrigger>
+          <TabsTrigger value="products">Products</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="ai-insights">AI Insights</TabsTrigger>
         </TabsList>
 
         <TabsContent value="steps">
@@ -63,11 +67,17 @@ export function FunnelBuilder({ funnelId, onBack }: FunnelBuilderProps) {
         <TabsContent value="sales">
           <FunnelSalesTab funnelId={funnelId} />
         </TabsContent>
+        <TabsContent value="products">
+          <FunnelProductsTab funnelId={funnelId} />
+        </TabsContent>
         <TabsContent value="events">
           <FunnelEventsTab funnelId={funnelId} />
         </TabsContent>
         <TabsContent value="settings">
           <FunnelSettingsTab funnelId={funnelId} />
+        </TabsContent>
+        <TabsContent value="ai-insights">
+          <FunnelAIInsightsTab funnelId={funnelId} />
         </TabsContent>
       </Tabs>
     </div>

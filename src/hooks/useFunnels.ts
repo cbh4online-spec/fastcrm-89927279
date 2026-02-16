@@ -18,6 +18,8 @@ export interface Funnel {
   created_by: string;
   created_at: string;
   updated_at: string;
+  vertical_id: string | null;
+  type: string;
 }
 
 export interface FunnelStep {
@@ -184,7 +186,7 @@ export function useCreateFunnel() {
   const qc = useQueryClient();
   const { currentWorkspace } = useWorkspace();
   return useMutation({
-    mutationFn: async (input: { name: string; slug: string }) => {
+    mutationFn: async (input: { name: string; slug: string; vertical_id?: string; type?: string }) => {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user || !currentWorkspace?.id) throw new Error("Não autenticado");
       const { data, error } = await supabase
