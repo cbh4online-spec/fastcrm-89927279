@@ -1,37 +1,41 @@
 
+# Unificar Funis e Landing Pages num unico modulo
 
-# Restaurar Landing Pages na secao de Funis
+## Contexto
 
-## Problema
-
-Quando o sistema de Funis foi criado, o item "Landing Pages" foi removido do menu lateral e substituido apenas por "Funis". O modulo de Landing Pages deixou de estar acessivel.
-
-## Solucao
-
-Adicionar o item "Landing Pages" de volta ao menu lateral, ao lado de "Funis", dentro do mesmo grupo de Marketing. Ambos os modulos ficam disponiveis:
-
-- **Funis** -> `/dashboard/funnels` (sistema novo de funis multi-step)
-- **Landing Pages** -> `/dashboard/landing-pages` (sistema existente de landing pages)
+O utilizador confirmou que funis e landing pages sao a mesma coisa no contexto desta aplicacao. Nao faz sentido ter dois itens separados no menu.
 
 ## Alteracoes
 
-### 1. `src/components/layout/Sidebar.tsx`
+### 1. Remover "Landing Pages" do menu lateral
 
-Adicionar o item "Landing Pages" no grupo de Marketing, logo apos o item "Funis":
+**Ficheiro:** `src/components/layout/Sidebar.tsx`
 
+Remover a linha:
 ```
-{ name: "Funis", href: "/dashboard/funnels", icon: Globe, tooltip: "Funis de conversao" },
 { name: "Landing Pages", href: "/dashboard/landing-pages", icon: FileEdit, tooltip: "Paginas de captura" },
 ```
 
-### 2. `src/App.tsx`
-
-Restaurar a rota `/dashboard/landing-pages` para apontar para o componente `LandingPages` em vez de `Funnels`:
-
+Manter apenas:
 ```
-Antes:  <Route path="/dashboard/landing-pages" element={<Funnels />} />
-Depois: <Route path="/dashboard/landing-pages" element={<LandingPages />} />
+{ name: "Funis", href: "/dashboard/funnels", icon: Globe, tooltip: "Funis de conversao" },
 ```
 
-Garantir que o import de `LandingPages` esta presente no ficheiro.
+### 2. Redirecionar a rota antiga
 
+**Ficheiro:** `src/App.tsx`
+
+Alterar a rota `/dashboard/landing-pages` para redirecionar para `/dashboard/funnels`:
+
+```
+Antes:  <Route path="/dashboard/landing-pages" element={<LandingPages />} />
+Depois: <Route path="/dashboard/landing-pages" element={<Navigate to="/dashboard/funnels" replace />} />
+```
+
+Remover o import de `LandingPages` se deixar de ser usado.
+
+## Resultado
+
+- Um unico item "Funis" no menu lateral
+- Qualquer link antigo para `/dashboard/landing-pages` redireciona automaticamente para `/dashboard/funnels`
+- O modulo de Funis passa a ser o ponto central para criar paginas e funis de conversao
