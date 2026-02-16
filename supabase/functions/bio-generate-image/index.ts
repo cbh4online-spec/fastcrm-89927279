@@ -22,6 +22,8 @@ Deno.serve(async (req) => {
       });
     }
 
+    const enrichedPrompt = `Professional quality image, suitable as background for a link-in-bio page. Photorealistic or high-quality illustration. No text, no logos, no watermarks. Ultra high resolution.\n\n${prompt}`;
+
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -30,7 +32,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash-image",
-        messages: [{ role: "user", content: prompt }],
+        messages: [{ role: "user", content: enrichedPrompt }],
         modalities: ["image", "text"],
       }),
     });

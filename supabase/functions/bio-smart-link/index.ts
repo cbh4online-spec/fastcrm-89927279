@@ -111,7 +111,20 @@ Responde APENAS com o JSON, sem markdown.`;
     // 3. Generate background image for hero/feature blocks
     if (blockType === "hero" || blockType === "feature") {
       try {
-        const imagePrompt = `Create a modern, visually stunning background image for a "link in bio" card about: "${copy.title} - ${copy.subtitle}". The image should be abstract, colorful, with gradient tones. Professional quality, suitable as a card background. No text in the image. Ultra high resolution.`;
+        const imagePrompt = `Create a professional background image that visually represents this business/page:
+Page: ${meta.title}
+Description: ${meta.description}
+Theme: ${copy.title} - ${copy.subtitle}
+URL context: ${url}
+
+The image must:
+- Visually communicate the industry/niche of this page (e.g. food imagery for restaurants, tech visuals for software, beauty aesthetics for salons, fitness for gyms)
+- Use a modern, premium aesthetic with subtle depth
+- Work as a background with text overlay (include slightly dark or blurred areas for readability)
+- NO text, NO logos, NO watermarks
+- Photorealistic or high-quality illustration style
+- Convey the emotion and value proposition of the page
+- Ultra high resolution, 16:9 aspect ratio`;
 
         const imgResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
