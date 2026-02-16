@@ -1489,5 +1489,57 @@ export const SAMPLE_MODULES: MarketplaceModule[] = [
     created_at: "2025-02-10T00:00:00Z",
     updated_at: "2025-02-10T00:00:00Z",
     published_at: "2025-02-10T00:00:00Z"
+  },
+  {
+    id: "bio-os",
+    slug: "bio-os",
+    name: "Bio OS",
+    tagline: "Páginas Bio e micro-sites premium com tracking e IA",
+    description: "Crie páginas bio modernas e micro-sites rápidos com blocos drag-and-drop, tracking automático, QR codes rastreáveis, checkout integrado e IA estratégica. Tudo multi-tenant e integrado com o CRM.",
+    category: "marketing",
+    icon: "Link2",
+    target_audience: "Empreendedores, freelancers e equipas de marketing",
+    expected_results: [
+      "Página bio profissional em 5 minutos",
+      "Tracking completo de cliques e conversões",
+      "QR codes dinâmicos rastreáveis",
+      "Captação de leads integrada com CRM"
+    ],
+    use_cases: [
+      "Criar página link-in-bio para redes sociais",
+      "Landing pages rápidas para campanhas",
+      "Micro-sites com formulários e checkout",
+      "QR codes para materiais impressos"
+    ],
+    internal_type: "native_feature",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "contacts", read: true, write: true, delete: false },
+        { entity: "leads", read: true, write: true, delete: false },
+        { entity: "opportunities", read: true, write: true, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: false,
+      can_send_whatsapp: false,
+      can_create_activities: true,
+      can_trigger_automations: true
+    },
+    pricing: {
+      type: "free",
+      base_price: 0,
+      currency: "EUR",
+      trial_days: 14
+    },
+    publisher: "FastCRM",
+    is_featured: true,
+    is_new: true,
+    rating: 4.7,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2026-02-16T00:00:00Z",
+    updated_at: "2026-02-16T00:00:00Z",
+    published_at: "2026-02-16T00:00:00Z"
   }
 ];
