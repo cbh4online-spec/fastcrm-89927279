@@ -1,43 +1,37 @@
 
-# Adicionar hora na data de criacao de Contactos, Leads e Empresas
+
+# Restaurar Landing Pages na secao de Funis
 
 ## Problema
 
-A coluna "Criado Em" nas tabelas de leads, contactos e empresas mostra apenas a data (ex: `16/02/2026`) sem a hora.
+Quando o sistema de Funis foi criado, o item "Landing Pages" foi removido do menu lateral e substituido apenas por "Funis". O modulo de Landing Pages deixou de estar acessivel.
 
 ## Solucao
 
-Alterar o formato de data em 3 locais para incluir a hora (`HH:mm`):
+Adicionar o item "Landing Pages" de volta ao menu lateral, ao lado de "Funis", dentro do mesmo grupo de Marketing. Ambos os modulos ficam disponiveis:
 
-### 1. `src/components/common/DynamicTableCell.tsx` (linha 21)
+- **Funis** -> `/dashboard/funnels` (sistema novo de funis multi-step)
+- **Landing Pages** -> `/dashboard/landing-pages` (sistema existente de landing pages)
 
-Componente partilhado que formata todas as colunas de data nas tabelas dinamicas (leads e contactos usam este).
+## Alteracoes
 
-```
-Antes:  format(new Date(dateStr), "dd/MM/yyyy", { locale: pt })
-Depois: format(new Date(dateStr), "dd/MM/yyyy HH:mm", { locale: pt })
-```
+### 1. `src/components/layout/Sidebar.tsx`
 
-### 2. `src/components/companies/CompaniesList.tsx` (linha 210)
-
-Tabela de empresas com formatacao propria.
+Adicionar o item "Landing Pages" no grupo de Marketing, logo apos o item "Funis":
 
 ```
-Antes:  format(new Date(company.created_at), "dd MMM yyyy", { locale: pt })
-Depois: format(new Date(company.created_at), "dd MMM yyyy, HH:mm", { locale: pt })
+{ name: "Funis", href: "/dashboard/funnels", icon: Globe, tooltip: "Funis de conversao" },
+{ name: "Landing Pages", href: "/dashboard/landing-pages", icon: FileEdit, tooltip: "Paginas de captura" },
 ```
 
-### 3. `src/components/contacts/ContactsList.tsx` (linha 497)
+### 2. `src/App.tsx`
 
-Tabela de contactos com formatacao propria (alem do DynamicTableCell).
+Restaurar a rota `/dashboard/landing-pages` para apontar para o componente `LandingPages` em vez de `Funnels`:
 
 ```
-Antes:  format(new Date(contact.created_at), "dd MMM yyyy", { locale: pt })
-Depois: format(new Date(contact.created_at), "dd MMM yyyy, HH:mm", { locale: pt })
+Antes:  <Route path="/dashboard/landing-pages" element={<Funnels />} />
+Depois: <Route path="/dashboard/landing-pages" element={<LandingPages />} />
 ```
 
-## Ficheiros a editar
+Garantir que o import de `LandingPages` esta presente no ficheiro.
 
-- `src/components/common/DynamicTableCell.tsx`
-- `src/components/companies/CompaniesList.tsx`
-- `src/components/contacts/ContactsList.tsx`
