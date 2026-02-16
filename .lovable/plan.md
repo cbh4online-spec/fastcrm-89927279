@@ -1,44 +1,43 @@
 
-# Fix: Dashboard 404 caused by catch-all `/:slug` route ordering
+# Adicionar hora na data de criacao de Contactos, Leads e Empresas
 
-## Problem
+## Problema
 
-The `/:slug` catch-all route (line 489 in `src/App.tsx`) is placed in the top-level `<Routes>` **before** the CRM wildcard route (`/*` on line 550). React Router matches routes in order, so `/dashboard` matches `/:slug` first, rendering `VerticalLandingPage` instead of the CRM routes. Since "dashboard" is not a valid vertical template slug, it shows 404.
+A coluna "Criado Em" nas tabelas de leads, contactos e empresas mostra apenas a data (ex: `16/02/2026`) sem a hora.
 
-This also affects `/fastclub`, `/login`, `/signup`, and potentially all CRM routes.
+## Solucao
 
-## Solution
+Alterar o formato de data em 3 locais para incluir a hora (`HH:mm`):
 
-Move the vertical landing page routes (both static and the `/:slug` catch-all) **inside** the `CRMRoutes` component, just before the `*` NotFound catch-all. This way:
+### 1. `src/components/common/DynamicTableCell.tsx` (linha 21)
 
-1. All specific routes (`/dashboard`, `/login`, `/fastclub`, etc.) match first
-2. Only truly unknown slugs fall through to `/:slug` for vertical template lookup
-3. If the slug doesn't match a template either, `VerticalLandingPage` already handles showing NotFound
+Componente partilhado que formata todas as colunas de data nas tabelas dinamicas (leads e contactos usam este).
 
-## Changes
-
-### File: `src/App.tsx`
-
-**Remove** from top-level Routes (lines 482-489):
 ```
-<Route path="/clinicas" element={<VerticalLandingPage />} />
-<Route path="/imobiliarias" element={<VerticalLandingPage />} />
-<Route path="/formacao" element={<VerticalLandingPage />} />
-<Route path="/condominios" element={<VerticalLandingPage />} />
-<Route path="/agencias" element={<VerticalLandingPage />} />
-<Route path="/empresas" element={<VerticalLandingPage />} />
-<Route path="/:slug" element={<VerticalLandingPage />} />
+Antes:  format(new Date(dateStr), "dd/MM/yyyy", { locale: pt })
+Depois: format(new Date(dateStr), "dd/MM/yyyy HH:mm", { locale: pt })
 ```
 
-**Add** inside `CRMRoutes`, just before the `<Route path="*" element={<NotFound />} />` line (before line 451):
+### 2. `src/components/companies/CompaniesList.tsx` (linha 210)
+
+Tabela de empresas com formatacao propria.
+
 ```
-<Route path="/clinicas" element={<VerticalLandingPage />} />
-<Route path="/imobiliarias" element={<VerticalLandingPage />} />
-<Route path="/formacao" element={<VerticalLandingPage />} />
-<Route path="/condominios" element={<VerticalLandingPage />} />
-<Route path="/agencias" element={<VerticalLandingPage />} />
-<Route path="/empresas" element={<VerticalLandingPage />} />
-<Route path="/:slug" element={<VerticalLandingPage />} />
+Antes:  format(new Date(company.created_at), "dd MMM yyyy", { locale: pt })
+Depois: format(new Date(company.created_at), "dd MMM yyyy, HH:mm", { locale: pt })
 ```
 
-This ensures all specific CRM routes have priority, and the vertical slug catch-all only captures truly unknown paths.
+### 3. `src/components/contacts/ContactsList.tsx` (linha 497)
+
+Tabela de contactos com formatacao propria (alem do DynamicTableCell).
+
+```
+Antes:  format(new Date(contact.created_at), "dd MMM yyyy", { locale: pt })
+Depois: format(new Date(contact.created_at), "dd MMM yyyy, HH:mm", { locale: pt })
+```
+
+## Ficheiros a editar
+
+- `src/components/common/DynamicTableCell.tsx`
+- `src/components/companies/CompaniesList.tsx`
+- `src/components/contacts/ContactsList.tsx`
