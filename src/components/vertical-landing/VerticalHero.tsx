@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { VerticalConfig } from "@/config/verticalConfigs";
+import dashboardMockup from "@/assets/vertical-dashboard-mockup.png";
 
 interface Props {
   config: VerticalConfig;
@@ -65,6 +66,26 @@ export function VerticalHero({ config }: Props) {
               <Play className="h-4 w-4" />
               {config.cta_secundario}
             </Button>
+          </div>
+        </motion.div>
+
+        {/* Dashboard mockup image */}
+        <motion.div
+          initial={{ opacity: 0, y: 60 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, delay: 0.3, ease: "easeOut" }}
+          className="mt-16 lg:mt-24 max-w-5xl mx-auto"
+        >
+          <div className="relative rounded-xl overflow-hidden border border-[hsl(217,33%,17%)] shadow-2xl shadow-primary/10"
+            style={{ perspective: "1200px" }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222,47%,4%)] via-transparent to-transparent z-10 pointer-events-none" />
+            <img
+              src={dashboardMockup}
+              alt={`FastCRM dashboard para ${config.nome} — pipeline de vendas, contactos e analytics`}
+              className="w-full h-auto"
+              loading="eager"
+            />
           </div>
         </motion.div>
       </div>
