@@ -23,6 +23,7 @@ import { verticalConfigs } from "@/config/verticalConfigs";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { FunnelBuilder } from "./FunnelBuilder";
 import { VerticalTemplateBuilder } from "@/components/landing-pages/VerticalTemplateBuilder";
+import { VerticalFunnelManager } from "./VerticalFunnelManager";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -43,8 +44,9 @@ export function FunnelsList() {
   const [newSlug, setNewSlug] = useState("");
 
   // AIDA template state
-  const [builderMode, setBuilderMode] = useState<"new" | "edit" | null>(null);
+  const [builderMode, setBuilderMode] = useState<"new" | null>(null);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [managingTemplateId, setManagingTemplateId] = useState<string | null>(null);
   const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
 
   const handleCreate = async () => {
@@ -74,15 +76,21 @@ export function FunnelsList() {
     return `${getPublicBaseUrl()}/${slug}`;
   };
 
-  // Show AIDA builder
+  // Show vertical funnel manager
+  if (managingTemplateId) {
+    return (
+      <VerticalFunnelManager
+        templateId={managingTemplateId}
+        onBack={() => setManagingTemplateId(null)}
+      />
+    );
+  }
+
+  // Show AIDA builder for new templates
   if (builderMode) {
     return (
       <VerticalTemplateBuilder
-        templateId={builderMode === "edit" ? editingTemplateId : undefined}
-        onBack={() => {
-          setBuilderMode(null);
-          setEditingTemplateId(null);
-        }}
+        onBack={() => setBuilderMode(null)}
       />
     );
   }
@@ -218,8 +226,7 @@ export function FunnelsList() {
                     size="sm"
                     className="flex-1"
                     onClick={() => {
-                      setEditingTemplateId(tpl.id);
-                      setBuilderMode("edit");
+                      setManagingTemplateId(tpl.id);
                     }}
                   >
                     <Pencil className="h-3 w-3 mr-1" />

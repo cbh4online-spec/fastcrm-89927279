@@ -26787,6 +26787,132 @@ export type Database = {
           },
         ]
       }
+      vertical_template_sales: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          id: string
+          product_name: string | null
+          purchase_date: string
+          template_id: string
+          transaction_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          id?: string
+          product_name?: string | null
+          purchase_date?: string
+          template_id: string
+          transaction_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          id?: string
+          product_name?: string | null
+          purchase_date?: string
+          template_id?: string
+          transaction_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vertical_template_sales_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "vertical_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vertical_template_sales_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vertical_template_settings: {
+        Row: {
+          body_tracking_code: string | null
+          chat_widget: string
+          created_at: string
+          domain: string | null
+          favicon_url: string | null
+          gdpr_compliant_fonts: boolean
+          head_tracking_code: string | null
+          id: string
+          image_optimization: boolean
+          optimize_javascript: boolean
+          path: string | null
+          payment_mode_live: boolean
+          require_credit_card: boolean
+          template_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          body_tracking_code?: string | null
+          chat_widget?: string
+          created_at?: string
+          domain?: string | null
+          favicon_url?: string | null
+          gdpr_compliant_fonts?: boolean
+          head_tracking_code?: string | null
+          id?: string
+          image_optimization?: boolean
+          optimize_javascript?: boolean
+          path?: string | null
+          payment_mode_live?: boolean
+          require_credit_card?: boolean
+          template_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          body_tracking_code?: string | null
+          chat_widget?: string
+          created_at?: string
+          domain?: string | null
+          favicon_url?: string | null
+          gdpr_compliant_fonts?: boolean
+          head_tracking_code?: string | null
+          id?: string
+          image_optimization?: boolean
+          optimize_javascript?: boolean
+          path?: string | null
+          payment_mode_live?: boolean
+          require_credit_card?: boolean
+          template_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vertical_template_settings_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: true
+            referencedRelation: "vertical_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vertical_template_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vertical_templates: {
         Row: {
           ai_persona_nome: string
@@ -26854,6 +26980,57 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "vertical_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vertical_tracking_events: {
+        Row: {
+          access_token: string | null
+          created_at: string
+          events_tracked: string[]
+          id: string
+          is_active: boolean
+          pixel_id: string
+          template_id: string
+          tracking_level: string
+          workspace_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string
+          events_tracked?: string[]
+          id?: string
+          is_active?: boolean
+          pixel_id: string
+          template_id: string
+          tracking_level?: string
+          workspace_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string
+          events_tracked?: string[]
+          id?: string
+          is_active?: boolean
+          pixel_id?: string
+          template_id?: string
+          tracking_level?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vertical_tracking_events_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "vertical_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vertical_tracking_events_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
