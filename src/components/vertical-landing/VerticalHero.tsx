@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { VerticalConfig } from "@/config/verticalConfigs";
-import dashboardMockup from "@/assets/vertical-dashboard-mockup.png";
+import { DashboardMockup } from "./DashboardMockup";
 
 interface Props {
   config: VerticalConfig;
@@ -80,12 +80,7 @@ export function VerticalHero({ config }: Props) {
             style={{ perspective: "1200px" }}
           >
             <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222,47%,4%)] via-transparent to-transparent z-10 pointer-events-none" />
-            <img
-              src={dashboardMockup}
-              alt={`FastCRM dashboard para ${config.nome} — pipeline de vendas, contactos e analytics`}
-              className="w-full h-auto"
-              loading="eager"
-            />
+            <DashboardMockup config={config} />
           </div>
         </motion.div>
       </div>
