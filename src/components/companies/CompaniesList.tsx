@@ -207,7 +207,7 @@ export function CompaniesList() {
                     )}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {format(new Date(company.created_at), "dd MMM yyyy", { locale: pt })}
+                    {format(new Date(company.created_at), "dd MMM yyyy, HH:mm", { locale: pt })}
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
