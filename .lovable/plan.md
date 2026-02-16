@@ -1,79 +1,53 @@
 
 
-# Bio OS -- Smart Link: IA gera tudo a partir de um URL
+# Bio OS -- Imagens com contexto da vertical/pagina
 
-## Conceito
-Em vez de editar campo a campo, o utilizador cola um URL e a IA analisa o destino para gerar automaticamente:
-- **Titulo** chamativo (tecnicas AIDA/PAS)
-- **Subtitulo** persuasivo
-- **Texto do CTA** optimizado para cliques
-- **Imagem** gerada por IA que combine com o conteudo
+## Problema
+O prompt de geracao de imagens e generico ("abstract, colorful, gradient tones"), ignorando o conteudo real da pagina/vertical. As imagens geradas nao transmitem o contexto do negocio.
 
-Isto resolve dois problemas de uma vez:
-1. Elimina a edicao manual campo a campo (que tem o bug de debounce)
-2. Cria blocos de alta qualidade com zero esforco
+## Solucao
+Melhorar os prompts de imagem para incluir o contexto extraido da pagina (meta tags) e o copy gerado pela IA, criando imagens tematicas e relevantes.
 
-## Fluxo do Utilizador
+## Detalhes Tecnicos
 
-```text
-1. Utilizador adiciona bloco (hero, feature, link, button)
-2. No painel de propriedades, ve um campo "URL da pagina"
-3. Cola o URL (ex: https://meusite.pt/produto)
-4. Clica "Gerar com IA"
-5. Loading com mensagens rotativas (5-8 seg)
-6. Todos os campos preenchidos automaticamente:
-   - Titulo, subtitulo, CTA text (copy persuasivo)
-   - Imagem de fundo gerada (para hero/feature)
-7. Utilizador pode ajustar qualquer campo depois
+### Ficheiro a editar: `supabase/functions/bio-smart-link/index.ts`
+
+**Linha 114 -- Melhorar o prompt de imagem:**
+
+Substituir o prompt generico por um que inclua:
+- O titulo e descricao extraidos da pagina (`meta.title`, `meta.description`)
+- O copy gerado (`copy.title`, `copy.subtitle`)
+- O URL para inferir contexto do sector
+- Instrucoes para criar uma imagem que represente visualmente o conteudo real
+
+Prompt actual:
+```
+Create a modern, visually stunning background image for a "link in bio" card about: "${copy.title} - ${copy.subtitle}". The image should be abstract, colorful, with gradient tones. Professional quality, suitable as a card background. No text in the image.
 ```
 
-## Mudancas Tecnicas
+Novo prompt:
+```
+Create a professional background image that visually represents this business/page:
+Page: ${meta.title}
+Description: ${meta.description}
+Theme: ${copy.title} - ${copy.subtitle}
+URL context: ${url}
 
-### 1. Nova Edge Function: `bio-smart-link`
-Recebe um URL e tipo de bloco, faz duas coisas:
-- Usa Gemini 3 Flash para gerar copy persuasivo (titulo, subtitulo, CTA) baseado no URL
-- Usa Gemini 2.5 Flash Image para gerar uma imagem de fundo tematica
-- Retorna tudo num unico objecto
-
-A funcao faz fetch do URL para extrair meta tags (title, description, og:image) como contexto para a IA gerar copy mais relevante.
-
-### 2. Corrigir edicao: Debounced inputs
-Criar componentes `DebouncedInput` e `DebouncedTextarea` para resolver o bug actual onde cada tecla dispara um update ao servidor. Usam estado local + timer de 500ms.
-
-### 3. Novo componente: `BioSmartLinkGenerator`
-Componente inline no painel de propriedades com:
-- Input para colar o URL
-- Botao "Gerar com IA" com icone Sparkles
-- Loading state com mensagens rotativas
-- Preenche todos os campos do bloco de uma vez via callback
-
-### 4. Actualizar `BioBlockEditor.tsx`
-- Substituir todos os inputs por versoes debounced
-- Adicionar o `BioSmartLinkGenerator` no topo do painel de propriedades dos blocos hero, feature, link e button
-- Quando a IA gera o conteudo, fazer um unico `updateBlock.mutate()` com todos os campos
-
-### Ficheiros a criar:
-- `supabase/functions/bio-smart-link/index.ts` -- Edge function que analisa URL e gera copy + imagem
-- `src/components/bio/BioSmartLinkGenerator.tsx` -- Componente de geracao por URL
-
-### Ficheiros a editar:
-- `src/components/bio/BioBlockEditor.tsx` -- Integrar smart link generator + debounced inputs
-
-### Logica da Edge Function:
-
-```text
-Input: { url, blockType, workspaceId }
-
-1. Fetch URL -> extrair <title>, <meta description>, <meta og:image>
-2. Gemini 3 Flash (tool calling):
-   - Gera: title, subtitle, cta_text
-   - Tecnicas: AIDA, urgencia, beneficio, prova social
-3. Se blockType = hero ou feature:
-   - Gemini 2.5 Flash Image: gerar imagem tematica
-   - Upload para bucket bio-assets
-4. Retorna: { title, subtitle, cta_text, bg_image? }
+The image must:
+- Visually communicate the industry/niche of this page (e.g. food for restaurants, tech for software, beauty for salons)
+- Use a modern, premium aesthetic with subtle depth
+- Work as a background with text overlay (slightly dark/blurred areas)
+- NO text, NO logos, NO watermarks
+- Photorealistic or high-quality illustration style
+- Convey the emotion and value proposition of the page
 ```
 
-### Sem alteracoes de schema
-O campo `content` JSONB ja suporta todos os campos necessarios.
+### Ficheiro a editar: `supabase/functions/bio-generate-image/index.ts`
+
+O prompt do utilizador ja e passado directamente (o user escreve o que quer), por isso nao precisa de alteracao. Mas podemos enriquecer com um system-level prefix para garantir qualidade:
+- Adicionar instrucoes de contexto antes do prompt do utilizador (ex: "Professional quality, suitable as background for a link-in-bio page. No text in image.")
+
+### Resumo de alteracoes:
+- `supabase/functions/bio-smart-link/index.ts` -- Reescrever prompt de imagem com contexto da pagina
+- `supabase/functions/bio-generate-image/index.ts` -- Adicionar prefixo de qualidade ao prompt
 
