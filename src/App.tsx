@@ -479,15 +479,14 @@ const App = () => (
               <Route path="/c2c/:workspaceSlug/invite/:token" element={<C2CSellerInviteActivation />} />
               <Route path="/c2c/:workspaceSlug/seller/:sellerId" element={<C2CPublicSellerProfile />} />
               
-              {/* Vertical Landing Pages */}
+              {/* Vertical Landing Pages (static + dynamic, catch-all at the end) */}
               <Route path="/clinicas" element={<VerticalLandingPage />} />
               <Route path="/imobiliarias" element={<VerticalLandingPage />} />
               <Route path="/formacao" element={<VerticalLandingPage />} />
               <Route path="/condominios" element={<VerticalLandingPage />} />
               <Route path="/agencias" element={<VerticalLandingPage />} />
               <Route path="/empresas" element={<VerticalLandingPage />} />
-              {/* Dynamic vertical templates from DB */}
-              <Route path="/v/:slug" element={<VerticalLandingPage />} />
+              <Route path="/:slug" element={<VerticalLandingPage />} />
 
               {/* Public FastClub Landing */}
               <Route path="/fastclub" element={<FastClubLandingPage />} />
