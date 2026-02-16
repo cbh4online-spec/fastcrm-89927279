@@ -19,7 +19,7 @@ export type BioBlockType =
   | "link" | "button" | "text" | "image" | "video"
   | "form" | "product" | "social" | "divider" | "embed"
   | "whatsapp" | "calendar" | "countdown" | "faq"
-  | "testimonials" | "carousel";
+  | "testimonials" | "carousel" | "hero" | "feature";
 
 export function useBioBlocks(pageId: string | null) {
   return useQuery({
