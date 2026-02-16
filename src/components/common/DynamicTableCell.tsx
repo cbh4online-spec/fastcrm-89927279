@@ -18,7 +18,7 @@ const formatCurrency = (value: number | null | undefined) => {
 const formatDate = (dateStr: string | null | undefined) => {
   if (!dateStr) return "—";
   try {
-    return format(new Date(dateStr), "dd/MM/yyyy", { locale: pt });
+    return format(new Date(dateStr), "dd/MM/yyyy HH:mm", { locale: pt });
   } catch {
     return dateStr;
   }

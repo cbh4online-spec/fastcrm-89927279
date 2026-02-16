@@ -494,7 +494,7 @@ export function ContactsList() {
                         )}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {format(new Date(contact.created_at), "dd MMM yyyy", { locale: pt })}
+                        {format(new Date(contact.created_at), "dd MMM yyyy, HH:mm", { locale: pt })}
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
