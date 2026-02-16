@@ -1,82 +1,63 @@
 
+# Bio OS -- Imagens: Upload Manual + Geracao por IA
 
-# Bio OS -- Redesign Visual "Bento Cards" Premium
+## Objectivo
+Adicionar ao editor de blocos Bio a possibilidade de:
+1. **Fazer upload manual** de imagens (para fundos de blocos Hero/Feature e para o bloco Imagem)
+2. **Gerar imagens por IA** com um prompt descritivo, usando o modelo Gemini para criacao de imagens
 
-## Contexto
-As imagens de referencia mostram paginas bio estilo "bento cards" com:
-- Cards com fundos gradiente coloridos (verdes, roxos, dourados)
-- Tipografia bold e decorativa com tamanhos grandes
-- Cantos muito arredondados (rounded-2xl/3xl)
-- Cada card e visualmente distinto e rico
-- Layout mobile-first em stack vertical
-- Botoes de CTA integrados dentro de cada card
-- Sombras suaves e profundidade visual
+## Arquitectura
 
-O estado actual e muito basico: bordas simples, texto pequeno, sem gradientes nem riqueza visual.
+### Storage
+- Criar um novo bucket `bio-assets` (publico) para guardar as imagens dos blocos Bio
+- RLS policy para permitir upload por utilizadores autenticados e leitura publica
 
-## Mudancas Principais
+### Edge Function: `bio-generate-image`
+Nova edge function que:
+- Recebe um `prompt` e `workspaceId`
+- Usa o modelo `google/gemini-2.5-flash-image` via Lovable AI gateway para gerar a imagem
+- Faz upload do resultado para o bucket `bio-assets`
+- Retorna a URL publica da imagem
+- Segue o mesmo padrao ja usado em `generate-community-banner`
 
-### 1. Novo componente `BioBlockPreviewCard`
-Criar um componente dedicado para renderizar cada bloco com o estilo "bento card":
-- Cards com `rounded-2xl`, padding generoso, gradientes de fundo baseados na cor primaria
-- Tipografia grande e bold para titulos
-- Subtitulos em tamanho medio
-- Botoes de CTA estilizados dentro dos cards (pill-shaped, com icone)
-- Sombras suaves (`shadow-lg`) e efeitos de hover subtis
+### Frontend: Componente `BioImageUploader`
+Novo componente reutilizavel (`src/components/bio/BioImageUploader.tsx`) que oferece duas opcoes:
+- **Tab "Upload"**: Input de ficheiro com drag-and-drop, preview da imagem, upload directo para o bucket `bio-assets`
+- **Tab "Gerar com IA"**: Campo de texto para prompt, botao "Gerar", loading state com mensagem rotativa, preview do resultado
 
-### 2. Sistema de gradientes por bloco
-Cada bloco tera um gradiente de fundo gerado a partir da cor primaria:
-- Variacoes automaticas (mais claro, mais escuro, complementar)
-- Opacidades diferentes para criar variedade visual entre cards
-- Suporte para imagens de fundo com overlay gradiente
-
-### 3. Actualizar `BioBlockEditor.tsx`
-- Substituir a funcao `BlockPreview` actual pelo novo componente visual
-- O preview no builder passa a mostrar os cards com o mesmo estilo premium
-- Manter a funcionalidade de seleccao/edicao intacta
-
-### 4. Novos block types visuais
-Expandir os tipos de bloco disponiveis para suportar o estilo "bento":
-- Tipo `hero`: card grande com titulo bold, subtitulo e CTA
-- Tipo `feature`: card medio com titulo decorativo e descricao
-- Propriedade `gradient_style` no content de cada bloco (direcao e intensidade do gradiente)
-- Propriedade `card_size` (small, medium, large) para variar a altura dos cards
-
-### 5. Preview melhorado no builder
-- Frame do telefone mais realista (notch, bordas arredondadas)
-- Background escuro atras do telefone para destacar as cores
-- Scroll area interna para simular a experiencia real
+### Integracao no Editor
+- No `BlockProperties` (dentro de `BioBlockEditor.tsx`), substituir o campo de texto "Imagem de fundo (URL)" por um botao "Escolher Imagem" que abre o `BioImageUploader`
+- Aplicar ao bloco `hero`, `feature` (campo `bg_image`) e ao bloco `image` (campo `url`)
+- Quando o utilizador faz upload ou gera uma imagem, o URL publico e guardado automaticamente no content do bloco
 
 ---
 
 ## Detalhes Tecnicos
 
 ### Ficheiros a criar:
-- `src/components/bio/BioBlockPreviewCard.tsx` -- Componente visual principal para renderizar blocos estilo bento
+1. **`supabase/functions/bio-generate-image/index.ts`** -- Edge function para gerar imagens por IA
+   - Usa `LOVABLE_API_KEY` (ja configurado)
+   - Modelo: `google/gemini-2.5-flash-image`
+   - Upload para bucket `bio-assets` com path `{workspaceId}/bio-{timestamp}.{ext}`
+   - Retorna `{ success: true, url: string }`
+
+2. **`src/components/bio/BioImageUploader.tsx`** -- Componente de upload/geracao
+   - Dialog/Popover com duas tabs (Tabs do Radix)
+   - Tab Upload: input file aceita `image/*`, preview, upload via `supabase.storage.from("bio-assets")`
+   - Tab IA: textarea para prompt, botao gerar, invoca `supabase.functions.invoke("bio-generate-image")`
+   - Prop `onImageSelected(url: string)` -- callback quando imagem esta pronta
+   - Prop `workspaceId: string`
 
 ### Ficheiros a editar:
-- `src/components/bio/BioBlockEditor.tsx` -- Integrar o novo componente no preview e adicionar novos block types (hero, feature)
-- `src/hooks/useBioBlocks.ts` -- Adicionar "hero" e "feature" aos tipos exportados
+1. **`src/components/bio/BioBlockEditor.tsx`**
+   - Importar `BioImageUploader`
+   - Nos blocos `hero`/`feature`: substituir Input de `bg_image` por botao + `BioImageUploader`
+   - No bloco `image`: substituir Input de `url` por botao + `BioImageUploader`
+   - Mostrar preview da imagem actual se existir
 
-### Logica do gradiente:
-```text
-primaryColor -> HSL decomposition
-  card 1: linear-gradient(135deg, primary, primary-dark)
-  card 2: linear-gradient(180deg, primary-light/80, primary/60)
-  card 3: linear-gradient(45deg, primary, complementary)
-```
+### Migracao SQL:
+- Criar bucket `bio-assets` (publico)
+- Criar policies de storage para upload autenticado e leitura publica
 
-Cada bloco tera um `variant` index (0-4) que roda automaticamente para criar variedade visual.
-
-### Propriedades novas no content dos blocos:
-- `title` (string): Titulo grande e bold
-- `subtitle` (string): Texto complementar
-- `cta_text` (string): Texto do botao CTA
-- `cta_url` (string): URL do CTA
-- `bg_image` (string): URL de imagem de fundo opcional
-- `gradient_variant` (number): Variante de gradiente (0-4)
-
-### Nenhuma alteracao de backend
-- A estrutura `bio_blocks` ja suporta `content` como JSONB, por isso os novos campos sao retrocompativeis
-- A edge function `bio-ai-builder` pode ser actualizada posteriormente para gerar blocos neste novo formato
-
+### Sem alteracoes ao schema de tabelas
+O campo `content` (JSONB) dos `bio_blocks` ja suporta guardar URLs de imagem.
