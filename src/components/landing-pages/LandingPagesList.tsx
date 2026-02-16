@@ -18,8 +18,10 @@ import { useLandingPages, useDeleteLandingPage, usePublishLandingPage } from "@/
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { CreateLandingPageDialog } from "./CreateLandingPageDialog";
 import { LandingPageBuilder } from "./LandingPageBuilder";
+import { VerticalTemplateBuilder } from "./VerticalTemplateBuilder";
 import { formatDistanceToNow } from "date-fns";
 import { verticalConfigs } from "@/config/verticalConfigs";
+import { useVerticalTemplates, useDeleteVerticalTemplate } from "@/hooks/useVerticalTemplates";
 
 export function LandingPagesList() {
   const { data: pages, isLoading } = useLandingPages();
@@ -27,9 +29,15 @@ export function LandingPagesList() {
   const publishPage = usePublishLandingPage();
   const { currentWorkspace } = useWorkspace();
 
+  const { data: customTemplates } = useVerticalTemplates();
+  const deleteTemplate = useDeleteVerticalTemplate();
+
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [deletePageId, setDeletePageId] = useState<string | null>(null);
+  const [builderMode, setBuilderMode] = useState<"new" | "edit" | null>(null);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
 
   const handleDelete = () => {
     if (deletePageId) {
@@ -50,6 +58,25 @@ export function LandingPagesList() {
     return `${getPublicBaseUrl()}/${slug}`;
   };
 
+  const handleDeleteTemplate = () => {
+    if (deleteTemplateId) {
+      deleteTemplate.mutate(deleteTemplateId);
+      setDeleteTemplateId(null);
+    }
+  };
+
+  if (builderMode) {
+    return (
+      <VerticalTemplateBuilder
+        templateId={builderMode === "edit" ? editingTemplateId : undefined}
+        onBack={() => {
+          setBuilderMode(null);
+          setEditingTemplateId(null);
+        }}
+      />
+    );
+  }
+
   if (editingPageId) {
     return (
       <LandingPageBuilder
@@ -66,10 +93,16 @@ export function LandingPagesList() {
           <h1 className="text-2xl font-bold">Landing Pages</h1>
           <p className="text-muted-foreground">Create conversion-focused landing pages</p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Page
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setBuilderMode("new")}>
+            <Sparkles className="h-4 w-4 mr-2" />
+            Novo Template AIDA
+          </Button>
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Page
+          </Button>
+        </div>
       </div>
 
       {/* Templates Verticais AIDA */}
@@ -77,9 +110,10 @@ export function LandingPagesList() {
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
           <h2 className="text-lg font-semibold">Templates Verticais (AIDA)</h2>
-          <Badge variant="secondary" className="text-xs">6 activos</Badge>
+          <Badge variant="secondary" className="text-xs">{Object.keys(verticalConfigs).length + (customTemplates?.length ?? 0)} activos</Badge>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {/* Static templates */}
           {Object.values(verticalConfigs).map((vertical) => (
             <Card key={vertical.slug} className="group hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
@@ -118,6 +152,74 @@ export function LandingPagesList() {
                   >
                     <ExternalLink className="h-3 w-3 mr-1" />
                     Abrir
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {/* Custom templates from DB */}
+          {customTemplates?.map((tpl) => (
+            <Card key={tpl.id} className="group hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="text-lg">{tpl.nome}</CardTitle>
+                    <p className="text-sm text-muted-foreground">/{tpl.slug}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Badge variant="secondary" className="text-xs">Custom</Badge>
+                    <Badge
+                      className="text-xs"
+                      style={{ backgroundColor: (tpl.cores as any)?.accent || "hsl(250,83%,60%)", color: "#fff" }}
+                    >
+                      AIDA
+                    </Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {tpl.dor_principal}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Badge variant={tpl.is_published ? "outline" : "secondary"} className="text-xs">
+                    {tpl.is_published ? (
+                      <><Globe className="h-3 w-3 mr-1" />Publicado</>
+                    ) : (
+                      <><GlobeLock className="h-3 w-3 mr-1" />Rascunho</>
+                    )}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2 pt-2 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => {
+                      setEditingTemplateId(tpl.id);
+                      setBuilderMode("edit");
+                    }}
+                  >
+                    <Pencil className="h-3 w-3 mr-1" />
+                    Editar
+                  </Button>
+                  {tpl.is_published && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(`${getPublicBaseUrl()}/v/${tpl.slug}`, "_blank")}
+                    >
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      Abrir
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setDeleteTemplateId(tpl.id)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </CardContent>
@@ -248,6 +350,23 @@ export function LandingPagesList() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deleteTemplateId} onOpenChange={() => setDeleteTemplateId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar Template AIDA</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isto irá eliminar permanentemente este template vertical. Esta acção não pode ser revertida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTemplate} className="bg-destructive text-destructive-foreground">
+              Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

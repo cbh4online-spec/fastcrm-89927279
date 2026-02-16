@@ -26451,6 +26451,80 @@ export type Database = {
           },
         ]
       }
+      vertical_templates: {
+        Row: {
+          ai_persona_nome: string
+          antes_depois: Json
+          cores: Json
+          created_at: string
+          created_by: string | null
+          cta_principal: string
+          cta_secundario: string
+          dor_principal: string
+          dores: Json
+          id: string
+          is_published: boolean
+          modulos_ativos: Json
+          nome: string
+          resultado_prometido: string
+          roi_exemplo: Json
+          seo: Json
+          slug: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_persona_nome?: string
+          antes_depois?: Json
+          cores?: Json
+          created_at?: string
+          created_by?: string | null
+          cta_principal?: string
+          cta_secundario?: string
+          dor_principal?: string
+          dores?: Json
+          id?: string
+          is_published?: boolean
+          modulos_ativos?: Json
+          nome: string
+          resultado_prometido?: string
+          roi_exemplo?: Json
+          seo?: Json
+          slug: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ai_persona_nome?: string
+          antes_depois?: Json
+          cores?: Json
+          created_at?: string
+          created_by?: string | null
+          cta_principal?: string
+          cta_secundario?: string
+          dor_principal?: string
+          dores?: Json
+          id?: string
+          is_published?: boolean
+          modulos_ativos?: Json
+          nome?: string
+          resultado_prometido?: string
+          roi_exemplo?: Json
+          seo?: Json
+          slug?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vertical_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vibe_phrases: {
         Row: {
           context: string | null
