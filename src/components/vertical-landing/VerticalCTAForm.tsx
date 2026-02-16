@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { trackVerticalFormSubmit } from "./VerticalLandingTracker";
 import type { VerticalConfig } from "@/config/verticalConfigs";
 
 const formSchema = z.object({
@@ -60,6 +61,7 @@ export function VerticalCTAForm({ config }: Props) {
       });
 
       if (error) throw error;
+      trackVerticalFormSubmit(config.slug);
       setSubmitted(true);
     } catch (err) {
       toast.error("Erro ao enviar. Tente novamente.");

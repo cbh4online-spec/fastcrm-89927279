@@ -26451,6 +26451,57 @@ export type Database = {
           },
         ]
       }
+      vertical_landing_events: {
+        Row: {
+          created_at: string
+          device_type: string | null
+          event_type: string
+          id: string
+          referrer: string | null
+          session_id: string
+          template_id: string | null
+          template_slug: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_type?: string | null
+          event_type: string
+          id?: string
+          referrer?: string | null
+          session_id: string
+          template_id?: string | null
+          template_slug: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_type?: string | null
+          event_type?: string
+          id?: string
+          referrer?: string | null
+          session_id?: string
+          template_id?: string | null
+          template_slug?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vertical_landing_events_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "vertical_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vertical_landing_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vertical_templates: {
         Row: {
           ai_persona_nome: string

@@ -73,7 +73,7 @@ export default function VerticalLandingPage() {
           })}
         </script>
       </Helmet>
-      <VerticalLandingTemplate config={config} />
+      <VerticalLandingTemplate config={config} templateId={dynamicConfig ? undefined : undefined} workspaceId={undefined} />
     </>
   );
 }
