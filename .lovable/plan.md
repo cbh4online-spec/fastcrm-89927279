@@ -1,80 +1,82 @@
 
-# Wizard AI Bio Builder -- Redesign Dinamico e Engajador
 
-## Objectivo
-Transformar o wizard actual (dialog simples com badges estaticos) numa experiencia imersiva, animada e visualmente rica que transmita a sensacao de "magia da IA".
+# Bio OS -- Redesign Visual "Bento Cards" Premium
+
+## Contexto
+As imagens de referencia mostram paginas bio estilo "bento cards" com:
+- Cards com fundos gradiente coloridos (verdes, roxos, dourados)
+- Tipografia bold e decorativa com tamanhos grandes
+- Cantos muito arredondados (rounded-2xl/3xl)
+- Cada card e visualmente distinto e rico
+- Layout mobile-first em stack vertical
+- Botoes de CTA integrados dentro de cada card
+- Sombras suaves e profundidade visual
+
+O estado actual e muito basico: bordas simples, texto pequeno, sem gradientes nem riqueza visual.
 
 ## Mudancas Principais
 
-### 1. Layout Full-Screen em vez de Dialog Pequeno
-- Substituir o `Dialog sm:max-w-md` por um overlay full-screen com fundo gradiente animado
-- Centrar o conteudo com `max-w-lg` para manter foco
-- Fundo com particulas/orbs animados subtis (CSS puro via gradients animados)
+### 1. Novo componente `BioBlockPreviewCard`
+Criar um componente dedicado para renderizar cada bloco com o estilo "bento card":
+- Cards com `rounded-2xl`, padding generoso, gradientes de fundo baseados na cor primaria
+- Tipografia grande e bold para titulos
+- Subtitulos em tamanho medio
+- Botoes de CTA estilizados dentro dos cards (pill-shaped, com icone)
+- Sombras suaves (`shadow-lg`) e efeitos de hover subtis
 
-### 2. Transicoes Animadas entre Steps
-- Usar `framer-motion` (ja instalado) com `AnimatePresence` para transicoes entre etapas
-- Slide horizontal suave: step actual sai para a esquerda, novo entra pela direita
-- Fade + scale nos elementos de cada step
+### 2. Sistema de gradientes por bloco
+Cada bloco tera um gradiente de fundo gerado a partir da cor primaria:
+- Variacoes automaticas (mais claro, mais escuro, complementar)
+- Opacidades diferentes para criar variedade visual entre cards
+- Suporte para imagens de fundo com overlay gradiente
 
-### 3. Cards Seleccionaveis em vez de Badges
-- Substituir os badges por cards visuais com icone + label
-- Cada vertical/objectivo/tom tera um icone Lucide relevante (ex: Building2 para Imobiliario, Dumbbell para Fitness)
-- Efeito hover com glow/border animado
-- Seleccao com check animado e border primaria
+### 3. Actualizar `BioBlockEditor.tsx`
+- Substituir a funcao `BlockPreview` actual pelo novo componente visual
+- O preview no builder passa a mostrar os cards com o mesmo estilo premium
+- Manter a funcionalidade de seleccao/edicao intacta
 
-### 4. Barra de Progresso Animada
-- Substituir as barras simples por uma progress bar com label do step actual
-- Numero do step com circulo animado
-- Texto contextual: "Passo 1 de 4 -- O teu nicho"
+### 4. Novos block types visuais
+Expandir os tipos de bloco disponiveis para suportar o estilo "bento":
+- Tipo `hero`: card grande com titulo bold, subtitulo e CTA
+- Tipo `feature`: card medio com titulo decorativo e descricao
+- Propriedade `gradient_style` no content de cada bloco (direcao e intensidade do gradiente)
+- Propriedade `card_size` (small, medium, large) para variar a altura dos cards
 
-### 5. Ecra de Geracao Imersivo
-- Substituir o simples Loader2 por uma animacao rica:
-  - Texto rotativo com frases motivacionais ("A criar o teu copy...", "A optimizar para conversao...", "A escolher as cores perfeitas...")
-  - Icone central pulsante com glow
-  - Barra de progresso simulada (fake progress para dar feedback visual)
-
-### 6. Ecra de Sucesso
-- Antes de redirecionar, mostrar brevemente um ecra de "Pagina criada!" com confetti visual (CSS) e resumo do que foi gerado
+### 5. Preview melhorado no builder
+- Frame do telefone mais realista (notch, bordas arredondadas)
+- Background escuro atras do telefone para destacar as cores
+- Scroll area interna para simular a experiencia real
 
 ---
 
 ## Detalhes Tecnicos
 
-### Ficheiro editado: `src/components/bio/BioAIWizard.tsx`
-Reescrita completa do componente com:
+### Ficheiros a criar:
+- `src/components/bio/BioBlockPreviewCard.tsx` -- Componente visual principal para renderizar blocos estilo bento
 
-- **Layout**: `Dialog` com `sm:max-w-2xl` e altura fixa, ou alternativa com overlay custom
-- **Animacoes**: `motion.div` com `AnimatePresence` e `mode="wait"` para transicoes
-- **Cards de opcao**: Grid 2x4 com `motion.button` que inclui icone + label + estado selected
-- **Icones por vertical**:
-  - Consultoria: Briefcase
-  - Fitness: Dumbbell
-  - Imobiliario: Building2
-  - Tecnologia: Code
-  - Saude: Heart
-  - Educacao: GraduationCap
-  - E-commerce: ShoppingBag
-  - Restauracao: UtensilsCrossed
-- **Icones por objectivo**:
-  - Captar leads: Target
-  - Vender produto: ShoppingCart
-  - Agendar reuniao: Calendar
-  - Portfolio: Layout
-  - Branding pessoal: User
-  - Comunidade: Users
-- **Icones por tom**:
-  - Profissional: Briefcase
-  - Casual: Coffee
-  - Energetico: Zap
-  - Elegante: Crown
-  - Minimalista: Minus
-  - Divertido: Smile
+### Ficheiros a editar:
+- `src/components/bio/BioBlockEditor.tsx` -- Integrar o novo componente no preview e adicionar novos block types (hero, feature)
+- `src/hooks/useBioBlocks.ts` -- Adicionar "hero" e "feature" aos tipos exportados
 
-- **Loading state**: Array de mensagens rotativas com `useEffect` + `setInterval` a cada 2.5s, progress bar simulada de 0 a 90% em ~15s
-- **Sucesso**: Flash screen de 1.5s com icone CheckCircle2 animado antes de navegar
+### Logica do gradiente:
+```text
+primaryColor -> HSL decomposition
+  card 1: linear-gradient(135deg, primary, primary-dark)
+  card 2: linear-gradient(180deg, primary-light/80, primary/60)
+  card 3: linear-gradient(45deg, primary, complementary)
+```
 
-### Ficheiro: `src/pages/BioOS.tsx`
-- Sem alteracoes necessarias (a interface do wizard e interna)
+Cada bloco tera um `variant` index (0-4) que roda automaticamente para criar variedade visual.
+
+### Propriedades novas no content dos blocos:
+- `title` (string): Titulo grande e bold
+- `subtitle` (string): Texto complementar
+- `cta_text` (string): Texto do botao CTA
+- `cta_url` (string): URL do CTA
+- `bg_image` (string): URL de imagem de fundo opcional
+- `gradient_variant` (number): Variante de gradiente (0-4)
 
 ### Nenhuma alteracao de backend
-- A edge function `bio-ai-builder` mantem-se igual
+- A estrutura `bio_blocks` ja suporta `content` como JSONB, por isso os novos campos sao retrocompativeis
+- A edge function `bio-ai-builder` pode ser actualizada posteriormente para gerar blocos neste novo formato
+
