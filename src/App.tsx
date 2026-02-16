@@ -25,7 +25,7 @@ import OpportunityDetail from "./pages/OpportunityDetail";
 import Inbox from "./pages/Inbox";
 import Automations from "./pages/Automations";
 import Funnels from "./pages/Funnels";
-import LandingPages from "./pages/LandingPages";
+
 import PublicLandingPage from "./pages/PublicLandingPage";
 import Proposals from "./pages/Proposals";
 import ProposalDetail from "./pages/ProposalDetail";
@@ -350,7 +350,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/inbox" element={<Inbox />} />
                 <Route path="/dashboard/automations" element={<Automations />} />
                 <Route path="/dashboard/funnels" element={<Funnels />} />
-                <Route path="/dashboard/landing-pages" element={<LandingPages />} />
+                <Route path="/dashboard/landing-pages" element={<Navigate to="/dashboard/funnels" replace />} />
                 <Route path="/dashboard/contacts" element={<Contacts />} />
                 <Route path="/dashboard/contacts/:id" element={<ContactDetail />} />
                 <Route path="/dashboard/companies" element={<Companies />} />
