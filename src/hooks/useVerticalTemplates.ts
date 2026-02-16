@@ -120,6 +120,64 @@ export function useDeleteVerticalTemplate() {
   });
 }
 
+// Auto-provision: find or create a vertical_template row for a static slug
+export function useEnsureVerticalTemplate(slug: string | undefined) {
+  const { currentWorkspace } = useWorkspace();
+  const qc = useQueryClient();
+
+  return useQuery({
+    queryKey: [TABLE, "ensure", slug, currentWorkspace?.id],
+    queryFn: async () => {
+      if (!slug || !currentWorkspace?.id) return null;
+
+      // 1. Check if already exists
+      const { data: existing, error: findErr } = await (supabase as any)
+        .from(TABLE)
+        .select("*")
+        .eq("slug", slug)
+        .eq("workspace_id", currentWorkspace.id)
+        .maybeSingle();
+      if (findErr) throw findErr;
+      if (existing) return existing as VerticalTemplateRow;
+
+      // 2. Get static config
+      const { getVerticalBySlug } = await import("@/config/verticalConfigs");
+      const cfg = getVerticalBySlug(slug);
+      if (!cfg) return null;
+
+      // 3. Insert
+      const row: VerticalTemplateInsert = {
+        workspace_id: currentWorkspace.id,
+        slug: cfg.slug,
+        nome: cfg.nome,
+        dor_principal: cfg.dor_principal,
+        resultado_prometido: cfg.resultado_prometido,
+        dores: cfg.dores,
+        modulos_ativos: cfg.modulos_ativos,
+        antes_depois: cfg.antes_depois,
+        roi_exemplo: cfg.roi_exemplo,
+        cores: cfg.cores,
+        cta_principal: cfg.cta_principal,
+        cta_secundario: cfg.cta_secundario,
+        ai_persona_nome: cfg.ai_persona_nome,
+        seo: cfg.seo,
+        is_published: true,
+        created_by: null,
+      };
+      const { data: created, error: insErr } = await (supabase as any)
+        .from(TABLE)
+        .insert(row)
+        .select()
+        .single();
+      if (insErr) throw insErr;
+      qc.invalidateQueries({ queryKey: [TABLE] });
+      return created as VerticalTemplateRow;
+    },
+    enabled: !!slug && !!currentWorkspace?.id,
+    staleTime: Infinity,
+  });
+}
+
 // Fetch a published template by slug (public, no auth needed)
 export async function fetchPublishedTemplateBySlug(slug: string): Promise<VerticalTemplateRow | null> {
   const { data, error } = await (supabase as any)

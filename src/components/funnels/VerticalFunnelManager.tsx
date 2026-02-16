@@ -1,13 +1,12 @@
 import { ArrowLeft, BarChart3, ShoppingCart, Zap, Settings, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useVerticalTemplate } from "@/hooks/useVerticalTemplates";
+import { useVerticalTemplate, useEnsureVerticalTemplate } from "@/hooks/useVerticalTemplates";
 import { VerticalTemplateBuilder } from "@/components/landing-pages/VerticalTemplateBuilder";
 import { VerticalStatsTab } from "./vertical-tabs/VerticalStatsTab";
 import { VerticalSalesTab } from "./vertical-tabs/VerticalSalesTab";
 import { VerticalEventsTab } from "./vertical-tabs/VerticalEventsTab";
 import { VerticalSettingsTab } from "./vertical-tabs/VerticalSettingsTab";
-import { getVerticalBySlug } from "@/config/verticalConfigs";
 import { useState } from "react";
 
 interface Props {
@@ -18,18 +17,21 @@ interface Props {
 
 export function VerticalFunnelManager({ templateId, slug, onBack }: Props) {
   const { data: dbTemplate } = useVerticalTemplate(templateId ?? null);
+  const { data: ensuredTemplate, isLoading: isEnsuring } = useEnsureVerticalTemplate(
+    !templateId ? slug : undefined
+  );
   const [activeTab, setActiveTab] = useState("conteudo");
 
-  // Resolve template info from DB or static config
-  const staticConfig = slug ? getVerticalBySlug(slug) : undefined;
-  const templateName = dbTemplate?.nome ?? staticConfig?.nome ?? "Template";
-  const templateSlug = dbTemplate?.slug ?? slug ?? "";
-  const resolvedId = templateId ?? null;
+  // Resolve: prefer explicit templateId, then auto-provisioned
+  const resolved = dbTemplate ?? ensuredTemplate ?? null;
+  const resolvedId = resolved?.id ?? null;
+  const templateName = resolved?.nome ?? "Template";
+  const templateSlug = resolved?.slug ?? slug ?? "";
 
-  if (!dbTemplate && !staticConfig) {
+  if (!resolved) {
     return (
       <div className="flex items-center justify-center py-20 text-muted-foreground">
-        A carregar...
+        {isEnsuring ? "A provisionar template..." : "A carregar..."}
       </div>
     );
   }
@@ -82,7 +84,7 @@ export function VerticalFunnelManager({ templateId, slug, onBack }: Props) {
             />
           ) : (
             <div className="text-center py-12 text-muted-foreground">
-              <p>Este template é estático. Para editar o conteúdo, cria um template custom baseado neste.</p>
+              <p>A carregar editor...</p>
             </div>
           )}
         </TabsContent>
