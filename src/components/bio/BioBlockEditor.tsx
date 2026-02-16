@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BioBlockPreviewCard } from "./BioBlockPreviewCard";
+import { BioImageUploader } from "./BioImageUploader";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import {
   Link, Type, Image, MousePointerClick, Share2, Minus,
   Plus, Trash2, ChevronUp, ChevronDown, Eye, EyeOff,
@@ -192,6 +194,8 @@ export function BioBlockEditor({ pageId, page }: BioBlockEditorProps) {
 
 function BlockProperties({ block, onUpdate }: { block: BioBlock; onUpdate: (key: string, value: unknown) => void }) {
   const content = block.content as Record<string, string>;
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id || "";
 
   switch (block.block_type) {
     case "hero":
@@ -215,8 +219,13 @@ function BlockProperties({ block, onUpdate }: { block: BioBlock; onUpdate: (key:
             <Input value={content.cta_url || ""} onChange={(e) => onUpdate("cta_url", e.target.value)} placeholder="https://..." />
           </div>
           <div>
-            <label className="text-xs font-medium">Imagem de fundo (URL)</label>
-            <Input value={content.bg_image || ""} onChange={(e) => onUpdate("bg_image", e.target.value)} placeholder="https://..." />
+            <label className="text-xs font-medium">Imagem de fundo</label>
+            <BioImageUploader
+              workspaceId={workspaceId}
+              currentImage={content.bg_image || ""}
+              onImageSelected={(url) => onUpdate("bg_image", url)}
+              label="Escolher Imagem de Fundo"
+            />
           </div>
         </div>
       );
@@ -249,8 +258,13 @@ function BlockProperties({ block, onUpdate }: { block: BioBlock; onUpdate: (key:
       return (
         <div className="space-y-3">
           <div>
-            <label className="text-xs font-medium">URL da Imagem</label>
-            <Input value={content.url || ""} onChange={(e) => onUpdate("url", e.target.value)} placeholder="https://..." />
+            <label className="text-xs font-medium">Imagem</label>
+            <BioImageUploader
+              workspaceId={workspaceId}
+              currentImage={content.url || ""}
+              onImageSelected={(url) => onUpdate("url", url)}
+              label="Escolher Imagem"
+            />
           </div>
           <div>
             <label className="text-xs font-medium">Alt Text</label>
