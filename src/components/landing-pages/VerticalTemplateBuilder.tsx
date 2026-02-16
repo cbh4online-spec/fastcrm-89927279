@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
-import { ArrowLeft, Eye, Save, Globe } from "lucide-react";
+import { ArrowLeft, Eye, Save, Globe, Sparkles, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +18,7 @@ import {
 } from "@/hooks/useVerticalTemplates";
 import { VerticalLandingTemplate } from "@/components/vertical-landing/VerticalLandingTemplate";
 import type { VerticalConfig } from "@/config/verticalConfigs";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   templateId?: string | null;
@@ -75,6 +77,46 @@ export function VerticalTemplateBuilder({ templateId, onBack }: Props) {
   });
   const [preview, setPreview] = useState(false);
   const [tab, setTab] = useState("identidade");
+  const [generating, setGenerating] = useState(false);
+
+  const handleGenerateAI = useCallback(async () => {
+    if (!form.nome.trim()) {
+      toast.error("Escreve o nome da vertical primeiro");
+      return;
+    }
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-vertical-template", {
+        body: { nome: form.nome.trim() },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setForm((prev) => ({
+        ...prev,
+        dor_principal: data.dor_principal ?? prev.dor_principal,
+        resultado_prometido: data.resultado_prometido ?? prev.resultado_prometido,
+        dores: data.dores ?? prev.dores,
+        modulos_ativos: data.modulos_ativos ?? prev.modulos_ativos,
+        antes_depois: data.antes_depois ?? prev.antes_depois,
+        roi_exemplo: data.roi_exemplo ?? prev.roi_exemplo,
+        cta_principal: data.cta_principal ?? prev.cta_principal,
+        cta_secundario: data.cta_secundario ?? prev.cta_secundario,
+        ai_persona_nome: data.ai_persona_nome ?? prev.ai_persona_nome,
+        seo: {
+          ...prev.seo,
+          title: data.seo?.title ?? prev.seo.title,
+          description: data.seo?.description ?? prev.seo.description,
+        },
+      }));
+      toast.success("Conteúdo AIDA gerado com sucesso! Revê e ajusta antes de guardar.");
+    } catch (e: any) {
+      console.error("AI generation error:", e);
+      toast.error(e?.message || "Erro ao gerar conteúdo com IA");
+    } finally {
+      setGenerating(false);
+    }
+  }, [form.nome]);
 
   // Sync existing data when loaded
   const [loadedId, setLoadedId] = useState<string | null>(null);
@@ -205,11 +247,26 @@ export function VerticalTemplateBuilder({ templateId, onBack }: Props) {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Nome da Vertical *</Label>
-                  <Input
-                    placeholder="Ex: Restaurantes, Ginásios, Advocacia..."
-                    value={form.nome}
-                    onChange={(e) => updateNome(e.target.value)}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Ex: Restaurantes, Ginásios, Advocacia..."
+                      value={form.nome}
+                      onChange={(e) => updateNome(e.target.value)}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={handleGenerateAI}
+                      disabled={generating || !form.nome.trim()}
+                      className="shrink-0"
+                    >
+                      {generating ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-4 w-4 mr-1" />
+                      )}
+                      {generating ? "A gerar..." : "Gerar com IA"}
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Slug (URL)</Label>
