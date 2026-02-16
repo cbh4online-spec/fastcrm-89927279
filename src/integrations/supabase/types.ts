@@ -11283,6 +11283,51 @@ export type Database = {
           },
         ]
       }
+      funnel_products: {
+        Row: {
+          created_at: string
+          funnel_id: string
+          id: string
+          order_index: number
+          position: string
+          product_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          funnel_id: string
+          id?: string
+          order_index?: number
+          position?: string
+          product_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          funnel_id?: string
+          id?: string
+          order_index?: number
+          position?: string
+          product_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_products_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_products_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funnel_sales: {
         Row: {
           amount: number
@@ -11509,6 +11554,60 @@ export type Database = {
           },
         ]
       }
+      funnel_variations: {
+        Row: {
+          content: Json | null
+          conversion_rate: number | null
+          created_at: string
+          id: string
+          is_control: boolean
+          name: string
+          step_id: string
+          traffic_percentage: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          content?: Json | null
+          conversion_rate?: number | null
+          created_at?: string
+          id?: string
+          is_control?: boolean
+          name: string
+          step_id: string
+          traffic_percentage?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          content?: Json | null
+          conversion_rate?: number | null
+          created_at?: string
+          id?: string
+          is_control?: boolean
+          name?: string
+          step_id?: string
+          traffic_percentage?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_variations_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_variations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funnels: {
         Row: {
           body_tracking_code: string | null
@@ -11523,7 +11622,9 @@ export type Database = {
           path: string | null
           published_at: string | null
           slug: string
+          type: string
           updated_at: string
+          vertical_id: string | null
           workspace_id: string
         }
         Insert: {
@@ -11539,7 +11640,9 @@ export type Database = {
           path?: string | null
           published_at?: string | null
           slug: string
+          type?: string
           updated_at?: string
+          vertical_id?: string | null
           workspace_id: string
         }
         Update: {
@@ -11555,10 +11658,19 @@ export type Database = {
           path?: string | null
           published_at?: string | null
           slug?: string
+          type?: string
           updated_at?: string
+          vertical_id?: string | null
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "funnels_vertical_id_fkey"
+            columns: ["vertical_id"]
+            isOneToOne: false
+            referencedRelation: "verticals"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "funnels_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -26933,6 +27045,7 @@ export type Database = {
           seo: Json
           slug: string
           updated_at: string
+          vertical_id: string | null
           workspace_id: string
         }
         Insert: {
@@ -26954,6 +27067,7 @@ export type Database = {
           seo?: Json
           slug: string
           updated_at?: string
+          vertical_id?: string | null
           workspace_id: string
         }
         Update: {
@@ -26975,9 +27089,17 @@ export type Database = {
           seo?: Json
           slug?: string
           updated_at?: string
+          vertical_id?: string | null
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "vertical_templates_vertical_id_fkey"
+            columns: ["vertical_id"]
+            isOneToOne: false
+            referencedRelation: "verticals"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vertical_templates_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -27031,6 +27153,50 @@ export type Database = {
           },
           {
             foreignKeyName: "vertical_tracking_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      verticals: {
+        Row: {
+          color_theme: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          slug: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          color_theme?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          slug: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          color_theme?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verticals_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

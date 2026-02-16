@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
-import { Plus, Trash2, Pencil, Globe, GlobeLock, ExternalLink, MoreHorizontal, Sparkles, Eye, FileText, TrendingUp } from "lucide-react";
+import { Plus, Trash2, Pencil, Globe, GlobeLock, ExternalLink, MoreHorizontal, Sparkles, Eye, FileText, TrendingUp, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from "@/components/ui/dialog";
@@ -17,11 +18,13 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { useFunnels, useCreateFunnel, useDeleteFunnel } from "@/hooks/useFunnels";
+import { useVerticals, useCreateVertical, useDeleteVertical } from "@/hooks/useVerticals";
 import { useVerticalTemplates, useDeleteVerticalTemplate } from "@/hooks/useVerticalTemplates";
 import { useAllVerticalKPIs } from "@/hooks/useVerticalLandingAnalytics";
 import { verticalConfigs } from "@/config/verticalConfigs";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { FunnelBuilder } from "./FunnelBuilder";
+import { VerticalView } from "./VerticalView";
 import { VerticalTemplateBuilder } from "@/components/landing-pages/VerticalTemplateBuilder";
 import { VerticalFunnelManager } from "./VerticalFunnelManager";
 import { formatDistanceToNow } from "date-fns";
@@ -33,6 +36,10 @@ export function FunnelsList() {
   const deleteFunnel = useDeleteFunnel();
   const { currentWorkspace } = useWorkspace();
 
+  const { data: verticals = [] } = useVerticals();
+  const createVertical = useCreateVertical();
+  const deleteVertical = useDeleteVertical();
+
   const { data: customTemplates } = useVerticalTemplates();
   const deleteTemplate = useDeleteVerticalTemplate();
   const { data: kpis } = useAllVerticalKPIs();
@@ -42,6 +49,15 @@ export function FunnelsList() {
   const [editingFunnelId, setEditingFunnelId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [newSlug, setNewSlug] = useState("");
+
+  // Vertical state
+  const [createVerticalOpen, setCreateVerticalOpen] = useState(false);
+  const [verticalName, setVerticalName] = useState("");
+  const [verticalSlug, setVerticalSlug] = useState("");
+  const [verticalDesc, setVerticalDesc] = useState("");
+  const [verticalColor, setVerticalColor] = useState("#6366f1");
+  const [activeVerticalId, setActiveVerticalId] = useState<string | null>(null);
+  const [deleteVerticalId, setDeleteVerticalId] = useState<string | null>(null);
 
   // AIDA template state
   const [builderMode, setBuilderMode] = useState<"new" | null>(null);
@@ -66,6 +82,21 @@ export function FunnelsList() {
     }
   };
 
+  const handleCreateVertical = async () => {
+    if (!verticalName || !verticalSlug) return;
+    await createVertical.mutateAsync({
+      name: verticalName,
+      slug: verticalSlug,
+      description: verticalDesc || undefined,
+      color_theme: verticalColor,
+    });
+    setCreateVerticalOpen(false);
+    setVerticalName("");
+    setVerticalSlug("");
+    setVerticalDesc("");
+    setVerticalColor("#6366f1");
+  };
+
   const handleDeleteTemplate = () => {
     if (deleteTemplateId) {
       deleteTemplate.mutate(deleteTemplateId);
@@ -76,6 +107,14 @@ export function FunnelsList() {
   const getVerticalPublicUrl = (slug: string) => {
     return `${getPublicBaseUrl()}/${slug}`;
   };
+
+  // Funnels without vertical
+  const unassignedFunnels = funnels?.filter((f) => !f.vertical_id) || [];
+
+  // Show vertical view
+  if (activeVerticalId) {
+    return <VerticalView verticalId={activeVerticalId} onBack={() => setActiveVerticalId(null)} />;
+  }
 
   // Show vertical funnel manager (custom DB template or static)
   if (managingTemplateId || managingSlug) {
@@ -107,9 +146,13 @@ export function FunnelsList() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Funis</h1>
-          <p className="text-muted-foreground">Cria e gere funis de conversão multi-step e templates AIDA</p>
+          <p className="text-muted-foreground">Cria e gere funis de conversão multi-step, verticais e templates AIDA</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setCreateVerticalOpen(true)}>
+            <Layers className="h-4 w-4 mr-2" />
+            Nova Vertical
+          </Button>
           <Button variant="outline" onClick={() => setBuilderMode("new")}>
             <Sparkles className="h-4 w-4 mr-2" />
             Novo Template AIDA
@@ -120,6 +163,64 @@ export function FunnelsList() {
           </Button>
         </div>
       </div>
+
+      {/* Verticais */}
+      {verticals.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-primary" />
+            <h2 className="text-lg font-semibold">Verticais</h2>
+            <Badge variant="secondary" className="text-xs">{verticals.length}</Badge>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {verticals.map((v) => {
+              const funnelCount = funnels?.filter((f) => f.vertical_id === v.id).length ?? 0;
+              return (
+                <Card
+                  key={v.id}
+                  className="group hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => setActiveVerticalId(v.id)}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-4 h-4 rounded-full shrink-0"
+                          style={{ backgroundColor: v.color_theme || "#6366f1" }}
+                        />
+                        <div>
+                          <CardTitle className="text-lg">{v.name}</CardTitle>
+                          <p className="text-sm text-muted-foreground">/{v.slug}</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-xs">{funnelCount} funis</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {v.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{v.description}</p>
+                    )}
+                    <div className="flex items-center gap-2 pt-2 border-t" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => setActiveVerticalId(v.id)}>
+                        <Pencil className="h-3 w-3 mr-1" />
+                        Abrir
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleteVerticalId(v.id)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Templates Verticais AIDA */}
       <div className="space-y-3">
@@ -267,7 +368,7 @@ export function FunnelsList() {
         </div>
       </div>
 
-      {/* Funis Multi-step */}
+      {/* Funis Multi-step (sem vertical) */}
       <div className="space-y-3">
         <h2 className="text-lg font-semibold">Funis Multi-step</h2>
 
@@ -283,7 +384,7 @@ export function FunnelsList() {
               </Card>
             ))}
           </div>
-        ) : !funnels?.length ? (
+        ) : !unassignedFunnels.length ? (
           <Card className="flex flex-col items-center justify-center py-16">
             <Globe className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="font-semibold text-lg mb-2">Sem funis</h3>
@@ -295,7 +396,7 @@ export function FunnelsList() {
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {funnels.map((funnel) => (
+            {unassignedFunnels.map((funnel) => (
               <Card
                 key={funnel.id}
                 className="group hover:shadow-md transition-shadow cursor-pointer"
@@ -376,6 +477,59 @@ export function FunnelsList() {
         </DialogContent>
       </Dialog>
 
+      {/* Create Vertical Dialog */}
+      <Dialog open={createVerticalOpen} onOpenChange={setCreateVerticalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Vertical</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nome</Label>
+              <Input
+                value={verticalName}
+                onChange={(e) => {
+                  setVerticalName(e.target.value);
+                  setVerticalSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""));
+                }}
+                placeholder="Ex: Clínicas Dentárias"
+              />
+            </div>
+            <div>
+              <Label>Slug</Label>
+              <Input value={verticalSlug} onChange={(e) => setVerticalSlug(e.target.value)} placeholder="clinicas-dentarias" />
+            </div>
+            <div>
+              <Label>Descrição (opcional)</Label>
+              <Textarea
+                value={verticalDesc}
+                onChange={(e) => setVerticalDesc(e.target.value)}
+                placeholder="Funis focados em clínicas dentárias..."
+                rows={2}
+              />
+            </div>
+            <div>
+              <Label>Cor</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={verticalColor}
+                  onChange={(e) => setVerticalColor(e.target.value)}
+                  className="w-10 h-10 rounded cursor-pointer border-0"
+                />
+                <Input value={verticalColor} onChange={(e) => setVerticalColor(e.target.value)} className="flex-1" />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateVerticalOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreateVertical} disabled={!verticalName || !verticalSlug || createVertical.isPending}>
+              Criar Vertical
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Funnel Dialog */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
@@ -388,6 +542,27 @@ export function FunnelsList() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Vertical Dialog */}
+      <AlertDialog open={!!deleteVerticalId} onOpenChange={() => setDeleteVerticalId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar Vertical</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isto irá eliminar esta vertical. Os funis associados ficarão sem vertical.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (deleteVerticalId) { deleteVertical.mutate(deleteVerticalId); setDeleteVerticalId(null); } }}
+              className="bg-destructive text-destructive-foreground"
+            >
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
