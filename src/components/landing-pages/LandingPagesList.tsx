@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
-import { Plus, Globe, GlobeLock, Trash2, Pencil, ExternalLink, Sparkles } from "lucide-react";
+import { Plus, Globe, GlobeLock, Trash2, Pencil, ExternalLink, Sparkles, Eye, FileText, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ import { VerticalTemplateBuilder } from "./VerticalTemplateBuilder";
 import { formatDistanceToNow } from "date-fns";
 import { verticalConfigs } from "@/config/verticalConfigs";
 import { useVerticalTemplates, useDeleteVerticalTemplate } from "@/hooks/useVerticalTemplates";
+import { useAllVerticalKPIs } from "@/hooks/useVerticalLandingAnalytics";
 
 export function LandingPagesList() {
   const { data: pages, isLoading } = useLandingPages();
@@ -31,7 +32,7 @@ export function LandingPagesList() {
 
   const { data: customTemplates } = useVerticalTemplates();
   const deleteTemplate = useDeleteVerticalTemplate();
-
+  const { data: kpis } = useAllVerticalKPIs();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [deletePageId, setDeletePageId] = useState<string | null>(null);
@@ -134,6 +135,13 @@ export function LandingPagesList() {
                 <p className="text-sm text-muted-foreground line-clamp-2">
                   {vertical.dor_principal}
                 </p>
+                {kpis?.[vertical.slug] && (
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><Eye className="h-3 w-3" />{kpis[vertical.slug].views}</span>
+                    <span className="flex items-center gap-1"><FileText className="h-3 w-3" />{kpis[vertical.slug].submissions}</span>
+                    <span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" />{kpis[vertical.slug].conversionRate.toFixed(1)}%</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="text-xs">
                     <Globe className="h-3 w-3 mr-1" />
@@ -181,6 +189,13 @@ export function LandingPagesList() {
                 <p className="text-sm text-muted-foreground line-clamp-2">
                   {tpl.dor_principal}
                 </p>
+                {kpis?.[tpl.slug] && (
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><Eye className="h-3 w-3" />{kpis[tpl.slug].views}</span>
+                    <span className="flex items-center gap-1"><FileText className="h-3 w-3" />{kpis[tpl.slug].submissions}</span>
+                    <span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" />{kpis[tpl.slug].conversionRate.toFixed(1)}%</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <Badge variant={tpl.is_published ? "outline" : "secondary"} className="text-xs">
                     {tpl.is_published ? (
