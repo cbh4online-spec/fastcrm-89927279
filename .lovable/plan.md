@@ -1,93 +1,83 @@
 
-
-# Builder de Templates Verticais AIDA
+# Analytics e Metricas de Conversao para Templates Verticais AIDA
 
 ## Objetivo
 
-Criar um builder visual que permite criar novos templates verticais AIDA para qualquer area de negocio, guardando-os na base de dados. Isto permite escalar para alem dos 6 templates estaticos actuais (clinicas, imobiliarias, formacao, condominios, agencias, empresas).
+Criar um sistema completo de analytics para as landing pages verticais AIDA, permitindo medir page views, submissoes de formulario e taxa de conversao por template -- tudo visivel nos cards da pagina de Landing Pages.
 
-## Como funciona
+## O que vai mudar
 
-Na pagina de Landing Pages, ao lado do botao "New Page", aparecera um botao "+ Novo Template AIDA". Ao clicar, abre um builder multi-step que guia o utilizador a preencher todos os campos do template (nome, slug, dores, modulos, cores, CTAs, SEO, etc.). O template e guardado na base de dados e fica imediatamente disponivel como pagina publica.
+### 1. Nova tabela: `vertical_landing_events`
 
-## Plano Tecnico
-
-### 1. Tabela na base de dados: `vertical_templates`
-
-Nova tabela para guardar templates verticais criados pelo utilizador:
+Tabela para registar eventos anonimos nas landing pages verticais (views e submissoes):
 
 | Coluna | Tipo | Descricao |
 |---|---|---|
-| id | uuid (PK) | Identificador unico |
-| workspace_id | uuid (FK) | Workspace do criador |
-| slug | text (unique) | URL slug (ex: "restaurantes") |
-| nome | text | Nome da vertical |
-| dor_principal | text | Dor principal do publico-alvo |
-| resultado_prometido | text | Resultado prometido |
-| dores | jsonb | Array de 4 dores |
-| modulos_ativos | jsonb | Array de modulos com nome, desc, icon |
-| antes_depois | jsonb | Objecto com arrays antes/depois |
-| roi_exemplo | jsonb | Objecto com clientes_extra, valor_medio, periodo |
-| cores | jsonb | Objecto com primaria e accent |
-| cta_principal | text | Texto do CTA principal |
-| cta_secundario | text | Texto do CTA secundario |
-| ai_persona_nome | text | Nome da persona AI |
-| seo | jsonb | Objecto com title, description, canonical |
-| is_published | boolean | Se esta publicado |
-| created_at | timestamptz | Data de criacao |
-| updated_at | timestamptz | Data de actualizacao |
-| created_by | uuid | User que criou |
+| id | uuid (PK) | Identificador |
+| template_slug | text | Slug da vertical (ex: "clinicas") |
+| template_id | uuid (nullable) | ID do template custom (null para estaticos) |
+| workspace_id | uuid (nullable) | Workspace associado |
+| event_type | text | "view" ou "form_submit" |
+| session_id | text | ID de sessao anonimo (browser) |
+| referrer | text | Origem do trafego |
+| device_type | text | "mobile" ou "desktop" |
+| created_at | timestamptz | Timestamp do evento |
 
-RLS: Membros do workspace podem ler; admins/owners podem criar/editar/apagar.
+RLS: INSERT publico (qualquer visitante pode registar), SELECT apenas para membros do workspace autenticados. Sem dados pessoais (PII-free).
 
-### 2. Componente: `VerticalTemplateBuilder.tsx`
+### 2. Componente tracker: `VerticalLandingTracker.tsx`
 
-Builder com tabs para organizar os campos:
+Componente invisivel colocado no `VerticalLandingTemplate` que:
+- Regista um evento "view" por sessao/slug (debounce via sessionStorage, seguindo o padrao do `StoreProductViewTracker`)
+- Gera um session_id anonimo (localStorage)
+- Captura device_type e referrer
 
-- **Tab "Identidade"**: Nome, slug (auto-gerado), dor principal, resultado prometido
-- **Tab "Dores"**: 4 campos de texto para as dores do publico
-- **Tab "Solucao"**: Modulos ativos (nome, descricao, icone) -- ate 6 modulos com add/remove
-- **Tab "Transformacao"**: Antes/Depois (4 itens cada)
-- **Tab "ROI"**: Clientes extra, valor medio, periodo
-- **Tab "Aparencia"**: Cores primaria e accent com color picker
-- **Tab "CTAs & SEO"**: CTA principal, CTA secundario, SEO title, description
+### 3. Tracking de submissao no formulario
 
-Cada tab tem um botao "Gerar com IA" que usa o Lovable AI para sugerir conteudo baseado no nome da vertical e area de negocio.
+Actualizar `VerticalCTAForm.tsx` para registar um evento "form_submit" apos submissao bem sucedida (sem guardar PII -- apenas slug, session_id e device_type).
 
-Botoes no topo: Voltar, Preview, Guardar, Publicar.
+### 4. Hook: `useVerticalLandingAnalytics.ts`
 
-### 3. Preview
+Hook React Query que agrega os dados para exibicao:
+- `useVerticalLandingKPIs(slug)` -- retorna views, submissoes e taxa de conversao para um slug
+- `useAllVerticalKPIs()` -- retorna KPIs agregados para todos os templates (para os cards)
 
-Reutiliza o componente `VerticalLandingTemplate` existente, passando os dados do formulario convertidos para o formato `VerticalConfig`.
+### 5. Metricas nos cards da Landing Pages List
 
-### 4. Rota dinamica
+Actualizar `LandingPagesList.tsx` para mostrar em cada card de template vertical:
+- Numero de views (icone de olho)
+- Numero de submissoes (icone de formulario)
+- Taxa de conversao em percentagem (submissoes/views)
 
-Actualizar o `App.tsx` para suportar templates dinamicos da base de dados: adicionar uma rota catch-all `/:slug` que verifica primeiro os configs estaticos e depois a tabela `vertical_templates`.
+Exemplo visual num card:
+```text
++----------------------------+
+|  Clinicas         [AIDA]   |
+|  /clinicas                 |
+|  "Perde 40% dos pacien..." |
+|                            |
+|  👁 342   📋 28   📈 8.2%  |
+|  [Publicado] · 6 modulos   |
+|  [Abrir]                   |
++----------------------------+
+```
 
-### 5. Integracao na Landing Pages List
-
-- Botao "+ Novo Template AIDA" no header
-- Templates da BD aparecem na mesma grelha dos templates estaticos, com badges "AIDA" e "Custom"
-- Botoes: Abrir, Editar, Eliminar (para os da BD)
-
-### 6. Hook: `useVerticalTemplates.ts`
-
-Hook React Query para CRUD dos templates:
-- `useVerticalTemplates()` -- lista todos do workspace
-- `useVerticalTemplate(id)` -- busca um por ID
-- `useCreateVerticalTemplate()` -- criar
-- `useUpdateVerticalTemplate()` -- actualizar
-- `useDeleteVerticalTemplate()` -- eliminar
+## Plano Tecnico Detalhado
 
 ### Ficheiros a criar
-
-- `src/components/landing-pages/VerticalTemplateBuilder.tsx` -- Builder principal
-- `src/hooks/useVerticalTemplates.ts` -- Hook CRUD
-- Migracao SQL para tabela `vertical_templates`
+- Migracao SQL para `vertical_landing_events`
+- `src/components/vertical-landing/VerticalLandingTracker.tsx`
+- `src/hooks/useVerticalLandingAnalytics.ts`
 
 ### Ficheiros a editar
+- `src/components/vertical-landing/VerticalLandingTemplate.tsx` -- adicionar `VerticalLandingTracker`
+- `src/components/vertical-landing/VerticalCTAForm.tsx` -- registar evento "form_submit"
+- `src/components/landing-pages/LandingPagesList.tsx` -- mostrar KPIs nos cards
 
-- `src/components/landing-pages/LandingPagesList.tsx` -- Adicionar botao, listar templates da BD
-- `src/pages/VerticalLandingPage.tsx` -- Fallback para templates da BD
-- `src/App.tsx` -- Rota dinamica para novos slugs
-
+### Sequencia de implementacao
+1. Criar tabela `vertical_landing_events` com RLS
+2. Criar `VerticalLandingTracker` (seguindo padrao do `StoreProductViewTracker`)
+3. Integrar tracker no `VerticalLandingTemplate`
+4. Adicionar tracking de submissao no `VerticalCTAForm`
+5. Criar hook `useVerticalLandingAnalytics`
+6. Mostrar metricas nos cards da `LandingPagesList`
