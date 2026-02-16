@@ -1,85 +1,80 @@
 
-# AI Bio Builder -- Wizard + Edge Function
+# Wizard AI Bio Builder -- Redesign Dinamico e Engajador
 
-## Resumo
+## Objectivo
+Transformar o wizard actual (dialog simples com badges estaticos) numa experiencia imersiva, animada e visualmente rica que transmita a sensacao de "magia da IA".
 
-Criar um wizard de IA integrado no Bio OS que, atraves de 4-5 perguntas simples, gera automaticamente uma pagina Bio completa com blocos, copy e estrutura optimizada. O wizard aparece como opcao ao criar uma nova pagina ("Criar com IA").
+## Mudancas Principais
 
-## Como funciona
+### 1. Layout Full-Screen em vez de Dialog Pequeno
+- Substituir o `Dialog sm:max-w-md` por um overlay full-screen com fundo gradiente animado
+- Centrar o conteudo com `max-w-lg` para manter foco
+- Fundo com particulas/orbs animados subtis (CSS puro via gradients animados)
 
-1. O utilizador clica em "Criar com IA" no Bio OS
-2. Um dialog wizard faz 4 perguntas:
-   - **Vertical/Nicho** (ex: consultoria, fitness, imobiliario, tecnologia)
-   - **Objetivo** (captar leads, vender produto, agendar reuniao, portfolio)
-   - **Oferta principal** (texto livre -- o que vende/oferece)
-   - **Tom de comunicacao** (formal, casual, energetico, elegante)
-3. A IA gera a estrutura da pagina: nome, slug, cor, e lista de blocos com copy AIDA
-4. A pagina e os blocos sao criados automaticamente na base de dados
-5. O utilizador e levado directamente ao builder para personalizar
+### 2. Transicoes Animadas entre Steps
+- Usar `framer-motion` (ja instalado) com `AnimatePresence` para transicoes entre etapas
+- Slide horizontal suave: step actual sai para a esquerda, novo entra pela direita
+- Fade + scale nos elementos de cada step
 
----
+### 3. Cards Seleccionaveis em vez de Badges
+- Substituir os badges por cards visuais com icone + label
+- Cada vertical/objectivo/tom tera um icone Lucide relevante (ex: Building2 para Imobiliario, Dumbbell para Fitness)
+- Efeito hover com glow/border animado
+- Seleccao com check animado e border primaria
 
-## Fase 1: Edge Function `bio-ai-builder`
+### 4. Barra de Progresso Animada
+- Substituir as barras simples por uma progress bar com label do step actual
+- Numero do step com circulo animado
+- Texto contextual: "Passo 1 de 4 -- O teu nicho"
 
-**Ficheiro**: `supabase/functions/bio-ai-builder/index.ts`
+### 5. Ecra de Geracao Imersivo
+- Substituir o simples Loader2 por uma animacao rica:
+  - Texto rotativo com frases motivacionais ("A criar o teu copy...", "A optimizar para conversao...", "A escolher as cores perfeitas...")
+  - Icone central pulsante com glow
+  - Barra de progresso simulada (fake progress para dar feedback visual)
 
-- Recebe: `{ vertical, objective, offer, tone }`
-- Chama Lovable AI (Gemini 3 Flash Preview) com tool calling para retornar estrutura
-- Retorna JSON estruturado:
-  ```json
-  {
-    "pageName": "Jorge Cardoso Digital",
-    "slug": "jorge-cardoso-digital",
-    "primaryColor": "#6366f1",
-    "blocks": [
-      { "type": "text", "content": { "text": "Headline AIDA..." } },
-      { "type": "button", "content": { "text": "Agendar Reuniao", "url": "#" } },
-      { "type": "link", "content": { "text": "Ver Portfolio", "url": "#" } },
-      { "type": "social", "content": { "instagram": "", "linkedin": "" } },
-      { "type": "divider", "content": { "style": "line" } }
-    ]
-  }
-  ```
-- Usa tool calling (function calling) para garantir output estruturado
-- Trata erros 429 (rate limit) e 402 (credits)
-
-**Config**: Adicionar `[functions.bio-ai-builder]` com `verify_jwt = false` ao `supabase/config.toml`
+### 6. Ecra de Sucesso
+- Antes de redirecionar, mostrar brevemente um ecra de "Pagina criada!" com confetti visual (CSS) e resumo do que foi gerado
 
 ---
-
-## Fase 2: Wizard UI
-
-**Ficheiro**: `src/components/bio/BioAIWizard.tsx` (NOVO)
-
-- Dialog multi-step com 4 etapas
-- Cada etapa tem opcoes pre-definidas clicaveis + campo "Outro"
-- Botao "Gerar com IA" no final
-- Estado de loading com animacao
-- Ao receber resposta, cria a pagina (`useCreateBioPage`) e insere os blocos (`useCreateBioBlock` em sequencia)
-- Redireciona para o builder da pagina criada
-
----
-
-## Fase 3: Integracao no BioOS.tsx
-
-- Adicionar botao "Criar com IA" (icone Sparkles) ao lado do botao "Nova Pagina"
-- O botao abre o `BioAIWizard`
-- Ao concluir, navega para o builder da pagina criada (setSelectedPageId)
-
----
-
-## Ficheiros a Criar/Editar
-
-| Ficheiro | Accao |
-|----------|-------|
-| `supabase/functions/bio-ai-builder/index.ts` | Criar edge function |
-| `src/components/bio/BioAIWizard.tsx` | Criar wizard UI |
-| `src/pages/BioOS.tsx` | Adicionar botao "Criar com IA" |
 
 ## Detalhes Tecnicos
 
-- **Modelo IA**: `google/gemini-3-flash-preview` via Lovable AI gateway
-- **API Key**: `LOVABLE_API_KEY` (pre-configurada, sem accao do utilizador)
-- **Tool calling**: funcao `generate_bio_page` com schema rigoroso para garantir output valido
-- **Prompt**: instrucoes para gerar copy AIDA curto, estrutura optimizada para conversao, entre 5-8 blocos
-- **Seguranca**: CORS headers, tratamento de erros 429/402, nao expor secrets no client
+### Ficheiro editado: `src/components/bio/BioAIWizard.tsx`
+Reescrita completa do componente com:
+
+- **Layout**: `Dialog` com `sm:max-w-2xl` e altura fixa, ou alternativa com overlay custom
+- **Animacoes**: `motion.div` com `AnimatePresence` e `mode="wait"` para transicoes
+- **Cards de opcao**: Grid 2x4 com `motion.button` que inclui icone + label + estado selected
+- **Icones por vertical**:
+  - Consultoria: Briefcase
+  - Fitness: Dumbbell
+  - Imobiliario: Building2
+  - Tecnologia: Code
+  - Saude: Heart
+  - Educacao: GraduationCap
+  - E-commerce: ShoppingBag
+  - Restauracao: UtensilsCrossed
+- **Icones por objectivo**:
+  - Captar leads: Target
+  - Vender produto: ShoppingCart
+  - Agendar reuniao: Calendar
+  - Portfolio: Layout
+  - Branding pessoal: User
+  - Comunidade: Users
+- **Icones por tom**:
+  - Profissional: Briefcase
+  - Casual: Coffee
+  - Energetico: Zap
+  - Elegante: Crown
+  - Minimalista: Minus
+  - Divertido: Smile
+
+- **Loading state**: Array de mensagens rotativas com `useEffect` + `setInterval` a cada 2.5s, progress bar simulada de 0 a 90% em ~15s
+- **Sucesso**: Flash screen de 1.5s com icone CheckCircle2 animado antes de navegar
+
+### Ficheiro: `src/pages/BioOS.tsx`
+- Sem alteracoes necessarias (a interface do wizard e interna)
+
+### Nenhuma alteracao de backend
+- A edge function `bio-ai-builder` mantem-se igual
