@@ -96,6 +96,7 @@ import ReportsGrowth from "./pages/ReportsGrowth";
 import ReportsSales from "./pages/ReportsSales";
 import ReportsGoals from "./pages/ReportsGoals";
 import Marketplace from "./pages/Marketplace";
+import PublicBioPage from "./pages/PublicBioPage";
 import C2CPublicMarketplace from "./pages/c2c/C2CPublicMarketplace";
 import C2CSellerRegistration from "./pages/c2c/C2CSellerRegistration";
 import C2CSellersAdmin from "./pages/c2c/C2CSellersAdmin";
@@ -481,6 +482,9 @@ const App = () => (
           <GTMProvider containerId="GTM-WLVH4TJJ">
             <MetaPixelLoader />
             <Routes>
+              {/* Public Bio Pages */}
+              <Route path="/b/:workspaceId/:pageSlug" element={<PublicBioPage />} />
+
               {/* Store - ISOLATED from CRM providers */}
               <Route path="/store/*" element={<StoreRoutes />} />
               
