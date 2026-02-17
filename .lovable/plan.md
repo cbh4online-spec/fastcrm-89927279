@@ -1,28 +1,66 @@
 
 
-# Fix: Preview não faz scroll
+# Hero Bio Block -- Design mais fino, icon destacado e copy orientado a dor
 
-## Problema
-O `ScrollArea` no preview do telefone usa `maxHeight: 680px` com `className="h-full"`, mas o container pai não tem uma altura fixa explícita. Sem uma altura fixa real no `ScrollArea`, o componente expande em vez de activar o scroll interno.
+## Resumo
+Melhorar o bloco "Hero" no preview das paginas Bio para ter um design mais compacto, um icon/emoji visual destacado, e garantir que os titulos gerados pela IA toquem directamente nas dores do utilizador.
 
-## Solução
-Substituir `maxHeight` por `height` fixo no `ScrollArea`, para que o conteúdo que exceda esse limite active o scroll correctamente.
+## Alteracoes
 
-## Alteração
+### 1. Preview do Hero mais fino com icon destacado
+**Ficheiro:** `src/components/bio/BioBlockPreviewCard.tsx` (linhas 77-96)
 
-### Ficheiro: `src/components/bio/BioBlockEditor.tsx`
+Redesenhar o case "hero":
+- Reduzir padding de `p-8` para `p-5`
+- Reduzir titulo de `text-2xl` para `text-xl`
+- Adicionar um icon circular destacado no topo (usando um campo `icon` do content, com fallback para um icon default como `Sparkles`)
+- O icon fica num circulo com fundo semi-transparente, separado visualmente do texto
+- Layout: icon centrado no topo, titulo, subtitulo e CTA abaixo
 
-**Linha 194** -- Mudar o estilo do `ScrollArea`:
+### 2. Adicionar campo "icon" ao hero block
+**Ficheiro:** `src/components/bio/BioBlockEditor.tsx` (linha 81)
 
-De:
-```tsx
-<ScrollArea className="h-full" style={{ maxHeight: previewMode === "mobile" ? 680 : 500 }}>
+Adicionar `icon: "sparkles"` ao `defaultContent` do hero e adicionar um campo de seleccao/input no editor para o icon.
+
+### 3. Copy da IA orientado a dor
+**Ficheiro:** `supabase/functions/bio-smart-link/index.ts` (linhas 54-72)
+
+Ajustar o prompt de geracao de copy para:
+- O `title` deve identificar uma dor ou problema do visitante (ex: "Cansado de perder clientes?") em vez de ser apenas chamativo
+- O `subtitle` deve apresentar a solucao/beneficio directo
+- Instruir a IA a usar a framework PAS (Problema-Agitacao-Solucao) em vez de AIDA para os titulos
+
+Prompt actual:
+```
+- "title": titulo curto e chamativo (max 6 palavras), usa tecnicas AIDA
 ```
 
-Para:
-```tsx
-<ScrollArea style={{ height: previewMode === "mobile" ? 680 : 500 }}>
+Novo:
+```
+- "title": identifica a dor principal do publico-alvo (max 8 palavras), usa a framework PAS -- comeca pelo problema
+- "subtitle": apresenta a solucao e o beneficio concreto (max 15 palavras)
 ```
 
-Isto garante que o `ScrollArea` tem uma altura fixa e o conteúdo interno faz scroll quando ultrapassa esse limite.
+## Detalhes Tecnicos
+
+### BioBlockPreviewCard.tsx -- Novo layout do hero:
+
+```text
++----------------------------------+
+|         [ Icon Circle ]          |
+|                                  |
+|     Titulo orientado a dor       |
+|   Subtitulo com a solucao        |
+|                                  |
+|       [ Botao CTA ]              |
++----------------------------------+
+```
+
+- Icon: circulo de 48px com fundo `primaryColor/20`, icon branco/escuro de 24px
+- Padding reduzido para `p-5 pt-6`
+- Titulo: `text-xl font-extrabold` (era `text-2xl`)
+- Texto centrado para um look mais limpo
+
+### bio-smart-link -- Prompt PAS:
+O prompt sera ajustado para instruir a IA a comecar pelo problema real do visitante, criando identificacao imediata, seguido da solucao no subtitulo.
 
