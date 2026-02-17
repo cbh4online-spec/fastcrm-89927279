@@ -444,7 +444,7 @@ function CalendarBlock({ block, primaryColor, contrastColor }: { block: BioBlock
 // ─── Main Component ─────────────────────────────────────────
 
 export default function PublicBioPage() {
-  const { workspaceId, pageSlug } = useParams<{ workspaceId: string; pageSlug: string }>();
+  const { workspaceSlug, pageSlug } = useParams<{ workspaceSlug: string; pageSlug: string }>();
   const [page, setPage] = useState<BioPage | null>(null);
   const [blocks, setBlocks] = useState<BioBlock[]>([]);
   const [loading, setLoading] = useState(true);
@@ -455,13 +455,22 @@ export default function PublicBioPage() {
   const rgb = useMemo(() => hexToRgb(primaryColor), [primaryColor]);
 
   useEffect(() => {
-    if (!workspaceId || !pageSlug) { setNotFound(true); setLoading(false); return; }
+    if (!workspaceSlug || !pageSlug) { setNotFound(true); setLoading(false); return; }
 
     (async () => {
+      // Resolve workspace by slug first
+      const { data: workspace, error: wsError } = await supabase
+        .from("workspaces")
+        .select("id")
+        .eq("slug", workspaceSlug)
+        .single();
+
+      if (wsError || !workspace) { setNotFound(true); setLoading(false); return; }
+
       const { data: pageData, error: pageError } = await supabase
         .from("bio_pages")
         .select("*")
-        .eq("workspace_id", workspaceId)
+        .eq("workspace_id", workspace.id)
         .eq("slug", pageSlug)
         .eq("status", "live")
         .maybeSingle();
@@ -482,7 +491,7 @@ export default function PublicBioPage() {
 
       trackPageView(pageData as any);
     })();
-  }, [workspaceId, pageSlug]);
+  }, [workspaceSlug, pageSlug]);
 
   // Background style
   const bgStyle = useMemo(() => {

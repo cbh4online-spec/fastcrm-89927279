@@ -483,7 +483,7 @@ const App = () => (
             <MetaPixelLoader />
             <Routes>
               {/* Public Bio Pages */}
-              <Route path="/b/:workspaceId/:pageSlug" element={<PublicBioPage />} />
+              <Route path="/bio/:workspaceSlug/:pageSlug" element={<PublicBioPage />} />
 
               {/* Store - ISOLATED from CRM providers */}
               <Route path="/store/*" element={<StoreRoutes />} />

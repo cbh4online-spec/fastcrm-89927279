@@ -2,6 +2,7 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { useBioPages, useCreateBioPage, useDeleteBioPage, usePublishBioPage } from "@/hooks/useBioPages";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,12 +14,12 @@ import { toast } from "sonner";
 import { BioPageBuilder } from "@/components/bio/BioPageBuilder";
 import { BioAIWizard } from "@/components/bio/BioAIWizard";
 
-function CopyLinkButton({ page }: { page: { workspace_id: string; slug: string } }) {
+function CopyLinkButton({ page, workspaceSlug }: { page: { slug: string }; workspaceSlug: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => {
       e.stopPropagation();
-      const url = `${getPublicBaseUrl()}/b/${page.workspace_id}/${page.slug}`;
+      const url = `${getPublicBaseUrl()}/bio/${workspaceSlug}/${page.slug}`;
       navigator.clipboard.writeText(url);
       setCopied(true);
       toast.success("Link copiado!");
@@ -31,6 +32,8 @@ function CopyLinkButton({ page }: { page: { workspace_id: string; slug: string }
 
 function BioOSContent() {
   const { data: pages = [], isLoading } = useBioPages();
+  const { currentWorkspace } = useWorkspace();
+  const workspaceSlug = currentWorkspace?.slug || "";
   const createPage = useCreateBioPage();
   const deletePage = useDeleteBioPage();
   const publishPage = usePublishBioPage();
@@ -84,7 +87,7 @@ function BioOSContent() {
                 <div>
                   <label className="text-sm font-medium">Slug (URL)</label>
                   <Input value={newSlug} onChange={(e) => setNewSlug(e.target.value)} placeholder="jorge-cardoso-digital" />
-                  <p className="text-xs text-muted-foreground mt-1">/b/workspace/{newSlug || "..."}</p>
+                  <p className="text-xs text-muted-foreground mt-1">/bio/{workspaceSlug}/{newSlug || "..."}</p>
                 </div>
                 <Button onClick={handleCreate} disabled={createPage.isPending} className="w-full">
                   {createPage.isPending ? "A criar..." : "Criar Página"}
@@ -132,10 +135,10 @@ function BioOSContent() {
                       <PenLine className="h-4 w-4" />
                     </Button>
                     {page.status === "live" && (
-                      <CopyLinkButton page={page} />
+                      <CopyLinkButton page={page} workspaceSlug={workspaceSlug} />
                     )}
                     {page.status === "live" && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); window.open(`/b/${page.workspace_id}/${page.slug}`, "_blank"); }}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); window.open(`/bio/${workspaceSlug}/${page.slug}`, "_blank"); }}>
                         <ExternalLink className="h-4 w-4" />
                       </Button>
                     )}
