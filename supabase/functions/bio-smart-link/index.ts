@@ -58,13 +58,14 @@ Título da página: ${meta.title}
 Descrição: ${meta.description}
 
 Gera um JSON com exactamente estes campos:
-- "title": título curto e chamativo (max 6 palavras), usa técnicas AIDA - captura atenção imediata
-- "subtitle": subtítulo persuasivo (max 15 palavras), destaca benefício principal ou prova social
+- "title": identifica a DOR ou PROBLEMA principal do público-alvo (max 8 palavras), usa a framework PAS (Problema-Agitação-Solução) — começa sempre pelo problema/frustração real do visitante. Exemplos: "Cansado de perder clientes?", "Sem tempo para gerir redes sociais?"
+- "subtitle": apresenta a SOLUÇÃO e o BENEFÍCIO concreto (max 15 palavras), mostra como o produto/serviço resolve a dor identificada no título
 - "cta_text": texto do botão CTA (max 3 palavras), cria urgência ou curiosidade
 
 Regras:
 - Usa português de Portugal (PT-PT)
-- Sê directo e impactante
+- O título DEVE tocar numa dor real — nunca ser genérico ou apenas "chamativo"
+- O subtítulo DEVE ser a solução directa para a dor do título
 - Evita clichés como "Clique aqui" ou "Saiba mais"
 - O CTA deve criar desejo de acção imediata
 - Adapta o tom ao conteúdo real da página
