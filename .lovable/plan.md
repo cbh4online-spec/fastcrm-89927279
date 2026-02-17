@@ -1,38 +1,34 @@
 
-# Adicionar editor para o bloco WhatsApp
+# Adicionar geracao IA ao bloco WhatsApp
 
-## Problema
-O bloco "whatsapp" nao tem case no switch do `renderBlockEditor`, caindo no `default` que mostra "Editor nao disponivel para este tipo de bloco."
+## Objectivo
+Adicionar um botao "Gerar com IA" no editor do bloco WhatsApp que gera automaticamente o texto do botao e a mensagem pre-definida com base no contexto da pagina bio (nome, vertical, objectivo).
 
-## Solucao
-Adicionar um case `"whatsapp"` na funcao `renderBlockEditor` em `src/components/bio/BioBlockEditor.tsx` com campos editaveis:
+## Alteracoes
 
-- **Texto** (campo `text`) -- o texto exibido no botao (ex: "WhatsApp")
-- **Numero** (campo `phone`) -- o numero de telefone
-- **Mensagem pre-definida** (campo `message`) -- mensagem que abre pre-preenchida no WhatsApp
+### 1. Edge Function: `supabase/functions/bio-whatsapp-copy/index.ts` (novo)
+- Recebe: `pageName`, `vertical` (ou descricao da pagina), `tone`
+- Usa Lovable AI (Gemini 3 Flash) para gerar:
+  - `text`: texto do botao WhatsApp (ex: "Fale connosco", "Marcar consulta")
+  - `message`: mensagem pre-definida persuasiva (ex: "Ola! Vi a vossa pagina e gostava de saber mais sobre...")
+- Usa tool calling para structured output
+- Trata erros 429/402
 
-### Ficheiro: `src/components/bio/BioBlockEditor.tsx`
-
-Adicionar antes do case `"divider"` (linha ~470):
-
-```typescript
-case "whatsapp":
-  return (
-    <div className="space-y-3">
-      <div>
-        <label className="text-xs font-medium">Texto do Botao</label>
-        <DebouncedInput blockId={block.id} value={content.text || ""} onDebouncedChange={(v) => onUpdate("text", v)} placeholder="WhatsApp" />
-      </div>
-      <div>
-        <label className="text-xs font-medium">Numero de Telefone</label>
-        <DebouncedInput blockId={block.id} value={content.phone || ""} onDebouncedChange={(v) => onUpdate("phone", v)} placeholder="+351 912 345 678" />
-      </div>
-      <div>
-        <label className="text-xs font-medium">Mensagem Pre-definida</label>
-        <DebouncedInput blockId={block.id} value={content.message || ""} onDebouncedChange={(v) => onUpdate("message", v)} placeholder="Ola, gostava de saber mais..." />
-      </div>
-    </div>
-  );
+### 2. Registar no `supabase/config.toml`
+```toml
+[functions.bio-whatsapp-copy]
+verify_jwt = false
 ```
 
-Apenas 1 ficheiro alterado, sem dependencias novas.
+### 3. Actualizar `src/components/bio/BioBlockEditor.tsx`
+- No case `"whatsapp"` do `renderBlockEditor`, adicionar um botao com icone Sparkles acima dos campos
+- Ao clicar, chama a edge function com contexto da pagina
+- Preenche automaticamente os campos `text` e `message` via `onUpdate`
+- Estado de loading com spinner animado
+
+### Fluxo
+1. Utilizador selecciona bloco WhatsApp
+2. Clica em "Gerar com IA"
+3. Edge function gera texto do botao + mensagem personalizada
+4. Campos sao preenchidos automaticamente
+5. Utilizador pode editar manualmente depois
