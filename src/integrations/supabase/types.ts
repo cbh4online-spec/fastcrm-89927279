@@ -29671,6 +29671,10 @@ export type Database = {
         }
         Returns: Json
       }
+      aggregate_bio_analytics_daily: {
+        Args: { target_date?: string }
+        Returns: undefined
+      }
       batch_reorder_objectives: {
         Args: { p_ids: string[]; p_positions: number[] }
         Returns: undefined

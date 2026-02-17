@@ -20,7 +20,7 @@ export function BioAnalyticsTab({ pageId }: BioAnalyticsTabProps) {
       const { data, error } = await (supabase
         .from("bio_analytics_daily" as any)
         .select("*")
-        .eq("page_id", pageId)
+        .eq("bio_page_id", pageId)
         .gte("date", thirtyDaysAgo)
         .order("date", { ascending: true }) as any);
       if (error) throw error;
@@ -34,7 +34,7 @@ export function BioAnalyticsTab({ pageId }: BioAnalyticsTabProps) {
       const { data, error } = await (supabase
         .from("bio_events" as any)
         .select("event_type")
-        .eq("page_id", pageId)
+        .eq("bio_page_id", pageId)
         .gte("created_at", thirtyDaysAgo) as any);
       if (error) throw error;
       const counts: Record<string, number> = {};
