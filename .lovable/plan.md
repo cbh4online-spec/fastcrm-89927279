@@ -1,31 +1,38 @@
 
-# Tornar os Hero blocks visualmente distintos
+# Adicionar editor para o bloco WhatsApp
 
 ## Problema
-Os dois hero blocks (Agencias e Empresas) parecem identicos porque as variantes de gradiente 0 e 1 diferem apenas no angulo (135deg vs 160deg), resultando em cores quase iguais.
+O bloco "whatsapp" nao tem case no switch do `renderBlockEditor`, caindo no `default` que mostra "Editor nao disponivel para este tipo de bloco."
 
 ## Solucao
-Alterar o array `GRADIENT_VARIANTS` em `BioBlockPreviewCard.tsx` para que cada variante tenha diferencas de cor (hue shift) muito mais pronunciadas, tornando cada hero block visualmente unico.
+Adicionar um case `"whatsapp"` na funcao `renderBlockEditor` em `src/components/bio/BioBlockEditor.tsx` com campos editaveis:
 
-## Alteracoes
+- **Texto** (campo `text`) -- o texto exibido no botao (ex: "WhatsApp")
+- **Numero** (campo `phone`) -- o numero de telefone
+- **Mensagem pre-definida** (campo `message`) -- mensagem que abre pre-preenchida no WhatsApp
 
-### Ficheiro: `src/components/bio/BioBlockPreviewCard.tsx`
+### Ficheiro: `src/components/bio/BioBlockEditor.tsx`
 
-Substituir as 5 variantes de gradiente por versoes com maior diferenciacao:
+Adicionar antes do case `"divider"` (linha ~470):
 
-- **Variante 0**: Manter o gradiente original (hue +15) -- tom base
-- **Variante 1**: Hue shift de +40 com lightness invertida -- tom complementar mais quente
-- **Variante 2**: Hue shift de +80 com saturacao boost -- tom contrastante
-- **Variante 3**: Hue shift de -30 com lightness mais claro -- tom frio
-- **Variante 4**: Hue shift de +120 (analogous complement) -- tom oposto
-
-Valores concretos:
+```typescript
+case "whatsapp":
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="text-xs font-medium">Texto do Botao</label>
+        <DebouncedInput blockId={block.id} value={content.text || ""} onDebouncedChange={(v) => onUpdate("text", v)} placeholder="WhatsApp" />
+      </div>
+      <div>
+        <label className="text-xs font-medium">Numero de Telefone</label>
+        <DebouncedInput blockId={block.id} value={content.phone || ""} onDebouncedChange={(v) => onUpdate("phone", v)} placeholder="+351 912 345 678" />
+      </div>
+      <div>
+        <label className="text-xs font-medium">Mensagem Pre-definida</label>
+        <DebouncedInput blockId={block.id} value={content.message || ""} onDebouncedChange={(v) => onUpdate("message", v)} placeholder="Ola, gostava de saber mais..." />
+      </div>
+    </div>
+  );
 ```
-Variante 0: h -> h+15   (shift pequeno, original)
-Variante 1: h -> h+45   (shift medio-grande, visivelmente diferente)
-Variante 2: h -> h+90   (shift grande, cor contrastante)
-Variante 3: h-30 -> h   (direcao oposta, mais frio)
-Variante 4: h -> h+150  (quase complementar)
-```
 
-Isto garante que dois hero blocks consecutivos (indices 0 e 1) tenham cores visivelmente distintas sem necessitar de configuracao manual.
+Apenas 1 ficheiro alterado, sem dependencias novas.
