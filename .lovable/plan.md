@@ -1,20 +1,34 @@
 
 
-# Hero Block -- Tornar mais estreito/compacto
+# Sincronizacao GHL com actualizacao em tempo real
 
-## Resumo
-Reduzir o tamanho do hero block tornando-o mais fino e compacto, diminuindo o icon, padding e espacamentos.
+## Problema actual
+Os hooks `useGHLContactSync` e `useGHLConversationSync` fazem a sincronizacao via SSE streaming (mostrando progresso), mas quando terminam **nao actualizam os dados na interface**. O utilizador tem de fazer refresh manual para ver os novos contactos/conversas importados.
+
+## Solucao
+Adicionar invalidacao de cache do react-query apos a sincronizacao completar, para que as listas de leads e conversas se actualizem automaticamente.
 
 ## Alteracoes
 
-### Ficheiro: `src/components/bio/BioBlockPreviewCard.tsx`
+### 1. `src/hooks/useGHLContactSync.ts`
+- Importar `useQueryClient` do `@tanstack/react-query`
+- Apos o sync completar com sucesso (quando `result` existe), invalidar:
+  - `queryKey: ["leads"]` -- para actualizar a lista de leads
+  - `queryKey: ["leads", workspaceId]` -- queries filtradas por workspace
+- A invalidacao acontece no bloco `finally` ou logo apos receber o evento `complete`
 
-1. **Reduzir o anel exterior**: de `h-28 w-28` (112px) para `h-20 w-20` (80px)
-2. **Reduzir o circulo do icon**: de `h-20 w-20` (80px) para `h-14 w-14` (56px)
-3. **Reduzir o icon interno**: de `h-12 w-12` para `h-8 w-8`
-4. **Reduzir padding do card**: de `p-5 pt-2` para `p-4 pt-2`
-5. **Reduzir margem inferior do icon**: de `mb-5` para `mb-3`
-6. **Reduzir margem inferior do subtitulo**: de `mb-4` para `mb-3`
+### 2. `src/hooks/useGHLConversationSync.ts`
+- Importar `useQueryClient` do `@tanstack/react-query`
+- Apos o sync completar com sucesso, invalidar:
+  - `queryKey: ["conversations"]` -- para actualizar a lista de conversas
+  - `queryKey: ["messages"]` -- para actualizar mensagens se necessario
+- Isto garante que o Inbox reflecte imediatamente as novas conversas importadas
 
-Resultado: o hero block fica mais compacto e elegante, mantendo todos os efeitos visuais (glow, anel pulsante, gradiente) mas numa escala mais refinada.
+### Detalhes tecnicos
+
+As tabelas `conversations` e `messages` ja tem Supabase Realtime activado (migration `20260113185623`), portanto novos registos inseridos pelo edge function ja disparam eventos realtime. O hook `useConversations` ja subscreve a esses eventos (linha 97).
+
+O principal gap e que o hook de sync nao forca uma re-fetch dos dados via react-query. Ao adicionar `invalidateQueries` no momento do `complete`, os dados actualizam-se instantaneamente na UI sem necessidade de refresh.
+
+Para leads, como nao ha subscricao realtime na tabela `leads`, a invalidacao de cache e essencial para que a lista se actualize.
 
