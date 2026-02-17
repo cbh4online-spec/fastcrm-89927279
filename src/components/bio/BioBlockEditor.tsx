@@ -191,7 +191,7 @@ export function BioBlockEditor({ pageId, page }: BioBlockEditorProps) {
               <div className="absolute top-3 left-1/2 -translate-x-1/2 w-28 h-6 bg-foreground rounded-b-2xl z-10" />
             )}
             <div className="rounded-[2rem] overflow-hidden bg-background" style={{ minHeight: previewMode === "mobile" ? 680 : 500 }}>
-              <ScrollArea className="h-full" style={{ maxHeight: previewMode === "mobile" ? 680 : 500 }}>
+              <ScrollArea style={{ height: previewMode === "mobile" ? 680 : 500 }}>
                 <div className="p-5 pt-10 space-y-3">
                   {blocks.length === 0 ? (
                     <p className="text-center text-sm text-muted-foreground py-20">Adicione blocos para começar</p>
