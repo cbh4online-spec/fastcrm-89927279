@@ -1,27 +1,50 @@
 
-# Adicionar link copiavel para a Bio do Instagram
+# Adicionar Titulos/Descricoes com IA + Tab de Analiticas Bio
 
-## Problema
-Nao existe um botao para copiar o link publico completo da pagina Bio. O utilizador precisa de um URL completo (ex: `https://fastcrm.metodopare.ai/b/{workspace_id}/{slug}`) para colar na bio do Instagram.
+## 1. Gerar Titulos e Descricoes com IA (BioSettingsTab)
 
-## Solucao
-Adicionar um botao "Copiar Link" nos dois locais onde se acede a paginas Bio:
+Adicionar botao "Gerar com IA" nos campos SEO Title e SEO Description do `BioSettingsTab`, reutilizando a mesma logica da edge function existente mas com uma nova edge function dedicada.
 
-### 1. `src/components/bio/BioPageBuilder.tsx`
-- Importar `getPublicBaseUrl` de `@/utils/getPublicDomain`
-- Importar icone `Copy` e `Check` de lucide-react
-- Ao lado do botao "Ver Pagina", adicionar botao "Copiar Link" que:
-  - Constroi o URL completo: `${getPublicBaseUrl()}/b/${page.workspace_id}/${page.slug}`
-  - Copia para o clipboard com `navigator.clipboard.writeText()`
-  - Mostra toast de confirmacao
-  - Icone muda para Check durante 2 segundos como feedback visual
+### Nova Edge Function: `supabase/functions/bio-seo-copy/index.ts`
+- Recebe: `pageName`, `vertical` (descricao da pagina)
+- Usa Gemini 3 Flash com tool calling para gerar structured output:
+  - `seo_title`: titulo SEO optimizado (max 60 chars)
+  - `seo_description`: meta description persuasiva (max 155 chars)
+- Trata erros 429/402
 
-### 2. `src/pages/BioOS.tsx`
-- Na lista de paginas (card de cada pagina), adicionar um botao com icone `Copy` ao lado do botao ExternalLink
-- Mesma logica: copiar URL completo para clipboard
-- So aparece quando `page.status === "live"`
+### Registar no `supabase/config.toml`
+- Adicionar `[functions.bio-seo-copy]` com `verify_jwt = false`
 
-### Detalhes tecnicos
-- Usar `getPublicBaseUrl()` para garantir que o URL e o do dominio publico (nao o de preview do Lovable)
-- Usar `navigator.clipboard.writeText()` + toast da sonner
-- 2 ficheiros alterados, sem dependencias novas
+### Actualizar `src/components/bio/tabs/BioSettingsTab.tsx`
+- Importar `Sparkles`, `Loader2` de lucide-react
+- Adicionar botao "Gerar com IA" no card SEO que chama a edge function
+- Preenche automaticamente os campos `seo_title` e `seo_description`
+- Loading state com spinner
+
+## 2. Tab de Analiticas
+
+As tabelas `bio_analytics_daily` e `bio_events` ja existem na base de dados com colunas para views, uniques, clicks, leads, purchases, revenue, top_links e top_sources -- mas nao ha nenhum componente que as consuma.
+
+### Novo ficheiro: `src/components/bio/tabs/BioAnalyticsTab.tsx`
+- Recebe `pageId` como prop
+- Busca dados de `bio_analytics_daily` dos ultimos 30 dias
+- Busca contagem de eventos de `bio_events` agrupados por `event_type`
+- Exibe:
+  - 4 KPI cards no topo: Total Views, Uniques, Clicks, Leads
+  - Grafico de linha (recharts) com views/uniques por dia
+  - Tabela de top links (do campo `top_links` JSONB)
+  - Tabela de top sources/referrers (do campo `top_sources` JSONB)
+
+### Actualizar `src/components/bio/BioPageBuilder.tsx`
+- Adicionar nova tab "Analiticas" com icone `BarChart3`
+- Renderizar `BioAnalyticsTab` no `TabsContent`
+
+## Ficheiros alterados/criados
+
+| Ficheiro | Accao |
+|----------|-------|
+| `supabase/functions/bio-seo-copy/index.ts` | Criar |
+| `supabase/config.toml` | Editar (registar funcao) |
+| `src/components/bio/tabs/BioSettingsTab.tsx` | Editar (botao IA) |
+| `src/components/bio/tabs/BioAnalyticsTab.tsx` | Criar |
+| `src/components/bio/BioPageBuilder.tsx` | Editar (nova tab) |
