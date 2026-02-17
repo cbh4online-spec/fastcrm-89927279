@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Globe, Eye, EyeOff, Copy, Check, BarChart3 } from "lucide-react";
+import { ArrowLeft, Globe, Eye, EyeOff, Copy, Check, BarChart3, Link2 } from "lucide-react";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ export function BioPageBuilder({ pageId, onBack }: BioPageBuilderProps) {
   const { currentWorkspace } = useWorkspace();
   const [activeTab, setActiveTab] = useState("blocks");
   const [copied, setCopied] = useState(false);
+  const [copiedShort, setCopiedShort] = useState(false);
 
   const handleCopyLink = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -30,6 +31,15 @@ export function BioPageBuilder({ pageId, onBack }: BioPageBuilderProps) {
     setCopied(true);
     toast.success("Link copiado!");
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyShortLink = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = `${getPublicBaseUrl()}/b/${page?.short_code}`;
+    await navigator.clipboard.writeText(url);
+    setCopiedShort(true);
+    toast.success("Link curto copiado!");
+    setTimeout(() => setCopiedShort(false), 2000);
   };
 
   if (!page) return null;
@@ -51,6 +61,10 @@ export function BioPageBuilder({ pageId, onBack }: BioPageBuilderProps) {
         <div className="flex items-center gap-2">
           {page.status === "live" && (
             <>
+              <Button variant="outline" size="sm" onClick={handleCopyShortLink}>
+                {copiedShort ? <Check className="h-4 w-4 mr-1" /> : <Link2 className="h-4 w-4 mr-1" />}
+                {copiedShort ? "Copiado!" : "Link Curto"}
+              </Button>
               <Button variant="outline" size="sm" onClick={handleCopyLink}>
                 {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
                 {copied ? "Copiado!" : "Copiar Link"}

@@ -9,6 +9,7 @@ export interface BioPage {
   slug: string;
   name: string;
   status: string;
+  short_code: string;
   seo_title: string | null;
   seo_description: string | null;
   og_image: string | null;

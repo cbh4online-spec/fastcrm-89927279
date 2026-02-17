@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Globe, Eye, Trash2, ExternalLink, PenLine, Sparkles, Copy, Check } from "lucide-react";
+import { Plus, Globe, Eye, Trash2, ExternalLink, PenLine, Sparkles, Copy, Check, Link2 } from "lucide-react";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { toast } from "sonner";
 import { BioPageBuilder } from "@/components/bio/BioPageBuilder";
@@ -123,6 +123,9 @@ function BioOSContent() {
                     <div className="flex-1 min-w-0">
                       <CardTitle className="text-base truncate">{page.name}</CardTitle>
                       <p className="text-xs text-muted-foreground mt-1 truncate">/{page.slug}</p>
+                      {page.short_code && (
+                        <p className="text-xs text-muted-foreground truncate">{getPublicBaseUrl()}/b/{page.short_code}</p>
+                      )}
                     </div>
                     <Badge variant={page.status === "live" ? "default" : "secondary"} className="ml-2 shrink-0">
                       {page.status === "live" ? "Live" : "Draft"}
