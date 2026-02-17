@@ -467,6 +467,23 @@ function BlockFields({ block, content, onUpdate, workspaceId }: {
           ))}
         </div>
       );
+    case "whatsapp":
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium">Texto do Botão</label>
+            <DebouncedInput blockId={block.id} value={content.text || ""} onDebouncedChange={(v) => onUpdate("text", v)} placeholder="WhatsApp" />
+          </div>
+          <div>
+            <label className="text-xs font-medium">Número de Telefone</label>
+            <DebouncedInput blockId={block.id} value={content.phone || ""} onDebouncedChange={(v) => onUpdate("phone", v)} placeholder="+351 912 345 678" />
+          </div>
+          <div>
+            <label className="text-xs font-medium">Mensagem Pré-definida</label>
+            <DebouncedInput blockId={block.id} value={content.message || ""} onDebouncedChange={(v) => onUpdate("message", v)} placeholder="Olá, gostava de saber mais..." />
+          </div>
+        </div>
+      );
     case "divider":
       return <p className="text-xs text-muted-foreground">Separador visual entre blocos.</p>;
     default:
