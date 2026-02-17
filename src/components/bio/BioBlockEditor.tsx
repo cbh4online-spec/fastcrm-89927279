@@ -25,14 +25,17 @@ function DebouncedInput({ value, onDebouncedChange, blockId, delay = 500, ...pro
 } & Omit<React.ComponentProps<typeof Input>, "value" | "onChange">) {
   const [local, setLocal] = useState(value);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const isTypingRef = useRef(false);
 
-  useEffect(() => { setLocal(value); }, [blockId]); // reset on block switch
+  useEffect(() => { setLocal(value); }, [blockId]);
+  useEffect(() => { if (!isTypingRef.current) setLocal(value); }, [value]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value;
     setLocal(v);
+    isTypingRef.current = true;
     clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => onDebouncedChange(v), delay);
+    timerRef.current = setTimeout(() => { onDebouncedChange(v); isTypingRef.current = false; }, delay);
   }, [onDebouncedChange, delay]);
 
   useEffect(() => () => clearTimeout(timerRef.current), []);
@@ -48,14 +51,17 @@ function DebouncedTextarea({ value, onDebouncedChange, blockId, delay = 500, ...
 } & Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, "value" | "onChange">) {
   const [local, setLocal] = useState(value);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const isTypingRef = useRef(false);
 
   useEffect(() => { setLocal(value); }, [blockId]);
+  useEffect(() => { if (!isTypingRef.current) setLocal(value); }, [value]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const v = e.target.value;
     setLocal(v);
+    isTypingRef.current = true;
     clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => onDebouncedChange(v), delay);
+    timerRef.current = setTimeout(() => { onDebouncedChange(v); isTypingRef.current = false; }, delay);
   }, [onDebouncedChange, delay]);
 
   useEffect(() => () => clearTimeout(timerRef.current), []);
