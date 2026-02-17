@@ -80,27 +80,27 @@ export function BioBlockPreviewCard({ block, primaryColor, index }: BioBlockPrev
       const { h, s, l } = hexToHSL(primaryColor || "#3b82f6");
       const iconGradient = `linear-gradient(135deg, hsl(${h}, ${Math.min(s + 10, 100)}%, ${Math.min(l + 10, 80)}%) 0%, hsl(${(h + 20) % 360}, ${s}%, ${Math.max(l - 10, 20)}%) 100%)`;
       return (
-        <div className="rounded-3xl p-5 pt-2 shadow-lg text-center" style={cardStyle}>
-          <div className="mx-auto -mt-4 mb-5 flex h-28 w-28 items-center justify-center rounded-full backdrop-blur-sm animate-pulse-glow"
+        <div className="rounded-3xl p-4 pt-2 shadow-lg text-center" style={cardStyle}>
+          <div className="mx-auto -mt-4 mb-3 flex h-20 w-20 items-center justify-center rounded-full backdrop-blur-sm animate-pulse-glow"
             style={{
               border: `3px solid ${primaryColor}25`,
               boxShadow: `0 0 30px 8px ${primaryColor}20`,
             }}
           >
             <div
-              className="flex h-20 w-20 items-center justify-center rounded-full shadow-2xl"
+              className="flex h-14 w-14 items-center justify-center rounded-full shadow-2xl"
               style={{
                 background: bgImage ? "rgba(255,255,255,0.2)" : iconGradient,
                 boxShadow: `inset 0 -3px 6px rgba(0,0,0,0.15), 0 8px 25px -3px ${primaryColor}50, 0 0 40px 5px ${primaryColor}30`,
               }}
             >
-              <HeroIcon className="h-12 w-12 drop-shadow-lg" style={{ color: "#fff" }} />
+              <HeroIcon className="h-8 w-8 drop-shadow-lg" style={{ color: "#fff" }} />
             </div>
           </div>
           <h2 className="text-xl font-extrabold leading-tight mb-1.5" style={{ color: bgImage ? "#fff" : textColor }}>
             {content.title || "Título Principal"}
           </h2>
-          <p className="text-sm mb-4 leading-relaxed" style={{ color: bgImage ? "rgba(255,255,255,0.8)" : subtleColor }}>
+          <p className="text-sm mb-3 leading-relaxed" style={{ color: bgImage ? "rgba(255,255,255,0.8)" : subtleColor }}>
             {content.subtitle || "Subtítulo descritivo aqui"}
           </p>
           {(content.cta_text || content.cta_url) && (
