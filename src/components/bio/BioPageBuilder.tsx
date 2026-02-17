@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { ArrowLeft, Globe, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Globe, Eye, EyeOff, Copy, Check } from "lucide-react";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +18,16 @@ export function BioPageBuilder({ pageId, onBack }: BioPageBuilderProps) {
   const { data: page } = useBioPage(pageId);
   const publishPage = usePublishBioPage();
   const [activeTab, setActiveTab] = useState("blocks");
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = `${getPublicBaseUrl()}/b/${page?.workspace_id}/${page?.slug}`;
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    toast.success("Link copiado!");
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   if (!page) return null;
 
@@ -35,9 +47,15 @@ export function BioPageBuilder({ pageId, onBack }: BioPageBuilderProps) {
         </div>
         <div className="flex items-center gap-2">
           {page.status === "live" && (
-            <Button variant="outline" size="sm" onClick={() => window.open(`/b/${page.workspace_id}/${page.slug}`, "_blank")}>
-              <Globe className="h-4 w-4 mr-1" /> Ver Página
-            </Button>
+            <>
+              <Button variant="outline" size="sm" onClick={handleCopyLink}>
+                {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+                {copied ? "Copiado!" : "Copiar Link"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => window.open(`/b/${page.workspace_id}/${page.slug}`, "_blank")}>
+                <Globe className="h-4 w-4 mr-1" /> Ver Página
+              </Button>
+            </>
           )}
           <Button
             variant={page.status === "live" ? "outline" : "default"}
