@@ -1,50 +1,60 @@
 
-# Adicionar Titulos/Descricoes com IA + Tab de Analiticas Bio
+# Corrigir link publico Bio OS - Criar rota e pagina publica
 
-## 1. Gerar Titulos e Descricoes com IA (BioSettingsTab)
+## Problema
+O link `https://fastcrm.metodopare.ai/b/{workspace_id}/{slug}` da erro porque:
+1. Nao existe nenhuma rota `/b/...` registada no `App.tsx`
+2. Nao existe nenhum componente de pagina publica que renderize os blocos Bio
 
-Adicionar botao "Gerar com IA" nos campos SEO Title e SEO Description do `BioSettingsTab`, reutilizando a mesma logica da edge function existente mas com uma nova edge function dedicada.
+O URL cai na rota catch-all `/:slug` que tenta renderizar uma `VerticalLandingPage`, resultando em erro.
 
-### Nova Edge Function: `supabase/functions/bio-seo-copy/index.ts`
-- Recebe: `pageName`, `vertical` (descricao da pagina)
-- Usa Gemini 3 Flash com tool calling para gerar structured output:
-  - `seo_title`: titulo SEO optimizado (max 60 chars)
-  - `seo_description`: meta description persuasiva (max 155 chars)
-- Trata erros 429/402
+## Solucao
 
-### Registar no `supabase/config.toml`
-- Adicionar `[functions.bio-seo-copy]` com `verify_jwt = false`
+### 1. Criar componente publico: `src/pages/PublicBioPage.tsx`
+- Recebe `workspaceId` e `pageSlug` dos params da rota
+- Busca a `bio_page` pelo `workspace_id` + `slug` (sem autenticacao, usando anon key)
+- Verifica se `status === "live"`, caso contrario mostra 404
+- Busca os `bio_blocks` associados, ordenados por `order_index`
+- Renderiza cada bloco conforme o `block_type`:
+  - **link/button**: botao clicavel com URL
+  - **text**: paragrafo/titulo
+  - **image**: imagem com alt text
+  - **whatsapp**: botao WhatsApp com mensagem pre-definida
+  - **social**: icones de redes sociais
+  - **divider**: separador visual
+  - **hero**: secao hero com titulo/subtitulo
+  - **form**: formulario de contacto (cria contacto no CRM)
+  - **video**: embed de video
+  - **faq**, **testimonials**, **countdown**, etc.
+- Aplica `primary_color` da pagina como cor de destaque
+- Aplica `background_style` (cor, gradiente, imagem)
+- Inclui meta tags SEO (`seo_title`, `seo_description`, `og_image`) via react-helmet-async
+- Regista evento `page_view` na tabela `bio_events`
+- Layout centrado, mobile-first, sem sidebar/navbar do CRM
 
-### Actualizar `src/components/bio/tabs/BioSettingsTab.tsx`
-- Importar `Sparkles`, `Loader2` de lucide-react
-- Adicionar botao "Gerar com IA" no card SEO que chama a edge function
-- Preenche automaticamente os campos `seo_title` e `seo_description`
-- Loading state com spinner
+### 2. Registar rota no `App.tsx`
+- Adicionar rota `/b/:workspaceId/:pageSlug` no bloco de rotas publicas (ao nivel do `<Routes>` principal, antes do `CRMRoutes`)
+- Segue o padrao existente do Store (`/store/*`) e C2C (`/c2c/:workspaceSlug`)
+- Nao requer autenticacao nem providers do CRM
 
-## 2. Tab de Analiticas
+### 3. Politicas RLS (verificacao)
+- Garantir que `bio_pages` e `bio_blocks` tem politica SELECT para `anon` (leitura publica das paginas live)
+- Se nao existirem, criar migration para adicionar
 
-As tabelas `bio_analytics_daily` e `bio_events` ja existem na base de dados com colunas para views, uniques, clicks, leads, purchases, revenue, top_links e top_sources -- mas nao ha nenhum componente que as consuma.
+## Detalhes tecnicos
 
-### Novo ficheiro: `src/components/bio/tabs/BioAnalyticsTab.tsx`
-- Recebe `pageId` como prop
-- Busca dados de `bio_analytics_daily` dos ultimos 30 dias
-- Busca contagem de eventos de `bio_events` agrupados por `event_type`
-- Exibe:
-  - 4 KPI cards no topo: Total Views, Uniques, Clicks, Leads
-  - Grafico de linha (recharts) com views/uniques por dia
-  - Tabela de top links (do campo `top_links` JSONB)
-  - Tabela de top sources/referrers (do campo `top_sources` JSONB)
-
-### Actualizar `src/components/bio/BioPageBuilder.tsx`
-- Adicionar nova tab "Analiticas" com icone `BarChart3`
-- Renderizar `BioAnalyticsTab` no `TabsContent`
-
-## Ficheiros alterados/criados
+### Ficheiros
 
 | Ficheiro | Accao |
 |----------|-------|
-| `supabase/functions/bio-seo-copy/index.ts` | Criar |
-| `supabase/config.toml` | Editar (registar funcao) |
-| `src/components/bio/tabs/BioSettingsTab.tsx` | Editar (botao IA) |
-| `src/components/bio/tabs/BioAnalyticsTab.tsx` | Criar |
-| `src/components/bio/BioPageBuilder.tsx` | Editar (nova tab) |
+| `src/pages/PublicBioPage.tsx` | Criar - componente completo da pagina publica |
+| `src/App.tsx` | Editar - adicionar rota `/b/:workspaceId/:pageSlug` |
+| Migration SQL (se necessario) | RLS policies para leitura anon de `bio_pages` e `bio_blocks` |
+
+### Fluxo de renderizacao
+1. Visitante acede a `/b/{workspace_id}/{slug}`
+2. Componente busca `bio_pages` WHERE `workspace_id` = param AND `slug` = param AND `status` = 'live'
+3. Se encontrado, busca `bio_blocks` WHERE `bio_page_id` = page.id AND `is_visible` = true
+4. Renderiza pagina com blocos, cores e meta tags
+5. Regista `page_view` em `bio_events` (fire-and-forget)
+6. Se nao encontrado, mostra pagina 404 estilizada
