@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useBioPage, usePublishBioPage } from "@/hooks/useBioPages";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { BioBlockEditor } from "./BioBlockEditor";
 import { BioSettingsTab } from "./tabs/BioSettingsTab";
 import { BioAnalyticsTab } from "./tabs/BioAnalyticsTab";
@@ -18,12 +19,13 @@ interface BioPageBuilderProps {
 export function BioPageBuilder({ pageId, onBack }: BioPageBuilderProps) {
   const { data: page } = useBioPage(pageId);
   const publishPage = usePublishBioPage();
+  const { currentWorkspace } = useWorkspace();
   const [activeTab, setActiveTab] = useState("blocks");
   const [copied, setCopied] = useState(false);
 
   const handleCopyLink = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const url = `${getPublicBaseUrl()}/b/${page?.workspace_id}/${page?.slug}`;
+    const url = `${getPublicBaseUrl()}/bio/${currentWorkspace?.slug}/${page?.slug}`;
     await navigator.clipboard.writeText(url);
     setCopied(true);
     toast.success("Link copiado!");
@@ -53,7 +55,7 @@ export function BioPageBuilder({ pageId, onBack }: BioPageBuilderProps) {
                 {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
                 {copied ? "Copiado!" : "Copiar Link"}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => window.open(`/b/${page.workspace_id}/${page.slug}`, "_blank")}>
+              <Button variant="outline" size="sm" onClick={() => window.open(`/bio/${currentWorkspace?.slug}/${page.slug}`, "_blank")}>
                 <Globe className="h-4 w-4 mr-1" /> Ver Página
               </Button>
             </>
