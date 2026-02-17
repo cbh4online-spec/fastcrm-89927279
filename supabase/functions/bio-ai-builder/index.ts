@@ -32,8 +32,10 @@ Regras:
 - Gera entre 5 e 8 blocos
 - O slug deve ser lowercase, sem acentos, com hifens
 - A cor primária deve ser um hex que combine com a vertical
-- Tipos de blocos disponíveis: text, button, link, social, divider, whatsapp, calendar
-- O primeiro bloco deve ser "text" com headline chamativa
+- Tipos de blocos disponíveis: hero, feature, text, button, link, social, divider, whatsapp, calendar
+- O PRIMEIRO bloco DEVE ser "hero" com um título que identifica a dor do público-alvo (framework PAS), subtítulo com a solução, CTA forte, e um campo "icon" com o nome do ícone Lucide que melhor representa a indústria
+- Ícones disponíveis para o campo "icon": Heart, Briefcase, ShoppingBag, Utensils, Scissors, Camera, Dumbbell, GraduationCap, Stethoscope, Wrench, Palette, Music, Target, TrendingUp, DollarSign, Building2, Brain, Shield, Users, Sparkles
+- Escolhe o ícone que MELHOR representa visualmente a indústria (ex: Stethoscope para saúde, Utensils para restauração, Briefcase para negócios, Dumbbell para fitness)
 - Inclui pelo menos 1 botão CTA forte
 - Inclui bloco social no final`;
 
@@ -74,7 +76,7 @@ Regras:
                       properties: {
                         type: {
                           type: "string",
-                          enum: ["text", "button", "link", "social", "divider", "whatsapp", "calendar"],
+                          enum: ["hero", "feature", "text", "button", "link", "social", "divider", "whatsapp", "calendar"],
                         },
                         content: {
                           type: "object",

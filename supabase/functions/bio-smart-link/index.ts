@@ -61,6 +61,7 @@ Gera um JSON com exactamente estes campos:
 - "title": identifica a DOR ou PROBLEMA principal do público-alvo (max 8 palavras), usa a framework PAS (Problema-Agitação-Solução) — começa sempre pelo problema/frustração real do visitante. Exemplos: "Cansado de perder clientes?", "Sem tempo para gerir redes sociais?"
 - "subtitle": apresenta a SOLUÇÃO e o BENEFÍCIO concreto (max 15 palavras), mostra como o produto/serviço resolve a dor identificada no título
 - "cta_text": texto do botão CTA (max 3 palavras), cria urgência ou curiosidade
+- "icon": o nome do ícone Lucide que MELHOR representa a indústria/nicho desta página. Escolhe APENAS um destes: Heart, Briefcase, ShoppingBag, Utensils, Scissors, Camera, Dumbbell, GraduationCap, Stethoscope, Wrench, Palette, Music, Target, TrendingUp, DollarSign, Building2, Brain, Shield, Users, Sparkles, Headphones, Star, MessageSquare, BarChart3
 
 Regras:
 - Usa português de Portugal (PT-PT)
@@ -69,6 +70,7 @@ Regras:
 - Evita clichés como "Clique aqui" ou "Saiba mais"
 - O CTA deve criar desejo de acção imediata
 - Adapta o tom ao conteúdo real da página
+- O ícone DEVE representar visualmente a indústria (ex: Stethoscope para saúde, Utensils para restauração, Briefcase para negócios, GraduationCap para educação, Dumbbell para fitness)
 
 Responde APENAS com o JSON, sem markdown.`;
 
@@ -94,7 +96,7 @@ Responde APENAS com o JSON, sem markdown.`;
     const rawCopy = copyData.choices?.[0]?.message?.content || "{}";
     // Strip markdown fences if present
     const cleanJson = rawCopy.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-    let copy: { title: string; subtitle: string; cta_text: string };
+    let copy: { title: string; subtitle: string; cta_text: string; icon?: string };
     try {
       copy = JSON.parse(cleanJson);
     } catch {
@@ -107,6 +109,7 @@ Responde APENAS com o JSON, sem markdown.`;
       subtitle: copy.subtitle,
       cta_text: copy.cta_text,
       cta_url: url,
+      ...(copy.icon ? { icon: copy.icon } : {}),
     };
 
     // 3. Generate background image for hero/feature blocks
