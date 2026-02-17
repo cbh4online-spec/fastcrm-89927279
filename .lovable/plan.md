@@ -1,46 +1,37 @@
 
 
-# Alterar URL das Bio Pages de UUID para slug legivel
+# Links curtos para Bio Pages
 
-## Problema actual
-O URL publico das Bio pages usa o formato `/b/{workspace_uuid}/{page_slug}`, resultando em links como:
-`/b/d9e3d0ae-5893-41e9-97f3-7d7ce6a06f0f/consultoria-marketing-digital-pro`
+## Problema
+O URL actual `/bio/metodopare/consultoria-marketing-digital-pro` e demasiado longo para usar numa bio do Instagram.
 
-O formato desejado e:
-`/bio/metodopare` (usando o slug do workspace em vez do UUID)
+## Solucao
+Criar um sistema de short links com codigos curtos (6 caracteres), resultando em URLs como:
+`https://fastcrm.metodopare.ai/b/x7kM2p`
 
-**Nota:** O workspace `d9e3d0ae-5893-41e9-97f3-7d7ce6a06f0f` ja tem o slug `metodopare` na base de dados.
+### 1. Migration: adicionar coluna `short_code` a `bio_pages`
+- Coluna `short_code` (varchar 8, unique, not null, com default gerado automaticamente)
+- Funcao SQL para gerar codigo alfanumerico aleatorio de 6 chars
+- Preencher os registos existentes
 
-## Alteracoes
+### 2. Nova rota `/b/:shortCode` no `App.tsx`
+- Componente leve que busca a `bio_page` pelo `short_code` e redireciona para a rota completa `/bio/:workspaceSlug/:pageSlug`
+- Alternativa mais eficiente: renderizar directamente o `PublicBioPage` resolvendo pelo short code
 
-### 1. Rota no `App.tsx`
-- Mudar de `/b/:workspaceId/:pageSlug` para `/bio/:workspaceSlug/:pageSlug`
-- Segue o padrao ja usado pelo Store (`/store/:workspaceSlug`) e Landing Pages
+### 3. Actualizar UI para mostrar o link curto
+- No `BioPageBuilder.tsx`: botao "Copiar Link Curto" ao lado do existente
+- No `BioOS.tsx`: mostrar o link curto na listagem de paginas
 
-### 2. `src/pages/PublicBioPage.tsx`
-- Mudar param de `workspaceId` para `workspaceSlug`
-- Primeiro resolver o workspace pelo slug (query `workspaces` WHERE `slug = workspaceSlug`), seguindo o mesmo padrao do `PublicLandingPage.tsx`
-- Depois buscar a `bio_page` usando o `workspace.id` resultante
+### Ficheiros a alterar/criar
 
-### 3. URLs de copia/preview (3 locais)
-- `src/components/bio/BioPageBuilder.tsx`: mudar `getPublicBaseUrl()/b/${workspace_id}/${slug}` para `getPublicBaseUrl()/bio/${workspace_slug}/${slug}`
-  - Precisa buscar o workspace slug (ou receber como prop)
-- `src/pages/BioOS.tsx`: mesma alteracao nos botoes de copiar link e abrir pagina
-- `src/pages/BioOS.tsx`: actualizar texto de preview do slug no formulario de criacao
+| Ficheiro | Accao |
+|----------|-------|
+| Migration SQL | Adicionar `short_code` a `bio_pages` |
+| `src/App.tsx` | Adicionar rota `/b/:shortCode` |
+| `src/pages/PublicBioShortLink.tsx` | Criar - resolve short code e renderiza pagina |
+| `src/components/bio/BioPageBuilder.tsx` | Adicionar botao "Link Curto" |
+| `src/pages/BioOS.tsx` | Mostrar link curto na lista |
 
-### 4. Obter workspace slug
-- No `BioPageBuilder` e `BioOS`, o hook `useWorkspace()` ja existe e fornece o workspace actual com o slug -- basta usar `workspace.slug` em vez de `page.workspace_id`
-
-## Ficheiros a alterar
-
-| Ficheiro | Alteracao |
-|----------|-----------|
-| `src/App.tsx` | Rota `/b/:workspaceId/:pageSlug` -> `/bio/:workspaceSlug/:pageSlug` |
-| `src/pages/PublicBioPage.tsx` | Resolver workspace por slug antes de buscar bio_page |
-| `src/components/bio/BioPageBuilder.tsx` | URLs com `/bio/${workspace.slug}/${page.slug}` |
-| `src/pages/BioOS.tsx` | URLs com `/bio/${workspace.slug}/${page.slug}` |
-
-## Resultado
-O link final sera: `https://fastcrm.metodopare.ai/bio/metodopare/consultoria-marketing-digital-pro`
-
-**Nota:** Se cada workspace tiver apenas uma bio page principal, o `pageSlug` continua necessario para suportar multiplas paginas por workspace. Se preferir que `/bio/metodopare` funcione sem o page slug (redireccionando para a pagina principal), isso pode ser adicionado como melhoria futura.
+### Resultado
+- Link longo (SEO): `fastcrm.metodopare.ai/bio/metodopare/consultoria-marketing-digital-pro`
+- Link curto (Instagram): `fastcrm.metodopare.ai/b/x7kM2p`
