@@ -10,6 +10,7 @@ import { BioBlockPreviewCard } from "./BioBlockPreviewCard";
 import { BioImageUploader } from "./BioImageUploader";
 import { BioSmartLinkGenerator } from "./BioSmartLinkGenerator";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { getIconByName, INDUSTRY_ICONS } from "@/lib/icons";
 import {
   Link, Type, Image, MousePointerClick, Share2, Minus,
   Plus, Trash2, ChevronUp, ChevronDown, Eye, EyeOff,
@@ -286,6 +287,63 @@ function BlockProperties({ block, onUpdate, onSmartGenerated }: {
   );
 }
 
+// ── Icon Picker Grid ──────────────────────────────────────────
+function IconPickerField({ blockId, value, onUpdate }: {
+  blockId: string;
+  value: string;
+  onUpdate: (key: string, value: unknown) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div>
+      <label className="text-xs font-medium">Ícone da Indústria</label>
+      <div className="flex items-center gap-2 mt-1">
+        {(() => {
+          const Icon = getIconByName(value);
+          return (
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+              <Icon className="h-5 w-5 text-primary" />
+            </div>
+          );
+        })()}
+        <Button variant="outline" size="sm" className="text-xs" onClick={() => setOpen(!open)}>
+          {open ? "Fechar" : "Escolher ícone"}
+        </Button>
+        <span className="text-xs text-muted-foreground">{value}</span>
+      </div>
+      {open && (
+        <div className="mt-2 rounded-lg border bg-background p-3 space-y-3 max-h-60 overflow-y-auto">
+          {INDUSTRY_ICONS.map(({ category, icons }) => (
+            <div key={category}>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{category}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {icons.map((iconName) => {
+                  const Icon = getIconByName(iconName);
+                  const isSelected = value === iconName;
+                  return (
+                    <button
+                      key={iconName}
+                      type="button"
+                      className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all ${
+                        isSelected ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 hover:bg-muted text-foreground"
+                      }`}
+                      title={iconName}
+                      onClick={() => { onUpdate("icon", iconName); setOpen(false); }}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BlockFields({ block, content, onUpdate, workspaceId }: {
   block: BioBlock;
   content: Record<string, string>;
@@ -296,11 +354,7 @@ function BlockFields({ block, content, onUpdate, workspaceId }: {
     case "hero":
       return (
         <div className="space-y-3">
-          <div>
-            <label className="text-xs font-medium">Ícone</label>
-            <DebouncedInput blockId={block.id} value={content.icon || "Sparkles"} onDebouncedChange={(v) => onUpdate("icon", v)} placeholder="Nome do ícone (ex: Target, Zap, Star)" />
-            <p className="text-[10px] text-muted-foreground mt-0.5">Nomes: Sparkles, Target, Zap, Star, Users, Shield, Brain, TrendingUp…</p>
-          </div>
+          <IconPickerField blockId={block.id} value={content.icon || "Sparkles"} onUpdate={onUpdate} />
           <div>
             <label className="text-xs font-medium">Título</label>
             <DebouncedInput blockId={block.id} value={content.title || ""} onDebouncedChange={(v) => onUpdate("title", v)} placeholder="Título do bloco" />
