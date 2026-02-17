@@ -31,16 +31,21 @@ function hexToHSL(hex: string): { h: number; s: number; l: number } {
 }
 
 const GRADIENT_VARIANTS = [
+  // Variante 0: tom base (hue +15)
   (h: number, s: number, l: number) =>
-    `linear-gradient(135deg, hsl(${h}, ${s}%, ${l}%) 0%, hsl(${h + 15}, ${Math.min(s + 10, 100)}%, ${Math.max(l - 15, 10)}%) 100%)`,
+    `linear-gradient(135deg, hsl(${h}, ${s}%, ${l}%) 0%, hsl(${(h + 15) % 360}, ${Math.min(s + 10, 100)}%, ${Math.max(l - 15, 10)}%) 100%)`,
+  // Variante 1: tom quente (hue +45, visivelmente diferente)
   (h: number, s: number, l: number) =>
-    `linear-gradient(160deg, hsl(${h - 10}, ${s}%, ${Math.min(l + 10, 90)}%) 0%, hsl(${h + 20}, ${s}%, ${l}%) 100%)`,
+    `linear-gradient(160deg, hsl(${(h + 30) % 360}, ${Math.min(s + 5, 100)}%, ${Math.min(l + 5, 85)}%) 0%, hsl(${(h + 45) % 360}, ${s}%, ${Math.max(l - 10, 15)}%) 100%)`,
+  // Variante 2: tom contrastante (hue +90)
   (h: number, s: number, l: number) =>
-    `linear-gradient(45deg, hsl(${h}, ${Math.min(s + 15, 100)}%, ${l}%) 0%, hsl(${(h + 40) % 360}, ${s}%, ${Math.min(l + 5, 85)}%) 100%)`,
+    `linear-gradient(45deg, hsl(${(h + 70) % 360}, ${Math.min(s + 15, 100)}%, ${l}%) 0%, hsl(${(h + 90) % 360}, ${s}%, ${Math.min(l + 5, 85)}%) 100%)`,
+  // Variante 3: tom frio (hue -30)
   (h: number, s: number, l: number) =>
-    `linear-gradient(180deg, hsl(${h + 5}, ${s}%, ${Math.min(l + 15, 85)}%) 0%, hsl(${h - 5}, ${Math.min(s + 20, 100)}%, ${Math.max(l - 10, 15)}%) 100%)`,
+    `linear-gradient(180deg, hsl(${(h - 30 + 360) % 360}, ${s}%, ${Math.min(l + 10, 85)}%) 0%, hsl(${h}, ${Math.min(s + 20, 100)}%, ${Math.max(l - 10, 15)}%) 100%)`,
+  // Variante 4: quase complementar (hue +150)
   (h: number, s: number, l: number) =>
-    `linear-gradient(120deg, hsl(${(h + 180) % 360}, ${Math.max(s - 10, 30)}%, ${l}%) 0%, hsl(${h}, ${s}%, ${Math.max(l - 5, 20)}%) 100%)`,
+    `linear-gradient(120deg, hsl(${(h + 130) % 360}, ${Math.max(s - 10, 30)}%, ${l}%) 0%, hsl(${(h + 150) % 360}, ${s}%, ${Math.max(l - 5, 20)}%) 100%)`,
 ];
 
 function getGradient(primaryColor: string, variantIndex: number): string {
