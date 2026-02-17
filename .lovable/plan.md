@@ -1,60 +1,46 @@
 
-# Corrigir link publico Bio OS - Criar rota e pagina publica
 
-## Problema
-O link `https://fastcrm.metodopare.ai/b/{workspace_id}/{slug}` da erro porque:
-1. Nao existe nenhuma rota `/b/...` registada no `App.tsx`
-2. Nao existe nenhum componente de pagina publica que renderize os blocos Bio
+# Alterar URL das Bio Pages de UUID para slug legivel
 
-O URL cai na rota catch-all `/:slug` que tenta renderizar uma `VerticalLandingPage`, resultando em erro.
+## Problema actual
+O URL publico das Bio pages usa o formato `/b/{workspace_uuid}/{page_slug}`, resultando em links como:
+`/b/d9e3d0ae-5893-41e9-97f3-7d7ce6a06f0f/consultoria-marketing-digital-pro`
 
-## Solucao
+O formato desejado e:
+`/bio/metodopare` (usando o slug do workspace em vez do UUID)
 
-### 1. Criar componente publico: `src/pages/PublicBioPage.tsx`
-- Recebe `workspaceId` e `pageSlug` dos params da rota
-- Busca a `bio_page` pelo `workspace_id` + `slug` (sem autenticacao, usando anon key)
-- Verifica se `status === "live"`, caso contrario mostra 404
-- Busca os `bio_blocks` associados, ordenados por `order_index`
-- Renderiza cada bloco conforme o `block_type`:
-  - **link/button**: botao clicavel com URL
-  - **text**: paragrafo/titulo
-  - **image**: imagem com alt text
-  - **whatsapp**: botao WhatsApp com mensagem pre-definida
-  - **social**: icones de redes sociais
-  - **divider**: separador visual
-  - **hero**: secao hero com titulo/subtitulo
-  - **form**: formulario de contacto (cria contacto no CRM)
-  - **video**: embed de video
-  - **faq**, **testimonials**, **countdown**, etc.
-- Aplica `primary_color` da pagina como cor de destaque
-- Aplica `background_style` (cor, gradiente, imagem)
-- Inclui meta tags SEO (`seo_title`, `seo_description`, `og_image`) via react-helmet-async
-- Regista evento `page_view` na tabela `bio_events`
-- Layout centrado, mobile-first, sem sidebar/navbar do CRM
+**Nota:** O workspace `d9e3d0ae-5893-41e9-97f3-7d7ce6a06f0f` ja tem o slug `metodopare` na base de dados.
 
-### 2. Registar rota no `App.tsx`
-- Adicionar rota `/b/:workspaceId/:pageSlug` no bloco de rotas publicas (ao nivel do `<Routes>` principal, antes do `CRMRoutes`)
-- Segue o padrao existente do Store (`/store/*`) e C2C (`/c2c/:workspaceSlug`)
-- Nao requer autenticacao nem providers do CRM
+## Alteracoes
 
-### 3. Politicas RLS (verificacao)
-- Garantir que `bio_pages` e `bio_blocks` tem politica SELECT para `anon` (leitura publica das paginas live)
-- Se nao existirem, criar migration para adicionar
+### 1. Rota no `App.tsx`
+- Mudar de `/b/:workspaceId/:pageSlug` para `/bio/:workspaceSlug/:pageSlug`
+- Segue o padrao ja usado pelo Store (`/store/:workspaceSlug`) e Landing Pages
 
-## Detalhes tecnicos
+### 2. `src/pages/PublicBioPage.tsx`
+- Mudar param de `workspaceId` para `workspaceSlug`
+- Primeiro resolver o workspace pelo slug (query `workspaces` WHERE `slug = workspaceSlug`), seguindo o mesmo padrao do `PublicLandingPage.tsx`
+- Depois buscar a `bio_page` usando o `workspace.id` resultante
 
-### Ficheiros
+### 3. URLs de copia/preview (3 locais)
+- `src/components/bio/BioPageBuilder.tsx`: mudar `getPublicBaseUrl()/b/${workspace_id}/${slug}` para `getPublicBaseUrl()/bio/${workspace_slug}/${slug}`
+  - Precisa buscar o workspace slug (ou receber como prop)
+- `src/pages/BioOS.tsx`: mesma alteracao nos botoes de copiar link e abrir pagina
+- `src/pages/BioOS.tsx`: actualizar texto de preview do slug no formulario de criacao
 
-| Ficheiro | Accao |
-|----------|-------|
-| `src/pages/PublicBioPage.tsx` | Criar - componente completo da pagina publica |
-| `src/App.tsx` | Editar - adicionar rota `/b/:workspaceId/:pageSlug` |
-| Migration SQL (se necessario) | RLS policies para leitura anon de `bio_pages` e `bio_blocks` |
+### 4. Obter workspace slug
+- No `BioPageBuilder` e `BioOS`, o hook `useWorkspace()` ja existe e fornece o workspace actual com o slug -- basta usar `workspace.slug` em vez de `page.workspace_id`
 
-### Fluxo de renderizacao
-1. Visitante acede a `/b/{workspace_id}/{slug}`
-2. Componente busca `bio_pages` WHERE `workspace_id` = param AND `slug` = param AND `status` = 'live'
-3. Se encontrado, busca `bio_blocks` WHERE `bio_page_id` = page.id AND `is_visible` = true
-4. Renderiza pagina com blocos, cores e meta tags
-5. Regista `page_view` em `bio_events` (fire-and-forget)
-6. Se nao encontrado, mostra pagina 404 estilizada
+## Ficheiros a alterar
+
+| Ficheiro | Alteracao |
+|----------|-----------|
+| `src/App.tsx` | Rota `/b/:workspaceId/:pageSlug` -> `/bio/:workspaceSlug/:pageSlug` |
+| `src/pages/PublicBioPage.tsx` | Resolver workspace por slug antes de buscar bio_page |
+| `src/components/bio/BioPageBuilder.tsx` | URLs com `/bio/${workspace.slug}/${page.slug}` |
+| `src/pages/BioOS.tsx` | URLs com `/bio/${workspace.slug}/${page.slug}` |
+
+## Resultado
+O link final sera: `https://fastcrm.metodopare.ai/bio/metodopare/consultoria-marketing-digital-pro`
+
+**Nota:** Se cada workspace tiver apenas uma bio page principal, o `pageSlug` continua necessario para suportar multiplas paginas por workspace. Se preferir que `/bio/metodopare` funcione sem o page slug (redireccionando para a pagina principal), isso pode ser adicionado como melhoria futura.
