@@ -412,7 +412,7 @@ export function StoreQuickProductDialog({ open, onOpenChange }: StoreQuickProduc
         track_stock: preview.track_stock,
         brand_logo_url: brandLogoStorageUrl,
         weight: preview.weight || 0.5,
-        condition: preview.condition,
+        product_condition: preview.condition,
       } as any);
 
       queryClient.invalidateQueries({ queryKey: ["store-admin-products"] });
