@@ -286,7 +286,7 @@ function BlockProperties({ block, page, onUpdate, onSmartGenerated }: {
           onGenerated={onSmartGenerated}
         />
       )}
-      <BlockFields block={block} content={content} onUpdate={onUpdate} workspaceId={workspaceId} page={page} />
+      <BlockFields block={block} content={content} onUpdate={onUpdate} onSmartGenerated={onSmartGenerated} workspaceId={workspaceId} page={page} />
     </div>
   );
 }
@@ -349,10 +349,11 @@ function IconPickerField({ blockId, value, onUpdate }: {
 }
 
 // ── WhatsApp Fields with AI generation ────────────────────────
-function WhatsAppFields({ block, content, onUpdate, page }: {
+function WhatsAppFields({ block, content, onUpdate, onBulkUpdate, page }: {
   block: BioBlock;
   content: Record<string, string>;
   onUpdate: (key: string, value: unknown) => void;
+  onBulkUpdate: (data: Record<string, string>) => void;
   page: BioPage;
 }) {
   const [loading, setLoading] = useState(false);
@@ -369,8 +370,7 @@ function WhatsAppFields({ block, content, onUpdate, page }: {
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Erro desconhecido");
 
-      onUpdate("text", data.data.text);
-      onUpdate("message", data.data.message);
+      onBulkUpdate({ text: data.data.text, message: data.data.message });
       toast.success("Texto gerado com IA!");
     } catch (e: any) {
       console.error("WhatsApp AI error:", e);
@@ -408,10 +408,11 @@ function WhatsAppFields({ block, content, onUpdate, page }: {
   );
 }
 
-function BlockFields({ block, content, onUpdate, workspaceId, page }: {
+function BlockFields({ block, content, onUpdate, onSmartGenerated, workspaceId, page }: {
   block: BioBlock;
   content: Record<string, string>;
   onUpdate: (key: string, value: unknown) => void;
+  onSmartGenerated: (data: Record<string, string>) => void;
   workspaceId: string;
   page: BioPage;
 }) {
@@ -533,7 +534,7 @@ function BlockFields({ block, content, onUpdate, workspaceId, page }: {
         </div>
       );
     case "whatsapp":
-      return <WhatsAppFields block={block} content={content} onUpdate={onUpdate} page={page} />;
+      return <WhatsAppFields block={block} content={content} onUpdate={onUpdate} onBulkUpdate={onSmartGenerated} page={page} />;
     case "divider":
       return <p className="text-xs text-muted-foreground">Separador visual entre blocos.</p>;
     default:
