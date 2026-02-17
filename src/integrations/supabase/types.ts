@@ -2801,6 +2801,7 @@ export type Database = {
           primary_color: string | null
           seo_description: string | null
           seo_title: string | null
+          short_code: string
           slug: string
           status: string
           updated_at: string
@@ -2816,6 +2817,7 @@ export type Database = {
           primary_color?: string | null
           seo_description?: string | null
           seo_title?: string | null
+          short_code?: string
           slug: string
           status?: string
           updated_at?: string
@@ -2831,6 +2833,7 @@ export type Database = {
           primary_color?: string | null
           seo_description?: string | null
           seo_title?: string | null
+          short_code?: string
           slug?: string
           status?: string
           updated_at?: string
@@ -29882,6 +29885,7 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: string
       }
+      generate_short_code: { Args: { length?: number }; Returns: string }
       generate_workflow_idempotency_key: {
         Args: {
           p_entity_id: string

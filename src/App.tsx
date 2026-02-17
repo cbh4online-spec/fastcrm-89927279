@@ -97,6 +97,7 @@ import ReportsSales from "./pages/ReportsSales";
 import ReportsGoals from "./pages/ReportsGoals";
 import Marketplace from "./pages/Marketplace";
 import PublicBioPage from "./pages/PublicBioPage";
+import PublicBioShortLink from "./pages/PublicBioShortLink";
 import C2CPublicMarketplace from "./pages/c2c/C2CPublicMarketplace";
 import C2CSellerRegistration from "./pages/c2c/C2CSellerRegistration";
 import C2CSellersAdmin from "./pages/c2c/C2CSellersAdmin";
@@ -484,6 +485,7 @@ const App = () => (
             <Routes>
               {/* Public Bio Pages */}
               <Route path="/bio/:workspaceSlug/:pageSlug" element={<PublicBioPage />} />
+              <Route path="/b/:shortCode" element={<PublicBioShortLink />} />
 
               {/* Store - ISOLATED from CRM providers */}
               <Route path="/store/*" element={<StoreRoutes />} />
