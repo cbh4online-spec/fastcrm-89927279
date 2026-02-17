@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
-import { ExternalLink, MessageCircle, Play, ChevronDown, ChevronUp, Quote, Clock, Star } from "lucide-react";
+import { ExternalLink, MessageCircle, Play, ChevronDown, ChevronUp, Quote, Clock, Star, ArrowRight } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 
 interface BioPage {
@@ -91,26 +91,95 @@ function trackBlockClick(page: BioPage, blockId: string) {
 
 // ─── Block Renderers ────────────────────────────────────────
 
-function HeroBlock({ block, primaryColor, contrastColor }: { block: BioBlock; primaryColor: string; contrastColor: string }) {
-  const { title, subtitle, cta_text, cta_url, icon } = block.content;
+function HeroBlock({ block, primaryColor, contrastColor, index }: { block: BioBlock; primaryColor: string; contrastColor: string; index: number }) {
+  const { title, subtitle, cta_text, cta_url, icon, bg_image, gradient_variant } = block.content;
+  const rgb = hexToRgb(primaryColor);
+  const variantIndex = gradient_variant ?? index;
+
+  // Generate gradient similar to preview card
+  const hsl = (() => {
+    const c = primaryColor.replace("#", "");
+    const r = parseInt(c.substring(0, 2), 16) / 255;
+    const g = parseInt(c.substring(2, 4), 16) / 255;
+    const b = parseInt(c.substring(4, 6), 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+        case g: h = ((b - r) / d + 2) / 6; break;
+        case b: h = ((r - g) / d + 4) / 6; break;
+      }
+    }
+    return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+  })();
+
+  const GRADIENT_VARIANTS = [
+    (h: number, s: number, l: number) => `linear-gradient(135deg, hsl(${h}, ${s}%, ${l}%) 0%, hsl(${(h + 15) % 360}, ${Math.min(s + 10, 100)}%, ${Math.max(l - 15, 10)}%) 100%)`,
+    (h: number, s: number, l: number) => `linear-gradient(160deg, hsl(${(h + 30) % 360}, ${Math.min(s + 5, 100)}%, ${Math.min(l + 5, 85)}%) 0%, hsl(${(h + 45) % 360}, ${s}%, ${Math.max(l - 10, 15)}%) 100%)`,
+    (h: number, s: number, l: number) => `linear-gradient(45deg, hsl(${(h + 70) % 360}, ${Math.min(s + 15, 100)}%, ${l}%) 0%, hsl(${(h + 90) % 360}, ${s}%, ${Math.min(l + 5, 85)}%) 100%)`,
+    (h: number, s: number, l: number) => `linear-gradient(180deg, hsl(${(h - 30 + 360) % 360}, ${s}%, ${Math.min(l + 10, 85)}%) 0%, hsl(${h}, ${Math.min(s + 20, 100)}%, ${Math.max(l - 10, 15)}%) 100%)`,
+    (h: number, s: number, l: number) => `linear-gradient(120deg, hsl(${(h + 130) % 360}, ${Math.max(s - 10, 30)}%, ${l}%) 0%, hsl(${(h + 150) % 360}, ${s}%, ${Math.max(l - 5, 20)}%) 100%)`,
+  ];
+
+  const gradientFn = GRADIENT_VARIANTS[variantIndex % GRADIENT_VARIANTS.length];
+  const gradient = gradientFn(hsl.h, hsl.s, hsl.l);
+  const iconGradient = `linear-gradient(135deg, hsl(${hsl.h}, ${Math.min(hsl.s + 10, 100)}%, ${Math.min(hsl.l + 10, 80)}%) 0%, hsl(${(hsl.h + 20) % 360}, ${hsl.s}%, ${Math.max(hsl.l - 10, 20)}%) 100%)`;
+
+  const cardStyle: React.CSSProperties = {
+    background: bg_image ? undefined : gradient,
+    backgroundImage: bg_image ? `linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.6)), url(${bg_image})` : undefined,
+    backgroundSize: bg_image ? "cover" : undefined,
+    backgroundPosition: bg_image ? "center" : undefined,
+  };
+
+  const textColor = bg_image ? "#fff" : (hsl.l > 55 ? "rgba(0,0,0,0.85)" : "rgba(255,255,255,0.95)");
+  const subtleTextColor = bg_image ? "rgba(255,255,255,0.8)" : (hsl.l > 55 ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.7)");
+  const btnBg = bg_image ? "#fff" : textColor;
+  const btnColor = bg_image ? "#000" : primaryColor;
+
   return (
-    <div className="text-center py-8 px-4">
+    <div className="rounded-3xl p-6 pt-4 shadow-lg text-center" style={cardStyle}>
       {icon && (
-        <div className="mx-auto mb-4 w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: primaryColor + "20" }}>
-          <DynamicIcon name={icon} className="w-8 h-8" style={{ color: primaryColor }} />
+        <div
+          className="mx-auto -mt-6 mb-4 flex h-20 w-20 items-center justify-center rounded-full backdrop-blur-sm"
+          style={{
+            border: `3px solid ${primaryColor}25`,
+            boxShadow: `0 0 30px 8px ${primaryColor}20`,
+          }}
+        >
+          <div
+            className="flex h-14 w-14 items-center justify-center rounded-full shadow-2xl"
+            style={{
+              background: bg_image ? "rgba(255,255,255,0.2)" : iconGradient,
+              boxShadow: `inset 0 -3px 6px rgba(0,0,0,0.15), 0 8px 25px -3px ${primaryColor}50, 0 0 40px 5px ${primaryColor}30`,
+            }}
+          >
+            <DynamicIcon name={icon} className="h-8 w-8 drop-shadow-lg" style={{ color: "#fff" }} />
+          </div>
         </div>
       )}
-      <h1 className="text-2xl md:text-3xl font-bold mb-3 text-white">{title}</h1>
-      {subtitle && <p className="text-white/80 text-base md:text-lg mb-6 max-w-md mx-auto">{subtitle}</p>}
+      <h1 className="text-2xl md:text-3xl font-extrabold leading-tight mb-2" style={{ color: textColor }}>
+        {title}
+      </h1>
+      {subtitle && (
+        <p className="text-sm md:text-base mb-5 leading-relaxed max-w-md mx-auto" style={{ color: subtleTextColor }}>
+          {subtitle}
+        </p>
+      )}
       {cta_text && cta_url && (
         <a
           href={cta_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-block px-8 py-3 rounded-xl font-semibold text-base transition-transform hover:scale-105"
-          style={{ backgroundColor: primaryColor, color: contrastColor }}
+          className="inline-flex items-center gap-2 rounded-full px-8 py-3 text-sm font-semibold shadow-md transition-transform hover:scale-105"
+          style={{ backgroundColor: btnBg, color: btnColor }}
         >
           {cta_text}
+          <ArrowRight className="h-4 w-4" />
         </a>
       )}
     </div>
@@ -520,10 +589,10 @@ export default function PublicBioPage() {
     );
   }
 
-  const renderBlock = (block: BioBlock) => {
+  const renderBlock = (block: BioBlock, blockIndex: number) => {
     const onTrack = () => trackBlockClick(page, block.id);
     switch (block.block_type) {
-      case "hero": return <HeroBlock block={block} primaryColor={primaryColor} contrastColor={contrastColor} />;
+      case "hero": return <HeroBlock block={block} primaryColor={primaryColor} contrastColor={contrastColor} index={blockIndex} />;
       case "link": return <LinkBlock block={block} primaryColor={primaryColor} contrastColor={contrastColor} onTrack={onTrack} />;
       case "button": return <ButtonBlock block={block} primaryColor={primaryColor} contrastColor={contrastColor} onTrack={onTrack} />;
       case "text": return <TextBlock block={block} />;
@@ -557,8 +626,8 @@ export default function PublicBioPage() {
         {page.custom_css && <style dangerouslySetInnerHTML={{ __html: page.custom_css }} />}
 
         <div className="max-w-lg mx-auto px-4 py-8 space-y-4">
-          {blocks.map((block) => (
-            <div key={block.id}>{renderBlock(block)}</div>
+          {blocks.map((block, i) => (
+            <div key={block.id}>{renderBlock(block, i)}</div>
           ))}
         </div>
 
