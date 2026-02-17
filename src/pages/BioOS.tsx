@@ -7,9 +7,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Globe, Eye, Trash2, ExternalLink, PenLine, Sparkles } from "lucide-react";
+import { Plus, Globe, Eye, Trash2, ExternalLink, PenLine, Sparkles, Copy, Check } from "lucide-react";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
+import { toast } from "sonner";
 import { BioPageBuilder } from "@/components/bio/BioPageBuilder";
 import { BioAIWizard } from "@/components/bio/BioAIWizard";
+
+function CopyLinkButton({ page }: { page: { workspace_id: string; slug: string } }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => {
+      e.stopPropagation();
+      const url = `${getPublicBaseUrl()}/b/${page.workspace_id}/${page.slug}`;
+      navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("Link copiado!");
+      setTimeout(() => setCopied(false), 2000);
+    }}>
+      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+    </Button>
+  );
+}
 
 function BioOSContent() {
   const { data: pages = [], isLoading } = useBioPages();
@@ -113,6 +131,9 @@ function BioOSContent() {
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setSelectedPageId(page.id); }}>
                       <PenLine className="h-4 w-4" />
                     </Button>
+                    {page.status === "live" && (
+                      <CopyLinkButton page={page} />
+                    )}
                     {page.status === "live" && (
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); window.open(`/b/${page.workspace_id}/${page.slug}`, "_blank"); }}>
                         <ExternalLink className="h-4 w-4" />
