@@ -1,34 +1,27 @@
 
-# Adicionar geracao IA ao bloco WhatsApp
+# Adicionar link copiavel para a Bio do Instagram
 
-## Objectivo
-Adicionar um botao "Gerar com IA" no editor do bloco WhatsApp que gera automaticamente o texto do botao e a mensagem pre-definida com base no contexto da pagina bio (nome, vertical, objectivo).
+## Problema
+Nao existe um botao para copiar o link publico completo da pagina Bio. O utilizador precisa de um URL completo (ex: `https://fastcrm.metodopare.ai/b/{workspace_id}/{slug}`) para colar na bio do Instagram.
 
-## Alteracoes
+## Solucao
+Adicionar um botao "Copiar Link" nos dois locais onde se acede a paginas Bio:
 
-### 1. Edge Function: `supabase/functions/bio-whatsapp-copy/index.ts` (novo)
-- Recebe: `pageName`, `vertical` (ou descricao da pagina), `tone`
-- Usa Lovable AI (Gemini 3 Flash) para gerar:
-  - `text`: texto do botao WhatsApp (ex: "Fale connosco", "Marcar consulta")
-  - `message`: mensagem pre-definida persuasiva (ex: "Ola! Vi a vossa pagina e gostava de saber mais sobre...")
-- Usa tool calling para structured output
-- Trata erros 429/402
+### 1. `src/components/bio/BioPageBuilder.tsx`
+- Importar `getPublicBaseUrl` de `@/utils/getPublicDomain`
+- Importar icone `Copy` e `Check` de lucide-react
+- Ao lado do botao "Ver Pagina", adicionar botao "Copiar Link" que:
+  - Constroi o URL completo: `${getPublicBaseUrl()}/b/${page.workspace_id}/${page.slug}`
+  - Copia para o clipboard com `navigator.clipboard.writeText()`
+  - Mostra toast de confirmacao
+  - Icone muda para Check durante 2 segundos como feedback visual
 
-### 2. Registar no `supabase/config.toml`
-```toml
-[functions.bio-whatsapp-copy]
-verify_jwt = false
-```
+### 2. `src/pages/BioOS.tsx`
+- Na lista de paginas (card de cada pagina), adicionar um botao com icone `Copy` ao lado do botao ExternalLink
+- Mesma logica: copiar URL completo para clipboard
+- So aparece quando `page.status === "live"`
 
-### 3. Actualizar `src/components/bio/BioBlockEditor.tsx`
-- No case `"whatsapp"` do `renderBlockEditor`, adicionar um botao com icone Sparkles acima dos campos
-- Ao clicar, chama a edge function com contexto da pagina
-- Preenche automaticamente os campos `text` e `message` via `onUpdate`
-- Estado de loading com spinner animado
-
-### Fluxo
-1. Utilizador selecciona bloco WhatsApp
-2. Clica em "Gerar com IA"
-3. Edge function gera texto do botao + mensagem personalizada
-4. Campos sao preenchidos automaticamente
-5. Utilizador pode editar manualmente depois
+### Detalhes tecnicos
+- Usar `getPublicBaseUrl()` para garantir que o URL e o do dominio publico (nao o de preview do Lovable)
+- Usar `navigator.clipboard.writeText()` + toast da sonner
+- 2 ficheiros alterados, sem dependencias novas
