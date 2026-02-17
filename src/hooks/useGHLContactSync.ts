@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ export interface SyncProgress {
 
 export function useGHLContactSync() {
   const { currentWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastResult, setLastResult] = useState<SyncResult | null>(null);
   const [progress, setProgress] = useState<SyncProgress | null>(null);
@@ -131,6 +133,9 @@ export function useGHLContactSync() {
       }
 
       if (result) {
+        // Invalidate leads cache to refresh UI
+        await queryClient.invalidateQueries({ queryKey: ["leads"] });
+
         // Show appropriate toast based on result
         if (result.errors.length > 0) {
           toast.warning(
