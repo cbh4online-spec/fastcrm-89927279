@@ -1,5 +1,6 @@
 import { type BioBlock } from "@/hooks/useBioBlocks";
 import { Share2, ArrowRight, Play, MessageCircle, Calendar, HelpCircle, Star, ChevronRight } from "lucide-react";
+import { getIconByName } from "@/lib/icons";
 
 interface BioBlockPreviewCardProps {
   block: BioBlock;
@@ -74,13 +75,20 @@ export function BioBlockPreviewCard({ block, primaryColor, index }: BioBlockPrev
   };
 
   switch (block.block_type) {
-    case "hero":
+    case "hero": {
+      const HeroIcon = getIconByName(content.icon || "Sparkles");
       return (
-        <div className="rounded-3xl p-8 shadow-lg" style={cardStyle}>
-          <h2 className="text-2xl font-extrabold leading-tight mb-2" style={{ color: bgImage ? "#fff" : textColor }}>
+        <div className="rounded-3xl p-5 pt-6 shadow-lg text-center" style={cardStyle}>
+          <div
+            className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full"
+            style={{ backgroundColor: bgImage ? "rgba(255,255,255,0.2)" : `${primaryColor}20` }}
+          >
+            <HeroIcon className="h-6 w-6" style={{ color: bgImage ? "#fff" : primaryColor }} />
+          </div>
+          <h2 className="text-xl font-extrabold leading-tight mb-1.5" style={{ color: bgImage ? "#fff" : textColor }}>
             {content.title || "Título Principal"}
           </h2>
-          <p className="text-sm mb-5 leading-relaxed" style={{ color: bgImage ? "rgba(255,255,255,0.8)" : subtleColor }}>
+          <p className="text-sm mb-4 leading-relaxed" style={{ color: bgImage ? "rgba(255,255,255,0.8)" : subtleColor }}>
             {content.subtitle || "Subtítulo descritivo aqui"}
           </p>
           {(content.cta_text || content.cta_url) && (
@@ -94,6 +102,7 @@ export function BioBlockPreviewCard({ block, primaryColor, index }: BioBlockPrev
           )}
         </div>
       );
+    }
 
     case "feature":
       return (

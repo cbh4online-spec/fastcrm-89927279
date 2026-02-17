@@ -78,7 +78,7 @@ function DebouncedTextarea({ value, onDebouncedChange, blockId, delay = 500, ...
 
 // ── Block types config ────────────────────────────────────────
 const BLOCK_TYPES: { type: BioBlockType; label: string; icon: React.ElementType; defaultContent: Record<string, unknown> }[] = [
-  { type: "hero", label: "Hero", icon: Sparkles, defaultContent: { title: "Título Principal", subtitle: "Subtítulo descritivo", cta_text: "Saiba Mais", cta_url: "" } },
+  { type: "hero", label: "Hero", icon: Sparkles, defaultContent: { title: "Título Principal", subtitle: "Subtítulo descritivo", cta_text: "Saiba Mais", cta_url: "", icon: "Sparkles" } },
   { type: "feature", label: "Feature", icon: LayoutGrid, defaultContent: { title: "Feature", subtitle: "Descrição da feature", cta_text: "Ver mais" } },
   { type: "link", label: "Link", icon: Link, defaultContent: { url: "", text: "Meu Link", icon: "" } },
   { type: "button", label: "Botão", icon: MousePointerClick, defaultContent: { url: "", text: "Clique Aqui", style: "filled" } },
@@ -294,6 +294,40 @@ function BlockFields({ block, content, onUpdate, workspaceId }: {
 }) {
   switch (block.block_type) {
     case "hero":
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium">Ícone</label>
+            <DebouncedInput blockId={block.id} value={content.icon || "Sparkles"} onDebouncedChange={(v) => onUpdate("icon", v)} placeholder="Nome do ícone (ex: Target, Zap, Star)" />
+            <p className="text-[10px] text-muted-foreground mt-0.5">Nomes: Sparkles, Target, Zap, Star, Users, Shield, Brain, TrendingUp…</p>
+          </div>
+          <div>
+            <label className="text-xs font-medium">Título</label>
+            <DebouncedInput blockId={block.id} value={content.title || ""} onDebouncedChange={(v) => onUpdate("title", v)} placeholder="Título do bloco" />
+          </div>
+          <div>
+            <label className="text-xs font-medium">Subtítulo</label>
+            <DebouncedInput blockId={block.id} value={content.subtitle || ""} onDebouncedChange={(v) => onUpdate("subtitle", v)} placeholder="Subtítulo" />
+          </div>
+          <div>
+            <label className="text-xs font-medium">Texto do CTA</label>
+            <DebouncedInput blockId={block.id} value={content.cta_text || ""} onDebouncedChange={(v) => onUpdate("cta_text", v)} placeholder="Saiba Mais" />
+          </div>
+          <div>
+            <label className="text-xs font-medium">URL do CTA</label>
+            <DebouncedInput blockId={block.id} value={content.cta_url || ""} onDebouncedChange={(v) => onUpdate("cta_url", v)} placeholder="https://..." />
+          </div>
+          <div>
+            <label className="text-xs font-medium">Imagem de fundo</label>
+            <BioImageUploader
+              workspaceId={workspaceId}
+              currentImage={content.bg_image || ""}
+              onImageSelected={(url) => onUpdate("bg_image", url)}
+              label="Escolher Imagem de Fundo"
+            />
+          </div>
+        </div>
+      );
     case "feature":
       return (
         <div className="space-y-3">
