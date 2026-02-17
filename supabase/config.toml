@@ -291,3 +291,6 @@ verify_jwt = false
 
 [functions.bio-smart-link]
 verify_jwt = false
+
+[functions.ai-member-priorities]
+verify_jwt = false
