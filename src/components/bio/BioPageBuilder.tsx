@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Globe, Eye, EyeOff, Copy, Check } from "lucide-react";
+import { ArrowLeft, Globe, Eye, EyeOff, Copy, Check, BarChart3 } from "lucide-react";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useBioPage, usePublishBioPage } from "@/hooks/useBioPages";
 import { BioBlockEditor } from "./BioBlockEditor";
 import { BioSettingsTab } from "./tabs/BioSettingsTab";
+import { BioAnalyticsTab } from "./tabs/BioAnalyticsTab";
 
 interface BioPageBuilderProps {
   pageId: string;
@@ -71,6 +72,9 @@ export function BioPageBuilder({ pageId, onBack }: BioPageBuilderProps) {
         <TabsList>
           <TabsTrigger value="blocks">Blocos</TabsTrigger>
           <TabsTrigger value="settings">Definições</TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-1">
+            <BarChart3 className="h-3.5 w-3.5" /> Analíticas
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="blocks">
@@ -78,6 +82,9 @@ export function BioPageBuilder({ pageId, onBack }: BioPageBuilderProps) {
         </TabsContent>
         <TabsContent value="settings">
           <BioSettingsTab pageId={pageId} />
+        </TabsContent>
+        <TabsContent value="analytics">
+          <BioAnalyticsTab pageId={pageId} />
         </TabsContent>
       </Tabs>
     </div>

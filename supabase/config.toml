@@ -297,3 +297,6 @@ verify_jwt = false
 
 [functions.bio-whatsapp-copy]
 verify_jwt = false
+
+[functions.bio-seo-copy]
+verify_jwt = false
