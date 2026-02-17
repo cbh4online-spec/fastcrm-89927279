@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ export interface ConversationSyncProgress {
 
 export function useGHLConversationSync() {
   const { currentWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastResult, setLastResult] = useState<ConversationSyncResult | null>(null);
   const [progress, setProgress] = useState<ConversationSyncProgress | null>(null);
@@ -122,6 +124,10 @@ export function useGHLConversationSync() {
       }
 
       if (result) {
+        // Invalidate conversations and messages cache to refresh UI
+        await queryClient.invalidateQueries({ queryKey: ["conversations"] });
+        await queryClient.invalidateQueries({ queryKey: ["messages"] });
+
         if (result.errors.length > 0) {
           toast.warning(
             `Sincronização parcial: ${result.conversations_created} conversas, ${result.messages_created} mensagens, ${result.errors.length} erros`
