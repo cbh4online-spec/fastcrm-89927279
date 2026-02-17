@@ -294,3 +294,6 @@ verify_jwt = false
 
 [functions.ai-member-priorities]
 verify_jwt = false
+
+[functions.bio-whatsapp-copy]
+verify_jwt = false

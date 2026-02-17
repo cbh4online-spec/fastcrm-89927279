@@ -14,8 +14,10 @@ import { getIconByName, INDUSTRY_ICONS } from "@/lib/icons";
 import {
   Link, Type, Image, MousePointerClick, Share2, Minus,
   Plus, Trash2, ChevronUp, ChevronDown, Eye, EyeOff,
-  Smartphone, Monitor, Sparkles, LayoutGrid,
+  Smartphone, Monitor, Sparkles, LayoutGrid, Loader2,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 // ── Debounced Input helpers ───────────────────────────────────
 function DebouncedInput({ value, onDebouncedChange, blockId, delay = 500, ...props }: {
@@ -249,6 +251,7 @@ export function BioBlockEditor({ pageId, page }: BioBlockEditorProps) {
               </div>
               <BlockProperties
                 block={selectedBlock}
+                page={page}
                 onUpdate={(key, value) => updateContent(selectedBlock, key, value)}
                 onSmartGenerated={(data) => handleSmartGenerated(selectedBlock, data)}
               />
@@ -263,8 +266,9 @@ export function BioBlockEditor({ pageId, page }: BioBlockEditorProps) {
 }
 
 // ── Block Properties with debounced inputs + smart link ───────
-function BlockProperties({ block, onUpdate, onSmartGenerated }: {
+function BlockProperties({ block, page, onUpdate, onSmartGenerated }: {
   block: BioBlock;
+  page: BioPage;
   onUpdate: (key: string, value: unknown) => void;
   onSmartGenerated: (data: Record<string, string>) => void;
 }) {
@@ -282,7 +286,7 @@ function BlockProperties({ block, onUpdate, onSmartGenerated }: {
           onGenerated={onSmartGenerated}
         />
       )}
-      <BlockFields block={block} content={content} onUpdate={onUpdate} workspaceId={workspaceId} />
+      <BlockFields block={block} content={content} onUpdate={onUpdate} workspaceId={workspaceId} page={page} />
     </div>
   );
 }
@@ -344,11 +348,72 @@ function IconPickerField({ blockId, value, onUpdate }: {
   );
 }
 
-function BlockFields({ block, content, onUpdate, workspaceId }: {
+// ── WhatsApp Fields with AI generation ────────────────────────
+function WhatsAppFields({ block, content, onUpdate, page }: {
+  block: BioBlock;
+  content: Record<string, string>;
+  onUpdate: (key: string, value: unknown) => void;
+  page: BioPage;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  const handleGenerate = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("bio-whatsapp-copy", {
+        body: {
+          pageName: page.name || page.slug,
+          vertical: page.seo_description || page.name || "",
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro desconhecido");
+
+      onUpdate("text", data.data.text);
+      onUpdate("message", data.data.message);
+      toast.success("Texto gerado com IA!");
+    } catch (e: any) {
+      console.error("WhatsApp AI error:", e);
+      toast.error("Erro ao gerar: " + (e.message || "Tente novamente"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full gap-2 border-dashed border-primary/30 text-primary hover:bg-primary/5"
+        onClick={handleGenerate}
+        disabled={loading}
+      >
+        {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+        {loading ? "A gerar com IA…" : "Gerar com IA"}
+      </Button>
+      <div>
+        <label className="text-xs font-medium">Texto do Botão</label>
+        <DebouncedInput blockId={block.id} value={content.text || ""} onDebouncedChange={(v) => onUpdate("text", v)} placeholder="WhatsApp" />
+      </div>
+      <div>
+        <label className="text-xs font-medium">Número de Telefone</label>
+        <DebouncedInput blockId={block.id} value={content.phone || ""} onDebouncedChange={(v) => onUpdate("phone", v)} placeholder="+351 912 345 678" />
+      </div>
+      <div>
+        <label className="text-xs font-medium">Mensagem Pré-definida</label>
+        <DebouncedInput blockId={block.id} value={content.message || ""} onDebouncedChange={(v) => onUpdate("message", v)} placeholder="Olá, gostava de saber mais..." />
+      </div>
+    </div>
+  );
+}
+
+function BlockFields({ block, content, onUpdate, workspaceId, page }: {
   block: BioBlock;
   content: Record<string, string>;
   onUpdate: (key: string, value: unknown) => void;
   workspaceId: string;
+  page: BioPage;
 }) {
   switch (block.block_type) {
     case "hero":
@@ -468,22 +533,7 @@ function BlockFields({ block, content, onUpdate, workspaceId }: {
         </div>
       );
     case "whatsapp":
-      return (
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-medium">Texto do Botão</label>
-            <DebouncedInput blockId={block.id} value={content.text || ""} onDebouncedChange={(v) => onUpdate("text", v)} placeholder="WhatsApp" />
-          </div>
-          <div>
-            <label className="text-xs font-medium">Número de Telefone</label>
-            <DebouncedInput blockId={block.id} value={content.phone || ""} onDebouncedChange={(v) => onUpdate("phone", v)} placeholder="+351 912 345 678" />
-          </div>
-          <div>
-            <label className="text-xs font-medium">Mensagem Pré-definida</label>
-            <DebouncedInput blockId={block.id} value={content.message || ""} onDebouncedChange={(v) => onUpdate("message", v)} placeholder="Olá, gostava de saber mais..." />
-          </div>
-        </div>
-      );
+      return <WhatsAppFields block={block} content={content} onUpdate={onUpdate} page={page} />;
     case "divider":
       return <p className="text-xs text-muted-foreground">Separador visual entre blocos.</p>;
     default:
