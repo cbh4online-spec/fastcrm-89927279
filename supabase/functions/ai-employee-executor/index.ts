@@ -1,19 +1,21 @@
 // ============================================================
-// FastCRM | AI Employee Executor
+// FastCRM | AI Employee Executor  v2
 // POST /functions/v1/ai-employee-executor
 //
-// Responsibilities:
-//   1. Receive a message from any channel
-//   2. Resolve the correct bot for workspace + channel
-//   3. Dispatch to guided / prompt / flow execution logic
-//   4. Persist memory, run logs and analytics
-//   5. Return response + side-effects (lead, booking, handover)
+// Input contract (v2):
+// {
+//   conversation: { conversation_id, external_thread_id, contact_id }
+//   message:      { message_id, direction, text, attachments[], timestamp }
+//   context:      { workspace_id, channel_type, channel_identifier,
+//                   page_url, utm, locale, timezone }
+//   options:      { dry_run, force_bot_id, debug }
+// }
 // ============================================================
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// ─── CORS ───────────────────────────────────────────────────
+// ─── CORS ────────────────────────────────────────────────────
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -21,25 +23,58 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// ─── TYPES ──────────────────────────────────────────────────
-interface ExecutorRequest {
-  /** Incoming user message text */
-  message: string;
-  /** Conversation already created in the inbox */
-  conversationId: string;
-  /** Optional: linked lead id */
-  leadId?: string;
-  /** Workspace id – also read from x-workspace-id header */
-  workspaceId?: string;
-  /** Channel – also read from x-channel-type header */
-  channelType?: string;
-  /** Channel identifier – also read from x-channel-identifier header */
-  channelIdentifier?: string;
-  /** Caller may pass the bot id directly to skip resolution */
-  botId?: string;
-  /** Extra context forwarded from webhook (e.g. wa_message_id) */
-  metadata?: Record<string, unknown>;
+// ─── INPUT SCHEMA ────────────────────────────────────────────
+
+interface Attachment {
+  type: "image" | "pdf" | "audio" | "other";
+  url: string;
+  name?: string | null;
 }
+
+interface IncomingMessage {
+  message_id?: string | null;
+  direction: "in";
+  text: string;
+  attachments?: Attachment[];
+  timestamp: string;
+}
+
+interface ConversationRef {
+  conversation_id?: string | null;
+  external_thread_id?: string | null;
+  contact_id?: string | null;
+}
+
+interface UTM {
+  source?: string | null;
+  medium?: string | null;
+  campaign?: string | null;
+}
+
+interface RequestContext {
+  workspace_id: string;
+  channel_type: "website_widget" | "whatsapp" | "instagram" | "inbox" | "landing";
+  channel_identifier?: string | null;
+  page_url?: string | null;
+  utm?: UTM;
+  locale?: string;
+  timezone?: string;
+}
+
+interface RequestOptions {
+  dry_run?: boolean;
+  force_bot_id?: string | null;
+  debug?: boolean;
+}
+
+interface ExecutorRequest {
+  conversation: ConversationRef;
+  message: IncomingMessage;
+  context: RequestContext;
+  options?: RequestOptions;
+}
+
+// ─── INTERNAL TYPES ──────────────────────────────────────────
 
 interface BotRow {
   id: string;
@@ -66,65 +101,49 @@ interface BotSettingsRow {
   capture_phone: boolean;
 }
 
-interface ExecutorResponse {
-  success: boolean;
-  botId: string;
-  botName: string;
-  botType: string;
-  reply: string | null;
-  replies?: string[];
-  actions: SideEffect[];
-  runId: string;
-  sessionState?: string;
-  collectedVariables?: Record<string, unknown>;
-  error?: string;
-}
-
 interface SideEffect {
   type: "create_lead" | "update_lead" | "handover" | "booking" | "tag" | "automation";
   payload: Record<string, unknown>;
 }
 
-// ─── HELPERS ────────────────────────────────────────────────
-
-/**
- * Resolve headers → request body precedence for the three routing keys.
- */
-function resolveRoutingKeys(req: Request, body: ExecutorRequest) {
-  const workspaceId =
-    req.headers.get("x-workspace-id") || body.workspaceId || "";
-  const channelType =
-    req.headers.get("x-channel-type") || body.channelType || "inbox";
-  const channelIdentifier =
-    req.headers.get("x-channel-identifier") ||
-    body.channelIdentifier ||
-    null;
-  return { workspaceId, channelType, channelIdentifier };
+interface ExecutorResponse {
+  success: boolean;
+  bot_id: string;
+  bot_name: string;
+  bot_type: string;
+  run_id: string;
+  reply: string | null;
+  replies?: string[];
+  actions: SideEffect[];
+  session_state?: string;
+  collected_variables?: Record<string, unknown>;
+  conversation_id: string | null;
+  debug?: Record<string, unknown>;
+  error?: string;
 }
 
-/**
- * Find the active bot assigned to a channel for this workspace.
- * If botId is already provided, just fetch that bot directly.
- */
+// ─── BOT RESOLUTION ──────────────────────────────────────────
+
 async function resolveBot(
   supabase: ReturnType<typeof createClient>,
   workspaceId: string,
   channelType: string,
-  channelIdentifier: string | null,
-  explicitBotId?: string
+  channelIdentifier: string | null | undefined,
+  forceBotId?: string | null
 ): Promise<BotRow | null> {
-  if (explicitBotId) {
+  // Direct override
+  if (forceBotId) {
     const { data } = await supabase
       .from("bots")
       .select("*")
-      .eq("id", explicitBotId)
+      .eq("id", forceBotId)
       .eq("workspace_id", workspaceId)
       .eq("status", "active")
       .single();
     return (data as BotRow) || null;
   }
 
-  // Try exact match with channel_identifier
+  // Exact channel match (channel_type + channel_identifier)
   if (channelIdentifier) {
     const { data: exact } = await supabase
       .from("bot_channels")
@@ -142,7 +161,7 @@ async function resolveBot(
     }
   }
 
-  // Fallback: any active bot_channel for this channel_type
+  // Fallback: any active bot for this channel_type
   const { data: fallback } = await supabase
     .from("bot_channels")
     .select("bot_id, bots!inner(*)")
@@ -160,32 +179,100 @@ async function resolveBot(
   return null;
 }
 
-/** Detect handover trigger keywords in the user message */
-function shouldHandover(message: string, settings: BotSettingsRow | null): boolean {
+// ─── CONVERSATION RESOLUTION ─────────────────────────────────
+
+/**
+ * Resolve or create a conversation record.
+ * Priority: conversation_id → external_thread_id → create new.
+ */
+async function resolveConversation(
+  supabase: ReturnType<typeof createClient>,
+  convRef: ConversationRef,
+  workspaceId: string,
+  channelType: string,
+  channelIdentifier: string | null | undefined,
+  utm?: UTM,
+  pageUrl?: string | null
+): Promise<string | null> {
+  // Already have an id
+  if (convRef.conversation_id) return convRef.conversation_id;
+
+  // Try external_thread_id lookup
+  if (convRef.external_thread_id) {
+    const { data: found } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("external_thread_id", convRef.external_thread_id)
+      .single();
+    if (found?.id) return found.id;
+  }
+
+  // Create a new conversation shell
+  const { data: created, error } = await supabase
+    .from("conversations")
+    .insert({
+      workspace_id: workspaceId,
+      channel: channelType,
+      external_thread_id: convRef.external_thread_id || null,
+      contact_id: convRef.contact_id || null,
+      status: "open",
+      source: channelType,
+      metadata: {
+        utm: utm || null,
+        page_url: pageUrl || null,
+        channel_identifier: channelIdentifier || null,
+      },
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("[AI-EMPLOYEE-EXECUTOR] Failed to create conversation:", error.message);
+    return null;
+  }
+
+  return created?.id || null;
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────
+
+function shouldHandover(text: string, settings: BotSettingsRow | null): boolean {
   if (!settings?.handover_enabled) return false;
   const keywords = settings.trigger_keywords || [];
   if (!keywords.length) return false;
-  const lower = message.toLowerCase();
+  const lower = text.toLowerCase();
   return keywords.some((kw) => lower.includes(kw.toLowerCase()));
 }
 
-/** Simple email/phone/name extraction from a message */
-function extractLeadData(message: string, settings: BotSettingsRow | null) {
+function extractLeadData(
+  text: string,
+  settings: BotSettingsRow | null,
+  locale?: string
+): Record<string, string> {
   const result: Record<string, string> = {};
   if (!settings) return result;
 
   if (settings.capture_email) {
-    const emailMatch = message.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-    if (emailMatch) result.email = emailMatch[0];
+    const m = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    if (m) result.email = m[0];
   }
   if (settings.capture_phone) {
-    const phoneMatch = message.match(/(\+?[0-9]{9,15})/);
-    if (phoneMatch) result.phone = phoneMatch[0];
+    const m = text.match(/(\+?[0-9]{9,15})/);
+    if (m) result.phone = m[0];
   }
   return result;
 }
 
-/** Persist a run log to bot_runs */
+/** Build locale-aware fallback reply */
+function localeFallback(settings: BotSettingsRow | null, locale?: string): string {
+  if (settings?.fallback_message) return settings.fallback_message;
+  const lang = (locale || "pt-PT").slice(0, 2).toLowerCase();
+  if (lang === "en") return "Thank you for your message! Our team will reply shortly.";
+  if (lang === "es") return "¡Gracias por tu mensaje! Nuestro equipo te responderá en breve.";
+  return "Obrigado pela sua mensagem! A nossa equipa irá responder em breve.";
+}
+
 async function logRun(
   supabase: ReturnType<typeof createClient>,
   params: {
@@ -214,7 +301,6 @@ async function logRun(
   return (data as any)?.id || crypto.randomUUID();
 }
 
-/** Increment bot_analytics counters */
 async function incrementAnalytics(
   supabase: ReturnType<typeof createClient>,
   botId: string,
@@ -226,9 +312,8 @@ async function incrementAnalytics(
     leads?: number;
     handovers?: number;
   }
-) {
-  // Use service role (already set) – upsert to guarantee row exists
-  await supabase.rpc("increment_bot_analytics", {
+): Promise<void> {
+  const { error } = await supabase.rpc("increment_bot_analytics", {
     p_bot_id: botId,
     p_workspace_id: workspaceId,
     p_conversations: delta.conversations || 0,
@@ -236,107 +321,88 @@ async function incrementAnalytics(
     p_messages_out: delta.messagesOut || 0,
     p_leads: delta.leads || 0,
     p_handovers: delta.handovers || 0,
-  }).then(({ error }) => {
-    if (error) {
-      console.warn("[AI-EMPLOYEE-EXECUTOR] Analytics increment RPC failed (non-fatal):", error.message);
-    }
   });
+  if (error) {
+    console.warn("[AI-EMPLOYEE-EXECUTOR] Analytics RPC failed (non-fatal):", error.message);
+  }
 }
 
-// ─── MODE EXECUTORS ─────────────────────────────────────────
+// ─── MODE EXECUTORS ──────────────────────────────────────────
 
-/** GUIDED: pre-defined conversational script using bot_settings */
+/** GUIDED — rule-based, no LLM */
 async function runGuided(
   supabase: ReturnType<typeof createClient>,
   bot: BotRow,
   settings: BotSettingsRow | null,
-  message: string,
-  conversationId: string
+  text: string,
+  conversationId: string,
+  locale?: string
 ): Promise<{ reply: string; actions: SideEffect[] }> {
   const actions: SideEffect[] = [];
 
-  // Check handover
-  if (shouldHandover(message, settings)) {
+  if (shouldHandover(text, settings)) {
     actions.push({
       type: "handover",
-      payload: {
-        conversationId,
-        reason: "contact_request",
-        assignToUserId: settings?.handover_user_id,
-        botId: bot.id,
-      },
+      payload: { conversationId, reason: "contact_request", assignToUserId: settings?.handover_user_id, botId: bot.id },
     });
-    const reply = settings?.fallback_message || "Vou transferir para um elemento da nossa equipa. Aguarde um momento!";
-    return { reply, actions };
+    return { reply: localeFallback(settings, locale), actions };
   }
 
-  // Extract lead data
-  const extracted = extractLeadData(message, settings);
+  const extracted = extractLeadData(text, settings, locale);
   if (Object.keys(extracted).length > 0) {
     actions.push({ type: "update_lead", payload: extracted });
   }
 
-  // Greeting logic: if first message pattern
-  const lower = message.toLowerCase();
-  const isGreeting = /^(ol[aá]|bom\s+dia|boa\s+tarde|boa\s+noite|hi|hello|oi)/.test(lower);
-
+  const isGreeting = /^(ol[aá]|bom\s+dia|boa\s+tarde|boa\s+noite|hi|hello|oi|hey)\b/i.test(text.trim());
   if (isGreeting && settings?.greeting_message) {
     return { reply: settings.greeting_message, actions };
   }
 
-  // Fallback
-  const reply =
-    settings?.fallback_message ||
-    "Obrigado pela sua mensagem! A nossa equipa irá responder em breve.";
-
-  return { reply, actions };
+  return { reply: localeFallback(settings, locale), actions };
 }
 
-/** PROMPT: LLM-powered response using ai_profile persona + optional KB */
+/** PROMPT — LLM-powered with persona + KB context */
 async function runPrompt(
   supabase: ReturnType<typeof createClient>,
   bot: BotRow,
   settings: BotSettingsRow | null,
-  message: string,
+  text: string,
+  attachments: Attachment[],
   conversationId: string,
-  workspaceId: string
-): Promise<{ reply: string; actions: SideEffect[] }> {
+  workspaceId: string,
+  locale?: string,
+  debug?: boolean
+): Promise<{ reply: string; actions: SideEffect[]; debugInfo?: Record<string, unknown> }> {
   const actions: SideEffect[] = [];
+  const debugInfo: Record<string, unknown> = {};
 
-  // Check handover first
-  if (shouldHandover(message, settings)) {
+  if (shouldHandover(text, settings)) {
     actions.push({
       type: "handover",
-      payload: {
-        conversationId,
-        reason: "contact_request",
-        assignToUserId: settings?.handover_user_id,
-        botId: bot.id,
-      },
+      payload: { conversationId, reason: "contact_request", assignToUserId: settings?.handover_user_id, botId: bot.id },
     });
-    return {
-      reply: settings?.fallback_message || "A transferir para a nossa equipa. Um momento!",
-      actions,
-    };
+    return { reply: localeFallback(settings, locale), actions };
   }
 
-  // Fetch conversation history for context (last 10 messages)
+  // Fetch last 12 messages for context
   const { data: history } = await supabase
     .from("messages")
-    .select("content, direction, sender_type")
+    .select("content, direction, sender_type, created_at")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: false })
-    .limit(10);
+    .limit(12);
 
   const conversationHistory = (history || [])
     .reverse()
     .map((m: any) => ({
       role: m.direction === "inbound" ? "user" : "assistant",
-      content: m.content,
+      content: m.content as string,
     }));
 
-  // Fetch persona if configured
-  let personaPrompt = "";
+  if (debug) debugInfo.historyCount = conversationHistory.length;
+
+  // Persona
+  let personaBlock = "";
   if (bot.ai_profile_id) {
     const { data: persona } = await supabase
       .from("ai_personas")
@@ -345,21 +411,25 @@ async function runPrompt(
       .single();
 
     if (persona) {
-      personaPrompt = `
-## Persona: ${persona.name}
-- Tom: ${persona.tone_of_voice || "profissional"}
-- Estilo: ${persona.language_style || "conversacional"}
-- Profundidade técnica: ${persona.technical_depth || "medium"}
-${persona.system_prompt ? `\nInstruções personalizadas:\n${persona.system_prompt}` : ""}
-${persona.limitations?.length ? `\nLimitações:\n${(persona.limitations as string[]).map((l) => `- ${l}`).join("\n")}` : ""}
-      `.trim();
+      personaBlock = [
+        `## Persona: ${(persona as any).name}`,
+        `- Tom: ${(persona as any).tone_of_voice || "profissional"}`,
+        `- Estilo: ${(persona as any).language_style || "conversacional"}`,
+        (persona as any).system_prompt ? `\nInstruções:\n${(persona as any).system_prompt}` : "",
+        (persona as any).limitations?.length
+          ? `\nLimitações:\n${((persona as any).limitations as string[]).map((l) => `- ${l}`).join("\n")}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+      if (debug) debugInfo.personaId = bot.ai_profile_id;
     }
   }
 
-  // Fetch knowledge base context if configured
-  let kbContext = "";
+  // Knowledge base
+  let kbBlock = "";
   if (bot.knowledge_base_id) {
-    const keywords = message
+    const keywords = text
       .toLowerCase()
       .replace(/[?!.,;:()]/g, " ")
       .split(/\s+/)
@@ -367,10 +437,7 @@ ${persona.limitations?.length ? `\nLimitações:\n${(persona.limitations as stri
       .slice(0, 6);
 
     if (keywords.length > 0) {
-      const orClauses = keywords
-        .map((kw) => `title.ilike.%${kw}%,content.ilike.%${kw}%`)
-        .join(",");
-
+      const orClauses = keywords.map((kw) => `title.ilike.%${kw}%,content.ilike.%${kw}%`).join(",");
       const { data: entries } = await supabase
         .from("knowledge_entries")
         .select("title, content")
@@ -381,81 +448,88 @@ ${persona.limitations?.length ? `\nLimitações:\n${(persona.limitations as stri
         .limit(4);
 
       if (entries?.length) {
-        kbContext = `\n## Base de Conhecimento:\n${entries
-          .map((e: any, i: number) => `### ${i + 1}. ${e.title}\n${e.content}`)
+        kbBlock = `\n## Base de Conhecimento:\n${(entries as any[])
+          .map((e, i) => `### ${i + 1}. ${e.title}\n${e.content}`)
           .join("\n\n")}`;
+        if (debug) debugInfo.kbEntriesCount = entries.length;
       }
     }
   }
 
-  const systemPrompt = `És um assistente virtual profissional do bot "${bot.name}".
-${personaPrompt}
-${kbContext}
+  // Attachments hint
+  const attachmentHint =
+    attachments?.length
+      ? `\n\nO utilizador enviou ${attachments.length} anexo(s): ${attachments.map((a) => `${a.type}${a.name ? ` (${a.name})` : ""}`).join(", ")}.`
+      : "";
 
-REGRAS:
-- Responde sempre em Português de Portugal
-- Sê conciso e útil
-- Não inventes informação que não tens
-- Se não souberes responder, diz que vais encaminhar para a equipa
-`;
+  const langHint = locale?.startsWith("en")
+    ? "Always reply in English."
+    : locale?.startsWith("es")
+    ? "Responde siempre en español."
+    : "Responde sempre em Português de Portugal.";
 
-  // Call Lovable AI (OpenAI-compatible via LOVABLE_API_KEY)
+  const systemPrompt = [
+    `És o assistente virtual "${bot.name}".`,
+    personaBlock,
+    kbBlock,
+    `\nREGRAS:\n- ${langHint}\n- Sê conciso e útil.\n- Não inventes informação.\n- Se não souberes, encaminha para a equipa.`,
+    attachmentHint,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  if (debug) debugInfo.systemPromptLength = systemPrompt.length;
+
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) {
-    console.warn("[AI-EMPLOYEE-EXECUTOR] LOVABLE_API_KEY not set – using fallback reply");
-    return {
-      reply: settings?.fallback_message || "Obrigado pela sua mensagem! A nossa equipa irá responder em breve.",
-      actions,
-    };
+    console.warn("[AI-EMPLOYEE-EXECUTOR] LOVABLE_API_KEY not set – fallback reply");
+    return { reply: localeFallback(settings, locale), actions, debugInfo };
   }
 
-  const llmResponse = await fetch("https://api.lovable.ai/v1/chat/completions", {
+  const llmResp = await fetch("https://api.lovable.ai/v1/chat/completions", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-    },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: systemPrompt },
         ...conversationHistory,
-        { role: "user", content: message },
+        { role: "user", content: text },
       ],
-      max_tokens: 512,
-      temperature: 0.7,
+      max_tokens: 600,
+      temperature: 0.65,
     }),
   });
 
-  if (!llmResponse.ok) {
-    const errText = await llmResponse.text();
-    throw new Error(`LLM call failed: ${llmResponse.status} ${errText}`);
+  if (!llmResp.ok) {
+    const errText = await llmResp.text();
+    throw new Error(`LLM call failed ${llmResp.status}: ${errText}`);
   }
 
-  const llmData = await llmResponse.json();
+  const llmData = await llmResp.json();
   const reply =
-    llmData.choices?.[0]?.message?.content?.trim() ||
-    settings?.fallback_message ||
-    "Obrigado pela sua mensagem!";
+    llmData.choices?.[0]?.message?.content?.trim() || localeFallback(settings, locale);
 
-  // Extract lead data
-  const extracted = extractLeadData(message, settings);
+  const extracted = extractLeadData(text, settings, locale);
   if (Object.keys(extracted).length > 0) {
     actions.push({ type: "update_lead", payload: extracted });
   }
 
-  return { reply, actions };
+  if (debug) debugInfo.model = "google/gemini-2.5-flash";
+
+  return { reply, actions, debugInfo };
 }
 
-/** FLOW: execute visual flow_json via the existing flow-engine function */
+/** FLOW — delegates to existing flow-engine function */
 async function runFlow(
   supabase: ReturnType<typeof createClient>,
   bot: BotRow,
   settings: BotSettingsRow | null,
-  message: string,
+  text: string,
   conversationId: string,
   workspaceId: string,
-  leadId?: string
+  leadId: string | undefined,
+  locale?: string
 ): Promise<{
   reply: string;
   replies: string[];
@@ -465,19 +539,13 @@ async function runFlow(
 }> {
   const actions: SideEffect[] = [];
 
-  // Check handover first
-  if (shouldHandover(message, settings)) {
+  if (shouldHandover(text, settings)) {
     actions.push({
       type: "handover",
-      payload: {
-        conversationId,
-        reason: "contact_request",
-        assignToUserId: settings?.handover_user_id,
-        botId: bot.id,
-      },
+      payload: { conversationId, reason: "contact_request", assignToUserId: settings?.handover_user_id, botId: bot.id },
     });
     return {
-      reply: settings?.fallback_message || "A transferir para a nossa equipa!",
+      reply: localeFallback(settings, locale),
       replies: [],
       actions,
       sessionState: "handed_off",
@@ -485,47 +553,30 @@ async function runFlow(
     };
   }
 
-  // Delegate to flow-engine function
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   const flowResp = await fetch(`${supabaseUrl}/functions/v1/flow-engine`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${serviceRoleKey}`,
-    },
-    body: JSON.stringify({
-      action: "continue",
-      workspaceId,
-      conversationId,
-      leadId,
-      userMessage: message,
-    }),
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+    body: JSON.stringify({ action: "continue", workspaceId, conversationId, leadId, userMessage: text }),
   });
 
   if (!flowResp.ok) {
     const errText = await flowResp.text();
-    throw new Error(`flow-engine call failed: ${flowResp.status} ${errText}`);
+    throw new Error(`flow-engine failed ${flowResp.status}: ${errText}`);
   }
 
   const flowData = await flowResp.json();
 
-  // Map flow session state → side effects
   if (flowData.sessionState === "handed_off") {
     actions.push({
       type: "handover",
-      payload: {
-        conversationId,
-        reason: "contact_request",
-        botId: bot.id,
-        assignToUserId: settings?.handover_user_id,
-      },
+      payload: { conversationId, reason: "contact_request", botId: bot.id, assignToUserId: settings?.handover_user_id },
     });
   }
 
-  // Extract lead data from collected variables
-  const vars = flowData.collectedVariables || {};
+  const vars: Record<string, unknown> = flowData.collectedVariables || {};
   const leadPayload: Record<string, string> = {};
   if (vars.email) leadPayload.email = String(vars.email);
   if (vars.phone) leadPayload.phone = String(vars.phone);
@@ -535,10 +586,8 @@ async function runFlow(
   }
 
   const replies: string[] = flowData.responses || [];
-  const reply = replies[0] || settings?.fallback_message || "Obrigado pela sua mensagem!";
-
   return {
-    reply,
+    reply: replies[0] || localeFallback(settings, locale),
     replies,
     actions,
     sessionState: flowData.sessionState || "active",
@@ -546,7 +595,7 @@ async function runFlow(
   };
 }
 
-// ─── SIDE EFFECTS EXECUTOR ──────────────────────────────────
+// ─── SIDE EFFECTS ────────────────────────────────────────────
 
 async function executeSideEffects(
   supabase: ReturnType<typeof createClient>,
@@ -556,18 +605,16 @@ async function executeSideEffects(
   conversationId: string,
   botId: string
 ): Promise<void> {
-  for (const action of actions) {
-    try {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  await Promise.allSettled(
+    actions.map(async (action) => {
       switch (action.type) {
-        case "handover": {
-          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-          const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        case "handover":
           await fetch(`${supabaseUrl}/functions/v1/human-handover`, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${serviceKey}`,
-            },
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
             body: JSON.stringify({
               workspaceId,
               conversationId,
@@ -577,51 +624,33 @@ async function executeSideEffects(
             }),
           });
           break;
-        }
 
-        case "update_lead": {
-          if (!leadId) break;
-          await supabase
-            .from("leads")
-            .update(action.payload)
-            .eq("id", leadId)
-            .eq("workspace_id", workspaceId);
-          break;
-        }
-
-        case "create_lead": {
-          await supabase.from("leads").insert({
-            workspace_id: workspaceId,
-            ...action.payload,
-          });
-          break;
-        }
-
-        case "tag": {
-          if (!leadId) break;
-          const { data: lead } = await supabase
-            .from("leads")
-            .select("tags")
-            .eq("id", leadId)
-            .single();
-          const currentTags: string[] = (lead as any)?.tags || [];
-          const tagName = String(action.payload.tag);
-          if (!currentTags.includes(tagName)) {
-            await supabase
-              .from("leads")
-              .update({ tags: [...currentTags, tagName] })
-              .eq("id", leadId);
+        case "update_lead":
+          if (leadId) {
+            await supabase.from("leads").update(action.payload).eq("id", leadId).eq("workspace_id", workspaceId);
           }
           break;
-        }
+
+        case "create_lead":
+          await supabase.from("leads").insert({ workspace_id: workspaceId, ...action.payload });
+          break;
+
+        case "tag":
+          if (leadId) {
+            const { data: lead } = await supabase.from("leads").select("tags").eq("id", leadId).single();
+            const current: string[] = (lead as any)?.tags || [];
+            const tag = String(action.payload.tag);
+            if (!current.includes(tag)) {
+              await supabase.from("leads").update({ tags: [...current, tag] }).eq("id", leadId);
+            }
+          }
+          break;
 
         default:
-          console.log(`[AI-EMPLOYEE-EXECUTOR] Unhandled side effect: ${action.type}`);
+          console.log(`[AI-EMPLOYEE-EXECUTOR] Unhandled effect: ${action.type}`);
       }
-    } catch (err) {
-      console.error(`[AI-EMPLOYEE-EXECUTOR] Side effect ${action.type} failed:`, err);
-    }
-  }
+    })
+  );
 }
 
 // ─── MAIN HANDLER ────────────────────────────────────────────
@@ -633,25 +662,40 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    // Parse body
-    const body: ExecutorRequest = await req.json();
-    const { workspaceId, channelType, channelIdentifier } = resolveRoutingKeys(req, body);
-
-    if (!workspaceId) {
+    // ── Parse & validate ────────────────────────────────────
+    let body: ExecutorRequest;
+    try {
+      body = await req.json();
+    } catch {
       return new Response(
-        JSON.stringify({ error: "workspaceId is required (header or body)" }),
+        JSON.stringify({ success: false, error: "Invalid JSON body" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!body.message || !body.conversationId) {
+    const { conversation, message, context, options = {} } = body;
+
+    if (!context?.workspace_id) {
       return new Response(
-        JSON.stringify({ error: "message and conversationId are required" }),
+        JSON.stringify({ success: false, error: "context.workspace_id is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (!message?.text) {
+      return new Response(
+        JSON.stringify({ success: false, error: "message.text is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Service role client – channels like WhatsApp/Instagram call this from webhooks
+    const workspaceId = context.workspace_id;
+    const channelType = context.channel_type || "inbox";
+    const channelIdentifier = context.channel_identifier;
+    const locale = context.locale || "pt-PT";
+    const isDryRun = options.dry_run === true;
+    const isDebug = options.debug === true;
+
+    // Service-role client (needed for cross-workspace ops)
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -659,24 +703,43 @@ serve(async (req) => {
 
     // ── 1) Resolve bot ───────────────────────────────────────
     const bot = await resolveBot(
-      supabase,
-      workspaceId,
-      channelType,
-      channelIdentifier,
-      body.botId
+      supabase, workspaceId, channelType, channelIdentifier, options.force_bot_id
     );
 
     if (!bot) {
-      console.log(`[AI-EMPLOYEE-EXECUTOR] No active bot found for workspace=${workspaceId} channel=${channelType}`);
+      console.log(`[AI-EMPLOYEE-EXECUTOR] No active bot | workspace=${workspaceId} channel=${channelType}`);
       return new Response(
         JSON.stringify({ success: false, error: "No active bot configured for this channel" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`[AI-EMPLOYEE-EXECUTOR] Dispatching bot=${bot.id} type=${bot.type} workspace=${workspaceId}`);
+    // ── 2) Resolve conversation id ───────────────────────────
+    const conversationId = await resolveConversation(
+      supabase, conversation, workspaceId, channelType, channelIdentifier, context.utm, context.page_url
+    );
 
-    // ── 2) Load bot settings ─────────────────────────────────
+    if (!conversationId) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Could not resolve or create conversation" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── 3) Resolve lead from contact ─────────────────────────
+    let leadId: string | undefined;
+    if (conversation.contact_id) {
+      const { data: lead } = await supabase
+        .from("leads")
+        .select("id")
+        .eq("contact_id", conversation.contact_id)
+        .eq("workspace_id", workspaceId)
+        .limit(1)
+        .single();
+      leadId = (lead as any)?.id;
+    }
+
+    // ── 4) Load bot settings ─────────────────────────────────
     const { data: settingsData } = await supabase
       .from("bot_settings")
       .select("*")
@@ -684,108 +747,134 @@ serve(async (req) => {
       .single();
     const settings = settingsData as BotSettingsRow | null;
 
-    // ── 3) Execute mode ──────────────────────────────────────
-    let reply: string = "";
+    // ── 5) Persist inbound message ───────────────────────────
+    if (!isDryRun && message.message_id) {
+      // Only persist if not already stored (external_message_id dedup)
+      await supabase.from("messages").upsert(
+        {
+          workspace_id: workspaceId,
+          conversation_id: conversationId,
+          external_message_id: message.message_id,
+          content: message.text,
+          direction: "inbound",
+          sender_type: "contact",
+          status: "delivered",
+          created_at: message.timestamp,
+        },
+        { onConflict: "workspace_id,external_message_id", ignoreDuplicates: true }
+      );
+    }
+
+    // ── 6) Execute bot mode ──────────────────────────────────
+    let reply = "";
     let replies: string[] = [];
     let actions: SideEffect[] = [];
     let sessionState: string | undefined;
     let collectedVariables: Record<string, unknown> | undefined;
+    let debugPayload: Record<string, unknown> | undefined;
     let runStatus: "success" | "error" | "handover" | "skipped" = "success";
 
     try {
       if (bot.type === "guided") {
-        const result = await runGuided(supabase, bot, settings, body.message, body.conversationId);
-        reply = result.reply;
-        actions = result.actions;
+        const r = await runGuided(supabase, bot, settings, message.text, conversationId, locale);
+        reply = r.reply;
+        actions = r.actions;
       } else if (bot.type === "prompt") {
-        const result = await runPrompt(
-          supabase, bot, settings, body.message, body.conversationId, workspaceId
+        const r = await runPrompt(
+          supabase, bot, settings, message.text, message.attachments || [],
+          conversationId, workspaceId, locale, isDebug
         );
-        reply = result.reply;
-        actions = result.actions;
+        reply = r.reply;
+        actions = r.actions;
+        if (isDebug) debugPayload = r.debugInfo;
       } else if (bot.type === "flow") {
-        const result = await runFlow(
-          supabase, bot, settings, body.message, body.conversationId, workspaceId, body.leadId
+        const r = await runFlow(
+          supabase, bot, settings, message.text, conversationId, workspaceId, leadId, locale
         );
-        reply = result.reply;
-        replies = result.replies;
-        actions = result.actions;
-        sessionState = result.sessionState;
-        collectedVariables = result.collectedVariables;
+        reply = r.reply;
+        replies = r.replies;
+        actions = r.actions;
+        sessionState = r.sessionState;
+        collectedVariables = r.collectedVariables;
       }
 
-      if (actions.some((a) => a.type === "handover")) {
-        runStatus = "handover";
-      }
-    } catch (execError) {
-      console.error("[AI-EMPLOYEE-EXECUTOR] Execution error:", execError);
+      if (actions.some((a) => a.type === "handover")) runStatus = "handover";
+    } catch (execErr) {
+      console.error("[AI-EMPLOYEE-EXECUTOR] Execution error:", execErr);
       runStatus = "error";
-      reply = settings?.fallback_message || "Ocorreu um erro. A nossa equipa irá responder em breve.";
+      reply = localeFallback(settings, locale);
     }
 
-    // ── 4) Persist reply as outbound message ─────────────────
-    if (reply) {
+    // ── 7) Persist outbound reply ────────────────────────────
+    if (!isDryRun && reply) {
       await supabase.from("messages").insert({
         workspace_id: workspaceId,
-        conversation_id: body.conversationId,
+        conversation_id: conversationId,
         content: reply,
         direction: "outbound",
         sender_type: "bot",
         sender_id: bot.id,
         status: "sent",
-      }).then(({ error }) => {
-        if (error) console.warn("[AI-EMPLOYEE-EXECUTOR] Failed to persist outbound message:", error.message);
       });
     }
 
-    // ── 5) Execute side effects ──────────────────────────────
-    await executeSideEffects(
-      supabase,
-      actions,
-      workspaceId,
-      body.leadId,
-      body.conversationId,
-      bot.id
-    );
+    // ── 8) Side effects (parallel) ───────────────────────────
+    if (!isDryRun) {
+      await executeSideEffects(supabase, actions, workspaceId, leadId, conversationId, bot.id);
+    }
 
-    // ── 6) Log run ───────────────────────────────────────────
+    // ── 9) Log run ───────────────────────────────────────────
     const runId = await logRun(supabase, {
       workspaceId,
       botId: bot.id,
-      conversationId: body.conversationId,
+      conversationId,
       status: runStatus,
-      inputPayload: { message: body.message, channel: channelType, metadata: body.metadata },
-      outputPayload: { reply, actions, sessionState },
+      inputPayload: {
+        message_id: message.message_id,
+        text: message.text,
+        attachments: message.attachments,
+        channel: channelType,
+        locale,
+        dry_run: isDryRun,
+        utm: context.utm,
+      },
+      outputPayload: { reply, actions, sessionState, collected_variables: collectedVariables },
     });
 
-    // ── 7) Update analytics (fire-and-forget) ────────────────
-    incrementAnalytics(supabase, bot.id, workspaceId, {
-      messagesIn: 1,
-      messagesOut: reply ? 1 : 0,
-      handovers: runStatus === "handover" ? 1 : 0,
-    });
+    // ── 10) Analytics (fire-and-forget) ─────────────────────
+    if (!isDryRun) {
+      incrementAnalytics(supabase, bot.id, workspaceId, {
+        messagesIn: 1,
+        messagesOut: reply ? 1 : 0,
+        handovers: runStatus === "handover" ? 1 : 0,
+      });
+    }
 
     const durationMs = Date.now() - startTime;
-    console.log(`[AI-EMPLOYEE-EXECUTOR] Completed in ${durationMs}ms bot=${bot.id} status=${runStatus}`);
+    console.log(
+      `[AI-EMPLOYEE-EXECUTOR] bot=${bot.id} type=${bot.type} status=${runStatus} dry=${isDryRun} ${durationMs}ms`
+    );
 
-    const response: ExecutorResponse = {
+    const resp: ExecutorResponse = {
       success: runStatus !== "error",
-      botId: bot.id,
-      botName: bot.name,
-      botType: bot.type,
+      bot_id: bot.id,
+      bot_name: bot.name,
+      bot_type: bot.type,
+      run_id: runId,
       reply,
       replies: replies.length > 1 ? replies : undefined,
-      actions,
-      runId,
-      sessionState,
-      collectedVariables,
+      actions: isDryRun ? actions : [],
+      session_state: sessionState,
+      collected_variables: collectedVariables,
+      conversation_id: conversationId,
+      debug: isDebug ? { ...debugPayload, durationMs, runStatus } : undefined,
     };
 
-    return new Response(JSON.stringify(response), {
+    return new Response(JSON.stringify(resp), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("[AI-EMPLOYEE-EXECUTOR] Fatal error:", err);
+    console.error("[AI-EMPLOYEE-EXECUTOR] Fatal:", err);
     return new Response(
       JSON.stringify({ success: false, error: err instanceof Error ? err.message : "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
