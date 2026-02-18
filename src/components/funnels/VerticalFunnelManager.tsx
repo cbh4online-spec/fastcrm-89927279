@@ -49,32 +49,34 @@ export function VerticalFunnelManager({ templateId, slug, onBack }: Props) {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="conteudo" className="gap-1.5">
-            <FileText className="h-4 w-4" />
-            Conteúdo
-          </TabsTrigger>
-          <TabsTrigger value="stats" className="gap-1.5">
-            <BarChart3 className="h-4 w-4" />
-            Stats
-          </TabsTrigger>
-          {resolvedId && (
-            <>
-              <TabsTrigger value="sales" className="gap-1.5">
-                <ShoppingCart className="h-4 w-4" />
-                Sales
-              </TabsTrigger>
-              <TabsTrigger value="events" className="gap-1.5">
-                <Zap className="h-4 w-4" />
-                Events
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="gap-1.5">
-                <Settings className="h-4 w-4" />
-                Settings
-              </TabsTrigger>
-            </>
-          )}
-        </TabsList>
+        <div className="overflow-x-auto -mx-1 px-1">
+          <TabsList className="flex w-max min-w-full">
+            <TabsTrigger value="conteudo" className="gap-1.5">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Conteúdo</span>
+            </TabsTrigger>
+            <TabsTrigger value="stats" className="gap-1.5">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Stats</span>
+            </TabsTrigger>
+            {resolvedId && (
+              <>
+                <TabsTrigger value="sales" className="gap-1.5">
+                  <ShoppingCart className="h-4 w-4" />
+                  <span className="hidden sm:inline">Sales</span>
+                </TabsTrigger>
+                <TabsTrigger value="events" className="gap-1.5">
+                  <Zap className="h-4 w-4" />
+                  <span className="hidden sm:inline">Events</span>
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="gap-1.5">
+                  <Settings className="h-4 w-4" />
+                  <span className="hidden sm:inline">Settings</span>
+                </TabsTrigger>
+              </>
+            )}
+          </TabsList>
+        </div>
 
         <TabsContent value="conteudo">
           {resolvedId ? (

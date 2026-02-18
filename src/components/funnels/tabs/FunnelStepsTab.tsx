@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Mail, Trash2, Copy, GripVertical, ExternalLink, Settings } from "lucide-react";
+import { Plus, Mail, Trash2, Copy, GripVertical, ExternalLink, Settings, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,7 +56,7 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
   const [variationDialogOpen, setVariationDialogOpen] = useState(false);
   const [variationName, setVariationName] = useState("");
 
-  const selectedStep = steps.find((s) => s.id === selectedStepId) || steps[0] || null;
+  const selectedStep = steps.find((s) => s.id === selectedStepId) || null;
   const { data: variations = [] } = useFunnelVariations(selectedStep?.id ?? null);
   const createVariation = useCreateVariation();
   const deleteVariation = useDeleteVariation();
@@ -93,10 +93,17 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
     setVariationName("");
   };
 
+  // On mobile: show list OR editor (not both)
+  const showList = !selectedStepId;
+  const showEditor = !!selectedStepId;
+
   return (
-    <div className="flex gap-6 min-h-[500px]">
+    <div className="flex flex-col md:flex-row gap-6 min-h-[500px]">
       {/* Sidebar - Steps list */}
-      <div className="w-72 space-y-3 shrink-0">
+      <div className={cn(
+        "space-y-3 shrink-0 w-full md:w-72",
+        showEditor ? "hidden md:block" : "block"
+      )}>
         <div className="flex items-center gap-2 mb-2">
           <span className="text-emerald-500">✅</span>
           <h3 className="font-semibold text-sm">Funnel Steps</h3>
@@ -114,8 +121,11 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
                 onClick={() => setSelectedStepId(step.id)}
               >
                 <GripVertical className="h-3 w-3 text-muted-foreground shrink-0" />
-                <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-base shrink-0">{STEP_TYPE_ICONS[step.step_type] || "📄"}</span>
                 <span className="text-sm font-medium truncate">{step.name}</span>
+                <Badge variant="outline" className="text-xs ml-auto shrink-0 hidden sm:flex">
+                  {step.step_type}
+                </Badge>
               </div>
               {index < steps.length - 1 && (
                 <div className="flex justify-center py-1">
@@ -125,6 +135,14 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
             </div>
           ))}
         </div>
+
+        {steps.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground border-2 border-dashed rounded-lg">
+            <span className="text-3xl mb-2">🚀</span>
+            <p className="text-sm font-medium">Sem steps ainda</p>
+            <p className="text-xs">Adiciona o primeiro step ao teu funil</p>
+          </div>
+        )}
 
         <Button
           className="w-full"
@@ -136,10 +154,22 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
       </div>
 
       {/* Main content area */}
-      {selectedStep ? (
+      {showEditor && selectedStep ? (
         <div className="flex-1 space-y-4">
+          {/* Back button on mobile */}
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">{selectedStep.name}</h3>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="md:hidden"
+                onClick={() => setSelectedStepId(null)}
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Steps
+              </Button>
+              <h3 className="text-lg font-semibold">{selectedStep.name}</h3>
+            </div>
             <Tabs value={stepSubTab} onValueChange={setStepSubTab}>
               <TabsList className="h-8">
                 <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
@@ -150,8 +180,8 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
 
           {stepSubTab === "overview" ? (
             <div className="space-y-4">
-              <Card className="p-6">
-                <div className="flex gap-6">
+              <Card className="p-4 md:p-6">
+                <div className="flex flex-col sm:flex-row gap-6">
                   {/* Control */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -162,11 +192,17 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
                         </span>
                       )}
                     </div>
-                    <div className="w-48 h-64 border rounded-lg bg-muted/30 flex items-center justify-center text-muted-foreground text-sm">
-                      {STEP_TYPE_ICONS[selectedStep.step_type]} Pré-visualização
+                    {/* Enhanced step preview */}
+                    <div className={cn(
+                      "w-full sm:w-48 h-48 sm:h-64 border-2 rounded-lg flex flex-col items-center justify-center gap-2",
+                      "bg-gradient-to-br from-muted/50 to-muted/20"
+                    )}>
+                      <span className="text-4xl">{STEP_TYPE_ICONS[selectedStep.step_type] || "📄"}</span>
+                      <span className="text-sm font-medium text-muted-foreground capitalize">{selectedStep.step_type}</span>
+                      <Badge variant="secondary" className="text-xs">{selectedStep.name}</Badge>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button size="sm">Editar</Button>
+                      <Button size="sm" onClick={() => setStepSubTab("editor")}>Editar</Button>
                       <Button variant="outline" size="icon" className="h-8 w-8">
                         <ExternalLink className="h-3 w-3" />
                       </Button>
@@ -192,7 +228,7 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
                       </div>
                       <div className="space-y-3">
                         <Badge variant="outline" className="text-xs">VARIATION</Badge>
-                        <div className="w-48 h-64 border-2 border-dashed rounded-lg flex items-center justify-center">
+                        <div className="w-full sm:w-48 h-32 sm:h-64 border-2 border-dashed rounded-lg flex items-center justify-center">
                           <Button variant="link" size="sm" onClick={() => setVariationDialogOpen(true)}>
                             <Plus className="h-3 w-3 mr-1" />
                             Criar variação
@@ -254,22 +290,19 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
               </Card>
 
               {/* Actions */}
-              <div className="flex items-center justify-between">
-                <div />
-                <div className="flex gap-2">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteStep(selectedStep.id)}
-                  >
-                    <Trash2 className="h-3 w-3 mr-1" />
-                    Eliminar Step
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Copy className="h-3 w-3 mr-1" />
-                    Clonar Step
-                  </Button>
-                </div>
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleDeleteStep(selectedStep.id)}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Eliminar Step
+                </Button>
+                <Button variant="outline" size="sm">
+                  <Copy className="h-3 w-3 mr-1" />
+                  Clonar Step
+                </Button>
               </div>
             </div>
           ) : (
@@ -277,8 +310,11 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
           )}
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground">
-          Seleciona um step para editar
+        <div className="hidden md:flex flex-1 items-center justify-center text-muted-foreground">
+          <div className="text-center space-y-2">
+            <span className="text-4xl">👈</span>
+            <p className="font-medium">Seleciona um step para editar</p>
+          </div>
         </div>
       )}
 
