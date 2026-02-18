@@ -74,6 +74,48 @@ interface ExecutorRequest {
   options?: RequestOptions;
 }
 
+// ─── OUTPUT TYPES ────────────────────────────────────────────
+
+export type ExecutorStatus = "ok" | "handover" | "blocked" | "error";
+
+export type ActionType =
+  | "create_lead"
+  | "update_contact"
+  | "create_opportunity"
+  | "book_meeting"
+  | "trigger_automation"
+  | "human_handover";
+
+export interface OutputAction {
+  type: ActionType;
+  payload: Record<string, unknown>;
+}
+
+export interface ExecutorResponse {
+  status: ExecutorStatus;
+  bot: {
+    bot_id: string;
+    type: "guided" | "prompt" | "flow";
+    status: "active" | "paused" | "draft" | "archived";
+  };
+  reply: {
+    text: string;
+    attachments: unknown[];
+  };
+  actions: OutputAction[];
+  state: {
+    conversation_id: string;
+    contact_id: string | null;
+    memory_updated: boolean;
+  };
+  meta: {
+    latency_ms: number;
+    tokens_used: number;
+    rate_limited: boolean;
+  };
+  debug?: Record<string, unknown>;
+}
+
 // ─── INTERNAL TYPES ──────────────────────────────────────────
 
 interface BotRow {
@@ -104,22 +146,6 @@ interface BotSettingsRow {
 interface SideEffect {
   type: "create_lead" | "update_lead" | "handover" | "booking" | "tag" | "automation";
   payload: Record<string, unknown>;
-}
-
-interface ExecutorResponse {
-  success: boolean;
-  bot_id: string;
-  bot_name: string;
-  bot_type: string;
-  run_id: string;
-  reply: string | null;
-  replies?: string[];
-  actions: SideEffect[];
-  session_state?: string;
-  collected_variables?: Record<string, unknown>;
-  conversation_id: string | null;
-  debug?: Record<string, unknown>;
-  error?: string;
 }
 
 // ─── BOT RESOLUTION ──────────────────────────────────────────
@@ -372,7 +398,7 @@ async function runPrompt(
   workspaceId: string,
   locale?: string,
   debug?: boolean
-): Promise<{ reply: string; actions: SideEffect[]; debugInfo?: Record<string, unknown> }> {
+): Promise<{ reply: string; actions: SideEffect[]; tokensUsed: number; debugInfo?: Record<string, unknown> }> {
   const actions: SideEffect[] = [];
   const debugInfo: Record<string, unknown> = {};
 
@@ -509,6 +535,8 @@ async function runPrompt(
   const llmData = await llmResp.json();
   const reply =
     llmData.choices?.[0]?.message?.content?.trim() || localeFallback(settings, locale);
+  const tokensUsed: number =
+    llmData.usage?.total_tokens ?? llmData.usage?.prompt_tokens ?? 0;
 
   const extracted = extractLeadData(text, settings, locale);
   if (Object.keys(extracted).length > 0) {
@@ -517,7 +545,7 @@ async function runPrompt(
 
   if (debug) debugInfo.model = "google/gemini-2.5-flash";
 
-  return { reply, actions, debugInfo };
+  return { reply, actions, tokensUsed, debugInfo };
 }
 
 /** FLOW — delegates to existing flow-engine function */
@@ -766,51 +794,50 @@ serve(async (req) => {
     }
 
     // ── 6) Execute bot mode ──────────────────────────────────
-    let reply = "";
-    let replies: string[] = [];
-    let actions: SideEffect[] = [];
-    let sessionState: string | undefined;
-    let collectedVariables: Record<string, unknown> | undefined;
+    let replyText = "";
+    let internalActions: SideEffect[] = [];
+    let tokensUsed = 0;
     let debugPayload: Record<string, unknown> | undefined;
     let runStatus: "success" | "error" | "handover" | "skipped" = "success";
+    let memoryUpdated = false;
 
     try {
       if (bot.type === "guided") {
         const r = await runGuided(supabase, bot, settings, message.text, conversationId, locale);
-        reply = r.reply;
-        actions = r.actions;
+        replyText = r.reply;
+        internalActions = r.actions;
       } else if (bot.type === "prompt") {
         const r = await runPrompt(
           supabase, bot, settings, message.text, message.attachments || [],
           conversationId, workspaceId, locale, isDebug
         );
-        reply = r.reply;
-        actions = r.actions;
+        replyText = r.reply;
+        internalActions = r.actions;
+        tokensUsed = r.tokensUsed;
+        memoryUpdated = true;
         if (isDebug) debugPayload = r.debugInfo;
       } else if (bot.type === "flow") {
         const r = await runFlow(
           supabase, bot, settings, message.text, conversationId, workspaceId, leadId, locale
         );
-        reply = r.reply;
-        replies = r.replies;
-        actions = r.actions;
-        sessionState = r.sessionState;
-        collectedVariables = r.collectedVariables;
+        replyText = r.reply;
+        internalActions = r.actions;
+        memoryUpdated = true;
       }
 
-      if (actions.some((a) => a.type === "handover")) runStatus = "handover";
+      if (internalActions.some((a) => a.type === "handover")) runStatus = "handover";
     } catch (execErr) {
       console.error("[AI-EMPLOYEE-EXECUTOR] Execution error:", execErr);
       runStatus = "error";
-      reply = localeFallback(settings, locale);
+      replyText = localeFallback(settings, locale);
     }
 
     // ── 7) Persist outbound reply ────────────────────────────
-    if (!isDryRun && reply) {
+    if (!isDryRun && replyText) {
       await supabase.from("messages").insert({
         workspace_id: workspaceId,
         conversation_id: conversationId,
-        content: reply,
+        content: replyText,
         direction: "outbound",
         sender_type: "bot",
         sender_id: bot.id,
@@ -820,11 +847,11 @@ serve(async (req) => {
 
     // ── 8) Side effects (parallel) ───────────────────────────
     if (!isDryRun) {
-      await executeSideEffects(supabase, actions, workspaceId, leadId, conversationId, bot.id);
+      await executeSideEffects(supabase, internalActions, workspaceId, leadId, conversationId, bot.id);
     }
 
     // ── 9) Log run ───────────────────────────────────────────
-    const runId = await logRun(supabase, {
+    await logRun(supabase, {
       workspaceId,
       botId: bot.id,
       conversationId,
@@ -838,14 +865,14 @@ serve(async (req) => {
         dry_run: isDryRun,
         utm: context.utm,
       },
-      outputPayload: { reply, actions, sessionState, collected_variables: collectedVariables },
+      outputPayload: { reply: replyText, internalActions, tokens_used: tokensUsed },
     });
 
     // ── 10) Analytics (fire-and-forget) ─────────────────────
     if (!isDryRun) {
       incrementAnalytics(supabase, bot.id, workspaceId, {
         messagesIn: 1,
-        messagesOut: reply ? 1 : 0,
+        messagesOut: replyText ? 1 : 0,
         handovers: runStatus === "handover" ? 1 : 0,
       });
     }
@@ -855,19 +882,61 @@ serve(async (req) => {
       `[AI-EMPLOYEE-EXECUTOR] bot=${bot.id} type=${bot.type} status=${runStatus} dry=${isDryRun} ${durationMs}ms`
     );
 
+    // ── 11) Map internal actions → output contract ───────────
+    const outputActions: OutputAction[] = internalActions
+      .filter((a) => a.type !== "update_lead") // internal-only, not surfaced
+      .map((a): OutputAction | null => {
+        if (a.type === "handover") {
+          return {
+            type: "human_handover",
+            payload: {
+              assignee_user_id: (a.payload.assignToUserId as string | null) ?? null,
+              assignee_role: (a.payload.handover_role as string | null) ?? null,
+            },
+          };
+        }
+        if (a.type === "create_lead") {
+          return { type: "create_lead", payload: { lead_id: a.payload.id ?? null } };
+        }
+        if (a.type === "automation") {
+          return { type: "trigger_automation", payload: { rule_id: a.payload.rule_id ?? null } };
+        }
+        if (a.type === "booking") {
+          return { type: "book_meeting", payload: { event_id: a.payload.event_id ?? null } };
+        }
+        return null;
+      })
+      .filter((a): a is OutputAction => a !== null);
+
+    // ── 12) Derive top-level status ──────────────────────────
+    const executorStatus: ExecutorStatus =
+      runStatus === "error" ? "error" :
+      runStatus === "handover" ? "handover" :
+      "ok";
+
     const resp: ExecutorResponse = {
-      success: runStatus !== "error",
-      bot_id: bot.id,
-      bot_name: bot.name,
-      bot_type: bot.type,
-      run_id: runId,
-      reply,
-      replies: replies.length > 1 ? replies : undefined,
-      actions: isDryRun ? actions : [],
-      session_state: sessionState,
-      collected_variables: collectedVariables,
-      conversation_id: conversationId,
-      debug: isDebug ? { ...debugPayload, durationMs, runStatus } : undefined,
+      status: executorStatus,
+      bot: {
+        bot_id: bot.id,
+        type: bot.type,
+        status: bot.status,
+      },
+      reply: {
+        text: replyText,
+        attachments: [],
+      },
+      actions: outputActions,
+      state: {
+        conversation_id: conversationId,
+        contact_id: conversation.contact_id ?? null,
+        memory_updated: memoryUpdated,
+      },
+      meta: {
+        latency_ms: durationMs,
+        tokens_used: tokensUsed,
+        rate_limited: false,
+      },
+      debug: isDebug ? { ...debugPayload, run_status: runStatus } : undefined,
     };
 
     return new Response(JSON.stringify(resp), {
@@ -875,9 +944,20 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error("[AI-EMPLOYEE-EXECUTOR] Fatal:", err);
+    const durationMs = Date.now() - startTime;
+    const errResp: ExecutorResponse = {
+      status: "error",
+      bot: { bot_id: "", type: "prompt", status: "draft" },
+      reply: { text: "", attachments: [] },
+      actions: [],
+      state: { conversation_id: null as unknown as string, contact_id: null, memory_updated: false },
+      meta: { latency_ms: durationMs, tokens_used: 0, rate_limited: false },
+      debug: { error: err instanceof Error ? err.message : "Internal server error" },
+    };
     return new Response(
-      JSON.stringify({ success: false, error: err instanceof Error ? err.message : "Internal server error" }),
+      JSON.stringify(errResp),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
+
