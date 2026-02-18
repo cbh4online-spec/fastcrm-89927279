@@ -30557,6 +30557,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_bot_analytics: {
+        Args: {
+          p_bot_id: string
+          p_conversations?: number
+          p_handovers?: number
+          p_leads?: number
+          p_messages_in?: number
+          p_messages_out?: number
+          p_workspace_id: string
+        }
+        Returns: undefined
+      }
       increment_campaign_stat: {
         Args: { p_campaign_id: string; p_field: string }
         Returns: undefined
