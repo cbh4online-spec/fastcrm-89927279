@@ -8,6 +8,7 @@ import { VerticalROI } from "./VerticalROI";
 import { VerticalCTAForm } from "./VerticalCTAForm";
 import { VerticalFooter } from "./VerticalFooter";
 import { VerticalLandingTracker } from "./VerticalLandingTracker";
+import { VerticalFloatingCTA } from "./VerticalFloatingCTA";
 import type { VerticalConfig } from "@/config/verticalConfigs";
 
 interface Props {
@@ -31,6 +32,7 @@ export function VerticalLandingTemplate({ config, templateId, workspaceId }: Pro
         <VerticalCTAForm config={config} />
       </main>
       <VerticalFooter config={config} />
+      <VerticalFloatingCTA config={config} />
     </div>
   );
 }
