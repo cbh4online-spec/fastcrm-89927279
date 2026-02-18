@@ -1,66 +1,115 @@
 
-# Melhorar Responsividade Mobile e Elementos Visuais dos Funis
+# Corrigir Landing Pages Públicas de Verticais (Mobile)
 
-## Problemas identificados
+## Problemas identificados nas screenshots
 
-### Responsividade Mobile
+### 1. VerticalStickyHeader — Overflow do botão CTA em mobile
+Na imagem, o botão "Agendar Diagnóstico Estratégico" sobrepõe-se ao logo "FastCRM" porque em mobile o header tem:
+- Logo (FastCRM + texto "para Empresas")
+- Botão CTA com texto longo (sem truncate)
+- Botão Menu (hamburger)
 
-1. **FunnelsList.tsx** — Cabeçalho com 3 botões (`Nova Vertical`, `Novo Template AIDA`, `Novo Funil`) numa linha horizontal não cabe em mobile. Precisam de colapsar num menu dropdown ou adaptar para 2 linhas.
+Todos no mesmo `flex items-center justify-between` de altura 16. O botão CTA com texto longo ultrapassa o espaço disponível.
 
-2. **FunnelStepsTab.tsx** — Layout `flex gap-6` com sidebar de `w-72` fixo ao lado do conteúdo principal. Em mobile, fica completamente espremido. Precisa de mudar para layout vertical com tabs ou acordeão.
+**Solução**: Esconder o botão CTA no header em mobile (mover para dentro do Sheet), mantendo apenas o botão hamburger visível. Em desktop o botão fica visível.
 
-3. **FunnelStepEditor.tsx** — Grid de `grid-cols-2` (editor + preview) lado a lado. Em mobile, as colunas ficam demasiado estreitas.
+### 2. VerticalHero — Texto cortado horizontalmente
+O título enorme (`text-4xl` a `text-6xl`) com break point `<br />` rígido causa overflow em mobile quando `{config.nome}` é longo. A orb de `w-[600px]` (posição absoluta) em mobile pode causar scroll horizontal.
 
-4. **FunnelStatsTab.tsx** — Tabela com 11 colunas não cabe em mobile. Precisa de scroll horizontal ou vista alternativa.
+**Solução**: 
+- Remover o `<br />` hardcoded do `VerticalHero` e usar `flex flex-col` ou deixar o texto fluir naturalmente
+- As orbs absolutas já devem estar contidas pelo `overflow-hidden` mas confirmar
+- Reduzir padding em mobile: `px-4` em vez de `px-6`
 
-5. **FunnelBuilder.tsx** — `TabsList` com 7 tabs (`Steps`, `Stats`, `Sales`, `Products`, `Events`, `Settings`, `AI Insights`) numa linha, estoura fora do ecrã em mobile.
+### 3. VerticalCTAForm — Botão de submit com texto longo
+Na imagem, o botão "Quero Modernizar a Minha Empresas →" é longo. Em mobile com `w-full` está OK, mas o texto pode ser demasiado longo para caber.
 
-6. **VerticalFunnelManager.tsx** — `TabsList` com 5 tabs com ícones e texto, mesmo problema.
+**Solução**: Adicionar `text-sm sm:text-base` no botão e garantir que `gap-2` não force overflow.
 
-7. **VerticalView.tsx** e **FunnelsList** — Cabeçalhos com `flex items-center justify-between` que colapsam mal em mobile.
+### 4. Secções com `max-w` e `px-6` — consistência de padding
+Em mobile, `px-6` (24px) em ambos os lados deixa pouco espaço. Algumas secções usam `max-w-7xl`, outras `max-w-5xl` ou `max-w-2xl` — quando o padding interno das sections é insuficiente, o texto pode sair.
 
-### Elementos Visuais em Falta
+**Solução**: Usar `px-4 sm:px-6` nas secções internas para mais espaço em mobile.
 
-1. **FunnelsList** — Cartões das verticais e templates sem indicadores visuais de performance (conversão rate, barra de progresso visual).
+## Ficheiros a alterar
 
-2. **FunnelsList** — Estado vazio "Sem funis" apenas com ícone Globe e texto simples, sem apelo visual.
+| Ficheiro | Alteração |
+|----------|-----------|
+| `VerticalStickyHeader.tsx` | Esconder botão CTA no header em mobile; garantir `min-w-0` no logo |
+| `VerticalHero.tsx` | Remover `<br />` hardcoded; `px-4 sm:px-6`; `text-3xl sm:text-5xl lg:text-6xl` |
+| `VerticalCTAForm.tsx` | `text-sm sm:text-base` no botão; `px-4 sm:px-6` |
+| `VerticalProblems.tsx` | `px-4 sm:px-6` para mais espaço em mobile |
+| `VerticalSolution.tsx` | Verificar e corrigir padding |
+| `VerticalLandingTemplate.tsx` | Confirmar `overflow-x-hidden` no wrapper |
 
-3. **FunnelStepsTab** — Preview dos steps com placeholder cinzento básico (`w-48 h-64 border rounded-lg bg-muted/30`), sem qualquer detalhe visual.
+## Detalhes técnicos
 
-4. **Funis sem vertical** — Cartões sem preview do tipo de funil, sem indicador de steps configurados.
+### VerticalStickyHeader.tsx — Correção principal
 
-## Solução
+**Antes:**
+```tsx
+<div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+  <Link to="/" className="flex items-center gap-2.5">
+    ...logo...
+    <span className="text-xs text-[hsl(215,20%,65%)] hidden sm:inline">para {config.nome}</span>
+  </Link>
+  <div className="flex items-center gap-3">
+    <Button size="sm" onClick={scrollToForm} className="...">
+      {config.cta_principal}  {/* TEXTO LONGO EM MOBILE */}
+    </Button>
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="md:hidden ...">
+          <Menu />
+        </Button>
+      </SheetTrigger>
+    </Sheet>
+  </div>
+</div>
+```
 
-### Ficheiros a alterar
+**Depois:**
+```tsx
+<div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
+  <Link to="/" className="flex items-center gap-2 shrink-0">
+    ...logo...
+    <span className="text-xs text-[hsl(215,20%,65%)] hidden sm:inline">para {config.nome}</span>
+  </Link>
+  <div className="flex items-center gap-2">
+    {/* CTA só visível em sm+ */}
+    <Button size="sm" onClick={scrollToForm} className="... hidden sm:inline-flex">
+      {config.cta_principal}
+    </Button>
+    <Sheet>
+      <SheetTrigger>hamburger (md:hidden)</SheetTrigger>
+      <SheetContent>
+        {/* CTA aqui para mobile */}
+        <Button onClick={scrollToForm} className="w-full ...">
+          {config.cta_principal}
+        </Button>
+      </SheetContent>
+    </Sheet>
+  </div>
+</div>
+```
 
-| Ficheiro | Alterações |
-|----------|------------|
-| `FunnelsList.tsx` | Botões em mobile como dropdown; melhorar cartões com stats visuais; empty state mais apelativo |
-| `FunnelBuilder.tsx` | TabsList scrollável com `overflow-x-auto` em mobile; esconder texto das tabs em mobile |
-| `VerticalFunnelManager.tsx` | TabsList scrollável; esconder texto em mobile |
-| `FunnelStepsTab.tsx` | Layout adaptado: em mobile mostra lista de steps primeiro, ao selecionar abre editor em full-width |
-| `FunnelStepEditor.tsx` | `grid-cols-1 md:grid-cols-2` para preview por baixo em mobile |
-| `FunnelStatsTab.tsx` | Wrapper com `overflow-x-auto` para scroll horizontal da tabela em mobile |
-| `VerticalView.tsx` | Cabeçalho adaptado para mobile |
+### VerticalHero.tsx — Título responsivo
 
-### Detalhes das melhorias visuais
+**Antes:**
+```tsx
+<h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight">
+  O Sistema Operacional com IA para{" "}
+  <span>...{config.nome}...</span>
+  <br />           {/* BREAK HARDCODED */}
+  que querem {config.resultado_prometido}
+</h1>
+```
 
-**FunnelsList:**
-- Botões de acção no cabeçalho: em mobile (< md), substituir os 3 botões por um botão `+` e um dropdown com as opções
-- Cartões de Templates AIDA: adicionar barra de conversão colorida no topo do cartão
-- Empty state: ilustração mais apelativa com gradiente de fundo, ícone maior, call-to-action com destaque
-
-**FunnelBuilder tabs:**
-- `TabsList` com `flex-nowrap overflow-x-auto` e sem padding para caber em mobile
-- Em ecrãs pequenos, esconder o texto das tabs e mostrar só ícones (usar `hidden sm:inline` no texto)
-
-**FunnelStepsTab:**
-- Em mobile: lista de steps ocupa toda a largura; ao clicar num step, a lista "desliza" para cima e o editor abre abaixo (stack vertical via `flex-col` em `< md`)
-
-**FunnelStatsTab:**
-- Envolver a `Card` + `Table` num `div` com `overflow-x-auto` para scroll horizontal em mobile
-- Adicionar no topo 3 KPI cards com totais agregados (total views, total opt-ins, total vendas) antes da tabela
-
-**Cartões de Funis (FunnelsList e VerticalView):**
-- Adicionar indicador colorido no lado esquerdo do cartão (stripe vertical) com a cor do tipo de funil
-- Mostrar número de steps configurados com um ícone
+**Depois:**
+```tsx
+<h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold leading-[1.15] tracking-tight">
+  O Sistema Operacional com IA para{" "}
+  <span>...{config.nome}...</span>{" "}
+  que querem {config.resultado_prometido}   {/* sem <br />, flui naturalmente */}
+</h1>
+```
