@@ -143,12 +143,13 @@ export function FunnelsList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Funis</h1>
-          <p className="text-muted-foreground">Cria e gere funis de conversão multi-step, verticais e templates AIDA</p>
+          <h1 className="text-xl sm:text-2xl font-bold">Funis</h1>
+          <p className="text-sm text-muted-foreground">Cria e gere funis de conversão multi-step, verticais e templates AIDA</p>
         </div>
-        <div className="flex items-center gap-2">
+        {/* Desktop: 3 buttons in a row */}
+        <div className="hidden sm:flex items-center gap-2">
           <Button variant="outline" onClick={() => setCreateVerticalOpen(true)}>
             <Layers className="h-4 w-4 mr-2" />
             Nova Vertical
@@ -162,7 +163,32 @@ export function FunnelsList() {
             Novo Funil
           </Button>
         </div>
+        {/* Mobile: dropdown */}
+        <div className="flex sm:hidden items-center gap-2">
+          <Button className="flex-1" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Funil
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-background border shadow-lg z-50">
+              <DropdownMenuItem onClick={() => setCreateVerticalOpen(true)}>
+                <Layers className="h-4 w-4 mr-2" />
+                Nova Vertical
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setBuilderMode("new")}>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Novo Template AIDA
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
+
 
       {/* Verticais */}
       {verticals.length > 0 && (
@@ -385,14 +411,22 @@ export function FunnelsList() {
             ))}
           </div>
         ) : !unassignedFunnels.length ? (
-          <Card className="flex flex-col items-center justify-center py-16">
-            <Globe className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="font-semibold text-lg mb-2">Sem funis</h3>
-            <p className="text-muted-foreground mb-4">Cria o teu primeiro funil de conversão</p>
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Criar Funil
-            </Button>
+          <Card className="overflow-hidden">
+            <div className="bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 flex flex-col items-center justify-center py-16 px-6 text-center gap-4">
+              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+                <Globe className="h-10 w-10 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-bold text-xl mb-1">Sem funis criados</h3>
+                <p className="text-muted-foreground text-sm max-w-xs">
+                  Cria o teu primeiro funil multi-step e começa a converter visitantes em clientes.
+                </p>
+              </div>
+              <Button size="lg" onClick={() => setCreateOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Primeiro Funil
+              </Button>
+            </div>
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

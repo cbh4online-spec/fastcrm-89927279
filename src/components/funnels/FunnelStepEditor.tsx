@@ -40,7 +40,7 @@ export function FunnelStepEditor({ step }: FunnelStepEditorProps) {
   };
 
   return (
-    <div className="grid grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Editor */}
       <Card>
         <CardHeader>
@@ -59,7 +59,7 @@ export function FunnelStepEditor({ step }: FunnelStepEditorProps) {
             <Label>Corpo</Label>
             <Textarea value={bodyText} onChange={(e) => setBodyText(e.target.value)} rows={6} placeholder="Conteúdo da página..." />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>Texto do CTA</Label>
               <Input value={ctaText} onChange={(e) => setCtaText(e.target.value)} />
@@ -96,6 +96,12 @@ export function FunnelStepEditor({ step }: FunnelStepEditorProps) {
               >
                 {ctaText}
               </button>
+            )}
+            {!headline && !subheadline && !bodyText && (
+              <div className="flex flex-col items-center justify-center h-48 text-muted-foreground text-sm gap-2">
+                <span className="text-3xl">✏️</span>
+                <p>Preenche o editor para ver a pré-visualização</p>
+              </div>
             )}
           </div>
         </CardContent>

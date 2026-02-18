@@ -48,15 +48,17 @@ export function FunnelBuilder({ funnelId, onBack }: FunnelBuilderProps) {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="steps">Steps</TabsTrigger>
-          <TabsTrigger value="stats">Stats</TabsTrigger>
-          <TabsTrigger value="sales">Sales</TabsTrigger>
-          <TabsTrigger value="products">Products</TabsTrigger>
-          <TabsTrigger value="events">Events</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-          <TabsTrigger value="ai-insights">AI Insights</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-1 px-1">
+          <TabsList className="flex w-max min-w-full">
+            <TabsTrigger value="steps"><span className="hidden sm:inline">Steps</span><span className="sm:hidden">Steps</span></TabsTrigger>
+            <TabsTrigger value="stats"><span className="hidden sm:inline">Stats</span><span className="sm:hidden">Stats</span></TabsTrigger>
+            <TabsTrigger value="sales"><span className="hidden sm:inline">Sales</span><span className="sm:hidden">Sales</span></TabsTrigger>
+            <TabsTrigger value="products"><span className="hidden sm:inline">Products</span><span className="sm:hidden">Prods</span></TabsTrigger>
+            <TabsTrigger value="events"><span className="hidden sm:inline">Events</span><span className="sm:hidden">Events</span></TabsTrigger>
+            <TabsTrigger value="settings"><span className="hidden sm:inline">Settings</span><span className="sm:hidden">Config</span></TabsTrigger>
+            <TabsTrigger value="ai-insights"><span className="hidden sm:inline">AI Insights</span><span className="sm:hidden">AI</span></TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="steps">
           <FunnelStepsTab funnelId={funnelId} />

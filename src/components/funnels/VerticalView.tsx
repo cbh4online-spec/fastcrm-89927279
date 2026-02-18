@@ -72,29 +72,30 @@ export function VerticalView({ verticalId, onBack }: VerticalViewProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <button onClick={onBack} className="text-sm text-primary hover:underline flex items-center gap-1 mb-1">
             <ArrowLeft className="h-3 w-3" />
             Voltar
           </button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <div
-              className="w-4 h-4 rounded-full"
+              className="w-4 h-4 rounded-full shrink-0"
               style={{ backgroundColor: vertical.color_theme || "#6366f1" }}
             />
-            <h1 className="text-2xl font-bold">{vertical.name}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">{vertical.name}</h1>
             <Badge variant="outline">{funnels.length} funis</Badge>
           </div>
           {vertical.description && (
-            <p className="text-muted-foreground mt-1">{vertical.description}</p>
+            <p className="text-muted-foreground mt-1 text-sm">{vertical.description}</p>
           )}
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button onClick={() => setCreateOpen(true)} className="shrink-0 self-start sm:self-auto">
           <Plus className="h-4 w-4 mr-2" />
           Novo Funil
         </Button>
       </div>
+
 
       {!funnels.length ? (
         <Card className="flex flex-col items-center justify-center py-16">
