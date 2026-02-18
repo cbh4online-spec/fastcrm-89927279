@@ -3002,7 +3002,10 @@ export type Database = {
           period_date: string
           total_bookings: number
           total_conversations: number
+          total_handovers: number
           total_leads: number
+          total_messages_in: number
+          total_messages_out: number
           total_messages_received: number
           total_messages_sent: number
           updated_at: string
@@ -3017,7 +3020,10 @@ export type Database = {
           period_date?: string
           total_bookings?: number
           total_conversations?: number
+          total_handovers?: number
           total_leads?: number
+          total_messages_in?: number
+          total_messages_out?: number
           total_messages_received?: number
           total_messages_sent?: number
           updated_at?: string
@@ -3032,7 +3038,10 @@ export type Database = {
           period_date?: string
           total_bookings?: number
           total_conversations?: number
+          total_handovers?: number
           total_leads?: number
+          total_messages_in?: number
+          total_messages_out?: number
           total_messages_received?: number
           total_messages_sent?: number
           updated_at?: string
@@ -3051,6 +3060,47 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bot_channels: {
+        Row: {
+          bot_id: string
+          channel_identifier: string | null
+          channel_type: string
+          created_at: string
+          id: string
+          is_active: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          bot_id: string
+          channel_identifier?: string | null
+          channel_type: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          bot_id?: string
+          channel_identifier?: string | null
+          channel_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_channels_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
             referencedColumns: ["id"]
           },
         ]
@@ -3193,6 +3243,112 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bot_runs: {
+        Row: {
+          bot_id: string
+          conversation_id: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          input_payload: Json | null
+          message_id: string | null
+          output_payload: Json | null
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          bot_id: string
+          conversation_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_payload?: Json | null
+          message_id?: string | null
+          output_payload?: Json | null
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          bot_id?: string
+          conversation_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_payload?: Json | null
+          message_id?: string | null
+          output_payload?: Json | null
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_runs_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bot_settings: {
+        Row: {
+          bot_id: string
+          capture_email: boolean
+          capture_name: boolean
+          capture_phone: boolean
+          created_at: string
+          fallback_message: string | null
+          greeting_message: string | null
+          handover_enabled: boolean
+          handover_role: string | null
+          handover_user_id: string | null
+          tone: string | null
+          trigger_keywords: string[] | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          bot_id: string
+          capture_email?: boolean
+          capture_name?: boolean
+          capture_phone?: boolean
+          created_at?: string
+          fallback_message?: string | null
+          greeting_message?: string | null
+          handover_enabled?: boolean
+          handover_role?: string | null
+          handover_user_id?: string | null
+          tone?: string | null
+          trigger_keywords?: string[] | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          bot_id?: string
+          capture_email?: boolean
+          capture_name?: boolean
+          capture_phone?: boolean
+          created_at?: string
+          fallback_message?: string | null
+          greeting_message?: string | null
+          handover_enabled?: boolean
+          handover_role?: string | null
+          handover_user_id?: string | null
+          tone?: string | null
+          trigger_keywords?: string[] | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_settings_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: true
+            referencedRelation: "bots"
             referencedColumns: ["id"]
           },
         ]
