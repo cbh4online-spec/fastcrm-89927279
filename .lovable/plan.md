@@ -1,98 +1,90 @@
 
-# Corrigir Responsividade Mobile do Hero Principal (LandingHeroSection)
+# Corrigir Responsividade Mobile — Zona Hero e Secções Verticais
 
-## Problema identificado
+## Causa raiz do problema (screenshot analisada)
 
-O ficheiro `src/components/landing-fastcrm/LandingHeroSection.tsx` tem vários problemas de responsividade na zona hero (primeira secção visível na rota `/`):
+O texto e o layout estão a ser cortados horizontalmente porque:
 
-### 1. Tamanho do título excessivo em mobile
-```tsx
-// Atual — "text-4xl" em mobile é demasiado grande com 3 linhas
-<h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight">
-```
-Com `text-4xl` (36px) e 3 linhas de texto separadas por `<br />`, o título ocupa quase metade do ecrã em mobile.
+1. **`DashboardMockup`** tem uma sidebar fixa de `w-[140px]` e um kanban em `flex` sem `overflow-hidden` — em mobile, este componente tem largura superior ao viewport, causando scroll horizontal mesmo com `overflow-x-hidden` no wrapper (porque o mockup usa largura absoluta interna).
 
-**Solução:** `text-3xl sm:text-4xl lg:text-6xl` — reduz de 36px para 30px em mobile, mais proporcional.
+2. **`VerticalHero`** — `py-24` (96px) em mobile + header de 64px = o conteúdo começa aos 160px. Com o Badge, título de 3+ linhas e parágrafo, os CTAs ficam fora do viewport inicial.
 
-### 2. Quebras de linha `<br />` rígidas
-```tsx
-Não é apenas um CRM.
-<br />
-É a Infraestrutura Digital    ← <br /> hardcoded
-<br />
-da Sua Empresa.               ← <br /> hardcoded
-```
-Em mobile, estes `<br />` forçam a estrutura de 3 linhas mesmo quando o texto poderia fluir de forma mais natural e compacta.
+3. **`VerticalTransformation`** — usa `px-6` sem breakpoint (`sm:px-6`), o que em viewports muito estreitos é menos grave mas inconsistente.
 
-**Solução:** Remover os `<br />` e usar `leading-tight` + `space-y-1` para criar separação visual entre as 3 partes do título sem forçar quebras de linha artificiais. Cada parte fica num `<span className="block">` para controlo preciso.
+4. **`VerticalCTAForm`** — formulário com `p-8` (32px) em mobile. Com `max-w-2xl`, o conteúdo útil fica com 390 - 32 - 32 - 32 = ~294px, muito estreito para os campos `grid sm:grid-cols-2`.
 
-### 3. Padding horizontal insuficiente
-```tsx
-// Atual
-<div className="relative max-w-7xl mx-auto px-6 py-24 lg:py-32">
-```
-`px-6` (24px) em cada lado deixa apenas 342px de largura útil num ecrã de 390px. Combinado com o título grande, o texto fica muito espremido.
+## Ficheiros a alterar
 
-**Solução:** `px-4 sm:px-6` — em mobile usa 16px de padding (358px úteis), mais respiração para o texto.
+| Ficheiro | Problema | Solução |
+|----------|----------|---------|
+| `VerticalHero.tsx` | `py-24` excessivo; mockup visível em mobile causando overflow | `py-12 sm:py-20 lg:py-32`; ocultar mockup em mobile (`hidden sm:block`) |
+| `DashboardMockup.tsx` | Sidebar fixa `w-[140px]` e kanban sem contenção em mobile | Adicionar `overflow-hidden` ao contentor raiz; sidebar `w-[100px] sm:w-[140px]`; ocultar sidebar em mobile |
+| `VerticalTransformation.tsx` | `px-6` sem responsive | `px-4 sm:px-6` |
+| `VerticalCTAForm.tsx` | `p-8` no formulário sem responsive | `p-5 sm:p-8` |
 
-### 4. Padding vertical excessivo em mobile
-```tsx
-py-24 lg:py-32
-```
-`py-24` (96px) em mobile somado ao `pt-16` da section resulta em mais de 112px de espaço acima do conteúdo, empurrando o título para baixo e cortando o CTA do viewport.
+## Detalhes técnicos por ficheiro
 
-**Solução:** `py-12 sm:py-20 lg:py-32` — reduz o espaço vertical em mobile mantendo o impacto em desktop.
+### 1. `VerticalHero.tsx` — Ocultar mockup em mobile + reduzir padding
 
-### 5. Gap do grid excessivo em mobile
-```tsx
-<div className="grid lg:grid-cols-2 gap-16 items-center">
-```
-Embora o mockup do dashboard seja `hidden lg:block`, o `gap-16` (64px) ainda aplica-se ao elemento único em mobile, adicionando espaço desnecessário.
+O DashboardMockup em mobile (390px) tem sidebar 140px + 4 colunas kanban em flex → mínimo ~500px de largura. Mesmo com `overflow-hidden` no section, o elemento interno força reflow.
 
-**Solução:** `gap-8 lg:gap-16`
-
-## Ficheiro a alterar
-
-| Ficheiro | Linha | Alteração |
-|----------|-------|-----------|
-| `src/components/landing-fastcrm/LandingHeroSection.tsx` | 28 | `px-4 sm:px-6` + `py-12 sm:py-20 lg:py-32` |
-| `src/components/landing-fastcrm/LandingHeroSection.tsx` | 29 | `gap-8 lg:gap-16` |
-| `src/components/landing-fastcrm/LandingHeroSection.tsx` | 42-50 | Título: `text-3xl sm:text-4xl lg:text-6xl` + substituir `<br />` por `<span className="block">` |
-
-## Resultado esperado
-
-**Antes (mobile 390px):**
-- Título ocupa ~50% da altura do ecrã
-- Texto cortado ou demasiado comprimido
-- CTA fora do viewport inicial
-
-**Depois (mobile 390px):**
-- Título mais compacto, lê-se de uma vez
-- Badge + título + parágrafo + CTAs todos visíveis no primeiro scroll
-- Proporções mais equilibradas
-
-## Detalhe técnico — Título corrigido
+**Solução**: Ocultar o bloco do mockup em mobile com `hidden sm:block`:
 
 ```tsx
 // Antes:
-<h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight">
-  Não é apenas um CRM.
-  <br />
-  <span className="bg-gradient-to-r ...">
-    É a Infraestrutura Digital
-  </span>
-  <br />
-  da Sua Empresa.
-</h1>
+<motion.div className="mt-16 lg:mt-24 max-w-5xl mx-auto">
+  <div className="relative rounded-xl overflow-hidden ...">
+    <DashboardMockup config={config} />
+  </div>
+</motion.div>
 
 // Depois:
-<h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold leading-[1.15] tracking-tight">
-  <span className="block">Não é apenas um CRM.</span>
-  <span className="block bg-gradient-to-r from-primary to-[hsl(250,83%,60%)] bg-clip-text text-transparent">
-    É a Infraestrutura Digital
-  </span>
-  <span className="block">da Sua Empresa.</span>
-</h1>
+<div className="hidden sm:block mt-12 lg:mt-24 max-w-5xl mx-auto">
+  <div className="relative rounded-xl overflow-hidden ...">
+    <DashboardMockup config={config} />
+  </div>
+</div>
 ```
 
-Usando `<span className="block">` em vez de `<br />`, o comportamento é idêntico visualmente mas evita problemas de reflow em viewports estreitos. O `leading-[1.15]` (ligeiramente maior que `1.1`) dá mais respiração entre linhas em mobile.
+E reduzir `py-24` para `py-12 sm:py-20 lg:py-32` e `space-y-8` para `space-y-6 sm:space-y-8` no contentor interno.
+
+### 2. `DashboardMockup.tsx` — Sidebar adaptável
+
+Mesmo em tablets (sm), a sidebar de 140px é pesada. Tornar a sidebar mais estreita e condicional:
+
+```tsx
+// Sidebar: w-[140px] → w-[110px] sm:w-[140px]
+// Conteúdo interno do sidebar: ocultar items de módulos em viewports mais pequenos
+```
+
+Adicionalmente, adicionar `overflow-hidden` ao contentor raiz do mockup para garantir que nada escapa:
+
+```tsx
+<div className="w-full select-none pointer-events-none overflow-hidden">
+```
+
+### 3. `VerticalTransformation.tsx` — Padding responsivo
+
+```tsx
+// Antes:
+<div className="max-w-5xl mx-auto px-6">
+
+// Depois:
+<div className="max-w-5xl mx-auto px-4 sm:px-6">
+```
+
+### 4. `VerticalCTAForm.tsx` — Padding do formulário
+
+```tsx
+// Antes:
+className="rounded-2xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] p-8 space-y-5"
+
+// Depois:
+className="rounded-2xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] p-5 sm:p-8 space-y-5"
+```
+
+## Resultado esperado
+
+- **Mobile (390px)**: Hero com Badge + título compacto + parágrafo + 2 CTAs todos visíveis sem scroll; sem overflow horizontal
+- **Tablet (768px+)**: Dashboard mockup aparece normalmente
+- **Desktop**: Sem alterações visuais
