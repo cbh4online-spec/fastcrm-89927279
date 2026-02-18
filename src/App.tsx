@@ -52,6 +52,9 @@ import KnowledgeBase from "./pages/KnowledgeBase";
 import AIProfiles from "./pages/AIProfiles";
 import AIAssistants from "./pages/AIAssistants";
 import ConversationalEngine from "./pages/ConversationalEngine";
+import AIEmployeesPage from "./pages/AIEmployeesPage";
+import AIEmployeeNewPage from "./pages/AIEmployeeNewPage";
+import AIEmployeeDetailPage from "./pages/AIEmployeeDetailPage";
 import MarketingHomepage from "./pages/MarketingHomepage";
 import FastCRMLanding from "./pages/FastCRMLanding";
 import VerticalLandingPage from "./pages/VerticalLandingPage";
@@ -374,6 +377,10 @@ function CRMRoutes() {
                 <Route path="/dashboard/ai-profiles" element={<Navigate to="/dashboard/ai-assistants" replace />} />
                 <Route path="/dashboard/ai-assistants" element={<AIAssistants />} />
                 <Route path="/dashboard/conversational-engine" element={<ConversationalEngine />} />
+                <Route path="/dashboard/ai-employees" element={<AIEmployeesPage />} />
+                <Route path="/dashboard/ai-employees/new" element={<AIEmployeeNewPage />} />
+                <Route path="/dashboard/ai-employees/:botId" element={<AIEmployeeDetailPage />} />
+                <Route path="/dashboard/ai-employees/:botId/analytics" element={<AIEmployeeDetailPage />} />
                 <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
                 <Route path="/dashboard/communication/templates" element={<CommunicationTemplates />} />
                 <Route path="/dashboard/reports" element={<ReportsOverview />} />

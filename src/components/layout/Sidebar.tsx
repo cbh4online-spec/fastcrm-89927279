@@ -65,6 +65,7 @@ import {
   Play,
   FlaskConical,
   Mic,
+  Bot,
 } from "lucide-react";
 import {
   Collapsible,
@@ -116,6 +117,7 @@ const menuKeyMap: Record<string, string> = {
   "Form Studio": "settings",
   "Importações": "settings",
   "Integrações": "integrations",
+  "AI Employees": "settings",
   "Perfis IA": "settings",
   "Bases Conhecimento": "settings",
   "Marketplace": "settings",
@@ -296,6 +298,7 @@ const navigationGroups: NavGroup[] = [
       { name: "Form Studio", href: "/dashboard/form-studio", icon: FileEdit, tooltip: "Construtor de formulários" },
       { name: "Importações", href: "/dashboard/imports", icon: Download, tooltip: "Importar dados" },
       { name: "Integrações", href: "/dashboard/settings/integrations", icon: Link2, tooltip: "Conectar apps" },
+      { name: "AI Employees", href: "/dashboard/ai-employees", icon: Bot, tooltip: "Operadores digitais integrados ao CRM", highlight: true },
       { name: "Assistentes IA", href: "/dashboard/ai-assistants", icon: Brain, tooltip: "Agentes, Personas, Bases e Fluxos", highlight: true },
       { name: "Motor Conversacional", href: "/dashboard/conversational-engine", icon: MessageSquare, tooltip: "Vibe, Regras e Objetivos" },
       { name: "Marketplace", href: "/dashboard/marketplace", icon: Layers, tooltip: "Módulos", highlight: true },

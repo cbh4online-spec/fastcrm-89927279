@@ -2992,6 +2992,162 @@ export type Database = {
           },
         ]
       }
+      bot_analytics: {
+        Row: {
+          avg_response_time_ms: number | null
+          bot_id: string
+          handover_count: number
+          handover_rate: number | null
+          id: string
+          period_date: string
+          total_bookings: number
+          total_conversations: number
+          total_leads: number
+          total_messages_received: number
+          total_messages_sent: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          avg_response_time_ms?: number | null
+          bot_id: string
+          handover_count?: number
+          handover_rate?: number | null
+          id?: string
+          period_date?: string
+          total_bookings?: number
+          total_conversations?: number
+          total_leads?: number
+          total_messages_received?: number
+          total_messages_sent?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          avg_response_time_ms?: number | null
+          bot_id?: string
+          handover_count?: number
+          handover_rate?: number | null
+          id?: string
+          period_date?: string
+          total_bookings?: number
+          total_conversations?: number
+          total_leads?: number
+          total_messages_received?: number
+          total_messages_sent?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_analytics_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bot_analytics_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bot_conversation_assignments: {
+        Row: {
+          assigned_at: string
+          bot_id: string
+          conversation_id: string
+          ended_at: string | null
+          handover_reason: string | null
+          id: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          bot_id: string
+          conversation_id: string
+          ended_at?: string | null
+          handover_reason?: string | null
+          id?: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_at?: string
+          bot_id?: string
+          conversation_id?: string
+          ended_at?: string | null
+          handover_reason?: string | null
+          id?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_conversation_assignments_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bot_conversation_assignments_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bot_conversation_assignments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bot_flows: {
+        Row: {
+          bot_id: string
+          created_at: string
+          flow_json: Json
+          id: string
+          is_active: boolean
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          bot_id: string
+          created_at?: string
+          flow_json?: Json
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          bot_id?: string
+          created_at?: string
+          flow_json?: Json
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_flows_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bot_knowledge_bases: {
         Row: {
           bot_id: string
@@ -3092,6 +3248,85 @@ export type Database = {
           },
           {
             foreignKeyName: "bot_transfer_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bots: {
+        Row: {
+          ai_profile_id: string | null
+          calendar_id: string | null
+          channel: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          guided_config: Json | null
+          id: string
+          knowledge_base_ids: string[] | null
+          name: string
+          settings: Json | null
+          status: Database["public"]["Enums"]["bot_status"]
+          system_prompt: string | null
+          type: Database["public"]["Enums"]["bot_type"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_profile_id?: string | null
+          calendar_id?: string | null
+          channel?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          guided_config?: Json | null
+          id?: string
+          knowledge_base_ids?: string[] | null
+          name: string
+          settings?: Json | null
+          status?: Database["public"]["Enums"]["bot_status"]
+          system_prompt?: string | null
+          type?: Database["public"]["Enums"]["bot_type"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ai_profile_id?: string | null
+          calendar_id?: string | null
+          channel?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          guided_config?: Json | null
+          id?: string
+          knowledge_base_ids?: string[] | null
+          name?: string
+          settings?: Json | null
+          status?: Database["public"]["Enums"]["bot_status"]
+          system_prompt?: string | null
+          type?: Database["public"]["Enums"]["bot_type"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bots_ai_profile_id_fkey"
+            columns: ["ai_profile_id"]
+            isOneToOne: false
+            referencedRelation: "ai_personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bots_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "calendars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bots_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -30566,6 +30801,8 @@ export type Database = {
         | "semi_annual"
         | "yearly"
       billing_type: "one_time" | "recurring"
+      bot_status: "draft" | "active" | "paused"
+      bot_type: "guided" | "prompt" | "flow"
       c2c_seller_status: "pending" | "approved" | "rejected" | "suspended"
       client_role:
         | "client_admin"
@@ -30946,6 +31183,8 @@ export const Constants = {
         "yearly",
       ],
       billing_type: ["one_time", "recurring"],
+      bot_status: ["draft", "active", "paused"],
+      bot_type: ["guided", "prompt", "flow"],
       c2c_seller_status: ["pending", "approved", "rejected", "suspended"],
       client_role: [
         "client_admin",
