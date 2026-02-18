@@ -23,7 +23,7 @@ export function VerticalHero({ config }: Props) {
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-6 py-24 lg:py-32">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-24 lg:py-32">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -35,12 +35,11 @@ export function VerticalHero({ config }: Props) {
             Solução especializada para {config.nome}
           </Badge>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold leading-[1.15] tracking-tight">
             O Sistema Operacional com IA para{" "}
             <span className="bg-gradient-to-r from-primary to-[hsl(250,83%,60%)] bg-clip-text text-transparent">
               {config.nome}
-            </span>
-            <br />
+            </span>{" "}
             que querem {config.resultado_prometido}
           </h1>
 

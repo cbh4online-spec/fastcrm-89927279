@@ -18,7 +18,7 @@ interface Props {
 
 export function VerticalLandingTemplate({ config, templateId, workspaceId }: Props) {
   return (
-    <div className="min-h-screen bg-[hsl(222,47%,4%)] text-[hsl(210,40%,98%)] overflow-x-hidden">
+    <div className="min-h-screen bg-[hsl(222,47%,4%)] text-[hsl(210,40%,98%)] overflow-x-hidden w-full">
       <VerticalLandingTracker slug={config.slug} templateId={templateId} workspaceId={workspaceId} />
       <VerticalStickyHeader config={config} />
       <main>
