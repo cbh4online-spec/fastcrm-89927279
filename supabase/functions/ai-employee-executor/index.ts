@@ -760,7 +760,246 @@ async function runPrompt(
   return { reply: llmReply, actions, tokensUsed, isHandover, debugInfo };
 }
 
-// ─── §8.3 FLOW MODE ──────────────────────────────────────────
+// ─── §8.3 FLOW ENGINE v2 ─────────────────────────────────────
+//
+// Full implementation of the FLOW_TEMPLATE_LEAD_BOOKING_V1 spec.
+// Supports all node types, per-conversation state persistence,
+// handlebars variable interpolation, and expression evaluation.
+//
+// State shape stored in bot_runs output_payload.flow_state:
+//   { current_node_id, variables, awaiting_input, turn_count }
+
+interface FlowState {
+  current_node_id: string;
+  variables: Record<string, unknown>;
+  awaiting_input: boolean;
+  awaiting_node_id: string | null;
+  turn_count: number;
+}
+
+// ── Variable interpolation ({{contact.name}} etc.) ───────────
+function interpolate(template: string, vars: Record<string, unknown>): string {
+  return template.replace(/\{\{([^}]+)\}\}/g, (_, key) => {
+    const val = resolveVar(key.trim(), vars);
+    return val !== null && val !== undefined ? String(val) : "";
+  });
+}
+
+function resolveVar(path: string, vars: Record<string, unknown>): unknown {
+  const parts = path.split(".");
+  let cur: unknown = vars;
+  for (const p of parts) {
+    if (cur === null || cur === undefined || typeof cur !== "object") return null;
+    cur = (cur as Record<string, unknown>)[p];
+  }
+  return cur;
+}
+
+function setVar(path: string, value: unknown, vars: Record<string, unknown>): void {
+  const parts = path.split(".");
+  let cur: Record<string, unknown> = vars;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!cur[parts[i]] || typeof cur[parts[i]] !== "object") cur[parts[i]] = {};
+    cur = cur[parts[i]] as Record<string, unknown>;
+  }
+  cur[parts[parts.length - 1]] = value;
+}
+
+// ── Expression evaluator for condition nodes ─────────────────
+// Supports: ==, !=, >=, <=, >, <, ||, &&, contains_any()
+function evalExpression(expr: string, vars: Record<string, unknown>, inputText: string): boolean {
+  // Replace contains_any(lower(input.text), [...]) pattern
+  const containsAnyMatch = expr.match(/contains_any\(\s*lower\(([^)]+)\)\s*,\s*\[([^\]]+)\]\s*\)/);
+  if (containsAnyMatch) {
+    const varPath = containsAnyMatch[1].trim();
+    const listStr = containsAnyMatch[2];
+    const items = listStr.match(/'([^']+)'/g)?.map((s) => s.slice(1, -1)) || [];
+    const actual = varPath === "input.text" ? inputText.toLowerCase() : String(resolveVar(varPath, vars) || "").toLowerCase();
+    const matched = items.some((item) => actual.includes(item));
+    // Replace the contains_any call with its boolean result in the expression
+    expr = expr.replace(/contains_any\([^)]+\)/, matched ? "true" : "false");
+  }
+
+  // Resolve variable references — replace var.path tokens with their values
+  // Must be done after contains_any to avoid double-substitution
+  expr = expr.replace(/([a-zA-Z_][a-zA-Z0-9_.]*(?:\.[a-zA-Z0-9_]+)+)/g, (match) => {
+    // Skip keywords/booleans
+    if (["true", "false", "null", "undefined"].includes(match)) return match;
+    const val = resolveVar(match, vars);
+    if (val === null || val === undefined) return "null";
+    if (typeof val === "boolean") return val ? "true" : "false";
+    if (typeof val === "number") return String(val);
+    return JSON.stringify(String(val));
+  });
+
+  // Safely evaluate the resulting expression
+  try {
+    // Restrict to safe tokens: booleans, numbers, strings, comparisons, logical ops
+    const safe = /^[\s\d"'.null|&!=<>()truefals]+$/.test(expr.replace(/\|\|/g, "||").replace(/&&/g, "&&"));
+    if (!safe) {
+      console.warn("[FLOW] Expression contains unsafe tokens:", expr);
+      return false;
+    }
+    // eslint-disable-next-line no-new-func
+    return Boolean(new Function(`"use strict"; return (${expr});`)());
+  } catch (e) {
+    console.warn("[FLOW] Expression eval error:", e, "expr:", expr);
+    return false;
+  }
+}
+
+// ── Input validation per question node config ─────────────────
+function validateInput(
+  text: string,
+  config: Record<string, unknown>
+): { valid: boolean; value: unknown; reprompt?: string } {
+  const inputType = config.input_type as string | undefined;
+  const validation = (config.validation || {}) as Record<string, unknown>;
+  const reprompt = config.reprompt_on_fail as string | undefined;
+
+  // Allow skip words
+  const allowSkip = validation.allow_skip_words as string[] | undefined;
+  if (allowSkip?.some((w) => text.trim().toLowerCase() === w.toLowerCase())) {
+    return { valid: true, value: null }; // skip accepted
+  }
+
+  // Map choice to boolean
+  const mapChoiceToBoolean = config.map_choice_to_boolean as Record<string, boolean> | undefined;
+  const choices = config.choices as string[] | undefined;
+  if (choices) {
+    const match = choices.find((c) => c.toLowerCase() === text.trim().toLowerCase());
+    if (!match) return { valid: false, value: null, reprompt };
+    return {
+      valid: true,
+      value: mapChoiceToBoolean ? (mapChoiceToBoolean[match] ?? match) : match,
+    };
+  }
+
+  if (inputType === "email") {
+    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text.trim());
+    if (!ok) return { valid: false, value: null, reprompt };
+    return { valid: true, value: text.trim() };
+  }
+
+  if (validation.regex) {
+    const re = new RegExp(validation.regex as string);
+    if (!re.test(text.trim())) return { valid: false, value: null, reprompt };
+    return { valid: true, value: text.trim() };
+  }
+
+  const minLen = validation.min_length as number | undefined;
+  const maxLen = validation.max_length as number | undefined;
+  if (minLen && text.trim().length < minLen) return { valid: false, value: null, reprompt };
+  if (maxLen && text.trim().length > maxLen) return { valid: false, value: null, reprompt };
+
+  return { valid: true, value: text.trim() };
+}
+
+// ── Load/save flow state via bot_runs ────────────────────────
+async function loadFlowState(
+  supabase: ReturnType<typeof createClient>,
+  conversationId: string,
+  entryNodeId: string,
+  defaultVars: Record<string, unknown>
+): Promise<FlowState> {
+  const { data } = await supabase
+    .from("bot_runs")
+    .select("output_payload")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const saved = (data as any)?.output_payload?.flow_state as FlowState | undefined;
+  if (saved?.current_node_id) return saved;
+  return {
+    current_node_id: entryNodeId,
+    variables: { ...defaultVars },
+    awaiting_input: false,
+    awaiting_node_id: null,
+    turn_count: 0,
+  };
+}
+
+async function saveFlowState(
+  supabase: ReturnType<typeof createClient>,
+  conversationId: string,
+  state: FlowState
+): Promise<void> {
+  await supabase
+    .from("conversations")
+    .update({ metadata: { flow_state: state } })
+    .eq("id", conversationId);
+}
+
+// ── Edge resolver helpers ─────────────────────────────────────
+function getNextNodeId(
+  edges: any[],
+  fromNodeId: string,
+  label?: string
+): string | null {
+  if (label !== undefined) {
+    const e = edges.find(
+      (e) => e.from === fromNodeId && (e.label === label || e.label?.toLowerCase() === label?.toLowerCase())
+    );
+    return e?.to || null;
+  }
+  const e = edges.find((e) => e.from === fromNodeId);
+  return e?.to || null;
+}
+
+// ── Call Lovable AI for ai_response nodes ────────────────────
+async function callAI(
+  systemInstructions: string[],
+  userPrompt: string,
+  outputSchema: Record<string, unknown>
+): Promise<{ replyText: string; extraction: Record<string, unknown>; tokensUsed: number }> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) return { replyText: "", extraction: {}, tokensUsed: 0 };
+
+  const systemPrompt = [
+    ...systemInstructions,
+    `\nRespond ONLY with a JSON object with fields: { "extraction": {...}, "reply_text": "..." }`,
+    `Output schema for extraction: ${JSON.stringify(outputSchema)}`,
+  ].join("\n");
+
+  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      max_tokens: 700,
+      temperature: 0.4,
+    }),
+  });
+
+  if (!resp.ok) return { replyText: "", extraction: {}, tokensUsed: 0 };
+
+  const data = await resp.json();
+  const raw = data.choices?.[0]?.message?.content?.trim() || "";
+  const tokensUsed = data.usage?.total_tokens ?? 0;
+
+  try {
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        replyText: parsed.reply_text || "",
+        extraction: parsed.extraction || {},
+        tokensUsed,
+      };
+    }
+  } catch {
+    // fallback: treat entire response as reply
+  }
+  return { replyText: raw, extraction: {}, tokensUsed };
+}
+
+// ── Main flow runner ─────────────────────────────────────────
 async function runFlow(
   supabase: ReturnType<typeof createClient>,
   bot: BotRow,
@@ -768,18 +1007,15 @@ async function runFlow(
   text: string,
   conversationId: string,
   workspaceId: string,
-  locale?: string
-): Promise<{ reply: string; actions: SideEffect[]; isHandover: boolean }> {
+  locale?: string,
+  isDryRun?: boolean,
+  context?: RequestContext
+): Promise<{ reply: string; actions: SideEffect[]; isHandover: boolean; tokensUsed: number; flowState: FlowState }> {
   const actions: SideEffect[] = [];
   let isHandover = false;
+  let totalTokens = 0;
 
-  if (shouldHandover(text, settings) || detectHumanIntent(text)) {
-    actions.push({ type: "handover", payload: { conversationId, reason: "contact_request", botId: bot.id } });
-    isHandover = true;
-    return { reply: "Já encaminhei para a equipa. Para acelerar, diga-me o seu nome e contacto.", actions, isHandover };
-  }
-
-  // Load published flow
+  // ── Load published flow ───────────────────────────────────
   const { data: flowRow, error: flowError } = await supabase
     .from("bot_flows")
     .select("flow_json, version")
@@ -790,116 +1026,278 @@ async function runFlow(
     .maybeSingle();
 
   if (flowError || !flowRow) {
-    console.warn("[EXECUTOR] No published flow found for bot:", bot.id);
-    return { reply: localeFallback(settings, locale), actions, isHandover };
+    console.warn("[FLOW] No published flow found for bot:", bot.id);
+    const emptyState: FlowState = { current_node_id: "", variables: {}, awaiting_input: false, awaiting_node_id: null, turn_count: 0 };
+    return { reply: localeFallback(settings, locale), actions, isHandover, tokensUsed: 0, flowState: emptyState };
   }
 
   let flowJson: any;
   try {
-    flowJson = typeof flowRow.flow_json === "string"
-      ? JSON.parse(flowRow.flow_json)
-      : flowRow.flow_json;
+    flowJson = typeof flowRow.flow_json === "string" ? JSON.parse(flowRow.flow_json) : flowRow.flow_json;
   } catch {
     throw Object.assign(new Error("Flow JSON is invalid"), { category: "FLOW_INVALID_JSON" as ErrorCategory });
   }
 
-  // Try flow-engine first, fall back to local mini-engine
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-  const flowResp = await fetch(`${supabaseUrl}/functions/v1/flow-engine`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
-    body: JSON.stringify({ action: "continue", workspaceId, conversationId, userMessage: text }),
-  });
-
-  if (flowResp.ok) {
-    const flowData = await flowResp.json();
-    if (flowData.sessionState === "handed_off") {
-      actions.push({ type: "handover", payload: { conversationId, reason: "contact_request", botId: bot.id } });
-      isHandover = true;
-    }
-    const vars: Record<string, unknown> = flowData.collectedVariables || {};
-    const leadData: Record<string, unknown> = { workspace_id: workspaceId };
-    if (vars.email) leadData.email = String(vars.email);
-    if (vars.phone) leadData.phone = String(vars.phone);
-    if (vars.name) leadData.name = String(vars.name);
-    if (Object.keys(leadData).length > 1) {
-      actions.push({ type: "create_lead", payload: leadData });
-    }
-    const replies: string[] = flowData.responses || [];
-    return { reply: replies[0] || localeFallback(settings, locale), actions, isHandover };
-  }
-
-  // Mini flow-engine fallback for simple node types
   const nodes: any[] = flowJson.nodes || [];
   const edges: any[] = flowJson.edges || [];
-  const startNode = nodes.find((n) => n.type === "start" || n.id === "start") || nodes[0];
-  let currentNode = startNode;
-  let reply = "";
+  const entryNodeId: string = flowJson.entry_node_id || nodes[0]?.id || "";
+  const globals: Record<string, unknown> = flowJson.globals || {};
+  const defaultVars: Record<string, unknown> = { ...(flowJson.variables || {}), context: context || {} };
+  const fallbackMessage = (globals.fallback_message as string) || localeFallback(settings, locale);
+  const maxTurns = (globals.max_turns as number) || 20;
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  const nodeMap = new Map<string, any>(nodes.map((n: any) => [n.id, n]));
 
-  for (let step = 0; step < 10 && currentNode; step++) {
-    const nType = currentNode.type;
-    const config = currentNode.config || currentNode.data || {};
+  // ── Load persisted state ──────────────────────────────────
+  const state = await loadFlowState(supabase, conversationId, entryNodeId, defaultVars);
+  state.turn_count++;
 
-    if (nType === "message") {
-      reply = config.text || config.message || "";
-    } else if (nType === "question") {
-      reply = config.question || config.text || "";
-      break; // wait for user answer
-    } else if (nType === "ai_response" && LOVABLE_API_KEY) {
-      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: config.system_prompt || `Eres o assistente "${bot.name}". Responde de forma útil.` },
-            { role: "user", content: text },
-          ],
-          max_tokens: 400,
-        }),
-      });
-      if (aiResp.ok) {
-        const aiData = await aiResp.json();
-        reply = aiData.choices?.[0]?.message?.content?.trim() || "";
-      }
-      break;
-    } else if (nType === "condition") {
-      const varName = config.variable;
-      const operator = config.operator;
-      const value = config.value;
-      // Simple string comparison
-      const actual = text.toLowerCase();
-      let condResult = false;
-      if (operator === "contains") condResult = actual.includes(String(value).toLowerCase());
-      else if (operator === "equals") condResult = actual === String(value).toLowerCase();
-      else if (operator === "exists") condResult = !!actual;
-      const branch = condResult ? config.true_branch : config.false_branch;
-      const nextEdge = edges.find((e) => e.source === currentNode.id && (e.sourceHandle === branch || e.label === branch));
-      currentNode = nextEdge ? nodes.find((n) => n.id === nextEdge.target) : null;
-      continue;
-    } else if (nType === "action_human_handover") {
-      actions.push({ type: "handover", payload: { conversationId, reason: "contact_request", botId: bot.id } });
-      isHandover = true;
-      reply = config.message || "Já encaminhei para a equipa.";
-      break;
-    } else if (nType === "action_create_lead") {
-      actions.push({ type: "create_lead", payload: { workspace_id: workspaceId, ...config.fields } });
-    } else if (nType === "action_book_meeting") {
-      actions.push({ type: "booking", payload: { calendar_id: config.calendar_id || bot.calendar_id } });
-    } else if (nType === "action_trigger_automation") {
-      actions.push({ type: "automation", payload: { rule_id: config.rule_id } });
-    }
-
-    // Advance to next node
-    const nextEdge = edges.find((e) => e.source === currentNode.id);
-    currentNode = nextEdge ? nodes.find((n) => n.id === nextEdge.target) : null;
+  if (state.turn_count > maxTurns) {
+    return { reply: fallbackMessage, actions, isHandover, tokensUsed: 0, flowState: state };
   }
 
-  return { reply: reply || localeFallback(settings, locale), actions, isHandover };
+  // ── If awaiting input from a question node ────────────────
+  if (state.awaiting_input && state.awaiting_node_id) {
+    const waitingNode = nodeMap.get(state.awaiting_node_id);
+    if (waitingNode) {
+      const config = waitingNode.config || {};
+      const validation = validateInput(text, config);
+
+      if (!validation.valid) {
+        // Reprompt
+        if (!isDryRun) await saveFlowState(supabase, conversationId, state);
+        return {
+          reply: validation.reprompt || config.reprompt_on_fail || fallbackMessage,
+          actions, isHandover, tokensUsed: 0, flowState: state,
+        };
+      }
+
+      // Save value to variable
+      const saveTo = config.save_to as string | undefined;
+      if (saveTo && validation.value !== undefined) {
+        setVar(saveTo, validation.value, state.variables);
+      }
+
+      // Advance to next node after question
+      state.awaiting_input = false;
+      state.awaiting_node_id = null;
+      const nextId = getNextNodeId(edges, waitingNode.id);
+      if (!nextId) {
+        if (!isDryRun) await saveFlowState(supabase, conversationId, state);
+        return { reply: fallbackMessage, actions, isHandover, tokensUsed: 0, flowState: state };
+      }
+      state.current_node_id = nextId;
+    }
+  }
+
+  // ── Walk through nodes ────────────────────────────────────
+  let reply = "";
+  const MAX_STEPS = 30;
+
+  for (let step = 0; step < MAX_STEPS; step++) {
+    const node = nodeMap.get(state.current_node_id);
+    if (!node) {
+      console.warn("[FLOW] Node not found:", state.current_node_id);
+      break;
+    }
+
+    const nType: string = node.type;
+    const config: Record<string, unknown> = node.config || node.data || {};
+
+    // ── node: message ────────────────────────────────────
+    if (nType === "message") {
+      reply = interpolate(config.text as string || "", state.variables);
+      const nextId = getNextNodeId(edges, node.id);
+      if (!nextId) break;
+      state.current_node_id = nextId;
+      // Don't stop — continue to next node immediately unless it's also a message (chain)
+      // If next node needs user input, we'll stop naturally
+      continue;
+    }
+
+    // ── node: question ───────────────────────────────────
+    if (nType === "question") {
+      const q = interpolate(config.question as string || "", state.variables);
+      // If we already have a reply from a preceding message, chain it
+      reply = reply ? `${reply}\n\n${q}` : q;
+      state.awaiting_input = true;
+      state.awaiting_node_id = node.id;
+      break; // wait for next user message
+    }
+
+    // ── node: ai_response ────────────────────────────────
+    if (nType === "ai_response") {
+      const mode = config.mode as string || "extract_and_reply";
+      const instructions = (config.system_instructions as string[]) || [];
+      const promptTemplate = config.user_prompt_template as string || "{{lead.intent}}";
+      const userPrompt = interpolate(promptTemplate, state.variables);
+      const outputSchema = (config.output_schema as Record<string, unknown>) || {};
+      const saveExtractionTo = (config.save_extraction_to as Record<string, string>) || {};
+      const replyTextPath = config.reply_text_path as string || "reply_text";
+
+      const { replyText, extraction, tokensUsed } = await callAI(instructions, userPrompt, outputSchema);
+      totalTokens += tokensUsed;
+
+      // Save extracted fields to variables
+      for (const [varPath, extractionPath] of Object.entries(saveExtractionTo)) {
+        const val = resolveVar(extractionPath.replace("extraction.", ""), extraction);
+        if (val !== null && val !== undefined) setVar(varPath, val, state.variables);
+      }
+
+      // Set reply from replyTextPath
+      if (replyText) reply = reply ? `${reply}\n\n${replyText}` : replyText;
+
+      const nextId = getNextNodeId(edges, node.id);
+      if (!nextId) break;
+      state.current_node_id = nextId;
+      continue;
+    }
+
+    // ── node: condition ──────────────────────────────────
+    if (nType === "condition") {
+      const expr = config.expression as string || "false";
+      const result = evalExpression(expr, state.variables, text);
+      const trueNext = config.true_next as string | undefined;
+      const falseNext = config.false_next as string | undefined;
+      const nextId = result ? trueNext : falseNext;
+      if (!nextId) break;
+      state.current_node_id = nextId;
+      continue;
+    }
+
+    // ── node: action_update_contact ───────────────────────
+    if (nType === "action_update_contact") {
+      const fields = config.fields as Record<string, string> || {};
+      const resolved: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(fields)) {
+        const val = typeof v === "string" && v.includes("{{")
+          ? interpolate(v, state.variables)
+          : resolveVar(v.replace("{{", "").replace("}}", ""), state.variables) ?? v;
+        if (val) resolved[k] = val;
+      }
+      const strategy = config.strategy as string || "upsert";
+      const matchPriority = config.match_priority as string[] || [];
+      actions.push({ type: "update_contact", payload: { strategy, matchPriority, ...resolved } });
+
+      // Save contact_id output
+      const outputs = config.outputs as Record<string, string> | undefined;
+      if (outputs?.contact_id_to) {
+        // Will be resolved after side effects run; mark placeholder
+        setVar(outputs.contact_id_to, "__pending_contact_id__", state.variables);
+      }
+
+      const nextId = getNextNodeId(edges, node.id);
+      if (!nextId) break;
+      state.current_node_id = nextId;
+      continue;
+    }
+
+    // ── node: action_create_lead ──────────────────────────
+    if (nType === "action_create_lead") {
+      const fields = config.fields as Record<string, string> || {};
+      const resolved: Record<string, unknown> = { workspace_id: workspaceId };
+      for (const [k, v] of Object.entries(fields)) {
+        const val = typeof v === "string" && v.includes("{{")
+          ? interpolate(v, state.variables)
+          : resolveVar(v.replace("{{", "").replace("}}", ""), state.variables) ?? v;
+        if (val && val !== "undefined" && val !== "null") resolved[k] = val;
+      }
+      actions.push({ type: "create_lead", payload: resolved });
+
+      const outputs = config.outputs as Record<string, string> | undefined;
+      if (outputs?.lead_id_to) {
+        setVar(outputs.lead_id_to, "__pending_lead_id__", state.variables);
+      }
+
+      const nextId = getNextNodeId(edges, node.id);
+      if (!nextId) break;
+      state.current_node_id = nextId;
+      continue;
+    }
+
+    // ── node: action_book_meeting ─────────────────────────
+    if (nType === "action_book_meeting") {
+      const calendarId = interpolate(config.calendar_id as string || "", state.variables) || bot.calendar_id;
+      const titleTpl = config.title_template as string || "Reunião";
+      const descTpl = config.description_template as string || "";
+      actions.push({
+        type: "booking",
+        payload: {
+          calendar_id: calendarId,
+          duration_minutes: config.duration_minutes || 30,
+          title: interpolate(titleTpl, state.variables),
+          description: interpolate(descTpl, state.variables),
+          availability_rule: config.availability_rule,
+        },
+      });
+
+      const onNoAvail = config.on_no_availability_next as string | undefined;
+      const nextId = onNoAvail || getNextNodeId(edges, node.id);
+      if (!nextId) break;
+      state.current_node_id = nextId;
+      continue;
+    }
+
+    // ── node: action_trigger_automation ──────────────────
+    if (nType === "action_trigger_automation") {
+      const ruleKey = config.rule_key as string | undefined;
+      const payload = config.payload as Record<string, string> || {};
+      const resolvedPayload: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(payload)) {
+        resolvedPayload[k] = typeof v === "string" && v.includes("{{")
+          ? interpolate(v, state.variables)
+          : v;
+      }
+      actions.push({ type: "automation", payload: { rule_key: ruleKey, ...resolvedPayload } });
+
+      const nextId = getNextNodeId(edges, node.id);
+      if (!nextId) break;
+      state.current_node_id = nextId;
+      continue;
+    }
+
+    // ── node: action_human_handover ───────────────────────
+    if (nType === "action_human_handover") {
+      const assigneeRole = config.assignee_role as string || null;
+      const assigneeUserId = config.assignee_user_id as string || null;
+      const createTask = config.create_task as boolean || false;
+      const taskTitle = config.task_title as string || "Handover solicitado via Bot";
+      const taskDescTpl = config.task_description_template as string || "";
+      const taskDesc = interpolate(taskDescTpl, state.variables);
+
+      actions.push({
+        type: "handover",
+        payload: {
+          conversationId, reason: "flow_node", botId: bot.id,
+          assignToRole: assigneeRole, assignToUserId: assigneeUserId,
+          createTask, taskTitle, taskDesc,
+        },
+      });
+      isHandover = true;
+      reply = reply || "Já encaminhei para a equipa. Para acelerar, diga-me o seu nome e contacto.";
+
+      // Continue walking so message nodes after handover still render
+      const nextId = getNextNodeId(edges, node.id);
+      if (!nextId) break;
+      state.current_node_id = nextId;
+      continue;
+    }
+
+    // ── Unknown node type: advance ────────────────────────
+    const nextId = getNextNodeId(edges, node.id);
+    if (!nextId) break;
+    state.current_node_id = nextId;
+  }
+
+  if (!isDryRun) await saveFlowState(supabase, conversationId, state);
+
+  return {
+    reply: reply || fallbackMessage,
+    actions,
+    isHandover,
+    tokensUsed: totalTokens,
+    flowState: state,
+  };
 }
 
 // ─── §9 SIDE EFFECTS ─────────────────────────────────────────
@@ -1133,11 +1531,13 @@ serve(async (req) => {
         memoryUpdated = !isDryRun;
         if (isDebug) debugPayload = r.debugInfo;
       } else if (bot.type === "flow") {
-        const r = await runFlow(supabaseAdmin, bot, settings, text, conversationId || "", workspaceId, locale);
+        const r = await runFlow(supabaseAdmin, bot, settings, text, conversationId || "", workspaceId, locale, isDryRun, context);
         replyText = r.reply;
         internalActions = r.actions;
         isHandoverFlag = r.isHandover;
+        tokensUsed += r.tokensUsed;
         memoryUpdated = !isDryRun;
+        if (isDebug) debugPayload = { ...(debugPayload || {}), flowState: r.flowState };
       }
 
       if (isHandoverFlag) runStatus = "handover";
