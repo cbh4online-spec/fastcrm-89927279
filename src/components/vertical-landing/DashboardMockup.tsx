@@ -73,14 +73,14 @@ export function DashboardMockup({ config }: Props) {
 
   return (
     <div
-      className="w-full select-none pointer-events-none"
+      className="w-full select-none pointer-events-none overflow-hidden"
       aria-hidden="true"
       style={{ fontSize: "10px" }}
     >
       <div className="rounded-lg overflow-hidden border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)]">
         <div className="flex">
           {/* Sidebar */}
-          <div className="w-[140px] shrink-0 border-r border-[hsl(217,33%,17%)] bg-[hsl(222,47%,5%)] p-3 flex flex-col gap-3">
+          <div className="w-[110px] sm:w-[140px] shrink-0 border-r border-[hsl(217,33%,17%)] bg-[hsl(222,47%,5%)] p-3 flex flex-col gap-3">
             <div className="flex items-center gap-1.5 mb-2">
               <div
                 className="w-4 h-4 rounded-md flex items-center justify-center text-[7px] font-bold text-white"
