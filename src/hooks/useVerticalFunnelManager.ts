@@ -192,32 +192,37 @@ export function useVerticalTemplateStats(templateSlug: string | null, dateFrom?:
       if (!templateSlug) return [];
       let q = (supabase as any)
         .from("vertical_landing_events")
-        .select("event_type, section, visitor_id")
+        .select("event_type, session_id, created_at")
         .eq("template_slug", templateSlug);
       if (dateFrom) q = q.gte("created_at", dateFrom);
       if (dateTo) q = q.lte("created_at", dateTo);
       const { data, error } = await q;
       if (error) throw error;
 
-      const sections: Record<string, { views: Set<string>; allViews: number; submissions: number }> = {};
+      const uniqueSessions = new Set<string>();
+      let allViews = 0;
+      let submissions = 0;
+
       for (const row of data ?? []) {
-        const sec = row.section || "page";
-        if (!sections[sec]) sections[sec] = { views: new Set(), allViews: 0, submissions: 0 };
         if (row.event_type === "view") {
-          sections[sec].allViews++;
-          if (row.visitor_id) sections[sec].views.add(row.visitor_id);
+          allViews++;
+          if (row.session_id) uniqueSessions.add(row.session_id);
         } else if (row.event_type === "form_submit") {
-          sections[sec].submissions++;
+          submissions++;
         }
       }
 
-      return Object.entries(sections).map(([section, d]) => ({
-        section,
-        views: d.allViews,
-        uniqueViews: d.views.size,
-        submissions: d.submissions,
-        rate: d.allViews > 0 ? (d.submissions / d.allViews) * 100 : 0,
-      })) as VerticalTemplateStatRow[];
+      if (allViews === 0 && submissions === 0) return [];
+
+      return [
+        {
+          section: "page",
+          views: allViews,
+          uniqueViews: uniqueSessions.size,
+          submissions,
+          rate: allViews > 0 ? (submissions / allViews) * 100 : 0,
+        },
+      ] as VerticalTemplateStatRow[];
     },
     enabled: !!templateSlug,
   });
