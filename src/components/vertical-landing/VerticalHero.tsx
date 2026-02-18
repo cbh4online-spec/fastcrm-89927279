@@ -23,12 +23,12 @@ export function VerticalHero({ config }: Props) {
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-24 lg:py-32">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20 lg:py-32">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: "easeOut" }}
-          className="max-w-4xl mx-auto text-center space-y-8"
+          className="max-w-4xl mx-auto text-center space-y-6 sm:space-y-8"
         >
           <Badge variant="outline" className="border-primary/30 bg-primary/5 text-primary px-4 py-1.5 text-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse mr-2 inline-block" />
@@ -68,20 +68,15 @@ export function VerticalHero({ config }: Props) {
           </div>
         </motion.div>
 
-        {/* Dashboard mockup image */}
-        <motion.div
-          initial={{ opacity: 0, y: 60 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.3, ease: "easeOut" }}
-          className="mt-16 lg:mt-24 max-w-5xl mx-auto"
-        >
+        {/* Dashboard mockup image — hidden on mobile to prevent overflow */}
+        <div className="hidden sm:block mt-12 lg:mt-24 max-w-5xl mx-auto">
           <div className="relative rounded-xl overflow-hidden border border-[hsl(217,33%,17%)] shadow-2xl shadow-primary/10"
             style={{ perspective: "1200px" }}
           >
             <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222,47%,4%)] via-transparent to-transparent z-10 pointer-events-none" />
             <DashboardMockup config={config} />
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

@@ -119,7 +119,7 @@ export function VerticalCTAForm({ config }: Props) {
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.1 }}
           onSubmit={handleSubmit(onSubmit)}
-          className="rounded-2xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] p-8 space-y-5"
+          className="rounded-2xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] p-5 sm:p-8 space-y-5"
         >
           <div className="grid sm:grid-cols-2 gap-5">
             <div className="space-y-2">
