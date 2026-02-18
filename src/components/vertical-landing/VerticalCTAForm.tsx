@@ -73,7 +73,7 @@ export function VerticalCTAForm({ config }: Props) {
   if (submitted) {
     return (
       <section id="vertical-cta-form" className="relative py-24 lg:py-32">
-        <div className="max-w-2xl mx-auto px-6">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -97,7 +97,7 @@ export function VerticalCTAForm({ config }: Props) {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[120px]" />
       </div>
 
-      <div className="relative max-w-2xl mx-auto px-6">
+      <div className="relative max-w-2xl mx-auto px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -176,12 +176,12 @@ export function VerticalCTAForm({ config }: Props) {
             type="submit"
             disabled={isSubmitting}
             size="lg"
-            className="w-full gradient-primary shadow-glow text-primary-foreground h-12 text-base font-semibold gap-2"
+            className="w-full gradient-primary shadow-glow text-primary-foreground h-12 text-sm sm:text-base font-semibold gap-2"
           >
             {isSubmitting ? (
               <><Loader2 className="h-4 w-4 animate-spin" /> A enviar...</>
             ) : (
-              <>Quero Modernizar a Minha {config.nome} <ArrowRight className="h-4 w-4" /></>
+              <><span className="truncate">Quero Modernizar a Minha {config.nome}</span> <ArrowRight className="h-4 w-4 shrink-0" /></>
             )}
           </Button>
         </motion.form>
