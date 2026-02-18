@@ -300,3 +300,6 @@ verify_jwt = false
 
 [functions.bio-seo-copy]
 verify_jwt = false
+
+[functions.ai-employee-executor]
+verify_jwt = false
