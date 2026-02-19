@@ -1,51 +1,63 @@
 
-# Strategic Intelligence Engine — Weekly Executive Brief
+# Conversation Intelligence Engine — AI Deal Insight
 
 ## Overview
 
-This is a full-stack feature with 5 layers:
-1. Database table for storing historical weekly briefs
-2. Backend Edge Function that aggregates data + calls AI
-3. Automatic weekly cron schedule (pg_cron)
-4. React hook for data access
-5. "Strategy" page + Sidebar menu item
+This feature adds a persistent, auto-updating **AI Deal Insight** panel to every contact/lead detail view. It continuously analyzes all conversation messages across all channels and stores the computed signals in a dedicated `conversation_signals` table. Every time a new message arrives, the signals are recomputed automatically for that contact.
+
+---
+
+## Current State Analysis
+
+**What already exists and will be reused:**
+
+- `supabase/functions/conversation-intelligence/index.ts` — already analyzes conversations and returns `buyingIntent`, `objections`, `urgency`, `dropOffRisk`, `suggestedNextStep`. This is the core AI logic we extend.
+- `supabase/functions/compute-lead-behavior-signals/index.ts` — already computes behavioral metrics (response latency, engagement depth, reply rate) per contact and stores to `lead_behavior_signals`. This is the pattern we follow.
+- `src/components/contacts/eni/sections/AIInsightsSection.tsx` — existing AI section in the contact detail view (shows `ai_temperature`, `ai_insight`, `ai_next_action`). The new "AI Deal Insight" panel is a separate, richer panel.
+- `ghl-webhook-message/index.ts` — already handles inbound messages; we hook into this to trigger signal recomputation.
+- `email-webhook/index.ts` and `whatsapp-webhook/index.ts` — same; all webhook handlers will trigger recomputation.
+- `MenuSection` type and `EntitySidebarMenu` — the sidebar menu already has an `insights` section; the panel appears inside it.
+
+**What needs to be built:**
+
+| Layer | What |
+|---|---|
+| DB | New `conversation_signals` table |
+| Edge Function | New `compute-conversation-signals` function (aggregates messages → AI classification → upsert to table) |
+| Automation | All message webhooks call `compute-conversation-signals` after saving message |
+| React Hook | `useConversationSignals(contactId, leadId)` |
+| UI Component | `AIDealInsightPanel` — new card inside `insights` section of contact/lead detail |
 
 ---
 
 ## Architecture
 
 ```text
-┌─────────────────────────────────────────────────────────┐
-│  pg_cron  (every 7 days)                                │
-│       │                                                 │
-│       ▼                                                 │
-│  Edge Function: strategic-intelligence-brief            │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │ 1. Query DB for all workspaces with active subs  │   │
-│  │ 2. For each workspace:                           │   │
-│  │    a. Aggregate leads, opps, tasks, messages     │   │
-│  │    b. Compute % changes vs prior 7-day period    │   │
-│  │    c. Extract message patterns (objections, etc) │   │
-│  │    d. Call Lovable AI (gemini-3-flash-preview)   │   │
-│  │    e. Save result to strategic_briefs table      │   │
-│  └──────────────────────────────────────────────────┘   │
-│                                                         │
-│  Also called on-demand from UI (manual "Generate")      │
-└─────────────────────────────────────────────────────────┘
-
-┌───────────────────────────────────┐
-│  /dashboard/strategy  (new page)  │
-│  ┌─────────────────────────────┐  │
-│  │  Weekly Executive Brief     │  │
-│  │  - Summary paragraph        │  │
-│  │  - Key Metrics (4 cards)    │  │
-│  │  - Opportunity / Risk /     │  │
-│  │    Market Signal chips      │  │
-│  │  - 5 Priority Actions       │  │
-│  │  - "Create Tasks" button    │  │
-│  │  - History list             │  │
-│  └─────────────────────────────┘  │
-└───────────────────────────────────┘
+New Inbound/Outbound Message
+         │
+         ▼
+  [Webhook Handler]                    [Manual Refresh button]
+  ghl-webhook-message                       │
+  email-webhook              ──────────────▼
+  whatsapp-webhook      ──►  compute-conversation-signals (new Edge Function)
+  instagram-webhook                    │
+                                       │ 1. Fetch last 50 messages for contact
+                                       │ 2. Call Lovable AI (gemini-3-flash-preview)
+                                       │    → buying_intent, trust_level, urgency_level
+                                       │    → objection_type, churn_risk
+                                       │    → lead_temperature, close_probability
+                                       │    → main_blocker, next_best_action
+                                       │ 3. Upsert to conversation_signals table
+                                       ▼
+                              conversation_signals (DB)
+                                       │
+                                       ▼
+                              useConversationSignals hook
+                                       │
+                                       ▼
+                              AIDealInsightPanel (UI)
+                         inside 'insights' section of
+                         Contact Detail & Lead Detail
 ```
 
 ---
@@ -54,199 +66,214 @@ This is a full-stack feature with 5 layers:
 
 | File | Action |
 |---|---|
-| `supabase/migrations/<ts>_strategic_briefs.sql` | Create `strategic_briefs` table + RLS |
-| `supabase/functions/strategic-intelligence-brief/index.ts` | New Edge Function |
-| `supabase/config.toml` | Register function (verify_jwt = false for cron) |
-| `src/hooks/useStrategicBriefs.ts` | React hook: fetch + generate on-demand |
-| `src/pages/StrategyPage.tsx` | New page |
-| `src/components/layout/Sidebar.tsx` | Add "Estratégia" menu group |
-| `src/App.tsx` | Register `/dashboard/strategy` route |
+| `supabase/migrations/<ts>_conversation_signals.sql` | Create `conversation_signals` table + RLS |
+| `supabase/functions/compute-conversation-signals/index.ts` | New Edge Function |
+| `supabase/config.toml` | Register new function |
+| `src/hooks/useConversationSignals.ts` | React hook: read + on-demand recompute |
+| `src/components/contacts/sections/AIDealInsightPanel.tsx` | New UI panel |
+| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | Mount panel in `insights` case |
+| `src/components/crm/LeadDetailWithSidebar.tsx` | Mount panel in `insights` case |
+| `supabase/functions/ghl-webhook-message/index.ts` | Fire-and-forget call to `compute-conversation-signals` after message save |
+| `supabase/functions/email-webhook/index.ts` | Same |
+| `supabase/functions/whatsapp-webhook/index.ts` | Same |
+| `supabase/functions/instagram-webhook/index.ts` | Same |
 
 ---
 
-## 1. Database: `strategic_briefs` table
+## 1. Database: `conversation_signals` Table
 
 ```sql
-CREATE TABLE strategic_briefs (
-  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id  uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  period_start  timestamptz NOT NULL,  -- start of the 7-day window analysed
-  period_end    timestamptz NOT NULL,  -- end of the 7-day window analysed
-  summary       text NOT NULL,
-  opportunity   text,
-  risk          text,
-  market_signal text,
-  priority_actions jsonb NOT NULL DEFAULT '[]',
-  key_metrics   jsonb NOT NULL DEFAULT '{}',
-  raw_data      jsonb,                 -- optional: store the raw aggregated data
-  generated_at  timestamptz NOT NULL DEFAULT now(),
-  created_at    timestamptz NOT NULL DEFAULT now()
+CREATE TABLE conversation_signals (
+  id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id        uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  contact_id          uuid REFERENCES contacts(id) ON DELETE CASCADE,
+  lead_id             uuid REFERENCES leads(id) ON DELETE CASCADE,
+  -- Computed signals
+  temperature         text CHECK (temperature IN ('cold','evaluating','ready_to_buy','stalling','lost')),
+  close_probability   numeric(5,4),           -- 0.0000 to 1.0000
+  trust_score         numeric(5,4),
+  churn_risk          numeric(5,4),
+  main_objection      text CHECK (main_objection IN ('price','timing','authority','competitor','uncertainty','no_need','confusion','none')),
+  next_action         text,                   -- natural language recommended action
+  recommended_reply   text,                   -- microcopy ready to send
+  buying_intent_score numeric(5,4),
+  urgency_score       numeric(5,4),
+  signals_data        jsonb,                  -- full AI output for detail view
+  last_updated        timestamptz NOT NULL DEFAULT now(),
+  created_at          timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT one_per_entity CHECK (
+    (contact_id IS NOT NULL AND lead_id IS NULL) OR
+    (lead_id IS NOT NULL AND contact_id IS NULL)
+  )
 );
 
-CREATE INDEX ON strategic_briefs(workspace_id, generated_at DESC);
+CREATE UNIQUE INDEX conversation_signals_contact_idx ON conversation_signals(workspace_id, contact_id) WHERE contact_id IS NOT NULL;
+CREATE UNIQUE INDEX conversation_signals_lead_idx ON conversation_signals(workspace_id, lead_id) WHERE lead_id IS NOT NULL;
 
-ALTER TABLE strategic_briefs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE conversation_signals ENABLE ROW LEVEL SECURITY;
 
--- Members of the workspace can read their briefs
-CREATE POLICY "workspace members can read briefs"
-  ON strategic_briefs FOR SELECT
+-- Workspace members can read
+CREATE POLICY "workspace members read signals"
+  ON conversation_signals FOR SELECT
   USING (workspace_id IN (
     SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid()
   ));
 
--- Only service role (cron) can insert/update
-CREATE POLICY "service role manages briefs"
-  ON strategic_briefs FOR ALL
+-- Service role manages (for edge function writes)
+CREATE POLICY "service role manages signals"
+  ON conversation_signals FOR ALL
   USING (auth.role() = 'service_role')
   WITH CHECK (auth.role() = 'service_role');
 ```
 
-The `key_metrics` column stores:
+The `signals_data` column stores the full AI response for the detail panel (objection suggestions, indicators, etc).
+
+---
+
+## 2. Edge Function: `compute-conversation-signals`
+
+**Accepts:** `{ workspace_id, contact_id?, lead_id? }`  
+**Returns:** the computed signals object
+
+**Processing steps:**
+
+1. **Fetch conversations** for the contact/lead (`SELECT id, channel FROM conversations WHERE workspace_id = ? AND (contact_id = ? OR lead_id = ?)`)
+2. **Fetch last 80 messages** across those conversations (all channels: ghl, whatsapp, email, instagram, chat, sms), ordered by `created_at ASC`
+3. **Build a compact context** — last 40 messages formatted as `[Cliente/Agente]: content`
+4. **Call Lovable AI** (`google/gemini-3-flash-preview`) with tool-calling for guaranteed structured output
+
+**AI Tool Schema (new, extending existing `conversation-intelligence` output):**
+
 ```json
 {
-  "leads_change": 12.5,
-  "revenue_change": -4.0,
-  "conversion_change": 3.1,
-  "response_time_change": -8.2,
-  "leads_total": 23,
-  "won_deals": 4,
-  "lost_deals": 2,
-  "tasks_completed": 11,
-  "tasks_pending": 7,
-  "messages_total": 156
+  "name": "compute_deal_signals",
+  "parameters": {
+    "temperature": { "enum": ["cold","evaluating","ready_to_buy","stalling","lost"] },
+    "close_probability": { "type": "number", "minimum": 0, "maximum": 1 },
+    "trust_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "churn_risk": { "type": "number", "minimum": 0, "maximum": 1 },
+    "buying_intent_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "urgency_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "main_objection": { "enum": ["price","timing","authority","competitor","uncertainty","no_need","confusion","none"] },
+    "next_action": { "type": "string" },
+    "recommended_reply": { "type": "string", "description": "Ready-to-use Portuguese message" },
+    "signals_detail": { ... }
+  }
 }
 ```
 
----
-
-## 2. Edge Function: `strategic-intelligence-brief`
-
-The function accepts two modes:
-- **Cron mode** (no body): iterates over all workspaces, generates brief for each, stores to DB
-- **On-demand mode** (body `{ workspace_id }`): generates and stores a brief for that specific workspace, returns it immediately to the caller
-
-### Data Aggregation (per workspace, last 7 days vs prior 7 days)
-
-Queries made with the **service role** client:
-
-| Data source | What we collect |
-|---|---|
-| `leads` | count created, count inactive > 7 days |
-| `opportunities` | count created, won, lost; sum of `value` for won |
-| `opportunity_history` / `opportunities.updated_at` | stage movement count |
-| `messages` | total, inbound/outbound split, last 100 content snippets for pattern analysis |
-| `crm_activities` | count per type |
-| `tasks` | completed vs pending |
-| `marketing_campaigns` | sends and replies (if table exists) |
-
-### AI Prompt Design
-
-Uses **`google/gemini-3-flash-preview`** with a structured tool-call for guaranteed JSON output:
-
-```
-System: "Você é um analista executivo de negócios. 
-         Analise dados de CRM dos últimos 7 dias e produza
-         um relatório executivo semanal estruturado.
-         Seja específico, use os números fornecidos,
-         identifique padrões reais."
-
-User:   [aggregated data block]
-
-Tool:   generate_executive_brief(
-          summary, opportunity, risk, market_signal,
-          priority_actions[5], key_metrics
-        )
-```
+5. **Upsert** to `conversation_signals` using `ON CONFLICT DO UPDATE`
+6. **Return** the result to the caller
 
 ---
 
-## 3. Cron Schedule
+## 3. Webhook Automation (fire-and-forget)
 
-Using the `insert` tool (not migration) since it contains project-specific URL/key:
+After each webhook handler saves a message to the DB, add a non-blocking call:
 
-```sql
-SELECT cron.schedule(
-  'strategic-intelligence-weekly',
-  '0 6 * * 1',   -- every Monday at 06:00 UTC
-  $$
-  SELECT net.http_post(
-    url := 'https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/strategic-intelligence-brief',
-    headers := '{"Content-Type":"application/json","Authorization":"Bearer <anon_key>"}'::jsonb,
-    body := '{}'::jsonb
-  );
-  $$
-);
+```typescript
+// Fire and forget — don't await, don't fail if this errors
+(async () => {
+  try {
+    await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/compute-conversation-signals`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+      },
+      body: JSON.stringify({ workspace_id, contact_id, lead_id }),
+    });
+  } catch { /* silent */ }
+})();
 ```
+
+This triggers in `ghl-webhook-message`, `email-webhook`, `whatsapp-webhook`, and `instagram-webhook` — immediately after the message is persisted.
 
 ---
 
-## 4. React Hook: `useStrategicBriefs`
+## 4. React Hook: `useConversationSignals`
 
-```ts
-useStrategicBriefs() → {
-  briefs: StrategicBrief[],       // historical list, newest first
-  latestBrief: StrategicBrief | null,
+```typescript
+useConversationSignals(contactId?: string, leadId?: string) → {
+  signals: ConversationSignals | null,
   isLoading: boolean,
-  isGenerating: boolean,
-  generateBrief: () => Promise<void>,  // calls edge fn on-demand
+  isRecomputing: boolean,
+  recompute: () => Promise<void>,   // on-demand via edge function
+  lastUpdated: Date | null,
 }
 ```
 
----
-
-## 5. UI: Strategy Page (`/dashboard/strategy`)
-
-Layout mirrors `GrowthInsightsModule.tsx` pattern:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Header: "Estratégia Semanal"   [Gerar Relatório] button    │
-├──────────────────┬──────────────────────────────────────────┤
-│  Key Metrics     │  4 cards: Leads Δ, Revenue Δ,            │
-│  (top row)       │  Conversion Δ, Response Time Δ           │
-├──────────────────┴──────────────────────────────────────────┤
-│  Executive Summary (full-width prose card)                  │
-├─────────────────┬───────────────────┬───────────────────────┤
-│  Opportunity    │  Risk             │  Market Signal         │
-│  (green card)   │  (red card)       │  (blue card)           │
-├─────────────────┴───────────────────┴───────────────────────┤
-│  5 Priority Actions                                          │
-│  [numbered list with "Criar Tarefa" button per action]       │
-│  [Criar Todas como Tarefas] button                          │
-├─────────────────────────────────────────────────────────────┤
-│  Histórico (accordion, shows past briefs)                   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**"Create Tasks" behavior:** Each priority action can be turned into a task using `useCreateTask()`. The "Create All" button creates all 5 tasks at once with due_at set to 7 days from now.
+Uses `useQuery` to fetch from `conversation_signals` table. `recompute()` calls the edge function and invalidates the query.
 
 ---
 
-## 6. Sidebar
+## 5. UI: `AIDealInsightPanel` Component
 
-Add a new group before "Relatórios" in `Sidebar.tsx`:
+New file: `src/components/contacts/sections/AIDealInsightPanel.tsx`
 
-```ts
-{
-  name: "Estratégia",
-  icon: Telescope,   // or BrainCircuit from lucide
-  tooltip: "Inteligência estratégica semanal",
-  highlight: true,
-  items: [
-    { name: "Brief Executivo", href: "/dashboard/strategy", icon: FileBarChart2, highlight: true },
-  ],
-}
+**Layout:**
+
 ```
+┌────────────────────────────────────────────────────┐
+│  🎯 AI Deal Insight           [Refresh icon]        │
+│  Última análise: há 3 min                          │
+├────────────────────────────────────────────────────┤
+│  TEMPERATURA           PROBABILIDADE DE FECHO      │
+│  🔥 Ready to Buy              87%                   │
+├────────────────────────────────────────────────────┤
+│  SCORES                                            │
+│  Confiança ████████░░ 78%                         │
+│  Urgência  ██████░░░░ 61%                         │
+│  Risco Churn ██░░░░░░ 18%                        │
+├────────────────────────────────────────────────────┤
+│  OBJEÇÃO PRINCIPAL         INTENÇÃO DE COMPRA      │
+│  🏷 Preço                    ██████████ 92%         │
+├────────────────────────────────────────────────────┤
+│  PRÓXIMA AÇÃO RECOMENDADA                          │
+│  Enviar proposta revisada focando no ROI           │
+├────────────────────────────────────────────────────┤
+│  RESPOSTA SUGERIDA         [📋 Copiar]              │
+│  "Olá João, tendo em conta o seu feedback..."      │
+└────────────────────────────────────────────────────┘
+```
+
+**Temperature color coding:**
+- `cold` → blue
+- `evaluating` → amber
+- `ready_to_buy` → green (with highlight)
+- `stalling` → orange
+- `lost` → red/muted
+
+**Empty state:** "Ainda não há mensagens suficientes para gerar insights. Envie ou receba a primeira mensagem para ativar a análise."
+
+**Where it appears:**
+- `ENIContactDetailWithSidebar.tsx` → inside `case 'insights':` block (below `AIInsightsSection`)
+- `LeadDetailWithSidebar.tsx` → same pattern
+
+---
+
+## 6. Sidebar Strategic Intelligence Engine Page
+
+Since the previous plan (Strategic Intelligence Engine Weekly Brief) created a `/dashboard/strategy` route and added it to the sidebar under "Estratégia", this new module is added as a **tab** inside that same Strategy page, under a second tab called "Deal Intelligence".
+
+If the strategy page was not yet implemented (the file search shows no existing StrategyPage), both modules are added together:
+
+- Sidebar: "Estratégia" group with items:
+  - "Brief Executivo" → `/dashboard/strategy`
+  - "Deal Intelligence" → `/dashboard/strategy/deal-intelligence` *(or as a tab on the same page)*
+
+For simplicity and since the Strategy page from the previous plan is already pending implementation, the "Conversation Intelligence Engine" tab is added to the **same Strategy page** as a new tab named "Deal Intelligence", showing workspace-level aggregated signal stats (top objections, average close probability, temperature distribution across all contacts).
 
 ---
 
 ## Technical Details
 
-- The edge function uses `SUPABASE_SERVICE_ROLE_KEY` (available automatically in edge functions as `Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")`) to query data cross-workspace for the cron mode, and a user-authenticated client for on-demand mode.
-- The first call on-demand shows a loading skeleton; if no brief exists yet, the page shows an empty state with a "Gerar Primeiro Relatório" CTA.
-- The cron runs every Monday at 06:00 UTC; the UI also allows manual regeneration at any time.
-- Historical briefs are stored indefinitely (one per generation); the UI shows the last 8 in an accordion.
-- The `priority_actions` column is stored as `jsonb` array of strings, making it easy to iterate and create tasks.
-- RLS ensures users can only read briefs for workspaces they belong to; the cron uses service role to write.
-- Message pattern analysis uses the last 100 message bodies (content field) clustered into themes by the AI — no extra DB queries needed beyond the existing `messages` table query.
-- The `opportunity_history` table may not exist; the function falls back to checking `opportunities.updated_at` changes if that table is absent.
+- The `compute-conversation-signals` function uses `SUPABASE_SERVICE_ROLE_KEY` (auto-available in edge functions) to read messages and write to `conversation_signals`.
+- The webhook automation is **fire-and-forget** — any failure in the signal computation does not affect message delivery or the webhook response.
+- Signal computation is idempotent — running it twice produces the same result; the `ON CONFLICT DO UPDATE` upsert pattern (same as `lead_behavior_signals`) ensures no duplicates.
+- The UI hook uses `staleTime: 5 * 60 * 1000` (5 minutes) — signals are fresh enough without constant refetching; the webhook automation keeps them updated in near-real-time.
+- The `recommended_reply` field is stored in the DB but only displayed in the UI with a copy button — it is never sent automatically.
+- The `signals_data` JSONB column stores the full AI output for the detail popover/accordion (objection handling suggestions, urgency indicators, etc.).
+- No changes to `MenuSection` type or `EntitySidebarMenu` are needed — the panel is rendered inside the existing `insights` case.
+- The existing `conversation-intelligence` edge function (used in Inbox AI panel) remains unchanged — `compute-conversation-signals` is a separate, persistence-focused function that runs in background.
+- Rate-limit and 402 errors from Lovable AI in `compute-conversation-signals` are caught silently (logged, not thrown) to avoid breaking webhook responses.
