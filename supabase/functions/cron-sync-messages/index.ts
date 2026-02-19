@@ -1,6 +1,7 @@
 /**
  * Cron Sync Messages - Polls GHL for new messages every minute
- * Called via pg_cron, iterates all active workspaces with GHL config
+ * Called via pg_cron — single robust pass over all workspaces per invocation.
+ * pg_cron handles the 1-minute frequency; no internal iteration loop needed.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -39,6 +40,20 @@ function normalizeTimestamp(ts: string | undefined | null): string | null {
   }
 }
 
+// Helper: fetch with AbortController timeout
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 15000): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
+  }
+}
+
 // Helper: trigger autopilot for new inbound messages
 async function triggerAutopilot(
   supabaseUrl: string,
@@ -67,8 +82,8 @@ async function triggerAutopilot(
   }
 }
 
-// Core sync logic extracted into a function
-async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, iterationStart: number): Promise<Record<string, unknown>> {
+// Core sync logic — single pass over all active workspaces
+async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalStart: number): Promise<Record<string, unknown>> {
   const supabase = createClient(supabaseUrl, serviceKey);
 
   const { data: ghlConfigs, error: configError } = await supabase
@@ -81,6 +96,8 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, iterat
     return {};
   }
 
+  console.log(`[Cron Sync] Processing ${ghlConfigs.length} workspace(s)`);
+
   const results: Record<string, unknown> = {};
 
   for (const config of ghlConfigs) {
@@ -88,11 +105,14 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, iterat
 
     if (!apiKey || !locationId) continue;
 
-    // Guard per-iteration time (max 4s per workspace per iteration)
-    if (Date.now() - iterationStart > 4000) {
-      console.log("[Cron Sync] Iteration time limit reached, stopping workspaces");
+    // Safety guard: stop if approaching 55s total (edge function limit is 60s)
+    if (Date.now() - totalStart > 55000) {
+      console.log("[Cron Sync] Approaching 60s timeout, stopping remaining workspaces");
       break;
     }
+
+    const wsStart = Date.now();
+    console.log(`[Cron Sync] Starting workspace ${workspace_id}`);
 
     try {
       const queryParams = new URLSearchParams({
@@ -102,14 +122,18 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, iterat
       });
 
       const ghlUrl = `https://services.leadconnectorhq.com/conversations/search?${queryParams.toString()}`;
-      const ghlResponse = await fetch(ghlUrl, {
+
+      console.log(`[Cron Sync] Calling GHL conversations/search for workspace ${workspace_id}`);
+      const ghlResponse = await fetchWithTimeout(ghlUrl, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${apiKey}`,
           Version: "2021-04-15",
           Accept: "application/json",
         },
-      });
+      }, 15000);
+
+      console.log(`[Cron Sync] GHL conversations/search responded ${ghlResponse.status} for workspace ${workspace_id} (${Date.now() - wsStart}ms)`);
 
       if (!ghlResponse.ok) {
         results[workspace_id] = { error: `GHL API ${ghlResponse.status}` };
@@ -126,8 +150,16 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, iterat
         return new Date(lastDate) > thirtyMinAgo;
       });
 
+      console.log(`[Cron Sync] Workspace ${workspace_id}: ${conversations.length} total, ${recentConversations.length} recent conversations`);
+
       if (recentConversations.length === 0) {
         results[workspace_id] = { conversations: 0, messages: 0 };
+
+        await supabase
+          .from("workspace_ghl_config")
+          .update({ last_sync_at: new Date().toISOString() })
+          .eq("workspace_id", workspace_id);
+
         continue;
       }
 
@@ -161,8 +193,13 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, iterat
       let conversationsCreated = 0;
 
       for (const ghlConv of recentConversations) {
+        // Per-workspace safety: stop if we've been in this workspace too long (20s)
+        if (Date.now() - wsStart > 20000) {
+          console.log(`[Cron Sync] Workspace ${workspace_id} time limit (20s) reached, moving on`);
+          break;
+        }
+
         let convMessagesCreated = 0;
-        if (Date.now() - iterationStart > 4500) break;
 
         const ghlConvId = ghlConv.id;
         let channel = resolveChannel(ghlConv.type);
@@ -213,17 +250,19 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, iterat
         if (!conversationId) continue;
 
         try {
-          const msgResponse = await fetch(
-            `https://services.leadconnectorhq.com/conversations/${ghlConvId}/messages`,
-            {
-              method: "GET",
-              headers: {
-                Authorization: `Bearer ${apiKey}`,
-                Version: "2021-04-15",
-                Accept: "application/json",
-              },
-            }
-          );
+          const msgUrl = `https://services.leadconnectorhq.com/conversations/${ghlConvId}/messages`;
+          console.log(`[Cron Sync] Calling GHL messages for conv ${ghlConvId}`);
+
+          const msgResponse = await fetchWithTimeout(msgUrl, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              Version: "2021-04-15",
+              Accept: "application/json",
+            },
+          }, 15000);
+
+          console.log(`[Cron Sync] GHL messages responded ${msgResponse.status} for conv ${ghlConvId}`);
 
           if (!msgResponse.ok) continue;
 
@@ -246,6 +285,8 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, iterat
             const msgDate = msg.dateAdded ? new Date(msg.dateAdded) : null;
             return msgDate && msgDate > thirtyMinAgo;
           });
+
+          console.log(`[Cron Sync] Conv ${ghlConvId}: ${messages.length} total messages, ${recentMessages.length} recent`);
 
           for (const msg of recentMessages) {
             if (!msg?.id) continue;
@@ -316,9 +357,7 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, iterat
                 }
               }
 
-              if (!shouldTrigger) {
-                // skip
-              } else {
+              if (shouldTrigger) {
                 triggerAutopilot(supabaseUrl, serviceKey, {
                   workspaceId: workspace_id,
                   conversationId: conversationId!,
@@ -348,10 +387,14 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, iterat
         .update({ last_sync_at: new Date().toISOString() })
         .eq("workspace_id", workspace_id);
 
+      const wsDuration = Date.now() - wsStart;
+      console.log(`[Cron Sync] Workspace ${workspace_id} done in ${wsDuration}ms — convs_created: ${conversationsCreated}, messages_created: ${messagesCreated}`);
+
       results[workspace_id] = {
         conversations: recentConversations.length,
         conversations_created: conversationsCreated,
         messages_created: messagesCreated,
+        duration_ms: wsDuration,
       };
     } catch (wsErr) {
       console.error(`[Cron Sync] Error processing workspace ${workspace_id}:`, wsErr);
@@ -368,44 +411,19 @@ Deno.serve(async (req) => {
   }
 
   const totalStart = Date.now();
-  const ITERATIONS = 12;
-  const INTERVAL_MS = 5000;
-  console.log(`[Cron Sync Messages] Started at ${new Date().toISOString()} — will run ${ITERATIONS} iterations (every ${INTERVAL_MS / 1000}s)`);
+  console.log(`[Cron Sync Messages] Started at ${new Date().toISOString()}`);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-  const allResults: Array<{ iteration: number; results: Record<string, unknown> }> = [];
-
   try {
-    for (let i = 0; i < ITERATIONS; i++) {
-      const iterationStart = Date.now();
-      console.log(`[Cron Sync] Iteration ${i + 1}/${ITERATIONS} at ${new Date().toISOString()}`);
-
-      // Safety: stop if we're approaching the 60s edge function timeout
-      if (Date.now() - totalStart > 55000) {
-        console.log("[Cron Sync] Approaching 60s timeout, stopping iterations");
-        break;
-      }
-
-      const results = await syncAllWorkspaces(supabaseUrl, serviceKey, iterationStart);
-      allResults.push({ iteration: i + 1, results });
-
-      // Wait 5s before next iteration (skip wait on last iteration)
-      if (i < ITERATIONS - 1) {
-        const elapsed = Date.now() - iterationStart;
-        const waitTime = Math.max(0, INTERVAL_MS - elapsed);
-        if (waitTime > 0) {
-          await new Promise((r) => setTimeout(r, waitTime));
-        }
-      }
-    }
+    const results = await syncAllWorkspaces(supabaseUrl, serviceKey, totalStart);
 
     const duration = Date.now() - totalStart;
-    console.log(`[Cron Sync] All iterations completed in ${duration}ms`);
+    console.log(`[Cron Sync] Completed in ${duration}ms`, results);
 
     return new Response(
-      JSON.stringify({ success: true, duration_ms: duration, iterations: allResults.length, results: allResults }),
+      JSON.stringify({ success: true, duration_ms: duration, results }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
