@@ -3,6 +3,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,7 +36,7 @@ import {
 import { useStrategicBriefs } from "@/hooks/useStrategicBriefs";
 import { RevenueIntelligenceCard } from "@/components/revenue/RevenueIntelligenceCard";
 import { useCreateTask } from "@/hooks/useTasks";
-import { useStrategicDecisions, useGenerateStrategicDecisions } from "@/hooks/useStrategicDecisions";
+import { useStrategicDecisions, useGenerateStrategicDecisions, useDecisionHistory } from "@/hooks/useStrategicDecisions";
 import { StrategicDecisionCard } from "@/components/strategy/StrategicDecisionCard";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -483,7 +484,129 @@ function DecisionsTab() {
           ))}
         </div>
       )}
+
+      {/* History section */}
+      <DecisionHistorySection />
     </div>
+  );
+}
+
+// ── Decision History Section ──────────────────────────────────────────────────
+
+const HISTORY_IMPACT_CONFIG = {
+  high: { label: "Alto Impacto", className: "bg-destructive/10 text-destructive border-destructive/20" },
+  medium: { label: "Médio Impacto", className: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800" },
+  low: { label: "Baixo Impacto", className: "bg-muted text-muted-foreground" },
+} as const;
+
+const HISTORY_URGENCY_CONFIG = {
+  immediate: { label: "⚡ Imediato", className: "bg-destructive/10 text-destructive border-destructive/20" },
+  this_week: { label: "Esta Semana", className: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800" },
+  monitor: { label: "Monitorar", className: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800" },
+} as const;
+
+const HISTORY_AREA_CONFIG: Record<string, string> = {
+  sales: "🎯 Vendas",
+  marketing: "📣 Marketing",
+  pricing: "💶 Preços",
+  operations: "⚙️ Operações",
+  retention: "🛡 Retenção",
+};
+
+function DecisionHistorySection() {
+  const { data: history = [], isLoading } = useDecisionHistory();
+
+  return (
+    <Accordion type="single" collapsible className="border rounded-lg bg-card">
+      <AccordionItem value="history" className="border-0">
+        <AccordionTrigger className="px-4 py-3 hover:no-underline">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-foreground">Histórico de Decisões</span>
+            {history.length > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {history.length} registo{history.length !== 1 ? "s" : ""}
+              </Badge>
+            )}
+          </div>
+        </AccordionTrigger>
+        <AccordionContent className="px-4 pb-4">
+          {isLoading ? (
+            <div className="space-y-3 pt-2">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          ) : history.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-2">
+              Nenhuma decisão no histórico. As decisões ignoradas ou convertidas aparecerão aqui.
+            </p>
+          ) : (
+            <div className="space-y-0 divide-y divide-border/50">
+              {history.map((d) => {
+                const isConverted = d.status === "converted";
+                const impactCfg = HISTORY_IMPACT_CONFIG[d.impact_level as keyof typeof HISTORY_IMPACT_CONFIG] ?? HISTORY_IMPACT_CONFIG.low;
+                const urgencyCfg = HISTORY_URGENCY_CONFIG[d.urgency as keyof typeof HISTORY_URGENCY_CONFIG] ?? HISTORY_URGENCY_CONFIG.monitor;
+                const areaLabel = HISTORY_AREA_CONFIG[d.business_area] ?? d.business_area;
+                const firstStep = d.recommended_steps[0];
+                const extraSteps = d.recommended_steps.length - 1;
+
+                return (
+                  <div key={d.id} className="py-4 first:pt-2 last:pb-0">
+                    {/* Badges row */}
+                    <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-xs border",
+                          isConverted
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
+                            : "bg-muted text-muted-foreground border-border"
+                        )}
+                      >
+                        {isConverted ? "✅ Convertida" : "🔕 Ignorada"}
+                      </Badge>
+                      <Badge variant="outline" className={cn("text-xs border", impactCfg.className)}>
+                        {impactCfg.label}
+                      </Badge>
+                      <Badge variant="outline" className={cn("text-xs border", urgencyCfg.className)}>
+                        {urgencyCfg.label}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">
+                        {areaLabel}
+                      </Badge>
+                    </div>
+
+                    {/* Title */}
+                    <p className="text-sm font-medium text-foreground mb-1">{d.decision_title}</p>
+
+                    {/* Timestamp */}
+                    <p className="text-xs text-muted-foreground mb-2">
+                      {isConverted ? "Convertida" : "Ignorada"}{" "}
+                      {formatDistanceToNow(new Date(d.created_at), { addSuffix: true, locale: pt })}
+                      {" · "}
+                      {format(new Date(d.created_at), "d MMM yyyy", { locale: pt })}
+                    </p>
+
+                    {/* Steps preview */}
+                    {firstStep && (
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground/70">↳ Passos:</span>{" "}
+                        <span className="truncate">
+                          {firstStep.length > 60 ? firstStep.slice(0, 60) + "…" : firstStep}
+                        </span>
+                        {extraSteps > 0 && (
+                          <span className="ml-1 text-muted-foreground/70">+{extraSteps} mais</span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 }
 
