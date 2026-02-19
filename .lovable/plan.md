@@ -1,90 +1,49 @@
 
-# Corrigir Responsividade Mobile — Zona Hero e Secções Verticais
+## Problema Identificado
 
-## Causa raiz do problema (screenshot analisada)
+O edge function `productivity-coach` falha com:
 
-O texto e o layout estão a ser cortados horizontalmente porque:
-
-1. **`DashboardMockup`** tem uma sidebar fixa de `w-[140px]` e um kanban em `flex` sem `overflow-hidden` — em mobile, este componente tem largura superior ao viewport, causando scroll horizontal mesmo com `overflow-x-hidden` no wrapper (porque o mockup usa largura absoluta interna).
-
-2. **`VerticalHero`** — `py-24` (96px) em mobile + header de 64px = o conteúdo começa aos 160px. Com o Badge, título de 3+ linhas e parágrafo, os CTAs ficam fora do viewport inicial.
-
-3. **`VerticalTransformation`** — usa `px-6` sem breakpoint (`sm:px-6`), o que em viewports muito estreitos é menos grave mas inconsistente.
-
-4. **`VerticalCTAForm`** — formulário com `p-8` (32px) em mobile. Com `max-w-2xl`, o conteúdo útil fica com 390 - 32 - 32 - 32 = ~294px, muito estreito para os campos `grid sm:grid-cols-2`.
-
-## Ficheiros a alterar
-
-| Ficheiro | Problema | Solução |
-|----------|----------|---------|
-| `VerticalHero.tsx` | `py-24` excessivo; mockup visível em mobile causando overflow | `py-12 sm:py-20 lg:py-32`; ocultar mockup em mobile (`hidden sm:block`) |
-| `DashboardMockup.tsx` | Sidebar fixa `w-[140px]` e kanban sem contenção em mobile | Adicionar `overflow-hidden` ao contentor raiz; sidebar `w-[100px] sm:w-[140px]`; ocultar sidebar em mobile |
-| `VerticalTransformation.tsx` | `px-6` sem responsive | `px-4 sm:px-6` |
-| `VerticalCTAForm.tsx` | `p-8` no formulário sem responsive | `p-5 sm:p-8` |
-
-## Detalhes técnicos por ficheiro
-
-### 1. `VerticalHero.tsx` — Ocultar mockup em mobile + reduzir padding
-
-O DashboardMockup em mobile (390px) tem sidebar 140px + 4 colunas kanban em flex → mínimo ~500px de largura. Mesmo com `overflow-hidden` no section, o elemento interno força reflow.
-
-**Solução**: Ocultar o bloco do mockup em mobile com `hidden sm:block`:
-
-```tsx
-// Antes:
-<motion.div className="mt-16 lg:mt-24 max-w-5xl mx-auto">
-  <div className="relative rounded-xl overflow-hidden ...">
-    <DashboardMockup config={config} />
-  </div>
-</motion.div>
-
-// Depois:
-<div className="hidden sm:block mt-12 lg:mt-24 max-w-5xl mx-auto">
-  <div className="relative rounded-xl overflow-hidden ...">
-    <DashboardMockup config={config} />
-  </div>
-</div>
+```
+ReferenceError: serve is not defined
+    at file:///var/tmp/sb-compile-edge-runtime/functions/productivity-coach/index.ts:6:1
 ```
 
-E reduzir `py-24` para `py-12 sm:py-20 lg:py-32` e `space-y-8` para `space-y-6 sm:space-y-8` no contentor interno.
+A função usa `serve(async (req) => { ... })` na linha 8, mas **nunca importa** `serve` do módulo Deno padrão. Isso impede a função de arrancar — qualquer chamada à IA (incluindo "Gerar com IA" no Coach de Produtividade) falha imediatamente.
 
-### 2. `DashboardMockup.tsx` — Sidebar adaptável
+## Causa
 
-Mesmo em tablets (sm), a sidebar de 140px é pesada. Tornar a sidebar mais estreita e condicional:
+Ficheiro: `supabase/functions/productivity-coach/index.ts`
 
-```tsx
-// Sidebar: w-[140px] → w-[110px] sm:w-[140px]
-// Conteúdo interno do sidebar: ocultar items de módulos em viewports mais pequenos
+```ts
+// Linha 1 — só importa supabase-js, falta o import de serve
+import { createClient } from "@supabase/supabase-js";
+
+// Linha 8 — usa serve sem o ter importado
+serve(async (req) => { ... })
 ```
 
-Adicionalmente, adicionar `overflow-hidden` ao contentor raiz do mockup para garantir que nada escapa:
-
-```tsx
-<div className="w-full select-none pointer-events-none overflow-hidden">
+Falta a linha:
+```ts
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 ```
 
-### 3. `VerticalTransformation.tsx` — Padding responsivo
+## Solução
 
-```tsx
-// Antes:
-<div className="max-w-5xl mx-auto px-6">
+### Alteração única — `supabase/functions/productivity-coach/index.ts`
 
-// Depois:
-<div className="max-w-5xl mx-auto px-4 sm:px-6">
+Adicionar o import em falta na primeira linha do ficheiro:
+
+```ts
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "@supabase/supabase-js";
 ```
 
-### 4. `VerticalCTAForm.tsx` — Padding do formulário
+Depois de guardar, a função será reimplantada automaticamente e o botão "Gerar com IA" voltará a funcionar.
 
-```tsx
-// Antes:
-className="rounded-2xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] p-8 space-y-5"
+## Technical Details
 
-// Depois:
-className="rounded-2xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] p-5 sm:p-8 space-y-5"
-```
-
-## Resultado esperado
-
-- **Mobile (390px)**: Hero com Badge + título compacto + parágrafo + 2 CTAs todos visíveis sem scroll; sem overflow horizontal
-- **Tablet (768px+)**: Dashboard mockup aparece normalmente
-- **Desktop**: Sem alterações visuais
+- Nenhuma alteração de base de dados necessária.
+- Nenhuma alteração de RLS necessária.
+- Nenhuma variável secreta em falta — o `LOVABLE_API_KEY` já está configurado (a função chega ao ponto de verificar a API key antes de falhar com este erro).
+- Todas as restantes edge functions que já funcionam (ex: `ai-employee-executor`) têm este import correto.
+- Após o redeploy, as ações `generate-daily-priorities`, `prepare-meeting`, `suggest-free-slots`, e `analyze-goals-progress` devem funcionar sem mais alterações.
