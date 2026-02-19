@@ -306,3 +306,6 @@ verify_jwt = false
 
 [functions.compute-conversation-signals]
 verify_jwt = false
+
+[functions.strategic-intelligence-brief]
+verify_jwt = false

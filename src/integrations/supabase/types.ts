@@ -28081,6 +28081,50 @@ export type Database = {
           },
         ]
       }
+      weekly_briefs: {
+        Row: {
+          created_at: string | null
+          id: string
+          key_metrics: Json | null
+          market_signal: string | null
+          opportunity: string | null
+          priority_actions: Json | null
+          risk: string | null
+          summary: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          key_metrics?: Json | null
+          market_signal?: string | null
+          opportunity?: string | null
+          priority_actions?: Json | null
+          risk?: string | null
+          summary?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          key_metrics?: Json | null
+          market_signal?: string | null
+          opportunity?: string | null
+          priority_actions?: Json | null
+          risk?: string | null
+          summary?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_briefs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_connections: {
         Row: {
           access_token: string | null
