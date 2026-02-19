@@ -1,348 +1,413 @@
 
-# Behavioral Revenue Forecasting Module
+# Strategic Decision Engine
 
 ## What This Builds
 
-A revenue forecasting engine that replaces naive pipeline-stage probability with **behavioral probability** from `deal_scores`. Instead of "this deal is in Negotiation stage (80%)," it says "this deal scores 73 based on actual engagement, intent, trust, and recency — so it contributes €7,300 of a €10,000 opportunity."
+A rule-based decision engine that reads from `deal_scores`, `revenue_forecasts`, `conversation_signals`, and `weekly_briefs` and generates concrete, actionable business decisions. Decisions are stored persistently, displayed as cards in a new "Decisões" tab on the `StrategyPage`, and can be converted to tasks with a single click.
 
-The module has two layers:
-1. A **server-side computation** edge function that aggregates all opportunities + deal scores and stores structured forecast totals in a new `revenue_forecasts` table.
-2. A **"Revenue Intelligence" card** that can be embedded in the existing `StrategyPage` (which already has Deal Intelligence and Weekly Brief tabs) as a new tab, plus a standalone widget usable on the Dashboard.
+This is **100% deterministic** — no AI/LLM calls. The engine evaluates 5 business rules and inserts structured `strategic_decisions` rows every time it runs.
 
 ---
 
 ## What Already Exists (No Duplication)
 
-- `deal_scores` table — already created with `close_score`, `category`, `urgency` per opportunity
-- `opportunities` table — has `value`, `expected_close_date`, `status`, `workspace_id`
-- `compute-deal-score` edge function — already writes scores
-- `StrategyPage` at `/dashboard/strategy` — already has tabbed layout, perfect place to add a "Revenue Forecast" tab
-- `DashboardKPICards` and `RevenueWidget` — the new widget slots alongside these
+- `deal_scores` table + `useDealScores` hook — already working
+- `revenue_forecasts` table + `useRevenueForecast` hook — already working
+- `conversation_signals` table — queried by `DealIntelligenceTab` already
+- `weekly_briefs` table — queried by `useStrategicBriefs`
+- `StrategyPage` — has tabbed layout; adding a 4th tab is clean
+- `useCreateTask` + `PriorityAction` pattern — already used in Brief tab for task creation
+- Edge function patterns (`compute-deal-score`, `compute-revenue-forecast`) — exact model to follow
 
 ---
 
 ## Architecture
 
 ```text
-[compute-revenue-forecast edge function]
+[compute-strategic-decisions edge function]
          │
-         ├─ Query: opportunities WHERE status='open' + deal_scores JOIN
-         ├─ Query: historical won opportunities (last 90 days)
+         ├─ Query: revenue_forecasts (latest 2, for drop detection)
+         ├─ Query: deal_scores (hot/critical, last_activity)
+         ├─ Query: conversation_signals (main_objection distribution)
+         ├─ Query: opportunities (open, for concentration check)
          │
-         ├─ For each opportunity:
-         │    close_probability  = close_score / 100
-         │    expected_revenue   = value * close_probability
-         │    confidence_weight  = by category (hot→0.9, likely→0.7, uncertain→0.4, low→0.15)
-         │    weighted_revenue   = expected_revenue * confidence_weight
+         ├─ Rule 1: revenue_forecast_drop > 20%
+         ├─ Rule 2: hot deals inactive > 3 days
+         ├─ Rule 3: same objection in > 25% of conversations
+         ├─ Rule 4: churn_risk rising (avg > 0.6)
+         ├─ Rule 5: pipeline concentration > 40% in one deal
          │
-         ├─ Bucket by expected_close_date into 7d / 30d / 90d windows
-         ├─ Compute best_case, expected_case, worst_case, risk_index
-         │
-         └─ UPSERT → revenue_forecasts table
-         
-[useRevenueForecast hook]
-         │
-         └─ Reads latest forecast from table
-            + exposes generateForecast() mutation (calls edge fn on-demand)
+         ├─ For each triggered rule → INSERT strategic_decisions row
+         └─ Return array of decisions created
 
-[RevenueIntelligenceCard component]
+[useStrategicDecisions hook]
          │
-         ├─ Expected revenue + confidence ring
-         ├─ 3 scenario bars (best / expected / worst)
-         ├─ Risk index gauge
-         ├─ Trend vs last snapshot
-         └─ Per-horizon chips: 7d / 30d / 90d
+         └─ Reads open decisions for current workspace
+            + exposes generateDecisions() mutation
+            + exposes dismissDecision() and convertToTask() helpers
 
-[StrategyPage — new "Receita" tab]
-         └─ Full RevenueIntelligenceCard + opportunity breakdown table
+[StrategicDecisionCard component]
+         │
+         ├─ impact badge (high/medium/low)
+         ├─ urgency badge (immediate/this_week/monitor)
+         ├─ business_area chip
+         ├─ explanation paragraph
+         ├─ recommended_steps list (each with "+ Tarefa" button)
+         └─ dismiss button (sets status → 'dismissed')
+
+[StrategyPage — new "Decisões" tab]
+         └─ Generate button + list of StrategicDecisionCard
 ```
 
 ---
 
-## Scope of Files
+## Scope of Changes
 
 | Layer | File | Action |
 |---|---|---|
-| Database | migration | Create `revenue_forecasts` table + RLS |
-| Edge Function | `supabase/functions/compute-revenue-forecast/index.ts` | New |
-| Config | `supabase/config.toml` | Register function |
-| Hook | `src/hooks/useRevenueForecast.ts` | New |
-| Component | `src/components/revenue/RevenueIntelligenceCard.tsx` | New |
-| Page | `src/pages/StrategyPage.tsx` | Add "Receita" tab |
-| Dashboard | `src/components/dashboard/DashboardKPICards.tsx` | Add behavioral forecast value |
+| Database | migration | Create `strategic_decisions` table + RLS |
+| Edge Function | `supabase/functions/compute-strategic-decisions/index.ts` | New |
+| Config | `supabase/config.toml` | Add function entry |
+| Hook | `src/hooks/useStrategicDecisions.ts` | New |
+| Component | `src/components/strategy/StrategicDecisionCard.tsx` | New |
+| Page | `src/pages/StrategyPage.tsx` | Add "Decisões" tab |
 
 ---
 
-## 1. Database: `revenue_forecasts` Table
+## 1. Database: `strategic_decisions` Table
 
 ```sql
-CREATE TABLE public.revenue_forecasts (
-  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id    uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
-  generated_at    timestamptz NOT NULL DEFAULT now(),
-
-  -- Horizon totals (weighted_revenue summed per window)
-  forecast_7      numeric NOT NULL DEFAULT 0,
-  forecast_30     numeric NOT NULL DEFAULT 0,
-  forecast_90     numeric NOT NULL DEFAULT 0,
-
-  -- Scenario totals
-  best_case       numeric NOT NULL DEFAULT 0,   -- sum(value) WHERE category = 'hot'
-  expected_case   numeric NOT NULL DEFAULT 0,   -- sum(value * close_probability)
-  worst_case      numeric NOT NULL DEFAULT 0,   -- sum(weighted_revenue) (most conservative)
-
-  -- Derived
-  risk_index      numeric NOT NULL DEFAULT 0,   -- 1 - (worst_case / best_case), 0–1
-  confidence_avg  numeric NOT NULL DEFAULT 0,   -- mean close_score across open opps
-
-  -- Detail snapshot for trend comparison
-  opportunity_count  integer NOT NULL DEFAULT 0,
-  hot_count          integer NOT NULL DEFAULT 0,
-  likely_count       integer NOT NULL DEFAULT 0,
-  uncertain_count    integer NOT NULL DEFAULT 0,
-  low_count          integer NOT NULL DEFAULT 0,
-
-  created_at      timestamptz NOT NULL DEFAULT now()
+CREATE TABLE public.strategic_decisions (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id      uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  decision_title    text NOT NULL,
+  business_area     text NOT NULL,  -- sales, marketing, pricing, operations, retention
+  impact_level      text NOT NULL,  -- high, medium, low
+  urgency           text NOT NULL,  -- immediate, this_week, monitor
+  explanation       text NOT NULL,
+  recommended_steps jsonb NOT NULL DEFAULT '[]',
+  status            text NOT NULL DEFAULT 'open',  -- open, dismissed, converted
+  rule_key          text           -- which rule triggered this (for dedup)
 );
 
-CREATE INDEX ON public.revenue_forecasts(workspace_id, generated_at DESC);
+CREATE INDEX ON public.strategic_decisions(workspace_id, created_at DESC);
+CREATE INDEX ON public.strategic_decisions(workspace_id, status);
 
-ALTER TABLE public.revenue_forecasts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.strategic_decisions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "workspace members read forecasts"
-  ON public.revenue_forecasts FOR SELECT
+CREATE POLICY "workspace members read decisions"
+  ON public.strategic_decisions FOR SELECT
   USING (workspace_id IN (
     SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()
   ));
 
-CREATE POLICY "service role manages forecasts"
-  ON public.revenue_forecasts FOR ALL
+CREATE POLICY "workspace members update decisions"
+  ON public.strategic_decisions FOR UPDATE
+  USING (workspace_id IN (
+    SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()
+  ));
+
+CREATE POLICY "service role manages decisions"
+  ON public.strategic_decisions FOR ALL
   USING (auth.role() = 'service_role')
   WITH CHECK (auth.role() = 'service_role');
 ```
 
-Only two rows will typically exist per workspace (current + previous) — the hook always reads the latest. No data growth concern.
+The `rule_key` column is used to detect if a decision for the same rule was already generated recently (within 7 days). This prevents duplicate decisions if the user regenerates frequently.
 
 ---
 
-## 2. Edge Function: `compute-revenue-forecast`
+## 2. Edge Function: `compute-strategic-decisions`
 
 **Input:** `{ workspace_id }` — on-demand from UI or cron.
+**Output:** Array of inserted `strategic_decisions` rows.
 
 ### Data Queries (parallel)
 
 ```typescript
-const [oppsResult, scoresResult, wonHistoryResult] = await Promise.all([
-  // All open opportunities with value + expected_close_date
-  supabase.from('opportunities')
-    .select('id, value, expected_close_date, status')
-    .eq('workspace_id', workspace_id)
-    .eq('status', 'open'),
+const [forecastsResult, scoresResult, signalsResult, oppsResult] = await Promise.all([
+  // Latest 2 forecasts to detect revenue drop
+  supabase.from("revenue_forecasts")
+    .select("*").eq("workspace_id", workspace_id)
+    .order("generated_at", { ascending: false }).limit(2),
 
-  // All deal_scores for workspace
-  supabase.from('deal_scores')
-    .select('opportunity_id, close_score, category')
-    .eq('workspace_id', workspace_id),
+  // All deal_scores (hot + critical urgency)
+  supabase.from("deal_scores")
+    .select("opportunity_id, close_score, category, urgency, next_action, updated_at")
+    .eq("workspace_id", workspace_id),
 
-  // Historical won deals (last 90 days) for avg close delay
-  supabase.from('opportunities')
-    .select('value, updated_at, expected_close_date')
-    .eq('workspace_id', workspace_id)
-    .eq('status', 'won')
-    .gte('updated_at', ninetyDaysAgo),
+  // All conversation_signals for objection analysis
+  supabase.from("conversation_signals")
+    .select("main_objection, churn_risk, temperature")
+    .eq("workspace_id", workspace_id),
+
+  // Open opportunities for value concentration check
+  supabase.from("opportunities")
+    .select("id, value, title")
+    .eq("workspace_id", workspace_id)
+    .eq("status", "open"),
 ]);
 ```
 
-### Per-Opportunity Computation
+### 5 Decision Rules
 
+**Rule 1 — Revenue Forecast Drop**
 ```
-confidence_weight = { hot: 0.9, likely: 0.7, uncertain: 0.4, low: 0.15 }
+trigger: latest.expected_case < previous.expected_case * 0.80
+  (i.e. dropped > 20%)
 
-close_probability  = close_score / 100
-expected_revenue   = value * close_probability
-weighted_revenue   = expected_revenue * confidence_weight[category]
-```
-
-If an opportunity has **no deal score yet**, use the raw pipeline stage approach as fallback (value * 0.3) so it still contributes.
-
-### Horizon Bucketing
-
-An opportunity contributes to `forecast_7` / `forecast_30` / `forecast_90` based on its `expected_close_date`:
-- ≤ 7 days from now → `forecast_7`
-- ≤ 30 days → `forecast_30`
-- ≤ 90 days → `forecast_90`
-
-If `expected_close_date` is null, it contributes only to `forecast_90` (most conservative).
-
-Each horizon sums `weighted_revenue` (not `expected_revenue`), making it the conservative realistic view.
-
-### Scenario Totals (across all open opportunities regardless of horizon)
-
-```
-best_case     = SUM(value)   WHERE category = 'hot'
-expected_case = SUM(value * close_probability)   [all opps]
-worst_case    = SUM(weighted_revenue)            [all opps, most conservative]
-risk_index    = best_case > 0 ? 1 - (worst_case / best_case) : 0
-confidence_avg = MEAN(close_score) across all scored opps
+→ {
+  decision_title: "Queda de receita prevista — acção de aquisição necessária",
+  business_area: "sales",
+  impact_level: "high",
+  urgency: "immediate",
+  explanation: "A receita esperada caiu X% em relação ao período anterior...",
+  recommended_steps: [
+    "Rever oportunidades estagnadas e activar follow-up urgente",
+    "Lançar campanha de reactivação para leads frios",
+    "Analisar deals perdidos recentes para identificar padrões"
+  ]
+}
 ```
 
-### Historical Close Delay (informational only, stored in metadata)
+**Rule 2 — Hot Deals Inactive**
+```
+trigger: count(deal_scores WHERE category='hot' AND updated_at < now - 3 days) > 0
 
-Compute average days between `expected_close_date` and actual `updated_at` (for won deals) to show accuracy context in the UI tooltip: "On average, your deals close X days after their expected date."
+→ {
+  decision_title: "Negócios quentes sem actividade há mais de 3 dias",
+  business_area: "sales",
+  impact_level: "high",
+  urgency: "immediate",
+  explanation: "X negócios com probabilidade elevada não tiveram actividade...",
+  recommended_steps: [
+    "Contactar cada negócio quente com uma mensagem personalizada",
+    "Agendar reuniões pendentes para esta semana",
+    "Verificar se existem bloqueios ou objeções não registadas"
+  ]
+}
+```
+
+**Rule 3 — Objection Dominance**
+```
+trigger: most_common_objection_count / total_signals > 0.25
+  AND most_common_objection !== "none"
+
+→ {
+  decision_title: "Objeção dominante: [LABEL] em X% das conversas",
+  business_area: "pricing",  // or "marketing" depending on objection type
+  impact_level: "medium",
+  urgency: "this_week",
+  explanation: "A objeção de [tipo] aparece em X% das conversas...",
+  recommended_steps: [
+    "Criar template de resposta específico para esta objeção",
+    "Rever posicionamento de preço/oferta",
+    "Analisar argumentação dos concorrentes"
+  ]
+}
+```
+
+**Rule 4 — Churn Risk Rising**
+```
+trigger: avg(churn_risk WHERE churn_risk > 0.5) > 0.6
+  AND count(signals WHERE churn_risk > 0.7) >= 2
+
+→ {
+  decision_title: "Risco de churn elevado em múltiplos contactos",
+  business_area: "retention",
+  impact_level: "high",
+  urgency: "immediate",
+  explanation: "X contactos apresentam risco de churn acima de 70%...",
+  recommended_steps: [
+    "Contactar clientes de alto risco com oferta de valor personalizada",
+    "Escalar casos críticos para gestor de conta",
+    "Implementar check-in proactivo semanal para este segmento"
+  ]
+}
+```
+
+**Rule 5 — Pipeline Concentration**
+```
+trigger: max_single_opp_value / total_pipeline_value > 0.40
+  AND total_pipeline_value > 0
+
+→ {
+  decision_title: "Concentração de pipeline — risco de dependência de um negócio",
+  business_area: "operations",
+  impact_level: "medium",
+  urgency: "this_week",
+  explanation: "O negócio '[title]' representa X% do valor total do pipeline...",
+  recommended_steps: [
+    "Diversificar pipeline com qualificação de novos leads",
+    "Acelerar outros negócios em fase avançada",
+    "Definir plano de contingência caso este negócio não feche"
+  ]
+}
+```
+
+### Deduplication
+
+Before inserting, check if a decision with the same `rule_key` already exists with status `'open'` created in the last 7 days. If so, skip it. This prevents the same alert from being re-generated on every manual trigger.
+
+```typescript
+const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+const { data: existing } = await supabase
+  .from("strategic_decisions")
+  .select("rule_key")
+  .eq("workspace_id", workspace_id)
+  .eq("status", "open")
+  .gte("created_at", sevenDaysAgo);
+
+const existingRuleKeys = new Set(existing?.map(d => d.rule_key) ?? []);
+// Only insert decisions whose rule_key is NOT in existingRuleKeys
+```
 
 ### Storage
 
 ```typescript
-await supabase.from('revenue_forecasts').insert({
-  workspace_id,
-  forecast_7, forecast_30, forecast_90,
-  best_case, expected_case, worst_case,
-  risk_index, confidence_avg,
-  opportunity_count, hot_count, likely_count, uncertain_count, low_count,
-  generated_at: new Date().toISOString(),
-});
-// Note: INSERT not UPSERT — we keep history for trend calculation
+// Batch insert all triggered decisions
+await supabase.from("strategic_decisions").insert(triggeredDecisions);
 ```
 
-Returns the inserted row to the caller.
+Returns the list of inserted decisions.
 
 ---
 
-## 3. React Hook: `useRevenueForecast`
+## 3. React Hook: `useStrategicDecisions`
 
 ```typescript
-// src/hooks/useRevenueForecast.ts
+// src/hooks/useStrategicDecisions.ts
 
-export interface RevenueForecast {
+export interface StrategicDecision {
   id: string;
   workspace_id: string;
-  generated_at: string;
-  forecast_7: number;
-  forecast_30: number;
-  forecast_90: number;
-  best_case: number;
-  expected_case: number;
-  worst_case: number;
-  risk_index: number;
-  confidence_avg: number;
-  opportunity_count: number;
-  hot_count: number;
-  likely_count: number;
-  uncertain_count: number;
-  low_count: number;
+  created_at: string;
+  decision_title: string;
+  business_area: "sales" | "marketing" | "pricing" | "operations" | "retention";
+  impact_level: "high" | "medium" | "low";
+  urgency: "immediate" | "this_week" | "monitor";
+  explanation: string;
+  recommended_steps: string[];
+  status: "open" | "dismissed" | "converted";
+  rule_key: string | null;
 }
 
-export function useRevenueForecast() {
-  // Fetches latest 2 forecasts (for trend comparison)
-  // queryKey: ["revenue-forecast", currentWorkspace?.id]
-  // Returns: latestForecast, previousForecast, trend (% change in expected_case)
+export function useStrategicDecisions() {
+  // Fetches open decisions ordered by created_at DESC
+  // queryKey: ["strategic-decisions", currentWorkspace?.id]
 }
 
-export function useGenerateRevenueForecast() {
-  // useMutation: calls compute-revenue-forecast edge function
-  // invalidates ["revenue-forecast"] on success
+export function useGenerateStrategicDecisions() {
+  // useMutation → calls compute-strategic-decisions
+  // Invalidates ["strategic-decisions"] on success
 }
-```
 
-**Trend calculation:**
-```
-trend = previousForecast
-  ? pctChange(latest.expected_case, previous.expected_case)
-  : null
+export function useDismissDecision() {
+  // useMutation → UPDATE strategic_decisions SET status='dismissed'
+}
+
+export function useConvertDecisionToTask() {
+  // useMutation → creates a task via useCreateTask pattern
+  // Then UPDATEs decision status to 'converted'
+}
 ```
 
 ---
 
-## 4. Component: `RevenueIntelligenceCard`
+## 4. Component: `StrategicDecisionCard`
 
-**Location:** `src/components/revenue/RevenueIntelligenceCard.tsx`
-
-### Layout
+**Location:** `src/components/strategy/StrategicDecisionCard.tsx`
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│ 💡 Revenue Intelligence            [Atualizar] [Generated: ago]│
-├──────────────────────────────────────────────────────────────── │
-│  Horizons row (3 chips):                                        │
-│  [7 dias: €8.2K] [30 dias: €24K] [90 dias: €61K]              │
-├──────────────────────────────────────────────────────────────── │
-│  Scenarios (3 cards):                                           │
-│  ┌──────────────┐ ┌───────────────────┐ ┌────────────────┐    │
-│  │ Melhor Caso  │ │  Caso Esperado ★  │ │  Pior Caso     │    │
-│  │ €85K  (Hot)  │ │  €52K            │ │  €28K          │    │
-│  └──────────────┘ └───────────────────┘ └────────────────┘    │
-├──────────────────────────────────────────────────────────────── │
-│  Risk Index:  ████████░░  78%  "Risco elevado — dispersão..."  │
-│  Confiança:   ████░░░░░░  61 pts médios                        │
-├──────────────────────────────────────────────────────────────── │
-│  Distribuição: 🔴 3 Hot  🟢 5 Likely  🟡 8 Uncertain  ⚪ 4 Low│
-└────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│ [🔴 Alto Impacto]  [⚡ Imediato]  [Vendas]           [✕ Fechar]│
+├─────────────────────────────────────────────────────────────────┤
+│ Negócios quentes sem actividade há mais de 3 dias               │
+│                                                                  │
+│ 3 negócios com probabilidade elevada (>80%) não registaram      │
+│ actividade nos últimos 3 dias. Risco de perda aumenta          │
+│ significativamente após 5 dias sem contacto.                    │
+├─────────────────────────────────────────────────────────────────┤
+│ Passos recomendados:                                             │
+│ ① Contactar cada negócio quente com uma mensagem…  [+ Tarefa]  │
+│ ② Agendar reuniões pendentes para esta semana      [+ Tarefa]  │
+│ ③ Verificar se existem bloqueios não registados    [+ Tarefa]  │
+│                                                           [Criar Todas as Tarefas] │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-- **Risk index** color: 0–40% → green, 41–70% → amber, 71–100% → red
-- **Trend badge** next to "Caso Esperado": `+12.3% vs semana anterior`
-- Loading skeleton matches the card layout
-- Empty state: "Nenhuma oportunidade com score calculado" + "Gerar Previsão" CTA
+**Badge color logic:**
+- `impact_level`:
+  - `high` → `bg-red-100 text-red-700 border-red-200`
+  - `medium` → `bg-amber-100 text-amber-700 border-amber-200`
+  - `low` → `bg-muted text-muted-foreground`
+- `urgency`:
+  - `immediate` → `bg-red-500 text-white` (solid)
+  - `this_week` → `bg-amber-100 text-amber-700`
+  - `monitor` → `bg-blue-100 text-blue-700`
+- `business_area` → simple chip with emoji: 🎯 Vendas, 📣 Marketing, 💶 Preços, ⚙ Operações, 🛡 Retenção
+
+**Per-step task creation:** Each recommended_step gets a `[+ Tarefa]` button that calls `createTask.mutateAsync({ title: step })`. When all steps have been converted, the card gets a "converted" visual.
+
+**Dismiss:** `[✕]` in the top-right calls `dismissDecision(id)` and removes the card from the list.
 
 ---
 
 ## 5. Integration in `StrategyPage`
 
-Add a third tab **"Receita"** (`💰 Receita`) to the existing `Tabs`:
+Add a **4th tab** `"⚡ Decisões"` to the existing `Tabs`:
 
 ```tsx
-<TabsTrigger value="revenue">💰 Receita</TabsTrigger>
+<TabsTrigger value="decisions">⚡ Decisões</TabsTrigger>
 ...
-<TabsContent value="revenue">
-  <RevenueIntelligenceCard />
-  <OpportunityForecastTable />  {/* per-opportunity breakdown */}
+<TabsContent value="decisions">
+  <DecisionsTab />
 </TabsContent>
 ```
 
-The `OpportunityForecastTable` shows each open opportunity with:
-- Title
-- Value
-- Deal Score badge (color-coded)
-- Category
-- Weighted Revenue contribution
-- Expected close date
-
-This gives the sales manager full transparency on what drives the forecast number.
+`DecisionsTab` (inline in `StrategyPage` following the same pattern as `DealIntelligenceTab`):
+- Header with count badge: "3 decisões activas"
+- `[Analisar e Gerar Decisões]` button (calls `generateDecisions()`)
+- Loading skeleton
+- Empty state: "Nenhuma decisão activa" + CTA to generate
+- List of `StrategicDecisionCard` components
+- Shows "Última análise: X tempo atrás" timestamp
 
 ---
 
-## 6. Cron Schedule
+## 6. Cron Schedule (optional)
 
-Add a daily `pg_cron` job (via the insert tool, not migration) running at 07:00 UTC:
+Add a weekly cron (Monday 08:00 UTC) via the insert tool (not migration):
 
 ```sql
 SELECT cron.schedule(
-  'compute-revenue-forecast-daily',
-  '0 7 * * *',
+  'compute-strategic-decisions-weekly',
+  '0 8 * * 1',
   $$
   SELECT net.http_post(
-    url := 'https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/compute-revenue-forecast',
+    url := 'https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/compute-strategic-decisions',
     headers := '{"Content-Type":"application/json","Authorization":"Bearer <anon_key>"}'::jsonb,
-    body := '{}'::jsonb  -- cron mode: iterates all workspaces
+    body := '{}'::jsonb
   );
   $$
 );
 ```
 
-In cron mode (no `workspace_id` in body), the function iterates all distinct `workspace_id` values from `deal_scores` and generates a forecast for each.
+In cron mode (no `workspace_id`), the function iterates all workspaces from `deal_scores` — same pattern as `compute-revenue-forecast`.
 
 ---
 
 ## Technical Details
 
-- **No AI call** — purely deterministic math. Fast (<300ms), zero credits.
-- **INSERT not UPSERT** on `revenue_forecasts` — we keep the last N snapshots to compute trend. The hook reads `.order('generated_at', { ascending: false }).limit(2)` to get latest + previous.
-- **Fallback for unscored opportunities:** `close_probability = 0.3`, `weighted_revenue = value * 0.3 * 0.4` (treated as "uncertain"). These are excluded from `best_case`.
-- **`risk_index`**: When `best_case = 0` (no hot deals), `risk_index = 1.0` (maximum risk, can't know upside).
-- The `RevenueIntelligenceCard` also shows a "Last generated" timestamp — if older than 24h, it shows a warning and a "Recalcular" button.
-- The per-opportunity breakdown table in the Strategy page reads directly from `opportunities` + `deal_scores` join on the client — no extra DB table needed for this detail view.
-- RLS: users can SELECT their workspace forecasts. Service role writes. Same pattern as `deal_scores` and `weekly_briefs`.
-- `config.toml` gets a new `[functions.compute-revenue-forecast]` section (no `verify_jwt` override needed — called with user JWT from UI).
+- **No AI/LLM** — 100% deterministic rule evaluation. Zero credits. Fast (<200ms).
+- **Deduplication via `rule_key`** — each rule has a fixed key (`"revenue_drop"`, `"hot_inactive"`, `"objection_dominance"`, `"churn_rising"`, `"concentration"`). Only one open decision per rule per 7-day window is allowed.
+- **`recommended_steps` as `jsonb` array of strings** — matches the `priority_actions` pattern from `weekly_briefs`.
+- **RLS**: workspace members can SELECT and UPDATE (for dismiss/convert). Service role writes new decisions. No public access.
+- **`status` flow**: `open` → `dismissed` (user closes card) or `open` → `converted` (all steps converted to tasks). The UI filters to show only `open` decisions.
+- **Component pattern** mirrors `PriorityAction` from `StrategyPage` — same `[+ Tarefa]` button with `disabled` while creating. The "Criar Todas as Tarefas" button iterates all steps.
+- **`config.toml`** gets `[functions.compute-strategic-decisions]` with `verify_jwt = false` (same as other compute functions).
+- The `StrategicDecisionCard` can also show a "generated X ago" timestamp in the footer using `formatDistanceToNow` from `date-fns` with `pt` locale — consistent with `StrategyPage` styling.
 
 ---
 
@@ -350,9 +415,9 @@ In cron mode (no `workspace_id` in body), the function iterates all distinct `wo
 
 | File | Action |
 |---|---|
-| `supabase/migrations/<ts>_revenue_forecasts.sql` | New — table + RLS |
-| `supabase/functions/compute-revenue-forecast/index.ts` | New — computation engine |
+| `supabase/migrations/<ts>_strategic_decisions.sql` | New — table + RLS |
+| `supabase/functions/compute-strategic-decisions/index.ts` | New — 5-rule engine |
 | `supabase/config.toml` | Add function entry |
-| `src/hooks/useRevenueForecast.ts` | New — React hook |
-| `src/components/revenue/RevenueIntelligenceCard.tsx` | New — main UI card |
-| `src/pages/StrategyPage.tsx` | Add "Receita" tab with card + table |
+| `src/hooks/useStrategicDecisions.ts` | New — hook with generate/dismiss/convert |
+| `src/components/strategy/StrategicDecisionCard.tsx` | New — decision card UI |
+| `src/pages/StrategyPage.tsx` | Edit — add "Decisões" tab |
