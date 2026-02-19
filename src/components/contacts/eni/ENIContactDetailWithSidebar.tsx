@@ -21,6 +21,7 @@ import { CommercialHistorySection } from "./sections/CommercialHistorySection";
 import { NotesSection as ContactNotesSection } from "./sections/NotesSection";
 import { NotesSection } from "@/components/leads/sections/NotesSection";
 import { AIInsightsSection } from "./sections/AIInsightsSection";
+import { AIDealInsightPanel } from "@/components/contacts/sections/AIDealInsightPanel";
 import { DocumentsSection } from "./sections/DocumentsSection";
 import { InvoiceHistorySection } from "./sections/InvoiceHistorySection";
 import { AcquiredProductsSection } from "@/components/shared/AcquiredProductsSection";
@@ -229,6 +230,8 @@ export function ENIContactDetailWithSidebar() {
               onGenerateInsights={handleGenerateInsights}
               isGenerating={analyzeContact.isPending}
             />
+            {/* AI Deal Insight - Conversation Intelligence Engine */}
+            <AIDealInsightPanel contactId={id} />
             <EntitySocialMediaAnalysisSection
               entityType="contact"
               entityId={id!}

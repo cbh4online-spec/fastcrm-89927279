@@ -289,6 +289,20 @@ serve(async (req) => {
         },
       });
 
+    // Fire-and-forget: compute conversation signals for the lead
+    (async () => {
+      try {
+        await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/compute-conversation-signals`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({ workspace_id: workspaceId, lead_id: leadId }),
+        });
+      } catch { /* silent */ }
+    })();
+
     console.log("Email processed successfully:", {
       conversationId: conversation.id,
       messageId: message.id,

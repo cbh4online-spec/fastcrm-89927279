@@ -61,6 +61,7 @@ import { OpportunitiesSection } from "@/components/leads/sections/OpportunitiesS
 import { ProposalsSection } from "@/components/leads/sections/ProposalsSection";
 import { EntityTimelineSection } from "@/components/timeline";
 import { EntitySchedulingSection } from "@/components/scheduling/EntitySchedulingSection";
+import { AIDealInsightPanel } from "@/components/contacts/sections/AIDealInsightPanel";
 
 const statusColors: Record<string, string> = {
   new: "bg-blue-500/20 text-blue-600 border-blue-500/30",
@@ -205,6 +206,8 @@ export function LeadDetailWithSidebar() {
                 toast.info(`Ação: ${actionType}`);
               }}
             />
+            {/* AI Deal Insight - Conversation Intelligence Engine */}
+            <AIDealInsightPanel leadId={id} />
             <InsightsSidebar entityType="lead" entityId={id || ''} />
             <EntitySocialMediaAnalysisSection
               entityType="lead"

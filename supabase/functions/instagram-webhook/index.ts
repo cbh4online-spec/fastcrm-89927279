@@ -102,6 +102,26 @@ serve(async (req) => {
             });
 
             console.log("[instagram] Message processed:", result);
+
+            // Fire-and-forget: compute conversation signals for the contact/lead
+            if (result?.contact_id || result?.lead_id) {
+              (async () => {
+                try {
+                  await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/compute-conversation-signals`, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                    },
+                    body: JSON.stringify({
+                      workspace_id: workspaceId,
+                      contact_id: result.contact_id || null,
+                      lead_id: result.lead_id || null,
+                    }),
+                  });
+                } catch { /* silent */ }
+              })();
+            }
           } catch (err) {
             console.error("[instagram] Failed to process message:", err);
           }
