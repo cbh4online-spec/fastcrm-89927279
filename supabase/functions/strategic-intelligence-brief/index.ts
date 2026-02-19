@@ -64,71 +64,178 @@ serve(async (req) => {
   }
 });
 
+// Helper: percentage change rounded to 1 decimal
+function pctChange(current: number, previous: number): number {
+  if (previous === 0) return 0;
+  return Math.round(((current - previous) / previous) * 100 * 10) / 10;
+}
+
+// Helper: average response time in hours from conversations array
+function avgResponseHours(convs: Array<{ created_at: string; last_message_at: string | null }>): number {
+  const valid = convs.filter((c) => c.last_message_at);
+  if (valid.length === 0) return 0;
+  const totalMs = valid.reduce((sum, c) => {
+    return sum + (new Date(c.last_message_at!).getTime() - new Date(c.created_at).getTime());
+  }, 0);
+  return Math.round((totalMs / valid.length / 3600000) * 10) / 10;
+}
+
 async function generateBriefForWorkspace(supabase: ReturnType<typeof createClient>, workspaceId: string) {
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-  const sevenDaysAgoISO = sevenDaysAgo.toISOString();
-  const fourteenDaysAgoISO = fourteenDaysAgo.toISOString();
-  const nowISO = now.toISOString();
+  const d7 = sevenDaysAgo.toISOString();
+  const d14 = fourteenDaysAgo.toISOString();
 
-  // --- Leads ---
-  const [{ count: leadsThisWeek }, { count: leadsPrevWeek }] = await Promise.all([
+  // --- Run all 15 queries in parallel ---
+  const [
+    { count: leadsThisWeek },
+    { count: leadsPrevWeek },
+    { count: inactiveLeads },
+    wonThisWeekRes,
+    wonPrevWeekRes,
+    { count: lostThisWeek },
+    { count: lostPrevWeek },
+    { count: openDeals },
+    { count: messagesThisWeek },
+    { count: messagesPrevWeek },
+    { data: messageSamples },
+    { count: tasksCompleted },
+    { count: tasksPending },
+    { data: convsThisWeek },
+    { data: convsPrevWeek },
+  ] = await Promise.all([
+    // 1. Leads this week
     supabase.from("leads").select("*", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId).gte("created_at", sevenDaysAgoISO),
+      .eq("workspace_id", workspaceId).gte("created_at", d7),
+
+    // 2. Leads previous week
+    supabase.from("leads").select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId).gte("created_at", d14).lt("created_at", d7),
+
+    // 3. Inactive leads (no contact in > 7 days, not won/lost)
     supabase.from("leads").select("*", { count: "exact", head: true })
       .eq("workspace_id", workspaceId)
-      .gte("created_at", fourteenDaysAgoISO).lt("created_at", sevenDaysAgoISO),
+      .not("status", "in", '("won","lost")')
+      .or(`last_contact_at.lt.${d7},last_contact_at.is.null`),
+
+    // 4. Won deals this week (count + sum value)
+    supabase.from("opportunities").select("value")
+      .eq("workspace_id", workspaceId).eq("status", "won").gte("updated_at", d7),
+
+    // 5. Won deals previous week (count + sum value)
+    supabase.from("opportunities").select("value")
+      .eq("workspace_id", workspaceId).eq("status", "won").gte("updated_at", d14).lt("updated_at", d7),
+
+    // 6. Lost deals this week
+    supabase.from("opportunities").select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId).eq("status", "lost").gte("updated_at", d7),
+
+    // 7. Lost deals previous week
+    supabase.from("opportunities").select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId).eq("status", "lost").gte("updated_at", d14).lt("updated_at", d7),
+
+    // 8. Open deals (current snapshot)
+    supabase.from("opportunities").select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId).eq("status", "open"),
+
+    // 9. Messages this week (direct workspace_id column)
+    supabase.from("messages").select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId).gte("sent_at", d7),
+
+    // 10. Messages previous week
+    supabase.from("messages").select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId).gte("sent_at", d14).lt("sent_at", d7),
+
+    // 11. Message samples for AI context
+    supabase.from("messages").select("direction, content, sent_at")
+      .eq("workspace_id", workspaceId).gte("sent_at", d7)
+      .order("sent_at", { ascending: false }).limit(60),
+
+    // 12. Tasks completed this week
+    supabase.from("tasks").select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId).eq("status", "done").gte("updated_at", d7),
+
+    // 13. Tasks pending
+    supabase.from("tasks").select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId).in("status", ["pending", "todo"]),
+
+    // 14. Conversations this week (for response time)
+    supabase.from("conversations").select("created_at, last_message_at")
+      .eq("workspace_id", workspaceId).gte("created_at", d7).not("last_message_at", "is", null),
+
+    // 15. Conversations previous week (for response time comparison)
+    supabase.from("conversations").select("created_at, last_message_at")
+      .eq("workspace_id", workspaceId).gte("created_at", d14).lt("created_at", d7).not("last_message_at", "is", null),
   ]);
 
-  // --- Tasks ---
-  const [{ count: tasksCompleted }, { count: tasksPending }] = await Promise.all([
-    supabase.from("tasks").select("*", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId).eq("status", "done").gte("updated_at", sevenDaysAgoISO),
-    supabase.from("tasks").select("*", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId).eq("status", "pending"),
-  ]);
+  // --- Derive counts and sums ---
+  const wonThisWeekData = wonThisWeekRes.data || [];
+  const wonPrevWeekData = wonPrevWeekRes.data || [];
 
-  // --- Messages for signal extraction ---
-  const { data: conversations } = await supabase
-    .from("conversations")
-    .select("id")
-    .eq("workspace_id", workspaceId);
+  const wonThisWeekCount = wonThisWeekData.length;
+  const wonPrevWeekCount = wonPrevWeekData.length;
+  const revenueThisWeek = wonThisWeekData.reduce((s: number, r: { value: number | null }) => s + (r.value || 0), 0);
+  const revenuePrevWeek = wonPrevWeekData.reduce((s: number, r: { value: number | null }) => s + (r.value || 0), 0);
 
-  const conversationIds = (conversations || []).map((c: { id: string }) => c.id);
+  const lostThisWeekCount = lostThisWeek || 0;
+  const lostPrevWeekCount = lostPrevWeek || 0;
 
-  let messages: Array<{ direction: string; content: string; created_at: string }> = [];
-  if (conversationIds.length > 0) {
-    const { data: msgs } = await supabase
-      .from("messages")
-      .select("direction, content, created_at")
-      .in("conversation_id", conversationIds.slice(0, 100))
-      .gte("created_at", sevenDaysAgoISO)
-      .order("created_at", { ascending: false })
-      .limit(60);
-    messages = msgs || [];
-  }
+  // --- Delta calculations ---
+  const leadsChange = pctChange(leadsThisWeek || 0, leadsPrevWeek || 0);
+  const revenueChange = pctChange(revenueThisWeek, revenuePrevWeek);
+  const messagesChange = pctChange(messagesThisWeek || 0, messagesPrevWeek || 0);
 
-  // Build message context
+  const totalThisWeek = wonThisWeekCount + lostThisWeekCount;
+  const totalPrevWeek = wonPrevWeekCount + lostPrevWeekCount;
+  const convThisWeek = totalThisWeek > 0 ? wonThisWeekCount / totalThisWeek : 0;
+  const convPrevWeek = totalPrevWeek > 0 ? wonPrevWeekCount / totalPrevWeek : 0;
+  const conversionChange = pctChange(convThisWeek * 100, convPrevWeek * 100);
+
+  const avgRespThis = avgResponseHours(convsThisWeek || []);
+  const avgRespPrev = avgResponseHours(convsPrevWeek || []);
+  const responseTimeChange = pctChange(avgRespThis, avgRespPrev);
+
+  // --- Build message context for AI ---
+  const messages = messageSamples || [];
   const messageContext = messages
     .slice(0, 40)
     .reverse()
-    .map((m) => `[${m.direction === "inbound" ? "Cliente" : "Agente"}]: ${(m.content || "").substring(0, 200)}`)
+    .map((m: { direction: string; content: string }) =>
+      `[${m.direction === "inbound" ? "Cliente" : "Agente"}]: ${(m.content || "").substring(0, 200)}`)
     .join("\n");
 
-  // Compute metric changes
-  const leadsChange = leadsPrevWeek && leadsPrevWeek > 0
-    ? Math.round(((leadsThisWeek || 0) - leadsPrevWeek) / leadsPrevWeek * 100)
-    : 0;
+  // --- Build rich metrics context for AI ---
+  const convThisPct = Math.round(convThisWeek * 100);
+  const convPrevPct = Math.round(convPrevWeek * 100);
 
   const metricsContext = `
-Leads this week: ${leadsThisWeek || 0}
-Leads previous week: ${leadsPrevWeek || 0}
-Leads change: ${leadsChange}%
-Tasks completed (7d): ${tasksCompleted || 0}
-Tasks pending: ${tasksPending || 0}
-Total messages analyzed: ${messages.length}
+SEMANA ATUAL (últimos 7 dias):
+- Leads criados: ${leadsThisWeek || 0}
+- Negócios ganhos: ${wonThisWeekCount} (€${revenueThisWeek.toLocaleString("pt-PT")})
+- Negócios perdidos: ${lostThisWeekCount}
+- Negócios em aberto: ${openDeals || 0}
+- Mensagens trocadas: ${messagesThisWeek || 0}
+- Tarefas concluídas: ${tasksCompleted || 0} | Pendentes: ${tasksPending || 0}
+- Leads inativos (>7 dias sem contacto): ${inactiveLeads || 0}
+
+SEMANA ANTERIOR (7-14 dias):
+- Leads criados: ${leadsPrevWeek || 0}
+- Negócios ganhos: ${wonPrevWeekCount} (€${revenuePrevWeek.toLocaleString("pt-PT")})
+- Negócios perdidos: ${lostPrevWeekCount}
+- Mensagens trocadas: ${messagesPrevWeek || 0}
+
+VARIAÇÕES CALCULADAS:
+- Leads: ${leadsChange >= 0 ? "+" : ""}${leadsChange}%
+- Receita: ${revenueChange >= 0 ? "+" : ""}${revenueChange}%
+- Taxa de conversão: ${conversionChange >= 0 ? "+" : ""}${conversionChange}% (${convPrevPct}% → ${convThisPct}%)
+- Tempo de resposta: ${responseTimeChange >= 0 ? "+" : ""}${responseTimeChange}% (${responseTimeChange < 0 ? "mais rápido" : "mais lento"})
+- Mensagens: ${messagesChange >= 0 ? "+" : ""}${messagesChange}%
+
+TEMPO MÉDIO DE RESPOSTA:
+- Esta semana: ${avgRespThis}h
+- Semana anterior: ${avgRespPrev}h
   `.trim();
 
   // Call Lovable AI
@@ -143,19 +250,19 @@ Total messages analyzed: ${messages.length}
       messages: [
         {
           role: "system",
-          content: `És um analista estratégico de negócios sénior. Analisa dados de CRM e conversas para gerar um relatório executivo semanal em Português de Portugal. Sê direto, perspicaz e orientado para ação. Usa linguagem executiva profissional.`,
+          content: `És um analista estratégico de negócios sénior. Analisa dados reais de CRM e conversas para gerar um relatório executivo semanal em Português de Portugal. Sê direto, perspicaz e orientado para ação. Usa linguagem executiva profissional. Os dados métricos são reais — interpreta-os com rigor.`,
         },
         {
           role: "user",
-          content: `Analisa os seguintes dados do workspace e gera um brief executivo semanal.
+          content: `Analisa os seguintes dados reais do workspace e gera um brief executivo semanal.
 
-MÉTRICAS DA SEMANA:
+DADOS REAIS DO WORKSPACE:
 ${metricsContext}
 
 AMOSTRA DE CONVERSAS RECENTES:
 ${messageContext || "Sem conversas esta semana."}
 
-Gera um brief executivo com insights acionáveis.`,
+Gera um brief executivo com insights acionáveis baseados nos dados reais acima.`,
         },
       ],
       tools: [
@@ -188,23 +295,8 @@ Gera um brief executivo com insights acionáveis.`,
                   items: { type: "string" },
                   description: "5 priority actions for the upcoming week",
                 },
-                key_metrics: {
-                  type: "object",
-                  properties: {
-                    leads_change: { type: "number", description: "% change in leads vs prior week" },
-                    revenue_change: { type: "number", description: "% change in revenue vs prior week (estimate)" },
-                    conversion_change: { type: "number", description: "% change in conversion rate vs prior week" },
-                    response_time_change: { type: "number", description: "% change in response time (negative = faster)" },
-                    leads_total: { type: "number" },
-                    tasks_completed: { type: "number" },
-                    tasks_pending: { type: "number" },
-                    messages_total: { type: "number" },
-                  },
-                  required: ["leads_change", "leads_total", "tasks_completed", "tasks_pending", "messages_total"],
-                  additionalProperties: false,
-                },
               },
-              required: ["summary", "opportunity", "risk", "market_signal", "priority_actions", "key_metrics"],
+              required: ["summary", "opportunity", "risk", "market_signal", "priority_actions"],
               additionalProperties: false,
             },
           },
@@ -227,12 +319,23 @@ Gera um brief executivo com insights acionáveis.`,
 
   const briefData = JSON.parse(toolCall.function.arguments);
 
-  // Fill in concrete metrics
-  briefData.key_metrics.leads_total = leadsThisWeek || 0;
-  briefData.key_metrics.leads_change = leadsChange;
-  briefData.key_metrics.tasks_completed = tasksCompleted || 0;
-  briefData.key_metrics.tasks_pending = tasksPending || 0;
-  briefData.key_metrics.messages_total = messages.length;
+  // Override key_metrics with real computed values (never trust AI for numbers)
+  const realMetrics = {
+    leads_change: leadsChange,
+    revenue_change: revenueChange,
+    conversion_change: conversionChange,
+    response_time_change: responseTimeChange,
+    leads_total: leadsThisWeek || 0,
+    won_deals: wonThisWeekCount,
+    lost_deals: lostThisWeekCount,
+    messages_total: messagesThisWeek || 0,
+    tasks_completed: tasksCompleted || 0,
+    tasks_pending: tasksPending || 0,
+    inactive_leads: inactiveLeads || 0,
+    open_deals: openDeals || 0,
+    revenue_this_week: revenueThisWeek,
+    avg_response_hours_this_week: avgRespThis,
+  };
 
   // Insert into weekly_briefs
   const { data: inserted, error } = await supabase
@@ -244,7 +347,7 @@ Gera um brief executivo com insights acionáveis.`,
       risk: briefData.risk,
       market_signal: briefData.market_signal,
       priority_actions: briefData.priority_actions,
-      key_metrics: briefData.key_metrics,
+      key_metrics: realMetrics,
     })
     .select()
     .single();
