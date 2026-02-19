@@ -33,6 +33,7 @@ import {
   Brain,
 } from "lucide-react";
 import { useStrategicBriefs } from "@/hooks/useStrategicBriefs";
+import { RevenueIntelligenceCard } from "@/components/revenue/RevenueIntelligenceCard";
 import { useCreateTask } from "@/hooks/useTasks";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -456,6 +457,7 @@ export default function StrategyPage() {
         <TabsList className="mb-2">
           <TabsTrigger value="brief">📋 Brief Executivo</TabsTrigger>
           <TabsTrigger value="deals">🎯 Deal Intelligence</TabsTrigger>
+          <TabsTrigger value="revenue">💰 Receita</TabsTrigger>
         </TabsList>
 
         {/* ─── BRIEF EXECUTIVO ─────────────────────────────────────────────── */}
@@ -706,6 +708,11 @@ export default function StrategyPage() {
         {/* ─── DEAL INTELLIGENCE ───────────────────────────────────────────── */}
         <TabsContent value="deals">
           <DealIntelligenceTab />
+        </TabsContent>
+
+        {/* ─── REVENUE INTELLIGENCE ────────────────────────────────────────── */}
+        <TabsContent value="revenue">
+          <RevenueIntelligenceCard showTable />
         </TabsContent>
       </Tabs>
     </div>
