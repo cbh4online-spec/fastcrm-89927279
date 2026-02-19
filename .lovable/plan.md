@@ -1,246 +1,174 @@
 
-# Strategic Intelligence Engine — Weekly Executive Brief
+# Rebuild: `strategic-intelligence-brief` — Full Data Aggregation
 
-## What This Does
+## Problem with Current Implementation
 
-The user is providing the exact schema for the `weekly_briefs` table and wants the full Strategic Intelligence Engine module implemented. This was approved in an earlier plan but never built. The Conversation Intelligence Engine (AI Deal Insight) was built; now we complete the **other half**: the automated weekly executive brief.
+The existing edge function is **missing the real data the plan specifies**. It currently only queries:
+- Leads (count only)
+- Tasks
+- Messages (via conversations join)
 
----
+It is **missing**:
+- Opportunities (won, lost, open, revenue)
+- Previous 7-day period comparison for messages and opportunities
+- Response time calculation from conversations
+- Lead inactivity (no `last_contact_at` > 7 days)
+- Revenue computation from won deals
 
-## Scope of Work
-
-| Layer | Action |
-|---|---|
-| Database migration | Create `weekly_briefs` table with the user's exact schema + RLS |
-| Edge Function | `strategic-intelligence-brief` — aggregates workspace data + AI + saves brief |
-| Cron schedule | Auto-run every Monday at 06:00 UTC via pg_cron |
-| React hook | `useStrategicBriefs` — fetch history + on-demand generate |
-| Strategy Page | `/dashboard/strategy` — tabbed page with "Brief Executivo" + "Deal Intelligence" |
-| Sidebar | Add "Estratégia" group with "Brief Executivo" item |
-| App.tsx | Register `/dashboard/strategy` route |
+The AI therefore generates guessed/estimated values for `revenue_change`, `conversion_change`, and `response_time_change` rather than real data.
 
 ---
 
-## 1. Database: `weekly_briefs` Table
+## What Needs to Be Rebuilt
 
-Using the user's exact schema, with added RLS policies and a foreign key on `workspace_id`:
+The `generateBriefForWorkspace` function inside `supabase/functions/strategic-intelligence-brief/index.ts` needs to be replaced with a complete data aggregation pipeline.
 
-```sql
-CREATE TABLE public.weekly_briefs (
-  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id     uuid REFERENCES public.workspaces(id) ON DELETE CASCADE,
-  created_at       timestamptz DEFAULT now(),
-  summary          text,
-  opportunity      text,
-  risk             text,
-  market_signal    text,
-  priority_actions jsonb,
-  key_metrics      jsonb
-);
+---
 
-CREATE INDEX ON public.weekly_briefs(workspace_id, created_at DESC);
+## Full Data Pipeline (per workspace, per call)
 
-ALTER TABLE public.weekly_briefs ENABLE ROW LEVEL SECURITY;
-
--- Workspace members can read their briefs
-CREATE POLICY "workspace members read weekly briefs"
-  ON public.weekly_briefs FOR SELECT
-  USING (
-    workspace_id IN (
-      SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()
-    )
-  );
-
--- Service role (edge function / cron) can write
-CREATE POLICY "service role manages weekly briefs"
-  ON public.weekly_briefs FOR ALL
-  USING (auth.role() = 'service_role')
-  WITH CHECK (auth.role() = 'service_role');
+### Time windows
+```
+now                = current timestamp
+7d_ago             = now - 7 days    (start of "this week")
+14d_ago            = now - 14 days   (start of "previous week")
 ```
 
-The `key_metrics` jsonb stores: `{ leads_change, revenue_change, conversion_change, response_time_change, leads_total, won_deals, lost_deals, messages_total, tasks_completed, tasks_pending }`.
+### Queries to run in parallel
 
-The `priority_actions` jsonb stores an array of 5 strings: `["action 1", "action 2", ...]`.
+| # | Table | Query | Output |
+|---|-------|-------|--------|
+| 1 | `leads` | count `created_at >= 7d_ago` | `leadsThisWeek` |
+| 2 | `leads` | count `created_at >= 14d_ago AND < 7d_ago` | `leadsPrevWeek` |
+| 3 | `leads` | count `last_contact_at < 7d_ago OR last_contact_at IS NULL` AND status not won/lost | `inactiveLeads` |
+| 4 | `opportunities` | count + sum(value) WHERE `status = 'won'` AND `updated_at >= 7d_ago` | `wonThisWeek`, `revenueThisWeek` |
+| 5 | `opportunities` | count + sum(value) WHERE `status = 'won'` AND `updated_at >= 14d_ago AND < 7d_ago` | `wonPrevWeek`, `revenuePrevWeek` |
+| 6 | `opportunities` | count WHERE `status = 'lost'` AND `updated_at >= 7d_ago` | `lostThisWeek` |
+| 7 | `opportunities` | count WHERE `status = 'lost'` AND `updated_at >= 14d_ago AND < 7d_ago` | `lostPrevWeek` |
+| 8 | `opportunities` | count WHERE `status = 'open'` (all-time, current snapshot) | `openDeals` |
+| 9 | `messages` | count WHERE `workspace_id = ? AND sent_at >= 7d_ago` | `messagesThisWeek` |
+| 10 | `messages` | count WHERE `workspace_id = ? AND sent_at >= 14d_ago AND < 7d_ago` | `messagesPrevWeek` |
+| 11 | `messages` | fetch last 60 content samples WHERE `workspace_id = ? AND sent_at >= 7d_ago` | message context for AI |
+| 12 | `tasks` | count WHERE `status = 'done' AND updated_at >= 7d_ago` | `tasksCompleted` |
+| 13 | `tasks` | count WHERE status IN ('pending','todo') | `tasksPending` |
+| 14 | `conversations` | fetch `created_at`, `last_message_at` WHERE `created_at >= 7d_ago` | for response time calc |
+| 15 | `conversations` | same for previous week | for response time comparison |
+
+> **Note on `messages`:** The `messages` table has a direct `workspace_id` column, so no join via `conversations` is needed — much simpler and faster.
 
 ---
 
-## 2. Edge Function: `strategic-intelligence-brief`
+## Delta Calculations
 
-**Accepts:** `{ workspace_id? }` — if omitted in cron mode, iterates all workspaces.
+All computed in the function (not by AI):
 
-**Processing per workspace:**
+```
+leadsChange         = pct_change(leadsThisWeek, leadsPrevWeek)
+revenueChange       = pct_change(revenueThisWeek, revenuePrevWeek)
+messagesChange      = pct_change(messagesThisWeek, messagesPrevWeek)
 
-1. Query **last 7 days** vs **prior 7 days** for:
-   - `leads` table → count created, count with no activity > 7 days
-   - `opportunities` table → created, won, lost; sum of value for won deals
-   - `messages` table → count total, sample last 60 messages for pattern analysis
-   - `tasks` table → completed vs pending
-2. Compute percentage changes between periods
-3. Build message context for AI (last 60 message bodies for signal extraction)
-4. Call `google/gemini-2.5-flash` with tool-calling to produce the structured brief
-5. Insert result into `weekly_briefs` table
+conversionThisWeek  = wonThisWeek / (wonThisWeek + lostThisWeek)  [if > 0]
+conversionPrevWeek  = wonPrevWeek / (wonPrevWeek + lostPrevWeek)  [if > 0]
+conversionChange    = pct_change(conversionThisWeek, conversionPrevWeek)
 
-**AI tool schema:**
+avgRespThisWeek     = mean(last_message_at - created_at) for conversations this week
+avgRespPrevWeek     = mean(last_message_at - created_at) for conversations prev week
+responseTimeChange  = pct_change(avgRespThisWeek, avgRespPrevWeek)
+                      (negative = faster = good)
+```
+
+Helper:
+```typescript
+function pctChange(current: number, previous: number): number {
+  if (previous === 0) return 0;
+  return Math.round(((current - previous) / previous) * 100 * 10) / 10;
+}
+```
+
+---
+
+## Metrics Context Sent to AI
+
+The prompt context block sent to AI becomes:
+
+```
+SEMANA ATUAL (últimos 7 dias):
+- Leads criados: 23
+- Negócios ganhos: 4 (€12.500)
+- Negócios perdidos: 2
+- Negócios em aberto: 18
+- Mensagens trocadas: 156
+- Tarefas concluídas: 11 | Pendentes: 7
+- Leads inativos (>7 dias sem contacto): 9
+
+SEMANA ANTERIOR (7-14 dias):
+- Leads criados: 20
+- Negócios ganhos: 3 (€9.200)
+- Negócios perdidos: 1
+- Mensagens trocadas: 132
+
+VARIAÇÕES CALCULADAS:
+- Leads: +15%
+- Receita: +35.9%
+- Taxa de conversão: +12.5% (40% → 57%)
+- Tempo de resposta: -8% (mais rápido)
+- Mensagens: +18.2%
+
+TEMPO MÉDIO DE RESPOSTA:
+- Esta semana: 4.2h
+- Semana anterior: 4.6h
+
+AMOSTRA DE CONVERSAS (últimas 40 mensagens):
+[Cliente]: Qual é o preço...
+[Agente]: ...
+```
+
+---
+
+## `key_metrics` Object Stored in DB
+
+The function **overrides** AI-guessed metrics with the real computed values before inserting:
+
 ```json
 {
-  "name": "generate_weekly_brief",
-  "parameters": {
-    "summary": "string — 2-3 sentence executive summary",
-    "opportunity": "string — biggest opportunity detected",
-    "risk": "string — biggest risk detected",
-    "market_signal": "string — market signal from messages",
-    "priority_actions": ["string x5"],
-    "key_metrics": {
-      "leads_change": "number",
-      "revenue_change": "number",
-      "conversion_change": "number",
-      "response_time_change": "number"
-    }
-  }
+  "leads_change": 15.0,
+  "revenue_change": 35.9,
+  "conversion_change": 12.5,
+  "response_time_change": -8.0,
+  "leads_total": 23,
+  "won_deals": 4,
+  "lost_deals": 2,
+  "messages_total": 156,
+  "tasks_completed": 11,
+  "tasks_pending": 7,
+  "inactive_leads": 9,
+  "open_deals": 18,
+  "revenue_this_week": 12500,
+  "avg_response_hours_this_week": 4.2
 }
 ```
 
-6. Return the generated brief to caller (for on-demand mode)
-
 ---
 
-## 3. Cron Schedule (pg_cron)
+## Files to Edit
 
-Inserted via the **insert tool** (data operation, not migration):
-```sql
-SELECT cron.schedule(
-  'strategic-intelligence-weekly',
-  '0 6 * * 1',
-  $$SELECT net.http_post(...)$$
-);
-```
+Only **one file** needs to change:
 
-This runs every Monday at 06:00 UTC and generates a brief for every workspace automatically.
-
----
-
-## 4. React Hook: `useStrategicBriefs`
-
-```typescript
-useStrategicBriefs(workspaceId: string) → {
-  briefs: WeeklyBrief[],         // history, newest first
-  latestBrief: WeeklyBrief | null,
-  isLoading: boolean,
-  isGenerating: boolean,
-  generateBrief: () => Promise<void>,
-}
-```
-
-Fetches from `weekly_briefs` where `workspace_id = currentWorkspace.id`, ordered by `created_at DESC`, limit 12 (3 months of history).
-
-`generateBrief()` calls the edge function with the workspace_id and invalidates the query.
-
----
-
-## 5. Strategy Page (`/dashboard/strategy`)
-
-Two tabs: **Brief Executivo** and **Deal Intelligence**.
-
-### Tab 1: Brief Executivo
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  Header: "Estratégia Semanal"    [🔄 Gerar Relatório button]  │
-├──────────────────────────────────────────────────────────────┤
-│  Key Metrics (4 cards, top row)                              │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────┐   │
-│  │ Leads Δ  │ │Revenue Δ │ │Convert.Δ │ │ Resp.Time Δ  │   │
-│  │  +12.5%  │ │  -4.0%   │ │  +3.1%   │ │  -8.2%       │   │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────────┘   │
-├──────────────────────────────────────────────────────────────┤
-│  Executive Summary (prose card, full width)                  │
-├─────────────────┬─────────────────┬────────────────────────┤
-│  Oportunidade   │  Risco          │  Sinal de Mercado      │
-│  (green card)   │  (red card)     │  (blue card)           │
-├──────────────────────────────────────────────────────────────┤
-│  5 Ações Prioritárias                                        │
-│  1. [action text]        [Criar Tarefa]                      │
-│  2. [action text]        [Criar Tarefa]                      │
-│  3. [action text]        [Criar Tarefa]                      │
-│  4. [action text]        [Criar Tarefa]                      │
-│  5. [action text]        [Criar Tarefa]                      │
-│                          [Criar Todas as Tarefas]            │
-├──────────────────────────────────────────────────────────────┤
-│  Histórico (last 8 briefs in accordion)                      │
-└──────────────────────────────────────────────────────────────┘
-```
-
-Empty state when no briefs exist: "Ainda não há dados suficientes. Clique em **Gerar Relatório** para criar o primeiro brief executivo semanal."
-
-### Tab 2: Deal Intelligence
-
-Aggregated workspace-level view from `conversation_signals` table (already populated by the Conversation Intelligence Engine):
-- Temperature distribution chart (cold/evaluating/ready_to_buy/stalling/lost)
-- Average close probability across all contacts
-- Top 3 main objections (bar chart using recharts)
-- List of top 10 contacts/leads sorted by close probability descending
-
----
-
-## 6. Sidebar — "Estratégia" Group
-
-Add a new `NavGroup` between "Relatórios" and "Ferramentas" in `Sidebar.tsx`:
-
-```typescript
-{
-  name: "Estratégia",
-  icon: BrainCircuit,
-  tooltip: "Inteligência estratégica e negocial",
-  highlight: true,
-  items: [
-    {
-      name: "Brief Executivo",
-      href: "/dashboard/strategy",
-      icon: FileBarChart2,
-      tooltip: "Relatório executivo semanal com IA",
-      highlight: true,
-    },
-  ],
-}
-```
-
-Also add `"Brief Executivo": "strategy"` to the `menuKeyMap`.
-
----
-
-## 7. App.tsx Route
-
-Add inside the protected dashboard routes:
-```tsx
-import StrategyPage from "./pages/StrategyPage";
-// ...
-<Route path="strategy" element={<StrategyPage />} />
-```
-
----
-
-## Files to Create / Edit
-
-| File | Action |
+| File | Change |
 |---|---|
-| `supabase/migrations/<ts>_weekly_briefs.sql` | Create `weekly_briefs` table + RLS |
-| `supabase/functions/strategic-intelligence-brief/index.ts` | New edge function |
-| `supabase/config.toml` | Register `strategic-intelligence-brief` |
-| `src/hooks/useStrategicBriefs.ts` | New React hook |
-| `src/pages/StrategyPage.tsx` | New Strategy page (2 tabs) |
-| `src/components/layout/Sidebar.tsx` | Add "Estratégia" group |
-| `src/App.tsx` | Add `/dashboard/strategy` route |
+| `supabase/functions/strategic-intelligence-brief/index.ts` | Replace `generateBriefForWorkspace` with full data aggregation pipeline |
+
+No DB changes, no frontend changes, no hook changes — the data shape stored in `key_metrics` is a superset of what the hook already reads.
 
 ---
 
 ## Technical Details
 
-- The edge function uses `SUPABASE_SERVICE_ROLE_KEY` (auto-available in Deno edge functions) to read from all workspace tables and write to `weekly_briefs`.
-- On-demand calls from the UI pass `{ workspace_id }` in the body; the function generates a brief for that workspace only and returns it immediately.
-- Cron mode (called with no body) fetches all workspace IDs and iterates, generating a brief per workspace. This is fire-and-forget from the cron perspective.
-- The `priority_actions` array is stored as `jsonb` — the UI iterates it to render each action and the "Criar Tarefa" button passes it to the existing task creation hook.
-- "Criar Tarefa" sets `due_at` to 7 days from now and uses the action text as the task title.
-- The Deal Intelligence tab reads from the existing `conversation_signals` table — no new queries needed, just aggregate counts.
-- Metric change cards use green/red color coding: positive change in leads/revenue/conversion = green, negative = red; for response_time_change the inverse applies (lower time = green).
-- The history accordion shows the brief date, a one-line summary preview, and expands to show the full brief for trend comparison.
-- `verify_jwt = false` in config.toml for `strategic-intelligence-brief` since it's called by pg_cron (no JWT available in cron context).
+- All 15 queries run in parallel using `Promise.all` for performance.
+- The `messages` table is queried directly by `workspace_id` (no join needed — the column exists).
+- Opportunity `status` values used: `'won'` and `'lost'` (confirmed from `useKPIs.ts` and `useOpportunitiesEnhanced.ts`).
+- Response time is computed from `conversations.created_at` vs `conversations.last_message_at` — same approach used in `useOperationalDashboard.ts`.
+- The AI tool `generate_weekly_brief` remains unchanged in schema — the AI still provides `summary`, `opportunity`, `risk`, `market_signal`, and `priority_actions` (qualitative fields). All numeric `key_metrics` are overridden with real values after the AI call.
+- `revenue_change`, `conversion_change`, `response_time_change` go from being AI-estimated to being real computed values.
+- If previous week had 0 won+lost deals (division by zero in conversion), `conversion_change` is set to 0.
+- The cron schedule and on-demand call patterns are unchanged.
