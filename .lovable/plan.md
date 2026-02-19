@@ -1,49 +1,48 @@
 
-## Problema Identificado
+# Problema: Rota `/dashboard/tasks` não existe
 
-O edge function `productivity-coach` falha com:
+## Diagnóstico
 
-```
-ReferenceError: serve is not defined
-    at file:///var/tmp/sb-compile-edge-runtime/functions/productivity-coach/index.ts:6:1
-```
+O dashboard e o widget "Minhas Tarefas" navegam para `/dashboard/tasks`, mas essa rota **nunca foi registada** no router (`src/App.tsx`). Resultado: 404 imediato.
 
-A função usa `serve(async (req) => { ... })` na linha 8, mas **nunca importa** `serve` do módulo Deno padrão. Isso impede a função de arrancar — qualquer chamada à IA (incluindo "Gerar com IA" no Coach de Produtividade) falha imediatamente.
+Locais que causam o problema:
+- `src/pages/Dashboard.tsx` → linhas 565, 566, 582 (`navigate("/dashboard/tasks")`)
+- `src/components/dashboard/MyTasksWidget.tsx` → linha 112 (`navigate("/dashboard/tasks")`)
 
-## Causa
-
-Ficheiro: `supabase/functions/productivity-coach/index.ts`
-
-```ts
-// Linha 1 — só importa supabase-js, falta o import de serve
-import { createClient } from "@supabase/supabase-js";
-
-// Linha 8 — usa serve sem o ter importado
-serve(async (req) => { ... })
-```
-
-Falta a linha:
-```ts
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-```
+Todos os componentes necessários já existem:
+- `TaskList` — lista com tabs pendentes/concluídas
+- `CreateTaskDialog` — criação de tarefas
+- `useTasks`, `useCreateTask`, `useUpdateTask`, `useDeleteTask`, `useToggleTaskStatus` — hooks completos
 
 ## Solução
 
-### Alteração única — `supabase/functions/productivity-coach/index.ts`
+### 1. Criar `src/pages/TasksPage.tsx`
 
-Adicionar o import em falta na primeira linha do ficheiro:
+Uma página dedicada com `DashboardLayout` que:
+- Mostra o header "Minhas Tarefas" com contador de pendentes e botão "Nova Tarefa"
+- Usa filtros por estado (pendentes / concluídas) e por data
+- Reutiliza `TaskList` para renderizar
+- Usa `CreateTaskDialog` para criar tarefas globais (sem `related_type`/`related_id` obrigatório)
+- Suporta query param `?selected=<id>` para destacar uma tarefa específica (vindo do dashboard widget)
 
-```ts
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "@supabase/supabase-js";
+### 2. Registar a rota em `src/App.tsx`
+
+Adicionar uma linha na secção "Main Routes":
+
+```
+<Route path="/dashboard/tasks" element={<TasksPage />} />
 ```
 
-Depois de guardar, a função será reimplantada automaticamente e o botão "Gerar com IA" voltará a funcionar.
+## Ficheiros a alterar
+
+| Ficheiro | Ação |
+|---|---|
+| `src/pages/TasksPage.tsx` | Criar (novo) |
+| `src/App.tsx` | Adicionar rota (1 linha) |
 
 ## Technical Details
 
-- Nenhuma alteração de base de dados necessária.
-- Nenhuma alteração de RLS necessária.
-- Nenhuma variável secreta em falta — o `LOVABLE_API_KEY` já está configurado (a função chega ao ponto de verificar a API key antes de falhar com este erro).
-- Todas as restantes edge functions que já funcionam (ex: `ai-employee-executor`) têm este import correto.
-- Após o redeploy, as ações `generate-daily-priorities`, `prepare-meeting`, `suggest-free-slots`, e `analyze-goals-progress` devem funcionar sem mais alterações.
+- Não são necessárias alterações à base de dados — as tabelas e RLS já existem.
+- O `CreateTaskDialog` recebe `entityName` como prop obrigatória — na página global será passado `"Geral"`.
+- O hook `useTasks` sem filtros de `related_type`/`related_id` devolve todas as tarefas do workspace, que é o comportamento correto para esta vista global.
+- O parâmetro `?selected=<id>` será lido via `useSearchParams` para permitir scroll/highlight da tarefa específica quando o utilizador vem do widget do dashboard.
