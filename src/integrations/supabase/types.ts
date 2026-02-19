@@ -9635,6 +9635,57 @@ export type Database = {
           },
         ]
       }
+      deal_scores: {
+        Row: {
+          category: string
+          close_score: number
+          id: string
+          next_action: string | null
+          opportunity_id: string
+          score_breakdown: Json | null
+          updated_at: string
+          urgency: string
+          workspace_id: string
+        }
+        Insert: {
+          category?: string
+          close_score?: number
+          id?: string
+          next_action?: string | null
+          opportunity_id: string
+          score_breakdown?: Json | null
+          updated_at?: string
+          urgency?: string
+          workspace_id: string
+        }
+        Update: {
+          category?: string
+          close_score?: number
+          id?: string
+          next_action?: string | null
+          opportunity_id?: string
+          score_breakdown?: Json | null
+          updated_at?: string
+          urgency?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_scores_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_scores_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       delivery_modes: {
         Row: {
           code: string

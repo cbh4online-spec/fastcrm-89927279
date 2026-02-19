@@ -6,11 +6,13 @@ import {
   useCloseOpportunity 
 } from "@/hooks/useOpportunitiesEnhanced";
 import { usePipelineStages } from "@/hooks/usePipelineStages";
+import { useDealScores } from "@/hooks/useDealScores";
 import { Opportunity } from "@/types/opportunity";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -35,8 +37,9 @@ import {
   List, 
   Search,
   Filter,
-  SlidersHorizontal,
-  FileText
+  ArrowUpDown,
+  Flame,
+  FileText,
 } from "lucide-react";
 import { OpportunityKPICards } from "./OpportunityKPICards";
 import { PipelineSummaryBar } from "./PipelineSummaryBar";
@@ -53,6 +56,7 @@ import { PageLoading, EmptyState } from "@/components/design-system";
 type ViewMode = "kanban" | "list";
 type StatusFilter = "all" | "open" | "won" | "lost";
 
+
 export function OpportunitiesModule() {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
@@ -65,6 +69,8 @@ export function OpportunitiesModule() {
   const [wonOpportunity, setWonOpportunity] = useState<Opportunity | null>(null);
   const [showInvoicePrompt, setShowInvoicePrompt] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+  const [sortByScore, setSortByScore] = useState(false);
+  const [hotDealsOnly, setHotDealsOnly] = useState(false);
 
   const { data: opportunities, isLoading: oppLoading } = useOpportunitiesEnhanced({
     status: statusFilter !== "all" ? statusFilter : undefined,
@@ -73,20 +79,42 @@ export function OpportunitiesModule() {
   const moveOpportunity = useMoveOpportunityEnhanced();
   const closeOpportunity = useCloseOpportunity();
   const { trackLeadMovedPipeline } = useCRMAnalytics();
+  const { scoresMap } = useDealScores();
 
-  // Filter by search
+  // Filter by search + hotDeals
   const filteredOpportunities = useMemo(() => {
     if (!opportunities) return [];
-    if (!searchQuery) return opportunities;
-    
-    const query = searchQuery.toLowerCase();
-    return opportunities.filter((opp) =>
-      opp.title.toLowerCase().includes(query) ||
-      opp.lead?.name?.toLowerCase().includes(query) ||
-      opp.contact?.name?.toLowerCase().includes(query) ||
-      opp.company?.name?.toLowerCase().includes(query)
-    );
-  }, [opportunities, searchQuery]);
+    let list = opportunities;
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      list = list.filter((opp) =>
+        opp.title.toLowerCase().includes(query) ||
+        opp.lead?.name?.toLowerCase().includes(query) ||
+        opp.contact?.name?.toLowerCase().includes(query) ||
+        opp.company?.name?.toLowerCase().includes(query)
+      );
+    }
+
+    if (hotDealsOnly) {
+      list = list.filter((opp) => scoresMap.get(opp.id)?.category === "hot");
+    }
+
+    if (sortByScore) {
+      list = [...list].sort((a, b) => {
+        const sa = scoresMap.get(a.id)?.close_score ?? -1;
+        const sb = scoresMap.get(b.id)?.close_score ?? -1;
+        return sb - sa;
+      });
+    }
+
+    return list;
+  }, [opportunities, searchQuery, hotDealsOnly, sortByScore, scoresMap]);
+
+  const hotCount = useMemo(
+    () => (opportunities || []).filter(o => scoresMap.get(o.id)?.category === "hot").length,
+    [opportunities, scoresMap]
+  );
 
   // Group by stage for Kanban
   const opportunitiesByStage = useMemo(() => {
@@ -101,6 +129,7 @@ export function OpportunitiesModule() {
     });
     return map;
   }, [filteredOpportunities, stages]);
+
 
   const handleMoveOpportunity = async (oppId: string, stageId: string, probability: number) => {
     try {
@@ -236,6 +265,33 @@ export function OpportunitiesModule() {
               <SelectItem value="lost">Perdidas</SelectItem>
             </SelectContent>
           </Select>
+
+          {/* Sort by Score */}
+          <Button
+            variant={sortByScore ? "default" : "outline"}
+            size="sm"
+            className="gap-2"
+            onClick={() => setSortByScore((v) => !v)}
+          >
+            <ArrowUpDown className="w-4 h-4" />
+            Score
+          </Button>
+
+          {/* Hot Deals filter */}
+          <Button
+            variant={hotDealsOnly ? "default" : "outline"}
+            size="sm"
+            className="gap-2"
+            onClick={() => setHotDealsOnly((v) => !v)}
+          >
+            <Flame className="w-4 h-4" />
+            Hot Deals
+            {hotCount > 0 && (
+              <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
+                {hotCount}
+              </Badge>
+            )}
+          </Button>
         </div>
 
         {/* View Toggle */}
@@ -252,6 +308,7 @@ export function OpportunitiesModule() {
           </TabsList>
         </Tabs>
       </div>
+
 
       {/* Main Content */}
       {!stages?.length ? (
@@ -286,6 +343,7 @@ export function OpportunitiesModule() {
                 draggedId={draggedId}
                 onDragStart={setDraggedId}
                 onDragEnd={() => setDraggedId(null)}
+                scoresMap={scoresMap}
               />
             ))}
           </div>
@@ -301,9 +359,11 @@ export function OpportunitiesModule() {
             onOpportunityClick={(opp) => navigate(`/dashboard/opportunities/${opp.id}`)}
             onMarkAsWon={handleMarkAsWon}
             onMarkAsLost={handleMarkAsLost}
+            scoresMap={scoresMap}
           />
         </div>
       )}
+
 
       {/* Dialogs */}
       <CreateOpportunityEnhancedDialog

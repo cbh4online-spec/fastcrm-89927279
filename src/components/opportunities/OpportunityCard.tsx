@@ -1,26 +1,30 @@
 import { Opportunity } from "@/types/opportunity";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   GripVertical, 
   DollarSign, 
-  User, 
   Building2, 
   Calendar,
-  Sparkles,
-  TrendingUp
+  AlertTriangle,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
+import { DealScore, getCategoryColors, getCategoryLabel } from "@/hooks/useDealScores";
+
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
   isDragging?: boolean;
   onClick?: () => void;
+  dealScore?: DealScore;
 }
 
-export function OpportunityCard({ opportunity, isDragging, onClick }: OpportunityCardProps) {
+
+export function OpportunityCard({ opportunity, isDragging, onClick, dealScore }: OpportunityCardProps) {
   const getTemperatureColor = (temp: string | null) => {
     switch (temp) {
       case "hot": return "bg-red-100 text-red-700 border-red-200";
@@ -51,12 +55,13 @@ export function OpportunityCard({ opportunity, isDragging, onClick }: Opportunit
   const contactName = opportunity.contact?.name || opportunity.lead?.name;
   const companyName = opportunity.company?.name || opportunity.contact?.company;
 
-  return (
+  const cardContent = (
     <Card
       className={cn(
         "cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md transition-all",
         isDragging && "opacity-50 rotate-2 shadow-lg",
-        onClick && "cursor-pointer"
+        onClick && "cursor-pointer",
+        dealScore?.urgency === "critical" && "border-red-300/60"
       )}
       onClick={onClick}
     >
@@ -69,15 +74,11 @@ export function OpportunityCard({ opportunity, isDragging, onClick }: Opportunit
             {opportunity.title}
           </h4>
 
-          {/* Contact/Company inline */}
-          {(contactName || companyName) && (
+          {/* Company inline */}
+          {companyName && (
             <div className="hidden sm:flex items-center gap-1 text-[10px] text-muted-foreground flex-shrink-0">
-              {companyName && (
-                <>
-                  <Building2 className="w-2.5 h-2.5" />
-                  <span className="truncate max-w-[60px]">{companyName}</span>
-                </>
-              )}
+              <Building2 className="w-2.5 h-2.5" />
+              <span className="truncate max-w-[60px]">{companyName}</span>
             </div>
           )}
 
@@ -87,12 +88,22 @@ export function OpportunityCard({ opportunity, isDragging, onClick }: Opportunit
             {formatCurrency(Number(opportunity.value), opportunity.currency)}
           </div>
 
-          {/* Probability */}
-          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 flex-shrink-0">
-            {opportunity.probability}%
-          </Badge>
+          {/* Deal Score Badge */}
+          {dealScore ? (
+            <Badge
+              variant="outline"
+              className={cn("text-[10px] px-1.5 py-0 h-4 flex-shrink-0 font-semibold", getCategoryColors(dealScore.category))}
+            >
+              {Math.round(dealScore.close_score)} {getCategoryLabel(dealScore.category)}
+            </Badge>
+          ) : (
+            /* Fallback: probability */
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 flex-shrink-0">
+              {opportunity.probability}%
+            </Badge>
+          )}
 
-          {/* Temperature Badge */}
+          {/* Temperature Badge (ai_temperature) */}
           {opportunity.ai_temperature && (
             <Badge 
               variant="outline" 
@@ -100,6 +111,16 @@ export function OpportunityCard({ opportunity, isDragging, onClick }: Opportunit
             >
               {getTemperatureLabel(opportunity.ai_temperature)}
             </Badge>
+          )}
+
+          {/* Critical urgency icon */}
+          {dealScore?.urgency === "critical" && (
+            <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
+          )}
+
+          {/* Hot icon */}
+          {dealScore?.urgency === "high" && (
+            <Zap className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
           )}
 
           {/* Close Date */}
@@ -113,4 +134,18 @@ export function OpportunityCard({ opportunity, isDragging, onClick }: Opportunit
       </CardContent>
     </Card>
   );
+
+  // Wrap in tooltip if there's a next_action
+  if (dealScore?.next_action) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{cardContent}</TooltipTrigger>
+        <TooltipContent side="bottom" className="max-w-xs text-xs">
+          <span className="font-medium">Próxima Ação:</span> {dealScore.next_action}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return cardContent;
 }

@@ -4,7 +4,6 @@ import { OpportunityCard } from "./OpportunityCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   DollarSign, 
@@ -16,6 +15,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { differenceInDays } from "date-fns";
+import { DealScore, getCategoryColors } from "@/hooks/useDealScores";
+
 
 interface OpportunityKanbanColumnProps {
   stage: PipelineStage;
@@ -26,7 +27,9 @@ interface OpportunityKanbanColumnProps {
   draggedId: string | null;
   onDragStart: (oppId: string) => void;
   onDragEnd: () => void;
+  scoresMap?: Map<string, DealScore>;
 }
+
 
 export function OpportunityKanbanColumn({
   stage,
@@ -37,7 +40,9 @@ export function OpportunityKanbanColumn({
   draggedId,
   onDragStart,
   onDragEnd,
+  scoresMap,
 }: OpportunityKanbanColumnProps) {
+
   const [isDragOver, setIsDragOver] = useState(false);
 
   const stats = useMemo(() => {
@@ -51,9 +56,18 @@ export function OpportunityKanbanColumn({
           return sum + differenceInDays(new Date(), new Date(opp.created_at));
         }, 0) / opportunities.length
       : 0;
+
+    // Calculate average deal score
+    const oppsWithScore = scoresMap
+      ? opportunities.filter(o => scoresMap.has(o.id))
+      : [];
+    const avgScore = oppsWithScore.length > 0
+      ? oppsWithScore.reduce((sum, o) => sum + (scoresMap!.get(o.id)!.close_score), 0) / oppsWithScore.length
+      : null;
     
-    return { totalValue, weightedValue, avgDays, probability };
-  }, [opportunities, stage.probability]);
+    return { totalValue, weightedValue, avgDays, probability, avgScore };
+  }, [opportunities, stage.probability, scoresMap]);
+
 
   const formatCurrency = (value: number): string => {
     if (value >= 1_000_000) {
@@ -180,11 +194,20 @@ export function OpportunityKanbanColumn({
           </div>
         </div>
 
-        {/* Row 4: Average Days */}
+
+        {/* Row 4: Average Days + Avg Score */}
         {opportunities.length > 0 && (
-          <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground bg-background/30 rounded-md py-1.5">
-            <Clock className="w-3 h-3" />
-            <span>Média: <strong className="text-foreground">{Math.round(stats.avgDays)} dias</strong> nesta etapa</span>
+          <div className="flex items-center justify-between gap-1.5 text-xs text-muted-foreground bg-background/30 rounded-md py-1.5 px-2">
+            <div className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              <span>Média: <strong className="text-foreground">{Math.round(stats.avgDays)} dias</strong></span>
+            </div>
+            {stats.avgScore !== null && (
+              <div className="flex items-center gap-1">
+                <TrendingUp className="w-3 h-3" />
+                <span>Score: <strong className="text-foreground">{Math.round(stats.avgScore)}</strong></span>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -206,10 +229,11 @@ export function OpportunityKanbanColumn({
                 opportunity={opp}
                 isDragging={draggedId === opp.id}
                 onClick={onOpportunityClick ? () => onOpportunityClick(opp) : undefined}
+                dealScore={scoresMap?.get(opp.id)}
               />
             </div>
           ))}
-          
+
           {/* Enhanced Empty State */}
           {opportunities.length === 0 && (
             <div className="flex flex-col items-center justify-center py-8 px-4 text-center">

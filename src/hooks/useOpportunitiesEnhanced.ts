@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Opportunity,
   CreateOpportunityInput,
@@ -10,6 +11,7 @@ import {
   Pipeline,
   PipelineStage,
 } from "@/types/opportunity";
+
 
 // Pipelines hooks
 export function usePipelines() {
@@ -218,7 +220,14 @@ export function useUpdateOpportunityEnhanced() {
       queryClient.invalidateQueries({ queryKey: ["opportunities", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["opportunity-detail", data.id] });
       queryClient.invalidateQueries({ queryKey: ["opportunity-kpis", currentWorkspace?.id] });
+      // Fire-and-forget score recompute
+      if (currentWorkspace?.id) {
+        supabase.functions.invoke("compute-deal-score", {
+          body: { workspace_id: currentWorkspace.id, opportunity_id: data.id },
+        });
+      }
     },
+
   });
 }
 
@@ -248,10 +257,16 @@ export function useMoveOpportunityEnhanced() {
       if (error) throw error;
       return data as Opportunity;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["opportunities-enhanced", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["opportunities", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["opportunity-kpis", currentWorkspace?.id] });
+      // Fire-and-forget score recompute
+      if (currentWorkspace?.id) {
+        supabase.functions.invoke("compute-deal-score", {
+          body: { workspace_id: currentWorkspace.id, opportunity_id: data.id },
+        });
+      }
     },
   });
 }
@@ -262,6 +277,7 @@ export function useCloseOpportunity() {
   const { workspaceClient } = useWorkspaceInstance();
 
   return useMutation({
+
     mutationFn: async ({ 
       id, 
       status, 
