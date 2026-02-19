@@ -309,3 +309,7 @@ verify_jwt = false
 
 [functions.strategic-intelligence-brief]
 verify_jwt = false
+
+[functions.compute-deal-score]
+verify_jwt = false
+
