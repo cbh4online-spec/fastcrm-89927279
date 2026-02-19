@@ -180,22 +180,64 @@ export function useBotAnalytics(botId: string | undefined) {
     queryKey: ["bot-analytics", botId],
     queryFn: async () => {
       if (!botId) return null;
-      const { data } = await (supabase as any)
+
+      // Query bot_analytics aggregated rows
+      const { data: analyticsData, error: analyticsError } = await (supabase as any)
         .from("bot_analytics")
         .select("*")
         .eq("bot_id", botId)
         .order("period_date", { ascending: false })
         .limit(30);
-      const totals = (data || []).reduce(
-        (acc: any, row: any) => ({
-          total_conversations: acc.total_conversations + (row.total_conversations || 0),
-          total_leads: acc.total_leads + (row.total_leads || 0),
-          total_bookings: acc.total_bookings + (row.total_bookings || 0),
-          handover_count: acc.handover_count + (row.handover_count || 0),
-        }),
-        { total_conversations: 0, total_leads: 0, total_bookings: 0, handover_count: 0 }
-      );
-      return { rows: data || [], totals };
+
+      if (analyticsError) {
+        console.error("[useBotAnalytics] error:", analyticsError);
+      }
+
+      // Also count from bot_runs as fallback source of truth
+      const { count: runsCount } = await (supabase as any)
+        .from("bot_runs")
+        .select("id", { count: "exact", head: true })
+        .eq("bot_id", botId);
+
+      const { count: leadsCount } = await (supabase as any)
+        .from("bot_runs")
+        .select("id", { count: "exact", head: true })
+        .eq("bot_id", botId)
+        .contains("side_effects", [{ type: "create_lead" }]);
+
+      const { count: bookingsCount } = await (supabase as any)
+        .from("bot_runs")
+        .select("id", { count: "exact", head: true })
+        .eq("bot_id", botId)
+        .contains("side_effects", [{ type: "book_meeting" }]);
+
+      const { count: handoverCount } = await (supabase as any)
+        .from("bot_runs")
+        .select("id", { count: "exact", head: true })
+        .eq("bot_id", botId)
+        .contains("side_effects", [{ type: "human_handover" }]);
+
+      const rows = analyticsData || [];
+
+      // Prefer aggregated analytics table; fall back to bot_runs counts
+      const totals = rows.length > 0
+        ? rows.reduce(
+            (acc: any, row: any) => ({
+              total_conversations: acc.total_conversations + (row.total_conversations || 0),
+              total_leads: acc.total_leads + (row.total_leads || 0),
+              total_bookings: acc.total_bookings + (row.total_bookings || 0),
+              handover_count: acc.handover_count + (row.handover_count || row.total_handovers || 0),
+            }),
+            { total_conversations: 0, total_leads: 0, total_bookings: 0, handover_count: 0 }
+          )
+        : {
+            total_conversations: runsCount || 0,
+            total_leads: leadsCount || 0,
+            total_bookings: bookingsCount || 0,
+            handover_count: handoverCount || 0,
+          };
+
+      return { rows, totals };
     },
     enabled: !!botId,
   });
