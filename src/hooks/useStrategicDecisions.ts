@@ -134,6 +134,44 @@ export function useConvertDecisionStep() {
   });
 }
 
+export function useBulkConvertAllDecisions() {
+  const createTask = useCreateTask();
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+
+  return useMutation({
+    mutationFn: async (decisions: StrategicDecision[]) => {
+      if (!currentWorkspace) throw new Error("No workspace selected");
+
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 7);
+      let totalTasks = 0;
+
+      for (const decision of decisions) {
+        for (const step of decision.recommended_steps) {
+          await createTask.mutateAsync({ title: step, due_at: dueDate.toISOString() });
+          totalTasks++;
+        }
+        const { error } = await supabase
+          .from("strategic_decisions")
+          .update({ status: "converted" })
+          .eq("id", decision.id);
+        if (error) throw error;
+      }
+
+      return { totalTasks, totalDecisions: decisions.length };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["strategic-decisions", currentWorkspace?.id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["strategic-decisions-history", currentWorkspace?.id],
+      });
+    },
+  });
+}
+
 export function useConvertAllDecisionSteps() {
   const createTask = useCreateTask();
   const queryClient = useQueryClient();

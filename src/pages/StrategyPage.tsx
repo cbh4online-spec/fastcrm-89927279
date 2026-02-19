@@ -32,11 +32,12 @@ import {
   XCircle,
   Target,
   Brain,
+  Loader2,
 } from "lucide-react";
 import { useStrategicBriefs } from "@/hooks/useStrategicBriefs";
 import { RevenueIntelligenceCard } from "@/components/revenue/RevenueIntelligenceCard";
 import { useCreateTask } from "@/hooks/useTasks";
-import { useStrategicDecisions, useGenerateStrategicDecisions, useDecisionHistory } from "@/hooks/useStrategicDecisions";
+import { useStrategicDecisions, useGenerateStrategicDecisions, useDecisionHistory, useBulkConvertAllDecisions } from "@/hooks/useStrategicDecisions";
 import { StrategicDecisionCard } from "@/components/strategy/StrategicDecisionCard";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -397,6 +398,7 @@ function DealIntelligenceTab() {
 function DecisionsTab() {
   const { data: decisions = [], isLoading } = useStrategicDecisions();
   const generate = useGenerateStrategicDecisions();
+  const bulkConvert = useBulkConvertAllDecisions();
 
   const handleGenerate = async () => {
     try {
@@ -409,6 +411,18 @@ function DecisionsTab() {
       }
     } catch {
       toast.error("Erro ao gerar decisões.");
+    }
+  };
+
+  const handleBulkConvert = async () => {
+    if (decisions.length === 0) return;
+    try {
+      const result = await bulkConvert.mutateAsync(decisions);
+      toast.success(
+        `${result.totalTasks} tarefa${result.totalTasks !== 1 ? "s" : ""} criada${result.totalTasks !== 1 ? "s" : ""} a partir de ${result.totalDecisions} decisão${result.totalDecisions !== 1 ? "ões" : ""}!`
+      );
+    } catch {
+      toast.error("Erro ao converter decisões em tarefas.");
     }
   };
 
@@ -435,16 +449,34 @@ function DecisionsTab() {
             </span>
           )}
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleGenerate}
-          disabled={generate.isPending}
-          className="gap-1.5"
-        >
-          <RefreshCw className={cn("w-3.5 h-3.5", generate.isPending && "animate-spin")} />
-          {generate.isPending ? "A analisar..." : "Analisar e Gerar Decisões"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {decisions.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleBulkConvert}
+              disabled={bulkConvert.isPending || generate.isPending}
+              className="gap-1.5"
+            >
+              {bulkConvert.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              )}
+              {bulkConvert.isPending ? "A converter..." : "Converter Tudo em Tarefas"}
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleGenerate}
+            disabled={generate.isPending}
+            className="gap-1.5"
+          >
+            <RefreshCw className={cn("w-3.5 h-3.5", generate.isPending && "animate-spin")} />
+            {generate.isPending ? "A analisar..." : "Analisar e Gerar Decisões"}
+          </Button>
+        </div>
       </div>
 
       {/* Loading */}
