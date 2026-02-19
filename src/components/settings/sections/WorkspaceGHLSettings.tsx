@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Eye, EyeOff, Copy, Check, ExternalLink, Info, Zap, RefreshCw, Users, ArrowRight, MessageSquare, Instagram, Facebook, Phone, Share2 } from "lucide-react";
+import { Loader2, Eye, EyeOff, Copy, Check, ExternalLink, Info, Zap, RefreshCw, Users, ArrowRight, MessageSquare, Instagram, Facebook, Phone, Share2, Webhook, CheckCircle2, AlertCircle, PlayCircle } from "lucide-react";
 import { useWorkspaceGHLConfig, SaveGHLConfigInput } from "@/hooks/useWorkspaceGHLConfig";
 import { useGHLContactSync } from "@/hooks/useGHLContactSync";
 import { useGHLConversationSync } from "@/hooks/useGHLConversationSync";
@@ -184,6 +184,8 @@ function WorkspaceGHLSettingsInner() {
   const [syncContacts, setSyncContacts] = useState(true);
   const [syncMessages, setSyncMessages] = useState(true);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
+  const [webhookTestResult, setWebhookTestResult] = useState<"success" | "error" | null>(null);
 
   // Sync form with config
   useEffect(() => {
@@ -242,8 +244,53 @@ function WorkspaceGHLSettingsInner() {
   };
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const webhookContactUrl = `${supabaseUrl}/functions/v1/ghl-webhook-contact`;
-  const webhookMessageUrl = `${supabaseUrl}/functions/v1/ghl-webhook-message`;
+  const locationIdForUrl = locationId || (config?.ghl_location_id ?? "");
+  const webhookContactUrl = locationIdForUrl
+    ? `${supabaseUrl}/functions/v1/ghl-webhook-contact?location_id=${locationIdForUrl}`
+    : `${supabaseUrl}/functions/v1/ghl-webhook-contact`;
+  const webhookMessageUrl = locationIdForUrl
+    ? `${supabaseUrl}/functions/v1/ghl-webhook-message?location_id=${locationIdForUrl}`
+    : `${supabaseUrl}/functions/v1/ghl-webhook-message`;
+
+  const handleTestWebhook = async () => {
+    if (!locationIdForUrl) {
+      toast.error("Configure o Location ID primeiro");
+      return;
+    }
+    setIsTestingWebhook(true);
+    setWebhookTestResult(null);
+    try {
+      const testPayload = {
+        type: "InboundMessage",
+        locationId: locationIdForUrl,
+        contactId: "test-contact-id",
+        conversationId: "test-conversation-id",
+        body: "Teste de webhook — mensagem de verificação",
+        messageType: "SMS",
+        direction: "inbound",
+        dateAdded: new Date().toISOString(),
+        messageId: `test-${Date.now()}`,
+      };
+      const res = await fetch(webhookMessageUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(testPayload),
+      });
+      if (res.ok) {
+        setWebhookTestResult("success");
+        toast.success("Webhook respondeu corretamente! A configuração está funcional.");
+      } else {
+        setWebhookTestResult("error");
+        toast.error(`Webhook devolveu erro: ${res.status} ${res.statusText}`);
+      }
+    } catch (err) {
+      setWebhookTestResult("error");
+      toast.error("Não foi possível contactar o endpoint de webhook");
+    } finally {
+      setIsTestingWebhook(false);
+      setTimeout(() => setWebhookTestResult(null), 5000);
+    }
+  };
 
   // Calculate progress percentage
   const progressPercent = progress && progress.estimatedTotal > 0 
@@ -635,46 +682,28 @@ function WorkspaceGHLSettingsInner() {
       {/* Social Channels via GHL */}
       {isConfigured && <SocialChannelsViaGHL />}
 
-      {/* Webhook URLs */}
+      {/* Webhook URLs — Tempo Real */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2">
-            <Info className="h-4 w-4" />
-            URLs dos Webhooks
+            <Webhook className="h-4 w-4 text-primary" />
+            Webhooks em Tempo Real
           </CardTitle>
           <CardDescription>
-            Configure estes webhooks no GoHighLevel para receber dados
+            Configure o GHL para enviar mensagens imediatamente via webhook — sem esperar pelo polling
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground">
-              Webhook de Contactos
-            </Label>
-            <div className="flex gap-2">
-              <code className="flex-1 rounded bg-muted px-3 py-2 text-xs break-all">
-                {webhookContactUrl}
-              </code>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => copyToClipboard(webhookContactUrl, "Contact URL")}
-              >
-                {copiedUrl === "Contact URL" ? (
-                  <Check className="h-4 w-4 text-green-500" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
+          {/* Message webhook URL */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium text-muted-foreground">
+                Webhook de Mensagens <span className="text-primary">(InboundMessage)</span>
+              </Label>
+              <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-300">Recomendado</Badge>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground">
-              Webhook de Mensagens
-            </Label>
             <div className="flex gap-2">
-              <code className="flex-1 rounded bg-muted px-3 py-2 text-xs break-all">
+              <code className="flex-1 rounded bg-muted px-3 py-2 text-xs break-all font-mono">
                 {webhookMessageUrl}
               </code>
               <Button
@@ -683,7 +712,42 @@ function WorkspaceGHLSettingsInner() {
                 onClick={() => copyToClipboard(webhookMessageUrl, "Message URL")}
               >
                 {copiedUrl === "Message URL" ? (
-                  <Check className="h-4 w-4 text-green-500" />
+                  <Check className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            {locationIdForUrl && (
+              <p className="text-[10px] text-emerald-600 flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3" />
+                Location ID incluído no URL — não é necessário configurar headers
+              </p>
+            )}
+            {!locationIdForUrl && (
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                Configure o Location ID acima para gerar o URL personalizado
+              </p>
+            )}
+          </div>
+
+          {/* Contact webhook URL */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">
+              Webhook de Contactos <span className="text-muted-foreground">(opcional)</span>
+            </Label>
+            <div className="flex gap-2">
+              <code className="flex-1 rounded bg-muted px-3 py-2 text-xs break-all font-mono">
+                {webhookContactUrl}
+              </code>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyToClipboard(webhookContactUrl, "Contact URL")}
+              >
+                {copiedUrl === "Contact URL" ? (
+                  <Check className="h-4 w-4 text-emerald-500" />
                 ) : (
                   <Copy className="h-4 w-4" />
                 )}
@@ -691,14 +755,68 @@ function WorkspaceGHLSettingsInner() {
             </div>
           </div>
 
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription className="text-xs">
-              <strong>Headers obrigatórios:</strong><br />
-              <code className="bg-muted px-1 rounded">X-GHL-Location-Id: {locationId || "{seu_location_id}"}</code><br />
-              <code className="bg-muted px-1 rounded">Content-Type: application/json</code>
-            </AlertDescription>
-          </Alert>
+          {/* Step-by-step guide */}
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="webhook-guide" className="border rounded-lg px-3">
+              <AccordionTrigger className="text-xs font-medium py-3 hover:no-underline">
+                Como configurar o webhook no GHL? (guia passo a passo)
+              </AccordionTrigger>
+              <AccordionContent className="pb-3">
+                <ol className="space-y-3 text-xs text-muted-foreground">
+                  <li className="flex gap-3">
+                    <span className="flex-shrink-0 h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">1</span>
+                    <span>No GHL, aceda a <strong className="text-foreground">Settings → Integrations → Webhooks</strong></span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex-shrink-0 h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">2</span>
+                    <span>Clique em <strong className="text-foreground">"Add New Webhook"</strong></span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex-shrink-0 h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">3</span>
+                    <span>Cole o <strong className="text-foreground">URL de Mensagens</strong> acima no campo "Webhook URL"</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex-shrink-0 h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">4</span>
+                    <span>Em "Events", selecione <strong className="text-foreground">InboundMessage</strong></span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex-shrink-0 h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">5</span>
+                    <span>Guarde e ative o webhook. As mensagens começarão a chegar <strong className="text-foreground">instantaneamente</strong>.</span>
+                  </li>
+                </ol>
+                <Alert className="mt-3">
+                  <Info className="h-3.5 w-3.5" />
+                  <AlertDescription className="text-xs">
+                    Com o location_id já incluído no URL, <strong>não é necessário</strong> configurar headers adicionais no GHL. Basta colar o URL e selecionar o evento.
+                  </AlertDescription>
+                </Alert>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+
+          {/* Test webhook button */}
+          <div className="flex gap-2 pt-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={handleTestWebhook}
+              disabled={isTestingWebhook || !locationIdForUrl}
+            >
+              {isTestingWebhook ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />A testar...</>
+              ) : webhookTestResult === "success" ? (
+                <><CheckCircle2 className="mr-2 h-4 w-4 text-emerald-500" />Webhook OK!</>
+              ) : webhookTestResult === "error" ? (
+                <><AlertCircle className="mr-2 h-4 w-4 text-destructive" />Erro no webhook</>
+              ) : (
+                <><PlayCircle className="mr-2 h-4 w-4" />Testar Webhook</>
+              )}
+            </Button>
+          </div>
+          {!locationIdForUrl && (
+            <p className="text-[10px] text-muted-foreground text-center">Configure o Location ID para poder testar o webhook</p>
+          )}
         </CardContent>
       </Card>
 
