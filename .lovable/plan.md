@@ -1,337 +1,348 @@
 
-# AI Deal Scoring Module
+# Behavioral Revenue Forecasting Module
 
-## What This Is
+## What This Builds
 
-A deterministic, formula-based scoring engine that computes a `close_score` (0–100) for every open opportunity by combining data from `opportunities`, `conversation_signals`, `crm_activities`, `meetings`, and `tasks`. Scores are stored in a new `deal_scores` table and surfaced as badges, sort controls, and a "Hot Deals" filter directly in the pipeline UI.
+A revenue forecasting engine that replaces naive pipeline-stage probability with **behavioral probability** from `deal_scores`. Instead of "this deal is in Negotiation stage (80%)," it says "this deal scores 73 based on actual engagement, intent, trust, and recency — so it contributes €7,300 of a €10,000 opportunity."
 
-This is **separate** from the existing `ai-agent-opportunity` function (which does qualitative narrative AI analysis). This module computes a numeric score on-demand and on update — no AI LLM call required.
+The module has two layers:
+1. A **server-side computation** edge function that aggregates all opportunities + deal scores and stores structured forecast totals in a new `revenue_forecasts` table.
+2. A **"Revenue Intelligence" card** that can be embedded in the existing `StrategyPage` (which already has Deal Intelligence and Weekly Brief tabs) as a new tab, plus a standalone widget usable on the Dashboard.
 
 ---
 
-## Architecture Overview
+## What Already Exists (No Duplication)
+
+- `deal_scores` table — already created with `close_score`, `category`, `urgency` per opportunity
+- `opportunities` table — has `value`, `expected_close_date`, `status`, `workspace_id`
+- `compute-deal-score` edge function — already writes scores
+- `StrategyPage` at `/dashboard/strategy` — already has tabbed layout, perfect place to add a "Revenue Forecast" tab
+- `DashboardKPICards` and `RevenueWidget` — the new widget slots alongside these
+
+---
+
+## Architecture
 
 ```text
-User action / mutation
-        │
-        ▼
-[compute-deal-score edge function]
-        │
-        ├─ Query: opportunities (stage, value, created_at, last_activity_at)
-        ├─ Query: conversation_signals (temperature, trust, churn, intent, objection)
-        ├─ Query: crm_activities (response_time, meeting_booked, proposal_sent)
-        ├─ Query: meetings (has upcoming meeting)
-        └─ Query: tasks (pending count, overdue)
-        │
-        ▼
-   Scoring formula (deterministic)
-        │
-        ▼
-  UPSERT → deal_scores table
-        │
-        ▼
-  React hook (useDealScores) reads scores
-        │
-        ▼
-  OpportunityCard   → score badge + risk icon
-  OpportunityKanban → sort by score toggle
-  OpportunitiesModule → "Hot Deals" filter
-  OpportunityTableView → score column
+[compute-revenue-forecast edge function]
+         │
+         ├─ Query: opportunities WHERE status='open' + deal_scores JOIN
+         ├─ Query: historical won opportunities (last 90 days)
+         │
+         ├─ For each opportunity:
+         │    close_probability  = close_score / 100
+         │    expected_revenue   = value * close_probability
+         │    confidence_weight  = by category (hot→0.9, likely→0.7, uncertain→0.4, low→0.15)
+         │    weighted_revenue   = expected_revenue * confidence_weight
+         │
+         ├─ Bucket by expected_close_date into 7d / 30d / 90d windows
+         ├─ Compute best_case, expected_case, worst_case, risk_index
+         │
+         └─ UPSERT → revenue_forecasts table
+         
+[useRevenueForecast hook]
+         │
+         └─ Reads latest forecast from table
+            + exposes generateForecast() mutation (calls edge fn on-demand)
+
+[RevenueIntelligenceCard component]
+         │
+         ├─ Expected revenue + confidence ring
+         ├─ 3 scenario bars (best / expected / worst)
+         ├─ Risk index gauge
+         ├─ Trend vs last snapshot
+         └─ Per-horizon chips: 7d / 30d / 90d
+
+[StrategyPage — new "Receita" tab]
+         └─ Full RevenueIntelligenceCard + opportunity breakdown table
 ```
 
 ---
 
-## Scope of Changes
+## Scope of Files
 
 | Layer | File | Action |
 |---|---|---|
-| Database | migration | Create `deal_scores` table + RLS + index |
-| Edge Function | `supabase/functions/compute-deal-score/index.ts` | New: scoring logic |
-| Config | `supabase/config.toml` | Register new function |
-| React Hook | `src/hooks/useDealScores.ts` | Fetch scores + trigger recompute |
-| UI | `src/components/opportunities/OpportunityCard.tsx` | Add score badge + risk icon |
-| UI | `src/components/opportunities/OpportunityTableView.tsx` | Add score column |
-| UI | `src/components/opportunities/OpportunitiesModule.tsx` | Sort + "Hot Deals" filter |
-| Auto-trigger | `src/hooks/useOpportunitiesEnhanced.ts` | Trigger score after move/update |
+| Database | migration | Create `revenue_forecasts` table + RLS |
+| Edge Function | `supabase/functions/compute-revenue-forecast/index.ts` | New |
+| Config | `supabase/config.toml` | Register function |
+| Hook | `src/hooks/useRevenueForecast.ts` | New |
+| Component | `src/components/revenue/RevenueIntelligenceCard.tsx` | New |
+| Page | `src/pages/StrategyPage.tsx` | Add "Receita" tab |
+| Dashboard | `src/components/dashboard/DashboardKPICards.tsx` | Add behavioral forecast value |
 
 ---
 
-## 1. Database: `deal_scores` Table
+## 1. Database: `revenue_forecasts` Table
 
 ```sql
-CREATE TABLE public.deal_scores (
+CREATE TABLE public.revenue_forecasts (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id    uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
-  opportunity_id  uuid NOT NULL REFERENCES public.opportunities(id) ON DELETE CASCADE,
-  close_score     numeric NOT NULL DEFAULT 0,    -- 0-100
-  category        text NOT NULL DEFAULT 'uncertain', -- low/uncertain/likely/hot
-  urgency         text NOT NULL DEFAULT 'normal',    -- normal/high/critical
-  next_action     text,
-  score_breakdown jsonb,   -- stores component scores for transparency
-  updated_at      timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (opportunity_id)
+  generated_at    timestamptz NOT NULL DEFAULT now(),
+
+  -- Horizon totals (weighted_revenue summed per window)
+  forecast_7      numeric NOT NULL DEFAULT 0,
+  forecast_30     numeric NOT NULL DEFAULT 0,
+  forecast_90     numeric NOT NULL DEFAULT 0,
+
+  -- Scenario totals
+  best_case       numeric NOT NULL DEFAULT 0,   -- sum(value) WHERE category = 'hot'
+  expected_case   numeric NOT NULL DEFAULT 0,   -- sum(value * close_probability)
+  worst_case      numeric NOT NULL DEFAULT 0,   -- sum(weighted_revenue) (most conservative)
+
+  -- Derived
+  risk_index      numeric NOT NULL DEFAULT 0,   -- 1 - (worst_case / best_case), 0–1
+  confidence_avg  numeric NOT NULL DEFAULT 0,   -- mean close_score across open opps
+
+  -- Detail snapshot for trend comparison
+  opportunity_count  integer NOT NULL DEFAULT 0,
+  hot_count          integer NOT NULL DEFAULT 0,
+  likely_count       integer NOT NULL DEFAULT 0,
+  uncertain_count    integer NOT NULL DEFAULT 0,
+  low_count          integer NOT NULL DEFAULT 0,
+
+  created_at      timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX ON public.deal_scores(workspace_id, close_score DESC);
-CREATE INDEX ON public.deal_scores(workspace_id, category);
+CREATE INDEX ON public.revenue_forecasts(workspace_id, generated_at DESC);
 
-ALTER TABLE public.deal_scores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.revenue_forecasts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "workspace members read deal scores"
-  ON public.deal_scores FOR SELECT
-  USING (
-    workspace_id IN (
-      SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()
-    )
-  );
+CREATE POLICY "workspace members read forecasts"
+  ON public.revenue_forecasts FOR SELECT
+  USING (workspace_id IN (
+    SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()
+  ));
 
-CREATE POLICY "service role manages deal scores"
-  ON public.deal_scores FOR ALL
+CREATE POLICY "service role manages forecasts"
+  ON public.revenue_forecasts FOR ALL
   USING (auth.role() = 'service_role')
   WITH CHECK (auth.role() = 'service_role');
 ```
 
-The `score_breakdown` JSONB stores component values for debugging and display:
-```json
-{
-  "engagement_score": 0.72,
-  "recency_score": 0.85,
-  "trust_score": 0.60,
-  "objection_penalty": 0.20,
-  "intent_score": 0.75,
-  "historical_similarity": 0.50
-}
-```
+Only two rows will typically exist per workspace (current + previous) — the hook always reads the latest. No data growth concern.
 
 ---
 
-## 2. Edge Function: `compute-deal-score`
+## 2. Edge Function: `compute-revenue-forecast`
 
-**Accepts:** `{ workspace_id, opportunity_id }` — scores one opportunity.
-**Auth:** Uses `SUPABASE_SERVICE_ROLE_KEY` (called server-side or via anon token from UI via `supabase.functions.invoke`).
+**Input:** `{ workspace_id }` — on-demand from UI or cron.
 
-### Data Fetched (parallel queries)
+### Data Queries (parallel)
 
 ```typescript
-const [opportunity, signals, activities, meetings, tasks] = await Promise.all([
-  // opportunity row + stage + contact/lead
-  supabase.from('opportunities').select('*, stage:pipeline_stages(*)').eq('id', opportunity_id),
+const [oppsResult, scoresResult, wonHistoryResult] = await Promise.all([
+  // All open opportunities with value + expected_close_date
+  supabase.from('opportunities')
+    .select('id, value, expected_close_date, status')
+    .eq('workspace_id', workspace_id)
+    .eq('status', 'open'),
 
-  // conversation_signals by contact_id or lead_id
-  supabase.from('conversation_signals')
-    .select('temperature, trust_score, churn_risk, buying_intent_score, main_objection')
-    .eq(contact_id ? 'contact_id' : 'lead_id', id),
+  // All deal_scores for workspace
+  supabase.from('deal_scores')
+    .select('opportunity_id, close_score, category')
+    .eq('workspace_id', workspace_id),
 
-  // crm_activities for this opportunity (last 30)
-  supabase.from('crm_activities')
-    .select('activity_type, created_at, metadata')
-    .eq('opportunity_id', opportunity_id)
-    .order('created_at', { ascending: false }).limit(30),
-
-  // upcoming meetings linked to opportunity
-  supabase.from('meetings')
-    .select('id, start_time, status')
-    .eq('opportunity_id', opportunity_id)
-    .gte('start_time', new Date().toISOString())
-    .eq('status', 'confirmed').limit(5),
-
-  // open/overdue tasks linked to opportunity
-  supabase.from('tasks')
-    .select('id, status, due_at')
-    .eq('related_id', opportunity_id)
-    .eq('related_type', 'opportunity')
-    .in('status', ['todo', 'in_progress']),
+  // Historical won deals (last 90 days) for avg close delay
+  supabase.from('opportunities')
+    .select('value, updated_at, expected_close_date')
+    .eq('workspace_id', workspace_id)
+    .eq('status', 'won')
+    .gte('updated_at', ninetyDaysAgo),
 ]);
 ```
 
-### Scoring Formula
+### Per-Opportunity Computation
 
-All components produce values in [0, 1]:
-
-**engagement_score** — based on activity count and recency:
-- >10 activities last 30 days → 1.0
-- 5–10 → 0.7
-- 2–4 → 0.4
-- 0–1 → 0.1
-
-**recency_score** — based on `last_activity_at` or `updated_at`:
-- <2 days → 1.0
-- 2–7 days → 0.75
-- 7–14 days → 0.4
-- 14–30 days → 0.15
-- >30 days → 0.0
-
-**trust_score** — directly from `conversation_signals.trust_score` (already 0–100 scaled, divide by 100). Falls back to stage probability / 100 if no signals.
-
-**objection_penalty** — from `conversation_signals.main_objection`:
-- `"none"` or null → 0.0
-- `"price"` or `"competitor"` → 0.8
-- `"authority"` or `"timing"` → 0.5
-- `"uncertainty"` or `"confusion"` → 0.3
-- `"no_need"` → 1.0
-
-**intent_score** — composite:
-- `conversation_signals.buying_intent_score` (0–1 or 0–100, normalize)
-- `conversation_signals.temperature`: `ready_to_buy`→1.0, `evaluating`→0.6, `stalling`→0.3, `cold`→0.1, `lost`→0.0
-- meeting booked (has upcoming confirmed meeting) → +0.15 bonus (capped at 1.0)
-
-**historical_similarity** — based on stage probability from `pipeline_stages.probability` / 100. (Future: can use RAG. For now this is a deterministic proxy.)
-
-**Final formula:**
 ```
-close_score = (
-  0.25 * engagement_score +
-  0.20 * intent_score +
-  0.20 * trust_score +
-  0.15 * recency_score +
-  0.10 * historical_similarity -
-  0.10 * objection_penalty
-) * 100
-```
-Clamped to [0, 100].
+confidence_weight = { hot: 0.9, likely: 0.7, uncertain: 0.4, low: 0.15 }
 
-**Category:**
-- 0–30 → `"low"`
-- 31–60 → `"uncertain"`
-- 61–80 → `"likely"`
-- 81–100 → `"hot"`
-
-**Urgency:**
-- `churn_risk > 0.7` OR `recency_score < 0.2` → `"critical"`
-- `category === "hot"` AND no upcoming meeting → `"high"`
-- default → `"normal"`
-
-**next_action logic:**
+close_probability  = close_score / 100
+expected_revenue   = value * close_probability
+weighted_revenue   = expected_revenue * confidence_weight[category]
 ```
-if hot AND no meeting scheduled        → "Agendar reunião com o cliente"
-if main_objection is price/competitor  → "Enviar resposta personalizada à objeção de preço"
-if recency_score < 0.2 (inactive >14d) → "Follow-up urgente — sem actividade há X dias"
-if churn_risk > 0.7                    → "Escalar: risco de churn elevado"
-if category is low AND stage early     → "Qualificar melhor a oportunidade"
+
+If an opportunity has **no deal score yet**, use the raw pipeline stage approach as fallback (value * 0.3) so it still contributes.
+
+### Horizon Bucketing
+
+An opportunity contributes to `forecast_7` / `forecast_30` / `forecast_90` based on its `expected_close_date`:
+- ≤ 7 days from now → `forecast_7`
+- ≤ 30 days → `forecast_30`
+- ≤ 90 days → `forecast_90`
+
+If `expected_close_date` is null, it contributes only to `forecast_90` (most conservative).
+
+Each horizon sums `weighted_revenue` (not `expected_revenue`), making it the conservative realistic view.
+
+### Scenario Totals (across all open opportunities regardless of horizon)
+
 ```
+best_case     = SUM(value)   WHERE category = 'hot'
+expected_case = SUM(value * close_probability)   [all opps]
+worst_case    = SUM(weighted_revenue)            [all opps, most conservative]
+risk_index    = best_case > 0 ? 1 - (worst_case / best_case) : 0
+confidence_avg = MEAN(close_score) across all scored opps
+```
+
+### Historical Close Delay (informational only, stored in metadata)
+
+Compute average days between `expected_close_date` and actual `updated_at` (for won deals) to show accuracy context in the UI tooltip: "On average, your deals close X days after their expected date."
 
 ### Storage
 
 ```typescript
-await supabase.from('deal_scores').upsert({
+await supabase.from('revenue_forecasts').insert({
   workspace_id,
-  opportunity_id,
-  close_score: Math.round(close_score * 10) / 10,
-  category,
-  urgency,
-  next_action,
-  score_breakdown: { engagement_score, recency_score, trust_score, objection_penalty, intent_score, historical_similarity },
-  updated_at: new Date().toISOString(),
-}, { onConflict: 'opportunity_id' });
+  forecast_7, forecast_30, forecast_90,
+  best_case, expected_case, worst_case,
+  risk_index, confidence_avg,
+  opportunity_count, hot_count, likely_count, uncertain_count, low_count,
+  generated_at: new Date().toISOString(),
+});
+// Note: INSERT not UPSERT — we keep history for trend calculation
 ```
 
-Returns the full `deal_scores` row as JSON to the caller.
+Returns the inserted row to the caller.
 
 ---
 
-## 3. React Hook: `useDealScores`
+## 3. React Hook: `useRevenueForecast`
 
 ```typescript
-// src/hooks/useDealScores.ts
+// src/hooks/useRevenueForecast.ts
 
-export function useDealScores() {
-  // Fetches ALL deal_scores for current workspace (with opportunity_id)
-  // queryKey: ["deal-scores", currentWorkspace?.id]
-  // Returns: Map<opportunityId, DealScore>
-}
-
-export function useDealScore(opportunityId: string) {
-  // Fetches single score for one opportunity
-}
-
-export function useComputeDealScore() {
-  // useMutation: calls compute-deal-score edge function
-  // invalidates ["deal-scores"] on success
-  // Used both for manual refresh and auto-trigger after mutations
-}
-```
-
-`DealScore` type:
-```typescript
-interface DealScore {
+export interface RevenueForecast {
   id: string;
-  opportunity_id: string;
-  close_score: number;        // 0-100
-  category: "low" | "uncertain" | "likely" | "hot";
-  urgency: "normal" | "high" | "critical";
-  next_action: string | null;
-  score_breakdown: {
-    engagement_score: number;
-    recency_score: number;
-    trust_score: number;
-    objection_penalty: number;
-    intent_score: number;
-    historical_similarity: number;
-  } | null;
-  updated_at: string;
+  workspace_id: string;
+  generated_at: string;
+  forecast_7: number;
+  forecast_30: number;
+  forecast_90: number;
+  best_case: number;
+  expected_case: number;
+  worst_case: number;
+  risk_index: number;
+  confidence_avg: number;
+  opportunity_count: number;
+  hot_count: number;
+  likely_count: number;
+  uncertain_count: number;
+  low_count: number;
 }
+
+export function useRevenueForecast() {
+  // Fetches latest 2 forecasts (for trend comparison)
+  // queryKey: ["revenue-forecast", currentWorkspace?.id]
+  // Returns: latestForecast, previousForecast, trend (% change in expected_case)
+}
+
+export function useGenerateRevenueForecast() {
+  // useMutation: calls compute-revenue-forecast edge function
+  // invalidates ["revenue-forecast"] on success
+}
+```
+
+**Trend calculation:**
+```
+trend = previousForecast
+  ? pctChange(latest.expected_case, previous.expected_case)
+  : null
 ```
 
 ---
 
-## 4. Auto-trigger on Opportunity Change
+## 4. Component: `RevenueIntelligenceCard`
 
-In `useOpportunitiesEnhanced.ts`, after successful `useMoveOpportunityEnhanced` and `useUpdateOpportunityEnhanced` mutations, call `computeDealScore` with the opportunity's id and workspace_id. This keeps scores fresh after every stage drag or field update.
+**Location:** `src/components/revenue/RevenueIntelligenceCard.tsx`
 
-Pattern (added to `onSuccess`):
-```typescript
-onSuccess: (data) => {
-  // ... existing invalidations ...
-  supabase.functions.invoke('compute-deal-score', {
-    body: { workspace_id: currentWorkspace?.id, opportunity_id: data.id }
-  }); // fire-and-forget, no await
-}
+### Layout
+
 ```
+┌────────────────────────────────────────────────────────────────┐
+│ 💡 Revenue Intelligence            [Atualizar] [Generated: ago]│
+├──────────────────────────────────────────────────────────────── │
+│  Horizons row (3 chips):                                        │
+│  [7 dias: €8.2K] [30 dias: €24K] [90 dias: €61K]              │
+├──────────────────────────────────────────────────────────────── │
+│  Scenarios (3 cards):                                           │
+│  ┌──────────────┐ ┌───────────────────┐ ┌────────────────┐    │
+│  │ Melhor Caso  │ │  Caso Esperado ★  │ │  Pior Caso     │    │
+│  │ €85K  (Hot)  │ │  €52K            │ │  €28K          │    │
+│  └──────────────┘ └───────────────────┘ └────────────────┘    │
+├──────────────────────────────────────────────────────────────── │
+│  Risk Index:  ████████░░  78%  "Risco elevado — dispersão..."  │
+│  Confiança:   ████░░░░░░  61 pts médios                        │
+├──────────────────────────────────────────────────────────────── │
+│  Distribuição: 🔴 3 Hot  🟢 5 Likely  🟡 8 Uncertain  ⚪ 4 Low│
+└────────────────────────────────────────────────────────────────┘
+```
+
+- **Risk index** color: 0–40% → green, 41–70% → amber, 71–100% → red
+- **Trend badge** next to "Caso Esperado": `+12.3% vs semana anterior`
+- Loading skeleton matches the card layout
+- Empty state: "Nenhuma oportunidade com score calculado" + "Gerar Previsão" CTA
 
 ---
 
-## 5. UI Changes
+## 5. Integration in `StrategyPage`
 
-### `OpportunityCard.tsx` — Score badge + risk icon
+Add a third tab **"Receita"** (`💰 Receita`) to the existing `Tabs`:
 
+```tsx
+<TabsTrigger value="revenue">💰 Receita</TabsTrigger>
+...
+<TabsContent value="revenue">
+  <RevenueIntelligenceCard />
+  <OpportunityForecastTable />  {/* per-opportunity breakdown */}
+</TabsContent>
 ```
-┌────────────────────────────────────────────────────────┐
-│ ≡  Title                         €12.000  [72 Likely]  │
-│                                            ⚠ (if risk) │
-└────────────────────────────────────────────────────────┘
+
+The `OpportunityForecastTable` shows each open opportunity with:
+- Title
+- Value
+- Deal Score badge (color-coded)
+- Category
+- Weighted Revenue contribution
+- Expected close date
+
+This gives the sales manager full transparency on what drives the forecast number.
+
+---
+
+## 6. Cron Schedule
+
+Add a daily `pg_cron` job (via the insert tool, not migration) running at 07:00 UTC:
+
+```sql
+SELECT cron.schedule(
+  'compute-revenue-forecast-daily',
+  '0 7 * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://eumnfkccyvlyoyjchiwe.supabase.co/functions/v1/compute-revenue-forecast',
+    headers := '{"Content-Type":"application/json","Authorization":"Bearer <anon_key>"}'::jsonb,
+    body := '{}'::jsonb  -- cron mode: iterates all workspaces
+  );
+  $$
+);
 ```
 
-- Add `dealScore?: DealScore` prop
-- Score badge color by category:
-  - `hot` → red (`bg-red-100 text-red-700`)
-  - `likely` → green (`bg-green-100 text-green-700`)
-  - `uncertain` → amber (`bg-amber-100 text-amber-700`)
-  - `low` → muted gray
-- Risk icon (`AlertTriangle` in `text-red-500`) shown when `urgency === "critical"`
-- Tooltip on hover shows `next_action` text
+In cron mode (no `workspace_id` in body), the function iterates all distinct `workspace_id` values from `deal_scores` and generates a forecast for each.
 
-### `OpportunitiesModule.tsx` — Sort + Filter controls
+---
 
-Add two controls next to the existing filter bar:
+## Technical Details
 
-1. **Sort by Score toggle** — `Button` with `ArrowUpDown` icon. When active, sorts `filteredOpportunities` by `close_score DESC` before grouping into Kanban columns.
-
-2. **"Hot Deals" filter chip** — a `Badge`-style toggle button. When active, filters to show only `category === "hot"` opportunities. Shows count badge: "Hot Deals (4)".
-
-The `useDealScores` hook is called once at the module level; the returned Map is passed down to `OpportunityKanbanColumn` → `OpportunityCard`.
-
-### `OpportunityTableView.tsx` — Score column
-
-Add a `Score` column between `Prob.` and `Data Fecho`:
-- Shows `[72]` badge with category color
-- Column header is clickable to sort by score
-- Risk icon appended if `urgency === "critical"`
-
-### `OpportunityKanbanColumn.tsx` — Column-level score metrics
-
-Add one line to the column stats row:
-- Average score for the column: `Ø Score: 64`
-- Color-coded by average category
+- **No AI call** — purely deterministic math. Fast (<300ms), zero credits.
+- **INSERT not UPSERT** on `revenue_forecasts` — we keep the last N snapshots to compute trend. The hook reads `.order('generated_at', { ascending: false }).limit(2)` to get latest + previous.
+- **Fallback for unscored opportunities:** `close_probability = 0.3`, `weighted_revenue = value * 0.3 * 0.4` (treated as "uncertain"). These are excluded from `best_case`.
+- **`risk_index`**: When `best_case = 0` (no hot deals), `risk_index = 1.0` (maximum risk, can't know upside).
+- The `RevenueIntelligenceCard` also shows a "Last generated" timestamp — if older than 24h, it shows a warning and a "Recalcular" button.
+- The per-opportunity breakdown table in the Strategy page reads directly from `opportunities` + `deal_scores` join on the client — no extra DB table needed for this detail view.
+- RLS: users can SELECT their workspace forecasts. Service role writes. Same pattern as `deal_scores` and `weekly_briefs`.
+- `config.toml` gets a new `[functions.compute-revenue-forecast]` section (no `verify_jwt` override needed — called with user JWT from UI).
 
 ---
 
@@ -339,27 +350,9 @@ Add one line to the column stats row:
 
 | File | Action |
 |---|---|
-| `supabase/migrations/<ts>_deal_scores.sql` | New — `deal_scores` table + RLS |
-| `supabase/functions/compute-deal-score/index.ts` | New — scoring edge function |
-| `supabase/config.toml` | Add `[functions.compute-deal-score]` section |
-| `src/hooks/useDealScores.ts` | New — React hook for scores |
-| `src/components/opportunities/OpportunityCard.tsx` | Edit — score badge + risk icon |
-| `src/components/opportunities/OpportunitiesModule.tsx` | Edit — sort + Hot Deals filter |
-| `src/components/opportunities/OpportunityTableView.tsx` | Edit — score column |
-| `src/components/opportunities/OpportunityKanbanColumn.tsx` | Edit — avg score in header |
-| `src/hooks/useOpportunitiesEnhanced.ts` | Edit — auto-trigger score on move/update |
-
----
-
-## Technical Details
-
-- `deal_scores` has a `UNIQUE(opportunity_id)` constraint so UPSERT always gives one row per opportunity — no duplicates.
-- The edge function uses `SUPABASE_SERVICE_ROLE_KEY` to bypass RLS for writing scores. The UI reads via the normal workspace client (RLS allows workspace members to SELECT).
-- `conversation_signals` is linked via `contact_id` or `lead_id` on the opportunity, not directly via `opportunity_id`. The edge function resolves this by reading `opportunity.contact_id || opportunity.lead_id`.
-- `meetings` table has `opportunity_id` column — confirmed in schema above. Query is straightforward.
-- `tasks` uses `related_type='opportunity'` and `related_id=opportunity_id` — confirmed in schema.
-- Auto-trigger from `useOpportunitiesEnhanced` is **fire-and-forget** (no `await`) so it never blocks the UI mutation.
-- The hook fetches all scores for the workspace in one query (not N+1 per card), then builds a `Map<opportunityId, DealScore>` in memory for O(1) card lookups.
-- `score_breakdown` is stored in the DB and will be shown in the opportunity detail page `OpportunityAIInsightsSection` as a score breakdown card (simple addition to that section, no new tab needed).
-- `verify_jwt = false` is NOT needed since this function is called from authenticated UI via `supabase.functions.invoke` which passes the user's JWT.
-- No AI/LLM call is made — this is a pure deterministic formula, meaning it runs fast (<200ms) and costs zero AI credits.
+| `supabase/migrations/<ts>_revenue_forecasts.sql` | New — table + RLS |
+| `supabase/functions/compute-revenue-forecast/index.ts` | New — computation engine |
+| `supabase/config.toml` | Add function entry |
+| `src/hooks/useRevenueForecast.ts` | New — React hook |
+| `src/components/revenue/RevenueIntelligenceCard.tsx` | New — main UI card |
+| `src/pages/StrategyPage.tsx` | Add "Receita" tab with card + table |
