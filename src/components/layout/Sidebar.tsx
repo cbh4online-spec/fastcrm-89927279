@@ -5,6 +5,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 import { useMenuPermissions } from "@/hooks/useMenuPermissions";
+import { useStrategicDecisions } from "@/hooks/useStrategicDecisions";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
 import { PlanBadge } from "@/components/subscription/FeatureGate";
@@ -363,6 +364,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { plan, canUseFeature } = useSubscription();
   const { installedModuleIds } = useWorkspaceModules();
   const { canAccessMenu, isLoading: permissionsLoading } = useMenuPermissions();
+  const { data: openDecisions = [] } = useStrategicDecisions();
+  const openDecisionCount = openDecisions.length;
   
   // Filter navigation based on installed modules AND permissions
   const filteredNavigationGroups = useMemo(() => {
@@ -456,10 +459,23 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               active && "text-primary"
             )} />
             <span className="flex-1">{item.name}</span>
-            {isPremium && <Crown className="w-3.5 h-3.5 text-amber-400" />}
-            {item.highlight && !active && (
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            )}
+            {(() => {
+              const isStrategyItem = item.href === "/dashboard/strategy";
+              const showDecisionBadge = isStrategyItem && openDecisionCount > 0;
+              return (
+                <>
+                  {showDecisionBadge && (
+                    <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center leading-none">
+                      {openDecisionCount > 9 ? "9+" : openDecisionCount}
+                    </span>
+                  )}
+                  {isPremium && <Crown className="w-3.5 h-3.5 text-amber-400" />}
+                  {item.highlight && !active && !showDecisionBadge && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  )}
+                </>
+              );
+            })()}
           </Link>
         </TooltipTrigger>
         {item.tooltip && (
@@ -495,9 +511,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                   groupActive && "text-primary"
                 )} />
                 <span className="flex-1 text-left font-medium">{group.name}</span>
-                {group.highlight && (
+                {group.name === "Estratégia" && openDecisionCount > 0 ? (
+                  <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center leading-none">
+                    {openDecisionCount > 9 ? "9+" : openDecisionCount}
+                  </span>
+                ) : group.highlight ? (
                   <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                )}
+                ) : null}
                 {isOpen ? (
                   <ChevronDown className="w-3.5 h-3.5 text-white/50" />
                 ) : (
