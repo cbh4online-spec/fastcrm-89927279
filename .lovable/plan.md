@@ -1,90 +1,76 @@
 
-# Diagnóstico: Cron de Sincronização a Falhar Silenciosamente
+# Suporte a Webhooks em Tempo Real do GHL
 
-## Causa Raiz
+## Situação Atual
 
-O cron `cron-sync-messages` **está a correr** (cada minuto, via pg_cron), mas **não está a descarregar nenhuma mensagem**. Os logs confirmam:
+A infraestrutura de webhooks **já existe e funciona**:
+- `ghl-webhook-message` — processa mensagens inbound em tempo real
+- `ghl-webhook-contact` — processa novos contactos
+- As URLs são exibidas na secção "URLs dos Webhooks" nas configurações
 
-```
-[Cron Sync] Iteration time limit reached, stopping workspaces
-```
-
-Este log aparece sempre na **Iteração 1**, o que significa que o sistema pára antes de processar qualquer workspace.
-
-### O que acontece passo a passo:
-
-1. O cron arranca e chama `syncAllWorkspaces()`
-2. A função tenta fazer `fetch` ao GHL: `services.leadconnectorhq.com/conversations/search`
-3. A API do GHL demora **mais de 4 segundos** a responder (latência normal para APIs externas)
-4. O guard `if (Date.now() - iterationStart > 4000)` dispara **antes** de qualquer resposta chegar
-5. O loop de workspaces quebra com `break`
-6. **Resultado: zero conversas verificadas, zero mensagens descarregadas**
-
-### Problema secundário: ausência de timeout no fetch
-
-Não há `AbortController` nas chamadas ao GHL — se a API não responder, a função bloqueia indefinidamente até ao timeout do edge function (60s), desperdiçando todas as iterações.
+O que **falta** é:
+1. Instruções claras e passo a passo de como configurar o webhook no painel do GHL
+2. Indicação de qual evento GHL usar (`InboundMessage`)
+3. O URL atual não inclui o `location_id` como query param — sem ele, o webhook falha para workspaces que tenham múltiplos location IDs
+4. Um teste de verificação de webhook diretamente nas configurações (botão "Testar Webhook")
 
 ---
 
 ## Solução
 
-### 1. Aumentar o guard de tempo por workspace: 4s → 20s
+### 1. Melhorar a UI de Configuração de Webhooks (`WorkspaceGHLSettings.tsx`)
 
-O guard atual é demasiado restritivo. Uma chamada API + parsing de dados precisa de pelo menos 10-15s. Com 3 workspaces, 20s por workspace é razoável dentro do ciclo de 60s.
+**A. URL com Location ID pré-preenchido**
 
-```ts
-// Antes
-if (Date.now() - iterationStart > 4000) break;
+Em vez de o utilizador ter de configurar o header `X-GHL-Location-Id` (complexo), o URL do webhook já inclui o location_id como query param — muito mais simples de configurar no GHL:
 
-// Depois
-if (Date.now() - iterationStart > 20000) break;
+```
+https://...functions/v1/ghl-webhook-message?location_id=SEU_LOCATION_ID
 ```
 
-### 2. Adicionar `AbortController` com timeout de 15s nas chamadas ao GHL
+O `ghl-webhook-message` já suporta `location_id` como query param (linha 97 do ficheiro).
 
-Evita que uma chamada lenta bloqueie o processo indefinidamente:
+**B. Guia passo a passo expansível**
 
-```ts
-const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 15000);
+Adicionar um `Accordion` com instruções visuais de como configurar o webhook no GHL:
 
-const ghlResponse = await fetch(ghlUrl, {
-  signal: controller.signal,
-  headers: { ... }
-});
-clearTimeout(timeoutId);
+```
+Passo 1: No GHL, abra Settings → Integrations → Webhooks
+Passo 2: Clique em "Add New Webhook"
+Passo 3: Cole o URL de mensagens (já com location_id)
+Passo 4: Selecione o evento: "InboundMessage"
+Passo 5: Guarde e ative o webhook
 ```
 
-### 3. Simplificar a arquitectura de iterações
+**C. Botão "Testar Webhook"**
 
-A lógica actual de "12 iterações × 5s" foi desenhada para polling frequente, mas está a conflituar com o tempo de resposta do GHL. Simplificar para **1 iteração sólida por minuto** (que é o que o pg_cron já garante):
+Um botão que faz uma chamada de teste ao `ghl-webhook-message` com um payload simulado, mostrando se a configuração está correta.
 
-- Remover o loop de 12 iterações
-- Fazer uma única passagem robusta por todos os workspaces, com timeout adequado
-- O cron de 1 em 1 minuto trata da frequência
+**D. Estado de Webhook Ativo/Inativo**
 
-### 4. Melhorar logs de diagnóstico
-
-Adicionar logs antes e depois de cada chamada ao GHL para facilitar debugging futuro:
-
-```ts
-console.log("[Cron Sync] Calling GHL API for workspace", workspace_id);
-// ... fetch ...
-console.log("[Cron Sync] GHL response received", { status, conversations: count });
-```
+Mostrar quando a última mensagem foi recebida via webhook vs. via polling, para o utilizador saber qual método está a funcionar.
 
 ---
 
-## Ficheiros a alterar
+### 2. Atualizar o Alerta de Headers
 
-| Ficheiro | Acção |
+O alerta atual mostra headers obrigatórios que são necessários apenas se não usar o query param. Com o URL atualizado (que já inclui `location_id`), o utilizador só precisa de:
+- Colar o URL
+- Selecionar o evento `InboundMessage`
+
+---
+
+## Ficheiros a Alterar
+
+| Ficheiro | Ação |
 |---|---|
-| `supabase/functions/cron-sync-messages/index.ts` | Corrigir guard de tempo, adicionar AbortController, simplificar iterações, melhorar logs |
+| `src/components/settings/sections/WorkspaceGHLSettings.tsx` | Atualizar URL com location_id, adicionar guia passo a passo, botão de teste, melhorar secção de webhooks |
 
 ## Technical Details
 
-- O pg_cron já dispara a função 1x por minuto — não é necessário replicar esse comportamento internamente com 12 iterações.
-- A janela de tempo para "mensagens recentes" mantém-se em 30 minutos (garante continuidade mesmo que uma iteração falhe).
-- A lógica de deduplicação por `ghl_message_id` / `external_message_id` mantém-se intacta — não há risco de duplicados mesmo se o cron correr mais vezes.
-- O `AbortController` com 15s de timeout por chamada GHL garante que mesmo com API lenta, o processo não fica bloqueado.
-- Com 3 workspaces activos e 15s de timeout por API call, a função completa em menos de 60s no pior caso.
+- O `ghl-webhook-message` já lê `location_id` do query param na linha 97: `url.searchParams.get("location_id")` — nenhuma alteração à edge function necessária.
+- O `ghl-webhook-contact` também já suporta `location_id` como query param (linha 67) — mesmo padrão.
+- O botão "Testar Webhook" fará um `fetch` direto ao endpoint com um payload mínimo de teste, verificando se retorna 200.
+- Nenhuma alteração à base de dados ou RLS necessária.
+- A lógica de deduplicação por `ghl_message_id` continua intacta — não há risco de duplicados.
+- O cron de polling pode coexistir com webhooks em tempo real — os webhooks chegam imediatamente, o cron serve de fallback para mensagens que possam ter escapado.
