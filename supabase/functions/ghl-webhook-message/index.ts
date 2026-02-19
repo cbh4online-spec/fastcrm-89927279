@@ -507,6 +507,26 @@ serve(async (req) => {
       });
     }
 
+    // 12. Fire-and-forget: compute conversation signals
+    if (leadId || contactId) {
+      (async () => {
+        try {
+          await fetch(`${supabaseUrl}/functions/v1/compute-conversation-signals`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              workspace_id: workspaceId,
+              lead_id: leadId || null,
+              contact_id: contactId || null,
+            }),
+          });
+        } catch { /* silent */ }
+      })();
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 

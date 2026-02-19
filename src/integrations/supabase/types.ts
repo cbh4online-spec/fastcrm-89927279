@@ -8462,6 +8462,85 @@ export type Database = {
           },
         ]
       }
+      conversation_signals: {
+        Row: {
+          buying_intent_score: number | null
+          churn_risk: number | null
+          close_probability: number | null
+          contact_id: string | null
+          created_at: string
+          id: string
+          last_updated: string
+          lead_id: string | null
+          main_objection: string | null
+          next_action: string | null
+          recommended_reply: string | null
+          signals_data: Json | null
+          temperature: string | null
+          trust_score: number | null
+          urgency_score: number | null
+          workspace_id: string
+        }
+        Insert: {
+          buying_intent_score?: number | null
+          churn_risk?: number | null
+          close_probability?: number | null
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          last_updated?: string
+          lead_id?: string | null
+          main_objection?: string | null
+          next_action?: string | null
+          recommended_reply?: string | null
+          signals_data?: Json | null
+          temperature?: string | null
+          trust_score?: number | null
+          urgency_score?: number | null
+          workspace_id: string
+        }
+        Update: {
+          buying_intent_score?: number | null
+          churn_risk?: number | null
+          close_probability?: number | null
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          last_updated?: string
+          lead_id?: string | null
+          main_objection?: string | null
+          next_action?: string | null
+          recommended_reply?: string | null
+          signals_data?: Json | null
+          temperature?: string | null
+          trust_score?: number | null
+          urgency_score?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_signals_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_signals_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_signals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversational_flows: {
         Row: {
           created_at: string

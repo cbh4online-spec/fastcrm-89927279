@@ -303,3 +303,6 @@ verify_jwt = false
 
 [functions.ai-employee-executor]
 verify_jwt = false
+
+[functions.compute-conversation-signals]
+verify_jwt = false
