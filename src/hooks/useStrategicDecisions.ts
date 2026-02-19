@@ -69,6 +69,33 @@ export function useGenerateStrategicDecisions() {
   });
 }
 
+export function useDecisionHistory() {
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ["strategic-decisions-history", currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace) return [];
+
+      const { data, error } = await supabase
+        .from("strategic_decisions")
+        .select("*")
+        .eq("workspace_id", currentWorkspace.id)
+        .in("status", ["dismissed", "converted"])
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      return (data || []).map((d) => ({
+        ...d,
+        recommended_steps: Array.isArray(d.recommended_steps) ? d.recommended_steps : [],
+      })) as StrategicDecision[];
+    },
+    enabled: !!currentWorkspace,
+  });
+}
+
 export function useDismissDecision() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
@@ -84,6 +111,9 @@ export function useDismissDecision() {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["strategic-decisions", currentWorkspace?.id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["strategic-decisions-history", currentWorkspace?.id],
       });
     },
   });
@@ -133,6 +163,9 @@ export function useConvertAllDecisionSteps() {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["strategic-decisions", currentWorkspace?.id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["strategic-decisions-history", currentWorkspace?.id],
       });
     },
   });
