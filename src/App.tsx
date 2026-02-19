@@ -17,6 +17,7 @@ import Signup from "./pages/Signup";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
+import TasksPage from "./pages/TasksPage";
 import Settings from "./pages/Settings";
 import Leads from "./pages/Leads";
 import LeadDetail from "./pages/LeadDetail";
@@ -344,6 +345,7 @@ function CRMRoutes() {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/onboarding" element={<Onboarding />} />
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard/tasks" element={<TasksPage />} />
                 <Route path="/dashboard/settings" element={<Settings />} />
                 <Route path="/dashboard/settings/:section" element={<Settings />} />
                 <Route path="/dashboard/leads" element={<Leads />} />
