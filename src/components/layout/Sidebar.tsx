@@ -66,6 +66,8 @@ import {
   FlaskConical,
   Mic,
   Bot,
+  BrainCircuit,
+  FileBarChart2,
 } from "lucide-react";
 import {
   Collapsible,
@@ -125,6 +127,7 @@ const menuKeyMap: Record<string, string> = {
   "Pipelines": "settings",
   "Utilizadores": "team",
   "Faturação": "settings",
+  "Brief Executivo": "strategy",
 };
 
 interface NavItem {
@@ -273,6 +276,22 @@ const navigationGroups: NavGroup[] = [
       { name: "Automações", href: "/dashboard/automations", icon: Zap, tooltip: "Workflows automáticos" },
       { name: "Funis", href: "/dashboard/funnels", icon: Globe, tooltip: "Funis de conversão" },
       { name: "Bio OS", href: "/dashboard/bio", icon: Link2, tooltip: "Páginas Bio e micro-sites", highlight: true, moduleSlug: "bio-os" },
+    ],
+  },
+  // ESTRATÉGIA
+  {
+    name: "Estratégia",
+    icon: BrainCircuit,
+    tooltip: "Inteligência estratégica e negocial",
+    highlight: true,
+    items: [
+      {
+        name: "Brief Executivo",
+        href: "/dashboard/strategy",
+        icon: FileBarChart2,
+        tooltip: "Relatório executivo semanal com IA",
+        highlight: true,
+      },
     ],
   },
   // RELATÓRIOS

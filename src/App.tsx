@@ -122,6 +122,7 @@ import Marketing from "./pages/Marketing";
 import InstagramLooterPage from "./pages/dashboard/InstagramLooterPage";
 import SEOAdminPage from "./pages/dashboard/seo";
 import CreditIntermediation from "./pages/CreditIntermediation";
+import StrategyPage from "./pages/StrategyPage";
 import ForgotPassword from "./pages/ForgotPassword";
 import LeadEnricher from "./pages/LeadEnricher";
 import StoreOrdersPage from "./pages/StoreOrdersPage";
@@ -409,6 +410,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/instagram-looter" element={<InstagramLooterPage />} />
                 <Route path="/dashboard/instagram-looter/:tab" element={<InstagramLooterPage />} />
                 <Route path="/dashboard/credit" element={<CreditIntermediation />} />
+                <Route path="/dashboard/strategy" element={<StrategyPage />} />
                 <Route path="/dashboard/lead-enricher" element={<LeadEnricher />} />
                 
                 {/* Order Notes Admin Routes */}
