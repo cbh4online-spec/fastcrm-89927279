@@ -1,174 +1,365 @@
 
-# Rebuild: `strategic-intelligence-brief` — Full Data Aggregation
+# AI Deal Scoring Module
 
-## Problem with Current Implementation
+## What This Is
 
-The existing edge function is **missing the real data the plan specifies**. It currently only queries:
-- Leads (count only)
-- Tasks
-- Messages (via conversations join)
+A deterministic, formula-based scoring engine that computes a `close_score` (0–100) for every open opportunity by combining data from `opportunities`, `conversation_signals`, `crm_activities`, `meetings`, and `tasks`. Scores are stored in a new `deal_scores` table and surfaced as badges, sort controls, and a "Hot Deals" filter directly in the pipeline UI.
 
-It is **missing**:
-- Opportunities (won, lost, open, revenue)
-- Previous 7-day period comparison for messages and opportunities
-- Response time calculation from conversations
-- Lead inactivity (no `last_contact_at` > 7 days)
-- Revenue computation from won deals
-
-The AI therefore generates guessed/estimated values for `revenue_change`, `conversion_change`, and `response_time_change` rather than real data.
+This is **separate** from the existing `ai-agent-opportunity` function (which does qualitative narrative AI analysis). This module computes a numeric score on-demand and on update — no AI LLM call required.
 
 ---
 
-## What Needs to Be Rebuilt
+## Architecture Overview
 
-The `generateBriefForWorkspace` function inside `supabase/functions/strategic-intelligence-brief/index.ts` needs to be replaced with a complete data aggregation pipeline.
-
----
-
-## Full Data Pipeline (per workspace, per call)
-
-### Time windows
-```
-now                = current timestamp
-7d_ago             = now - 7 days    (start of "this week")
-14d_ago            = now - 14 days   (start of "previous week")
-```
-
-### Queries to run in parallel
-
-| # | Table | Query | Output |
-|---|-------|-------|--------|
-| 1 | `leads` | count `created_at >= 7d_ago` | `leadsThisWeek` |
-| 2 | `leads` | count `created_at >= 14d_ago AND < 7d_ago` | `leadsPrevWeek` |
-| 3 | `leads` | count `last_contact_at < 7d_ago OR last_contact_at IS NULL` AND status not won/lost | `inactiveLeads` |
-| 4 | `opportunities` | count + sum(value) WHERE `status = 'won'` AND `updated_at >= 7d_ago` | `wonThisWeek`, `revenueThisWeek` |
-| 5 | `opportunities` | count + sum(value) WHERE `status = 'won'` AND `updated_at >= 14d_ago AND < 7d_ago` | `wonPrevWeek`, `revenuePrevWeek` |
-| 6 | `opportunities` | count WHERE `status = 'lost'` AND `updated_at >= 7d_ago` | `lostThisWeek` |
-| 7 | `opportunities` | count WHERE `status = 'lost'` AND `updated_at >= 14d_ago AND < 7d_ago` | `lostPrevWeek` |
-| 8 | `opportunities` | count WHERE `status = 'open'` (all-time, current snapshot) | `openDeals` |
-| 9 | `messages` | count WHERE `workspace_id = ? AND sent_at >= 7d_ago` | `messagesThisWeek` |
-| 10 | `messages` | count WHERE `workspace_id = ? AND sent_at >= 14d_ago AND < 7d_ago` | `messagesPrevWeek` |
-| 11 | `messages` | fetch last 60 content samples WHERE `workspace_id = ? AND sent_at >= 7d_ago` | message context for AI |
-| 12 | `tasks` | count WHERE `status = 'done' AND updated_at >= 7d_ago` | `tasksCompleted` |
-| 13 | `tasks` | count WHERE status IN ('pending','todo') | `tasksPending` |
-| 14 | `conversations` | fetch `created_at`, `last_message_at` WHERE `created_at >= 7d_ago` | for response time calc |
-| 15 | `conversations` | same for previous week | for response time comparison |
-
-> **Note on `messages`:** The `messages` table has a direct `workspace_id` column, so no join via `conversations` is needed — much simpler and faster.
-
----
-
-## Delta Calculations
-
-All computed in the function (not by AI):
-
-```
-leadsChange         = pct_change(leadsThisWeek, leadsPrevWeek)
-revenueChange       = pct_change(revenueThisWeek, revenuePrevWeek)
-messagesChange      = pct_change(messagesThisWeek, messagesPrevWeek)
-
-conversionThisWeek  = wonThisWeek / (wonThisWeek + lostThisWeek)  [if > 0]
-conversionPrevWeek  = wonPrevWeek / (wonPrevWeek + lostPrevWeek)  [if > 0]
-conversionChange    = pct_change(conversionThisWeek, conversionPrevWeek)
-
-avgRespThisWeek     = mean(last_message_at - created_at) for conversations this week
-avgRespPrevWeek     = mean(last_message_at - created_at) for conversations prev week
-responseTimeChange  = pct_change(avgRespThisWeek, avgRespPrevWeek)
-                      (negative = faster = good)
-```
-
-Helper:
-```typescript
-function pctChange(current: number, previous: number): number {
-  if (previous === 0) return 0;
-  return Math.round(((current - previous) / previous) * 100 * 10) / 10;
-}
+```text
+User action / mutation
+        │
+        ▼
+[compute-deal-score edge function]
+        │
+        ├─ Query: opportunities (stage, value, created_at, last_activity_at)
+        ├─ Query: conversation_signals (temperature, trust, churn, intent, objection)
+        ├─ Query: crm_activities (response_time, meeting_booked, proposal_sent)
+        ├─ Query: meetings (has upcoming meeting)
+        └─ Query: tasks (pending count, overdue)
+        │
+        ▼
+   Scoring formula (deterministic)
+        │
+        ▼
+  UPSERT → deal_scores table
+        │
+        ▼
+  React hook (useDealScores) reads scores
+        │
+        ▼
+  OpportunityCard   → score badge + risk icon
+  OpportunityKanban → sort by score toggle
+  OpportunitiesModule → "Hot Deals" filter
+  OpportunityTableView → score column
 ```
 
 ---
 
-## Metrics Context Sent to AI
+## Scope of Changes
 
-The prompt context block sent to AI becomes:
-
-```
-SEMANA ATUAL (últimos 7 dias):
-- Leads criados: 23
-- Negócios ganhos: 4 (€12.500)
-- Negócios perdidos: 2
-- Negócios em aberto: 18
-- Mensagens trocadas: 156
-- Tarefas concluídas: 11 | Pendentes: 7
-- Leads inativos (>7 dias sem contacto): 9
-
-SEMANA ANTERIOR (7-14 dias):
-- Leads criados: 20
-- Negócios ganhos: 3 (€9.200)
-- Negócios perdidos: 1
-- Mensagens trocadas: 132
-
-VARIAÇÕES CALCULADAS:
-- Leads: +15%
-- Receita: +35.9%
-- Taxa de conversão: +12.5% (40% → 57%)
-- Tempo de resposta: -8% (mais rápido)
-- Mensagens: +18.2%
-
-TEMPO MÉDIO DE RESPOSTA:
-- Esta semana: 4.2h
-- Semana anterior: 4.6h
-
-AMOSTRA DE CONVERSAS (últimas 40 mensagens):
-[Cliente]: Qual é o preço...
-[Agente]: ...
-```
+| Layer | File | Action |
+|---|---|---|
+| Database | migration | Create `deal_scores` table + RLS + index |
+| Edge Function | `supabase/functions/compute-deal-score/index.ts` | New: scoring logic |
+| Config | `supabase/config.toml` | Register new function |
+| React Hook | `src/hooks/useDealScores.ts` | Fetch scores + trigger recompute |
+| UI | `src/components/opportunities/OpportunityCard.tsx` | Add score badge + risk icon |
+| UI | `src/components/opportunities/OpportunityTableView.tsx` | Add score column |
+| UI | `src/components/opportunities/OpportunitiesModule.tsx` | Sort + "Hot Deals" filter |
+| Auto-trigger | `src/hooks/useOpportunitiesEnhanced.ts` | Trigger score after move/update |
 
 ---
 
-## `key_metrics` Object Stored in DB
+## 1. Database: `deal_scores` Table
 
-The function **overrides** AI-guessed metrics with the real computed values before inserting:
+```sql
+CREATE TABLE public.deal_scores (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id    uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  opportunity_id  uuid NOT NULL REFERENCES public.opportunities(id) ON DELETE CASCADE,
+  close_score     numeric NOT NULL DEFAULT 0,    -- 0-100
+  category        text NOT NULL DEFAULT 'uncertain', -- low/uncertain/likely/hot
+  urgency         text NOT NULL DEFAULT 'normal',    -- normal/high/critical
+  next_action     text,
+  score_breakdown jsonb,   -- stores component scores for transparency
+  updated_at      timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (opportunity_id)
+);
 
+CREATE INDEX ON public.deal_scores(workspace_id, close_score DESC);
+CREATE INDEX ON public.deal_scores(workspace_id, category);
+
+ALTER TABLE public.deal_scores ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "workspace members read deal scores"
+  ON public.deal_scores FOR SELECT
+  USING (
+    workspace_id IN (
+      SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "service role manages deal scores"
+  ON public.deal_scores FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+```
+
+The `score_breakdown` JSONB stores component values for debugging and display:
 ```json
 {
-  "leads_change": 15.0,
-  "revenue_change": 35.9,
-  "conversion_change": 12.5,
-  "response_time_change": -8.0,
-  "leads_total": 23,
-  "won_deals": 4,
-  "lost_deals": 2,
-  "messages_total": 156,
-  "tasks_completed": 11,
-  "tasks_pending": 7,
-  "inactive_leads": 9,
-  "open_deals": 18,
-  "revenue_this_week": 12500,
-  "avg_response_hours_this_week": 4.2
+  "engagement_score": 0.72,
+  "recency_score": 0.85,
+  "trust_score": 0.60,
+  "objection_penalty": 0.20,
+  "intent_score": 0.75,
+  "historical_similarity": 0.50
 }
 ```
 
 ---
 
-## Files to Edit
+## 2. Edge Function: `compute-deal-score`
 
-Only **one file** needs to change:
+**Accepts:** `{ workspace_id, opportunity_id }` — scores one opportunity.
+**Auth:** Uses `SUPABASE_SERVICE_ROLE_KEY` (called server-side or via anon token from UI via `supabase.functions.invoke`).
 
-| File | Change |
+### Data Fetched (parallel queries)
+
+```typescript
+const [opportunity, signals, activities, meetings, tasks] = await Promise.all([
+  // opportunity row + stage + contact/lead
+  supabase.from('opportunities').select('*, stage:pipeline_stages(*)').eq('id', opportunity_id),
+
+  // conversation_signals by contact_id or lead_id
+  supabase.from('conversation_signals')
+    .select('temperature, trust_score, churn_risk, buying_intent_score, main_objection')
+    .eq(contact_id ? 'contact_id' : 'lead_id', id),
+
+  // crm_activities for this opportunity (last 30)
+  supabase.from('crm_activities')
+    .select('activity_type, created_at, metadata')
+    .eq('opportunity_id', opportunity_id)
+    .order('created_at', { ascending: false }).limit(30),
+
+  // upcoming meetings linked to opportunity
+  supabase.from('meetings')
+    .select('id, start_time, status')
+    .eq('opportunity_id', opportunity_id)
+    .gte('start_time', new Date().toISOString())
+    .eq('status', 'confirmed').limit(5),
+
+  // open/overdue tasks linked to opportunity
+  supabase.from('tasks')
+    .select('id, status, due_at')
+    .eq('related_id', opportunity_id)
+    .eq('related_type', 'opportunity')
+    .in('status', ['todo', 'in_progress']),
+]);
+```
+
+### Scoring Formula
+
+All components produce values in [0, 1]:
+
+**engagement_score** — based on activity count and recency:
+- >10 activities last 30 days → 1.0
+- 5–10 → 0.7
+- 2–4 → 0.4
+- 0–1 → 0.1
+
+**recency_score** — based on `last_activity_at` or `updated_at`:
+- <2 days → 1.0
+- 2–7 days → 0.75
+- 7–14 days → 0.4
+- 14–30 days → 0.15
+- >30 days → 0.0
+
+**trust_score** — directly from `conversation_signals.trust_score` (already 0–100 scaled, divide by 100). Falls back to stage probability / 100 if no signals.
+
+**objection_penalty** — from `conversation_signals.main_objection`:
+- `"none"` or null → 0.0
+- `"price"` or `"competitor"` → 0.8
+- `"authority"` or `"timing"` → 0.5
+- `"uncertainty"` or `"confusion"` → 0.3
+- `"no_need"` → 1.0
+
+**intent_score** — composite:
+- `conversation_signals.buying_intent_score` (0–1 or 0–100, normalize)
+- `conversation_signals.temperature`: `ready_to_buy`→1.0, `evaluating`→0.6, `stalling`→0.3, `cold`→0.1, `lost`→0.0
+- meeting booked (has upcoming confirmed meeting) → +0.15 bonus (capped at 1.0)
+
+**historical_similarity** — based on stage probability from `pipeline_stages.probability` / 100. (Future: can use RAG. For now this is a deterministic proxy.)
+
+**Final formula:**
+```
+close_score = (
+  0.25 * engagement_score +
+  0.20 * intent_score +
+  0.20 * trust_score +
+  0.15 * recency_score +
+  0.10 * historical_similarity -
+  0.10 * objection_penalty
+) * 100
+```
+Clamped to [0, 100].
+
+**Category:**
+- 0–30 → `"low"`
+- 31–60 → `"uncertain"`
+- 61–80 → `"likely"`
+- 81–100 → `"hot"`
+
+**Urgency:**
+- `churn_risk > 0.7` OR `recency_score < 0.2` → `"critical"`
+- `category === "hot"` AND no upcoming meeting → `"high"`
+- default → `"normal"`
+
+**next_action logic:**
+```
+if hot AND no meeting scheduled        → "Agendar reunião com o cliente"
+if main_objection is price/competitor  → "Enviar resposta personalizada à objeção de preço"
+if recency_score < 0.2 (inactive >14d) → "Follow-up urgente — sem actividade há X dias"
+if churn_risk > 0.7                    → "Escalar: risco de churn elevado"
+if category is low AND stage early     → "Qualificar melhor a oportunidade"
+```
+
+### Storage
+
+```typescript
+await supabase.from('deal_scores').upsert({
+  workspace_id,
+  opportunity_id,
+  close_score: Math.round(close_score * 10) / 10,
+  category,
+  urgency,
+  next_action,
+  score_breakdown: { engagement_score, recency_score, trust_score, objection_penalty, intent_score, historical_similarity },
+  updated_at: new Date().toISOString(),
+}, { onConflict: 'opportunity_id' });
+```
+
+Returns the full `deal_scores` row as JSON to the caller.
+
+---
+
+## 3. React Hook: `useDealScores`
+
+```typescript
+// src/hooks/useDealScores.ts
+
+export function useDealScores() {
+  // Fetches ALL deal_scores for current workspace (with opportunity_id)
+  // queryKey: ["deal-scores", currentWorkspace?.id]
+  // Returns: Map<opportunityId, DealScore>
+}
+
+export function useDealScore(opportunityId: string) {
+  // Fetches single score for one opportunity
+}
+
+export function useComputeDealScore() {
+  // useMutation: calls compute-deal-score edge function
+  // invalidates ["deal-scores"] on success
+  // Used both for manual refresh and auto-trigger after mutations
+}
+```
+
+`DealScore` type:
+```typescript
+interface DealScore {
+  id: string;
+  opportunity_id: string;
+  close_score: number;        // 0-100
+  category: "low" | "uncertain" | "likely" | "hot";
+  urgency: "normal" | "high" | "critical";
+  next_action: string | null;
+  score_breakdown: {
+    engagement_score: number;
+    recency_score: number;
+    trust_score: number;
+    objection_penalty: number;
+    intent_score: number;
+    historical_similarity: number;
+  } | null;
+  updated_at: string;
+}
+```
+
+---
+
+## 4. Auto-trigger on Opportunity Change
+
+In `useOpportunitiesEnhanced.ts`, after successful `useMoveOpportunityEnhanced` and `useUpdateOpportunityEnhanced` mutations, call `computeDealScore` with the opportunity's id and workspace_id. This keeps scores fresh after every stage drag or field update.
+
+Pattern (added to `onSuccess`):
+```typescript
+onSuccess: (data) => {
+  // ... existing invalidations ...
+  supabase.functions.invoke('compute-deal-score', {
+    body: { workspace_id: currentWorkspace?.id, opportunity_id: data.id }
+  }); // fire-and-forget, no await
+}
+```
+
+---
+
+## 5. UI Changes
+
+### `OpportunityCard.tsx` — Score badge + risk icon
+
+```
+┌────────────────────────────────────────────────────────┐
+│ ≡  Title                         €12.000  [72 Likely]  │
+│                                            ⚠ (if risk) │
+└────────────────────────────────────────────────────────┘
+```
+
+- Add `dealScore?: DealScore` prop
+- Score badge color by category:
+  - `hot` → red (`bg-red-100 text-red-700`)
+  - `likely` → green (`bg-green-100 text-green-700`)
+  - `uncertain` → amber (`bg-amber-100 text-amber-700`)
+  - `low` → muted gray
+- Risk icon (`AlertTriangle` in `text-red-500`) shown when `urgency === "critical"`
+- Tooltip on hover shows `next_action` text
+
+### `OpportunitiesModule.tsx` — Sort + Filter controls
+
+Add two controls next to the existing filter bar:
+
+1. **Sort by Score toggle** — `Button` with `ArrowUpDown` icon. When active, sorts `filteredOpportunities` by `close_score DESC` before grouping into Kanban columns.
+
+2. **"Hot Deals" filter chip** — a `Badge`-style toggle button. When active, filters to show only `category === "hot"` opportunities. Shows count badge: "Hot Deals (4)".
+
+The `useDealScores` hook is called once at the module level; the returned Map is passed down to `OpportunityKanbanColumn` → `OpportunityCard`.
+
+### `OpportunityTableView.tsx` — Score column
+
+Add a `Score` column between `Prob.` and `Data Fecho`:
+- Shows `[72]` badge with category color
+- Column header is clickable to sort by score
+- Risk icon appended if `urgency === "critical"`
+
+### `OpportunityKanbanColumn.tsx` — Column-level score metrics
+
+Add one line to the column stats row:
+- Average score for the column: `Ø Score: 64`
+- Color-coded by average category
+
+---
+
+## Files to Create / Edit
+
+| File | Action |
 |---|---|
-| `supabase/functions/strategic-intelligence-brief/index.ts` | Replace `generateBriefForWorkspace` with full data aggregation pipeline |
-
-No DB changes, no frontend changes, no hook changes — the data shape stored in `key_metrics` is a superset of what the hook already reads.
+| `supabase/migrations/<ts>_deal_scores.sql` | New — `deal_scores` table + RLS |
+| `supabase/functions/compute-deal-score/index.ts` | New — scoring edge function |
+| `supabase/config.toml` | Add `[functions.compute-deal-score]` section |
+| `src/hooks/useDealScores.ts` | New — React hook for scores |
+| `src/components/opportunities/OpportunityCard.tsx` | Edit — score badge + risk icon |
+| `src/components/opportunities/OpportunitiesModule.tsx` | Edit — sort + Hot Deals filter |
+| `src/components/opportunities/OpportunityTableView.tsx` | Edit — score column |
+| `src/components/opportunities/OpportunityKanbanColumn.tsx` | Edit — avg score in header |
+| `src/hooks/useOpportunitiesEnhanced.ts` | Edit — auto-trigger score on move/update |
 
 ---
 
 ## Technical Details
 
-- All 15 queries run in parallel using `Promise.all` for performance.
-- The `messages` table is queried directly by `workspace_id` (no join needed — the column exists).
-- Opportunity `status` values used: `'won'` and `'lost'` (confirmed from `useKPIs.ts` and `useOpportunitiesEnhanced.ts`).
-- Response time is computed from `conversations.created_at` vs `conversations.last_message_at` — same approach used in `useOperationalDashboard.ts`.
-- The AI tool `generate_weekly_brief` remains unchanged in schema — the AI still provides `summary`, `opportunity`, `risk`, `market_signal`, and `priority_actions` (qualitative fields). All numeric `key_metrics` are overridden with real values after the AI call.
-- `revenue_change`, `conversion_change`, `response_time_change` go from being AI-estimated to being real computed values.
-- If previous week had 0 won+lost deals (division by zero in conversion), `conversion_change` is set to 0.
-- The cron schedule and on-demand call patterns are unchanged.
+- `deal_scores` has a `UNIQUE(opportunity_id)` constraint so UPSERT always gives one row per opportunity — no duplicates.
+- The edge function uses `SUPABASE_SERVICE_ROLE_KEY` to bypass RLS for writing scores. The UI reads via the normal workspace client (RLS allows workspace members to SELECT).
+- `conversation_signals` is linked via `contact_id` or `lead_id` on the opportunity, not directly via `opportunity_id`. The edge function resolves this by reading `opportunity.contact_id || opportunity.lead_id`.
+- `meetings` table has `opportunity_id` column — confirmed in schema above. Query is straightforward.
+- `tasks` uses `related_type='opportunity'` and `related_id=opportunity_id` — confirmed in schema.
+- Auto-trigger from `useOpportunitiesEnhanced` is **fire-and-forget** (no `await`) so it never blocks the UI mutation.
+- The hook fetches all scores for the workspace in one query (not N+1 per card), then builds a `Map<opportunityId, DealScore>` in memory for O(1) card lookups.
+- `score_breakdown` is stored in the DB and will be shown in the opportunity detail page `OpportunityAIInsightsSection` as a score breakdown card (simple addition to that section, no new tab needed).
+- `verify_jwt = false` is NOT needed since this function is called from authenticated UI via `supabase.functions.invoke` which passes the user's JWT.
+- No AI/LLM call is made — this is a pure deterministic formula, meaning it runs fast (<200ms) and costs zero AI credits.
