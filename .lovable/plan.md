@@ -1,22 +1,22 @@
 
-# Decision History View
+# Bulk "Convert All Steps to Tasks" Action
 
 ## What This Adds
 
-A collapsible "Histórico de Decisões" section below the active decisions list in the existing **Decisões** tab. It shows dismissed and converted decisions grouped by status, with timestamps and a read-only summary of the recommended steps — giving managers a full audit trail of what was acted on and when.
-
-No new pages, no new tables, no new edge functions. This is purely a UI addition on top of data that already exists in the `strategic_decisions` table.
+A single **"Converter Tudo em Tarefas"** button at the top of the Decisões tab that:
+1. Iterates through every open strategic decision
+2. Creates a task for each recommended step across all decisions
+3. Marks every decision as `converted`
+4. Shows a summary toast: "X tarefas criadas a partir de Y decisões"
 
 ---
 
-## What Already Exists
+## What Already Exists (No Duplication)
 
-- `strategic_decisions` table with `status` column (`open` | `dismissed` | `converted`) and `created_at`
-- `useStrategicDecisions` hook currently only queries `status = 'open'`
-- `DecisionsTab` function in `StrategyPage.tsx` renders the active decision list
-- `StrategicDecisionCard` component handles the interactive card
-- `IMPACT_CONFIG`, `URGENCY_CONFIG`, `AREA_CONFIG` badge configs already defined in `StrategicDecisionCard.tsx`
-- `formatDistanceToNow` and `format` from `date-fns` already imported
+- `useConvertAllDecisionSteps` in `useStrategicDecisions.ts` — handles one decision at a time (steps + mark converted)
+- `DecisionsTab` header row already has the "Analisar e Gerar Decisões" button
+- `useStrategicDecisions` returns all open decisions
+- Cache invalidation for both `strategic-decisions` and `strategic-decisions-history` already wired
 
 ---
 
@@ -24,108 +24,136 @@ No new pages, no new tables, no new edge functions. This is purely a UI addition
 
 | File | Change |
 |---|---|
-| `src/hooks/useStrategicDecisions.ts` | Add `useDecisionHistory` hook |
-| `src/pages/StrategyPage.tsx` | Add history section inside `DecisionsTab` |
+| `src/hooks/useStrategicDecisions.ts` | Add `useBulkConvertAllDecisions` hook |
+| `src/pages/StrategyPage.tsx` | Add bulk convert button to `DecisionsTab` header |
 
 No new files. No database changes.
 
 ---
 
-## 1. New Hook: `useDecisionHistory`
+## 1. New Hook: `useBulkConvertAllDecisions`
 
 Added to `src/hooks/useStrategicDecisions.ts`:
 
 ```typescript
-export function useDecisionHistory() {
+export function useBulkConvertAllDecisions() {
+  const createTask = useCreateTask();
+  const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
 
-  return useQuery({
-    queryKey: ["strategic-decisions-history", currentWorkspace?.id],
-    queryFn: async () => {
-      if (!currentWorkspace) return [];
+  return useMutation({
+    mutationFn: async (decisions: StrategicDecision[]) => {
+      if (!currentWorkspace) throw new Error("No workspace selected");
 
-      const { data, error } = await supabase
-        .from("strategic_decisions")
-        .select("*")
-        .eq("workspace_id", currentWorkspace.id)
-        .in("status", ["dismissed", "converted"])
-        .order("created_at", { ascending: false })
-        .limit(50); // cap at 50 for performance
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 7);
+      let totalTasks = 0;
 
-      if (error) throw error;
+      for (const decision of decisions) {
+        // Create a task for each step
+        for (const step of decision.recommended_steps) {
+          await createTask.mutateAsync({ title: step, due_at: dueDate.toISOString() });
+          totalTasks++;
+        }
+        // Mark decision as converted
+        const { error } = await supabase
+          .from("strategic_decisions")
+          .update({ status: "converted" })
+          .eq("id", decision.id);
+        if (error) throw error;
+      }
 
-      return (data || []).map((d) => ({
-        ...d,
-        recommended_steps: Array.isArray(d.recommended_steps) ? d.recommended_steps : [],
-      })) as StrategicDecision[];
+      return { totalTasks, totalDecisions: decisions.length };
     },
-    enabled: !!currentWorkspace,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["strategic-decisions", currentWorkspace?.id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["strategic-decisions-history", currentWorkspace?.id],
+      });
+    },
   });
 }
 ```
 
-The query is separate from the active decisions query so it doesn't pollute the `["strategic-decisions"]` cache that drives the active list. It uses `.in("status", ["dismissed", "converted"])` to fetch both categories in one request. Capped at 50 rows to avoid loading unbounded history.
+Key design decisions:
+- Accepts the full `decisions` array (passed from the UI, which already has the data loaded)
+- Sequential `for` loops (not `Promise.all`) — same pattern as `useConvertAllDecisionSteps`, avoids race conditions in task creation
+- Returns `{ totalTasks, totalDecisions }` so the UI can show a meaningful success toast
+- Invalidates both query keys on success — active list clears, history updates
 
 ---
 
-## 2. UI: History Section in `DecisionsTab`
+## 2. UI: Bulk Convert Button in `DecisionsTab`
 
-The history section is added **below** the active decision cards in `DecisionsTab`. It uses the existing `Accordion` component (already imported in `StrategyPage.tsx`) as a collapsible wrapper — collapsed by default so it doesn't distract from the active decisions.
+The button is added to the existing header row in `DecisionsTab`, to the **left** of the "Analisar e Gerar Decisões" button. It only renders when `decisions.length > 0` (hidden in empty state).
 
-### Layout
+### Updated header row layout:
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│ ▶ Histórico de Decisões  (23 registos)                  │  ← accordion trigger (collapsed by default)
-└─────────────────────────────────────────────────────────┘
-
-When expanded:
-┌─────────────────────────────────────────────────────────┐
-│ ▼ Histórico de Decisões  (23 registos)                  │
-├─────────────────────────────────────────────────────────┤
-│  [✅ Convertida]  [🔴 Alto Impacto]  [⚡ Imediato]      │
-│  Negócios quentes sem actividade há mais de 3 dias       │
-│  Convertida há 2 dias · 19 Fev 2026                     │
-│  ↳ Passos: Contactar cada negócio quente…  +2 mais      │
-├ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┤
-│  [🔕 Ignorada]  [🟡 Médio Impacto]  [Esta Semana]       │
-│  Concentração de pipeline                                │
-│  Ignorada há 5 dias · 14 Fev 2026                       │
-│  ↳ Passos: Diversificar pipeline…  +2 mais              │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│ Decisões Estratégicas  [2 activas]  · última análise há 1 hora   │
+│                        [✅ Converter Tudo em Tarefas]  [🔄 Analisar] │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-### Status Row
+### Code change in `DecisionsTab`:
 
-Each history item shows:
-- **Status badge**: `✅ Convertida` (green) or `🔕 Ignorada` (gray)
-- **Impact badge** — reusing the same color mapping from `IMPACT_CONFIG`
-- **Urgency badge** — reusing `URGENCY_CONFIG`
-- **Title** — `decision_title`, read-only
-- **Timestamp line**: "Convertida há X tempo · DD MMM YYYY" using both `formatDistanceToNow` and `format` (already imported)
-- **Steps preview**: first step truncated + "+N mais" if there are more — no action buttons (history is read-only)
+```tsx
+// Import the new hook
+const bulkConvert = useBulkConvertAllDecisions();
 
-### Grouping
+// Bulk convert handler
+const handleBulkConvert = async () => {
+  if (decisions.length === 0) return;
+  try {
+    const result = await bulkConvert.mutateAsync(decisions);
+    toast.success(
+      `${result.totalTasks} tarefa${result.totalTasks !== 1 ? "s" : ""} criada${result.totalTasks !== 1 ? "s" : ""} a partir de ${result.totalDecisions} decisão${result.totalDecisions !== 1 ? "ões" : ""}!`
+    );
+  } catch {
+    toast.error("Erro ao converter decisões em tarefas.");
+  }
+};
 
-Items are rendered chronologically (newest first) within a flat list. No grouping by type — the status badge makes the distinction visually clear without adding complexity. A simple separator between each item is enough.
+// Button (only shown when decisions exist)
+{decisions.length > 0 && (
+  <Button
+    size="sm"
+    variant="outline"
+    onClick={handleBulkConvert}
+    disabled={bulkConvert.isPending || generate.isPending}
+    className="gap-1.5"
+  >
+    {bulkConvert.isPending ? (
+      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+    ) : (
+      <CheckCircle2 className="w-3.5 h-3.5" />
+    )}
+    {bulkConvert.isPending ? "A converter..." : "Converter Tudo em Tarefas"}
+  </Button>
+)}
+```
 
-### Empty state
+### Disabled states:
+- Disabled while `bulkConvert.isPending` (self)
+- Disabled while `generate.isPending` (prevents converting while generating new ones simultaneously)
+- Hidden entirely when `decisions.length === 0` (not just disabled — the empty state already has the generate CTA)
 
-If no history exists yet: "Nenhuma decisão no histórico. As decisões ignoradas ou convertidas aparecerão aqui."
-
-### Loading
-
-A minimal skeleton (3 lines of varying width) while `useDecisionHistory` is fetching.
+### Icons needed:
+- `CheckCircle2` — already imported in `StrategyPage.tsx` (line 22)
+- `Loader2` — needs to be added to the imports from `lucide-react`
 
 ---
 
 ## Technical Details
 
-- **No re-render conflicts**: `useDecisionHistory` uses a different query key (`"strategic-decisions-history"`) than the active list (`"strategic-decisions"`). Dismissing an active decision invalidates `["strategic-decisions"]` but NOT the history key — the history refreshes on next open of the accordion, unless we also invalidate it. To keep the history up to date, `useDismissDecision` and `useConvertAllDecisionSteps` will also invalidate `["strategic-decisions-history", workspace_id]` — this requires small additions to both mutations.
-- **Accordion** is already imported in `StrategyPage.tsx` (line 10-14), so no new import needed.
-- **`format`** from `date-fns` is already imported in `StrategyPage.tsx` (line 2).
-- The history section only renders when the accordion is open (`useDecisionHistory` still fires on mount since it's not lazy by default — this is fine as it's a lightweight read-only query).
-- The `limit(50)` means for workspaces with very long history, the oldest records won't appear — acceptable for an audit view.
+- **Sequential processing** — tasks are created one by one, same as the per-card "Criar Todas as Tarefas" pattern. Prevents concurrent write issues.
+- **Decisions with zero steps** — if a decision has no `recommended_steps`, the inner loop is skipped but the decision is still marked as `converted`. This is the correct behavior.
+- **No confirmation dialog** — consistent with the per-card "Criar Todas as Tarefas" button which also has no confirmation. The action is immediately reversible by viewing tasks and deleting them.
+- **Toast message** — uses Portuguese pluralization matching the existing pattern in the file (e.g. `"${count} nova${count > 1 ? "s" : ""} decisão${count > 1 ? "ões" : ""} gerada${count > 1 ? "s" : ""}"`)
+- **Cache invalidation** — after bulk convert, `["strategic-decisions"]` is invalidated → active list becomes empty → the empty state + history accordion are shown automatically.
 
 ---
 
@@ -133,5 +161,5 @@ A minimal skeleton (3 lines of varying width) while `useDecisionHistory` is fetc
 
 | File | What Changes |
 |---|---|
-| `src/hooks/useStrategicDecisions.ts` | Add `useDecisionHistory` hook; add `["strategic-decisions-history"]` invalidation to `useDismissDecision` and `useConvertAllDecisionSteps` |
-| `src/pages/StrategyPage.tsx` | Import `useDecisionHistory`; add collapsible history section inside `DecisionsTab` |
+| `src/hooks/useStrategicDecisions.ts` | Add `useBulkConvertAllDecisions` export at the bottom |
+| `src/pages/StrategyPage.tsx` | Import `useBulkConvertAllDecisions` + `Loader2`; add bulk button + handler to `DecisionsTab` |
