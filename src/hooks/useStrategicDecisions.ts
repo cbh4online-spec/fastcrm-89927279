@@ -1,0 +1,139 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useCreateTask } from "@/hooks/useTasks";
+
+export interface StrategicDecision {
+  id: string;
+  workspace_id: string;
+  created_at: string;
+  decision_title: string;
+  business_area: "sales" | "marketing" | "pricing" | "operations" | "retention";
+  impact_level: "high" | "medium" | "low";
+  urgency: "immediate" | "this_week" | "monitor";
+  explanation: string;
+  recommended_steps: string[];
+  status: "open" | "dismissed" | "converted";
+  rule_key: string | null;
+}
+
+export function useStrategicDecisions() {
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ["strategic-decisions", currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace) return [];
+
+      const { data, error } = await supabase
+        .from("strategic_decisions")
+        .select("*")
+        .eq("workspace_id", currentWorkspace.id)
+        .eq("status", "open")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      return (data || []).map((d) => ({
+        ...d,
+        recommended_steps: Array.isArray(d.recommended_steps)
+          ? d.recommended_steps
+          : [],
+      })) as StrategicDecision[];
+    },
+    enabled: !!currentWorkspace,
+  });
+}
+
+export function useGenerateStrategicDecisions() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!currentWorkspace) throw new Error("No workspace selected");
+
+      const { data, error } = await supabase.functions.invoke(
+        "compute-strategic-decisions",
+        { body: { workspace_id: currentWorkspace.id } }
+      );
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["strategic-decisions", currentWorkspace?.id],
+      });
+    },
+  });
+}
+
+export function useDismissDecision() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("strategic_decisions")
+        .update({ status: "dismissed" })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["strategic-decisions", currentWorkspace?.id],
+      });
+    },
+  });
+}
+
+export function useConvertDecisionStep() {
+  const createTask = useCreateTask();
+
+  return useMutation({
+    mutationFn: async ({ step }: { step: string; decisionId: string }) => {
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 7);
+      await createTask.mutateAsync({
+        title: step,
+        due_at: dueDate.toISOString(),
+      });
+    },
+  });
+}
+
+export function useConvertAllDecisionSteps() {
+  const createTask = useCreateTask();
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+
+  return useMutation({
+    mutationFn: async ({
+      steps,
+      decisionId,
+    }: {
+      steps: string[];
+      decisionId: string;
+    }) => {
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 7);
+
+      for (const step of steps) {
+        await createTask.mutateAsync({ title: step, due_at: dueDate.toISOString() });
+      }
+
+      const { error } = await supabase
+        .from("strategic_decisions")
+        .update({ status: "converted" })
+        .eq("id", decisionId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["strategic-decisions", currentWorkspace?.id],
+      });
+    },
+  });
+}

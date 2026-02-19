@@ -26298,6 +26298,56 @@ export type Database = {
           },
         ]
       }
+      strategic_decisions: {
+        Row: {
+          business_area: string
+          created_at: string
+          decision_title: string
+          explanation: string
+          id: string
+          impact_level: string
+          recommended_steps: Json
+          rule_key: string | null
+          status: string
+          urgency: string
+          workspace_id: string
+        }
+        Insert: {
+          business_area: string
+          created_at?: string
+          decision_title: string
+          explanation: string
+          id?: string
+          impact_level: string
+          recommended_steps?: Json
+          rule_key?: string | null
+          status?: string
+          urgency: string
+          workspace_id: string
+        }
+        Update: {
+          business_area?: string
+          created_at?: string
+          decision_title?: string
+          explanation?: string
+          id?: string
+          impact_level?: string
+          recommended_steps?: Json
+          rule_key?: string | null
+          status?: string
+          urgency?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategic_decisions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stripe_event_log: {
         Row: {
           created_at: string | null

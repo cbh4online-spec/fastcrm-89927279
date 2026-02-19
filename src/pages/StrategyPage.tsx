@@ -35,6 +35,8 @@ import {
 import { useStrategicBriefs } from "@/hooks/useStrategicBriefs";
 import { RevenueIntelligenceCard } from "@/components/revenue/RevenueIntelligenceCard";
 import { useCreateTask } from "@/hooks/useTasks";
+import { useStrategicDecisions, useGenerateStrategicDecisions } from "@/hooks/useStrategicDecisions";
+import { StrategicDecisionCard } from "@/components/strategy/StrategicDecisionCard";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -389,6 +391,102 @@ function DealIntelligenceTab() {
   );
 }
 
+// ── Decisions Tab ─────────────────────────────────────────────────────────────
+
+function DecisionsTab() {
+  const { data: decisions = [], isLoading } = useStrategicDecisions();
+  const generate = useGenerateStrategicDecisions();
+
+  const handleGenerate = async () => {
+    try {
+      const result = await generate.mutateAsync();
+      const count = result?.inserted ?? 0;
+      if (count > 0) {
+        toast.success(`${count} nova${count > 1 ? "s" : ""} decisão${count > 1 ? "ões" : ""} gerada${count > 1 ? "s" : ""}!`);
+      } else {
+        toast.info("Nenhuma nova decisão gerada. As regras activas já têm decisões abertas recentes.");
+      }
+    } catch {
+      toast.error("Erro ao gerar decisões.");
+    }
+  };
+
+  const lastDecision = decisions[0];
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-foreground">Decisões Estratégicas</h3>
+          {decisions.length > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {decisions.length} activa{decisions.length > 1 ? "s" : ""}
+            </Badge>
+          )}
+          {lastDecision && (
+            <span className="text-xs text-muted-foreground hidden sm:block">
+              · última análise{" "}
+              {formatDistanceToNow(new Date(lastDecision.created_at), {
+                addSuffix: true,
+                locale: pt,
+              })}
+            </span>
+          )}
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleGenerate}
+          disabled={generate.isPending}
+          className="gap-1.5"
+        >
+          <RefreshCw className={cn("w-3.5 h-3.5", generate.isPending && "animate-spin")} />
+          {generate.isPending ? "A analisar..." : "Analisar e Gerar Decisões"}
+        </Button>
+      </div>
+
+      {/* Loading */}
+      {isLoading && (
+        <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
+          A carregar decisões...
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!isLoading && decisions.length === 0 && (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <Target className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">Nenhuma decisão activa</p>
+              <p className="text-sm text-muted-foreground mt-1 max-w-md">
+                Clique em <strong>Analisar e Gerar Decisões</strong> para o motor avaliar o estado
+                do pipeline, receita, conversas e risco de churn e gerar acções concretas.
+              </p>
+            </div>
+            <Button onClick={handleGenerate} disabled={generate.isPending} className="mt-2">
+              <RefreshCw className={cn("w-4 h-4 mr-2", generate.isPending && "animate-spin")} />
+              {generate.isPending ? "A analisar..." : "Gerar Primeiras Decisões"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Decision cards */}
+      {decisions.length > 0 && (
+        <div className="space-y-4">
+          {decisions.map((d) => (
+            <StrategicDecisionCard key={d.id} decision={d} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function StrategyPage() {
@@ -458,6 +556,7 @@ export default function StrategyPage() {
           <TabsTrigger value="brief">📋 Brief Executivo</TabsTrigger>
           <TabsTrigger value="deals">🎯 Deal Intelligence</TabsTrigger>
           <TabsTrigger value="revenue">💰 Receita</TabsTrigger>
+          <TabsTrigger value="decisions">⚡ Decisões</TabsTrigger>
         </TabsList>
 
         {/* ─── BRIEF EXECUTIVO ─────────────────────────────────────────────── */}
@@ -713,6 +812,11 @@ export default function StrategyPage() {
         {/* ─── REVENUE INTELLIGENCE ────────────────────────────────────────── */}
         <TabsContent value="revenue">
           <RevenueIntelligenceCard showTable />
+        </TabsContent>
+
+        {/* ─── STRATEGIC DECISIONS ─────────────────────────────────────────── */}
+        <TabsContent value="decisions">
+          <DecisionsTab />
         </TabsContent>
       </Tabs>
     </div>

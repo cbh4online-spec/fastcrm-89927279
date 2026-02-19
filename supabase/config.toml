@@ -316,3 +316,6 @@ verify_jwt = false
 [functions.compute-revenue-forecast]
 verify_jwt = false
 
+[functions.compute-strategic-decisions]
+verify_jwt = false
+
