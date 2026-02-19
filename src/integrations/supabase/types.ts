@@ -22377,6 +22377,74 @@ export type Database = {
           },
         ]
       }
+      revenue_forecasts: {
+        Row: {
+          best_case: number
+          confidence_avg: number
+          created_at: string
+          expected_case: number
+          forecast_30: number
+          forecast_7: number
+          forecast_90: number
+          generated_at: string
+          hot_count: number
+          id: string
+          likely_count: number
+          low_count: number
+          opportunity_count: number
+          risk_index: number
+          uncertain_count: number
+          workspace_id: string
+          worst_case: number
+        }
+        Insert: {
+          best_case?: number
+          confidence_avg?: number
+          created_at?: string
+          expected_case?: number
+          forecast_30?: number
+          forecast_7?: number
+          forecast_90?: number
+          generated_at?: string
+          hot_count?: number
+          id?: string
+          likely_count?: number
+          low_count?: number
+          opportunity_count?: number
+          risk_index?: number
+          uncertain_count?: number
+          workspace_id: string
+          worst_case?: number
+        }
+        Update: {
+          best_case?: number
+          confidence_avg?: number
+          created_at?: string
+          expected_case?: number
+          forecast_30?: number
+          forecast_7?: number
+          forecast_90?: number
+          generated_at?: string
+          hot_count?: number
+          id?: string
+          likely_count?: number
+          low_count?: number
+          opportunity_count?: number
+          risk_index?: number
+          uncertain_count?: number
+          workspace_id?: string
+          worst_case?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_forecasts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saas_categories: {
         Row: {
           color: string | null
