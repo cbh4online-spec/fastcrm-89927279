@@ -143,25 +143,45 @@ function HeroBlock({ block, primaryColor, contrastColor, index }: { block: BioBl
 
   return (
     <div className="rounded-3xl p-6 pt-4 shadow-lg text-center" style={cardStyle}>
-      {icon && (
-        <div
-          className="mx-auto -mt-6 mb-4 flex h-20 w-20 items-center justify-center rounded-full backdrop-blur-sm"
-          style={{
-            border: `3px solid ${primaryColor}25`,
-            boxShadow: `0 0 30px 8px ${primaryColor}20`,
-          }}
-        >
-          <div
-            className="flex h-14 w-14 items-center justify-center rounded-full shadow-2xl"
-            style={{
-              background: bg_image ? "rgba(255,255,255,0.2)" : iconGradient,
-              boxShadow: `inset 0 -3px 6px rgba(0,0,0,0.15), 0 8px 25px -3px ${primaryColor}50, 0 0 40px 5px ${primaryColor}30`,
-            }}
-          >
-            <DynamicIcon name={icon} className="h-8 w-8 drop-shadow-lg" style={{ color: "#fff" }} />
-          </div>
-        </div>
-      )}
+      {(() => {
+        const heroMediaType = block.content.hero_media_type || "icon";
+        const heroImage = block.content.hero_image;
+
+        if (heroMediaType === "avatar" && heroImage) {
+          return (
+            <div className="mx-auto -mt-6 mb-4 flex h-20 w-20 items-center justify-center rounded-full backdrop-blur-sm"
+              style={{ border: `3px solid ${primaryColor}25`, boxShadow: `0 0 30px 8px ${primaryColor}20` }}
+            >
+              <img src={heroImage} alt="Avatar" className="h-14 w-14 rounded-full object-cover shadow-2xl" style={{ boxShadow: `0 8px 25px -3px ${primaryColor}50` }} />
+            </div>
+          );
+        }
+        if (heroMediaType === "logo" && heroImage) {
+          return (
+            <div className="mx-auto -mt-4 mb-4 flex items-center justify-center">
+              <img src={heroImage} alt="Logo" className="h-16 max-w-[160px] object-contain rounded-lg drop-shadow-lg" />
+            </div>
+          );
+        }
+        // Default: icon
+        if (icon) {
+          return (
+            <div className="mx-auto -mt-6 mb-4 flex h-20 w-20 items-center justify-center rounded-full backdrop-blur-sm"
+              style={{ border: `3px solid ${primaryColor}25`, boxShadow: `0 0 30px 8px ${primaryColor}20` }}
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-full shadow-2xl"
+                style={{
+                  background: bg_image ? "rgba(255,255,255,0.2)" : iconGradient,
+                  boxShadow: `inset 0 -3px 6px rgba(0,0,0,0.15), 0 8px 25px -3px ${primaryColor}50, 0 0 40px 5px ${primaryColor}30`,
+                }}
+              >
+                <DynamicIcon name={icon} className="h-8 w-8 drop-shadow-lg" style={{ color: "#fff" }} />
+              </div>
+            </div>
+          );
+        }
+        return null;
+      })()}
       <h1 className="text-2xl md:text-3xl font-extrabold leading-tight mb-2" style={{ color: textColor }}>
         {title}
       </h1>
