@@ -1,39 +1,53 @@
 
 
-# Fix: Filtrar Templates AIDA Estáticos por Workspace
+# Fix: Esconder Templates AIDA Estáticos para Workspaces que Não São "metodopare"
 
 ## Problema
 
-A página de Funis mostra **sempre** os templates AIDA estáticos (Clínicas, Imobiliárias, Formação, etc.) porque estes vêm de um ficheiro de configuração (`verticalConfigs.ts`), e não da base de dados. Isto significa que qualquer workspace -- incluindo "Be a leader" -- vê estes templates, mesmo que não tenham nada a ver com o negócio.
-
-O workspace "Be a leader" não tem funis, verticais ou templates personalizados criados, mas vê os templates estáticos de outros sectores.
-
----
+Os templates estáticos (Clínicas, Imobiliárias, Formação, etc.) vindos do ficheiro `verticalConfigs.ts` continuam a aparecer para **todos** os workspaces, incluindo "Be a leader". Isto acontece porque o plano anterior foi aprovado mas nunca foi aplicado ao código.
 
 ## Solução
 
-Esconder a secção de "Templates Verticais (AIDA)" estáticos quando o workspace **não é o "metodopare"** (o workspace principal onde estes templates fazem sentido). Apenas o workspace `metodopare` deve ver os templates estáticos. Todos os outros workspaces verão apenas os seus templates personalizados (criados via o builder).
-
----
+Condicionar a renderização dos templates estáticos ao workspace `metodopare`. Apenas **uma variável** e **três alterações cirúrgicas** no mesmo ficheiro.
 
 ## Alterações
 
 | Ficheiro | O que muda |
 |---|---|
-| `src/components/funnels/FunnelsList.tsx` | Condicionar a renderização dos templates estáticos (`verticalConfigs`) ao workspace `metodopare` |
+| `src/components/funnels/FunnelsList.tsx` | 3 edições pontuais |
 
-### Detalhe Técnico
+### Detalhe
 
-No `FunnelsList.tsx`, o bloco que itera sobre `Object.values(verticalConfigs)` (linhas 262-318) será envolvido numa condição que verifica se o `currentWorkspace?.slug === "metodopare"`:
+1. **Adicionar variável** (após linha 37, onde `currentWorkspace` já é lido):
+   ```tsx
+   const isMetodoPare = currentWorkspace?.slug === "metodopare";
+   ```
 
-```tsx
-// Apenas mostrar templates estáticos para o workspace metodopare
-const isMetodoPare = currentWorkspace?.slug === "metodopare";
-```
+2. **Badge de contagem** (linha 257) -- mostrar só os templates visíveis:
+   ```tsx
+   // De:
+   {Object.keys(verticalConfigs).length + (customTemplates?.length ?? 0)} activos
+   // Para:
+   {(isMetodoPare ? Object.keys(verticalConfigs).length : 0) + (customTemplates?.length ?? 0)} activos
+   ```
 
-Na secção de Templates AIDA:
-- Se `isMetodoPare` = true: renderiza os templates estáticos + templates personalizados (comportamento actual)
-- Se `isMetodoPare` = false: renderiza **apenas** os templates personalizados (da base de dados)
-- Se não há templates personalizados e não é o workspace metodopare: a secção inteira fica oculta
+3. **Bloco de templates estáticos** (linha 262) -- condicionar a renderização:
+   ```tsx
+   // De:
+   {Object.values(verticalConfigs).map((vertical) => (
+   // Para:
+   {isMetodoPare && Object.values(verticalConfigs).map((vertical) => (
+   ```
 
-O badge de contagem também será atualizado para refletir apenas os templates visíveis.
+4. **Secção inteira** (linhas 251-395) -- esconder se não há nada para mostrar:
+   ```tsx
+   // Envolver toda a secção "Templates Verticais (AIDA)" numa condição:
+   {(isMetodoPare || (customTemplates && customTemplates.length > 0)) && (
+     // ... secção existente ...
+   )}
+   ```
+
+### Resultado
+
+- **metodopare**: vê tudo (templates estáticos + custom) -- sem alteração de comportamento
+- **Be a leader** e outros: vêem apenas templates custom criados por eles; se não tiverem nenhum, a secção desaparece completamente
