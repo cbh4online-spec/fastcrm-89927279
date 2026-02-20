@@ -47,9 +47,9 @@ export function useBioPage(id: string | null) {
         .from("bio_pages")
         .select("*")
         .eq("id", id)
-        .single();
+        .maybeSingle();
       if (error) throw error;
-      return data as BioPage;
+      return data as BioPage | null;
     },
     enabled: !!id,
   });
