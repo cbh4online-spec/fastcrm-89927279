@@ -7,7 +7,7 @@
 // §10 Handover, §11 Quota, §12 Observability, §13 Security
 // ============================================================
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ─── CORS ────────────────────────────────────────────────────
