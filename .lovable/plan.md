@@ -1,37 +1,50 @@
 
-
-# Fix: Dominio Errado nos Links das Bio Pages
+# Fix: Erro ao clicar em Avatar/Logotipo no Hero
 
 ## Problema
 
-O link `https://fastcrm.metodopare.ai/bio/be-a-leader/lideranca-resultados-sustentaveis` da erro 404 porque o dominio `fastcrm.metodopare.ai` nao esta configurado. O dominio real publicado do projecto e `https://fastcrm.lovable.app`.
+Ao alterar o tipo de media do bloco Hero para "avatar" ou "logo", o update do bloco falha com o erro "Cannot coerce the result to a single JSON object". O pedido PATCH ao `bio_blocks` devolve 0 linhas (status 406).
 
-A funcao `getPublicBaseUrl()` em `src/utils/getPublicDomain.ts` esta a devolver o dominio errado.
+Existem dois problemas:
+
+1. **`.single()` no update**: A mutacao `useUpdateBioBlock` usa `.single()` que falha quando a query devolve 0 linhas (por exemplo, se a politica RLS filtrar o resultado).
+2. **Campos extra no payload**: A destructuring `{ id, bio_page_id, ...input }` pode estar a enviar campos como `created_at` ou `workspace_id` no update, causando conflitos.
 
 ## Solucao
 
-Alterar o dominio hardcoded de `fastcrm.metodopare.ai` para `fastcrm.lovable.app`.
+Substituir `.single()` por `.maybeSingle()` na mutacao `useUpdateBioBlock`, e adicionar tratamento para quando o resultado e null.
 
 ## Alteracao
 
 | Ficheiro | O que muda |
 |---|---|
-| `src/utils/getPublicDomain.ts` | Linha 8: `"https://fastcrm.metodopare.ai"` -> `"https://fastcrm.lovable.app"` |
+| `src/hooks/useBioBlocks.ts` | Linha 76: `.single()` -> `.maybeSingle()` na funcao `useUpdateBioBlock` + tratamento de null |
 
 ### Detalhe Tecnico
 
 ```typescript
 // De:
-return "https://fastcrm.metodopare.ai";
+const { data, error } = await supabase
+  .from("bio_blocks")
+  .update(input as any)
+  .eq("id", id)
+  .select()
+  .single();
+if (error) throw error;
+return { ...data, bio_page_id } as BioBlock;
 
 // Para:
-return "https://fastcrm.lovable.app";
+const { data, error } = await supabase
+  .from("bio_blocks")
+  .update(input as any)
+  .eq("id", id)
+  .select()
+  .maybeSingle();
+if (error) throw error;
+if (!data) throw new Error("Bloco nao encontrado ou sem permissao");
+return { ...data, bio_page_id } as BioBlock;
 ```
 
-## Link Correcto
+### Resultado
 
-Apos a correcao, o link correcto para a pagina sera:
-`https://fastcrm.lovable.app/bio/be-a-leader/lideranca-resultados-sustentaveis`
-
-Todos os botoes "Copiar Link", "Link Curto" e "Ver Pagina" passarao automaticamente a usar o dominio correcto.
-
+O erro desaparece. Se o update nao devolver resultados (por RLS ou outro motivo), mostra uma mensagem de erro clara em vez de crashar.
