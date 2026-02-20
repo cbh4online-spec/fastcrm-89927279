@@ -72,10 +72,11 @@ export function useUpdateBioBlock() {
         .from("bio_blocks")
         .update(input as any)
         .eq("id", id)
-        .select()
-        .single();
-      if (error) throw error;
-      return { ...data, bio_page_id } as BioBlock;
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("Bloco não encontrado ou sem permissão");
+    return { ...data, bio_page_id } as BioBlock;
     },
     onSuccess: (d) => {
       qc.invalidateQueries({ queryKey: ["bio-blocks", d.bio_page_id] });
