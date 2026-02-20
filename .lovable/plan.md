@@ -1,27 +1,39 @@
 
 
-# Fix `serve()` to `Deno.serve()` in All Edge Functions
+# Fix: Filtrar Templates AIDA Estáticos por Workspace
 
-## Problem
+## Problema
 
-161 edge function files use the bare `serve(async (req) => {` call instead of `Deno.serve(async (req) => {`. Some files import `serve` from `https://deno.land/std@0.168.0/http/server.ts`, others use it without any import at all. The correct Deno 2 pattern is `Deno.serve()` with no import needed.
+A página de Funis mostra **sempre** os templates AIDA estáticos (Clínicas, Imobiliárias, Formação, etc.) porque estes vêm de um ficheiro de configuração (`verticalConfigs.ts`), e não da base de dados. Isto significa que qualquer workspace -- incluindo "Be a leader" -- vê estes templates, mesmo que não tenham nada a ver com o negócio.
 
-## What Changes
+O workspace "Be a leader" não tem funis, verticais ou templates personalizados criados, mas vê os templates estáticos de outros sectores.
 
-Every edge function `index.ts` under `supabase/functions/` that uses `serve(async` will be updated to `Deno.serve(async`. Any corresponding `import { serve } from "https://deno.land/std@..."` line will be removed since `Deno.serve` is a global and needs no import.
+---
 
-## Scope
+## Solução
 
-- ~161 files under `supabase/functions/*/index.ts`
-- Two types of fix per file:
-  1. Remove `import { serve } ...` line (if present)
-  2. Replace `serve(async (req) =>` with `Deno.serve(async (req) =>`
-- No logic changes, no database changes, no new files
+Esconder a secção de "Templates Verticais (AIDA)" estáticos quando o workspace **não é o "metodopare"** (o workspace principal onde estes templates fazem sentido). Apenas o workspace `metodopare` deve ver os templates estáticos. Todos os outros workspaces verão apenas os seus templates personalizados (criados via o builder).
 
-## Technical Notes
+---
 
-- `Deno.serve` is the built-in HTTP server API in Deno and requires no import
-- The old `serve` from `deno.land/std` is deprecated
-- Some files (like `robots-txt`, `firecrawl-search`) already use `Deno.serve` correctly -- those are skipped
-- Files that already have the correct pattern will not be touched
+## Alterações
 
+| Ficheiro | O que muda |
+|---|---|
+| `src/components/funnels/FunnelsList.tsx` | Condicionar a renderização dos templates estáticos (`verticalConfigs`) ao workspace `metodopare` |
+
+### Detalhe Técnico
+
+No `FunnelsList.tsx`, o bloco que itera sobre `Object.values(verticalConfigs)` (linhas 262-318) será envolvido numa condição que verifica se o `currentWorkspace?.slug === "metodopare"`:
+
+```tsx
+// Apenas mostrar templates estáticos para o workspace metodopare
+const isMetodoPare = currentWorkspace?.slug === "metodopare";
+```
+
+Na secção de Templates AIDA:
+- Se `isMetodoPare` = true: renderiza os templates estáticos + templates personalizados (comportamento actual)
+- Se `isMetodoPare` = false: renderiza **apenas** os templates personalizados (da base de dados)
+- Se não há templates personalizados e não é o workspace metodopare: a secção inteira fica oculta
+
+O badge de contagem também será atualizado para refletir apenas os templates visíveis.
