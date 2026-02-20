@@ -84,16 +84,32 @@ export function BioBlockPreviewCard({ block, primaryColor, index }: BioBlockPrev
       const HeroIcon = getIconByName(content.icon || "Sparkles");
       const { h, s, l } = hexToHSL(primaryColor || "#3b82f6");
       const iconGradient = `linear-gradient(135deg, hsl(${h}, ${Math.min(s + 10, 100)}%, ${Math.min(l + 10, 80)}%) 0%, hsl(${(h + 20) % 360}, ${s}%, ${Math.max(l - 10, 20)}%) 100%)`;
-      return (
-        <div className="rounded-3xl p-4 pt-2 shadow-lg text-center" style={cardStyle}>
+      const heroMediaType = content.hero_media_type || "icon";
+      const heroImage = content.hero_image;
+
+      const renderHeroMedia = () => {
+        if (heroMediaType === "avatar" && heroImage) {
+          return (
+            <div className="mx-auto -mt-4 mb-3 flex h-20 w-20 items-center justify-center rounded-full backdrop-blur-sm"
+              style={{ border: `3px solid ${primaryColor}25`, boxShadow: `0 0 30px 8px ${primaryColor}20` }}
+            >
+              <img src={heroImage} alt="Avatar" className="h-14 w-14 rounded-full object-cover shadow-2xl" style={{ boxShadow: `0 8px 25px -3px ${primaryColor}50` }} />
+            </div>
+          );
+        }
+        if (heroMediaType === "logo" && heroImage) {
+          return (
+            <div className="mx-auto -mt-2 mb-3 flex items-center justify-center">
+              <img src={heroImage} alt="Logo" className="h-16 max-w-[140px] object-contain rounded-lg drop-shadow-lg" />
+            </div>
+          );
+        }
+        // Default: icon
+        return (
           <div className="mx-auto -mt-4 mb-3 flex h-20 w-20 items-center justify-center rounded-full backdrop-blur-sm animate-pulse-glow"
-            style={{
-              border: `3px solid ${primaryColor}25`,
-              boxShadow: `0 0 30px 8px ${primaryColor}20`,
-            }}
+            style={{ border: `3px solid ${primaryColor}25`, boxShadow: `0 0 30px 8px ${primaryColor}20` }}
           >
-            <div
-              className="flex h-14 w-14 items-center justify-center rounded-full shadow-2xl"
+            <div className="flex h-14 w-14 items-center justify-center rounded-full shadow-2xl"
               style={{
                 background: bgImage ? "rgba(255,255,255,0.2)" : iconGradient,
                 boxShadow: `inset 0 -3px 6px rgba(0,0,0,0.15), 0 8px 25px -3px ${primaryColor}50, 0 0 40px 5px ${primaryColor}30`,
@@ -102,6 +118,12 @@ export function BioBlockPreviewCard({ block, primaryColor, index }: BioBlockPrev
               <HeroIcon className="h-8 w-8 drop-shadow-lg" style={{ color: "#fff" }} />
             </div>
           </div>
+        );
+      };
+
+      return (
+        <div className="rounded-3xl p-4 pt-2 shadow-lg text-center" style={cardStyle}>
+          {renderHeroMedia()}
           <h2 className="text-xl font-extrabold leading-tight mb-1.5" style={{ color: bgImage ? "#fff" : textColor }}>
             {content.title || "Título Principal"}
           </h2>

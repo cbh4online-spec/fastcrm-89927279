@@ -417,10 +417,52 @@ function BlockFields({ block, content, onUpdate, onSmartGenerated, workspaceId, 
   page: BioPage;
 }) {
   switch (block.block_type) {
-    case "hero":
+    case "hero": {
+      const heroMediaType = content.hero_media_type || "icon";
       return (
         <div className="space-y-3">
-          <IconPickerField blockId={block.id} value={content.icon || "Sparkles"} onUpdate={onUpdate} />
+          {/* Media Type Selector */}
+          <div>
+            <label className="text-xs font-medium mb-1.5 block">Tipo de Media</label>
+            <div className="flex gap-1 p-1 bg-muted rounded-lg">
+              {([
+                { value: "icon", label: "Ícone" },
+                { value: "avatar", label: "Avatar" },
+                { value: "logo", label: "Logotipo" },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={`flex-1 text-xs font-medium py-1.5 px-2 rounded-md transition-all ${
+                    heroMediaType === opt.value
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => onUpdate("hero_media_type", opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Conditional: Icon picker or Image uploader */}
+          {heroMediaType === "icon" ? (
+            <IconPickerField blockId={block.id} value={content.icon || "Sparkles"} onUpdate={onUpdate} />
+          ) : (
+            <div>
+              <label className="text-xs font-medium">
+                {heroMediaType === "avatar" ? "Foto do Avatar" : "Imagem do Logotipo"}
+              </label>
+              <BioImageUploader
+                workspaceId={workspaceId}
+                currentImage={content.hero_image || ""}
+                onImageSelected={(url) => onUpdate("hero_image", url)}
+                label={heroMediaType === "avatar" ? "Escolher Avatar" : "Escolher Logotipo"}
+              />
+            </div>
+          )}
+
           <div>
             <label className="text-xs font-medium">Título</label>
             <DebouncedInput blockId={block.id} value={content.title || ""} onDebouncedChange={(v) => onUpdate("title", v)} placeholder="Título do bloco" />
@@ -448,6 +490,7 @@ function BlockFields({ block, content, onUpdate, onSmartGenerated, workspaceId, 
           </div>
         </div>
       );
+    }
     case "feature":
       return (
         <div className="space-y-3">
