@@ -35,6 +35,7 @@ export function FunnelsList() {
   const createFunnel = useCreateFunnel();
   const deleteFunnel = useDeleteFunnel();
   const { currentWorkspace } = useWorkspace();
+  const isMetodoPare = currentWorkspace?.slug === "metodopare";
 
   const { data: verticals = [] } = useVerticals();
   const createVertical = useCreateVertical();
@@ -249,17 +250,18 @@ export function FunnelsList() {
       )}
 
       {/* Templates Verticais AIDA */}
+      {(isMetodoPare || (customTemplates && customTemplates.length > 0)) && (
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
           <h2 className="text-lg font-semibold">Templates Verticais (AIDA)</h2>
           <Badge variant="secondary" className="text-xs">
-            {Object.keys(verticalConfigs).length + (customTemplates?.length ?? 0)} activos
+            {(isMetodoPare ? Object.keys(verticalConfigs).length : 0) + (customTemplates?.length ?? 0)} activos
           </Badge>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {/* Static templates */}
-          {Object.values(verticalConfigs).map((vertical) => (
+          {isMetodoPare && Object.values(verticalConfigs).map((vertical) => (
             <Card key={vertical.slug} className="group hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -393,6 +395,7 @@ export function FunnelsList() {
           ))}
         </div>
       </div>
+      )}
 
       {/* Funis Multi-step (sem vertical) */}
       <div className="space-y-3">
