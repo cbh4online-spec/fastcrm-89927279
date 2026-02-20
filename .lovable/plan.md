@@ -1,48 +1,37 @@
 
 
-# Fix: Erro "Cannot coerce the result to a single JSON object"
+# Fix: Dominio Errado nos Links das Bio Pages
 
 ## Problema
 
-Este erro ocorre quando o Supabase tenta devolver um unico resultado com `.single()`, mas nao encontra nenhuma linha correspondente. No modulo Bio, isto pode acontecer quando uma pagina e consultada por ID e esse ID nao existe ou ainda nao foi guardado.
+O link `https://fastcrm.metodopare.ai/bio/be-a-leader/lideranca-resultados-sustentaveis` da erro 404 porque o dominio `fastcrm.metodopare.ai` nao esta configurado. O dominio real publicado do projecto e `https://fastcrm.lovable.app`.
+
+A funcao `getPublicBaseUrl()` em `src/utils/getPublicDomain.ts` esta a devolver o dominio errado.
 
 ## Solucao
 
-Substituir `.single()` por `.maybeSingle()` nas queries de leitura (que podem legitimamente nao ter resultados). As mutacoes de insert/update podem manter `.single()` pois espera-se sempre um resultado.
+Alterar o dominio hardcoded de `fastcrm.metodopare.ai` para `fastcrm.lovable.app`.
 
-## Alteracoes
+## Alteracao
 
 | Ficheiro | O que muda |
 |---|---|
-| `src/hooks/useBioPages.ts` | Linha 50: `.single()` -> `.maybeSingle()` na funcao `useBioPage()` |
-| `src/hooks/useBioBlocks.ts` | Sem alteracao (apenas mutations usam `.single()`, o que e correcto) |
+| `src/utils/getPublicDomain.ts` | Linha 8: `"https://fastcrm.metodopare.ai"` -> `"https://fastcrm.lovable.app"` |
 
-### Detalhe
-
-**useBioPages.ts - funcao `useBioPage(id)`** (linha 46-52):
+### Detalhe Tecnico
 
 ```typescript
 // De:
-const { data, error } = await supabase
-  .from("bio_pages")
-  .select("*")
-  .eq("id", id)
-  .single();
-if (error) throw error;
-return data as BioPage;
+return "https://fastcrm.metodopare.ai";
 
 // Para:
-const { data, error } = await supabase
-  .from("bio_pages")
-  .select("*")
-  .eq("id", id)
-  .maybeSingle();
-if (error) throw error;
-return data as BioPage | null;
+return "https://fastcrm.lovable.app";
 ```
 
-As mutacoes (`useCreateBioPage`, `useUpdateBioPage`, `usePublishBioPage`) mantem `.single()` pois sempre devem devolver o registo criado/atualizado.
+## Link Correcto
 
-### Resultado
+Apos a correcao, o link correcto para a pagina sera:
+`https://fastcrm.lovable.app/bio/be-a-leader/lideranca-resultados-sustentaveis`
 
-O erro desaparece. Se a pagina nao for encontrada, o hook devolve `null` em vez de lancar uma excepcao.
+Todos os botoes "Copiar Link", "Link Curto" e "Ver Pagina" passarao automaticamente a usar o dominio correcto.
+
