@@ -13,7 +13,7 @@ const logStep = (step: string, details?: unknown) => {
 
 const COMMISSION_RATE = 0.05; // 5%
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

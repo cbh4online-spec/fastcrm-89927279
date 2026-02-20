@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -10,7 +9,7 @@ const MIN_SAMPLES = 50;
 const EXPLOIT_RATE_HIGH = 0.8;
 const EXPLOIT_RATE_LOW = 0.7; // 30% explore when samples < 50
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {

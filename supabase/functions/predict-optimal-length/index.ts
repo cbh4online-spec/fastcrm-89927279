@@ -84,7 +84,7 @@ function getAdjacentLengths(length: LengthChoice): LengthChoice[] {
   return ["short", "long"];
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {

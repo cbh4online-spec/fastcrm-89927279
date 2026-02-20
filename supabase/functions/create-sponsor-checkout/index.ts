@@ -18,7 +18,7 @@ const TIER_PRICES: Record<string, { amount: number; label: string; features: str
   gold: { amount: 9999, label: "Parceiro Gold", features: "Logo grande, descrição, link, posição topo, banner dedicado" },
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

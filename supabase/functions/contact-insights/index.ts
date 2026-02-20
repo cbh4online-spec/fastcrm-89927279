@@ -26,7 +26,7 @@ interface ContactInsights {
   personalizedMessage?: string;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

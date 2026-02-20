@@ -10,7 +10,7 @@ const log = (step: string, details?: unknown) => {
   console.log(`[PROCESS-ALERTS] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

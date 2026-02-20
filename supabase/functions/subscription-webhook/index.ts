@@ -126,7 +126,7 @@ async function findWorkspaceFromEvent(
   return null;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",

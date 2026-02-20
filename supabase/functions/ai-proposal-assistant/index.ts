@@ -194,7 +194,7 @@ function buildPrompt(mode: string, body: RequestBody): string {
   return prompt;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

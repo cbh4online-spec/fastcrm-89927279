@@ -782,7 +782,7 @@ Para cada campo indica a confiança (high/medium/low) baseado em quão clarament
   };
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

@@ -67,7 +67,7 @@ Quando completo:
 
 Devolve APENAS JSON válido, sem markdown.`;
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

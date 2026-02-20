@@ -147,7 +147,7 @@ Responde APENAS com JSON: {"summary": "1-2 frases sobre o lead", "nextAction": "
   };
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

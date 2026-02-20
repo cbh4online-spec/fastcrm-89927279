@@ -31,7 +31,7 @@ function weightedRandomSelect(keys: string[]): string {
   return keys[keys.length - 1];
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
