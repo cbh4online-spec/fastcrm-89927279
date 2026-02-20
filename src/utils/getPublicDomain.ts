@@ -5,7 +5,7 @@
 export function getPublicBaseUrl(): string {
   const hostname = window.location.hostname;
   if (hostname.includes("lovable.app") || hostname.includes("lovableproject.com")) {
-    return "https://fastcrm.metodopare.ai";
+    return "https://fastcrm.lovable.app";
   }
   return window.location.origin;
 }
