@@ -67,7 +67,7 @@ function parseEmailAddress(input: string): { name: string; email: string } {
   return { name: cleaned, email: cleaned.toLowerCase() };
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

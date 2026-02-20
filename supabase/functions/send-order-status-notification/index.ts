@@ -62,7 +62,7 @@ const STATUS_MESSAGES: Record<string, { subject: string; heading: string; body: 
   },
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

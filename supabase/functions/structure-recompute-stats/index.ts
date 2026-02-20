@@ -16,7 +16,7 @@ function getWeights(pipelineStage?: string | null) {
   return { opp: 0.40, win: 0.40, reply: 0.10, stageProgression: 0.10, timePenalty: 0.05 };
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {

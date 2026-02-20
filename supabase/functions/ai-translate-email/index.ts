@@ -30,7 +30,7 @@ const languageLabels: Record<string, string> = {
   it: "Italian",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

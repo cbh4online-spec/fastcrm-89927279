@@ -14,7 +14,7 @@ const logStep = (step: string, details?: unknown) => {
 const RAPIDAPI_HOST = "instagram-looter2.p.rapidapi.com";
 const RAPIDAPI_URL = `https://${RAPIDAPI_HOST}`;
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

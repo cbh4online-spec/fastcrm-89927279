@@ -248,7 +248,7 @@ function extractFacebookProfiles(results: any[], seenUrls: Set<string>): Profile
   return profiles;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

@@ -37,7 +37,7 @@ interface SEOContent {
   schema_markup: Record<string, unknown>;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });

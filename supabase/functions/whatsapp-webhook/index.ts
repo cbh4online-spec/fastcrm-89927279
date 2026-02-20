@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { normalizeIncomingMessage } from "../_shared/normalize-message.ts";
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Webhook verification (GET)
   if (req.method === "GET") {
     const url = new URL(req.url);

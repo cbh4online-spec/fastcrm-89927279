@@ -53,7 +53,7 @@ function detectLanguageFromCountry(country: string | null): string | null {
   return langMap[country] || null;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
