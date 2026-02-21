@@ -1,49 +1,128 @@
 
-# Fix: Stripe SaaS - Checkout e Mapeamento de Planos
+# Fix: Imagens e meta tags OG dinamicas para partilha de links
 
-## Problemas Encontrados
+## Problema
 
-### 1. Checkout SaaS nao funciona (critico)
-O frontend (`SubscriptionContext.createCheckout`) envia `{ plan: "basic", workspaceId }` mas a edge function `create-checkout` espera `{ priceId: "price_xxx", workspaceId }`. Alem disso, a funcao `create-checkout` tenta ler a chave Stripe de `workspace_stripe_config` (que esta **vazia** - 0 registos), quando deveria usar a `STRIPE_SECRET_KEY` global do ambiente (que e a chave do SaaS/plataforma).
+Quando se partilha um link de funil/vertical (ex: `https://fastcrm.metodopare.ai/imobiliarias`) no WhatsApp, Facebook ou LinkedIn, a pre-visualizacao mostra sempre a imagem e descricao generica do FastCRM. Isto acontece porque os crawlers destes servicos nao executam JavaScript -- leem apenas o HTML inicial servido pelo servidor, que e sempre o `index.html` com os OG tags estaticos do FastCRM.
 
-### 2. Arquitectura Stripe inconsistente
-- **SaaS billing** (`create-checkout`, `check-subscription`, `stripe-webhook`): Deve usar `STRIPE_SECRET_KEY` global (chave da plataforma)
-- **Merchant billing** (`create-store-checkout`, `create-c2c-checkout`, etc.): Usa correctamente `workspace_stripe_config` (chave do cliente)
-- O `create-checkout` esta a usar `workspace_stripe_config` por engano
+## Causa Raiz
 
-### 3. Preco Agency duplicado no Stripe
-Existem dois precos para Agency: 199EUR e 399EUR. O de 199EUR corresponde ao definido no `PLAN_INFO`.
+A aplicacao e uma SPA (Single Page Application). O `index.html` tem:
+```html
+<meta property="og:title" content="FastCRM - CRM Inteligente" />
+<meta property="og:description" content="Plataforma de CRM inteligente..." />
+<meta property="og:image" content="/og-image.png" />
+```
 
-## Dados Stripe Actuais
+O react-helmet actualiza estas tags no browser, mas os crawlers nunca executam o React.
 
-| Plano | Produto | Preco ID | Valor |
-|-------|---------|----------|-------|
-| Basic | prod_Tn6lMOO7zRREaL | price_1SpWYGQpSN9dntDnbou09co0 | 29 EUR/mes |
-| Pro | prod_Tn6mQSM7DNs1TO | price_1SpWYwQpSN9dntDneKmQwHUU | 79 EUR/mes |
-| Agency | prod_Tn6mBblFLd6lD2 | price_1SpWZ8QpSN9dntDnMeNvHIVO | 199 EUR/mes |
+## Solucao
+
+Criar uma **edge function `og-proxy`** que serve HTML minimo com os OG tags correctos para cada tipo de pagina. Os links de partilha passam a apontar para esta funcao, que:
+
+1. Detecta se o visitante e um crawler (via User-Agent) -> serve HTML com OG tags correctos
+2. Se for um utilizador real -> faz redirect 302 para a pagina SPA
+
+### Tipos de pagina suportados
+
+| Tipo | Slug exemplo | Fonte dos dados |
+|------|-------------|-----------------|
+| vertical | imobiliarias, clinicas | `verticalConfigs` estatico + `vertical_templates` DB |
+| bio | workspace/page | tabela `bio_pages` |
+| landing | workspace/page | tabela `landing_pages` |
+| store | workspace | tabela `workspace_store_settings` |
+| product | workspace/id | tabela `products` |
+
+### Fluxo
+
+```text
+Link partilhado: https://fastcrm.lovable.app/api/og?type=vertical&slug=imobiliarias
+
+Crawler (WhatsApp):
+  -> Edge function serve HTML com OG tags da vertical "imobiliarias"
+  -> WhatsApp le titulo, descricao e imagem correctos
+
+Utilizador real:
+  -> Edge function faz redirect 302 para https://fastcrm.lovable.app/imobiliarias
+  -> Utilizador ve a pagina normal
+```
 
 ## Alteracoes
 
-### Ficheiro 1: `supabase/functions/create-checkout/index.ts`
-Reescrever para:
-- Usar `STRIPE_SECRET_KEY` global (nao workspace_stripe_config)
-- Aceitar `plan` em vez de `priceId`
-- Mapear internamente plan -> price ID
-- Remover dependencia de `workspace_stripe_config`
+### 1. Nova Edge Function: `supabase/functions/og-proxy/index.ts`
 
+- Recebe query params: `type` (vertical, bio, landing, store, product) e `slug`
+- Para verticais estaticas: mapeamento interno dos dados SEO (titulo, descricao)
+- Para paginas dinamicas (bio, landing, store): consulta a base de dados
+- Serve HTML minimo com OG tags + redirect JS para utilizadores reais
+- Detecta crawlers via User-Agent (WhatsApp, Facebook, Twitter, LinkedIn, Telegram, Discord, Slack)
+
+### 2. Actualizar componentes de partilha
+
+Actualizar os componentes que geram links de partilha para usar o URL do og-proxy em vez do URL directo:
+- `ShareButtons.tsx` (ja recebe url como prop)
+- Copiar link nas listas de funis/verticais/bio
+
+Criar uma funcao utilitaria `getShareUrl(type, slug)` que gera o URL correcto:
 ```text
-Mapeamento interno:
-  basic  -> price_1SpWYGQpSN9dntDnbou09co0
-  pro    -> price_1SpWYwQpSN9dntDneKmQwHUU
-  agency -> price_1SpWZ8QpSN9dntDnMeNvHIVO
+getShareUrl("vertical", "imobiliarias")
+-> https://[supabase-url]/functions/v1/og-proxy?type=vertical&slug=imobiliarias
 ```
 
-### Ficheiro 2: `src/contexts/SubscriptionContext.tsx`
-Nenhuma alteracao necessaria - ja envia `{ plan, workspaceId }` correctamente.
+### 3. Actualizar paginas que geram links de partilha
 
-### Resultado
-- O botao "Escolher plano" nos PricingCards abre o Stripe Checkout correctamente
-- O check-subscription ja funciona (usa STRIPE_SECRET_KEY global)
-- O stripe-webhook ja funciona (usa STRIPE_SECRET_KEY global)
-- O customer-portal ja funciona (usa STRIPE_SECRET_KEY global)
-- Fluxo completo: Escolher plano -> Stripe Checkout -> Webhook actualiza workspace_subscriptions -> check-subscription le o estado
+- `LandingPagesList.tsx` - links de partilha das landing pages
+- `BioOS.tsx` - links de partilha das bio pages  
+- Componentes de vertical landing que mostram URLs
+
+## Detalhes Tecnicos
+
+### Mapeamento de verticais estaticas (dentro da edge function)
+
+```text
+clinicas -> "FastCRM para Clinicas - Sistema com IA para Gestao Clinica"
+imobiliarias -> "FastCRM para Imobiliarias - Pipeline Inteligente com IA"
+formacao -> "FastCRM para Centros de Formacao..."
+condominios -> ...
+agencias -> ...
+empresas -> ...
+```
+
+### Template HTML servido aos crawlers
+
+```text
+<!DOCTYPE html>
+<html>
+<head>
+  <meta property="og:title" content="[titulo dinamico]" />
+  <meta property="og:description" content="[descricao dinamica]" />
+  <meta property="og:image" content="[imagem dinamica ou fallback]" />
+  <meta property="og:url" content="[url real da pagina]" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta http-equiv="refresh" content="0;url=[url real]" />
+</head>
+<body>Redirecting...</body>
+</html>
+```
+
+### Deteccao de crawlers
+
+```text
+User-Agents detectados:
+- facebookexternalhit, Facebot
+- WhatsApp
+- Twitterbot
+- LinkedInBot
+- TelegramBot
+- Slackbot
+- Discordbot
+- Googlebot (para SEO)
+```
+
+## Resultado
+
+- Cada link partilhado no WhatsApp/Facebook/LinkedIn mostra titulo, descricao e imagem especificos da pagina
+- Utilizadores reais sao redirecionados transparentemente para a pagina correcta
+- Sem impacto na performance da SPA existente
+- Extensivel para novos tipos de pagina no futuro
