@@ -11,40 +11,12 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
-interface WorkspaceStripeConfig {
-  stripe_secret_key_encrypted: string | null;
-  stripe_publishable_key: string | null;
-  is_active: boolean;
-  test_mode: boolean;
-}
-
-// Helper to get workspace Stripe config
-async function getWorkspaceStripeConfig(
-  supabaseUrl: string, 
-  supabaseKey: string, 
-  workspaceId: string
-): Promise<WorkspaceStripeConfig> {
-  const supabase = createClient(supabaseUrl, supabaseKey);
-  
-  const { data, error } = await supabase
-    .from("workspace_stripe_config")
-    .select("stripe_secret_key_encrypted, stripe_publishable_key, is_active, test_mode")
-    .eq("workspace_id", workspaceId)
-    .eq("is_active", true)
-    .single();
-
-  if (error || !data) {
-    throw new Error("Stripe não configurado para este workspace");
-  }
-
-  const config = data as WorkspaceStripeConfig;
-  
-  if (!config.stripe_secret_key_encrypted) {
-    throw new Error("Chave secreta Stripe não configurada");
-  }
-
-  return config;
-}
+// SaaS plan -> Stripe price mapping
+const PLAN_PRICE_MAP: Record<string, string> = {
+  basic: "price_1SpWYGQpSN9dntDnbou09co0",
+  pro: "price_1SpWYwQpSN9dntDneKmQwHUU",
+  agency: "price_1SpWZ8QpSN9dntDnMeNvHIVO",
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -58,12 +30,18 @@ Deno.serve(async (req) => {
   try {
     logStep("Function started");
 
-    const { priceId, workspaceId, subscriptionId, successUrl, cancelUrl } = await req.json();
-    logStep("Request body", { priceId, workspaceId, subscriptionId });
+    const { plan, workspaceId, subscriptionId, successUrl, cancelUrl } = await req.json();
+    logStep("Request body", { plan, workspaceId, subscriptionId });
 
-    if (!priceId) {
-      throw new Error("Price ID is required");
+    if (!plan) {
+      throw new Error("Plan is required");
     }
+
+    const priceId = PLAN_PRICE_MAP[plan];
+    if (!priceId) {
+      throw new Error(`Invalid plan: ${plan}. Valid plans: ${Object.keys(PLAN_PRICE_MAP).join(", ")}`);
+    }
+    logStep("Resolved price", { plan, priceId });
 
     if (!workspaceId) {
       throw new Error("Workspace ID is required");
@@ -80,13 +58,11 @@ Deno.serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    // Get workspace Stripe config
-    const stripeConfig = await getWorkspaceStripeConfig(supabaseUrl, supabaseKey, workspaceId);
-    logStep("Stripe config loaded", { testMode: stripeConfig.test_mode });
+    // Use global STRIPE_SECRET_KEY (SaaS platform key)
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
-    const stripe = new Stripe(stripeConfig.stripe_secret_key_encrypted!, { 
-      apiVersion: "2025-08-27.basil" 
-    });
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     // Check if customer exists
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
@@ -115,11 +91,13 @@ Deno.serve(async (req) => {
         workspace_id: workspaceId,
         subscription_id: subscriptionId || null,
         user_id: user.id,
+        plan: plan,
       },
       subscription_data: {
         metadata: {
           workspace_id: workspaceId,
           subscription_id: subscriptionId || null,
+          plan: plan,
         },
       },
     });
