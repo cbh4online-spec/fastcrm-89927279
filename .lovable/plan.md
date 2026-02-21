@@ -1,56 +1,50 @@
 
-# Fix: Analiticas Bio OS nao aparecem para Super Admins
+# Fix: Erro ao inserir Avatar/Logotipo no Hero
 
 ## Problema
 
-As analiticas mostram tudo a zero porque as politicas de seguranca (RLS) das tabelas `bio_events` e `bio_analytics_daily` so permitem leitura a membros do workspace (via `workspace_members`). O utilizador actual e um **super_admin** que acede ao workspace "Be a leader" mas nao esta registado como membro desse workspace na tabela `workspace_members`.
+Ao clicar em "Avatar" ou "Logotipo" no bloco Hero, o update falha porque a politica de seguranca (RLS) da tabela `bio_blocks` so permite operacoes a membros do workspace (`workspace_members`). O utilizador e super_admin mas nao esta registado como membro do workspace "Be a leader", por isso o UPDATE devolve 0 linhas e o erro aparece.
 
-Os dados existem na base de dados (23 page_views, dados agregados para varios dias), mas as politicas de acesso filtram tudo.
+A politica actual e:
+```
+"Workspace members can manage bio_blocks" (ALL)
+-> workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid())
+```
 
 ## Solucao
 
-Actualizar as politicas RLS de SELECT nas duas tabelas para tambem permitir acesso a super admins, usando a funcao `is_super_admin()` que ja existe no sistema.
+Actualizar a politica RLS de `bio_blocks` para tambem permitir acesso a super admins, da mesma forma que ja foi corrigido para `bio_events` e `bio_analytics_daily`.
 
-## Alteracoes
+## Alteracao
 
-Uma unica migracao SQL que:
+Uma migracao SQL que:
 
-1. **Remove** a politica SELECT actual de `bio_events` ("Workspace members can read bio_events")
-2. **Cria** nova politica SELECT em `bio_events` que permite acesso a membros do workspace OU super admins
-3. **Remove** a politica SELECT actual de `bio_analytics_daily` ("Workspace members can read bio_analytics_daily")
-4. **Cria** nova politica SELECT em `bio_analytics_daily` que permite acesso a membros do workspace OU super admins
+1. Remove a politica actual "Workspace members can manage bio_blocks"
+2. Cria nova politica que permite acesso a membros do workspace OU super admins
 
 ### Detalhe Tecnico
 
 ```sql
--- bio_events: actualizar politica de leitura
-DROP POLICY IF EXISTS "Workspace members can read bio_events" ON public.bio_events;
-CREATE POLICY "Workspace members or super admins can read bio_events"
-ON public.bio_events FOR SELECT
+DROP POLICY IF EXISTS "Workspace members can manage bio_blocks" ON public.bio_blocks;
+
+CREATE POLICY "Workspace members or super admins can manage bio_blocks"
+ON public.bio_blocks FOR ALL
 USING (
   is_super_admin(auth.uid())
   OR workspace_id IN (
     SELECT workspace_id FROM workspace_members
     WHERE user_id = auth.uid()
   )
-);
-
--- bio_analytics_daily: actualizar politica de leitura
-DROP POLICY IF EXISTS "Workspace members can read bio_analytics_daily" ON public.bio_analytics_daily;
-CREATE POLICY "Workspace members or super admins can read bio_analytics_daily"
-ON public.bio_analytics_daily FOR SELECT
-USING (
+)
+WITH CHECK (
   is_super_admin(auth.uid())
-  OR bio_page_id IN (
-    SELECT id FROM bio_pages
-    WHERE workspace_id IN (
-      SELECT workspace_id FROM workspace_members
-      WHERE user_id = auth.uid()
-    )
+  OR workspace_id IN (
+    SELECT workspace_id FROM workspace_members
+    WHERE user_id = auth.uid()
   )
 );
 ```
 
 ### Resultado
 
-As analiticas passam a mostrar os dados correctos (Views, Unicos, Clicks, Leads, graficos e tabelas) para super admins que acedem a qualquer workspace, alem dos membros normais do workspace.
+Super admins conseguem alterar o tipo de media (Icone/Avatar/Logotipo) e todas as outras propriedades dos blocos Bio em qualquer workspace, sem erros.
