@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Globe, Eye, Trash2, ExternalLink, PenLine, Sparkles, Copy, Check, Link2 } from "lucide-react";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
+import { getShareUrl } from "@/utils/getShareUrl";
 import { toast } from "sonner";
 import { BioPageBuilder } from "@/components/bio/BioPageBuilder";
 import { BioAIWizard } from "@/components/bio/BioAIWizard";
@@ -19,7 +20,7 @@ function CopyLinkButton({ page, workspaceSlug }: { page: { slug: string }; works
   return (
     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => {
       e.stopPropagation();
-      const url = `${getPublicBaseUrl()}/bio/${workspaceSlug}/${page.slug}`;
+      const url = getShareUrl("bio", `${workspaceSlug}/${page.slug}`);
       navigator.clipboard.writeText(url);
       setCopied(true);
       toast.success("Link copiado!");
