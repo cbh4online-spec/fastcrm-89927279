@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
-import { Plus, Globe, GlobeLock, Trash2, Pencil, ExternalLink, Sparkles, Eye, FileText, TrendingUp } from "lucide-react";
+import { getShareUrl } from "@/utils/getShareUrl";
+import { Plus, Globe, GlobeLock, Trash2, Pencil, ExternalLink, Sparkles, Eye, FileText, TrendingUp, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +40,14 @@ export function LandingPagesList() {
   const [builderMode, setBuilderMode] = useState<"new" | "edit" | null>(null);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+
+  const handleCopyShareLink = (type: string, slug: string) => {
+    const url = getShareUrl(type, slug);
+    navigator.clipboard.writeText(url);
+    setCopiedSlug(slug);
+    setTimeout(() => setCopiedSlug(null), 2000);
+  };
 
   const handleDelete = () => {
     if (deletePageId) {
@@ -161,6 +170,15 @@ export function LandingPagesList() {
                     <ExternalLink className="h-3 w-3 mr-1" />
                     Abrir
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleCopyShareLink("vertical", vertical.slug)}
+                    title="Copiar link de partilha"
+                  >
+                    {copiedSlug === vertical.slug ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -228,6 +246,15 @@ export function LandingPagesList() {
                       Abrir
                     </Button>
                   )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleCopyShareLink("vertical", tpl.slug)}
+                    title="Copiar link de partilha"
+                  >
+                    {copiedSlug === tpl.slug ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -320,6 +347,7 @@ export function LandingPagesList() {
                     {page.is_published ? "Unpublish" : "Publish"}
                   </Button>
                   {page.is_published && (
+                    <>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -327,6 +355,15 @@ export function LandingPagesList() {
                     >
                       <ExternalLink className="h-4 w-4" />
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleCopyShareLink("landing", `${currentWorkspace?.slug}/${page.slug}`)}
+                      title="Copiar link de partilha"
+                    >
+                      {copiedSlug === `${currentWorkspace?.slug}/${page.slug}` ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                    </>
                   )}
                   <Button
                     variant="ghost"

@@ -319,3 +319,6 @@ verify_jwt = false
 [functions.compute-strategic-decisions]
 verify_jwt = false
 
+[functions.og-proxy]
+verify_jwt = false
+

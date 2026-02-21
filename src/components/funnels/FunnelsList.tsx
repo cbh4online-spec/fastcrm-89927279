@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
-import { Plus, Trash2, Pencil, Globe, GlobeLock, ExternalLink, MoreHorizontal, Sparkles, Eye, FileText, TrendingUp, Layers } from "lucide-react";
+import { getShareUrl } from "@/utils/getShareUrl";
+import { Plus, Trash2, Pencil, Globe, GlobeLock, ExternalLink, MoreHorizontal, Sparkles, Eye, FileText, TrendingUp, Layers, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +67,14 @@ export function FunnelsList() {
   const [managingTemplateId, setManagingTemplateId] = useState<string | null>(null);
   const [managingSlug, setManagingSlug] = useState<string | null>(null);
   const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+
+  const handleCopyShareLink = (type: string, slug: string) => {
+    const url = getShareUrl(type, slug);
+    navigator.clipboard.writeText(url);
+    setCopiedSlug(slug);
+    setTimeout(() => setCopiedSlug(null), 2000);
+  };
 
   const handleCreate = async () => {
     if (!newName || !newSlug) return;
@@ -315,6 +324,15 @@ export function FunnelsList() {
                     <ExternalLink className="h-3 w-3 mr-1" />
                     Abrir
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleCopyShareLink("vertical", vertical.slug)}
+                    title="Copiar link de partilha"
+                  >
+                    {copiedSlug === vertical.slug ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -381,6 +399,15 @@ export function FunnelsList() {
                       Abrir
                     </Button>
                   )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleCopyShareLink("vertical", tpl.slug)}
+                    title="Copiar link de partilha"
+                  >
+                    {copiedSlug === tpl.slug ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
