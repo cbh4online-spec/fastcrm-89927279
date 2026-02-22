@@ -150,7 +150,28 @@ Deno.serve(async (req) => {
     }
 
     // Limit profiles to remaining quota
-    const profilesToAnalyze = profiles.slice(0, Math.min(profiles.length, remainingProfiles));
+    const limitedProfiles = profiles.slice(0, Math.min(profiles.length, remainingProfiles));
+
+    // Second layer: filter out already converted/rejected profiles to avoid wasting credits
+    const profileUrls = limitedProfiles.map((p: ProfileData) => p.profileUrl);
+    const { data: existingInDb } = await supabase
+      .from("professional_prospecting_profiles")
+      .select("profile_url, status")
+      .eq("workspace_id", workspaceId)
+      .in("profile_url", profileUrls);
+
+    const alreadyProcessed = new Set(
+      (existingInDb || [])
+        .filter((p: any) => p.status === "converted" || p.status === "rejected")
+        .map((p: any) => p.profile_url)
+    );
+
+    const profilesToAnalyze = limitedProfiles.filter(
+      (p: ProfileData) => !alreadyProcessed.has(p.profileUrl)
+    );
+
+    console.log(`Filtered ${alreadyProcessed.size} already processed profiles, analyzing ${profilesToAnalyze.length}`);
+
     const results: any[] = [];
 
     // Analyze each profile with AI

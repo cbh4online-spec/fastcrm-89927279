@@ -412,7 +412,23 @@ Deno.serve(async (req) => {
     console.log(`Total search results: ${totalResults}, Profiles extracted: ${allProfiles.length}`);
 
     // Limit to 50 profiles
-    const finalProfiles = allProfiles.slice(0, 50);
+    const candidateProfiles = allProfiles.slice(0, 50);
+
+    // Filter out profiles already existing in this workspace (converted, rejected, or analyzed)
+    const { data: existingProfiles } = await supabase
+      .from("professional_prospecting_profiles")
+      .select("profile_url, status")
+      .eq("workspace_id", workspaceId)
+      .in("status", ["converted", "rejected", "analyzed"]);
+
+    const existingUrls = new Set(
+      (existingProfiles || []).map((p: any) => p.profile_url)
+    );
+
+    const finalProfiles = candidateProfiles.filter((p: Profile) => !existingUrls.has(p.profileUrl));
+    const filteredCount = candidateProfiles.length - finalProfiles.length;
+
+    console.log(`Filtered ${filteredCount} existing profiles, ${finalProfiles.length} new profiles remain`);
 
     // Update search record with results count
     await supabase
@@ -439,6 +455,7 @@ Deno.serve(async (req) => {
         searchId: search.id,
         profiles: finalProfiles,
         count: finalProfiles.length,
+        filteredCount,
         queriesExecuted: allQueries.length,
         platforms,
         usage: {
