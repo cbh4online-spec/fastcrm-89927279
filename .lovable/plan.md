@@ -1,118 +1,49 @@
 
-# Outreach em Massa - Automatizar Sequencia AIDA para Varios Perfis
+
+# Abrir DMs do Instagram directamente com mensagem copiada
 
 ## Problema
 
-Actualmente, para cada perfil o utilizador tem de: clicar "Gerar Mensagem" -> esperar a IA gerar -> copiar -> abrir Instagram -> enviar. Com 26 perfis isto demora imenso tempo.
+Actualmente o sistema abre o perfil do Instagram (`instagram.com/username`) e copia a mensagem. O utilizador tem de: abrir o perfil -> clicar em "Enviar mensagem" -> colar -> enviar. Sao 3 passos desnecessarios.
 
 ## Solucao
 
-Adicionar um botao "Iniciar Sequencia" na barra de accoes em massa (bulk action bar). Ao clicar:
-
-1. O sistema gera automaticamente a Msg 1 (Abertura) para todos os perfis seleccionados em paralelo, usando a edge function existente `generate-prospecting-message`
-2. Agenda automaticamente Msg 2 (Dia +3) e Msg 3 (Dia +7) na fila `prospecting_outreach_queue`
-3. Apresenta as mensagens geradas num painel de "fila de envio" onde o utilizador pode:
-   - Ver a mensagem gerada para cada perfil
-   - Clicar "Enviar" (copia + abre Instagram) um por um rapidamente
-   - Ou clicar "Enviar Todos" que copia e abre os perfis sequencialmente
+Usar o deep link `https://ig.me/m/USERNAME` que abre directamente a conversa de DM com o utilizador no Instagram. A mensagem ja esta copiada no clipboard, entao o utilizador so precisa de colar (Ctrl+V) e clicar "Enviar".
 
 ## Alteracoes
 
-### 1. Nova Edge Function `batch-generate-prospecting-messages`
+### 1. `BulkOutreachDialog.tsx` - Alterar `handleCopyAndOpen`
 
-Edge function que recebe um array de perfis e gera as 3 mensagens AIDA para cada um em paralelo. Retorna todas as mensagens de uma vez.
+- Extrair o username do `profile_url` (ex: `instagram.com/joao.silva` -> `joao.silva`)
+- Em vez de abrir `profile.profile_url`, abrir `https://ig.me/m/USERNAME`
+- Mostrar toast a dizer "Mensagem copiada! Cole (Ctrl+V) na conversa e envie"
+- Alterar o texto do botao de "Copiar + Abrir" para "Abrir DM + Copiar"
 
-- Input: `{ profiles: Array<ProfileData>, tone, workspaceContext, serviceContext }`
-- Output: `{ results: Array<{ profileId, messages: [msg1, msg2, msg3] }> }`
-- Usa `Promise.allSettled` internamente para gerar em paralelo (batches de 5 para nao sobrecarregar)
+### 2. `ProspectingMessageDialog.tsx` - Alterar botao existente de perfil individual
 
-### 2. Bulk Outreach Handler em `ProspectingResults.tsx`
+- Mesma logica: ao copiar e abrir Instagram para um perfil individual, abrir `ig.me/m/USERNAME` em vez do perfil
 
-Nova funcao `handleBulkOutreach` que:
-- Chama a edge function batch para gerar as mensagens da Msg 1
-- Guarda os resultados no state local
-- Abre um dialog/painel com a fila de envio
-- Para cada perfil: insere Msg 2 e Msg 3 na `prospecting_outreach_queue`
+### 3. Instrucao visual no dialog
 
-### 3. Novo componente `BulkOutreachDialog.tsx`
+- Adicionar uma pequena nota no topo do `BulkOutreachDialog`: "A mensagem e copiada automaticamente. Na conversa do Instagram, cole (Ctrl+V) e envie."
 
-Dialog que mostra:
-- Progresso da geracao ("A gerar mensagens... 5/12")
-- Lista de perfis com mensagem gerada, cada um com botao "Copiar + Abrir Instagram"
-- Botao "Proximo" que automaticamente copia a proxima mensagem e abre o perfil
-- Contador "3/12 enviados"
-- Ao enviar cada um, actualiza o `outreach_step` e agenda follow-ups
+## Resultado
 
-Layout do dialog:
-
-```text
-+------------------------------------------+
-| Outreach em Massa          12 perfis      |
-|                                           |
-| Progresso: [=========>        ] 8/12      |
-|                                           |
-| [x] Ricardo Salvador - Fisioterapeuta     |
-|     "Ola Ricardo, vi que es..."           |
-|     [Copiar + Abrir Instagram]  Enviado!  |
-|                                           |
-| [ ] Ines Viais - Fisioterapeuta           |
-|     "Ola Ines, reparei que..."            |
-|     [Copiar + Abrir Instagram]            |
-|                                           |
-| ...                                       |
-|                                           |
-| [Proximo perfil] [Fechar]                 |
-+------------------------------------------+
-```
-
-### 4. Botao na Bulk Action Bar
-
-Adicionar botao "Iniciar Sequencia" com icone `Send` na barra que aparece quando perfis estao seleccionados. Filtra apenas perfis com `outreach_step === 0` ou `null`.
-
-## Ficheiros a criar/modificar
-
-- **`supabase/functions/batch-generate-prospecting-messages/index.ts`** (novo) - geracao em batch
-- **`src/components/professional-prospecting/BulkOutreachDialog.tsx`** (novo) - dialog de envio em massa
-- **`src/components/professional-prospecting/ProspectingResults.tsx`** (modificar) - adicionar botao bulk + handler + estado do dialog
-
-## Fluxo
-
-```text
-Utilizador selecciona 12 perfis
-       |
-       v
-Clica "Iniciar Sequencia"
-       |
-       v
-Edge function gera Msg 1 para cada (em paralelo, batches de 5)
-       |
-       v
-Dialog mostra lista com mensagens geradas
-       |
-       v
-Utilizador clica "Proximo" -> copia msg, abre Instagram
-       |
-       v
-Repete para cada perfil (1 clique por perfil)
-       |
-       v
-Sistema agenda automaticamente Msg 2 e Msg 3 para cada
-```
+O utilizador reduz de 4 passos para 2: clicar "Abrir DM" no sistema -> colar e enviar no Instagram.
 
 ## Detalhes tecnicos
 
-### Edge Function `batch-generate-prospecting-messages`
+### Extraccao do username
 
-- Recebe ate 20 perfis de cada vez
-- Chama `generate-prospecting-message` internamente via fetch para cada perfil
-- Usa batches de 5 em paralelo para nao exceder rate limits
-- Retorna resultados parciais (fulfilled/rejected) para que falhas individuais nao bloqueiem o resto
-- Gera apenas Msg 1; Msg 2 e Msg 3 sao geradas quando o item da fila fica "ready"
+```text
+profile_url: "https://www.instagram.com/joao.silva/"
+regex: /instagram\.com\/([a-zA-Z0-9._]+)/
+resultado: "joao.silva"
+URL DM: "https://ig.me/m/joao.silva"
+```
 
-### BulkOutreachDialog
+### Ficheiros a modificar
 
-- Recebe o array de mensagens geradas
-- Estado interno controla qual perfil esta activo
-- Botao "Proximo" avanca sequencialmente: copia mensagem do perfil actual, abre URL, marca como enviado, move para o proximo
-- Ao marcar como enviado: update `outreach_step = 1` + insert na `prospecting_outreach_queue`
-- Progress bar mostra quantos foram enviados
+- `src/components/professional-prospecting/BulkOutreachDialog.tsx` - alterar `handleCopyAndOpen` e UI
+- `src/components/professional-prospecting/ProspectingMessageDialog.tsx` - alterar botao de abrir Instagram (se existir logica similar)
+
