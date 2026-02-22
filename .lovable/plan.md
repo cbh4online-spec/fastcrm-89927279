@@ -1,89 +1,110 @@
 
 
-# Filtrar contactos existentes nas novas pesquisas de prospeccao
+# Melhorar a descoberta de perfis e suporte multilingue na prospeccao
 
 ## Problema
 
-Quando o utilizador faz uma nova pesquisa, o sistema retorna perfis que ja existem como contactos no CRM ou que ja foram convertidos em leads anteriormente. Isto desperdiça creditos de analise e cria confusao na lista de resultados.
+O sistema de pesquisa encontra poucos ou nenhuns perfis para profissoes como "fisioterapeuta" porque:
 
-## Onde atuar
+1. **Queries demasiado restritivas**: Todas as queries incluem "Portugal" como sufixo obrigatorio, mesmo quando o utilizador nao especifica localizacao
+2. **Poucas variantes de pesquisa**: Maximo de 6 queries para Instagram e 4 para Facebook -- insuficiente para cobrir diferentes formatos de perfis
+3. **Pesquisa apenas em portugues**: `lang: "pt"` e `country: "PT"` limitam os resultados a paginas portuguesas, ignorando profissionais de outros paises
+4. **Falta de queries genericas**: Nao ha queries sem `site:` que capturem directórios profissionais, listagens e artigos que mencionem perfis sociais
 
-A filtragem deve acontecer em dois pontos:
+## Solucao
 
-### 1. Edge Function `professional-prospecting-analyze/index.ts`
+### 1. Expandir as estrategias de pesquisa (`generateInstagramQueries`)
 
-Antes de analisar cada perfil com IA (que gasta creditos), verificar na base de dados:
+- Adicionar queries sem restricao de pais quando a localizacao nao e especificada
+- Incluir queries em ingles para a mesma profissao (ex: "physiotherapist" para "fisioterapeuta")
+- Adicionar queries que pesquisem em diretorios e listagens (ex: "melhores fisioterapeutas instagram")
+- Aumentar o limite de queries de 6 para 10
+- Adicionar pesquisa por hashtags (#fisioterapia, #physiotherapy)
 
-**a) Perfis ja prospectados (qualquer status):** Consultar `professional_prospecting_profiles` para ver se o `profile_url` ja existe neste workspace. Se existir com status `converted` ou `rejected`, ignorar (nao gastar creditos). Se existir com status `analyzed`, reutilizar (nao re-analisar).
+### 2. Mapeamento profissao PT para EN
 
-**b) Contactos ja existentes:** Consultar a tabela `contacts` para verificar se algum contacto do workspace ja tem o mesmo URL de perfil (cruzando com campos como email ou nome normalizado). Tambem cruzar leads existentes para perfis ja convertidos.
+Criar um dicionario de traducao de profissoes para ingles, permitindo gerar queries bilingues:
 
-Logica concreta:
-- Buscar todos os `profile_url` existentes em `professional_prospecting_profiles` para o workspace
-- Filtrar os perfis recebidos, removendo os que ja existem com status `converted` ou `rejected`
-- Os restantes sao analisados normalmente
+```text
+"fisioterapeuta" -> ["physiotherapist", "physio", "physical therapist"]
+"dentista" -> ["dentist", "dental"]
+"cabeleireiro" -> ["hairdresser", "hair stylist", "barber"]
+"nutricionista" -> ["nutritionist", "dietitian"]
+etc.
+```
 
-### 2. Edge Function `professional-prospecting-search/index.ts`
+### 3. Pesquisa multilingue na Firecrawl
 
-Apos extrair perfis dos resultados da web, antes de retornar ao frontend:
+- Quando a localizacao NAO e Portugal, remover `country: "PT"` e `lang: "pt"` das chamadas Firecrawl
+- Executar queries adicionais em ingles sem restricao de pais
+- Adicionar 2-3 queries internacionais automaticamente
 
-- Buscar URLs ja existentes em `professional_prospecting_profiles` com status `converted` ou `rejected`
-- Remover esses perfis do resultado antes de enviar para analise
-- Incluir contagem de perfis filtrados na resposta para feedback ao utilizador
+### 4. Adaptar lingua na analise IA
+
+No `professional-prospecting-analyze`, quando o perfil vem de um pais diferente:
+- Detetar a lingua/pais a partir do URL, bio ou localizacao do perfil
+- Gerar a mensagem AIDA na lingua do pais do perfil em vez de sempre em portugues
 
 ## Detalhes tecnicos
 
-**`professional-prospecting-search/index.ts`** (linhas 412-415, antes de retornar):
+### Ficheiro: `professional-prospecting-search/index.ts`
+
+**a) Novo dicionario de traducoes (apos linha 41):**
 
 ```text
-// Apos extrair todos os perfis (linha 412)
-// 1. Buscar URLs ja existentes neste workspace
-const { data: existingProfiles } = await supabase
-  .from("professional_prospecting_profiles")
-  .select("profile_url, status")
-  .eq("workspace_id", workspaceId)
-  .in("status", ["converted", "rejected", "analyzed"]);
-
-// 2. Criar set de URLs a excluir
-const existingUrls = new Set(
-  (existingProfiles || []).map(p => p.profile_url)
-);
-
-// 3. Filtrar perfis novos
-const newProfiles = finalProfiles.filter(p => !existingUrls.has(p.profileUrl));
-
-// 4. Retornar apenas perfis novos (com contagem de filtrados)
+const professionTranslations: Record<string, string[]> = {
+  "fisioterapeuta": ["physiotherapist", "physio", "physical therapist", "physical therapy"],
+  "dentista": ["dentist", "dental clinic"],
+  "médico dentista": ["dentist", "dental surgeon"],
+  "cabeleireiro": ["hairdresser", "hair stylist", "barber"],
+  "cabeleireira": ["hairdresser", "hair stylist"],
+  "esteticista": ["esthetician", "beauty therapist", "skincare"],
+  "nutricionista": ["nutritionist", "dietitian", "nutrition"],
+  "psicólogo": ["psychologist", "therapist", "psychology"],
+  "personal trainer": ["personal trainer", "fitness coach", "gym trainer"],
+  "massagista": ["massage therapist", "masseuse"],
+  "fotógrafo": ["photographer", "photography"],
+  "advogado": ["lawyer", "attorney"],
+  "arquiteto": ["architect"],
+  "maquilhador": ["makeup artist", "MUA"],
+  "médico": ["doctor", "physician"],
+};
 ```
 
-**`professional-prospecting-analyze/index.ts`** (linhas 152-154, antes do loop de analise):
+**b) Expandir `generateInstagramQueries` (linhas 19-78):**
+
+- Adicionar queries com traducoes em ingles
+- Adicionar queries de hashtags (#fisioterapia, #physiotherapy)
+- Adicionar queries sem "Portugal" para resultados internacionais
+- Adicionar queries de diretorios ("melhores [profissao] instagram")
+- Aumentar limite de 6 para 10 queries
+
+**c) Expandir `generateFacebookQueries` (linhas 81-101):**
+
+- Adicionar queries em ingles
+- Aumentar limite de 4 para 6 queries
+
+**d) Pesquisa Firecrawl multilingue (linhas 370-378):**
+
+- Primeiras queries: manter `lang: "pt"`, `country: "PT"`
+- Queries em ingles: usar `lang: "en"` sem country ou com country do pais-alvo
+- Aumentar `limit` de 20 para 25 por query
+
+### Ficheiro: `professional-prospecting-analyze/index.ts`
+
+Na geracao da mensagem AIDA, adicionar instrucao para adaptar a lingua:
 
 ```text
-// Segunda camada de filtragem (caso de URLs manuais)
-const { data: existingInDb } = await supabase
-  .from("professional_prospecting_profiles")
-  .select("profile_url, status")
-  .eq("workspace_id", workspaceId)
-  .in("profile_url", profilesToAnalyze.map(p => p.profileUrl));
-
-const alreadyProcessed = new Set(
-  (existingInDb || [])
-    .filter(p => p.status === "converted" || p.status === "rejected")
-    .map(p => p.profile_url)
-);
-
-// Filtrar antes de analisar
-const trulyNewProfiles = profilesToAnalyze.filter(
-  p => !alreadyProcessed.has(p.profileUrl)
-);
+// No prompt de analise, adicionar:
+"Se o perfil aparenta ser de um país que não fala português 
+(ex: bio em inglês, localização internacional), 
+gera a mensagem na língua predominante do perfil."
 ```
-
-**Frontend (`ProspectingSearch.tsx`):** Mostrar toast com informacao de perfis filtrados:
-- "15 perfis encontrados (3 ja existentes removidos)"
 
 ## Resumo
 
 | Ficheiro | Alteracao |
 |---|---|
-| `professional-prospecting-search/index.ts` | Filtrar perfis ja existentes antes de retornar resultados |
-| `professional-prospecting-analyze/index.ts` | Segunda filtragem antes de gastar creditos de analise IA |
-| `ProspectingSearch.tsx` | Mostrar feedback sobre perfis filtrados no toast |
+| `professional-prospecting-search/index.ts` | Dicionario PT-EN, mais queries, queries internacionais, hashtags, aumento de limites |
+| `professional-prospecting-analyze/index.ts` | Adaptar lingua da mensagem AIDA ao pais/lingua do perfil |
+
