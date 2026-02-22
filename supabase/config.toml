@@ -325,3 +325,6 @@ verify_jwt = false
 [functions.send-workspace-invite]
 verify_jwt = false
 
+[functions.prospecting-outreach-processor]
+verify_jwt = false
+

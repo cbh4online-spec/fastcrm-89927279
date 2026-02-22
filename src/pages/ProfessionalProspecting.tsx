@@ -7,6 +7,7 @@ import { ProspectingSearch, SearchPrefill } from "@/components/professional-pros
 import { ProspectingResults } from "@/components/professional-prospecting/ProspectingResults";
 import { ProspectingHistory } from "@/components/professional-prospecting/ProspectingHistory";
 import { ProspectingUsage } from "@/components/professional-prospecting/ProspectingUsage";
+import { PendingOutreachPanel } from "@/components/professional-prospecting/PendingOutreachPanel";
 import { useLeadEnricherSettings } from "@/hooks/useLeadEnricherSettings";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -87,6 +88,9 @@ export default function ProfessionalProspecting() {
             <ProspectingUsage />
           </div>
         </div>
+
+        {/* Pending Outreach Panel */}
+        <PendingOutreachPanel />
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
