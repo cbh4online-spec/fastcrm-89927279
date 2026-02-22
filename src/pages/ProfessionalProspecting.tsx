@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -255,7 +256,8 @@ export default function ProfessionalProspecting() {
             {suggestions.length > 0 && !isGenerating && (
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Sugestões AIDA — clica para aplicar</Label>
-                <div className="grid grid-cols-2 gap-2">
+                <ScrollArea className="max-h-[240px]">
+                <div className="grid grid-cols-2 gap-2 pr-2">
                   {suggestions.map((s, idx) => (
                     <Card
                       key={idx}
@@ -274,6 +276,7 @@ export default function ProfessionalProspecting() {
                     </Card>
                   ))}
                 </div>
+                </ScrollArea>
               </div>
             )}
 
