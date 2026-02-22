@@ -1,61 +1,40 @@
 
+# Corrigir: Dialog de outreach desaparece ao voltar do Instagram
 
-# Corrigir: Dialog desaparece ao voltar do Instagram
+## Problema
 
-## Problema identificado
+Quando o utilizador clica "Abrir DM", o Instagram abre num novo separador. Ao voltar ao FastCRM, o dialog de outreach em massa desapareceu porque:
 
-Quando o utilizador clica "Abrir DM", acontece o seguinte:
-1. A mensagem e copiada para o clipboard
-2. O Instagram abre num novo separador (`window.open`)
-3. O perfil e **imediatamente** marcado como enviado (`markAsSent`)
-4. Quando o utilizador volta ao separador do FastCRM, o **react-query** faz `refetchOnWindowFocus` automaticamente, o que recarrega os dados dos perfis e pode causar re-render que perde o estado do dialog
-
-Alem disso, o fluxo actual nao e claro: o utilizador tem de saber que precisa de voltar manualmente ao separador do FastCRM para continuar com o proximo perfil.
+1. **`refetchInterval` ainda activo**: Se a pesquisa foi feita ha menos de 30 segundos, a query faz polling a cada 3 segundos. Isto causa re-renders que podem perturbar o estado do dialog.
+2. **Query invalidation em cascata**: O `onComplete` chama `invalidateQueries` que pode re-renderizar prematuramente.
+3. **`window.open` com focus**: O `window.open(url, "_blank")` pode causar perda de focus que dispara comportamentos inesperados.
 
 ## Solucao
 
-### 1. Desactivar `refetchOnWindowFocus` na query de perfis durante o outreach
+### Ficheiro 1: `ProspectingResults.tsx`
 
-Na query `prospecting-profiles` em `ProspectingResults.tsx`, adicionar `refetchOnWindowFocus: false` quando o dialog esta aberto (`bulkOutreachOpen === true`). Isto impede que o react-query relance a query quando o utilizador volta do Instagram, evitando re-renders que afectam o dialog.
+1. **Desactivar `refetchInterval` durante outreach**: Quando `bulkOutreachOpen === true`, desactivar tambem o `refetchInterval` (alem do `refetchOnWindowFocus` que ja foi corrigido):
+```
+refetchInterval: bulkOutreachOpen ? false : (searchId && (...) ? 3000 : false),
+```
 
-### 2. Separar o "copiar/abrir" do "marcar como enviado"
+2. **Nao invalidar queries no `onComplete` imediatamente**: Mover o `invalidateQueries` para apos o dialog fechar, evitando re-renders durante o processo.
 
-Alterar o fluxo em `BulkOutreachDialog.tsx`:
-- **"Abrir DM"** apenas copia a mensagem e abre o Instagram. **NAO** marca como enviado
-- Quando o utilizador volta, o perfil ainda mostra o botao, mas agora com opcao **"Marcar como enviado"** (botao separado) ou **"Ja enviei"**
-- Isto permite ao utilizador confirmar que realmente enviou antes de avancar
+### Ficheiro 2: `BulkOutreachDialog.tsx`
 
-### 3. Adicionar botao "Ja enviei, proximo" visivel ao voltar
+1. **Usar `window.open` com nome de janela fixo**: Em vez de `"_blank"`, usar um nome fixo como `"instagram_dm"` para reutilizar a mesma janela/separador do Instagram:
+```typescript
+window.open(dmUrl, "instagram_dm");
+```
+Isto evita abrir multiplos separadores e reduz confusao.
 
-Apos copiar e abrir o Instagram, o perfil activo muda de estado para "A aguardar confirmacao" com dois botoes:
-- **"Ja enviei"** - marca como enviado e avanca para o proximo
-- **"Abrir DM novamente"** - reabre o Instagram caso precise
+2. **Adicionar `onPointerDownOutside` e `onEscapeKeyDown` mais restritivos**: Bloquear fecho por overlay e Escape em TODOS os cenarios durante a fase de envio (nao apenas quando `sentCount > 0`).
 
-### Resumo das alteracoes
+3. **Adicionar `onInteractOutside` para prevenir fecho**: Adicionar handler para `onInteractOutside` que previne fecho durante toda a fase de envio.
+
+## Resumo das alteracoes
 
 | Ficheiro | Alteracao |
 |---|---|
-| `ProspectingResults.tsx` | Adicionar `refetchOnWindowFocus: false` quando `bulkOutreachOpen` esta activo |
-| `BulkOutreachDialog.tsx` | Separar "copiar/abrir" de "marcar enviado"; adicionar estado "a aguardar confirmacao" com botoes "Ja enviei" e "Abrir novamente" |
-
-### Detalhes tecnicos
-
-**ProspectingResults.tsx** - Query com refetch controlado:
-```typescript
-const { data: profiles = [] } = useQuery({
-  queryKey: ["prospecting-profiles", ...],
-  queryFn: async () => { ... },
-  refetchOnWindowFocus: !bulkOutreachOpen, // desactivar durante outreach
-});
-```
-
-**BulkOutreachDialog.tsx** - Novo fluxo por perfil:
-
-Estado de cada perfil: `idle` -> `opened` (abriu Instagram) -> `sent` (confirmou envio)
-
-- `handleCopyAndOpen`: copia + abre Instagram + muda estado para `opened` (NAO chama `markAsSent`)
-- Novo botao "Ja enviei": muda estado para `sent` + chama `markAsSent` + avanca para proximo perfil
-- Botao "Abrir novamente": reabre o Instagram para o mesmo perfil
-
-Isto garante que o dialog permanece aberto e funcional quando o utilizador volta do Instagram.
-
+| `ProspectingResults.tsx` | Desactivar `refetchInterval` durante outreach |
+| `BulkOutreachDialog.tsx` | Usar janela nomeada para Instagram; bloquear fecho mais agressivamente durante envio |
