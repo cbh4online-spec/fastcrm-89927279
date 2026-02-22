@@ -26,6 +26,7 @@ import { ProspectingMessageDialog } from "./ProspectingMessageDialog";
 interface ProspectingResultsProps {
   searchId: string | null;
   onGoToSearch?: () => void;
+  defaultTone?: "formal" | "casual" | "direto";
 }
 
 interface Profile {
@@ -88,7 +89,7 @@ const PLATFORM_COLORS: Record<string, string> = {
 
 type SortOption = "score_desc" | "score_asc" | "followers_desc" | "date_desc";
 
-export function ProspectingResults({ searchId, onGoToSearch }: ProspectingResultsProps) {
+export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: ProspectingResultsProps) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -1051,6 +1052,7 @@ export function ProspectingResults({ searchId, onGoToSearch }: ProspectingResult
           open={messageDialogOpen}
           onOpenChange={setMessageDialogOpen}
           profile={messageProfile}
+          defaultTone={defaultTone}
         />
       )}
     </div>

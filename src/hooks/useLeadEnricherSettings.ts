@@ -11,6 +11,7 @@ export interface LeadEnricherSettings {
   webscraping_enabled: boolean;
   auto_enrich_enabled: boolean;
   email_validation_enabled: boolean;
+  default_prospecting_tone: string;
 }
 
 const DEFAULT_SETTINGS: LeadEnricherSettings = {
@@ -19,6 +20,7 @@ const DEFAULT_SETTINGS: LeadEnricherSettings = {
   webscraping_enabled: true,
   auto_enrich_enabled: false,
   email_validation_enabled: false,
+  default_prospecting_tone: "casual",
 };
 
 export function useLeadEnricherSettings() {
@@ -48,6 +50,7 @@ export function useLeadEnricherSettings() {
         webscraping_enabled: (data as any).webscraping_enabled,
         auto_enrich_enabled: (data as any).auto_enrich_enabled,
         email_validation_enabled: (data as any).email_validation_enabled,
+        default_prospecting_tone: (data as any).default_prospecting_tone ?? "casual",
       };
     },
     enabled: !!currentWorkspace,

@@ -7,11 +7,15 @@ import { ProspectingSearch, SearchPrefill } from "@/components/professional-pros
 import { ProspectingResults } from "@/components/professional-prospecting/ProspectingResults";
 import { ProspectingHistory } from "@/components/professional-prospecting/ProspectingHistory";
 import { ProspectingUsage } from "@/components/professional-prospecting/ProspectingUsage";
+import { useLeadEnricherSettings } from "@/hooks/useLeadEnricherSettings";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function ProfessionalProspecting() {
   const [activeTab, setActiveTab] = useState("search");
   const [currentSearchId, setCurrentSearchId] = useState<string | null>(null);
   const [searchPrefill, setSearchPrefill] = useState<SearchPrefill | null>(null);
+  const { settings, updateSettings } = useLeadEnricherSettings();
+  const defaultTone = (settings.default_prospecting_tone || "casual") as "formal" | "casual" | "direto";
 
   const handleRepeatSearch = (params: SearchPrefill) => {
     setSearchPrefill(params);
@@ -30,7 +34,25 @@ export default function ProfessionalProspecting() {
               Descubra profissionais individuais por profissão e localização
             </p>
           </div>
-          <ProspectingUsage />
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">Tom por defeito:</span>
+              <Select
+                value={defaultTone}
+                onValueChange={(value) => updateSettings.mutate({ default_prospecting_tone: value })}
+              >
+                <SelectTrigger className="w-[130px] h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="formal">👔 Formal</SelectItem>
+                  <SelectItem value="casual">😊 Casual</SelectItem>
+                  <SelectItem value="direto">🎯 Direto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <ProspectingUsage />
+          </div>
         </div>
 
         {/* Tabs */}
@@ -65,6 +87,7 @@ export default function ProfessionalProspecting() {
             <ProspectingResults 
               searchId={currentSearchId} 
               onGoToSearch={() => setActiveTab("search")}
+              defaultTone={defaultTone}
             />
           </TabsContent>
 
