@@ -1,38 +1,31 @@
 
 
-# Correcao: Perfis nao saem da lista apos envio no Bulk Outreach
+# Corrigir layout responsivo das mensagens no painel de Outreach
 
-## Problema identificado
+## Problema
 
-Os leads estao a ser criados na base de dados com sucesso (confirmado: "Ines Trovao" e "Nutrition Academy" existem na tabela `leads`). O problema e que os perfis nao sao removidos da lista de resultados porque:
+As mensagens no painel de Outreach em Massa estao a transbordar (overflow) dos seus cards. O texto das mensagens nao esta a respeitar os limites do container, causando problemas de layout visivel no screenshot.
 
-1. A query de resultados filtra por `status = "analyzed"` (linha 151 de ProspectingResults)
-2. O fluxo manual de conversao atualiza o perfil para `status = "converted"` e define `converted_lead_id` (linhas 307-313)
-3. O `BulkOutreachDialog.handleConfirmSent` so atualiza `outreach_step = 1` -- NAO muda o `status` nem define o `converted_lead_id`
-4. Como o perfil continua com `status = "analyzed"`, permanece na lista
+## Causa
 
-## Solucao
+Na linha 392, o container de conteudo tem `min-w-0` e `flex-1` mas o paragrafo da mensagem (linha 415) usa apenas `line-clamp-2` sem `break-words` nem `overflow-hidden`. Alem disso, o layout flex dos items (linha 375) com os botoes de acao (linha 428) nao tem restricoes suficientes para impedir que o texto empurre o layout.
+
+## Alteracoes
 
 ### Ficheiro: `BulkOutreachDialog.tsx`
 
-Na funcao `handleConfirmSent`, depois de criar o lead e obter o seu ID:
+1. **Linha 392** — Adicionar `overflow-hidden` ao container de conteudo:
+   - De: `className="flex-1 min-w-0"`
+   - Para: `className="flex-1 min-w-0 overflow-hidden"`
 
-1. Atualizar o perfil de prospeccao com `status = "converted"`, `converted_lead_id`, `converted_at` e `converted_by` (igual ao fluxo manual)
-2. Invalidar a query `["prospecting-profiles"]` para que a lista atualize imediatamente
+2. **Linha 415** — Adicionar `break-words` e `overflow-hidden` ao paragrafo da mensagem:
+   - De: `className="text-xs text-muted-foreground mt-1 line-clamp-2"`
+   - Para: `className="text-xs text-muted-foreground mt-1 line-clamp-2 break-words overflow-hidden"`
 
-### Alteracoes especificas
+3. **Linha 394** — Garantir que o nome tambem respeita limites, adicionando `max-w-[60%]` ao span do nome para nao empurrar os badges para fora.
 
-1. Alterar o insert de lead para usar `.select().single()` e obter o ID do lead criado
-2. Apos criar o lead, atualizar o perfil:
-   - `status: "converted"`
-   - `converted_lead_id: lead.id`
-   - `converted_at: new Date().toISOString()`
-   - `converted_by: userId`
-3. Importar `useQueryClient` e chamar `invalidateQueries` apos cada confirmacao de envio para atualizar a lista em tempo real
+4. **Linha 393** — Adicionar `flex-wrap` a div dos items de header para que os badges facam wrap quando o espaco e limitado:
+   - De: `className="flex items-center gap-2"`
+   - Para: `className="flex items-center gap-2 flex-wrap"`
 
-### Resumo
-
-| Ficheiro | Alteracao |
-|---|---|
-| `BulkOutreachDialog.tsx` | Atualizar perfil para `status: "converted"` apos criar lead; invalidar queries para remover da lista |
-
+Estas alteracoes simples resolvem o overflow sem alterar a estrutura do componente.
