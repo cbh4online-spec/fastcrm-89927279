@@ -328,3 +328,6 @@ verify_jwt = false
 [functions.prospecting-outreach-processor]
 verify_jwt = false
 
+[functions.generate-offer-suggestions]
+verify_jwt = false
+
