@@ -63,6 +63,7 @@ interface Profile {
   extracted_email: string | null;
   extracted_phone: string | null;
   contact_source: string | null;
+  outreach_step: number | null;
 }
 
 const TYPE_ICONS = {
@@ -706,6 +707,19 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
                             <h3 className="font-medium truncate">
                               {profile.profile_name || "Sem nome"}
                             </h3>
+                            {(profile.outreach_step || 0) > 0 && (
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-xs gap-0.5",
+                                  (profile.outreach_step || 0) >= 3
+                                    ? "text-green-600 border-green-600/30"
+                                    : "text-amber-600 border-amber-600/30"
+                                )}
+                              >
+                                {profile.outreach_step}/3
+                              </Badge>
+                            )}
                             <Badge
                               variant="outline"
                               className={cn(
@@ -1053,6 +1067,9 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
           onOpenChange={setMessageDialogOpen}
           profile={messageProfile}
           defaultTone={defaultTone}
+          onOutreachUpdate={(profileId, step) => {
+            queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
+          }}
         />
       )}
     </div>

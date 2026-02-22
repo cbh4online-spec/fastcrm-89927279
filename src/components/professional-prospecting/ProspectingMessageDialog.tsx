@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -11,6 +12,7 @@ import {
   Send, ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLeadEnricherSettings } from "@/hooks/useLeadEnricherSettings";
 
 interface ProfileData {
   id: string;
@@ -26,6 +28,7 @@ interface ProfileData {
   instagram_is_verified: boolean | null;
   instagram_is_business: boolean | null;
   instagram_full_bio: string | null;
+  outreach_step?: number;
 }
 
 interface ProspectingMessageDialogProps {
@@ -34,14 +37,28 @@ interface ProspectingMessageDialogProps {
   profile: ProfileData;
   workspaceContext?: { name?: string; description?: string } | null;
   defaultTone?: Tone;
+  onOutreachUpdate?: (profileId: string, step: number) => void;
 }
 
 type Tone = "formal" | "casual" | "direto";
+
+interface StepMessage {
+  message: string;
+  message_plain: string;
+  isLoading: boolean;
+  generated: boolean;
+}
 
 const TONE_OPTIONS: { value: Tone; label: string; emoji: string }[] = [
   { value: "formal", label: "Formal", emoji: "👔" },
   { value: "casual", label: "Casual", emoji: "😊" },
   { value: "direto", label: "Direto", emoji: "🎯" },
+];
+
+const STEP_LABELS = [
+  { label: "Abertura", desc: "Dia 0", emoji: "👋" },
+  { label: "Follow-up", desc: "Dia 3", emoji: "💡" },
+  { label: "Fecho", desc: "Dia 7", emoji: "🎯" },
 ];
 
 export function ProspectingMessageDialog({
@@ -50,23 +67,41 @@ export function ProspectingMessageDialog({
   profile,
   workspaceContext,
   defaultTone = "casual",
+  onOutreachUpdate,
 }: ProspectingMessageDialogProps) {
-  const [message, setMessage] = useState("");
   const [tone, setTone] = useState<Tone>(defaultTone);
+  const [activeStep, setActiveStep] = useState("1");
+  const [copied, setCopied] = useState(false);
+  const { settings } = useLeadEnricherSettings();
+
+  const [steps, setSteps] = useState<StepMessage[]>([
+    { message: "", message_plain: "", isLoading: false, generated: false },
+    { message: "", message_plain: "", isLoading: false, generated: false },
+    { message: "", message_plain: "", isLoading: false, generated: false },
+  ]);
 
   // Sync tone when defaultTone changes
   useEffect(() => {
-    if (!hasGenerated) {
+    if (!steps.some(s => s.generated)) {
       setTone(defaultTone);
     }
   }, [defaultTone]);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [hasGenerated, setHasGenerated] = useState(false);
 
-  const generateMessage = async (selectedTone: Tone = tone) => {
-    setIsGenerating(true);
+  const currentStep = parseInt(activeStep) - 1;
+  const currentOutreachStep = profile.outreach_step || 0;
+
+  const generateMessage = async (stepIndex: number, selectedTone: Tone = tone) => {
+    setSteps(prev => {
+      const next = [...prev];
+      next[stepIndex] = { ...next[stepIndex], isLoading: true };
+      return next;
+    });
+
     try {
+      const serviceContext = settings.service_offer
+        ? { offer: settings.service_offer, painPoints: settings.service_pain_points }
+        : undefined;
+
       const { data, error } = await supabase.functions.invoke("generate-prospecting-message", {
         body: {
           profile: {
@@ -82,26 +117,48 @@ export function ProspectingMessageDialog({
           },
           tone: selectedTone,
           workspaceContext,
+          serviceContext,
+          sequenceStep: stepIndex + 1,
         },
       });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      setMessage(data.message || "");
-      setHasGenerated(true);
+      setSteps(prev => {
+        const next = [...prev];
+        next[stepIndex] = {
+          message: data.message || "",
+          message_plain: data.message_plain || "",
+          isLoading: false,
+          generated: true,
+        };
+        return next;
+      });
     } catch (err) {
       toast.error("Erro ao gerar mensagem", {
         description: err instanceof Error ? err.message : "Tente novamente",
       });
-    } finally {
-      setIsGenerating(false);
+      setSteps(prev => {
+        const next = [...prev];
+        next[stepIndex] = { ...next[stepIndex], isLoading: false };
+        return next;
+      });
     }
+  };
+
+  const generateAllSteps = async () => {
+    // Generate all 3 steps in parallel
+    await Promise.all([
+      generateMessage(0),
+      generateMessage(1),
+      generateMessage(2),
+    ]);
   };
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(message);
+      await navigator.clipboard.writeText(steps[currentStep].message);
       setCopied(true);
       toast.success("Mensagem copiada!");
       setTimeout(() => setCopied(false), 2000);
@@ -111,10 +168,21 @@ export function ProspectingMessageDialog({
   };
 
   const handleSendInstagram = async () => {
+    const stepNum = currentStep + 1;
     try {
-      await navigator.clipboard.writeText(message);
+      await navigator.clipboard.writeText(steps[currentStep].message);
       window.open(profile.profile_url, "_blank");
       toast.success("Mensagem copiada! A abrir perfil...");
+
+      // Update outreach step
+      if (stepNum > currentOutreachStep) {
+        await supabase
+          .from("professional_prospecting_profiles")
+          .update({ outreach_step: stepNum } as any)
+          .eq("id", profile.id);
+        onOutreachUpdate?.(profile.id, stepNum);
+      }
+
       onOpenChange(false);
     } catch {
       toast.error("Erro ao copiar mensagem");
@@ -123,39 +191,39 @@ export function ProspectingMessageDialog({
 
   const handleToneChange = (newTone: Tone) => {
     setTone(newTone);
-    if (hasGenerated) {
-      generateMessage(newTone);
+    if (steps.some(s => s.generated)) {
+      generateAllSteps();
     }
   };
 
-  // Auto-generate when dialog opens
+  // Auto-generate all 3 when dialog opens
   useEffect(() => {
-    if (open && !hasGenerated && !isGenerating) {
-      generateMessage();
+    if (open && !steps.some(s => s.generated) && !steps.some(s => s.isLoading)) {
+      generateAllSteps();
     }
     if (!open) {
-      setMessage("");
-      setHasGenerated(false);
+      setSteps([
+        { message: "", message_plain: "", isLoading: false, generated: false },
+        { message: "", message_plain: "", isLoading: false, generated: false },
+        { message: "", message_plain: "", isLoading: false, generated: false },
+      ]);
       setCopied(false);
+      setActiveStep("1");
     }
   }, [open]);
 
-  const handleOpenChange = (isOpen: boolean) => {
-    onOpenChange(isOpen);
-  };
-
-  const charCount = message.length;
+  const charCount = steps[currentStep]?.message.length || 0;
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
-            Gerar Mensagem IA
+            Sequência AIDA
           </DialogTitle>
           <DialogDescription>
-            Mensagem personalizada com método AIDA para Instagram DM
+            3 mensagens personalizadas para Instagram DM
           </DialogDescription>
         </DialogHeader>
 
@@ -183,6 +251,11 @@ export function ProspectingMessageDialog({
               )}
             </div>
           </div>
+          {currentOutreachStep > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {currentOutreachStep}/3 enviadas
+            </Badge>
+          )}
         </div>
 
         {/* Tone Selector */}
@@ -194,7 +267,7 @@ export function ProspectingMessageDialog({
               variant={tone === opt.value ? "default" : "outline"}
               size="sm"
               onClick={() => handleToneChange(opt.value)}
-              disabled={isGenerating}
+              disabled={steps.some(s => s.isLoading)}
               className="gap-1"
             >
               <span>{opt.emoji}</span>
@@ -203,43 +276,72 @@ export function ProspectingMessageDialog({
           ))}
         </div>
 
-        {/* Message Area */}
-        <div className="space-y-2">
-          {isGenerating ? (
-            <div className="flex flex-col items-center justify-center py-8 gap-3">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">A gerar mensagem personalizada...</p>
-            </div>
-          ) : (
-            <>
-              <Textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="A mensagem gerada aparecerá aqui..."
-                className="min-h-[140px] resize-none"
-              />
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span className={cn(charCount > 300 ? "text-destructive font-medium" : "")}>
-                  {charCount}/300 caracteres
-                </span>
-                {charCount > 300 && (
-                  <span className="text-destructive">Ideal: máx. 300 para Instagram DM</span>
+        {/* Message Sequence Tabs */}
+        <Tabs value={activeStep} onValueChange={setActiveStep}>
+          <TabsList className="w-full">
+            {STEP_LABELS.map((step, i) => (
+              <TabsTrigger
+                key={i + 1}
+                value={String(i + 1)}
+                className={cn(
+                  "flex-1 gap-1",
+                  currentOutreachStep > i && "text-green-600"
                 )}
-              </div>
-            </>
-          )}
-        </div>
+              >
+                <span>{step.emoji}</span>
+                <span className="hidden sm:inline">{step.label}</span>
+                <span className="text-xs text-muted-foreground">({step.desc})</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {[0, 1, 2].map((i) => (
+            <TabsContent key={i} value={String(i + 1)} className="space-y-2 mt-3">
+              {steps[i].isLoading ? (
+                <div className="flex flex-col items-center justify-center py-8 gap-3">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">A gerar {STEP_LABELS[i].label.toLowerCase()}...</p>
+                </div>
+              ) : (
+                <>
+                  <Textarea
+                    value={steps[i].message}
+                    onChange={(e) => {
+                      setSteps(prev => {
+                        const next = [...prev];
+                        next[i] = { ...next[i], message: e.target.value };
+                        return next;
+                      });
+                    }}
+                    placeholder="A mensagem gerada aparecerá aqui..."
+                    className="min-h-[120px] resize-none"
+                  />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className={cn(steps[i].message.length > 300 ? "text-destructive font-medium" : "")}>
+                      {steps[i].message.length}/300 caracteres
+                    </span>
+                    {currentOutreachStep > i && (
+                      <Badge variant="outline" className="text-xs text-green-600 border-green-600/30">
+                        ✓ Enviada
+                      </Badge>
+                    )}
+                  </div>
+                </>
+              )}
+            </TabsContent>
+          ))}
+        </Tabs>
 
         {/* Actions */}
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => generateMessage()}
-            disabled={isGenerating}
+            onClick={() => generateMessage(currentStep)}
+            disabled={steps.some(s => s.isLoading)}
             className="gap-1"
           >
-            <RefreshCw className={cn("w-4 h-4", isGenerating && "animate-spin")} />
+            <RefreshCw className={cn("w-4 h-4", steps[currentStep]?.isLoading && "animate-spin")} />
             Regenerar
           </Button>
 
@@ -249,7 +351,7 @@ export function ProspectingMessageDialog({
             variant="outline"
             size="sm"
             onClick={handleCopy}
-            disabled={!message || isGenerating}
+            disabled={!steps[currentStep]?.message || steps[currentStep]?.isLoading}
             className="gap-1"
           >
             {copied ? (
@@ -268,7 +370,7 @@ export function ProspectingMessageDialog({
           <Button
             size="sm"
             onClick={handleSendInstagram}
-            disabled={!message || isGenerating}
+            disabled={!steps[currentStep]?.message || steps[currentStep]?.isLoading}
             className="gap-1"
           >
             <Send className="w-4 h-4" />
