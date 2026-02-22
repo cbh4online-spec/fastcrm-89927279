@@ -15,6 +15,11 @@ import {
 import { cn } from "@/lib/utils";
 import { useLeadEnricherSettings } from "@/hooks/useLeadEnricherSettings";
 
+const extractInstagramUsername = (url: string): string | null => {
+  const match = url.match(/instagram\.com\/([a-zA-Z0-9._]+)/);
+  return match ? match[1] : null;
+};
+
 interface ProfileData {
   id: string;
   profile_url: string;
@@ -174,8 +179,10 @@ export function ProspectingMessageDialog({
     const stepNum = currentStep + 1;
     try {
       await navigator.clipboard.writeText(steps[currentStep].message);
-      window.open(profile.profile_url, "_blank");
-      toast.success("Mensagem copiada! A abrir perfil...");
+      const username = extractInstagramUsername(profile.profile_url);
+      const dmUrl = username ? `https://ig.me/m/${username}` : profile.profile_url;
+      window.open(dmUrl, "_blank");
+      toast.success("Mensagem copiada! Cole (Ctrl+V) na conversa e envie");
 
       // Update outreach step
       if (stepNum > currentOutreachStep) {
