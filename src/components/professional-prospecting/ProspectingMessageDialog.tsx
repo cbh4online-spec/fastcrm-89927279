@@ -7,12 +7,14 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Copy, Check, RefreshCw, Loader2, Sparkles,
-  MessageSquare, User, Briefcase, MapPin, Instagram
+  MessageSquare, User, Briefcase, MapPin, Instagram,
+  Send, ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ProfileData {
   id: string;
+  profile_url: string;
   profile_name: string | null;
   profile_bio: string | null;
   platform: string;
@@ -105,6 +107,17 @@ export function ProspectingMessageDialog({
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("Erro ao copiar");
+    }
+  };
+
+  const handleSendInstagram = async () => {
+    try {
+      await navigator.clipboard.writeText(message);
+      window.open(profile.profile_url, "_blank");
+      toast.success("Mensagem copiada! A abrir perfil...");
+      onOpenChange(false);
+    } catch {
+      toast.error("Erro ao copiar mensagem");
     }
   };
 
@@ -233,6 +246,7 @@ export function ProspectingMessageDialog({
           <div className="flex-1" />
 
           <Button
+            variant="outline"
             size="sm"
             onClick={handleCopy}
             disabled={!message || isGenerating}
@@ -246,9 +260,19 @@ export function ProspectingMessageDialog({
             ) : (
               <>
                 <Copy className="w-4 h-4" />
-                Copiar mensagem
+                Copiar
               </>
             )}
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={handleSendInstagram}
+            disabled={!message || isGenerating}
+            className="gap-1"
+          >
+            <Send className="w-4 h-4" />
+            Enviar no Instagram
           </Button>
         </div>
       </DialogContent>
