@@ -1,49 +1,27 @@
 
 
-# Abrir DMs do Instagram directamente com mensagem copiada
+# Corrigir filtro do "Iniciar Sequencia"
 
-## Problema
+## Problema encontrado
 
-Actualmente o sistema abre o perfil do Instagram (`instagram.com/username`) e copia a mensagem. O utilizador tem de: abrir o perfil -> clicar em "Enviar mensagem" -> colar -> enviar. Sao 3 passos desnecessarios.
+O botao "Iniciar Sequencia" filtra apenas perfis com `outreach_step === 0` ou `null`. Os perfis que seleccionou ja tinham `outreach_step = 1` (ja receberam a primeira mensagem anteriormente), por isso nenhum passou no filtro.
 
 ## Solucao
 
-Usar o deep link `https://ig.me/m/USERNAME` que abre directamente a conversa de DM com o utilizador no Instagram. A mensagem ja esta copiada no clipboard, entao o utilizador so precisa de colar (Ctrl+V) e clicar "Enviar".
+Tornar o filtro mais flexivel e dar mais informacao ao utilizador:
 
-## Alteracoes
+### `ProspectingResults.tsx`
 
-### 1. `BulkOutreachDialog.tsx` - Alterar `handleCopyAndOpen`
+1. **Remover o filtro restritivo** - permitir iniciar sequencia para qualquer perfil seleccionado, independentemente do `outreach_step` actual
+2. **Mostrar aviso** quando alguns perfis ja tiverem outreach em progresso, perguntando se quer reiniciar ou continuar a sequencia
+3. **Melhorar a mensagem de erro** - se todos os perfis estiverem filtrados, dizer exactamente quantos ja tem outreach e dar opcao de prosseguir
 
-- Extrair o username do `profile_url` (ex: `instagram.com/joao.silva` -> `joao.silva`)
-- Em vez de abrir `profile.profile_url`, abrir `https://ig.me/m/USERNAME`
-- Mostrar toast a dizer "Mensagem copiada! Cole (Ctrl+V) na conversa e envie"
-- Alterar o texto do botao de "Copiar + Abrir" para "Abrir DM + Copiar"
+### Alteracao concreta
 
-### 2. `ProspectingMessageDialog.tsx` - Alterar botao existente de perfil individual
+Alterar a funcao `handleBulkOutreach`:
+- Em vez de filtrar silenciosamente, seleccionar todos os perfis escolhidos
+- Se houver perfis com `outreach_step > 0`, mostrar um toast informativo: "X perfis ja iniciaram sequencia - a gerar nova mensagem para todos"
+- Permitir que o utilizador avance com todos os perfis seleccionados
 
-- Mesma logica: ao copiar e abrir Instagram para um perfil individual, abrir `ig.me/m/USERNAME` em vez do perfil
-
-### 3. Instrucao visual no dialog
-
-- Adicionar uma pequena nota no topo do `BulkOutreachDialog`: "A mensagem e copiada automaticamente. Na conversa do Instagram, cole (Ctrl+V) e envie."
-
-## Resultado
-
-O utilizador reduz de 4 passos para 2: clicar "Abrir DM" no sistema -> colar e enviar no Instagram.
-
-## Detalhes tecnicos
-
-### Extraccao do username
-
-```text
-profile_url: "https://www.instagram.com/joao.silva/"
-regex: /instagram\.com\/([a-zA-Z0-9._]+)/
-resultado: "joao.silva"
-URL DM: "https://ig.me/m/joao.silva"
-```
-
-### Ficheiros a modificar
-
-- `src/components/professional-prospecting/BulkOutreachDialog.tsx` - alterar `handleCopyAndOpen` e UI
-- `src/components/professional-prospecting/ProspectingMessageDialog.tsx` - alterar botao de abrir Instagram (se existir logica similar)
-
+### Ficheiro a modificar
+- `src/components/professional-prospecting/ProspectingResults.tsx` - remover filtro `(!p.outreach_step || p.outreach_step === 0)` e substituir por logica que inclui todos os seleccionados
