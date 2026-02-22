@@ -3,15 +3,22 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { Search, Calendar, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Search, Calendar, CheckCircle, XCircle, Loader2, RotateCcw } from "lucide-react";
 
 interface ProspectingHistoryProps {
   onSelectSearch: (searchId: string) => void;
+  onRepeatSearch?: (params: {
+    profession: string;
+    location: string;
+    keywords: string;
+    platforms: string[];
+  }) => void;
 }
 
-export function ProspectingHistory({ onSelectSearch }: ProspectingHistoryProps) {
+export function ProspectingHistory({ onSelectSearch, onRepeatSearch }: ProspectingHistoryProps) {
   const { currentWorkspace } = useWorkspace();
 
   const { data: searches = [], isLoading } = useQuery({
@@ -73,6 +80,25 @@ export function ProspectingHistory({ onSelectSearch }: ProspectingHistoryProps) 
                 </div>
               </div>
               <div className="flex items-center gap-3">
+                {onRepeatSearch && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRepeatSearch({
+                        profession: search.profession || "",
+                        location: search.location || "",
+                        keywords: (search as any).keywords || "",
+                        platforms: (search as any).platforms || ["instagram", "facebook"],
+                      });
+                    }}
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Repetir
+                  </Button>
+                )}
                 <Badge variant="secondary">{search.results_count || 0} perfis</Badge>
                 {search.status === "completed" ? (
                   <CheckCircle className="w-5 h-5 text-green-500" />

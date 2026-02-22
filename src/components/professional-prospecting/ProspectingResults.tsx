@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,12 +10,14 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   User, Building2, Users, HelpCircle, ExternalLink, 
   UserPlus, ThumbsDown, Search, Filter, Loader2,
   ChevronDown, ChevronUp, MapPin, Briefcase, Star,
   CheckCircle, XCircle, AlertCircle, RefreshCw, Instagram,
-  Eye, Facebook, Mail, Phone, MessageSquare
+  Eye, Facebook, Mail, Phone, MessageSquare, CheckSquare, Square, ArrowUpDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConvertProfileDialog, ConversionOptions } from "./ConvertProfileDialog";
@@ -48,7 +50,6 @@ interface Profile {
   status: string;
   converted_lead_id: string | null;
   created_at: string;
-  // Instagram enrichment fields
   instagram_followers_count: number | null;
   instagram_following_count: number | null;
   instagram_posts_count: number | null;
@@ -58,7 +59,6 @@ interface Profile {
   instagram_is_verified: boolean | null;
   instagram_is_business: boolean | null;
   instagram_enriched_at: string | null;
-  // Extracted contacts
   extracted_email: string | null;
   extracted_phone: string | null;
   contact_source: string | null;
@@ -86,6 +86,8 @@ const PLATFORM_COLORS: Record<string, string> = {
   other: "bg-muted text-muted-foreground",
 };
 
+type SortOption = "score_desc" | "score_asc" | "followers_desc" | "date_desc";
+
 export function ProspectingResults({ searchId, onGoToSearch }: ProspectingResultsProps) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
@@ -101,6 +103,9 @@ export function ProspectingResults({ searchId, onGoToSearch }: ProspectingResult
   const [profileToConvert, setProfileToConvert] = useState<Profile | null>(null);
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
   const [messageProfile, setMessageProfile] = useState<Profile | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>("score_desc");
+  const [minScore, setMinScore] = useState(0);
+  const [bulkProcessing, setBulkProcessing] = useState<string | null>(null);
 
   // Fetch profiles - if searchId provided, filter by it; otherwise get recent analyzed profiles
   const { data: profiles = [], isLoading, refetch } = useQuery({
@@ -363,20 +368,118 @@ export function ProspectingResults({ searchId, onGoToSearch }: ProspectingResult
     }
   };
 
-  // Filter profiles
-  const filteredProfiles = profiles.filter((p) => {
-    const matchesSearch =
-      !searchFilter ||
-      p.profile_name?.toLowerCase().includes(searchFilter.toLowerCase()) ||
-      p.inferred_profession?.toLowerCase().includes(searchFilter.toLowerCase()) ||
-      p.inferred_specialty?.toLowerCase().includes(searchFilter.toLowerCase()) ||
-      p.inferred_location?.toLowerCase().includes(searchFilter.toLowerCase());
+  // Bulk actions
+  const handleBulkConvert = async () => {
+    if (!currentWorkspace?.id || !user?.id) return;
+    const selectedProfiles = profiles.filter(p => selectedIds.has(p.id));
+    if (selectedProfiles.length === 0) return;
 
-    const matchesType = !typeFilter || p.inferred_type === typeFilter;
-    const matchesPlatform = !platformFilter || p.platform === platformFilter;
+    setBulkProcessing("convert");
+    let converted = 0;
+    
+    for (const profile of selectedProfiles) {
+      try {
+        const defaultOptions: ConversionOptions = {
+          includeAnalysisData: true,
+          includeInstagramData: true,
+          tags: [],
+          additionalNotes: "",
+        };
+        await convertMutation.mutateAsync({ profile, options: defaultOptions });
+        converted++;
+      } catch (e) {
+        console.error("Bulk convert error for", profile.id, e);
+      }
+    }
 
-    return matchesSearch && matchesType && matchesPlatform;
-  });
+    setBulkProcessing(null);
+    setSelectedIds(new Set());
+    queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
+    queryClient.invalidateQueries({ queryKey: ["leads"] });
+    toast.success(`${converted} leads criados com sucesso`);
+  };
+
+  const handleBulkReject = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    setBulkProcessing("reject");
+    
+    const { error } = await supabase
+      .from("professional_prospecting_profiles")
+      .update({ status: "rejected", rejection_reason: "Rejeitado em lote" })
+      .in("id", ids);
+
+    setBulkProcessing(null);
+    setSelectedIds(new Set());
+    
+    if (error) {
+      toast.error("Erro ao rejeitar perfis");
+    } else {
+      queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
+      toast.success(`${ids.length} perfis rejeitados`);
+    }
+  };
+
+  const handleBulkEnrich = async () => {
+    const selectedProfiles = profiles.filter(p => selectedIds.has(p.id) && p.platform === "instagram" && !p.instagram_enriched_at);
+    if (selectedProfiles.length === 0) {
+      toast.info("Nenhum perfil Instagram selecionado para enriquecer");
+      return;
+    }
+
+    setBulkProcessing("enrich");
+    let enriched = 0;
+
+    for (const profile of selectedProfiles) {
+      try {
+        await enrichProfile(profile);
+        enriched++;
+      } catch (e) {
+        console.error("Bulk enrich error", e);
+      }
+    }
+
+    setBulkProcessing(null);
+    setSelectedIds(new Set());
+    toast.success(`${enriched} perfis enriquecidos`);
+  };
+
+  // Filter and sort profiles
+  const filteredProfiles = useMemo(() => {
+    let result = profiles.filter((p) => {
+      const matchesSearch =
+        !searchFilter ||
+        p.profile_name?.toLowerCase().includes(searchFilter.toLowerCase()) ||
+        p.inferred_profession?.toLowerCase().includes(searchFilter.toLowerCase()) ||
+        p.inferred_specialty?.toLowerCase().includes(searchFilter.toLowerCase()) ||
+        p.inferred_location?.toLowerCase().includes(searchFilter.toLowerCase());
+
+      const matchesType = !typeFilter || p.inferred_type === typeFilter;
+      const matchesPlatform = !platformFilter || p.platform === platformFilter;
+      const matchesScore = (p.lead_score || 0) >= minScore;
+
+      return matchesSearch && matchesType && matchesPlatform && matchesScore;
+    });
+
+    // Sort
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case "score_desc":
+          return (b.lead_score || 0) - (a.lead_score || 0);
+        case "score_asc":
+          return (a.lead_score || 0) - (b.lead_score || 0);
+        case "followers_desc":
+          return (b.instagram_followers_count || 0) - (a.instagram_followers_count || 0);
+        case "date_desc":
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [profiles, searchFilter, typeFilter, platformFilter, minScore, sortBy]);
 
   const toggleSelect = (id: string) => {
     const newSelected = new Set(selectedIds);
@@ -386,6 +489,14 @@ export function ProspectingResults({ searchId, onGoToSearch }: ProspectingResult
       newSelected.add(id);
     }
     setSelectedIds(newSelected);
+  };
+
+  const selectAll = () => {
+    setSelectedIds(new Set(filteredProfiles.map(p => p.id)));
+  };
+
+  const selectNone = () => {
+    setSelectedIds(new Set());
   };
 
   const getScoreColor = (score: number | null) => {
@@ -450,7 +561,6 @@ export function ProspectingResults({ searchId, onGoToSearch }: ProspectingResult
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {/* Platform filters */}
           <Button
             variant={platformFilter === "instagram" ? "default" : "outline"}
             size="sm"
@@ -472,7 +582,6 @@ export function ProspectingResults({ searchId, onGoToSearch }: ProspectingResult
           
           <div className="w-px bg-border mx-1" />
           
-          {/* Type filters */}
           {Object.entries(TYPE_LABELS).map(([key, label]) => (
             <Button
               key={key}
@@ -483,6 +592,47 @@ export function ProspectingResults({ searchId, onGoToSearch }: ProspectingResult
               {label}
             </Button>
           ))}
+        </div>
+      </div>
+
+      {/* Sort + Score Filter + Select All */}
+      <div className="flex flex-wrap gap-4 items-center">
+        <div className="flex items-center gap-2">
+          <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+            <SelectTrigger className="w-[180px] h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="score_desc">Score (maior)</SelectItem>
+              <SelectItem value="score_asc">Score (menor)</SelectItem>
+              <SelectItem value="followers_desc">Seguidores</SelectItem>
+              <SelectItem value="date_desc">Mais recentes</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-3 flex-1 min-w-[200px] max-w-[350px]">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">Score mín: {minScore}</span>
+          <Slider
+            value={[minScore]}
+            onValueChange={(v) => setMinScore(v[0])}
+            min={0}
+            max={100}
+            step={5}
+            className="flex-1"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto">
+          <Button variant="outline" size="sm" onClick={selectAll} className="gap-1">
+            <CheckSquare className="w-3 h-3" />
+            Todos
+          </Button>
+          <Button variant="outline" size="sm" onClick={selectNone} className="gap-1">
+            <Square className="w-3 h-3" />
+            Nenhum
+          </Button>
         </div>
       </div>
 
@@ -526,7 +676,7 @@ export function ProspectingResults({ searchId, onGoToSearch }: ProspectingResult
 
       {/* Results List */}
       <ScrollArea className="h-[600px]">
-        <div className="space-y-3">
+        <div className="space-y-3 pb-20">
           {filteredProfiles.map((profile) => {
             const TypeIcon = TYPE_ICONS[profile.inferred_type as keyof typeof TYPE_ICONS] || HelpCircle;
             const isExpanded = expandedId === profile.id;
@@ -837,6 +987,52 @@ export function ProspectingResults({ searchId, onGoToSearch }: ProspectingResult
           })}
         </div>
       </ScrollArea>
+
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-background border rounded-xl shadow-lg px-6 py-3 flex items-center gap-4">
+          <span className="text-sm font-medium">
+            {selectedIds.size} selecionado{selectedIds.size > 1 ? "s" : ""}
+          </span>
+          <div className="w-px h-6 bg-border" />
+          <Button
+            size="sm"
+            onClick={handleBulkConvert}
+            disabled={!!bulkProcessing}
+            className="gap-1"
+          >
+            {bulkProcessing === "convert" ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserPlus className="w-3 h-3" />}
+            Converter
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleBulkEnrich}
+            disabled={!!bulkProcessing}
+            className="gap-1"
+          >
+            {bulkProcessing === "enrich" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Instagram className="w-3 h-3" />}
+            Enriquecer
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={handleBulkReject}
+            disabled={!!bulkProcessing}
+            className="gap-1"
+          >
+            {bulkProcessing === "reject" ? <Loader2 className="w-3 h-3 animate-spin" /> : <ThumbsDown className="w-3 h-3" />}
+            Rejeitar
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={selectNone}
+          >
+            Limpar
+          </Button>
+        </div>
+      )}
 
       {/* Convert Profile Dialog */}
       {profileToConvert && (
