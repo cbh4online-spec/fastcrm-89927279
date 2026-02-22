@@ -1,63 +1,38 @@
 
 
-# Correcao: Painel de outreach fecha ao voltar do Instagram
+# Correcao: Perfis nao saem da lista apos envio no Bulk Outreach
 
-## Causa raiz identificada
+## Problema identificado
 
-O `WorkspaceInstanceContext` chama `setIsLoading(true)` toda vez que resolve a instancia do workspace (linha 169). O `resolveWorkspaceInstance` depende de `session?.access_token` (via `callControlPlane`). Quando o utilizador volta do Instagram, o Supabase pode fazer token refresh, o que muda `session.access_token`, recria `callControlPlane`, recria `resolveWorkspaceInstance`, e dispara o `useEffect`.
+Os leads estao a ser criados na base de dados com sucesso (confirmado: "Ines Trovao" e "Nutrition Academy" existem na tabela `leads`). O problema e que os perfis nao sao removidos da lista de resultados porque:
 
-Quando `isLoading = true`, o `WorkspaceStatusGuard` desmonta TODOS os filhos (mostra spinner). Isto destroi o `ProfessionalProspecting` e todo o seu estado, incluindo `bulkOutreachOpen`.
-
-```text
-Token refresh ao voltar do Instagram
-  -> session.access_token muda
-  -> callControlPlane recria
-  -> resolveWorkspaceInstance recria  
-  -> useEffect dispara resolveWorkspaceInstance()
-  -> setIsLoading(true)
-  -> WorkspaceStatusGuard mostra spinner (desmonta filhos)
-  -> ProfessionalProspecting desmontado (estado perdido)
-  -> setIsLoading(false) 
-  -> ProfessionalProspecting remontado (estado resetado)
-```
+1. A query de resultados filtra por `status = "analyzed"` (linha 151 de ProspectingResults)
+2. O fluxo manual de conversao atualiza o perfil para `status = "converted"` e define `converted_lead_id` (linhas 307-313)
+3. O `BulkOutreachDialog.handleConfirmSent` so atualiza `outreach_step = 1` -- NAO muda o `status` nem define o `converted_lead_id`
+4. Como o perfil continua com `status = "analyzed"`, permanece na lista
 
 ## Solucao
 
-### Ficheiro 1: `WorkspaceStatusGuard.tsx`
+### Ficheiro: `BulkOutreachDialog.tsx`
 
-Mostrar o spinner de loading APENAS na primeira carga (quando nunca tivemos um status). Se ja temos um status resolvido, continuar a mostrar os filhos mesmo durante re-resolucao.
+Na funcao `handleConfirmSent`, depois de criar o lead e obter o seu ID:
 
-Isto evita desmontar filhos durante token refreshes.
+1. Atualizar o perfil de prospeccao com `status = "converted"`, `converted_lead_id`, `converted_at` e `converted_by` (igual ao fluxo manual)
+2. Invalidar a query `["prospecting-profiles"]` para que a lista atualize imediatamente
 
-### Ficheiro 2: `WorkspaceInstanceContext.tsx`
+### Alteracoes especificas
 
-Nao chamar `setIsLoading(true)` se ja temos dados resolvidos (re-resolucao silenciosa). Usar um `hasResolved` ref para distinguir a primeira carga das subsequentes.
+1. Alterar o insert de lead para usar `.select().single()` e obter o ID do lead criado
+2. Apos criar o lead, atualizar o perfil:
+   - `status: "converted"`
+   - `converted_lead_id: lead.id`
+   - `converted_at: new Date().toISOString()`
+   - `converted_by: userId`
+3. Importar `useQueryClient` e chamar `invalidateQueries` apos cada confirmacao de envio para atualizar a lista em tempo real
 
-### Ficheiro 3: `BulkOutreachDialog.tsx`
-
-Ja implementado: criacao automatica de lead no `handleConfirmSent`. Sem alteracoes necessarias — os leads ja estao a ser criados com sucesso (confirmado na base de dados: 5 leads recentes com source "professional_prospecting").
-
-## Detalhes tecnicos
-
-**WorkspaceInstanceContext.tsx**:
-- Adicionar `const hasResolved = useRef(false)` 
-- Em `resolveWorkspaceInstance`, so chamar `setIsLoading(true)` se `!hasResolved.current`
-- No `finally`, fazer `hasResolved.current = true`
-- Reset `hasResolved.current = false` quando `currentWorkspace?.id` muda (workspace diferente)
-
-**WorkspaceStatusGuard.tsx**:
-- Guardar o ultimo status resolvido: `const [lastStatus, setLastStatus] = useState(null)`
-- Se `isLoading` E ja temos `lastStatus`, mostrar filhos (nao spinner)
-- Se `isLoading` E nao temos `lastStatus`, mostrar spinner (primeira carga)
-
-## Confirmacao: Lead automatica
-
-A criacao automatica de lead ja funciona. Existem 5 leads recentes na base de dados com `source = "professional_prospecting"`. Nenhuma alteracao necessaria no `BulkOutreachDialog.tsx`.
-
-## Resumo
+### Resumo
 
 | Ficheiro | Alteracao |
 |---|---|
-| `WorkspaceInstanceContext.tsx` | Nao fazer `setIsLoading(true)` em re-resolucoes |
-| `WorkspaceStatusGuard.tsx` | Nao desmontar filhos durante re-resolucao |
-| `BulkOutreachDialog.tsx` | Sem alteracoes (lead auto-create ja funciona) |
+| `BulkOutreachDialog.tsx` | Atualizar perfil para `status: "converted"` apos criar lead; invalidar queries para remover da lista |
+
