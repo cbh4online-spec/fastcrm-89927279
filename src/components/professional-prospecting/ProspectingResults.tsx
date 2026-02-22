@@ -22,12 +22,37 @@ import {
 import { cn } from "@/lib/utils";
 import { ConvertProfileDialog, ConversionOptions } from "./ConvertProfileDialog";
 import { ProspectingMessageDialog } from "./ProspectingMessageDialog";
-import { BulkOutreachDialog } from "./BulkOutreachDialog";
+// BulkOutreachDialog is now rendered at page level (ProfessionalProspecting.tsx)
+
+interface BulkProfile {
+  id: string;
+  profile_name: string | null;
+  profile_url: string;
+  inferred_profession: string | null;
+  platform: string;
+}
+
+interface GeneratedMessage {
+  profileId: string;
+  message: string;
+  message_plain: string;
+  error?: string;
+}
 
 interface ProspectingResultsProps {
   searchId: string | null;
   onGoToSearch?: () => void;
   defaultTone?: "formal" | "casual" | "direto";
+  onStartBulkOutreach?: (
+    profiles: BulkProfile[],
+    onMessageGenerated: (msgs: GeneratedMessage[]) => void,
+    onGenerationComplete: () => void,
+    setProgress: (p: { done: number; total: number }) => void
+  ) => { 
+    onMessageGenerated: (msgs: GeneratedMessage[]) => void;
+    onGenerationComplete: () => void;
+    setProgress: (p: { done: number; total: number }) => void;
+  };
 }
 
 interface Profile {
@@ -91,7 +116,7 @@ const PLATFORM_COLORS: Record<string, string> = {
 
 type SortOption = "score_desc" | "score_asc" | "followers_desc" | "date_desc";
 
-export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: ProspectingResultsProps) {
+export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStartBulkOutreach }: ProspectingResultsProps) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -109,11 +134,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
   const [sortBy, setSortBy] = useState<SortOption>("score_desc");
   const [minScore, setMinScore] = useState(0);
   const [bulkProcessing, setBulkProcessing] = useState<string | null>(null);
-  const [bulkOutreachOpen, setBulkOutreachOpen] = useState(false);
-  const [bulkOutreachMessages, setBulkOutreachMessages] = useState<Array<{ profileId: string; message: string; message_plain: string; error?: string }>>([]);
-  const [bulkOutreachProfiles, setBulkOutreachProfiles] = useState<Array<{ id: string; profile_name: string | null; profile_url: string; inferred_profession: string | null; platform: string }>>([]);
-  const [bulkGenerating, setBulkGenerating] = useState(false);
-  const [bulkGenerationProgress, setBulkGenerationProgress] = useState({ done: 0, total: 0 });
+  
 
   // Fetch profiles - if searchId provided, filter by it; otherwise get recent analyzed profiles
   const { data: profiles = [], isLoading, refetch } = useQuery({
@@ -156,8 +177,8 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
       })) as Profile[];
     },
     enabled: !!currentWorkspace?.id,
-    refetchInterval: bulkOutreachOpen ? false : (searchId && (Date.now() - pollingStartTime < 30000) ? 3000 : false),
-    refetchOnWindowFocus: !bulkOutreachOpen,
+    refetchInterval: searchId && (Date.now() - pollingStartTime < 30000) ? 3000 : false,
+    refetchOnWindowFocus: true,
   });
 
   // Convert to lead mutation with enriched data
@@ -491,11 +512,20 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
       platform: p.platform,
     }));
 
-    setBulkOutreachProfiles(dialogProfiles);
-    setBulkOutreachMessages([]);
-    setBulkOutreachOpen(true);
-    setBulkGenerating(true);
-    setBulkGenerationProgress({ done: 0, total: selectedProfiles.length });
+    if (!onStartBulkOutreach) {
+      toast.error("Funcionalidade de outreach não disponível");
+      return;
+    }
+
+    // Call the parent's handler which lifts state to page level
+    const callbacks = onStartBulkOutreach(
+      dialogProfiles,
+      () => {},
+      () => {},
+      () => {}
+    );
+
+    
 
     // Get workspace context
     const wsContext = currentWorkspace ? {
@@ -536,7 +566,6 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
 
         if (error) {
           console.error("Batch error:", error);
-          // Add error results for this batch
           const errorResults = batchProfiles.map(p => ({
             profileId: p.id,
             message: "",
@@ -548,15 +577,15 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
           allResults.push(...(data.results || []));
         }
 
-        // Update progress and messages incrementally
-        setBulkGenerationProgress({ done: Math.min(i + BATCH_SIZE, selectedProfiles.length), total: selectedProfiles.length });
-        setBulkOutreachMessages([...allResults]);
+        // Update progress via parent callbacks
+        callbacks.setProgress({ done: Math.min(i + BATCH_SIZE, selectedProfiles.length), total: selectedProfiles.length });
+        callbacks.onMessageGenerated([...allResults]);
       }
     } catch (err) {
       toast.error("Erro ao gerar mensagens em massa");
       console.error("Bulk outreach error:", err);
     } finally {
-      setBulkGenerating(false);
+      callbacks.onGenerationComplete();
     }
   };
 
@@ -1196,22 +1225,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
         />
       )}
 
-      {/* Bulk Outreach Dialog */}
-      <BulkOutreachDialog
-        open={bulkOutreachOpen}
-        onOpenChange={setBulkOutreachOpen}
-        profiles={bulkOutreachProfiles}
-        generatedMessages={bulkOutreachMessages}
-        isGenerating={bulkGenerating}
-        generationProgress={bulkGenerationProgress}
-        userId={user?.id}
-        workspaceId={currentWorkspace?.id}
-        onComplete={() => {
-          setSelectedIds(new Set());
-          queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
-          queryClient.invalidateQueries({ queryKey: ["leads"] });
-        }}
-      />
+      {/* Bulk Outreach Dialog is now rendered at page level */}
     </div>
   );
 }
