@@ -127,14 +127,14 @@ export function BulkOutreachDialog({
         {
           workspace_id: currentWorkspace.id,
           profile_id: profile.id,
-          sequence_step: 2,
+          step_index: 2,
           scheduled_for: day3.toISOString(),
           status: "scheduled",
         },
         {
           workspace_id: currentWorkspace.id,
           profile_id: profile.id,
-          sequence_step: 3,
+          step_index: 3,
           scheduled_for: day7.toISOString(),
           status: "scheduled",
         },
