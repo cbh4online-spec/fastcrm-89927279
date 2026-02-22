@@ -12,6 +12,8 @@ export interface LeadEnricherSettings {
   auto_enrich_enabled: boolean;
   email_validation_enabled: boolean;
   default_prospecting_tone: string;
+  service_offer: string;
+  service_pain_points: string;
 }
 
 const DEFAULT_SETTINGS: LeadEnricherSettings = {
@@ -21,6 +23,8 @@ const DEFAULT_SETTINGS: LeadEnricherSettings = {
   auto_enrich_enabled: false,
   email_validation_enabled: false,
   default_prospecting_tone: "casual",
+  service_offer: "",
+  service_pain_points: "",
 };
 
 export function useLeadEnricherSettings() {
@@ -51,6 +55,8 @@ export function useLeadEnricherSettings() {
         auto_enrich_enabled: (data as any).auto_enrich_enabled,
         email_validation_enabled: (data as any).email_validation_enabled,
         default_prospecting_tone: (data as any).default_prospecting_tone ?? "casual",
+        service_offer: (data as any).service_offer ?? "",
+        service_pain_points: (data as any).service_pain_points ?? "",
       };
     },
     enabled: !!currentWorkspace,

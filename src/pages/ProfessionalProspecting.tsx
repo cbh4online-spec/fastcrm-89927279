@@ -2,25 +2,49 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Users, History } from "lucide-react";
+import { Search, Users, History, Settings2 } from "lucide-react";
 import { ProspectingSearch, SearchPrefill } from "@/components/professional-prospecting/ProspectingSearch";
 import { ProspectingResults } from "@/components/professional-prospecting/ProspectingResults";
 import { ProspectingHistory } from "@/components/professional-prospecting/ProspectingHistory";
 import { ProspectingUsage } from "@/components/professional-prospecting/ProspectingUsage";
 import { useLeadEnricherSettings } from "@/hooks/useLeadEnricherSettings";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 export default function ProfessionalProspecting() {
   const [activeTab, setActiveTab] = useState("search");
   const [currentSearchId, setCurrentSearchId] = useState<string | null>(null);
   const [searchPrefill, setSearchPrefill] = useState<SearchPrefill | null>(null);
-  const { settings, updateSettings } = useLeadEnricherSettings();
+  const [offerDialogOpen, setOfferDialogOpen] = useState(false);
+  const { settings, isLoading, updateSettings } = useLeadEnricherSettings();
   const defaultTone = (settings.default_prospecting_tone || "casual") as "formal" | "casual" | "direto";
+
+  const [serviceOffer, setServiceOffer] = useState("");
+  const [servicePainPoints, setServicePainPoints] = useState("");
+
+  const handleOpenOfferDialog = () => {
+    setServiceOffer(settings.service_offer || "");
+    setServicePainPoints(settings.service_pain_points || "");
+    setOfferDialogOpen(true);
+  };
+
+  const handleSaveOffer = () => {
+    updateSettings.mutate({
+      service_offer: serviceOffer,
+      service_pain_points: servicePainPoints,
+    });
+    setOfferDialogOpen(false);
+  };
 
   const handleRepeatSearch = (params: SearchPrefill) => {
     setSearchPrefill(params);
     setActiveTab("search");
   };
+
+  const hasServiceConfig = !!(settings.service_offer);
 
   return (
     <ModuleGuard moduleSlug="prospecting-pro" moduleName="Prospecção Profissional">
@@ -35,8 +59,17 @@ export default function ProfessionalProspecting() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <Button
+              variant={hasServiceConfig ? "outline" : "default"}
+              size="sm"
+              onClick={handleOpenOfferDialog}
+              className="gap-1"
+            >
+              <Settings2 className="w-4 h-4" />
+              {hasServiceConfig ? "Oferta configurada" : "Configurar Oferta"}
+            </Button>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground whitespace-nowrap">Tom por defeito:</span>
+              <span className="text-sm text-muted-foreground whitespace-nowrap">Tom:</span>
               <Select
                 value={defaultTone}
                 onValueChange={(value) => updateSettings.mutate({ default_prospecting_tone: value })}
@@ -113,6 +146,53 @@ export default function ProfessionalProspecting() {
           </ul>
         </div>
       </div>
+
+      {/* Offer Configuration Dialog */}
+      <Dialog open={offerDialogOpen} onOpenChange={setOfferDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="w-5 h-5 text-primary" />
+              Configurar Oferta
+            </DialogTitle>
+            <DialogDescription>
+              Define o que ofereces para gerar mensagens focadas na dor do prospect.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="service_offer">O que ofereces?</Label>
+              <Textarea
+                id="service_offer"
+                value={serviceOffer}
+                onChange={(e) => setServiceOffer(e.target.value)}
+                placeholder="Ex: Gestão de redes sociais para clínicas de saúde"
+                className="min-h-[80px] resize-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="service_pain">Que dores resolves?</Label>
+              <Textarea
+                id="service_pain"
+                value={servicePainPoints}
+                onChange={(e) => setServicePainPoints(e.target.value)}
+                placeholder="Ex: Falta de pacientes, redes sociais abandonadas, sem presença online"
+                className="min-h-[80px] resize-none"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOfferDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveOffer} disabled={updateSettings.isPending}>
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </DashboardLayout>
     </ModuleGuard>
   );

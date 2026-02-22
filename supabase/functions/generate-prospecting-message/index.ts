@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { profile, tone = "casual", workspaceContext } = await req.json();
+    const { profile, tone = "casual", workspaceContext, serviceContext, sequenceStep = 1 } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -19,6 +19,32 @@ Deno.serve(async (req) => {
       casual: "Tom casual e amigável. Use linguagem natural e próxima, como se falasse com um conhecido.",
       direto: "Tom direto e objetivo. Vá direto ao ponto sem rodeios, mas mantendo respeito.",
     };
+
+    const stepInstructions: Record<number, string> = {
+      1: `ETAPA 1 - ABERTURA (Dia 0):
+- Método AIDA completo (Atenção, Interesse, Desejo, Ação)
+- Primeiro contacto, criar curiosidade
+- Referência directa ao trabalho do prospect
+- Termina com pergunta aberta`,
+      2: `ETAPA 2 - FOLLOW-UP (Dia 3):
+- Referir subtilmente que já contactaste antes (sem ser insistente)
+- Partilhar um caso de estudo ou resultado concreto
+- Mostrar valor adicional com dado/estatística relevante
+- Termina com convite para conversa rápida`,
+      3: `ETAPA 3 - FECHO (Dia 7):
+- Última mensagem da sequência
+- Criar sentido de urgência ou escassez (subtil, não agressivo)
+- Resumir o benefício principal em 1 frase
+- CTA final claro e directo
+- Tom respeitoso: "se não fizer sentido, sem problema"`,
+    };
+
+    const serviceBlock = serviceContext?.offer
+      ? `\nCONTEXTO DO SERVIÇO QUE VENDES:
+- Oferta: ${serviceContext.offer}
+- Dores que resolves: ${serviceContext.painPoints || "N/A"}
+IMPORTANTE: Foca a mensagem na DOR específica deste prospect e como a tua oferta a resolve. Não sejas genérico.`
+      : "";
 
     const systemPrompt = `És um especialista em copywriting para Instagram DMs usando o método AIDA (Atenção, Interesse, Desejo, Ação).
 
@@ -30,12 +56,9 @@ REGRAS OBRIGATÓRIAS:
 - A mensagem deve parecer natural e humana, não um template
 - Personaliza com base nos dados reais do perfil
 - ${toneDescriptions[tone] || toneDescriptions.casual}
+${serviceBlock}
 
-ESTRUTURA AIDA (subtil, não explícita):
-- Atenção: Abre com algo que capte atenção imediata (referência ao trabalho deles)
-- Interesse: Mostra que conheces o que fazem
-- Desejo: Apresenta o benefício concreto
-- Ação: Fecha com uma pergunta ou convite claro
+${stepInstructions[sequenceStep] || stepInstructions[1]}
 
 Responde APENAS com um JSON no formato:
 {
@@ -59,7 +82,7 @@ Responde APENAS com um JSON no formato:
       ? `\nContexto da empresa que envia:\n- Nome: ${workspaceContext.name || "N/A"}\n- O que fazem: ${workspaceContext.description || "N/A"}`
       : "";
 
-    const userPrompt = `Gera uma mensagem de prospecção para Instagram DM para este perfil:\n\n${profileInfo}${workspaceInfo}\n\nTom: ${tone}`;
+    const userPrompt = `Gera uma mensagem de prospecção para Instagram DM para este perfil:\n\n${profileInfo}${workspaceInfo}\n\nTom: ${tone}\nEtapa da sequência: ${sequenceStep}/3`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

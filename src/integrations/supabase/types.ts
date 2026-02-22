@@ -14898,6 +14898,8 @@ export type Database = {
           google_enabled: boolean
           id: string
           linkedin_enabled: boolean
+          service_offer: string | null
+          service_pain_points: string | null
           updated_at: string
           webscraping_enabled: boolean
           workspace_id: string
@@ -14910,6 +14912,8 @@ export type Database = {
           google_enabled?: boolean
           id?: string
           linkedin_enabled?: boolean
+          service_offer?: string | null
+          service_pain_points?: string | null
           updated_at?: string
           webscraping_enabled?: boolean
           workspace_id: string
@@ -14922,6 +14926,8 @@ export type Database = {
           google_enabled?: boolean
           id?: string
           linkedin_enabled?: boolean
+          service_offer?: string | null
+          service_pain_points?: string | null
           updated_at?: string
           webscraping_enabled?: boolean
           workspace_id?: string
@@ -21289,6 +21295,7 @@ export type Database = {
           lead_score: number | null
           lead_score_explanation: string | null
           lead_score_factors: Json | null
+          outreach_step: number | null
           platform: string
           profile_bio: string | null
           profile_image_url: string | null
@@ -21332,6 +21339,7 @@ export type Database = {
           lead_score?: number | null
           lead_score_explanation?: string | null
           lead_score_factors?: Json | null
+          outreach_step?: number | null
           platform?: string
           profile_bio?: string | null
           profile_image_url?: string | null
@@ -21375,6 +21383,7 @@ export type Database = {
           lead_score?: number | null
           lead_score_explanation?: string | null
           lead_score_factors?: Json | null
+          outreach_step?: number | null
           platform?: string
           profile_bio?: string | null
           profile_image_url?: string | null
