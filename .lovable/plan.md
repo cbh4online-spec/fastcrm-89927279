@@ -1,68 +1,19 @@
 
-# Sugestoes IA para Oferta baseadas na Profissao
+# Aumentar Sugestoes AIDA de 4 para 8
 
-## Problema
+## Alteracao simples
 
-O dialog "Configurar Oferta" obriga o utilizador a escrever manualmente o que oferece e que dores resolve. Isso e lento e muitos utilizadores nao sabem o que escrever. A IA deveria sugerir opcoes automaticamente com base na profissao-alvo.
+Actualmente o sistema gera exactamente 4 sugestoes. Para dar mais opcoes ao utilizador, vamos aumentar para 8 sugestoes com angulos ainda mais variados.
 
-## Solucao
+## Ficheiros a modificar
 
-Quando o utilizador escreve ou seleciona uma profissao no dialog "Configurar Oferta", a IA gera 3-4 sugestoes de oferta + dores para essa profissao. O utilizador escolhe uma com um clique ou personaliza.
+### 1. Edge Function `supabase/functions/generate-offer-suggestions/index.ts`
+- Alterar o prompt de "gera exactamente 4 sugestoes" para "gera exactamente 8 sugestoes"
+- Expandir os exemplos de angulos no prompt (ex: automacao, email marketing, branding, formacao, parcerias, gestao de reputacao)
 
-## Alteracoes
+### 2. UI `src/pages/ProfessionalProspecting.tsx`
+- Alterar o grid de `grid-cols-2` para um layout scrollavel ou `grid-cols-2` com scroll vertical para acomodar 8 cards sem ocupar demasiado espaco
+- Adicionar `max-h` com `overflow-y-auto` na area de sugestoes para manter o dialog usavel
 
-### 1. Nova Edge Function `generate-offer-suggestions`
-
-Recebe a profissao e devolve 3-4 sugestoes, cada uma com:
-- `offer`: o que oferecer (ex: "Gestao de redes sociais para clinicas de fisioterapia")
-- `painPoints`: dores que resolve (ex: "Poucos pacientes novos, perfil sem conteudo, sem presenca digital")
-- `label`: nome curto da sugestao (ex: "Marketing Digital")
-
-Usa o metodo AIDA para enquadrar as dores de forma persuasiva.
-
-### 2. Actualizar dialog "Configurar Oferta" em `ProfessionalProspecting.tsx`
-
-- Adicionar campo "Profissao-alvo" no topo do dialog
-- Botao "Gerar sugestoes" ao lado do campo
-- Mostrar 3-4 cards clicaveis com as sugestoes da IA
-- Ao clicar numa sugestao, preenche automaticamente os campos "O que ofereces?" e "Que dores resolves?"
-- O utilizador pode editar antes de guardar
-- Loading state enquanto a IA gera
-
-### 3. Layout do dialog actualizado
-
-```text
-+-----------------------------------+
-| Configurar Oferta                 |
-|                                   |
-| Profissao-alvo:                   |
-| [Fisioterapeuta    ] [Sugerir IA] |
-|                                   |
-| --- Sugestoes IA ----             |
-| [Marketing Digital]  [Websites]   |
-| [Conteudo Video]     [SEO Local]  |
-|                                   |
-| O que ofereces?                   |
-| [preenchido pela sugestao]        |
-|                                   |
-| Que dores resolves?               |
-| [preenchido pela sugestao]        |
-|                                   |
-|          [Cancelar] [Guardar]     |
-+-----------------------------------+
-```
-
-## Detalhes tecnicos
-
-### Edge Function `generate-offer-suggestions`
-
-- Modelo: `google/gemini-3-flash-preview`
-- Input: `{ profession: string }`
-- Output via tool calling: `{ suggestions: Array<{ label, offer, painPoints }> }`
-- Prompt instrui a IA a pensar em AIDA: que dores tem esta profissao, que solucoes se pode oferecer, como criar desejo
-
-### Ficheiros a criar/modificar
-
-- `supabase/functions/generate-offer-suggestions/index.ts` (novo)
-- `supabase/config.toml` (adicionar funcao)
-- `src/pages/ProfessionalProspecting.tsx` (actualizar dialog com campo profissao + sugestoes IA)
+## Resultado
+O utilizador vera 8 sugestoes AIDA distintas em vez de 4, cobrindo mais angulos de servico para a profissao escolhida.
