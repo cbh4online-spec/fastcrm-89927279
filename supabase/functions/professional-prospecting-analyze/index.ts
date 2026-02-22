@@ -462,7 +462,9 @@ REGRAS:
 - Nunca inventes dados que não estejam no input
 - Sempre indica nível de confiança
 - Explica as inferências
-- Se não conseguires determinar algo, retorna null`;
+- Se não conseguires determinar algo, retorna null
+- Deteta a língua/país do perfil a partir da bio, nome, URL ou localização
+- Inclui um campo "detectedLanguage" (ex: "pt", "en", "es", "fr") na tua resposta JSON com o código ISO da língua predominante do perfil`;
 
   const userPrompt = `Analisa este perfil profissional:
 
