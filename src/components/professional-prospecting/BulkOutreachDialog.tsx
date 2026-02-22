@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import {
   Copy, Check, Loader2, Send, ExternalLink, Instagram,
-  CheckCircle, AlertCircle, SkipForward, PartyPopper, RotateCcw
+  CheckCircle, AlertCircle, SkipForward, PartyPopper, RotateCcw, X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +50,8 @@ interface BulkOutreachDialogProps {
   isGenerating: boolean;
   generationProgress: { done: number; total: number };
   onComplete: () => void;
+  userId?: string;
+  workspaceId?: string;
 }
 
 // Profile states: idle -> opened (Instagram opened) -> sent (confirmed)
@@ -64,6 +65,8 @@ export function BulkOutreachDialog({
   isGenerating,
   generationProgress,
   onComplete,
+  userId,
+  workspaceId,
 }: BulkOutreachDialogProps) {
   const { currentWorkspace } = useWorkspace();
   const [sentIds, setSentIds] = useState<Set<string>>(new Set());
@@ -118,7 +121,7 @@ export function BulkOutreachDialog({
 
       const username = extractInstagramUsername(profile.profile_url);
       const dmUrl = username ? `https://ig.me/m/${username}` : profile.profile_url;
-      window.open(dmUrl, "instagram_dm");
+      window.open(dmUrl, "_blank");
       toast.success("Mensagem copiada! Cole (Ctrl+V) na conversa e envie");
 
       // Only mark as opened, NOT as sent
@@ -137,27 +140,61 @@ export function BulkOutreachDialog({
       .update({ outreach_step: 1 } as any)
       .eq("id", profile.id);
 
-    if (currentWorkspace?.id) {
+    const wsId = workspaceId || currentWorkspace?.id;
+
+    if (wsId) {
       const now = new Date();
       const day3 = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
       const day7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
       await supabase.from("prospecting_outreach_queue").insert([
         {
-          workspace_id: currentWorkspace.id,
+          workspace_id: wsId,
           profile_id: profile.id,
           step_index: 2,
           scheduled_for: day3.toISOString(),
           status: "scheduled",
         },
         {
-          workspace_id: currentWorkspace.id,
+          workspace_id: wsId,
           profile_id: profile.id,
           step_index: 3,
           scheduled_for: day7.toISOString(),
           status: "scheduled",
         },
       ] as any);
+
+      // Auto-create lead
+      try {
+        const msg = getMessageForProfile(profile.id);
+        const leadData: Record<string, unknown> = {
+          workspace_id: wsId,
+          name: profile.profile_name || "Sem nome",
+          source: "professional_prospecting",
+          status: "new",
+          website: profile.profile_url,
+          instagram_url: profile.platform === "instagram" ? profile.profile_url : null,
+          prospecting_profile_id: profile.id,
+        };
+
+        if (userId) {
+          leadData.created_by = userId;
+          leadData.assigned_to = userId;
+        }
+
+        if (profile.inferred_profession) {
+          leadData.inferred_profession = profile.inferred_profession;
+          leadData.business_category = profile.inferred_profession;
+        }
+
+        if (msg?.message_plain || msg?.message) {
+          leadData.notes = `📨 Mensagem de outreach enviada:\n"${msg.message_plain || msg.message}"`;
+        }
+
+        await supabase.from("leads").insert([leadData as any]);
+      } catch (err) {
+        console.error("Erro ao criar lead automaticamente:", err);
+      }
     }
 
     toast.success(`${profile.profile_name || "Perfil"} marcado como enviado`);
@@ -170,7 +207,7 @@ export function BulkOutreachDialog({
     }
     const username = extractInstagramUsername(profile.profile_url);
     const dmUrl = username ? `https://ig.me/m/${username}` : profile.profile_url;
-    window.open(dmUrl, "instagram_dm");
+    window.open(dmUrl, "_blank");
     toast.success("Mensagem copiada novamente!");
   };
 
@@ -191,19 +228,17 @@ export function BulkOutreachDialog({
     onOpenChange(false);
   };
 
-  const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen) {
-      if (isGenerating) return;
-      if (sentCount > 0 && sentCount < totalProfiles) {
-        setShowCloseConfirm(true);
-        return;
-      }
-      if (!isGenerating && generatedMessages.length > 0 && sentCount === 0 && !allDone) {
-        setShowCloseConfirm(true);
-        return;
-      }
-      handleClose();
+  const handleTryClose = () => {
+    if (isGenerating) return;
+    if (sentCount > 0 && sentCount < totalProfiles) {
+      setShowCloseConfirm(true);
+      return;
     }
+    if (!isGenerating && generatedMessages.length > 0 && sentCount === 0 && !allDone) {
+      setShowCloseConfirm(true);
+      return;
+    }
+    handleClose();
   };
 
   const phase: "generating" | "sending" | "completed" = isGenerating
@@ -212,37 +247,39 @@ export function BulkOutreachDialog({
       ? "completed"
       : "sending";
 
+  // Persistent fixed panel instead of Radix Dialog
+  if (!open) return null;
+
   return (
     <>
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent
-          className="max-w-2xl max-h-[85vh] flex flex-col"
-          onPointerDownOutside={(e) => {
-            if (phase === "generating" || phase === "sending") {
-              e.preventDefault();
-            }
-          }}
-          onEscapeKeyDown={(e) => {
-            if (phase === "generating" || phase === "sending") {
-              e.preventDefault();
-            }
-          }}
-          onInteractOutside={(e) => {
-            if (phase === "generating" || phase === "sending") {
-              e.preventDefault();
-            }
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        {/* Backdrop */}
+        <div className="fixed inset-0 bg-black/80 animate-in fade-in-0" />
+
+        {/* Panel */}
+        <div className="relative z-10 bg-background border rounded-lg shadow-lg max-w-2xl w-full max-h-[85vh] flex flex-col p-6 mx-4 animate-in fade-in-0 zoom-in-95">
+          {/* Close button */}
+          {phase !== "generating" && (
+            <button
+              onClick={handleTryClose}
+              className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </button>
+          )}
+
+          {/* Header */}
+          <div className="flex flex-col space-y-1.5 text-left mb-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold leading-none tracking-tight">
                 {phase === "generating" && "A preparar mensagens..."}
                 {phase === "sending" && "Outreach em Massa"}
                 {phase === "completed" && "Outreach Concluído! 🎉"}
-              </span>
+              </h2>
               <Badge variant="secondary">{totalProfiles} perfis</Badge>
-            </DialogTitle>
-            <DialogDescription>
+            </div>
+            <p className="text-sm text-muted-foreground">
               {phase === "generating" &&
                 `A gerar mensagens personalizadas... ${generationProgress.done} de ${generationProgress.total}`
               }
@@ -252,8 +289,8 @@ export function BulkOutreachDialog({
               {phase === "completed" &&
                 `Todos os ${totalProfiles} perfis foram contactados com sucesso!`
               }
-            </DialogDescription>
-          </DialogHeader>
+            </p>
+          </div>
 
           {/* Progress Bar */}
           <div className="space-y-1">
@@ -283,7 +320,7 @@ export function BulkOutreachDialog({
           {phase === "sending" && (
             <>
               {/* Instruction banner */}
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20 text-sm">
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20 text-sm mt-4">
                 <Instagram className="w-5 h-5 text-pink-500 flex-shrink-0" />
                 <span>
                   Clique <strong>"Abrir DM"</strong> para copiar a mensagem e abrir o Instagram. 
@@ -292,7 +329,7 @@ export function BulkOutreachDialog({
               </div>
 
               {/* Profiles List */}
-              <ScrollArea className="flex-1 min-h-0 max-h-[40vh]">
+              <ScrollArea className="flex-1 min-h-0 max-h-[40vh] mt-4">
                 <div className="space-y-2 pr-4">
                   {profiles.map(profile => {
                     const msg = getMessageForProfile(profile.id);
@@ -433,7 +470,7 @@ export function BulkOutreachDialog({
           )}
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-between pt-2 border-t">
+          <div className="flex items-center justify-between pt-2 border-t mt-4">
             {phase === "completed" ? (
               <div className="w-full flex justify-center">
                 <Button onClick={handleClose} size="lg" className="gap-2 px-8">
@@ -447,7 +484,7 @@ export function BulkOutreachDialog({
               </p>
             ) : (
               <>
-                <Button variant="ghost" size="sm" onClick={() => handleOpenChange(false)}>
+                <Button variant="ghost" size="sm" onClick={handleTryClose}>
                   Fechar
                 </Button>
                 <div className="flex items-center gap-2">
@@ -461,8 +498,8 @@ export function BulkOutreachDialog({
               </>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </div>
 
       {/* Close confirmation dialog */}
       <AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>

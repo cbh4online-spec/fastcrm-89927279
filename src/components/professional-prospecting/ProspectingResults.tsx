@@ -1204,9 +1204,12 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
         generatedMessages={bulkOutreachMessages}
         isGenerating={bulkGenerating}
         generationProgress={bulkGenerationProgress}
+        userId={user?.id}
+        workspaceId={currentWorkspace?.id}
         onComplete={() => {
           setSelectedIds(new Set());
           queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
+          queryClient.invalidateQueries({ queryKey: ["leads"] });
         }}
       />
     </div>
