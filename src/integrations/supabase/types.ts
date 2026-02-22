@@ -14893,6 +14893,7 @@ export type Database = {
         Row: {
           auto_enrich_enabled: boolean
           created_at: string
+          default_prospecting_tone: string
           email_validation_enabled: boolean
           google_enabled: boolean
           id: string
@@ -14904,6 +14905,7 @@ export type Database = {
         Insert: {
           auto_enrich_enabled?: boolean
           created_at?: string
+          default_prospecting_tone?: string
           email_validation_enabled?: boolean
           google_enabled?: boolean
           id?: string
@@ -14915,6 +14917,7 @@ export type Database = {
         Update: {
           auto_enrich_enabled?: boolean
           created_at?: string
+          default_prospecting_tone?: string
           email_validation_enabled?: boolean
           google_enabled?: boolean
           id?: string

@@ -31,6 +31,7 @@ interface ProspectingMessageDialogProps {
   onOpenChange: (open: boolean) => void;
   profile: ProfileData;
   workspaceContext?: { name?: string; description?: string } | null;
+  defaultTone?: Tone;
 }
 
 type Tone = "formal" | "casual" | "direto";
@@ -46,9 +47,17 @@ export function ProspectingMessageDialog({
   onOpenChange,
   profile,
   workspaceContext,
+  defaultTone = "casual",
 }: ProspectingMessageDialogProps) {
   const [message, setMessage] = useState("");
-  const [tone, setTone] = useState<Tone>("casual");
+  const [tone, setTone] = useState<Tone>(defaultTone);
+
+  // Sync tone when defaultTone changes
+  useEffect(() => {
+    if (!hasGenerated) {
+      setTone(defaultTone);
+    }
+  }, [defaultTone]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
