@@ -488,6 +488,15 @@ export function BulkOutreachDialog({
                                   <RotateCcw className="w-3 h-3" />
                                   Abrir novamente
                                 </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="gap-1 text-xs text-destructive hover:text-destructive"
+                                  onClick={() => handleReject(profile)}
+                                >
+                                  <X className="w-3 h-3" />
+                                  Rejeitar
+                                </Button>
                               </div>
                             ) : hasMessage ? (
                               <div className="flex flex-col gap-1">
