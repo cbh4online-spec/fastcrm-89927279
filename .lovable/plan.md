@@ -1,17 +1,23 @@
 
-
-# Fix: Erro na pesquisa de SKU - `serve is not defined`
+# Atribuir acesso ao modulo Estrategia para daniel.silva@metodopare.ai
 
 ## Diagnostico
 
-A funcao backend `ai-product-assistant` esta a falhar com o erro **`ReferenceError: serve is not defined`**. O problema e que o codigo usa `serve(...)` na linha 133, mas deveria usar `Deno.serve(...)` que e a API correcta para funcoes backend.
+O utilizador daniel.silva@metodopare.ai tem o role **admin** no workspace actual. O menu "Brief Executivo" (secao Estrategia) usa a chave `strategy` no sistema de permissoes de menu, mas **nao existem registos** na tabela `menu_permissions` para `menu_key = 'strategy'`.
+
+Como o sistema retorna `can_access = false` por defeito quando nao encontra uma permissao para roles que nao sejam `owner`, o menu fica invisivel para este utilizador.
 
 ## Solucao
 
-Alterar a linha 133 do ficheiro `supabase/functions/ai-product-assistant/index.ts`:
+Inserir registos na tabela `menu_permissions` para a chave `strategy`, dando acesso ao role `admin` (e opcionalmente aos outros roles):
 
-- **De:** `serve(async (req) => {`
-- **Para:** `Deno.serve(async (req) => {`
+```sql
+INSERT INTO menu_permissions (role, menu_key, can_access, can_edit)
+VALUES ('admin', 'strategy', true, true);
+```
 
-Esta e uma correcao de uma unica linha que vai resolver o erro em todas as funcionalidades deste endpoint (pesquisa SKU, sugestoes, geracao de descricao, analise de preco, etc.).
+Isto vai tornar a secao "Estrategia" visivel na barra lateral para o daniel.silva e todos os utilizadores com role `admin`.
 
+Opcionalmente, tambem se pode adicionar acesso para outros roles (`agent`, `agency`, `viewer`) se desejado.
+
+Nao e necessaria nenhuma alteracao de codigo.
