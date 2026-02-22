@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import {
   Copy, Check, Loader2, Send, ExternalLink, Instagram,
-  CheckCircle, AlertCircle, SkipForward, PartyPopper
+  CheckCircle, AlertCircle, SkipForward, PartyPopper, RotateCcw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +53,9 @@ interface BulkOutreachDialogProps {
   onComplete: () => void;
 }
 
+// Profile states: idle -> opened (Instagram opened) -> sent (confirmed)
+type ProfileState = "idle" | "opened" | "sent";
+
 export function BulkOutreachDialog({
   open,
   onOpenChange,
@@ -64,6 +67,7 @@ export function BulkOutreachDialog({
 }: BulkOutreachDialogProps) {
   const { currentWorkspace } = useWorkspace();
   const [sentIds, setSentIds] = useState<Set<string>>(new Set());
+  const [openedIds, setOpenedIds] = useState<Set<string>>(new Set());
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const activeProfileRef = useRef<HTMLDivElement>(null);
@@ -86,8 +90,21 @@ export function BulkOutreachDialog({
     }
   }, [sentCount, isGenerating]);
 
+  // Reset opened state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setOpenedIds(new Set());
+    }
+  }, [open]);
+
   function getMessageForProfile(profileId: string) {
     return generatedMessages.find(m => m.profileId === profileId);
+  }
+
+  function getProfileState(profileId: string): ProfileState {
+    if (sentIds.has(profileId)) return "sent";
+    if (openedIds.has(profileId)) return "opened";
+    return "idle";
   }
 
   const handleCopyAndOpen = async (profile: BulkProfile) => {
@@ -104,13 +121,15 @@ export function BulkOutreachDialog({
       window.open(dmUrl, "_blank");
       toast.success("Mensagem copiada! Cole (Ctrl+V) na conversa e envie");
 
-      await markAsSent(profile);
+      // Only mark as opened, NOT as sent
+      setOpenedIds(prev => new Set(prev).add(profile.id));
     } catch {
       toast.error("Erro ao copiar mensagem");
     }
   };
 
-  const markAsSent = async (profile: BulkProfile) => {
+  const handleConfirmSent = async (profile: BulkProfile) => {
+    // Mark as sent
     setSentIds(prev => new Set(prev).add(profile.id));
 
     await supabase
@@ -140,6 +159,19 @@ export function BulkOutreachDialog({
         },
       ] as any);
     }
+
+    toast.success(`${profile.profile_name || "Perfil"} marcado como enviado`);
+  };
+
+  const handleReopenDM = async (profile: BulkProfile) => {
+    const msg = getMessageForProfile(profile.id);
+    if (msg?.message) {
+      await navigator.clipboard.writeText(msg.message_plain || msg.message);
+    }
+    const username = extractInstagramUsername(profile.profile_url);
+    const dmUrl = username ? `https://ig.me/m/${username}` : profile.profile_url;
+    window.open(dmUrl, "_blank");
+    toast.success("Mensagem copiada novamente!");
   };
 
   const handleNextProfile = () => {
@@ -155,19 +187,17 @@ export function BulkOutreachDialog({
       onComplete();
     }
     setSentIds(new Set());
+    setOpenedIds(new Set());
     onOpenChange(false);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
-      // Block close during generation
       if (isGenerating) return;
-      // Confirm close if there are unsent profiles with progress
       if (sentCount > 0 && sentCount < totalProfiles) {
         setShowCloseConfirm(true);
         return;
       }
-      // If messages are generated but none sent yet, also confirm
       if (!isGenerating && generatedMessages.length > 0 && sentCount === 0 && !allDone) {
         setShowCloseConfirm(true);
         return;
@@ -176,7 +206,6 @@ export function BulkOutreachDialog({
     }
   };
 
-  // Determine current phase
   const phase: "generating" | "sending" | "completed" = isGenerating
     ? "generating"
     : allDone
@@ -253,7 +282,7 @@ export function BulkOutreachDialog({
                 <Instagram className="w-5 h-5 text-pink-500 flex-shrink-0" />
                 <span>
                   Clique <strong>"Abrir DM"</strong> para copiar a mensagem e abrir o Instagram. 
-                  Cole <strong>(Ctrl+V)</strong> na conversa e envie.
+                  Depois volte aqui e clique <strong>"Já enviei"</strong> para avançar.
                 </span>
               </div>
 
@@ -262,7 +291,7 @@ export function BulkOutreachDialog({
                 <div className="space-y-2 pr-4">
                   {profiles.map(profile => {
                     const msg = getMessageForProfile(profile.id);
-                    const isSent = sentIds.has(profile.id);
+                    const profileState = getProfileState(profile.id);
                     const hasError = msg?.error;
                     const hasMessage = msg?.message;
                     const isNext = nextProfile?.id === profile.id;
@@ -273,16 +302,19 @@ export function BulkOutreachDialog({
                         ref={isNext ? activeProfileRef : undefined}
                         className={cn(
                           "border rounded-lg p-3 transition-all",
-                          isSent && "bg-muted/50 border-green-500/30 opacity-60",
+                          profileState === "sent" && "bg-muted/50 border-green-500/30 opacity-60",
+                          profileState === "opened" && "ring-2 ring-amber-500 border-amber-500/50 bg-amber-500/5",
                           hasError && "border-destructive/30",
-                          isNext && "ring-2 ring-primary border-primary/50 bg-primary/5"
+                          isNext && profileState === "idle" && "ring-2 ring-primary border-primary/50 bg-primary/5"
                         )}
                       >
                         <div className="flex items-start gap-3">
                           {/* Status Icon */}
                           <div className="mt-0.5">
-                            {isSent ? (
+                            {profileState === "sent" ? (
                               <CheckCircle className="w-5 h-5 text-green-500" />
+                            ) : profileState === "opened" ? (
+                              <AlertCircle className="w-5 h-5 text-amber-500" />
                             ) : hasError ? (
                               <AlertCircle className="w-5 h-5 text-destructive" />
                             ) : !hasMessage && isGenerating ? (
@@ -298,7 +330,12 @@ export function BulkOutreachDialog({
                               <span className="font-medium text-sm truncate">
                                 {profile.profile_name || "Sem nome"}
                               </span>
-                              {isNext && (
+                              {profileState === "opened" && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-amber-600 border-amber-500/30">
+                                  A aguardar confirmação
+                                </Badge>
+                              )}
+                              {isNext && profileState === "idle" && (
                                 <Badge variant="default" className="text-[10px] px-1.5 py-0">
                                   Próximo
                                 </Badge>
@@ -325,10 +362,31 @@ export function BulkOutreachDialog({
 
                           {/* Action */}
                           <div className="flex-shrink-0">
-                            {isSent ? (
+                            {profileState === "sent" ? (
                               <Badge variant="outline" className="text-green-600 border-green-600/30 text-xs">
                                 Enviado ✓
                               </Badge>
+                            ) : profileState === "opened" ? (
+                              <div className="flex flex-col gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  className="gap-1 text-xs"
+                                  onClick={() => handleConfirmSent(profile)}
+                                >
+                                  <Check className="w-3 h-3" />
+                                  Já enviei
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="gap-1 text-xs"
+                                  onClick={() => handleReopenDM(profile)}
+                                >
+                                  <RotateCcw className="w-3 h-3" />
+                                  Abrir novamente
+                                </Button>
+                              </div>
                             ) : hasMessage ? (
                               <Button
                                 size="sm"
