@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,8 +13,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Search, Globe, Link, Loader2, MapPin, Briefcase, Tags, Instagram, Facebook } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+export interface SearchPrefill {
+  profession: string;
+  location: string;
+  keywords: string;
+  platforms: string[];
+}
+
 interface ProspectingSearchProps {
   onSearchComplete: (searchId: string) => void;
+  prefill?: SearchPrefill | null;
 }
 
 const PROFESSION_SUGGESTIONS = [
@@ -33,7 +41,7 @@ const PROFESSION_SUGGESTIONS = [
   "Consultor Financeiro",
 ];
 
-export function ProspectingSearch({ onSearchComplete }: ProspectingSearchProps) {
+export function ProspectingSearch({ onSearchComplete, prefill }: ProspectingSearchProps) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -42,13 +50,24 @@ export function ProspectingSearch({ onSearchComplete }: ProspectingSearchProps) 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Web search state
-  const [profession, setProfession] = useState("");
-  const [location, setLocation] = useState("");
-  const [keywords, setKeywords] = useState("");
-  const [platforms, setPlatforms] = useState<string[]>(["instagram", "facebook"]);
+  const [profession, setProfession] = useState(prefill?.profession || "");
+  const [location, setLocation] = useState(prefill?.location || "");
+  const [keywords, setKeywords] = useState(prefill?.keywords || "");
+  const [platforms, setPlatforms] = useState<string[]>(prefill?.platforms || ["instagram", "facebook"]);
 
   // Manual input state
   const [manualUrls, setManualUrls] = useState("");
+
+  // Update fields when prefill changes
+  useEffect(() => {
+    if (prefill) {
+      setProfession(prefill.profession);
+      setLocation(prefill.location);
+      setKeywords(prefill.keywords);
+      setPlatforms(prefill.platforms);
+      setSearchMode("web");
+    }
+  }, [prefill]);
 
   const togglePlatform = (platform: string) => {
     setPlatforms(prev => 
@@ -109,6 +128,7 @@ export function ProspectingSearch({ onSearchComplete }: ProspectingSearchProps) 
               profiles: data.profiles,
               workspaceId: currentWorkspace.id,
               searchId: data.searchId,
+              autoEnrichInstagram: true,
             },
           }
         );

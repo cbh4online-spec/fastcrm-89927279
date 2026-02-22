@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Users, History } from "lucide-react";
-import { ProspectingSearch } from "@/components/professional-prospecting/ProspectingSearch";
+import { ProspectingSearch, SearchPrefill } from "@/components/professional-prospecting/ProspectingSearch";
 import { ProspectingResults } from "@/components/professional-prospecting/ProspectingResults";
 import { ProspectingHistory } from "@/components/professional-prospecting/ProspectingHistory";
 import { ProspectingUsage } from "@/components/professional-prospecting/ProspectingUsage";
@@ -11,6 +11,12 @@ import { ProspectingUsage } from "@/components/professional-prospecting/Prospect
 export default function ProfessionalProspecting() {
   const [activeTab, setActiveTab] = useState("search");
   const [currentSearchId, setCurrentSearchId] = useState<string | null>(null);
+  const [searchPrefill, setSearchPrefill] = useState<SearchPrefill | null>(null);
+
+  const handleRepeatSearch = (params: SearchPrefill) => {
+    setSearchPrefill(params);
+    setActiveTab("search");
+  };
 
   return (
     <ModuleGuard moduleSlug="prospecting-pro" moduleName="Prospecção Profissional">
@@ -49,7 +55,9 @@ export default function ProfessionalProspecting() {
               onSearchComplete={(searchId) => {
                 setCurrentSearchId(searchId);
                 setActiveTab("results");
+                setSearchPrefill(null);
               }}
+              prefill={searchPrefill}
             />
           </TabsContent>
 
@@ -66,6 +74,7 @@ export default function ProfessionalProspecting() {
                 setCurrentSearchId(searchId);
                 setActiveTab("results");
               }}
+              onRepeatSearch={handleRepeatSearch}
             />
           </TabsContent>
         </Tabs>
