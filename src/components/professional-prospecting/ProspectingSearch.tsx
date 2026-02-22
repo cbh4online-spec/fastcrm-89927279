@@ -115,17 +115,28 @@ export function ProspectingSearch({ onSearchComplete }: ProspectingSearchProps) 
 
         if (analysisError) {
           console.error("Analysis error:", analysisError);
-          toast.error("Erro na análise de perfis");
-        } else if (analysisData.success) {
+          toast.error("Erro na análise de perfis", {
+            description: "Os perfis não foram guardados. Tente novamente.",
+          });
+          return; // Don't navigate to results if analysis failed
+        } else if (analysisData?.success) {
           toast.success(`${analysisData.analyzed} perfis analisados`);
-          // Invalidate cache to force refresh
+          // Invalidate cache and navigate only on success
           queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
+          onSearchComplete(data.searchId);
+        } else {
+          // Analysis returned but was not successful
+          const errorMsg = analysisData?.error || "Erro desconhecido na análise";
+          console.error("Analysis not successful:", errorMsg);
+          toast.error("Erro na análise de perfis", {
+            description: errorMsg,
+          });
+          return;
         }
+      } else {
+        // No profiles found, still navigate
+        onSearchComplete(data.searchId);
       }
-
-      // Invalidate cache before navigating
-      queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
-      onSearchComplete(data.searchId);
     } catch (error) {
       console.error("Search error:", error);
       toast.error("Erro ao pesquisar", {
