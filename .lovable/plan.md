@@ -1,85 +1,95 @@
 
+# Automatizar Sequencia AIDA de Prospeccao
 
-# Contexto de Servico + Sequencia de Mensagens AIDA
+## Problema
 
-## Problema actual
-
-O gerador de mensagens nao sabe o que o utilizador vende/oferece. Cria mensagens genericas sem foco na dor ou beneficio concreto. Alem disso, gera apenas 1 mensagem, sem guia para follow-ups.
+Actualmente o utilizador precisa de lembrar-se de voltar ao CRM nos Dias 3 e 7 para enviar as mensagens de follow-up e fecho. Isso nao e "fast".
 
 ## Solucao
 
-### 1. Adicionar "Oferta/Servico" as configuracoes do workspace
+Quando o utilizador envia a Msg 1 (Abertura), o sistema agenda automaticamente as mensagens 2 e 3 com as datas correctas. Uma fila de outreach guarda os agendamentos e uma funcao backend processa a fila, pre-gerando as mensagens e criando notificacoes. O utilizador recebe um lembrete e envia com um clique.
 
-Na tabela `lead_enricher_settings`, adicionar dois campos:
+## Alteracoes
 
-```sql
-ALTER TABLE lead_enricher_settings
-ADD COLUMN service_offer text,
-ADD COLUMN service_pain_points text;
+### 1. Nova tabela `prospecting_outreach_queue`
+
+Tabela para agendar follow-ups automaticos:
+
+```text
+id             uuid PK
+workspace_id   uuid NOT NULL FK
+profile_id     uuid NOT NULL FK -> professional_prospecting_profiles
+step_index     integer NOT NULL (1=follow-up, 2=fecho)
+status         text DEFAULT 'scheduled' (scheduled/ready/sent/cancelled)
+scheduled_for  timestamptz NOT NULL
+message        text (mensagem pre-gerada, preenchida pelo scheduler)
+message_plain  text
+tone           text
+created_at     timestamptz DEFAULT now()
+updated_at     timestamptz DEFAULT now()
 ```
 
-- `service_offer`: O que vendem (ex: "Marketing digital para clinicas")
-- `service_pain_points`: Dores que resolvem (ex: "Falta de pacientes, redes sociais abandonadas")
+RLS: utilizadores do workspace podem ler/actualizar os seus registos.
 
-### 2. UI para configurar na pagina de Prospeccao
+### 2. Logica ao enviar Msg 1
 
-No header da pagina `ProfessionalProspecting.tsx`, ao lado do selector de tom, adicionar um botao "Configurar Oferta" que abre um dialog simples com:
-- Campo "O que oferece?" (textarea curta)
-- Campo "Que dores resolve?" (textarea curta)
-- Guardar no `lead_enricher_settings` via o hook existente
+No `ProspectingMessageDialog`, quando o utilizador clica "Enviar no Instagram" na Msg 1:
+- Guardar as mensagens ja geradas (Msg 2 e Msg 3) directamente na fila
+- Agendar Msg 2 para daqui a 3 dias, Msg 3 para daqui a 7 dias
+- Mostrar toast: "Sequencia activada! Follow-up em 3 dias, Fecho em 7 dias"
 
-### 3. Passar contexto ao gerador de mensagem
+Isto e feito no proprio componente via insert no Supabase, sem precisar de edge function para agendar (as mensagens ja estao geradas no dialog).
 
-No `ProspectingMessageDialog`, o `workspaceContext` ja e passado. Vamos enriquecer com `serviceOffer` e `painPoints` vindos das settings.
+### 3. Edge Function `prospecting-outreach-processor`
 
-No `ProspectingResults`, buscar as settings e passar a info extra ao dialog.
+Funcao chamada por cron que:
+- Busca items da fila com `status = 'scheduled'` e `scheduled_for <= now()`
+- Marca como `status = 'ready'`
+- Cria uma notificacao interna (insert em `admin_notifications`) a avisar o utilizador que e hora de enviar
 
-### 4. Actualizar o prompt da Edge Function
+### 4. Cron Job
 
-No `generate-prospecting-message/index.ts`:
-- Receber `serviceContext` (oferta + dores) no body
-- Incluir no prompt do sistema para a IA focar a mensagem na dor especifica do prospect e na solucao oferecida
-- Adicionar um campo `sequenceStep` (1, 2 ou 3) para gerar mensagens diferentes por etapa
+Configurar pg_cron para chamar `prospecting-outreach-processor` a cada 30 minutos.
 
-### 5. Sequencia de 3 mensagens AIDA (Fast Workflow)
+### 5. Painel de Outreach Pendente na pagina de Prospeccao
 
-Em vez de gerar 1 mensagem, gerar 3 de uma vez (ou sob pedido):
+Adicionar uma seccao no topo da pagina `ProfessionalProspecting.tsx` que mostra:
+- Cards com follow-ups prontos para enviar (`status = 'ready'`)
+- Cada card mostra: nome do perfil, mensagem pre-gerada, botao "Enviar agora"
+- Ao clicar "Enviar agora": copia mensagem, abre Instagram, marca como `sent`, actualiza `outreach_step`
+- Contador: "2 follow-ups pendentes hoje"
 
-| Step | Objectivo | Timing |
-|------|-----------|--------|
-| 1 - Abertura | AIDA completo, primeiro contacto | Dia 0 |
-| 2 - Follow-up | Valor adicional, caso de estudo | Dia 3 |
-| 3 - Fecho | Urgencia/escassez, CTA final | Dia 7 |
+### 6. Cancelamento automatico
 
-No dialog, mostrar as 3 mensagens em tabs (Msg 1 / Msg 2 / Msg 3), cada uma com botao "Enviar no Instagram".
+Se o perfil for convertido a lead ou rejeitado, cancelar automaticamente os outreach pendentes.
 
-### 6. Indicador visual de progresso
+## Ficheiros a criar/modificar
 
-Na lista de resultados (`ProspectingResults`), mostrar junto a cada perfil em que step esta:
-- Nenhum icone = nao contactado
-- 1/3, 2/3, 3/3 = badges indicando o progresso
+- **SQL migration**: criar tabela `prospecting_outreach_queue` com RLS
+- **`supabase/functions/prospecting-outreach-processor/index.ts`**: nova edge function
+- **`supabase/config.toml`**: adicionar config da nova funcao
+- **SQL (insert tool)**: criar cron job
+- **`src/components/professional-prospecting/ProspectingMessageDialog.tsx`**: ao enviar Msg 1, inserir Msg 2 e 3 na fila
+- **`src/pages/ProfessionalProspecting.tsx`**: adicionar seccao de outreach pendente
+- **`src/components/professional-prospecting/PendingOutreachPanel.tsx`**: novo componente para mostrar follow-ups prontos
 
-Guardar o progresso numa nova coluna `outreach_step` na tabela `professional_prospecting_profiles`.
+## Fluxo automatizado
 
-```sql
-ALTER TABLE professional_prospecting_profiles
-ADD COLUMN outreach_step integer DEFAULT 0;
+```text
+Utilizador envia Msg 1
+       |
+       v
+Sistema guarda Msg 2 (Dia +3) e Msg 3 (Dia +7) na fila
+       |
+       v
+Cron cada 30 min verifica fila
+       |
+       v
+Quando chega o dia -> marca "ready" + cria notificacao
+       |
+       v
+Utilizador ve painel "2 follow-ups pendentes"
+       |
+       v
+Clica "Enviar agora" -> copia + abre Instagram -> done
 ```
-
-## Ficheiros a modificar
-
-- **SQL migration**: 2 campos em `lead_enricher_settings` + 1 campo em `professional_prospecting_profiles`
-- **`src/hooks/useLeadEnricherSettings.ts`**: Adicionar `service_offer` e `service_pain_points`
-- **`src/pages/ProfessionalProspecting.tsx`**: Botao/dialog "Configurar Oferta"
-- **`src/components/professional-prospecting/ProspectingMessageDialog.tsx`**: Receber serviceContext, gerar 3 mensagens em tabs, actualizar outreach_step ao enviar
-- **`src/components/professional-prospecting/ProspectingResults.tsx`**: Passar serviceContext ao dialog, mostrar badge de progresso outreach
-- **`supabase/functions/generate-prospecting-message/index.ts`**: Receber serviceContext e sequenceStep, ajustar prompt por etapa
-
-## Fluxo do utilizador
-
-1. Configura oferta uma vez (ex: "Gestao de redes sociais para clinicas")
-2. Pesquisa profissionais (ex: "Fisioterapeuta, Lisboa")
-3. Abre mensagem -> ve 3 mensagens pre-geradas focadas na dor
-4. Clica "Enviar" na Msg 1 -> copia + abre Instagram -> perfil fica marcado 1/3
-5. Dias depois, volta, clica na Msg 2 -> envia follow-up -> 2/3
-6. Repete para Msg 3 -> 3/3 (sequencia completa)
