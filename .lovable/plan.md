@@ -1,23 +1,31 @@
 
-# Atribuir acesso ao modulo Estrategia para daniel.silva@metodopare.ai
 
-## Diagnostico
+# Verificacao e correcao dos links dos cartoes de Produtividade
 
-O utilizador daniel.silva@metodopare.ai tem o role **admin** no workspace actual. O menu "Brief Executivo" (secao Estrategia) usa a chave `strategy` no sistema de permissoes de menu, mas **nao existem registos** na tabela `menu_permissions` para `menu_key = 'strategy'`.
+## Problema
 
-Como o sistema retorna `can_access = false` por defeito quando nao encontra uma permissao para roles que nao sejam `owner`, o menu fica invisivel para este utilizador.
+Os 4 cartoes KPI na pagina de Produtividade tem efeito de hover visual que sugere serem clicaveis, mas nao possuem nenhum link ou acao de clique. Isto cria uma experiencia confusa para o utilizador.
 
 ## Solucao
 
-Inserir registos na tabela `menu_permissions` para a chave `strategy`, dando acesso ao role `admin` (e opcionalmente aos outros roles):
+Adicionar navegacao logica a cada cartao:
 
-```sql
-INSERT INTO menu_permissions (role, menu_key, can_access, can_edit)
-VALUES ('admin', 'strategy', true, true);
-```
+| Cartao | Acao ao clicar |
+|--------|----------------|
+| Prioridades Hoje | Mudar para o tab "Coach Diario" (ja visivel por defeito) |
+| Reunioes Hoje | Navegar para `/dashboard/calendar` |
+| Metas Ativas | Mudar para o tab "Metas" |
+| Diarias / Semanais | Mudar para o tab "Metas" |
 
-Isto vai tornar a secao "Estrategia" visivel na barra lateral para o daniel.silva e todos os utilizadores com role `admin`.
+## Detalhes tecnicos
 
-Opcionalmente, tambem se pode adicionar acesso para outros roles (`agent`, `agency`, `viewer`) se desejado.
+### Ficheiro: `src/components/productivity/ProductivityDashboard.tsx`
 
-Nao e necessaria nenhuma alteracao de codigo.
+- Envolver o cartao "Reunioes Hoje" com um `Link` do react-router para `/dashboard/calendar`
+- Adicionar `onClick` nos cartoes "Metas Ativas" e "Diarias/Semanais" para `setActiveTab('goals')`
+- Adicionar `onClick` no cartao "Prioridades Hoje" para `setActiveTab('coach')`
+- Adicionar `cursor-pointer` aos cartoes para indicar interatividade
+- Manter o cartao de Reunioes com `cursor-pointer` tambem
+
+Nao sao necessarias alteracoes de base de dados nem de outros ficheiros.
+
