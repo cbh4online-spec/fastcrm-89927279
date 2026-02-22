@@ -124,6 +124,7 @@ import SEOAdminPage from "./pages/dashboard/seo";
 import CreditIntermediation from "./pages/CreditIntermediation";
 import StrategyPage from "./pages/StrategyPage";
 import ForgotPassword from "./pages/ForgotPassword";
+import AcceptWorkspaceInvite from "./pages/AcceptWorkspaceInvite";
 import LeadEnricher from "./pages/LeadEnricher";
 import StoreOrdersPage from "./pages/StoreOrdersPage";
 import StoreOrderDetailPage from "./pages/StoreOrderDetailPage";
@@ -472,6 +473,7 @@ function CRMRoutes() {
                 <Route path="/condominios" element={<VerticalLandingPage />} />
                 <Route path="/agencias" element={<VerticalLandingPage />} />
                 <Route path="/empresas" element={<VerticalLandingPage />} />
+                <Route path="/invite/:token" element={<AcceptWorkspaceInvite />} />
                 <Route path="/:slug" element={<VerticalLandingPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

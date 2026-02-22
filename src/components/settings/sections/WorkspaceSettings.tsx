@@ -169,15 +169,26 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
 
     setIsSubmitting(true);
     try {
-      // For now, we'll create a pending invitation
-      // In production, this would send an email invitation
+      const { getPublicBaseUrl } = await import("@/utils/getPublicDomain");
+      const { data, error } = await supabase.functions.invoke("send-workspace-invite", {
+        body: {
+          email: inviteEmail.trim(),
+          role: inviteRole,
+          workspaceId: currentWorkspace.id,
+          domain: getPublicBaseUrl(),
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro ao enviar convite");
+
       toast.success(`Convite enviado para ${inviteEmail}`);
       setInviteDialogOpen(false);
       setInviteEmail("");
       setInviteRole("agent");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error inviting member:", error);
-      toast.error("Erro ao enviar convite");
+      toast.error(error.message || "Erro ao enviar convite");
     } finally {
       setIsSubmitting(false);
     }
