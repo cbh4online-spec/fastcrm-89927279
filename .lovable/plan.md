@@ -1,40 +1,93 @@
 
-# Corrigir: Dialog de outreach desaparece ao voltar do Instagram
 
-## Problema
+# Resolver: Dialog fecha ao voltar do Instagram + Criar lead automaticamente
 
-Quando o utilizador clica "Abrir DM", o Instagram abre num novo separador. Ao voltar ao FastCRM, o dialog de outreach em massa desapareceu porque:
+## Problema raiz
 
-1. **`refetchInterval` ainda activo**: Se a pesquisa foi feita ha menos de 30 segundos, a query faz polling a cada 3 segundos. Isto causa re-renders que podem perturbar o estado do dialog.
-2. **Query invalidation em cascata**: O `onComplete` chama `invalidateQueries` que pode re-renderizar prematuramente.
-3. **`window.open` com focus**: O `window.open(url, "_blank")` pode causar perda de focus que dispara comportamentos inesperados.
+O Dialog do Radix UI fecha-se porque, apesar de todas as protecoes adicionadas (`onInteractOutside`, `onPointerDownOutside`, `refetchOnWindowFocus: false`, `refetchInterval: false`), o componente pai `ProspectingResults.tsx` tem muitos estados e queries que podem causar re-renders. Qualquer re-render que altere referências de estado pode fazer o Radix Dialog perder o seu estado `open`.
+
+A abordagem de tentar "proteger" o Dialog contra fecho nao funciona de forma fiavel.
 
 ## Solucao
 
-### Ficheiro 1: `ProspectingResults.tsx`
+### 1. Substituir Dialog por painel fixo persistente
 
-1. **Desactivar `refetchInterval` durante outreach**: Quando `bulkOutreachOpen === true`, desactivar tambem o `refetchInterval` (alem do `refetchOnWindowFocus` que ja foi corrigido):
-```
-refetchInterval: bulkOutreachOpen ? false : (searchId && (...) ? 3000 : false),
-```
+Em vez de usar `<Dialog>` do Radix (que depende de focus management e overlay), usar um **painel fixo** (`position: fixed`) que nao e afectado por re-renders do componente pai:
 
-2. **Nao invalidar queries no `onComplete` imediatamente**: Mover o `invalidateQueries` para apos o dialog fechar, evitando re-renders durante o processo.
+- Remover o `<Dialog>` e `<DialogContent>` do Radix
+- Usar um `div` com `fixed inset-0 z-50` + backdrop + painel central
+- O estado `open` continua a ser controlado por `bulkOutreachOpen`, mas o painel nao tem logica de fecho automatico do Radix (sem focus trap, sem dismiss on outside click)
+- O painel so fecha quando o utilizador clica explicitamente "Fechar" ou "Concluir"
 
-### Ficheiro 2: `BulkOutreachDialog.tsx`
+Isto garante que o painel **nunca** fecha sozinho, independentemente de tab switching, focus changes, ou re-renders.
 
-1. **Usar `window.open` com nome de janela fixo**: Em vez de `"_blank"`, usar um nome fixo como `"instagram_dm"` para reutilizar a mesma janela/separador do Instagram:
-```typescript
-window.open(dmUrl, "instagram_dm");
-```
-Isto evita abrir multiplos separadores e reduz confusao.
+### 2. Abrir janela unica por perfil (nao reutilizar)
 
-2. **Adicionar `onPointerDownOutside` e `onEscapeKeyDown` mais restritivos**: Bloquear fecho por overlay e Escape em TODOS os cenarios durante a fase de envio (nao apenas quando `sentCount > 0`).
+Alterar `window.open(dmUrl, "instagram_dm")` para `window.open(dmUrl, "_blank")` — cada perfil abre o seu proprio separador. Isto e o que o utilizador pediu explicitamente.
 
-3. **Adicionar `onInteractOutside` para prevenir fecho**: Adicionar handler para `onInteractOutside` que previne fecho durante toda a fase de envio.
+O nome fixo `"instagram_dm"` causava confusao porque substituia o separador anterior.
 
-## Resumo das alteracoes
+### 3. Criar lead automaticamente ao confirmar envio
+
+Quando o utilizador clica "Ja enviei", o sistema:
+1. Marca o perfil como enviado (outreach_step = 1)
+2. Agenda follow-ups (Dia 3, Dia 7)
+3. **NOVO**: Cria automaticamente um lead no CRM com os dados do perfil
+
+A criacao de lead usa a mesma logica que ja existe em `convertMutation`, simplificada para o contexto de outreach:
+- Nome do perfil
+- URL do Instagram
+- Profissao inferida
+- Fonte: "professional_prospecting"
+- Status: "new"
+- Imagem de perfil
+- Notas com contexto da mensagem enviada
+
+### Resumo das alteracoes
 
 | Ficheiro | Alteracao |
 |---|---|
-| `ProspectingResults.tsx` | Desactivar `refetchInterval` durante outreach |
-| `BulkOutreachDialog.tsx` | Usar janela nomeada para Instagram; bloquear fecho mais agressivamente durante envio |
+| `BulkOutreachDialog.tsx` | Substituir `<Dialog>` por painel fixo; abrir `_blank` por perfil; criar lead automaticamente no "Ja enviei" |
+| `ProspectingResults.tsx` | Passar dados adicionais dos perfis ao dialog (bio, score, etc.) para criacao de lead |
+
+### Detalhes tecnicos
+
+**BulkOutreachDialog.tsx**:
+
+- Substituir `<Dialog open={open} onOpenChange={handleOpenChange}>` por:
+```typescript
+if (!open) return null;
+return (
+  <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-black/50" /> {/* backdrop */}
+    <div className="relative z-10 bg-background rounded-lg shadow-lg max-w-2xl w-full max-h-[85vh] flex flex-col p-6">
+      {/* conteudo igual */}
+    </div>
+  </div>
+);
+```
+
+- Em `handleConfirmSent`, adicionar criacao de lead:
+```typescript
+// Criar lead automaticamente
+const leadData = {
+  workspace_id: currentWorkspace.id,
+  name: profile.profile_name || "Sem nome",
+  source: "professional_prospecting",
+  status: "new",
+  website: profile.profile_url,
+  instagram_url: profile.profile_url,
+  created_by: userId,
+  assigned_to: userId,
+  prospecting_profile_id: profile.id,
+};
+await supabase.from("leads").insert([leadData]);
+```
+
+- Alterar `window.open(dmUrl, "instagram_dm")` para `window.open(dmUrl, "_blank")` em ambos os handlers
+
+**ProspectingResults.tsx**:
+
+- Expandir a interface `BulkProfile` para incluir campos necessarios para criar lead (ou passar `userId` como prop ao dialog)
+- Adicionar props `userId` e `workspaceId` ao `BulkOutreachDialog` para que possa criar leads directamente
+
