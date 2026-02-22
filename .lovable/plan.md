@@ -1,128 +1,81 @@
 
-# Fix: Imagens e meta tags OG dinamicas para partilha de links
+# Implementar Convites de Workspace (Email Real)
 
 ## Problema
 
-Quando se partilha um link de funil/vertical (ex: `https://fastcrm.metodopare.ai/imobiliarias`) no WhatsApp, Facebook ou LinkedIn, a pre-visualizacao mostra sempre a imagem e descricao generica do FastCRM. Isto acontece porque os crawlers destes servicos nao executam JavaScript -- leem apenas o HTML inicial servido pelo servidor, que e sempre o `index.html` com os OG tags estaticos do FastCRM.
-
-## Causa Raiz
-
-A aplicacao e uma SPA (Single Page Application). O `index.html` tem:
-```html
-<meta property="og:title" content="FastCRM - CRM Inteligente" />
-<meta property="og:description" content="Plataforma de CRM inteligente..." />
-<meta property="og:image" content="/og-image.png" />
-```
-
-O react-helmet actualiza estas tags no browser, mas os crawlers nunca executam o React.
+O botao "Convidar membro" nas definicoes do workspace e apenas um stub -- mostra um toast "Convite enviado" mas nao envia email nem guarda nada na base de dados. O convite para daniel.silva@metodopare.ai nao foi enviado.
 
 ## Solucao
 
-Criar uma **edge function `og-proxy`** que serve HTML minimo com os OG tags correctos para cada tipo de pagina. Os links de partilha passam a apontar para esta funcao, que:
+Criar um sistema completo de convites de workspace, seguindo o padrao ja existente no `send-c2c-seller-invite`.
 
-1. Detecta se o visitante e um crawler (via User-Agent) -> serve HTML com OG tags correctos
-2. Se for um utilizador real -> faz redirect 302 para a pagina SPA
+## Alteracoes
 
-### Tipos de pagina suportados
+### 1. Nova tabela: `workspace_invites`
 
-| Tipo | Slug exemplo | Fonte dos dados |
-|------|-------------|-----------------|
-| vertical | imobiliarias, clinicas | `verticalConfigs` estatico + `vertical_templates` DB |
-| bio | workspace/page | tabela `bio_pages` |
-| landing | workspace/page | tabela `landing_pages` |
-| store | workspace | tabela `workspace_store_settings` |
-| product | workspace/id | tabela `products` |
+Migracao SQL para criar a tabela que guarda os convites pendentes:
+
+- `id` (uuid, PK)
+- `workspace_id` (uuid, FK workspaces)
+- `email` (text)
+- `role` (text, default 'agent')
+- `invite_token` (uuid, auto-gerado)
+- `status` (text: pending, accepted, revoked, expired)
+- `invited_by` (uuid)
+- `accepted_at`, `expires_at`, `created_at`
+- RLS: membros do workspace (owner/admin/agency) + super_admins podem gerir
+- Indice unico em (workspace_id, email) para status 'pending'
+
+### 2. Nova Edge Function: `send-workspace-invite`
+
+Baseada no `send-c2c-seller-invite` existente:
+
+- Recebe: `{ email, role, workspaceId }`
+- Cria registo em `workspace_invites` com token
+- Envia email via Resend com template HTML profissional
+- URL do convite: `https://fastcrm.lovable.app/invite/{token}`
+- From: `{workspace.name} <noreply@m.fastcrm.metodopare.ai>`
+
+### 3. Nova pagina: `/invite/:token` (aceitar convite)
+
+Pagina publica que:
+- Valida o token e mostra detalhes do convite
+- Se o utilizador ja tem conta -> login e aceitar
+- Se nao tem conta -> registo e aceitar
+- Ao aceitar: insere em `workspace_members` e marca convite como accepted
+
+### 4. Actualizar `WorkspaceSettings.tsx`
+
+- `handleInviteMember`: chamar a edge function `send-workspace-invite` em vez do toast stub
+- Mostrar lista de convites pendentes (com opcao revogar/reenviar)
+- Feedback real sobre sucesso/falha do envio
+
+## Detalhe Tecnico
+
+### Template Email
+
+```text
+Header: {workspace.name} - Equipa
+Corpo: "Ola, foi convidado(a) a juntar-se a equipa do {workspace.name} como {role}."
+CTA: "Aceitar Convite"
+Footer: "Este convite expira em 7 dias"
+```
 
 ### Fluxo
 
 ```text
-Link partilhado: https://fastcrm.lovable.app/api/og?type=vertical&slug=imobiliarias
-
-Crawler (WhatsApp):
-  -> Edge function serve HTML com OG tags da vertical "imobiliarias"
-  -> WhatsApp le titulo, descricao e imagem correctos
-
-Utilizador real:
-  -> Edge function faz redirect 302 para https://fastcrm.lovable.app/imobiliarias
-  -> Utilizador ve a pagina normal
+Owner clica "Convidar membro" -> preenche email + role
+  -> Frontend chama send-workspace-invite
+    -> Edge function cria workspace_invites + envia email
+      -> Destinatario recebe email com link
+        -> Clica no link -> /invite/{token}
+          -> Login/Registo -> workspace_members insert -> redirect dashboard
 ```
 
-## Alteracoes
+### Ficheiros alterados/criados
 
-### 1. Nova Edge Function: `supabase/functions/og-proxy/index.ts`
-
-- Recebe query params: `type` (vertical, bio, landing, store, product) e `slug`
-- Para verticais estaticas: mapeamento interno dos dados SEO (titulo, descricao)
-- Para paginas dinamicas (bio, landing, store): consulta a base de dados
-- Serve HTML minimo com OG tags + redirect JS para utilizadores reais
-- Detecta crawlers via User-Agent (WhatsApp, Facebook, Twitter, LinkedIn, Telegram, Discord, Slack)
-
-### 2. Actualizar componentes de partilha
-
-Actualizar os componentes que geram links de partilha para usar o URL do og-proxy em vez do URL directo:
-- `ShareButtons.tsx` (ja recebe url como prop)
-- Copiar link nas listas de funis/verticais/bio
-
-Criar uma funcao utilitaria `getShareUrl(type, slug)` que gera o URL correcto:
-```text
-getShareUrl("vertical", "imobiliarias")
--> https://[supabase-url]/functions/v1/og-proxy?type=vertical&slug=imobiliarias
-```
-
-### 3. Actualizar paginas que geram links de partilha
-
-- `LandingPagesList.tsx` - links de partilha das landing pages
-- `BioOS.tsx` - links de partilha das bio pages  
-- Componentes de vertical landing que mostram URLs
-
-## Detalhes Tecnicos
-
-### Mapeamento de verticais estaticas (dentro da edge function)
-
-```text
-clinicas -> "FastCRM para Clinicas - Sistema com IA para Gestao Clinica"
-imobiliarias -> "FastCRM para Imobiliarias - Pipeline Inteligente com IA"
-formacao -> "FastCRM para Centros de Formacao..."
-condominios -> ...
-agencias -> ...
-empresas -> ...
-```
-
-### Template HTML servido aos crawlers
-
-```text
-<!DOCTYPE html>
-<html>
-<head>
-  <meta property="og:title" content="[titulo dinamico]" />
-  <meta property="og:description" content="[descricao dinamica]" />
-  <meta property="og:image" content="[imagem dinamica ou fallback]" />
-  <meta property="og:url" content="[url real da pagina]" />
-  <meta property="og:type" content="website" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta http-equiv="refresh" content="0;url=[url real]" />
-</head>
-<body>Redirecting...</body>
-</html>
-```
-
-### Deteccao de crawlers
-
-```text
-User-Agents detectados:
-- facebookexternalhit, Facebot
-- WhatsApp
-- Twitterbot
-- LinkedInBot
-- TelegramBot
-- Slackbot
-- Discordbot
-- Googlebot (para SEO)
-```
-
-## Resultado
-
-- Cada link partilhado no WhatsApp/Facebook/LinkedIn mostra titulo, descricao e imagem especificos da pagina
-- Utilizadores reais sao redirecionados transparentemente para a pagina correcta
-- Sem impacto na performance da SPA existente
-- Extensivel para novos tipos de pagina no futuro
+1. Migracao SQL (nova tabela `workspace_invites` + RLS)
+2. `supabase/functions/send-workspace-invite/index.ts` (nova edge function)
+3. `src/pages/AcceptWorkspaceInvite.tsx` (nova pagina)
+4. `src/App.tsx` (nova rota `/invite/:token`)
+5. `src/components/settings/sections/WorkspaceSettings.tsx` (ligar ao backend real)
