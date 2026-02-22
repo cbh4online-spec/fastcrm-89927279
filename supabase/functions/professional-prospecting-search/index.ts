@@ -15,6 +15,51 @@ interface Profile {
   platform: "instagram" | "facebook";
 }
 
+// PT to EN profession translations for bilingual search
+const professionTranslations: Record<string, string[]> = {
+  "fisioterapeuta": ["physiotherapist", "physio", "physical therapist", "physical therapy"],
+  "dentista": ["dentist", "dental clinic"],
+  "médico dentista": ["dentist", "dental surgeon"],
+  "medico dentista": ["dentist", "dental surgeon"],
+  "cabeleireiro": ["hairdresser", "hair stylist", "barber"],
+  "cabeleireira": ["hairdresser", "hair stylist"],
+  "esteticista": ["esthetician", "beauty therapist", "skincare"],
+  "nutricionista": ["nutritionist", "dietitian", "nutrition"],
+  "psicólogo": ["psychologist", "therapist", "psychology"],
+  "psicologo": ["psychologist", "therapist", "psychology"],
+  "personal trainer": ["personal trainer", "fitness coach", "gym trainer"],
+  "massagista": ["massage therapist", "masseuse"],
+  "fotógrafo": ["photographer", "photography"],
+  "fotografo": ["photographer", "photography"],
+  "advogado": ["lawyer", "attorney"],
+  "arquiteto": ["architect"],
+  "maquilhador": ["makeup artist", "MUA"],
+  "maquilhadora": ["makeup artist", "MUA"],
+  "médico": ["doctor", "physician"],
+  "medico": ["doctor", "physician"],
+  "enfermeiro": ["nurse", "nursing"],
+  "enfermeira": ["nurse", "nursing"],
+  "osteopata": ["osteopath", "osteopathy"],
+  "podologista": ["podiatrist", "podology"],
+  "terapeuta da fala": ["speech therapist", "speech therapy"],
+  "veterinário": ["veterinarian", "vet"],
+  "veterinario": ["veterinarian", "vet"],
+  "contabilista": ["accountant", "accounting"],
+  "designer": ["designer", "design"],
+  "coach": ["coach", "coaching", "life coach"],
+};
+
+// Get English translations for a profession
+function getEnglishTranslations(profession: string): string[] {
+  const lower = profession.toLowerCase();
+  for (const [key, translations] of Object.entries(professionTranslations)) {
+    if (lower.includes(key) || key.includes(lower)) {
+      return translations;
+    }
+  }
+  return [];
+}
+
 // Generate Instagram search queries
 function generateInstagramQueries(profession: string, location: string | null, keywords: string | null): string[] {
   const queries: string[] = [];
@@ -49,16 +94,17 @@ function generateInstagramQueries(profession: string, location: string | null, k
     }
   }
 
-  // Location variations for Portugal
+  const englishTerms = getEnglishTranslations(profession);
   const locationStr = location || "";
-  const locationParts = locationStr ? [locationStr, "Portugal"] : ["Portugal"];
+  const hasLocation = !!locationStr;
+  const locationParts = hasLocation ? [locationStr, "Portugal"] : ["Portugal"];
   
-  // Strategy 1: Direct Instagram site search with profession
+  // Strategy 1: Direct Instagram site search with profession (PT)
   for (const variant of variations.slice(0, 3)) {
     queries.push(`site:instagram.com "${variant}" ${locationParts.join(" ")}`);
   }
   
-  // Strategy 2: Search for professionals with Instagram mentions
+  // Strategy 2: Search for professionals with Instagram mentions (PT)
   queries.push(`"${profession}" instagram ${locationParts.join(" ")}`);
   
   // Strategy 3: Search with keywords if provided
@@ -73,16 +119,41 @@ function generateInstagramQueries(profession: string, location: string | null, k
     queries.push(`site:instagram.com "${variant}" clínica ${locationStr || ""}`);
   }
 
-  // Return unique queries (max 6 to avoid too many API calls)
-  return [...new Set(queries)].slice(0, 6);
+  // Strategy 5: Directory/listing searches (PT)
+  queries.push(`melhores ${profession} instagram ${locationStr || "Portugal"}`);
+  queries.push(`"${profession}" perfil instagram ${locationStr || ""}`);
+  
+  // Strategy 6: Hashtag searches
+  const hashtagBase = professionLower.replace(/\s+/g, "");
+  queries.push(`site:instagram.com #${hashtagBase} ${locationStr || ""}`);
+  
+  // Strategy 7: English queries for international results (no country restriction)
+  if (englishTerms.length > 0) {
+    queries.push(`site:instagram.com "${englishTerms[0]}" ${locationStr || ""}`);
+    if (englishTerms.length > 1) {
+      queries.push(`site:instagram.com "${englishTerms[1]}" instagram`);
+    }
+    // English hashtag
+    const enHashtag = englishTerms[0].replace(/\s+/g, "").toLowerCase();
+    queries.push(`site:instagram.com #${enHashtag}`);
+  }
+
+  // Strategy 8: Without "Portugal" for broader results
+  if (!hasLocation) {
+    queries.push(`site:instagram.com "${profession}"`);
+  }
+
+  // Return unique queries (max 10)
+  return [...new Set(queries)].slice(0, 10);
 }
 
 // Generate Facebook search queries
 function generateFacebookQueries(profession: string, location: string | null, keywords: string | null): string[] {
   const queries: string[] = [];
   const locationStr = location || "Portugal";
+  const englishTerms = getEnglishTranslations(profession);
   
-  // Facebook business pages
+  // Facebook business pages (PT)
   queries.push(`site:facebook.com "${profession}" ${locationStr}`);
   queries.push(`site:facebook.com/pages "${profession}" ${locationStr}`);
   queries.push(`site:facebook.com "${profession}" clínica ${locationStr}`);
@@ -97,7 +168,15 @@ function generateFacebookQueries(profession: string, location: string | null, ke
   queries.push(`site:facebook.com "dr." "${profession}" ${locationStr}`);
   queries.push(`site:facebook.com "dra." "${profession}" ${locationStr}`);
   
-  return [...new Set(queries)].slice(0, 4);
+  // English queries for international reach
+  if (englishTerms.length > 0) {
+    queries.push(`site:facebook.com "${englishTerms[0]}" ${location || ""}`);
+    if (englishTerms.length > 1) {
+      queries.push(`site:facebook.com "${englishTerms[1]}"`);
+    }
+  }
+  
+  return [...new Set(queries)].slice(0, 6);
 }
 
 // Extract Instagram profiles from search results
@@ -361,21 +440,29 @@ Deno.serve(async (req) => {
       const batchPromises = batch.map(async ({query, platform}) => {
         try {
           console.log(`Executing [${platform}] query:`, query);
+          
+          // Determine if this is an English/international query
+          const isEnglishQuery = getEnglishTranslations(profession).some(t => query.toLowerCase().includes(t.toLowerCase()));
+          const searchLang = isEnglishQuery ? "en" : "pt";
+          const searchCountry = isEnglishQuery ? undefined : "PT";
+          
+          const searchBody: any = {
+            query,
+            limit: 25,
+            lang: searchLang,
+            scrapeOptions: {
+              formats: ["markdown"]
+            }
+          };
+          if (searchCountry) searchBody.country = searchCountry;
+          
           const response = await fetch("https://api.firecrawl.dev/v1/search", {
             method: "POST",
             headers: {
               Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              query,
-              limit: 20,
-              lang: "pt",
-              country: "PT",
-              scrapeOptions: {
-                formats: ["markdown"]
-              }
-            }),
+            body: JSON.stringify(searchBody),
           });
 
           if (!response.ok) {

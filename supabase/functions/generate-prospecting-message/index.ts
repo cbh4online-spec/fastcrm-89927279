@@ -46,11 +46,19 @@ Deno.serve(async (req) => {
 IMPORTANTE: Foca a mensagem na DOR específica deste prospect e como a tua oferta a resolve. Não sejas genérico.`
       : "";
 
+    // Detect language for the message
+    const profileLanguage = profile.detectedLanguage || profile.language || "pt";
+    const isPortuguese = profileLanguage === "pt";
+    
+    const languageInstruction = isPortuguese 
+      ? "Escreve em português de Portugal." 
+      : `O perfil é de um país/lingua "${profileLanguage}". Escreve a mensagem INTEIRAMENTE na língua "${profileLanguage}" (não em português). Adapta expressões e referências culturais ao país do perfil.`;
+
     const systemPrompt = `És um especialista em copywriting para Instagram DMs usando o método AIDA (Atenção, Interesse, Desejo, Ação).
 
 REGRAS OBRIGATÓRIAS:
 - A mensagem DEVE ter no máximo 300 caracteres (ideal para Instagram DM)
-- Escreve em português de Portugal
+- ${languageInstruction}
 - NÃO uses hashtags
 - NÃO uses saudações genéricas como "Olá, tudo bem?"
 - A mensagem deve parecer natural e humana, não um template
