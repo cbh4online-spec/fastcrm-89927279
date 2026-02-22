@@ -156,7 +156,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
       })) as Profile[];
     },
     enabled: !!currentWorkspace?.id,
-    refetchInterval: searchId && (Date.now() - pollingStartTime < 30000) ? 3000 : false,
+    refetchInterval: bulkOutreachOpen ? false : (searchId && (Date.now() - pollingStartTime < 30000) ? 3000 : false),
     refetchOnWindowFocus: !bulkOutreachOpen,
   });
 
