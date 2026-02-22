@@ -2,7 +2,7 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Users, History, Settings2 } from "lucide-react";
+import { Search, Users, History, Settings2, Sparkles, Loader2 } from "lucide-react";
 import { ProspectingSearch, SearchPrefill } from "@/components/professional-prospecting/ProspectingSearch";
 import { ProspectingResults } from "@/components/professional-prospecting/ProspectingResults";
 import { ProspectingHistory } from "@/components/professional-prospecting/ProspectingHistory";
@@ -14,6 +14,17 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface OfferSuggestion {
+  label: string;
+  offer: string;
+  painPoints: string;
+}
 
 export default function ProfessionalProspecting() {
   const [activeTab, setActiveTab] = useState("search");
@@ -25,10 +36,17 @@ export default function ProfessionalProspecting() {
 
   const [serviceOffer, setServiceOffer] = useState("");
   const [servicePainPoints, setServicePainPoints] = useState("");
+  const [targetProfession, setTargetProfession] = useState("");
+  const [suggestions, setSuggestions] = useState<OfferSuggestion[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedSuggestionIdx, setSelectedSuggestionIdx] = useState<number | null>(null);
 
   const handleOpenOfferDialog = () => {
     setServiceOffer(settings.service_offer || "");
     setServicePainPoints(settings.service_pain_points || "");
+    setTargetProfession("");
+    setSuggestions([]);
+    setSelectedSuggestionIdx(null);
     setOfferDialogOpen(true);
   };
 
@@ -38,6 +56,37 @@ export default function ProfessionalProspecting() {
       service_pain_points: servicePainPoints,
     });
     setOfferDialogOpen(false);
+  };
+
+  const handleGenerateSuggestions = async () => {
+    if (!targetProfession.trim()) {
+      toast.error("Escreve uma profissão primeiro");
+      return;
+    }
+    setIsGenerating(true);
+    setSuggestions([]);
+    setSelectedSuggestionIdx(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-offer-suggestions", {
+        body: { profession: targetProfession.trim() },
+      });
+      if (error) throw error;
+      if (data?.suggestions) {
+        setSuggestions(data.suggestions);
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Erro ao gerar sugestões");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSelectSuggestion = (idx: number) => {
+    const s = suggestions[idx];
+    setServiceOffer(s.offer);
+    setServicePainPoints(s.painPoints);
+    setSelectedSuggestionIdx(idx);
   };
 
   const handleRepeatSearch = (params: SearchPrefill) => {
@@ -153,7 +202,7 @@ export default function ProfessionalProspecting() {
 
       {/* Offer Configuration Dialog */}
       <Dialog open={offerDialogOpen} onOpenChange={setOfferDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Settings2 className="w-5 h-5 text-primary" />
@@ -165,6 +214,69 @@ export default function ProfessionalProspecting() {
           </DialogHeader>
 
           <div className="space-y-4">
+            {/* AI Suggestions Section */}
+            <div className="space-y-2">
+              <Label htmlFor="target_profession">Profissão-alvo</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="target_profession"
+                  value={targetProfession}
+                  onChange={(e) => setTargetProfession(e.target.value)}
+                  placeholder="Ex: Fisioterapeuta, Dentista, Advogado..."
+                  onKeyDown={(e) => e.key === "Enter" && handleGenerateSuggestions()}
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="gap-1 shrink-0 h-10"
+                  onClick={handleGenerateSuggestions}
+                  disabled={isGenerating || !targetProfession.trim()}
+                >
+                  {isGenerating ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  Sugerir IA
+                </Button>
+              </div>
+            </div>
+
+            {/* Loading skeletons */}
+            {isGenerating && (
+              <div className="grid grid-cols-2 gap-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-20 rounded-lg" />
+                ))}
+              </div>
+            )}
+
+            {/* Suggestion cards */}
+            {suggestions.length > 0 && !isGenerating && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Sugestões AIDA — clica para aplicar</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {suggestions.map((s, idx) => (
+                    <Card
+                      key={idx}
+                      className={`p-3 cursor-pointer transition-all hover:border-primary/50 hover:shadow-sm ${
+                        selectedSuggestionIdx === idx
+                          ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                          : ""
+                      }`}
+                      onClick={() => handleSelectSuggestion(idx)}
+                    >
+                      <p className="font-medium text-sm flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+                        {s.label}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{s.offer}</p>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="service_offer">O que ofereces?</Label>
               <Textarea
