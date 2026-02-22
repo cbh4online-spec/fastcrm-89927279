@@ -17,11 +17,12 @@ import {
   UserPlus, ThumbsDown, Search, Filter, Loader2,
   ChevronDown, ChevronUp, MapPin, Briefcase, Star,
   CheckCircle, XCircle, AlertCircle, RefreshCw, Instagram,
-  Eye, Facebook, Mail, Phone, MessageSquare, CheckSquare, Square, ArrowUpDown
+  Eye, Facebook, Mail, Phone, MessageSquare, CheckSquare, Square, ArrowUpDown, Send
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConvertProfileDialog, ConversionOptions } from "./ConvertProfileDialog";
 import { ProspectingMessageDialog } from "./ProspectingMessageDialog";
+import { BulkOutreachDialog } from "./BulkOutreachDialog";
 
 interface ProspectingResultsProps {
   searchId: string | null;
@@ -108,6 +109,11 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
   const [sortBy, setSortBy] = useState<SortOption>("score_desc");
   const [minScore, setMinScore] = useState(0);
   const [bulkProcessing, setBulkProcessing] = useState<string | null>(null);
+  const [bulkOutreachOpen, setBulkOutreachOpen] = useState(false);
+  const [bulkOutreachMessages, setBulkOutreachMessages] = useState<Array<{ profileId: string; message: string; message_plain: string; error?: string }>>([]);
+  const [bulkOutreachProfiles, setBulkOutreachProfiles] = useState<Array<{ id: string; profile_name: string | null; profile_url: string; inferred_profession: string | null; platform: string }>>([]);
+  const [bulkGenerating, setBulkGenerating] = useState(false);
+  const [bulkGenerationProgress, setBulkGenerationProgress] = useState({ done: 0, total: 0 });
 
   // Fetch profiles - if searchId provided, filter by it; otherwise get recent analyzed profiles
   const { data: profiles = [], isLoading, refetch } = useQuery({
@@ -459,6 +465,75 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
     setBulkProcessing(null);
     setSelectedIds(new Set());
     toast.success(`${enriched} perfis enriquecidos`);
+  };
+
+  // Bulk outreach - generate messages for all selected profiles
+  const handleBulkOutreach = async () => {
+    const selectedProfiles = profiles.filter(p => 
+      selectedIds.has(p.id) && (!p.outreach_step || p.outreach_step === 0)
+    );
+    
+    if (selectedProfiles.length === 0) {
+      toast.info("Nenhum perfil elegível selecionado (apenas perfis sem outreach)");
+      return;
+    }
+
+    // Prepare profiles for dialog
+    const dialogProfiles = selectedProfiles.map(p => ({
+      id: p.id,
+      profile_name: p.profile_name,
+      profile_url: p.profile_url,
+      inferred_profession: p.inferred_profession,
+      platform: p.platform,
+    }));
+
+    setBulkOutreachProfiles(dialogProfiles);
+    setBulkOutreachMessages([]);
+    setBulkOutreachOpen(true);
+    setBulkGenerating(true);
+    setBulkGenerationProgress({ done: 0, total: selectedProfiles.length });
+
+    // Prepare profiles for the edge function
+    const profileInputs = selectedProfiles.map(p => ({
+      id: p.id,
+      name: p.profile_name || "Sem nome",
+      profession: p.inferred_profession || undefined,
+      specialty: p.inferred_specialty || undefined,
+      bio: p.instagram_full_bio || p.profile_bio || undefined,
+      location: p.inferred_location || undefined,
+      followers: p.instagram_followers_count || undefined,
+      category: p.instagram_category || undefined,
+      isVerified: p.instagram_is_verified || undefined,
+      isBusiness: p.instagram_is_business || undefined,
+      profileUrl: p.profile_url,
+    }));
+
+    // Get workspace context
+    const wsContext = currentWorkspace ? {
+      name: currentWorkspace.name || "",
+      description: (currentWorkspace as any).description || "",
+    } : null;
+
+    try {
+      const { data, error } = await supabase.functions.invoke("batch-generate-prospecting-messages", {
+        body: {
+          profiles: profileInputs,
+          tone: defaultTone || "casual",
+          workspaceContext: wsContext,
+          serviceContext: null,
+        },
+      });
+
+      if (error) throw error;
+
+      setBulkOutreachMessages(data.results || []);
+      setBulkGenerationProgress({ done: selectedProfiles.length, total: selectedProfiles.length });
+    } catch (err) {
+      toast.error("Erro ao gerar mensagens em massa");
+      console.error("Bulk outreach error:", err);
+    } finally {
+      setBulkGenerating(false);
+    }
   };
 
   // Filter and sort profiles
@@ -1026,6 +1101,16 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
           <div className="w-px h-6 bg-border" />
           <Button
             size="sm"
+            variant="default"
+            onClick={handleBulkOutreach}
+            disabled={!!bulkProcessing}
+            className="gap-1"
+          >
+            <Send className="w-3 h-3" />
+            Iniciar Sequência
+          </Button>
+          <Button
+            size="sm"
             onClick={handleBulkConvert}
             disabled={!!bulkProcessing}
             className="gap-1"
@@ -1086,6 +1171,20 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
           }}
         />
       )}
+
+      {/* Bulk Outreach Dialog */}
+      <BulkOutreachDialog
+        open={bulkOutreachOpen}
+        onOpenChange={setBulkOutreachOpen}
+        profiles={bulkOutreachProfiles}
+        generatedMessages={bulkOutreachMessages}
+        isGenerating={bulkGenerating}
+        generationProgress={bulkGenerationProgress}
+        onComplete={() => {
+          setSelectedIds(new Set());
+          queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
+        }}
+      />
     </div>
   );
 }
