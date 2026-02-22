@@ -1,69 +1,55 @@
 
 
-# Melhorar UX do Dialog de Outreach em Massa
+# Corrigir processo de envio de mensagens em massa
 
-## Problemas identificados
+## Problemas encontrados
 
-1. **Dialog desaparece**: Clicar fora do dialog ou carregar Escape fecha-o imediatamente, mesmo durante a geracao de mensagens
-2. **Fluxo confuso**: Nao ha instrucoes claras passo-a-passo do que fazer
-3. **Sem confirmacao ao fechar**: Se fechar acidentalmente, perde todo o progresso
-4. **Mensagens geradas nao sao visiveis de imediato**: O estado de loading nao e suficientemente claro
+### 1. Follow-ups nao sao agendados (BUG CRITICO)
+O `BulkOutreachDialog` insere na tabela `prospecting_outreach_queue` com o campo `sequence_step`, mas a coluna real chama-se `step_index`. O `as any` esconde o erro de tipo e a insercao falha silenciosamente. Os follow-ups de Dia 3 e Dia 7 nunca sao criados.
+
+### 2. Progresso nao actualiza durante geracao
+A funcao `handleBulkOutreach` em `ProspectingResults.tsx` faz uma unica chamada ao edge function `batch-generate-prospecting-messages` e so actualiza o progresso no final. O dialog mostra "0/N" durante toda a geracao e depois salta para "N/N". O utilizador pensa que esta bloqueado.
+
+### 3. Mensagens chegam todas de uma vez
+As mensagens geradas sao definidas todas de uma vez com `setBulkOutreachMessages(data.results)`. O dialog fica vazio durante a geracao e depois mostra tudo de repente.
 
 ## Solucao
 
-### 1. Impedir fecho acidental do dialog
+### Ficheiro 1: `BulkOutreachDialog.tsx` - Corrigir nome da coluna
 
-- Bloquear fecho por clique fora (overlay) e tecla Escape enquanto esta a gerar ou enquanto ha perfis por enviar
-- Adicionar confirmacao "Tem a certeza?" se tentar fechar com perfis pendentes
-- So permitir fechar livremente quando todos os perfis foram enviados
+Na funcao `markAsSent` (linha 126-141), alterar `sequence_step` para `step_index`:
 
-### 2. Melhorar o fluxo visual com etapas claras
+```typescript
+// ANTES (errado)
+{ sequence_step: 2, ... }
+{ sequence_step: 3, ... }
 
-Adicionar 3 estados visuais distintos no dialog:
-
-- **Estado 1 - A Gerar**: Animacao de loading com progresso claro "A preparar mensagens... 3 de 12"
-- **Estado 2 - Pronto para Enviar**: Lista de mensagens com botao grande "Proximo perfil" destacado no fundo. Instrucao clara: "Clique 'Proximo' para copiar a mensagem e abrir o Instagram"
-- **Estado 3 - Concluido**: Resumo "12/12 enviados!" com botao "Concluir"
-
-### 3. Botao "Proximo perfil" mais prominente
-
-- Tornar o botao "Proximo perfil" maior e com cor primaria
-- Mostrar o nome do proximo perfil no botao: "Enviar para Ricardo Silva"
-- Scroll automatico para o perfil activo
-
-### 4. Impedir fecho durante geracao
-
-- `onOpenChange` so aceita `false` se nao estiver a gerar e se o utilizador confirmar
-
-## Ficheiros a modificar
-
-- **`src/components/professional-prospecting/BulkOutreachDialog.tsx`** - toda a logica de UX melhorada
-
-## Detalhes tecnicos
-
-### BulkOutreachDialog.tsx
-
-1. Alterar `onOpenChange` para nao fechar durante geracao:
-```
-onOpenChange={(open) => {
-  if (!open && isGenerating) return; // bloquear fecho durante geracao
-  if (!open && sentCount < totalProfiles && sentCount > 0) {
-    // mostrar confirmacao
-    setShowCloseConfirm(true);
-    return;
-  }
-  handleClose();
-}}
+// DEPOIS (correcto)
+{ step_index: 2, ... }
+{ step_index: 3, ... }
 ```
 
-2. Adicionar estado de confirmacao de fecho com mini-dialog inline
+Remover os `as any` para que erros de tipo sejam detectados no futuro.
 
-3. Redesenhar o layout com 3 fases visuais claras:
-   - Fase de geracao: spinner grande centrado com barra de progresso
-   - Fase de envio: lista com highlight no perfil activo + botao grande "Enviar para [Nome]"
-   - Fase concluida: icone de sucesso + resumo
+### Ficheiro 2: `ProspectingResults.tsx` - Progresso incremental
 
-4. Scroll automatico para o proximo perfil nao enviado usando `scrollIntoView`
+Alterar `handleBulkOutreach` para processar os perfis em mini-batches (de 5 em 5) no frontend, em vez de enviar tudo numa unica chamada. Assim o progresso actualiza a cada batch:
 
-5. Botao "Proximo perfil" mostra o nome: "Abrir DM de [Nome]" em vez de generico "Proximo perfil"
+```text
+Batch 1 (5 perfis) -> actualiza progresso 5/20, adiciona mensagens
+Batch 2 (5 perfis) -> actualiza progresso 10/20, adiciona mensagens
+Batch 3 (5 perfis) -> actualiza progresso 15/20, adiciona mensagens
+Batch 4 (5 perfis) -> actualiza progresso 20/20, adiciona mensagens
+```
+
+Cada batch usa a edge function `generate-prospecting-message` individual (ja existente) em vez do `batch-generate-prospecting-messages`, ou mantemos o batch mas com chunks menores.
+
+A abordagem mais simples: manter a chamada ao `batch-generate-prospecting-messages` mas dividir os perfis em grupos de 5 no frontend e ir actualizando `bulkOutreachMessages` e `bulkGenerationProgress` incrementalmente.
+
+### Resumo das alteracoes
+
+| Ficheiro | Alteracao |
+|---|---|
+| `BulkOutreachDialog.tsx` | Corrigir `sequence_step` -> `step_index` na insercao dos follow-ups |
+| `ProspectingResults.tsx` | Processar em mini-batches com progresso incremental e mensagens parciais |
 
