@@ -1,31 +1,89 @@
 
 
-# Corrigir layout responsivo das mensagens no painel de Outreach
+# Filtrar contactos existentes nas novas pesquisas de prospeccao
 
 ## Problema
 
-As mensagens no painel de Outreach em Massa estao a transbordar (overflow) dos seus cards. O texto das mensagens nao esta a respeitar os limites do container, causando problemas de layout visivel no screenshot.
+Quando o utilizador faz uma nova pesquisa, o sistema retorna perfis que ja existem como contactos no CRM ou que ja foram convertidos em leads anteriormente. Isto desperdiça creditos de analise e cria confusao na lista de resultados.
 
-## Causa
+## Onde atuar
 
-Na linha 392, o container de conteudo tem `min-w-0` e `flex-1` mas o paragrafo da mensagem (linha 415) usa apenas `line-clamp-2` sem `break-words` nem `overflow-hidden`. Alem disso, o layout flex dos items (linha 375) com os botoes de acao (linha 428) nao tem restricoes suficientes para impedir que o texto empurre o layout.
+A filtragem deve acontecer em dois pontos:
 
-## Alteracoes
+### 1. Edge Function `professional-prospecting-analyze/index.ts`
 
-### Ficheiro: `BulkOutreachDialog.tsx`
+Antes de analisar cada perfil com IA (que gasta creditos), verificar na base de dados:
 
-1. **Linha 392** — Adicionar `overflow-hidden` ao container de conteudo:
-   - De: `className="flex-1 min-w-0"`
-   - Para: `className="flex-1 min-w-0 overflow-hidden"`
+**a) Perfis ja prospectados (qualquer status):** Consultar `professional_prospecting_profiles` para ver se o `profile_url` ja existe neste workspace. Se existir com status `converted` ou `rejected`, ignorar (nao gastar creditos). Se existir com status `analyzed`, reutilizar (nao re-analisar).
 
-2. **Linha 415** — Adicionar `break-words` e `overflow-hidden` ao paragrafo da mensagem:
-   - De: `className="text-xs text-muted-foreground mt-1 line-clamp-2"`
-   - Para: `className="text-xs text-muted-foreground mt-1 line-clamp-2 break-words overflow-hidden"`
+**b) Contactos ja existentes:** Consultar a tabela `contacts` para verificar se algum contacto do workspace ja tem o mesmo URL de perfil (cruzando com campos como email ou nome normalizado). Tambem cruzar leads existentes para perfis ja convertidos.
 
-3. **Linha 394** — Garantir que o nome tambem respeita limites, adicionando `max-w-[60%]` ao span do nome para nao empurrar os badges para fora.
+Logica concreta:
+- Buscar todos os `profile_url` existentes em `professional_prospecting_profiles` para o workspace
+- Filtrar os perfis recebidos, removendo os que ja existem com status `converted` ou `rejected`
+- Os restantes sao analisados normalmente
 
-4. **Linha 393** — Adicionar `flex-wrap` a div dos items de header para que os badges facam wrap quando o espaco e limitado:
-   - De: `className="flex items-center gap-2"`
-   - Para: `className="flex items-center gap-2 flex-wrap"`
+### 2. Edge Function `professional-prospecting-search/index.ts`
 
-Estas alteracoes simples resolvem o overflow sem alterar a estrutura do componente.
+Apos extrair perfis dos resultados da web, antes de retornar ao frontend:
+
+- Buscar URLs ja existentes em `professional_prospecting_profiles` com status `converted` ou `rejected`
+- Remover esses perfis do resultado antes de enviar para analise
+- Incluir contagem de perfis filtrados na resposta para feedback ao utilizador
+
+## Detalhes tecnicos
+
+**`professional-prospecting-search/index.ts`** (linhas 412-415, antes de retornar):
+
+```text
+// Apos extrair todos os perfis (linha 412)
+// 1. Buscar URLs ja existentes neste workspace
+const { data: existingProfiles } = await supabase
+  .from("professional_prospecting_profiles")
+  .select("profile_url, status")
+  .eq("workspace_id", workspaceId)
+  .in("status", ["converted", "rejected", "analyzed"]);
+
+// 2. Criar set de URLs a excluir
+const existingUrls = new Set(
+  (existingProfiles || []).map(p => p.profile_url)
+);
+
+// 3. Filtrar perfis novos
+const newProfiles = finalProfiles.filter(p => !existingUrls.has(p.profileUrl));
+
+// 4. Retornar apenas perfis novos (com contagem de filtrados)
+```
+
+**`professional-prospecting-analyze/index.ts`** (linhas 152-154, antes do loop de analise):
+
+```text
+// Segunda camada de filtragem (caso de URLs manuais)
+const { data: existingInDb } = await supabase
+  .from("professional_prospecting_profiles")
+  .select("profile_url, status")
+  .eq("workspace_id", workspaceId)
+  .in("profile_url", profilesToAnalyze.map(p => p.profileUrl));
+
+const alreadyProcessed = new Set(
+  (existingInDb || [])
+    .filter(p => p.status === "converted" || p.status === "rejected")
+    .map(p => p.profile_url)
+);
+
+// Filtrar antes de analisar
+const trulyNewProfiles = profilesToAnalyze.filter(
+  p => !alreadyProcessed.has(p.profileUrl)
+);
+```
+
+**Frontend (`ProspectingSearch.tsx`):** Mostrar toast com informacao de perfis filtrados:
+- "15 perfis encontrados (3 ja existentes removidos)"
+
+## Resumo
+
+| Ficheiro | Alteracao |
+|---|---|
+| `professional-prospecting-search/index.ts` | Filtrar perfis ja existentes antes de retornar resultados |
+| `professional-prospecting-analyze/index.ts` | Segunda filtragem antes de gastar creditos de analise IA |
+| `ProspectingSearch.tsx` | Mostrar feedback sobre perfis filtrados no toast |
