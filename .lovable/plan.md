@@ -1,93 +1,112 @@
 
 
-# Resolver: Dialog fecha ao voltar do Instagram + Criar lead automaticamente
+# Correcao definitiva: Mover dialog para fora do TabsContent
 
-## Problema raiz
+## Causa raiz
 
-O Dialog do Radix UI fecha-se porque, apesar de todas as protecoes adicionadas (`onInteractOutside`, `onPointerDownOutside`, `refetchOnWindowFocus: false`, `refetchInterval: false`), o componente pai `ProspectingResults.tsx` tem muitos estados e queries que podem causar re-renders. Qualquer re-render que altere referências de estado pode fazer o Radix Dialog perder o seu estado `open`.
+O `BulkOutreachDialog` vive dentro de `ProspectingResults`, que vive dentro de `TabsContent value="results"`. O Radix `TabsContent` desmonta o conteudo quando o tab nao esta activo. Se algo causar remontagem do componente `ProfessionalProspecting` (token refresh, auth re-render, etc.), o `activeTab` volta ao valor por defeito `"search"`, o que desmonta o `ProspectingResults` e destroi todo o estado do dialog, incluindo `bulkOutreachOpen`.
 
-A abordagem de tentar "proteger" o Dialog contra fecho nao funciona de forma fiavel.
+A solucao e mover o estado e renderizacao do dialog para FORA do `TabsContent`, ao nivel da pagina `ProfessionalProspecting.tsx`.
 
-## Solucao
+## Alteracoes
 
-### 1. Substituir Dialog por painel fixo persistente
+### Ficheiro 1: `ProfessionalProspecting.tsx`
 
-Em vez de usar `<Dialog>` do Radix (que depende de focus management e overlay), usar um **painel fixo** (`position: fixed`) que nao e afectado por re-renders do componente pai:
+1. Importar o `BulkOutreachDialog` directamente
+2. Levantar (lift) o estado do dialog para este nivel:
+   - `bulkOutreachOpen`
+   - `bulkOutreachMessages`
+   - `bulkOutreachProfiles`
+   - `bulkGenerating`
+   - `bulkGenerationProgress`
+3. Renderizar o `BulkOutreachDialog` FORA de qualquer `TabsContent` (ao lado do dialog de oferta, fora dos tabs)
+4. Passar callbacks para `ProspectingResults` para que possa abrir o dialog e enviar dados
 
-- Remover o `<Dialog>` e `<DialogContent>` do Radix
-- Usar um `div` com `fixed inset-0 z-50` + backdrop + painel central
-- O estado `open` continua a ser controlado por `bulkOutreachOpen`, mas o painel nao tem logica de fecho automatico do Radix (sem focus trap, sem dismiss on outside click)
-- O painel so fecha quando o utilizador clica explicitamente "Fechar" ou "Concluir"
+### Ficheiro 2: `ProspectingResults.tsx`
 
-Isto garante que o painel **nunca** fecha sozinho, independentemente de tab switching, focus changes, ou re-renders.
+1. Remover o estado local do dialog (`bulkOutreachOpen`, `bulkOutreachMessages`, etc.)
+2. Remover a renderizacao do `BulkOutreachDialog`
+3. Em vez disso, receber uma prop `onStartBulkOutreach` que e chamada com os perfis seleccionados
+4. A logica de geracao de mensagens pode ficar em `ProspectingResults` mas enviar resultados para cima via callback, OU ser movida para o pai
 
-### 2. Abrir janela unica por perfil (nao reutilizar)
+### Ficheiro 3: `BulkOutreachDialog.tsx`
 
-Alterar `window.open(dmUrl, "instagram_dm")` para `window.open(dmUrl, "_blank")` — cada perfil abre o seu proprio separador. Isto e o que o utilizador pediu explicitamente.
+Sem alteracoes significativas — o componente ja usa `position: fixed` e nao tem dependencia do Radix Dialog.
 
-O nome fixo `"instagram_dm"` causava confusao porque substituia o separador anterior.
+## Fluxo resultante
 
-### 3. Criar lead automaticamente ao confirmar envio
+```text
+ProfessionalProspecting (pagina)
+  |-- Tabs
+  |     |-- TabsContent "search" -> ProspectingSearch
+  |     |-- TabsContent "results" -> ProspectingResults (sem dialog)
+  |     |-- TabsContent "history" -> ProspectingHistory
+  |
+  |-- BulkOutreachDialog (FORA dos tabs, posicao fixa, sempre montado quando open=true)
+```
 
-Quando o utilizador clica "Ja enviei", o sistema:
-1. Marca o perfil como enviado (outreach_step = 1)
-2. Agenda follow-ups (Dia 3, Dia 7)
-3. **NOVO**: Cria automaticamente um lead no CRM com os dados do perfil
+Desta forma, mesmo que os tabs mudem ou o `ProspectingResults` desmonte, o dialog permanece visivel e funcional.
 
-A criacao de lead usa a mesma logica que ja existe em `convertMutation`, simplificada para o contexto de outreach:
-- Nome do perfil
-- URL do Instagram
-- Profissao inferida
-- Fonte: "professional_prospecting"
-- Status: "new"
-- Imagem de perfil
-- Notas com contexto da mensagem enviada
+## Detalhes tecnicos
 
-### Resumo das alteracoes
+**ProfessionalProspecting.tsx** — novo estado e renderizacao:
+
+```typescript
+// Estado levantado do dialog
+const [bulkOutreachOpen, setBulkOutreachOpen] = useState(false);
+const [bulkOutreachMessages, setBulkOutreachMessages] = useState([]);
+const [bulkOutreachProfiles, setBulkOutreachProfiles] = useState([]);
+const [bulkGenerating, setBulkGenerating] = useState(false);
+const [bulkGenerationProgress, setBulkGenerationProgress] = useState({ done: 0, total: 0 });
+
+// Callback para ProspectingResults iniciar outreach
+const handleStartBulkOutreach = (profiles, generateFn) => {
+  setBulkOutreachProfiles(profiles);
+  setBulkOutreachMessages([]);
+  setBulkOutreachOpen(true);
+  setBulkGenerating(true);
+  // ... iniciar geracao
+};
+
+// Renderizacao fora dos Tabs:
+<BulkOutreachDialog
+  open={bulkOutreachOpen}
+  onOpenChange={setBulkOutreachOpen}
+  profiles={bulkOutreachProfiles}
+  generatedMessages={bulkOutreachMessages}
+  isGenerating={bulkGenerating}
+  generationProgress={bulkGenerationProgress}
+  userId={user?.id}
+  workspaceId={currentWorkspace?.id}
+  onComplete={() => {
+    queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
+    queryClient.invalidateQueries({ queryKey: ["leads"] });
+  }}
+/>
+```
+
+**ProspectingResults.tsx** — nova prop:
+
+```typescript
+interface ProspectingResultsProps {
+  searchId: string | null;
+  onGoToSearch?: () => void;
+  defaultTone?: "formal" | "casual" | "direto";
+  onStartBulkOutreach?: (
+    profiles: BulkProfile[],
+    onMessageGenerated: (msg: GeneratedMessage) => void,
+    onGenerationComplete: () => void,
+    setProgress: (p: { done: number; total: number }) => void
+  ) => void;
+}
+```
+
+Quando o utilizador clica "Outreach em Massa", chama `onStartBulkOutreach` que comunica com o pai.
+
+## Resumo
 
 | Ficheiro | Alteracao |
 |---|---|
-| `BulkOutreachDialog.tsx` | Substituir `<Dialog>` por painel fixo; abrir `_blank` por perfil; criar lead automaticamente no "Ja enviei" |
-| `ProspectingResults.tsx` | Passar dados adicionais dos perfis ao dialog (bio, score, etc.) para criacao de lead |
-
-### Detalhes tecnicos
-
-**BulkOutreachDialog.tsx**:
-
-- Substituir `<Dialog open={open} onOpenChange={handleOpenChange}>` por:
-```typescript
-if (!open) return null;
-return (
-  <div className="fixed inset-0 z-50 flex items-center justify-center">
-    <div className="fixed inset-0 bg-black/50" /> {/* backdrop */}
-    <div className="relative z-10 bg-background rounded-lg shadow-lg max-w-2xl w-full max-h-[85vh] flex flex-col p-6">
-      {/* conteudo igual */}
-    </div>
-  </div>
-);
-```
-
-- Em `handleConfirmSent`, adicionar criacao de lead:
-```typescript
-// Criar lead automaticamente
-const leadData = {
-  workspace_id: currentWorkspace.id,
-  name: profile.profile_name || "Sem nome",
-  source: "professional_prospecting",
-  status: "new",
-  website: profile.profile_url,
-  instagram_url: profile.profile_url,
-  created_by: userId,
-  assigned_to: userId,
-  prospecting_profile_id: profile.id,
-};
-await supabase.from("leads").insert([leadData]);
-```
-
-- Alterar `window.open(dmUrl, "instagram_dm")` para `window.open(dmUrl, "_blank")` em ambos os handlers
-
-**ProspectingResults.tsx**:
-
-- Expandir a interface `BulkProfile` para incluir campos necessarios para criar lead (ou passar `userId` como prop ao dialog)
-- Adicionar props `userId` e `workspaceId` ao `BulkOutreachDialog` para que possa criar leads directamente
-
+| `ProfessionalProspecting.tsx` | Levantar estado do dialog; renderizar `BulkOutreachDialog` fora dos tabs |
+| `ProspectingResults.tsx` | Remover estado e renderizacao do dialog; usar callback `onStartBulkOutreach` |
+| `BulkOutreachDialog.tsx` | Sem alteracoes |
