@@ -1,55 +1,61 @@
 
 
-# Corrigir processo de envio de mensagens em massa
+# Corrigir: Dialog desaparece ao voltar do Instagram
 
-## Problemas encontrados
+## Problema identificado
 
-### 1. Follow-ups nao sao agendados (BUG CRITICO)
-O `BulkOutreachDialog` insere na tabela `prospecting_outreach_queue` com o campo `sequence_step`, mas a coluna real chama-se `step_index`. O `as any` esconde o erro de tipo e a insercao falha silenciosamente. Os follow-ups de Dia 3 e Dia 7 nunca sao criados.
+Quando o utilizador clica "Abrir DM", acontece o seguinte:
+1. A mensagem e copiada para o clipboard
+2. O Instagram abre num novo separador (`window.open`)
+3. O perfil e **imediatamente** marcado como enviado (`markAsSent`)
+4. Quando o utilizador volta ao separador do FastCRM, o **react-query** faz `refetchOnWindowFocus` automaticamente, o que recarrega os dados dos perfis e pode causar re-render que perde o estado do dialog
 
-### 2. Progresso nao actualiza durante geracao
-A funcao `handleBulkOutreach` em `ProspectingResults.tsx` faz uma unica chamada ao edge function `batch-generate-prospecting-messages` e so actualiza o progresso no final. O dialog mostra "0/N" durante toda a geracao e depois salta para "N/N". O utilizador pensa que esta bloqueado.
-
-### 3. Mensagens chegam todas de uma vez
-As mensagens geradas sao definidas todas de uma vez com `setBulkOutreachMessages(data.results)`. O dialog fica vazio durante a geracao e depois mostra tudo de repente.
+Alem disso, o fluxo actual nao e claro: o utilizador tem de saber que precisa de voltar manualmente ao separador do FastCRM para continuar com o proximo perfil.
 
 ## Solucao
 
-### Ficheiro 1: `BulkOutreachDialog.tsx` - Corrigir nome da coluna
+### 1. Desactivar `refetchOnWindowFocus` na query de perfis durante o outreach
 
-Na funcao `markAsSent` (linha 126-141), alterar `sequence_step` para `step_index`:
+Na query `prospecting-profiles` em `ProspectingResults.tsx`, adicionar `refetchOnWindowFocus: false` quando o dialog esta aberto (`bulkOutreachOpen === true`). Isto impede que o react-query relance a query quando o utilizador volta do Instagram, evitando re-renders que afectam o dialog.
 
-```typescript
-// ANTES (errado)
-{ sequence_step: 2, ... }
-{ sequence_step: 3, ... }
+### 2. Separar o "copiar/abrir" do "marcar como enviado"
 
-// DEPOIS (correcto)
-{ step_index: 2, ... }
-{ step_index: 3, ... }
-```
+Alterar o fluxo em `BulkOutreachDialog.tsx`:
+- **"Abrir DM"** apenas copia a mensagem e abre o Instagram. **NAO** marca como enviado
+- Quando o utilizador volta, o perfil ainda mostra o botao, mas agora com opcao **"Marcar como enviado"** (botao separado) ou **"Ja enviei"**
+- Isto permite ao utilizador confirmar que realmente enviou antes de avancar
 
-Remover os `as any` para que erros de tipo sejam detectados no futuro.
+### 3. Adicionar botao "Ja enviei, proximo" visivel ao voltar
 
-### Ficheiro 2: `ProspectingResults.tsx` - Progresso incremental
-
-Alterar `handleBulkOutreach` para processar os perfis em mini-batches (de 5 em 5) no frontend, em vez de enviar tudo numa unica chamada. Assim o progresso actualiza a cada batch:
-
-```text
-Batch 1 (5 perfis) -> actualiza progresso 5/20, adiciona mensagens
-Batch 2 (5 perfis) -> actualiza progresso 10/20, adiciona mensagens
-Batch 3 (5 perfis) -> actualiza progresso 15/20, adiciona mensagens
-Batch 4 (5 perfis) -> actualiza progresso 20/20, adiciona mensagens
-```
-
-Cada batch usa a edge function `generate-prospecting-message` individual (ja existente) em vez do `batch-generate-prospecting-messages`, ou mantemos o batch mas com chunks menores.
-
-A abordagem mais simples: manter a chamada ao `batch-generate-prospecting-messages` mas dividir os perfis em grupos de 5 no frontend e ir actualizando `bulkOutreachMessages` e `bulkGenerationProgress` incrementalmente.
+Apos copiar e abrir o Instagram, o perfil activo muda de estado para "A aguardar confirmacao" com dois botoes:
+- **"Ja enviei"** - marca como enviado e avanca para o proximo
+- **"Abrir DM novamente"** - reabre o Instagram caso precise
 
 ### Resumo das alteracoes
 
 | Ficheiro | Alteracao |
 |---|---|
-| `BulkOutreachDialog.tsx` | Corrigir `sequence_step` -> `step_index` na insercao dos follow-ups |
-| `ProspectingResults.tsx` | Processar em mini-batches com progresso incremental e mensagens parciais |
+| `ProspectingResults.tsx` | Adicionar `refetchOnWindowFocus: false` quando `bulkOutreachOpen` esta activo |
+| `BulkOutreachDialog.tsx` | Separar "copiar/abrir" de "marcar enviado"; adicionar estado "a aguardar confirmacao" com botoes "Ja enviei" e "Abrir novamente" |
+
+### Detalhes tecnicos
+
+**ProspectingResults.tsx** - Query com refetch controlado:
+```typescript
+const { data: profiles = [] } = useQuery({
+  queryKey: ["prospecting-profiles", ...],
+  queryFn: async () => { ... },
+  refetchOnWindowFocus: !bulkOutreachOpen, // desactivar durante outreach
+});
+```
+
+**BulkOutreachDialog.tsx** - Novo fluxo por perfil:
+
+Estado de cada perfil: `idle` -> `opened` (abriu Instagram) -> `sent` (confirmou envio)
+
+- `handleCopyAndOpen`: copia + abre Instagram + muda estado para `opened` (NAO chama `markAsSent`)
+- Novo botao "Ja enviei": muda estado para `sent` + chama `markAsSent` + avanca para proximo perfil
+- Botao "Abrir novamente": reabre o Instagram para o mesmo perfil
+
+Isto garante que o dialog permanece aberto e funcional quando o utilizador volta do Instagram.
 
