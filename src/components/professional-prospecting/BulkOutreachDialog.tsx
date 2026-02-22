@@ -389,9 +389,9 @@ export function BulkOutreachDialog({
                           </div>
 
                           {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-sm truncate">
+                          <div className="flex-1 min-w-0 overflow-hidden">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium text-sm truncate max-w-[60%]">
                                 {profile.profile_name || "Sem nome"}
                               </span>
                               {profileState === "opened" && (
@@ -412,7 +412,7 @@ export function BulkOutreachDialog({
                             </div>
 
                             {hasMessage && (
-                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2 break-words overflow-hidden">
                                 "{msg.message_plain || msg.message}"
                               </p>
                             )}
