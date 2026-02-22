@@ -114,7 +114,10 @@ export function ProspectingSearch({ onSearchComplete, prefill }: ProspectingSear
         return;
       }
 
-      toast.success(`${data.count} perfis encontrados`, {
+      const filteredMsg = data.filteredCount > 0 
+        ? ` (${data.filteredCount} já existentes removidos)` 
+        : "";
+      toast.success(`${data.count} perfis encontrados${filteredMsg}`, {
         description: "A analisar com IA...",
       });
 
