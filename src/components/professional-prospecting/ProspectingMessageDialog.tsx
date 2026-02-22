@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -106,16 +106,19 @@ export function ProspectingMessageDialog({
     }
   };
 
-  // Auto-generate on open
-  const handleOpenChange = (isOpen: boolean) => {
-    if (isOpen && !hasGenerated && !isGenerating) {
+  // Auto-generate when dialog opens
+  useEffect(() => {
+    if (open && !hasGenerated && !isGenerating) {
       generateMessage();
     }
-    if (!isOpen) {
+    if (!open) {
       setMessage("");
       setHasGenerated(false);
       setCopied(false);
     }
+  }, [open]);
+
+  const handleOpenChange = (isOpen: boolean) => {
     onOpenChange(isOpen);
   };
 
