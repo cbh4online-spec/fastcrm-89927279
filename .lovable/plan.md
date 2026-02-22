@@ -1,49 +1,31 @@
 
-# Adicionar botao de rejeitar lead no painel de Outreach em Massa
+
+# Adicionar botao "Rejeitar" ao estado "opened" no painel de Outreach em Massa
 
 ## Problema
 
-No painel de Outreach em Massa, nao existe forma de rejeitar/saltar um perfil que o utilizador nao quer contactar. A unica opcao e enviar ou fechar o painel inteiro.
+Quando o utilizador clica "Abrir DM", o perfil passa ao estado "opened" (a aguardar confirmacao). Nesse estado, so aparecem dois botoes: "Ja enviei" e "Abrir novamente". Nao ha forma de rejeitar o perfil depois de o ter aberto.
 
 ## Solucao
 
-Adicionar um botao "Rejeitar" a cada perfil no painel de Outreach em Massa que:
-1. Marca o perfil como `status: "rejected"` na base de dados (mesmo padrao ja usado no `ProspectingResults.tsx`)
-2. Remove-o visualmente da lista (ou marca como rejeitado com opacidade reduzida)
-3. Atualiza os contadores de progresso para excluir perfis rejeitados
-4. Avanca automaticamente para o proximo perfil
+Adicionar o botao "Rejeitar" tambem ao estado "opened", junto aos botoes existentes.
 
-## Alteracoes
+## Alteracao
 
 ### Ficheiro: `src/components/professional-prospecting/BulkOutreachDialog.tsx`
 
-1. **Novo estado `rejectedIds`** (junto aos outros estados, linha 74):
-   - `const [rejectedIds, setRejectedIds] = useState<Set<string>>(new Set());`
+Na seccao do estado `"opened"` (linhas 472-491), adicionar o botao "Rejeitar" apos o botao "Abrir novamente":
 
-2. **Nova funcao `handleReject`**:
-   - Atualiza o perfil na BD com `status: "rejected"`, `rejection_reason: "Rejeitado no outreach em massa"`
-   - Adiciona o ID ao set `rejectedIds`
-   - Invalida queries de perfis
-   - Mostra toast de confirmacao
+```text
+// Estado "opened" - botoes actuais:
+// 1. "Já enviei" (botao principal)
+// 2. "Abrir novamente" (ghost)
+// 3. NOVO: "Rejeitar" (ghost, texto vermelho) - mesmo estilo do estado idle
+```
 
-3. **Atualizar `ProfileState`** (linha 59):
-   - Adicionar estado `"rejected"` ao tipo
-   - Atualizar `getProfileState` para verificar `rejectedIds`
+O botao tera o mesmo aspecto e comportamento que o botao "Rejeitar" do estado `idle`:
+- Variant `ghost`
+- Texto vermelho (`text-destructive`)
+- Icone `X`
+- Chama a mesma funcao `handleReject(profile)`
 
-4. **Atualizar contadores** (linhas 80-86):
-   - `totalProfiles` efetivo exclui rejeitados: `profiles.length - rejectedIds.size`
-   - `allDone` considera perfis rejeitados como processados
-   - `nextProfile` ignora perfis rejeitados
-
-5. **UI do botao Rejeitar**: Adicionar um botao com icone `X` ou `Ban` junto ao botao "Abrir DM" para perfis em estado `idle`:
-   - Botao discreto (variant ghost, texto vermelho) para nao competir com o botao principal
-   - Texto: "Rejeitar" com icone X
-
-6. **Visual de perfil rejeitado**: Semelhante ao "sent" mas com estilo vermelho/cinza:
-   - Badge "Rejeitado" em vermelho
-   - Opacidade reduzida
-
-7. **Reset do estado** ao fechar (linha 100): limpar `rejectedIds`
-
-8. **Mensagem de progresso** atualizada para mostrar rejeitados separadamente:
-   - Ex: "3 de 16 enviados, 2 rejeitados"
