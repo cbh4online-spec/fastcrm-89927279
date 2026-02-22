@@ -1,112 +1,63 @@
 
 
-# Correcao definitiva: Mover dialog para fora do TabsContent
+# Correcao: Painel de outreach fecha ao voltar do Instagram
 
-## Causa raiz
+## Causa raiz identificada
 
-O `BulkOutreachDialog` vive dentro de `ProspectingResults`, que vive dentro de `TabsContent value="results"`. O Radix `TabsContent` desmonta o conteudo quando o tab nao esta activo. Se algo causar remontagem do componente `ProfessionalProspecting` (token refresh, auth re-render, etc.), o `activeTab` volta ao valor por defeito `"search"`, o que desmonta o `ProspectingResults` e destroi todo o estado do dialog, incluindo `bulkOutreachOpen`.
+O `WorkspaceInstanceContext` chama `setIsLoading(true)` toda vez que resolve a instancia do workspace (linha 169). O `resolveWorkspaceInstance` depende de `session?.access_token` (via `callControlPlane`). Quando o utilizador volta do Instagram, o Supabase pode fazer token refresh, o que muda `session.access_token`, recria `callControlPlane`, recria `resolveWorkspaceInstance`, e dispara o `useEffect`.
 
-A solucao e mover o estado e renderizacao do dialog para FORA do `TabsContent`, ao nivel da pagina `ProfessionalProspecting.tsx`.
+Quando `isLoading = true`, o `WorkspaceStatusGuard` desmonta TODOS os filhos (mostra spinner). Isto destroi o `ProfessionalProspecting` e todo o seu estado, incluindo `bulkOutreachOpen`.
 
-## Alteracoes
+```text
+Token refresh ao voltar do Instagram
+  -> session.access_token muda
+  -> callControlPlane recria
+  -> resolveWorkspaceInstance recria  
+  -> useEffect dispara resolveWorkspaceInstance()
+  -> setIsLoading(true)
+  -> WorkspaceStatusGuard mostra spinner (desmonta filhos)
+  -> ProfessionalProspecting desmontado (estado perdido)
+  -> setIsLoading(false) 
+  -> ProfessionalProspecting remontado (estado resetado)
+```
 
-### Ficheiro 1: `ProfessionalProspecting.tsx`
+## Solucao
 
-1. Importar o `BulkOutreachDialog` directamente
-2. Levantar (lift) o estado do dialog para este nivel:
-   - `bulkOutreachOpen`
-   - `bulkOutreachMessages`
-   - `bulkOutreachProfiles`
-   - `bulkGenerating`
-   - `bulkGenerationProgress`
-3. Renderizar o `BulkOutreachDialog` FORA de qualquer `TabsContent` (ao lado do dialog de oferta, fora dos tabs)
-4. Passar callbacks para `ProspectingResults` para que possa abrir o dialog e enviar dados
+### Ficheiro 1: `WorkspaceStatusGuard.tsx`
 
-### Ficheiro 2: `ProspectingResults.tsx`
+Mostrar o spinner de loading APENAS na primeira carga (quando nunca tivemos um status). Se ja temos um status resolvido, continuar a mostrar os filhos mesmo durante re-resolucao.
 
-1. Remover o estado local do dialog (`bulkOutreachOpen`, `bulkOutreachMessages`, etc.)
-2. Remover a renderizacao do `BulkOutreachDialog`
-3. Em vez disso, receber uma prop `onStartBulkOutreach` que e chamada com os perfis seleccionados
-4. A logica de geracao de mensagens pode ficar em `ProspectingResults` mas enviar resultados para cima via callback, OU ser movida para o pai
+Isto evita desmontar filhos durante token refreshes.
+
+### Ficheiro 2: `WorkspaceInstanceContext.tsx`
+
+Nao chamar `setIsLoading(true)` se ja temos dados resolvidos (re-resolucao silenciosa). Usar um `hasResolved` ref para distinguir a primeira carga das subsequentes.
 
 ### Ficheiro 3: `BulkOutreachDialog.tsx`
 
-Sem alteracoes significativas — o componente ja usa `position: fixed` e nao tem dependencia do Radix Dialog.
-
-## Fluxo resultante
-
-```text
-ProfessionalProspecting (pagina)
-  |-- Tabs
-  |     |-- TabsContent "search" -> ProspectingSearch
-  |     |-- TabsContent "results" -> ProspectingResults (sem dialog)
-  |     |-- TabsContent "history" -> ProspectingHistory
-  |
-  |-- BulkOutreachDialog (FORA dos tabs, posicao fixa, sempre montado quando open=true)
-```
-
-Desta forma, mesmo que os tabs mudem ou o `ProspectingResults` desmonte, o dialog permanece visivel e funcional.
+Ja implementado: criacao automatica de lead no `handleConfirmSent`. Sem alteracoes necessarias — os leads ja estao a ser criados com sucesso (confirmado na base de dados: 5 leads recentes com source "professional_prospecting").
 
 ## Detalhes tecnicos
 
-**ProfessionalProspecting.tsx** — novo estado e renderizacao:
+**WorkspaceInstanceContext.tsx**:
+- Adicionar `const hasResolved = useRef(false)` 
+- Em `resolveWorkspaceInstance`, so chamar `setIsLoading(true)` se `!hasResolved.current`
+- No `finally`, fazer `hasResolved.current = true`
+- Reset `hasResolved.current = false` quando `currentWorkspace?.id` muda (workspace diferente)
 
-```typescript
-// Estado levantado do dialog
-const [bulkOutreachOpen, setBulkOutreachOpen] = useState(false);
-const [bulkOutreachMessages, setBulkOutreachMessages] = useState([]);
-const [bulkOutreachProfiles, setBulkOutreachProfiles] = useState([]);
-const [bulkGenerating, setBulkGenerating] = useState(false);
-const [bulkGenerationProgress, setBulkGenerationProgress] = useState({ done: 0, total: 0 });
+**WorkspaceStatusGuard.tsx**:
+- Guardar o ultimo status resolvido: `const [lastStatus, setLastStatus] = useState(null)`
+- Se `isLoading` E ja temos `lastStatus`, mostrar filhos (nao spinner)
+- Se `isLoading` E nao temos `lastStatus`, mostrar spinner (primeira carga)
 
-// Callback para ProspectingResults iniciar outreach
-const handleStartBulkOutreach = (profiles, generateFn) => {
-  setBulkOutreachProfiles(profiles);
-  setBulkOutreachMessages([]);
-  setBulkOutreachOpen(true);
-  setBulkGenerating(true);
-  // ... iniciar geracao
-};
+## Confirmacao: Lead automatica
 
-// Renderizacao fora dos Tabs:
-<BulkOutreachDialog
-  open={bulkOutreachOpen}
-  onOpenChange={setBulkOutreachOpen}
-  profiles={bulkOutreachProfiles}
-  generatedMessages={bulkOutreachMessages}
-  isGenerating={bulkGenerating}
-  generationProgress={bulkGenerationProgress}
-  userId={user?.id}
-  workspaceId={currentWorkspace?.id}
-  onComplete={() => {
-    queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
-    queryClient.invalidateQueries({ queryKey: ["leads"] });
-  }}
-/>
-```
-
-**ProspectingResults.tsx** — nova prop:
-
-```typescript
-interface ProspectingResultsProps {
-  searchId: string | null;
-  onGoToSearch?: () => void;
-  defaultTone?: "formal" | "casual" | "direto";
-  onStartBulkOutreach?: (
-    profiles: BulkProfile[],
-    onMessageGenerated: (msg: GeneratedMessage) => void,
-    onGenerationComplete: () => void,
-    setProgress: (p: { done: number; total: number }) => void
-  ) => void;
-}
-```
-
-Quando o utilizador clica "Outreach em Massa", chama `onStartBulkOutreach` que comunica com o pai.
+A criacao automatica de lead ja funciona. Existem 5 leads recentes na base de dados com `source = "professional_prospecting"`. Nenhuma alteracao necessaria no `BulkOutreachDialog.tsx`.
 
 ## Resumo
 
 | Ficheiro | Alteracao |
 |---|---|
-| `ProfessionalProspecting.tsx` | Levantar estado do dialog; renderizar `BulkOutreachDialog` fora dos tabs |
-| `ProspectingResults.tsx` | Remover estado e renderizacao do dialog; usar callback `onStartBulkOutreach` |
-| `BulkOutreachDialog.tsx` | Sem alteracoes |
+| `WorkspaceInstanceContext.tsx` | Nao fazer `setIsLoading(true)` em re-resolucoes |
+| `WorkspaceStatusGuard.tsx` | Nao desmontar filhos durante re-resolucao |
+| `BulkOutreachDialog.tsx` | Sem alteracoes (lead auto-create ja funciona) |
