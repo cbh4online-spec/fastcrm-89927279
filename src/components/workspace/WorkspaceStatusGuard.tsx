@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect, useRef } from "react";
 import { useWorkspaceInstance, WorkspaceStatus } from "@/contexts/WorkspaceInstanceContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,8 +35,17 @@ const statusConfig: Record<
 
 export function WorkspaceStatusGuard({ children }: Props) {
   const { workspaceStatus, isLoading, error } = useWorkspaceInstance();
+  const hasEverResolved = useRef(false);
 
-  if (isLoading) {
+  // Track when we've had at least one successful resolution
+  useEffect(() => {
+    if (!isLoading && workspaceStatus !== null) {
+      hasEverResolved.current = true;
+    }
+  }, [isLoading, workspaceStatus]);
+
+  // Only show loading spinner on the FIRST resolution (never resolved before)
+  if (isLoading && !hasEverResolved.current) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
@@ -46,6 +55,8 @@ export function WorkspaceStatusGuard({ children }: Props) {
       </div>
     );
   }
+
+  // If loading but already resolved before, keep showing children (silent re-resolution)
 
   if (error) {
     return (

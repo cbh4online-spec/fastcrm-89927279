@@ -3,6 +3,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
   ReactNode,
   useCallback,
 } from "react";
@@ -75,6 +76,8 @@ export function WorkspaceInstanceProvider({ children }: { children: ReactNode })
   const [error, setError] = useState<string | null>(null);
   const [controlPlaneConfig, setControlPlaneConfig] = useState<ControlPlaneConfig | null>(null);
   const [isUsingControlPlane, setIsUsingControlPlane] = useState(false);
+  const hasResolved = useRef(false);
+  const lastWorkspaceId = useRef<string | null>(null);
 
   // Fetch Control Plane configuration from admin_settings
   const fetchControlPlaneConfig = useCallback(async () => {
@@ -166,7 +169,10 @@ export function WorkspaceInstanceProvider({ children }: { children: ReactNode })
       return;
     }
 
-    setIsLoading(true);
+    // Only show loading spinner on first resolution
+    if (!hasResolved.current) {
+      setIsLoading(true);
+    }
     setError(null);
 
     try {
@@ -249,6 +255,7 @@ export function WorkspaceInstanceProvider({ children }: { children: ReactNode })
       setError("Failed to resolve workspace configuration");
       setWorkspaceClient(mainSupabase);
     } finally {
+      hasResolved.current = true;
       setIsLoading(false);
     }
   }, [
@@ -258,6 +265,14 @@ export function WorkspaceInstanceProvider({ children }: { children: ReactNode })
     callControlPlane,
     fetchLocalInstance,
   ]);
+
+  // Reset hasResolved when workspace changes
+  useEffect(() => {
+    if (currentWorkspace?.id && currentWorkspace.id !== lastWorkspaceId.current) {
+      hasResolved.current = false;
+      lastWorkspaceId.current = currentWorkspace.id;
+    }
+  }, [currentWorkspace?.id]);
 
   // Resolve workspace instance when workspace changes
   useEffect(() => {
