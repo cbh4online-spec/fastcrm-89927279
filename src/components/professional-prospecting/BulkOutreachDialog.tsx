@@ -118,7 +118,7 @@ export function BulkOutreachDialog({
 
       const username = extractInstagramUsername(profile.profile_url);
       const dmUrl = username ? `https://ig.me/m/${username}` : profile.profile_url;
-      window.open(dmUrl, "_blank");
+      window.open(dmUrl, "instagram_dm");
       toast.success("Mensagem copiada! Cole (Ctrl+V) na conversa e envie");
 
       // Only mark as opened, NOT as sent
@@ -170,7 +170,7 @@ export function BulkOutreachDialog({
     }
     const username = extractInstagramUsername(profile.profile_url);
     const dmUrl = username ? `https://ig.me/m/${username}` : profile.profile_url;
-    window.open(dmUrl, "_blank");
+    window.open(dmUrl, "instagram_dm");
     toast.success("Mensagem copiada novamente!");
   };
 
@@ -218,12 +218,17 @@ export function BulkOutreachDialog({
         <DialogContent
           className="max-w-2xl max-h-[85vh] flex flex-col"
           onPointerDownOutside={(e) => {
-            if (isGenerating || (sentCount > 0 && sentCount < totalProfiles)) {
+            if (phase === "generating" || phase === "sending") {
               e.preventDefault();
             }
           }}
           onEscapeKeyDown={(e) => {
-            if (isGenerating) {
+            if (phase === "generating" || phase === "sending") {
+              e.preventDefault();
+            }
+          }}
+          onInteractOutside={(e) => {
+            if (phase === "generating" || phase === "sending") {
               e.preventDefault();
             }
           }}
