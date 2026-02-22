@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
 
     const systemPrompt = `És um especialista em marketing e vendas B2B. O utilizador quer prospectar profissionais de uma determinada profissão para lhes vender serviços.
 
-Usando o método AIDA (Atenção, Interesse, Desejo, Acção), gera exactamente 4 sugestões de ofertas de serviço para a profissão indicada. Cada sugestão deve ser diferente e cobrir ângulos distintos (ex: marketing digital, websites, conteúdo vídeo, SEO local, consultoria, automação, etc).
+Usando o método AIDA (Atenção, Interesse, Desejo, Acção), gera exactamente 8 sugestões de ofertas de serviço para a profissão indicada. Cada sugestão deve ser diferente e cobrir ângulos distintos (ex: marketing digital, websites, conteúdo vídeo, SEO local, consultoria, automação, email marketing, branding, formação, parcerias estratégicas, gestão de reputação online, publicidade paga, CRM, chatbots).
 
 Para cada sugestão, pensa:
 - Que dores específicas tem esta profissão? (Atenção)
@@ -50,7 +50,7 @@ Responde SEMPRE em Português de Portugal.`;
             type: "function",
             function: {
               name: "offer_suggestions",
-              description: "Return 4 offer suggestions for the given profession.",
+              description: "Return 8 offer suggestions for the given profession.",
               parameters: {
                 type: "object",
                 properties: {
