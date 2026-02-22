@@ -55,8 +55,8 @@ interface BulkOutreachDialogProps {
   workspaceId?: string;
 }
 
-// Profile states: idle -> opened (Instagram opened) -> sent (confirmed)
-type ProfileState = "idle" | "opened" | "sent";
+// Profile states: idle -> opened (Instagram opened) -> sent (confirmed) -> rejected
+type ProfileState = "idle" | "opened" | "sent" | "rejected";
 
 export function BulkOutreachDialog({
   open,
@@ -73,20 +73,23 @@ export function BulkOutreachDialog({
   const { currentWorkspace } = useWorkspace();
   const [sentIds, setSentIds] = useState<Set<string>>(new Set());
   const [openedIds, setOpenedIds] = useState<Set<string>>(new Set());
+  const [rejectedIds, setRejectedIds] = useState<Set<string>>(new Set());
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const activeProfileRef = useRef<HTMLDivElement>(null);
 
   const totalProfiles = profiles.length;
+  const rejectedCount = rejectedIds.size;
   const sentCount = sentIds.size;
-  const allDone = sentCount >= totalProfiles && totalProfiles > 0;
+  const effectiveTotal = totalProfiles - rejectedCount;
+  const allDone = effectiveTotal > 0 && sentCount >= effectiveTotal;
 
   const progressPercent = isGenerating
     ? (generationProgress.done / generationProgress.total) * 100
-    : (sentCount / totalProfiles) * 100;
+    : effectiveTotal > 0 ? ((sentCount + rejectedCount) / totalProfiles) * 100 : 0;
 
-  // Find the next unsent profile
-  const nextProfile = profiles.find(p => !sentIds.has(p.id) && getMessageForProfile(p.id)?.message);
+  // Find the next unsent/unrejected profile
+  const nextProfile = profiles.find(p => !sentIds.has(p.id) && !rejectedIds.has(p.id) && getMessageForProfile(p.id)?.message);
 
   // Auto-scroll to next profile
   useEffect(() => {
@@ -95,10 +98,11 @@ export function BulkOutreachDialog({
     }
   }, [sentCount, isGenerating]);
 
-  // Reset opened state when dialog closes
+  // Reset state when dialog closes
   useEffect(() => {
     if (!open) {
       setOpenedIds(new Set());
+      setRejectedIds(new Set());
     }
   }, [open]);
 
@@ -108,9 +112,30 @@ export function BulkOutreachDialog({
 
   function getProfileState(profileId: string): ProfileState {
     if (sentIds.has(profileId)) return "sent";
+    if (rejectedIds.has(profileId)) return "rejected";
     if (openedIds.has(profileId)) return "opened";
     return "idle";
   }
+
+  const handleReject = async (profile: BulkProfile) => {
+    setRejectedIds(prev => new Set(prev).add(profile.id));
+
+    try {
+      await supabase
+        .from("professional_prospecting_profiles")
+        .update({
+          status: "rejected",
+          rejection_reason: "Rejeitado no outreach em massa",
+        } as any)
+        .eq("id", profile.id);
+
+      queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
+    } catch (err) {
+      console.error("Erro ao rejeitar perfil:", err);
+    }
+
+    toast.success(`${profile.profile_name || "Perfil"} rejeitado`);
+  };
 
   const handleCopyAndOpen = async (profile: BulkProfile) => {
     const msg = getMessageForProfile(profile.id);
@@ -242,21 +267,22 @@ export function BulkOutreachDialog({
   };
 
   const handleClose = () => {
-    if (sentCount > 0) {
+    if (sentCount > 0 || rejectedCount > 0) {
       onComplete();
     }
     setSentIds(new Set());
     setOpenedIds(new Set());
+    setRejectedIds(new Set());
     onOpenChange(false);
   };
 
   const handleTryClose = () => {
     if (isGenerating) return;
-    if (sentCount > 0 && sentCount < totalProfiles) {
+    if ((sentCount > 0 || rejectedCount > 0) && sentCount < effectiveTotal) {
       setShowCloseConfirm(true);
       return;
     }
-    if (!isGenerating && generatedMessages.length > 0 && sentCount === 0 && !allDone) {
+    if (!isGenerating && generatedMessages.length > 0 && sentCount === 0 && rejectedCount === 0 && !allDone) {
       setShowCloseConfirm(true);
       return;
     }
@@ -306,10 +332,10 @@ export function BulkOutreachDialog({
                 `A gerar mensagens personalizadas... ${generationProgress.done} de ${generationProgress.total}`
               }
               {phase === "sending" &&
-                `${sentCount} de ${totalProfiles} enviados — Clique no botão abaixo para copiar e abrir o Instagram`
+                `${sentCount} de ${effectiveTotal} enviados${rejectedCount > 0 ? `, ${rejectedCount} rejeitado${rejectedCount > 1 ? 's' : ''}` : ''} — Clique no botão abaixo para copiar e abrir o Instagram`
               }
               {phase === "completed" &&
-                `Todos os ${totalProfiles} perfis foram contactados com sucesso!`
+                `Todos os ${effectiveTotal} perfis foram contactados com sucesso!${rejectedCount > 0 ? ` (${rejectedCount} rejeitado${rejectedCount > 1 ? 's' : ''})` : ''}`
               }
             </p>
           </div>
@@ -320,7 +346,7 @@ export function BulkOutreachDialog({
             <p className="text-xs text-muted-foreground text-right">
               {phase === "generating"
                 ? `${generationProgress.done}/${generationProgress.total} gerados`
-                : `${sentCount}/${totalProfiles} enviados`
+                : `${sentCount}/${effectiveTotal} enviados${rejectedCount > 0 ? ` · ${rejectedCount} rejeitado${rejectedCount > 1 ? 's' : ''}` : ''}`
               }
             </p>
           </div>
@@ -367,6 +393,7 @@ export function BulkOutreachDialog({
                         className={cn(
                           "border rounded-lg p-3 transition-all",
                           profileState === "sent" && "bg-muted/50 border-green-500/30 opacity-60",
+                          profileState === "rejected" && "bg-muted/30 border-destructive/20 opacity-50",
                           profileState === "opened" && "ring-2 ring-amber-500 border-amber-500/50 bg-amber-500/5",
                           hasError && "border-destructive/30",
                           isNext && profileState === "idle" && "ring-2 ring-primary border-primary/50 bg-primary/5"
@@ -377,6 +404,8 @@ export function BulkOutreachDialog({
                           <div className="mt-0.5">
                             {profileState === "sent" ? (
                               <CheckCircle className="w-5 h-5 text-green-500" />
+                            ) : profileState === "rejected" ? (
+                              <X className="w-5 h-5 text-destructive" />
                             ) : profileState === "opened" ? (
                               <AlertCircle className="w-5 h-5 text-amber-500" />
                             ) : hasError ? (
@@ -397,6 +426,11 @@ export function BulkOutreachDialog({
                               {profileState === "opened" && (
                                 <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-amber-600 border-amber-500/30">
                                   A aguardar confirmação
+                                </Badge>
+                              )}
+                              {profileState === "rejected" && (
+                                <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                                  Rejeitado
                                 </Badge>
                               )}
                               {isNext && profileState === "idle" && (
@@ -430,6 +464,10 @@ export function BulkOutreachDialog({
                               <Badge variant="outline" className="text-green-600 border-green-600/30 text-xs">
                                 Enviado ✓
                               </Badge>
+                            ) : profileState === "rejected" ? (
+                              <Badge variant="outline" className="text-destructive border-destructive/30 text-xs">
+                                Rejeitado ✗
+                              </Badge>
                             ) : profileState === "opened" ? (
                               <div className="flex flex-col gap-1">
                                 <Button
@@ -452,19 +490,30 @@ export function BulkOutreachDialog({
                                 </Button>
                               </div>
                             ) : hasMessage ? (
-                              <Button
-                                size="sm"
-                                variant={isNext ? "default" : "outline"}
-                                className="gap-1 text-xs"
-                                onClick={() => handleCopyAndOpen(profile)}
-                              >
-                                {copiedId === profile.id ? (
-                                  <Check className="w-3 h-3" />
-                                ) : (
-                                  <Copy className="w-3 h-3" />
-                                )}
-                                Abrir DM
-                              </Button>
+                              <div className="flex flex-col gap-1">
+                                <Button
+                                  size="sm"
+                                  variant={isNext ? "default" : "outline"}
+                                  className="gap-1 text-xs"
+                                  onClick={() => handleCopyAndOpen(profile)}
+                                >
+                                  {copiedId === profile.id ? (
+                                    <Check className="w-3 h-3" />
+                                  ) : (
+                                    <Copy className="w-3 h-3" />
+                                  )}
+                                  Abrir DM
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="gap-1 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => handleReject(profile)}
+                                >
+                                  <X className="w-3 h-3" />
+                                  Rejeitar
+                                </Button>
+                              </div>
                             ) : null}
                           </div>
                         </div>
@@ -483,9 +532,10 @@ export function BulkOutreachDialog({
                 <PartyPopper className="w-8 h-8 text-green-500" />
               </div>
               <div className="text-center">
-                <p className="text-lg font-semibold">{totalProfiles}/{totalProfiles} enviados!</p>
+                <p className="text-lg font-semibold">{sentCount}/{effectiveTotal} enviados!</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Todos os perfis foram contactados. Os follow-ups foram agendados automaticamente.
+                  {rejectedCount > 0 && ` (${rejectedCount} perfil${rejectedCount > 1 ? 's' : ''} rejeitado${rejectedCount > 1 ? 's' : ''})`}
                 </p>
               </div>
             </div>
@@ -529,7 +579,7 @@ export function BulkOutreachDialog({
           <AlertDialogHeader>
             <AlertDialogTitle>Tem a certeza?</AlertDialogTitle>
             <AlertDialogDescription>
-              Ainda tem {totalProfiles - sentCount} perfil(is) por enviar. 
+              Ainda tem {effectiveTotal - sentCount} perfil(is) por enviar. 
               Se fechar agora, perderá o progresso das mensagens geradas.
             </AlertDialogDescription>
           </AlertDialogHeader>
