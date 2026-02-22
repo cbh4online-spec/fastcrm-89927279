@@ -157,6 +157,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
     },
     enabled: !!currentWorkspace?.id,
     refetchInterval: searchId && (Date.now() - pollingStartTime < 30000) ? 3000 : false,
+    refetchOnWindowFocus: !bulkOutreachOpen,
   });
 
   // Convert to lead mutation with enriched data
