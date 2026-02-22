@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import {
   useEnrichLeadsBatch,
   type EnrichmentStatus,
 } from "@/hooks/useLeadEnrichment";
+import { useLeadEnricherSettings } from "@/hooks/useLeadEnricherSettings";
 import {
   Sparkles,
   Search,
@@ -30,12 +31,14 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
-  ArrowRight,
   Zap,
   Target,
   Briefcase,
   Play,
   Square,
+  ShieldCheck,
+  ShieldX,
+  ShieldQuestion,
 } from "lucide-react";
 
 function StatusBadge({ status }: { status: EnrichmentStatus }) {
@@ -49,10 +52,29 @@ function StatusBadge({ status }: { status: EnrichmentStatus }) {
   }
 }
 
+function EmailVerifiedBadge({ verified }: { verified: boolean | null | undefined }) {
+  if (verified === true) {
+    return (
+      <span className="inline-flex items-center gap-1 text-green-600" title="Email válido">
+        <ShieldCheck className="h-3.5 w-3.5" />
+      </span>
+    );
+  }
+  if (verified === false) {
+    return (
+      <span className="inline-flex items-center gap-1 text-destructive" title="Email inválido">
+        <ShieldX className="h-3.5 w-3.5" />
+      </span>
+    );
+  }
+  return null;
+}
+
 function LeadCard({ lead, onEnrich, isEnriching }: { lead: Lead; onEnrich: (lead: Lead) => void; isEnriching: boolean }) {
   const status = getEnrichmentStatus(lead);
   const companyName = lead.company_name;
   const website = lead.website;
+  const emailVerified = (lead as any).email_verified;
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -80,6 +102,7 @@ function LeadCard({ lead, onEnrich, isEnriching }: { lead: Lead; onEnrich: (lead
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Mail className="h-4 w-4 flex-shrink-0" />
                   <span className="truncate">{lead.email}</span>
+                  <EmailVerifiedBadge verified={emailVerified} />
                 </div>
               )}
               {lead.phone && (
@@ -137,19 +160,46 @@ export default function LeadEnricher() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<EnrichmentStatus | "all">("all");
   const { data: leads = [], isLoading } = useLeads();
-  const enrichLead = useEnrichLead();
-  const { enrichBatch } = useEnrichLeadsBatch();
+  const { settings, isLoading: settingsLoading, updateSettings } = useLeadEnricherSettings();
+  const enrichLead = useEnrichLead(settings);
+  const { enrichBatch } = useEnrichLeadsBatch(settings);
 
   // Batch processing state
   const [batchProgress, setBatchProgress] = useState<{ done: number; total: number; current: string } | null>(null);
   const isBatchRunning = batchProgress !== null && batchProgress.done < batchProgress.total;
 
-  // Settings state (visual only)
-  const [settings, setSettings] = useState({
-    google: true,
-    linkedin: true,
-    webscraping: true,
-  });
+  // Auto-enrich: track previously seen lead IDs
+  const seenLeadIdsRef = useRef<Set<string>>(new Set());
+  const autoEnrichInitializedRef = useRef(false);
+
+  useEffect(() => {
+    if (isLoading || settingsLoading) return;
+
+    const currentIds = new Set(leads.map((l) => l.id));
+
+    if (!autoEnrichInitializedRef.current) {
+      // First load: populate seen IDs without triggering enrichment
+      seenLeadIdsRef.current = currentIds;
+      autoEnrichInitializedRef.current = true;
+      return;
+    }
+
+    if (!settings.auto_enrich_enabled) return;
+
+    // Find new leads not seen before
+    const newLeads = leads.filter(
+      (l) => !seenLeadIdsRef.current.has(l.id) && getEnrichmentStatus(l) === "pending"
+    );
+
+    seenLeadIdsRef.current = currentIds;
+
+    if (newLeads.length > 0) {
+      // Auto-enrich new leads
+      for (const lead of newLeads) {
+        enrichLead.mutate(lead);
+      }
+    }
+  }, [leads, isLoading, settingsLoading, settings.auto_enrich_enabled, enrichLead]);
 
   const stats = useMemo(() => getEnrichmentStats(leads), [leads]);
 
@@ -191,13 +241,19 @@ export default function LeadEnricher() {
     await enrichBatch(pendingLeads, (done, total, current) => {
       setBatchProgress({ done, total, current });
     });
-    // Keep showing 100% for a moment then clear
     setTimeout(() => setBatchProgress(null), 2000);
   }, [pendingLeads, enrichBatch]);
 
   const handleProcessQueue = useCallback(async () => {
     await handleEnrichAll();
   }, [handleEnrichAll]);
+
+  const handleSettingChange = useCallback(
+    (key: string, value: boolean) => {
+      updateSettings.mutate({ [key]: value });
+    },
+    [updateSettings]
+  );
 
   return (
     <ModuleGuard moduleSlug="lead-enricher" moduleName="Lead Enricher Pro">
@@ -449,6 +505,9 @@ export default function LeadEnricher() {
                   <CardTitle>Configurações de Enriquecimento</CardTitle>
                   <CardDescription>
                     Personalize como os dados dos leads são enriquecidos
+                    {updateSettings.isPending && (
+                      <span className="ml-2 text-xs text-primary animate-pulse">A guardar...</span>
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -461,8 +520,9 @@ export default function LeadEnricher() {
                         </p>
                       </div>
                       <Switch
-                        checked={settings.google}
-                        onCheckedChange={(v) => setSettings((s) => ({ ...s, google: v }))}
+                        checked={settings.google_enabled}
+                        onCheckedChange={(v) => handleSettingChange("google_enabled", v)}
+                        disabled={updateSettings.isPending}
                       />
                     </div>
                     <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -473,8 +533,9 @@ export default function LeadEnricher() {
                         </p>
                       </div>
                       <Switch
-                        checked={settings.linkedin}
-                        onCheckedChange={(v) => setSettings((s) => ({ ...s, linkedin: v }))}
+                        checked={settings.linkedin_enabled}
+                        onCheckedChange={(v) => handleSettingChange("linkedin_enabled", v)}
+                        disabled={updateSettings.isPending}
                       />
                     </div>
                     <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -485,27 +546,36 @@ export default function LeadEnricher() {
                         </p>
                       </div>
                       <Switch
-                        checked={settings.webscraping}
-                        onCheckedChange={(v) => setSettings((s) => ({ ...s, webscraping: v }))}
+                        checked={settings.webscraping_enabled}
+                        onCheckedChange={(v) => handleSettingChange("webscraping_enabled", v)}
+                        disabled={updateSettings.isPending}
                       />
                     </div>
                     <div className="flex items-center justify-between p-4 border rounded-lg">
                       <div>
                         <h4 className="font-medium">Enriquecimento Automático</h4>
                         <p className="text-sm text-muted-foreground">
-                          Enriquecer novos leads automaticamente
+                          Enriquecer novos leads automaticamente quando detectados
                         </p>
                       </div>
-                      <Badge variant="outline">Em breve</Badge>
+                      <Switch
+                        checked={settings.auto_enrich_enabled}
+                        onCheckedChange={(v) => handleSettingChange("auto_enrich_enabled", v)}
+                        disabled={updateSettings.isPending}
+                      />
                     </div>
                     <div className="flex items-center justify-between p-4 border rounded-lg">
                       <div>
                         <h4 className="font-medium">Validação de Email</h4>
                         <p className="text-sm text-muted-foreground">
-                          Verificar emails encontrados antes de guardar
+                          Verificar emails encontrados (formato + registos MX)
                         </p>
                       </div>
-                      <Badge variant="outline">Em breve</Badge>
+                      <Switch
+                        checked={settings.email_validation_enabled}
+                        onCheckedChange={(v) => handleSettingChange("email_validation_enabled", v)}
+                        disabled={updateSettings.isPending}
+                      />
                     </div>
                   </div>
                 </CardContent>

@@ -4,6 +4,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { toast } from "sonner";
 import type { Lead } from "@/hooks/useLeads";
+import type { LeadEnricherSettings } from "@/hooks/useLeadEnricherSettings";
 
 export type EnrichmentStatus = "enriched" | "partial" | "pending";
 
@@ -45,7 +46,7 @@ export function getEnrichmentStats(leads: Lead[]) {
   return { total, enriched, partial, pending, successRate };
 }
 
-export function useEnrichLead() {
+export function useEnrichLead(enricherSettings?: LeadEnricherSettings) {
   const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
   const queryClient = useQueryClient();
@@ -60,6 +61,11 @@ export function useEnrichLead() {
           email: lead.email,
           phone: lead.phone,
           workspaceId: currentWorkspace.id,
+          settings: enricherSettings ? {
+            google_enabled: enricherSettings.google_enabled,
+            linkedin_enabled: enricherSettings.linkedin_enabled,
+            webscraping_enabled: enricherSettings.webscraping_enabled,
+          } : undefined,
         },
       });
 
@@ -78,6 +84,20 @@ export function useEnrichLead() {
       if (enrichment.company?.confidence === "high") updates.confidence_score = 90;
       else if (enrichment.company?.confidence === "medium") updates.confidence_score = 70;
       else if (enrichment.company?.confidence === "low") updates.confidence_score = 40;
+
+      // Email validation if enabled
+      if (enricherSettings?.email_validation_enabled && lead.email) {
+        try {
+          const { data: validationResult } = await supabase.functions.invoke("validate-email", {
+            body: { email: lead.email },
+          });
+          if (validationResult?.success && validationResult.data) {
+            updates.email_verified = validationResult.data.status === "valid";
+          }
+        } catch (e) {
+          console.error("Email validation failed:", e);
+        }
+      }
 
       if (Object.keys(updates).length > 0) {
         const { error: updateError } = await workspaceClient
@@ -99,9 +119,9 @@ export function useEnrichLead() {
   });
 }
 
-export function useEnrichLeadsBatch() {
+export function useEnrichLeadsBatch(enricherSettings?: LeadEnricherSettings) {
   const { currentWorkspace } = useWorkspace();
-  const enrichLead = useEnrichLead();
+  const enrichLead = useEnrichLead(enricherSettings);
 
   return {
     enrichBatch: async (

@@ -14889,6 +14889,50 @@ export type Database = {
           },
         ]
       }
+      lead_enricher_settings: {
+        Row: {
+          auto_enrich_enabled: boolean
+          created_at: string
+          email_validation_enabled: boolean
+          google_enabled: boolean
+          id: string
+          linkedin_enabled: boolean
+          updated_at: string
+          webscraping_enabled: boolean
+          workspace_id: string
+        }
+        Insert: {
+          auto_enrich_enabled?: boolean
+          created_at?: string
+          email_validation_enabled?: boolean
+          google_enabled?: boolean
+          id?: string
+          linkedin_enabled?: boolean
+          updated_at?: string
+          webscraping_enabled?: boolean
+          workspace_id: string
+        }
+        Update: {
+          auto_enrich_enabled?: boolean
+          created_at?: string
+          email_validation_enabled?: boolean
+          google_enabled?: boolean
+          id?: string
+          linkedin_enabled?: boolean
+          updated_at?: string
+          webscraping_enabled?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_enricher_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_linkedin_data: {
         Row: {
           analysis_status: string | null
@@ -15032,6 +15076,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           email: string | null
+          email_verified: boolean | null
+          enrichment_queued_at: string | null
           estimated_value: number | null
           external_email: string | null
           external_instagram_id: string | null
@@ -15113,6 +15159,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           email?: string | null
+          email_verified?: boolean | null
+          enrichment_queued_at?: string | null
           estimated_value?: number | null
           external_email?: string | null
           external_instagram_id?: string | null
@@ -15194,6 +15242,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           email?: string | null
+          email_verified?: boolean | null
+          enrichment_queued_at?: string | null
           estimated_value?: number | null
           external_email?: string | null
           external_instagram_id?: string | null

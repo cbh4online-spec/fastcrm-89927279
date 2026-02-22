@@ -86,7 +86,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { name, email, phone, workspaceId } = await req.json();
+    const { name, email, phone, workspaceId, settings: enrichSettings } = await req.json();
+
+    // Configuration flags (default to true for backward compatibility)
+    const googleEnabled = enrichSettings?.google_enabled ?? true;
+    const linkedinEnabled = enrichSettings?.linkedin_enabled ?? true;
+    const webscrapingEnabled = enrichSettings?.webscraping_enabled ?? true;
 
     if (!workspaceId) {
       return new Response(
@@ -197,13 +202,13 @@ Deno.serve(async (req) => {
 
     // 4. Use AI to enrich if we have company website
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (LOVABLE_API_KEY && result.companyWebsite) {
+    if (LOVABLE_API_KEY && result.companyWebsite && googleEnabled) {
       try {
         // Try to scrape company website for more context
         const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
         let companyContext = "";
 
-        if (FIRECRAWL_API_KEY) {
+        if (FIRECRAWL_API_KEY && webscrapingEnabled) {
           try {
             const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
               method: "POST",
