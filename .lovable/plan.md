@@ -1,27 +1,51 @@
 
+# Fix: Resultados da prospecao nao aparecem
 
-# Aumentar limite de perfis analisados para 500
+## Diagnostico
 
-## Situacao actual
+A pesquisa mais recente ("Fisioterapeuta, Lisboa" - ID `618a3616`) encontrou 50 perfis, mas a analise falhou porque o limite estava em 200/200. Os perfis **nunca foram guardados** na base de dados porque a funcao de analise rejeitou o pedido com erro 429.
 
-O workspace `d9e3d0ae` (periodo Fevereiro 2026) tem:
-- Perfis analisados: **200 de 200** (esgotado)
-- Pesquisas: 7 de 50
+Depois de aumentar o limite para 500, o frontend continua a mostrar "Sem resultados" porque esta a filtrar por `search_id = 618a3616`, que nao tem perfis associados na BD.
 
-Registo na tabela `professional_prospecting_usage`:
-- ID: `8337756a-7184-4133-b36c-15c11dc3fc60`
+## Solucao
 
-## Alteracao
+### 1. Correcao no frontend (ProspectingSearch.tsx)
 
-Executar um UPDATE na tabela `professional_prospecting_usage` para alterar `profiles_analyzed_limit` de 200 para **500** no registo do periodo actual.
+Alterar o fluxo para **nao navegar para resultados** quando a analise falha. Actualmente, mesmo quando a analise falha (linhas 116-123), o codigo continua para a linha 128 e chama `onSearchComplete(data.searchId)`, mostrando uma pagina vazia.
 
-```sql
-UPDATE professional_prospecting_usage
-SET profiles_analyzed_limit = 500, updated_at = now()
-WHERE id = '8337756a-7184-4133-b36c-15c11dc3fc60';
+Alteracao:
+- Se a analise falhar, mostrar erro e **nao navegar** para o tab de resultados
+- Adicionar `return` apos o erro de analise para evitar navegacao
+
+### 2. Correcao no frontend (ProspectingResults.tsx)
+
+Melhorar o estado vazio quando `searchId` existe mas nao ha perfis:
+- Adicionar botao "Repetir pesquisa" que volta ao tab de pesquisa
+- Parar o polling (`refetchInterval`) apos um timeout (ex: 30 segundos sem resultados)
+
+### 3. Acao imediata
+
+O utilizador precisa de **repetir a pesquisa** "Fisioterapeuta, Lisboa". Agora com o limite em 500, a analise vai funcionar e os perfis serao guardados.
+
+## Detalhes tecnicos
+
+### ProspectingSearch.tsx - Nao navegar se analise falhou
+
+```typescript
+// Linha ~116-128: adicionar return quando analise falha
+if (analysisError) {
+  console.error("Analysis error:", analysisError);
+  toast.error("Erro na analise de perfis");
+  return; // <-- NOVO: nao navegar para resultados
+} else if (analysisData.success) {
+  // ...
+}
+// Mover onSearchComplete para dentro do else if success
 ```
 
-Apos esta alteracao, o workspace tera 300 perfis disponiveis para analise (500 - 200 ja usados).
+### ProspectingResults.tsx - Melhorar estado vazio
 
-Nao e necessaria nenhuma alteracao de codigo.
-
+```typescript
+// Adicionar timeout para parar polling
+// Adicionar botao para voltar a pesquisa quando nao ha resultados
+```
