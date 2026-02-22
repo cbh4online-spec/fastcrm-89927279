@@ -496,41 +496,61 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
     setBulkGenerating(true);
     setBulkGenerationProgress({ done: 0, total: selectedProfiles.length });
 
-    // Prepare profiles for the edge function
-    const profileInputs = selectedProfiles.map(p => ({
-      id: p.id,
-      name: p.profile_name || "Sem nome",
-      profession: p.inferred_profession || undefined,
-      specialty: p.inferred_specialty || undefined,
-      bio: p.instagram_full_bio || p.profile_bio || undefined,
-      location: p.inferred_location || undefined,
-      followers: p.instagram_followers_count || undefined,
-      category: p.instagram_category || undefined,
-      isVerified: p.instagram_is_verified || undefined,
-      isBusiness: p.instagram_is_business || undefined,
-      profileUrl: p.profile_url,
-    }));
-
     // Get workspace context
     const wsContext = currentWorkspace ? {
       name: currentWorkspace.name || "",
       description: (currentWorkspace as any).description || "",
     } : null;
 
+    // Process in mini-batches of 5 for incremental progress
+    const BATCH_SIZE = 5;
+    const allResults: Array<{ profileId: string; message: string; message_plain: string; error?: string }> = [];
+
     try {
-      const { data, error } = await supabase.functions.invoke("batch-generate-prospecting-messages", {
-        body: {
-          profiles: profileInputs,
-          tone: defaultTone || "casual",
-          workspaceContext: wsContext,
-          serviceContext: null,
-        },
-      });
+      for (let i = 0; i < selectedProfiles.length; i += BATCH_SIZE) {
+        const batchProfiles = selectedProfiles.slice(i, i + BATCH_SIZE);
 
-      if (error) throw error;
+        const profileInputs = batchProfiles.map(p => ({
+          id: p.id,
+          name: p.profile_name || "Sem nome",
+          profession: p.inferred_profession || undefined,
+          specialty: p.inferred_specialty || undefined,
+          bio: p.instagram_full_bio || p.profile_bio || undefined,
+          location: p.inferred_location || undefined,
+          followers: p.instagram_followers_count || undefined,
+          category: p.instagram_category || undefined,
+          isVerified: p.instagram_is_verified || undefined,
+          isBusiness: p.instagram_is_business || undefined,
+          profileUrl: p.profile_url,
+        }));
 
-      setBulkOutreachMessages(data.results || []);
-      setBulkGenerationProgress({ done: selectedProfiles.length, total: selectedProfiles.length });
+        const { data, error } = await supabase.functions.invoke("batch-generate-prospecting-messages", {
+          body: {
+            profiles: profileInputs,
+            tone: defaultTone || "casual",
+            workspaceContext: wsContext,
+            serviceContext: null,
+          },
+        });
+
+        if (error) {
+          console.error("Batch error:", error);
+          // Add error results for this batch
+          const errorResults = batchProfiles.map(p => ({
+            profileId: p.id,
+            message: "",
+            message_plain: "",
+            error: "Erro ao gerar mensagem",
+          }));
+          allResults.push(...errorResults);
+        } else {
+          allResults.push(...(data.results || []));
+        }
+
+        // Update progress and messages incrementally
+        setBulkGenerationProgress({ done: Math.min(i + BATCH_SIZE, selectedProfiles.length), total: selectedProfiles.length });
+        setBulkOutreachMessages([...allResults]);
+      }
     } catch (err) {
       toast.error("Erro ao gerar mensagens em massa");
       console.error("Bulk outreach error:", err);
