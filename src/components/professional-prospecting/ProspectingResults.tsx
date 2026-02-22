@@ -23,6 +23,7 @@ import { ProspectingMessageDialog } from "./ProspectingMessageDialog";
 
 interface ProspectingResultsProps {
   searchId: string | null;
+  onGoToSearch?: () => void;
 }
 
 interface Profile {
@@ -85,10 +86,11 @@ const PLATFORM_COLORS: Record<string, string> = {
   other: "bg-muted text-muted-foreground",
 };
 
-export function ProspectingResults({ searchId }: ProspectingResultsProps) {
+export function ProspectingResults({ searchId, onGoToSearch }: ProspectingResultsProps) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [pollingStartTime] = useState(() => Date.now());
   const [searchFilter, setSearchFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [platformFilter, setPlatformFilter] = useState<string | null>(null);
@@ -141,7 +143,7 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
       })) as Profile[];
     },
     enabled: !!currentWorkspace?.id,
-    refetchInterval: searchId ? 3000 : false, // Refetch every 3 seconds only when analyzing
+    refetchInterval: searchId && (Date.now() - pollingStartTime < 30000) ? 3000 : false,
   });
 
   // Convert to lead mutation with enriched data
@@ -402,22 +404,31 @@ export function ProspectingResults({ searchId }: ProspectingResultsProps) {
   }
 
   if (profiles.length === 0) {
+    const pollingExpired = searchId && (Date.now() - pollingStartTime >= 30000);
     return (
       <Card>
         <CardContent className="py-12 text-center">
           <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium mb-2">Sem resultados</h3>
           <p className="text-muted-foreground mb-4">
-            {searchId 
+            {searchId && !pollingExpired
               ? "A aguardar análise dos perfis... Os resultados aparecerão automaticamente."
+              : searchId && pollingExpired
+              ? "Não foram encontrados perfis analisados para esta pesquisa."
               : "Execute uma pesquisa para ver perfis analisados"
             }
           </p>
-          {searchId && (
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          {searchId && !pollingExpired && (
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4">
               <Loader2 className="w-4 h-4 animate-spin" />
               A carregar resultados...
             </div>
+          )}
+          {(pollingExpired || (searchId && profiles.length === 0)) && onGoToSearch && (
+            <Button variant="outline" onClick={onGoToSearch} className="gap-2">
+              <RefreshCw className="w-4 h-4" />
+              Repetir pesquisa
+            </Button>
           )}
         </CardContent>
       </Card>

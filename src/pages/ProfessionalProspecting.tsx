@@ -54,7 +54,10 @@ export default function ProfessionalProspecting() {
           </TabsContent>
 
           <TabsContent value="results" className="space-y-4">
-            <ProspectingResults searchId={currentSearchId} />
+            <ProspectingResults 
+              searchId={currentSearchId} 
+              onGoToSearch={() => setActiveTab("search")}
+            />
           </TabsContent>
 
           <TabsContent value="history" className="space-y-4">
