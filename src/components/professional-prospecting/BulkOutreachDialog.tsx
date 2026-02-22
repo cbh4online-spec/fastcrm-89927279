@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Copy, Check, Loader2, Send, ExternalLink, Instagram,
   CheckCircle, AlertCircle, SkipForward, PartyPopper, RotateCcw, X
@@ -68,6 +69,7 @@ export function BulkOutreachDialog({
   userId,
   workspaceId,
 }: BulkOutreachDialogProps) {
+  const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
   const [sentIds, setSentIds] = useState<Set<string>>(new Set());
   const [openedIds, setOpenedIds] = useState<Set<string>>(new Set());
@@ -164,7 +166,7 @@ export function BulkOutreachDialog({
         },
       ] as any);
 
-      // Auto-create lead
+      // Auto-create lead and convert profile
       try {
         const msg = getMessageForProfile(profile.id);
         const leadData: Record<string, unknown> = {
@@ -191,7 +193,27 @@ export function BulkOutreachDialog({
           leadData.notes = `📨 Mensagem de outreach enviada:\n"${msg.message_plain || msg.message}"`;
         }
 
-        await supabase.from("leads").insert([leadData as any]);
+        const { data: newLead } = await supabase
+          .from("leads")
+          .insert([leadData as any])
+          .select("id")
+          .single();
+
+        // Update prospecting profile to "converted" so it leaves the list
+        if (newLead?.id) {
+          await supabase
+            .from("professional_prospecting_profiles")
+            .update({
+              status: "converted",
+              converted_lead_id: newLead.id,
+              converted_at: new Date().toISOString(),
+              converted_by: userId || null,
+            } as any)
+            .eq("id", profile.id);
+        }
+
+        // Invalidate queries so the list updates immediately
+        queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
       } catch (err) {
         console.error("Erro ao criar lead automaticamente:", err);
       }
