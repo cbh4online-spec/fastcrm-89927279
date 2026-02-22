@@ -22006,6 +22006,63 @@ export type Database = {
           },
         ]
       }
+      prospecting_outreach_queue: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          message_plain: string | null
+          profile_id: string
+          scheduled_for: string
+          status: string
+          step_index: number
+          tone: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          message_plain?: string | null
+          profile_id: string
+          scheduled_for: string
+          status?: string
+          step_index: number
+          tone?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          message_plain?: string | null
+          profile_id?: string
+          scheduled_for?: string
+          status?: string
+          step_index?: number
+          tone?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospecting_outreach_queue_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "professional_prospecting_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospecting_outreach_queue_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       protocol_products: {
         Row: {
           created_at: string

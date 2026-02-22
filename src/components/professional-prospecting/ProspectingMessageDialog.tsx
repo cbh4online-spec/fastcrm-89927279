@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import {
   Copy, Check, RefreshCw, Loader2, Sparkles,
   MessageSquare, User, Briefcase, MapPin, Instagram,
@@ -167,6 +168,8 @@ export function ProspectingMessageDialog({
     }
   };
 
+  const { currentWorkspace } = useWorkspace();
+
   const handleSendInstagram = async () => {
     const stepNum = currentStep + 1;
     try {
@@ -181,6 +184,44 @@ export function ProspectingMessageDialog({
           .update({ outreach_step: stepNum } as any)
           .eq("id", profile.id);
         onOutreachUpdate?.(profile.id, stepNum);
+      }
+
+      // When sending Msg 1, queue Msg 2 and Msg 3 automatically
+      if (stepNum === 1 && currentWorkspace?.id) {
+        const now = new Date();
+        const day3 = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+        const day7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+        const queueItems = [
+          {
+            workspace_id: currentWorkspace.id,
+            profile_id: profile.id,
+            step_index: 1,
+            status: "scheduled",
+            scheduled_for: day3.toISOString(),
+            message: steps[1]?.message || null,
+            message_plain: steps[1]?.message_plain || null,
+            tone,
+          },
+          {
+            workspace_id: currentWorkspace.id,
+            profile_id: profile.id,
+            step_index: 2,
+            status: "scheduled",
+            scheduled_for: day7.toISOString(),
+            message: steps[2]?.message || null,
+            message_plain: steps[2]?.message_plain || null,
+            tone,
+          },
+        ];
+
+        await supabase
+          .from("prospecting_outreach_queue")
+          .insert(queueItems as any);
+
+        toast.success("Sequência activada! Follow-up em 3 dias, Fecho em 7 dias", {
+          duration: 5000,
+        });
       }
 
       onOpenChange(false);

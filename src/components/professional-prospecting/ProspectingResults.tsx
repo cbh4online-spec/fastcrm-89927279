@@ -284,6 +284,13 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
         })
         .eq("id", profile.id);
 
+      // Cancel pending outreach
+      await supabase
+        .from("prospecting_outreach_queue")
+        .update({ status: "cancelled" } as any)
+        .eq("profile_id", profile.id)
+        .in("status", ["scheduled", "ready"]);
+
       return lead;
     },
     onSuccess: () => {
@@ -321,6 +328,13 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
           rejection_reason: "Rejeitado pelo utilizador",
         })
         .eq("id", profileId);
+
+      // Cancel pending outreach
+      await supabase
+        .from("prospecting_outreach_queue")
+        .update({ status: "cancelled" } as any)
+        .eq("profile_id", profileId)
+        .in("status", ["scheduled", "ready"]);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
