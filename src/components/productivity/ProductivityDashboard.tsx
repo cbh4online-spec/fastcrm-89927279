@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Brain, Target, Zap, TrendingUp, Trophy, Calendar, RefreshCw, Sparkles, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { DailyCoachPanel } from '@/components/productivity/DailyCoachPanel';
 import { GoalsManager } from '@/components/productivity/GoalsManager';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -16,6 +17,7 @@ type ActiveTab = 'coach' | 'goals';
 
 export function ProductivityDashboard() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<ActiveTab>('coach');
   const [searchValue, setSearchValue] = useState('');
 
@@ -87,7 +89,7 @@ export function ProductivityDashboard() {
             </>
           ) : (
             <>
-              <Card className="hover:border-primary/50 transition-colors">
+              <Card className="hover:border-primary/50 transition-colors cursor-pointer" onClick={() => setActiveTab('coach')}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -109,7 +111,7 @@ export function ProductivityDashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="hover:border-primary/50 transition-colors">
+              <Card className="hover:border-primary/50 transition-colors cursor-pointer" onClick={() => navigate('/dashboard/calendar')}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -124,7 +126,7 @@ export function ProductivityDashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="hover:border-primary/50 transition-colors">
+              <Card className="hover:border-primary/50 transition-colors cursor-pointer" onClick={() => setActiveTab('goals')}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -139,7 +141,7 @@ export function ProductivityDashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="hover:border-primary/50 transition-colors">
+              <Card className="hover:border-primary/50 transition-colors cursor-pointer" onClick={() => setActiveTab('goals')}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
