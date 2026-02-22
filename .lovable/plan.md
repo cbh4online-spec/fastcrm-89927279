@@ -1,89 +1,82 @@
 
 
-# Desenvolver funcionalidades restantes do Lead Enricher Pro
+# Tornar a Prospeccao Profissional mais produtiva
 
-## Resumo
+## Analise do estado actual
 
-Implementar 4 funcionalidades que faltam no Lead Enricher Pro:
-1. Persistir configuracoes na base de dados (por workspace)
-2. Fazer as configuracoes afetarem o processo de enriquecimento
-3. Enriquecimento Automatico de novos leads
-4. Validacao de Email
+O fluxo actual exige muitos passos manuais:
+1. Preencher formulario e pesquisar (esperar)
+2. Mudar para tab "Resultados"
+3. Expandir cada perfil individualmente
+4. Enriquecer com Instagram um a um
+5. Converter para lead um a um
+6. Gerar mensagem um a um
 
----
+## Melhorias propostas
 
-## 1. Tabela de configuracoes (base de dados)
+### 1. Accoes em lote (Bulk Actions)
 
-Criar tabela `lead_enricher_settings` para guardar preferencias por workspace:
+Os checkboxes de seleccao ja existem na lista de resultados, mas nao fazem nada. Activar:
 
-```text
-lead_enricher_settings
-- id (uuid, PK)
-- workspace_id (uuid, FK, unique)
-- google_enabled (boolean, default true)
-- linkedin_enabled (boolean, default true)
-- webscraping_enabled (boolean, default true)
-- auto_enrich_enabled (boolean, default false)
-- email_validation_enabled (boolean, default false)
-- created_at, updated_at
-```
+- **Converter seleccionados**: Converter multiplos perfis em leads de uma vez
+- **Rejeitar seleccionados**: Rejeitar multiplos perfis de uma vez
+- **Enriquecer seleccionados**: Enriquecer dados Instagram de todos os seleccionados em sequencia
 
-RLS: apenas membros do workspace podem ler/escrever.
+Aparece uma barra de accoes flutuante quando ha perfis seleccionados com contagem e botoes.
 
-## 2. Hook useLeadEnricherSettings
+### 2. Auto-navegacao para resultados com progresso
 
-Novo hook `src/hooks/useLeadEnricherSettings.ts`:
-- Busca configuracoes do workspace actual (ou devolve defaults)
-- Mutacao para upsert das configuracoes
-- Usado na tab "Configuracoes" para substituir o estado local actual
+Ao pesquisar, em vez de o utilizador esperar num botao "A pesquisar...", mostrar:
+- Progresso em tempo real: "A pesquisar... X perfis encontrados" -> "A analisar com IA... X/Y"
+- Transicao automatica para resultados (ja acontece parcialmente)
 
-## 3. Configuracoes funcionais na edge function
+### 3. Pesquisas rapidas / Templates
 
-Modificar a chamada de enriquecimento para passar as configuracoes activas. A edge function `contact-enrich` recebe flags (`google`, `linkedin`, `webscraping`) e so executa os passos correspondentes:
-- `google_enabled = false`: salta o scraping via Firecrawl
-- `linkedin_enabled = false`: salta pesquisa LinkedIn (futuro)
-- `webscraping_enabled = false`: salta scraping do website
+Guardar pesquisas anteriores como templates reutilizaveis:
+- Botao "Repetir" no historico (ja existe click para ver resultados, mas nao para repetir a mesma pesquisa)
+- Botao "Repetir pesquisa" que pre-preenche o formulario com os mesmos parametros
 
-## 4. Enriquecimento Automatico
+### 4. Ordenacao e filtros avancados
 
-Implementar via trigger de base de dados + funcao que invoca a edge function:
-- Adicionar um trigger na tabela `leads` que, ao inserir um novo lead, marca-o para enriquecimento numa fila (coluna `enrichment_queued_at`)
-- No frontend, criar um polling simples no hook `useLeadEnrichment` que detecta leads recem-inseridos com `enrichment_queued_at IS NOT NULL` e dispara o enriquecimento
-- Alternativa mais simples: usar um database webhook (pg_net) que chama a edge function directamente ao inserir um lead -- mas requer extensao pg_net
+Adicionar ao painel de resultados:
+- Ordenar por: Lead Score (desc), Seguidores, Data
+- Filtro por score minimo (slider)
+- Seleccionar todos / nenhum
 
-Abordagem escolhida (mais pragmatica): Quando `auto_enrich_enabled = true`, o frontend auto-enriquece novos leads ao detecta-los via polling/realtime na lista de leads.
+### 5. Enriquecimento automatico de Instagram durante a analise
 
-## 5. Validacao de Email
-
-Criar edge function `validate-email` que:
-- Verifica formato do email (regex)
-- Verifica se o dominio tem registos MX (DNS lookup via Deno)
-- Devolve resultado: `valid`, `invalid`, `unknown`
-
-Integrar no fluxo de enriquecimento: quando `email_validation_enabled = true`, apos enriquecer valida os emails encontrados.
-
-No UI, mostrar badge de validacao junto ao email do lead.
+O sistema ja suporta `autoEnrichInstagram` na edge function `professional-prospecting-analyze`, mas o frontend nao o activa. Activar por defeito para eliminar o passo manual de enriquecimento.
 
 ---
 
 ## Detalhes tecnicos
 
-### Ficheiros a criar:
-- `src/hooks/useLeadEnricherSettings.ts` -- hook CRUD para configuracoes
-- `supabase/functions/validate-email/index.ts` -- edge function de validacao
+### Ficheiro: `src/components/professional-prospecting/ProspectingResults.tsx`
 
-### Ficheiros a modificar:
-- `src/pages/LeadEnricher.tsx` -- substituir estado local por hook de configuracoes, adicionar logica de auto-enrich, badges de validacao de email
-- `src/hooks/useLeadEnrichment.ts` -- passar configuracoes para a edge function, integrar validacao
-- `supabase/functions/contact-enrich/index.ts` -- respeitar flags de configuracao recebidas
+- Adicionar barra de accoes em lote (bulk action bar) fixa no fundo quando `selectedIds.size > 0`
+- Implementar `convertBatch`: itera pelos perfis seleccionados e converte cada um com opcoes default
+- Implementar `rejectBatch`: rejeita todos os seleccionados
+- Implementar `enrichBatch`: enriquece Instagram de todos os seleccionados
+- Adicionar botoes "Seleccionar todos" / "Limpar seleccao"
+- Adicionar dropdown de ordenacao (Lead Score, Data, Seguidores)
+- Adicionar slider de score minimo
 
-### Migracao SQL:
-- Criar tabela `lead_enricher_settings`
-- Adicionar colunas `email_verified` (boolean) e `enrichment_queued_at` (timestamptz) na tabela `leads`
-- RLS policies para a nova tabela
+### Ficheiro: `src/components/professional-prospecting/ProspectingSearch.tsx`
 
-### Alteracoes na UI (tab Configuracoes):
-- Remover badges "Em breve" do Enriquecimento Automatico e Validacao de Email
-- Substituir por Switches funcionais ligados ao hook de configuracoes
-- Adicionar indicador de "a guardar..." ao mudar configuracoes
+- Modificar `handleWebSearch` para passar `autoEnrichInstagram: true` na chamada de analise (linha 108)
+- Isto activa o enriquecimento Instagram automatico durante a fase de analise
+
+### Ficheiro: `src/components/professional-prospecting/ProspectingHistory.tsx`
+
+- Adicionar botao "Repetir" em cada entrada do historico
+- Ao clicar, emite callback `onRepeatSearch` com os parametros da pesquisa original (profissao, localizacao, keywords, plataformas)
+
+### Ficheiro: `src/pages/ProfessionalProspecting.tsx`
+
+- Adicionar handler `onRepeatSearch` que recebe parametros e muda para tab "search" com os campos pre-preenchidos
+- Passar props de pre-fill para `ProspectingSearch`
+
+### Sem alteracoes de base de dados necessarias
+
+Toda a logica ja existe na BD e edge functions. As melhorias sao puramente de frontend e de activacao de flags existentes.
 
