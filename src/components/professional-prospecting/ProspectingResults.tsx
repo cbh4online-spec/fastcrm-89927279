@@ -469,13 +469,16 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone }: Pros
 
   // Bulk outreach - generate messages for all selected profiles
   const handleBulkOutreach = async () => {
-    const selectedProfiles = profiles.filter(p => 
-      selectedIds.has(p.id) && (!p.outreach_step || p.outreach_step === 0)
-    );
+    const selectedProfiles = profiles.filter(p => selectedIds.has(p.id));
     
     if (selectedProfiles.length === 0) {
-      toast.info("Nenhum perfil elegível selecionado (apenas perfis sem outreach)");
+      toast.info("Nenhum perfil selecionado");
       return;
+    }
+
+    const profilesWithOutreach = selectedProfiles.filter(p => p.outreach_step && p.outreach_step > 0);
+    if (profilesWithOutreach.length > 0) {
+      toast.info(`${profilesWithOutreach.length} perfil(is) já iniciaram sequência - a gerar nova mensagem para todos`);
     }
 
     // Prepare profiles for dialog
