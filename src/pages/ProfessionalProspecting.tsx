@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,7 +8,11 @@ import { ProspectingResults } from "@/components/professional-prospecting/Prospe
 import { ProspectingHistory } from "@/components/professional-prospecting/ProspectingHistory";
 import { ProspectingUsage } from "@/components/professional-prospecting/ProspectingUsage";
 import { PendingOutreachPanel } from "@/components/professional-prospecting/PendingOutreachPanel";
+import { BulkOutreachDialog } from "@/components/professional-prospecting/BulkOutreachDialog";
 import { useLeadEnricherSettings } from "@/hooks/useLeadEnricherSettings";
+import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -27,12 +31,68 @@ interface OfferSuggestion {
   painPoints: string;
 }
 
+interface BulkProfile {
+  id: string;
+  profile_name: string | null;
+  profile_url: string;
+  inferred_profession: string | null;
+  platform: string;
+}
+
+interface GeneratedMessage {
+  profileId: string;
+  message: string;
+  message_plain: string;
+  error?: string;
+}
+
 export default function ProfessionalProspecting() {
   const [activeTab, setActiveTab] = useState("search");
   const [currentSearchId, setCurrentSearchId] = useState<string | null>(null);
   const [searchPrefill, setSearchPrefill] = useState<SearchPrefill | null>(null);
   const [offerDialogOpen, setOfferDialogOpen] = useState(false);
   const { settings, isLoading, updateSettings } = useLeadEnricherSettings();
+  const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
+
+  // Lifted bulk outreach state - lives OUTSIDE tabs so it persists
+  const [bulkOutreachOpen, setBulkOutreachOpen] = useState(false);
+  const [bulkOutreachMessages, setBulkOutreachMessages] = useState<GeneratedMessage[]>([]);
+  const [bulkOutreachProfiles, setBulkOutreachProfiles] = useState<BulkProfile[]>([]);
+  const [bulkGenerating, setBulkGenerating] = useState(false);
+  const [bulkGenerationProgress, setBulkGenerationProgress] = useState({ done: 0, total: 0 });
+
+  const handleStartBulkOutreach = useCallback((
+    profiles: BulkProfile[],
+    onMessageGenerated: (msgs: GeneratedMessage[]) => void,
+    onGenerationComplete: () => void,
+    setProgress: (p: { done: number; total: number }) => void
+  ) => {
+    setBulkOutreachProfiles(profiles);
+    setBulkOutreachMessages([]);
+    setBulkOutreachOpen(true);
+    setBulkGenerating(true);
+    setBulkGenerationProgress({ done: 0, total: profiles.length });
+
+    // Wire callbacks to page-level state
+    const originalOnMessage = onMessageGenerated;
+    const wrappedOnMessage = (msgs: GeneratedMessage[]) => {
+      setBulkOutreachMessages(msgs);
+      originalOnMessage(msgs);
+    };
+    const wrappedOnComplete = () => {
+      setBulkGenerating(false);
+      onGenerationComplete();
+    };
+    const wrappedSetProgress = (p: { done: number; total: number }) => {
+      setBulkGenerationProgress(p);
+      setProgress(p);
+    };
+
+    // Return the wrapped callbacks for ProspectingResults to use
+    return { onMessageGenerated: wrappedOnMessage, onGenerationComplete: wrappedOnComplete, setProgress: wrappedSetProgress };
+  }, []);
   const defaultTone = (settings.default_prospecting_tone || "casual") as "formal" | "casual" | "direto";
 
   const [serviceOffer, setServiceOffer] = useState("");
@@ -175,6 +235,7 @@ export default function ProfessionalProspecting() {
               searchId={currentSearchId} 
               onGoToSearch={() => setActiveTab("search")}
               defaultTone={defaultTone}
+              onStartBulkOutreach={handleStartBulkOutreach}
             />
           </TabsContent>
 
@@ -312,6 +373,22 @@ export default function ProfessionalProspecting() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Outreach Dialog - OUTSIDE tabs so it persists */}
+      <BulkOutreachDialog
+        open={bulkOutreachOpen}
+        onOpenChange={setBulkOutreachOpen}
+        profiles={bulkOutreachProfiles}
+        generatedMessages={bulkOutreachMessages}
+        isGenerating={bulkGenerating}
+        generationProgress={bulkGenerationProgress}
+        userId={user?.id}
+        workspaceId={currentWorkspace?.id}
+        onComplete={() => {
+          queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
+          queryClient.invalidateQueries({ queryKey: ["leads"] });
+        }}
+      />
       </DashboardLayout>
     </ModuleGuard>
   );
