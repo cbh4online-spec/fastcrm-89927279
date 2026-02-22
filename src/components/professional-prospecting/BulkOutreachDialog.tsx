@@ -13,6 +13,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const extractInstagramUsername = (url: string): string | null => {
+  const match = url.match(/instagram\.com\/([a-zA-Z0-9._]+)/);
+  return match ? match[1] : null;
+};
+
 interface BulkProfile {
   id: string;
   profile_name: string | null;
@@ -70,8 +75,11 @@ export function BulkOutreachDialog({
       setCopiedId(profile.id);
       setTimeout(() => setCopiedId(null), 2000);
 
-      // Open Instagram profile
-      window.open(profile.profile_url, "_blank");
+      // Open Instagram DM directly
+      const username = extractInstagramUsername(profile.profile_url);
+      const dmUrl = username ? `https://ig.me/m/${username}` : profile.profile_url;
+      window.open(dmUrl, "_blank");
+      toast.success("Mensagem copiada! Cole (Ctrl+V) na conversa e envie");
 
       // Mark as sent
       await markAsSent(profile);
@@ -144,6 +152,12 @@ export function BulkOutreachDialog({
               : `${sentCount}/${totalProfiles} enviados`
             }
           </DialogDescription>
+          {!isGenerating && (
+            <div className="flex items-center gap-2 mt-2 p-2 rounded-md bg-muted/50 text-xs text-muted-foreground">
+              <Instagram className="w-4 h-4 text-pink-500 flex-shrink-0" />
+              A mensagem é copiada automaticamente. Na conversa do Instagram, cole (Ctrl+V) e envie.
+            </div>
+          )}
         </DialogHeader>
 
         {/* Progress Bar */}
@@ -233,7 +247,7 @@ export function BulkOutreachDialog({
                           ) : (
                             <Copy className="w-3 h-3" />
                           )}
-                          Copiar + Abrir
+                          Abrir DM + Copiar
                         </Button>
                       ) : null}
                     </div>
