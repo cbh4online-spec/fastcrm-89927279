@@ -4,6 +4,7 @@ import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 import { recordMessage, checkMessageLoop } from "@/lib/inboxSafety";
+import { supabase } from "@/integrations/supabase/client";
 
 export type MessageDirection = "inbound" | "outbound";
 
@@ -64,7 +65,7 @@ export function useMessages(conversationId: string | undefined) {
   useEffect(() => {
     if (!conversationId || !currentWorkspace) return;
 
-    const channel = workspaceClient
+    const channel = supabase
       .channel(`messages-${conversationId}`)
       .on(
         "postgres_changes",
@@ -82,9 +83,9 @@ export function useMessages(conversationId: string | undefined) {
       .subscribe();
 
     return () => {
-      workspaceClient.removeChannel(channel);
+      supabase.removeChannel(channel);
     };
-  }, [conversationId, currentWorkspace, queryClient, workspaceClient]);
+  }, [conversationId, currentWorkspace, queryClient]);
 
   return query;
 }
@@ -303,7 +304,7 @@ export function useSendMessage() {
       // Record the message for loop detection
       recordMessage(data.conversation_id, "outbound", variables.isAutomated);
       
-      queryClient.invalidateQueries({ queryKey: ["messages", data.conversation_id] });
+      queryClient.refetchQueries({ queryKey: ["messages", data.conversation_id] });
       queryClient.invalidateQueries({ queryKey: ["conversations", currentWorkspace?.id] });
     },
     onError: (error: Error, variables) => {
