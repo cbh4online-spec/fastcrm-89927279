@@ -337,3 +337,6 @@ verify_jwt = false
 [functions.product-images-presign]
 verify_jwt = false
 
+[functions.product-quick-create]
+verify_jwt = false
+
