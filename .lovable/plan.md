@@ -1,119 +1,97 @@
 
+# Corrigir sugestao AI prematura e preview da lista de conversas
 
-# Corrigir conversas existentes com canal errado
+## Problema 1: AI sugere resposta quando o cliente ainda nao respondeu
 
-## Problema
+Na imagem, a conversa so tem uma mensagem outbound (enviada pelo utilizador). Ainda assim, o AI gerou uma sugestao de resposta. Isto nao faz sentido -- o AI so deve sugerir respostas quando a ultima mensagem for do cliente (inbound), caso contrario esta a "responder a si proprio".
 
-As alteracoes anteriores ao sync vao prevenir futuras classificacoes erradas, mas as conversas **ja existentes** na base de dados continuam com `channel = "sms"` quando na realidade sao do Instagram. Isto impede o envio de respostas porque o sistema tenta enviar como SMS (tipo GHL "SMS") em vez de Instagram (tipo GHL "IG").
+### Solucao
 
-## Solucao
+No ficheiro `src/components/inbox/AIMessageComposer.tsx`:
 
-Duas acoes complementares:
+1. Na funcao `handleSuggestReply`, verificar se a ultima mensagem e inbound antes de gerar sugestoes
+2. Se a ultima mensagem for outbound, mostrar um aviso ao utilizador: "O cliente ainda nao respondeu. Aguarde uma resposta antes de pedir sugestoes."
+3. Permitir override com um clique adicional caso o utilizador queira forcar a sugestao (ex: para gerar follow-up)
 
-### 1. Migracao para corrigir dados existentes
+Logica:
 
-Criar uma migracao SQL que reclassifica conversas existentes com base nos tipos das mensagens ja guardadas. Se uma conversa tem `channel = "sms"` mas as suas mensagens foram sincronizadas com `external_message_id` contendo tipos Instagram (ou o `channel_metadata` indica fonte GHL com tipos IG), atualizar o canal.
+```text
+handleSuggestReply:
+  lastMessage = messages[messages.length - 1]
+  if lastMessage.direction === "outbound":
+    toast.info("O cliente ainda nao respondeu. Aguarde uma resposta.")
+    return (sem chamar AI)
+```
 
-A abordagem mais fiavel: verificar a tabela `messages` para cada conversa "sms" de fonte GHL e ver se o `channel_metadata` contem indicadores de Instagram (como `ghl_message_type` 17 ou 18), ou usar os dados do `ghl_sync_log` para inferir o canal real.
+Tambem desativar visualmente o botao "Sugerir resposta" quando a ultima mensagem for outbound, com tooltip explicativo.
 
-Alternativa mais simples e segura: como o `cron-sync-messages` e `ghl-sync-conversations` agora ja fazem reclassificacao automatica, basta **forcar uma re-sincronizacao completa** que vai corrigir os canais. Mas para correcao imediata, uma migracao e mais rapida.
+---
 
-### 2. Protecao no envio de mensagens
+## Problema 2: Lista de conversas corta mensagens sem contexto
 
-Adicionar logica ao `ghl-send-message` para que, antes de enviar, verifique os tipos das mensagens recentes da conversa. Se detectar que as mensagens sao de tipo Instagram (17/18) mas o canal esta como "sms", corrigir automaticamente o canal e enviar com o tipo correto ("IG" em vez de "SMS").
+O preview da ultima mensagem na lista lateral:
+- Usa `truncate` que corta o texto numa unica linha sem indicacao de quem enviou
+- Nao mostra se a mensagem e do cliente ou do utilizador
+- Nao se percebe se esta alinhado pela mensagem mais recente
+
+### Solucao
+
+No ficheiro `src/components/inbox/ConversationList.tsx`:
+
+1. Adicionar prefixo ao preview indicando a direcao: "Voce: ..." para outbound, sem prefixo para inbound
+2. Aumentar o preview para 2 linhas usando `line-clamp-2` em vez de `truncate` (1 linha)
+3. Garantir que o `last_message_preview` ja reflete a mensagem mais recente (verificar query)
+
+Alteracao concreta na linha 387-389:
+
+```text
+// ANTES
+<p className="text-xs text-muted-foreground truncate mt-0.5">
+  {conv.last_message_preview}
+</p>
+
+// DEPOIS
+<p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+  {conv.last_message_direction === "outbound" && (
+    <span className="font-medium text-foreground/70">Voce: </span>
+  )}
+  {conv.last_message_preview}
+</p>
+```
+
+Nota: preciso verificar se o campo `last_message_direction` existe na query de conversas. Se nao existir, adicionar ao hook `useConversations`.
+
+---
 
 ## Detalhes tecnicos
 
-### Migracao SQL
+### Ficheiro: `src/components/inbox/AIMessageComposer.tsx`
 
-```sql
--- Reclassificar conversas "sms" que tem mensagens com ghl_message_type 17 ou 18
--- Baseado no channel_metadata das conversas que foram sincronizadas do GHL
-UPDATE conversations c
-SET channel = 'instagram'
-WHERE c.channel = 'sms'
-  AND c.channel_metadata IS NOT NULL
-  AND (c.channel_metadata->>'source' IN ('ghl', 'ghl_sync'))
-  AND EXISTS (
-    SELECT 1 FROM messages m 
-    WHERE m.conversation_id = c.id 
-    AND m.external_message_id IS NOT NULL
-  )
-  AND EXISTS (
-    SELECT 1 FROM ghl_sync_log g
-    WHERE g.workspace_id = c.workspace_id
-    AND g.ghl_entity_type IN ('message_inbound', 'message_outbound')
-    AND (g.payload->>'messageType')::int IN (17, 18)
-    AND g.fastcrm_entity_id IN (
-      SELECT m2.id FROM messages m2 WHERE m2.conversation_id = c.id
-    )
-  );
-```
+- Na funcao `handleSuggestReply` (linha 99), adicionar verificacao:
+  - Se `messages.length === 0` ou ultima mensagem e `outbound`, mostrar toast e nao chamar AI
+  - Alterar estado do botao "Sugerir resposta" para disabled quando ultima mensagem e outbound
 
-Se o `ghl_sync_log` nao tiver dados suficientes, uma alternativa mais agressiva (mas segura para este caso):
+### Ficheiro: `src/components/inbox/ConversationList.tsx`
 
-```sql
--- Alternativa: reclassificar TODAS as conversas "sms" de fonte GHL 
--- que tenham metadata com indicadores de Instagram
-UPDATE conversations
-SET channel = 'instagram'
-WHERE channel = 'sms'
-  AND channel_metadata IS NOT NULL
-  AND (
-    channel_metadata->>'source' IN ('ghl', 'ghl_sync')
-  )
-  AND (
-    channel_metadata->>'ghl_last_message_type' IN ('17', '18')
-    OR channel_metadata->>'lastMessageType' IN ('17', '18')
-  );
-```
+- Linha 387-389: mudar `truncate` para `line-clamp-2`
+- Adicionar prefixo "Voce: " quando a ultima mensagem for outbound
+- Verificar se `last_message_direction` esta disponivel no tipo `Conversation` (se nao, verificar o hook `useConversations`)
 
-### Alteracoes em `supabase/functions/ghl-send-message/index.ts`
+### Ficheiro: `src/hooks/useConversations.ts` (se necessario)
 
-Na funcao `mapChannelToGHLType`, adicionar uma verificacao extra: antes de determinar o tipo GHL, consultar as ultimas mensagens da conversa para inferir o canal real. Se o canal registado e "sms" mas as mensagens indicam Instagram, usar "IG".
-
-Concretamente, apos a linha 301 (`const ghlMessageType = mapChannelToGHLType(messageChannel)`), adicionar:
-
-```typescript
-// Auto-detect real channel from recent messages if current is "sms"
-let finalMessageType = ghlMessageType;
-if (messageChannel === "sms" && channelMetadata?.source) {
-  // Check ghl_sync_log or message patterns for Instagram indicators
-  const { data: recentSyncLogs } = await supabase
-    .from("ghl_sync_log")
-    .select("payload")
-    .eq("workspace_id", conversation.workspace_id)
-    .eq("fastcrm_entity_id", conversationId)
-    .in("ghl_entity_type", ["message_inbound", "message_outbound"])
-    .order("created_at", { ascending: false })
-    .limit(5);
-  
-  const hasIGType = recentSyncLogs?.some(log => {
-    const mt = (log.payload as any)?.messageType;
-    return mt === 17 || mt === 18;
-  });
-  
-  if (hasIGType) {
-    finalMessageType = "IG";
-    // Also fix the conversation channel for future
-    await supabase.from("conversations")
-      .update({ channel: "instagram" })
-      .eq("id", conversationId);
-  }
-}
-```
+- Verificar se o campo `last_message_direction` e retornado pela view/query
+- Se nao existir, adicionar ao select ou calcular a partir da `last_message_preview`
 
 ### Ficheiros a modificar
 
 | Ficheiro | Alteracao |
 |---|---|
-| Migracao SQL | Corrigir canal de conversas existentes mal classificadas |
-| `supabase/functions/ghl-send-message/index.ts` | Auto-detectar e corrigir canal antes de enviar; usar tipo GHL correto |
+| `src/components/inbox/AIMessageComposer.tsx` | Bloquear sugestao AI quando ultima mensagem e outbound |
+| `src/components/inbox/ConversationList.tsx` | Preview em 2 linhas com prefixo de direcao |
+| `src/hooks/useConversations.ts` | Adicionar `last_message_direction` se nao existir |
 
 ## Resultado esperado
 
-- Conversas existentes mal classificadas sao corrigidas imediatamente pela migracao
-- O envio de mensagens auto-detecta o canal correto mesmo se a conversa ainda tiver canal errado
-- O canal e corrigido automaticamente no momento do envio para evitar problemas futuros
-- O utilizador consegue responder a todas as conversas do Instagram sem erros
-
+- O AI so sugere respostas quando ha uma mensagem do cliente para responder
+- A lista de conversas mostra previews mais completos (2 linhas) com indicacao de quem enviou
+- O utilizador percebe rapidamente quais conversas aguardam resposta do cliente vs quais tem mensagens novas do cliente
