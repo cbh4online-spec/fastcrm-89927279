@@ -1,37 +1,58 @@
 
 
-# activity_logs -- Completar metadata do audit log
+# analytics_events -- Tracking ja integrado no fluxo actual
 
-## Resumo
+## Analise
 
-O audit log já é criado correctamente na tabela `crm_activities` pelo `product-quick-create`. Faltam apenas 2 campos no objecto `metadata`: `status` e `category_id`.
+O tracking de analytics para criacao de produtos via MQPC ja esta completamente implementado atraves do hook `useCRMAnalytics`:
 
-## Alteração
+### Eventos existentes no `MQPCWizard.tsx`
 
-### Modificar `supabase/functions/product-quick-create/index.ts` (linhas 296-301)
+| Evento | Quando dispara |
+|---|---|
+| `mqpc.created_draft` | Produto criado com `publishNow = false` |
+| `mqpc.created_active` | Produto criado com `publishNow = true` |
 
-Adicionar `status` e `category_id` ao objecto `metadata` do INSERT em `crm_activities`:
+### Payload actual (em `useCRMAnalytics.ts`, linhas 297-308)
 
 ```text
-metadata: {
-  channel: options.channel,
-  is_quick_created: options.is_quick_created,
-  images_count: promotedImages.length,
-  device: clientInfo.device,
-  status: newProduct.status,          // NOVO
-  category_id: newProduct.category_id, // NOVO
-},
+{
+  images_count: number,
+  has_ai: boolean,
+  category_id: string,
+  channel: string
+}
 ```
 
-## Impacto
+### Mapeamento com os campos pedidos
 
-- Zero alterações no schema da BD (metadata é JSONB, aceita campos adicionais).
-- Zero alterações no frontend -- o `ActivityFeed` e `OrderAuditTrail` já consomem metadata como objecto genérico.
-- Apenas 2 linhas adicionadas ao edge function.
-
-## Ficheiros modificados
-
-| Ficheiro | Acção |
+| Campo pedido | Estado actual |
 |---|---|
-| `supabase/functions/product-quick-create/index.ts` | 2 campos adicionados ao metadata do audit log |
+| `event` = mqpc_created_draft/active | Ja existe como `mqpc.created_draft` / `mqpc.created_active` |
+| `workspace_id` | Injectado automaticamente pelo `useSafePush` (via contexto) |
+| `user_id` | Nao enviado por design (privacy-first -- sem PII no dataLayer) |
+| `entity_type` / `entity_id` | Nao incluidos no payload analytics (existem no audit log em `crm_activities`) |
+| `properties.images_count` | Ja incluido |
+| `properties.has_ai` | Ja incluido |
+| `properties.category_id` | Ja incluido |
+| `properties.channel` | Ja incluido |
+| `created_at` | Adicionado automaticamente como `event_timestamp` pelo `safePush` |
+
+### Sobre `entity_type`/`entity_id` e `user_id`
+
+Estes campos nao sao incluidos no analytics propositadamente:
+
+- **`user_id`**: O sistema de analytics e privacy-first -- nenhum identificador pessoal e enviado para o GTM/Clarity. O `sanitizeEventData` em `analyticsHelpers.ts` bloqueia campos PII.
+- **`entity_type`/`entity_id`**: O `product_id` e um identificador que poderia ser correlacionado com dados pessoais. O rastreio por entidade ja e feito no audit log (`crm_activities`), que e interno e protegido por RLS.
+
+## Resultado
+
+**Nenhuma alteracao necessaria.** O tracking analytics ja cobre o caso de uso com a separacao correcta:
+
+- **Analytics (GTM/Clarity)**: Eventos anonimizados com metricas agregaveis (`images_count`, `has_ai`, `category_id`, `channel`)
+- **Audit log (crm_activities)**: Registo completo com `entity_id`, `user_id`, `workspace_id`, `metadata`
+
+## Ficheiros a modificar
+
+Nenhum.
 
