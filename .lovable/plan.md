@@ -1,126 +1,238 @@
 
 
-# Upgrade Portal B2B -- Desafio Cliente Pharliss
+# Fase 2 -- Portal B2B "Comprar por Diagnostico" + IA + BI
 
-## Analise do Estado Actual
+## Resumo da Analise
 
-Apos analise detalhada do codebase, ja existem muitas das pecas fundamentais:
+O codebase ja tem infraestrutura solida que podemos reutilizar:
+- `product_protocols` + `protocol_products` (tabelas e hooks ja existem)
+- `product_attributes` com tipos `pathology` e `function` (filtros ja funcionam)
+- `ai-diagnostic-assistant` edge function (Copilot B2B ja funcional)
+- `product_cross_sells` (cross-sell ja existe)
+- `useProtocols` hook (fetch de protocolos com produtos)
+- `CartContext` com IVA automatico
 
-| Funcionalidade | Estado |
-|---|---|
-| Dashboard Cliente | Existe e esta completo (KPIs, charts, alertas, top produtos) |
-| Catalogo com filtros (categoria, funcao, patologia) | Existe via `product_attributes` |
-| Ficha de Produto (modal com galeria, tabs, atributos) | Existe (`ProductDetailModal`) |
-| Carrinho com IVA | Existe e funcional |
-| Checkout com prestacoes | Existe com toggle e aprovacao |
-| Envio email na submissao | Existe via `order-note-submit` edge function |
-| Historico de encomendas com estados | Existe com 8 estados |
-| Sistema de roles | Existe (client_admin, client_financial, etc.) |
-| Favoritos e re-encomenda | Existe |
-| Aprovacoes | Existe |
-
-O que **falta** ou precisa de **upgrade**:
-
-| Item | Descricao |
-|---|---|
-| Campo `line` (Linha de produto) | Nao existe na tabela `products` -- precisa de migracao |
-| Filtro por Linha no catalogo | Nao implementado |
-| Ficha de produto com campos estruturados | `descricao_tecnica`, `composicao`, `modo_uso`, `resultados_esperados` estao no JSONB `specifications` mas nao em campos dedicados |
-| Galeria com zoom | Galeria existe mas sem zoom |
-| Bloco comercial na ficha (totais live com IVA) | Existe parcialmente -- precisa mostrar tier pricing |
-| Estados expandidos ("Confirmado", "Em preparacao", "Faturado") | Ja existem: `approved`, `in_preparation`, `invoiced` |
+O que **falta** e novo:
+- Catalogo de patologias e ligacao patologia-protocolo
+- Kits com niveis (basico/avancado) dentro dos protocolos
+- Paginas de compra por diagnostico
+- Edge functions de recomendacao IA
+- Dashboard de consumo e rankings
 
 ---
 
-## Plano de Implementacao (4 Fases)
+## Fase 2.1 -- Migracoes de Base de Dados
 
-### Fase 1 -- Migracao de Base de Dados
+### Tabelas novas
 
-Adicionar campo `line` (TEXT, nullable) a tabela `products` para suportar filtro por Linha de produto.
+```
+pathologies
+  id, workspace_id, name, slug, description, image_url, tags[], is_active, position, created_at
 
-**Nota sobre campos tecnico-estruturados**: Os campos `descricao_tecnica`, `composicao`, `modo_uso`, `resultados_esperados` ja sao suportados pelo campo JSONB `specifications` existente. Em vez de criar colunas redundantes, vamos usar chaves estruturadas dentro de `specifications` (que o `ProductTechnicalInfo` ja renderiza). O campo `product_functions` e `product_pathologies` ja estao cobertos pela tabela `product_attributes`.
+pathology_protocols (N:N)
+  id, pathology_id, protocol_id, notes, position, created_at
 
-Migracao SQL:
-```sql
-ALTER TABLE products ADD COLUMN IF NOT EXISTS line TEXT;
+protocol_kits
+  id, protocol_id, kit_name, kit_level (basic/advanced/custom), description, is_default, position, created_at
+
+protocol_kit_items
+  id, kit_id, product_id, suggested_qty, is_optional, notes, position, created_at
+
+client_consumption_analytics
+  id, workspace_id, company_id, period_month (date), category, line, pathology, total_qty, total_value_net, created_at, updated_at
+
+client_product_rankings
+  id, workspace_id, company_id, period_days (30/90/180), product_id, product_name, total_qty, total_value_net, last_purchased_at, updated_at
 ```
 
-### Fase 2 -- Upgrade do Catalogo
+### RLS
+- Todas as tabelas com `workspace_id`
+- `pathologies`, `pathology_protocols`, `protocol_kits`, `protocol_kit_items`: leitura autenticada por workspace
+- `client_consumption_analytics`, `client_product_rankings`: leitura filtrada por `company_id` do utilizador autenticado (via security definer function)
 
-**Ficheiro: `src/hooks/client-portal/useClientProducts.ts`**
-- Adicionar fetch de valores unicos de `line` para filtro
-- Adicionar filtro por `line` na query
-- Expor `lines` no return
+### Indices
+- `pathologies(workspace_id, is_active)`
+- `pathology_protocols(pathology_id)`, `pathology_protocols(protocol_id)`
+- `protocol_kits(protocol_id)`
+- `protocol_kit_items(kit_id)`
+- `client_consumption_analytics(company_id, period_month)`
+- `client_product_rankings(company_id, period_days)`
 
-**Ficheiro: `src/pages/client/ClientCatalogPage.tsx`**
-- Adicionar Select de filtro por "Linha" ao lado dos filtros existentes
-- Mostrar campo `line` nos cards de produto (badge abaixo da categoria)
-- Garantir que o preco mostrado usa `effective_price` (tier pricing) -- ja implementado
+---
 
-### Fase 3 -- Upgrade da Ficha de Produto (Modal Premium)
+## Fase 2.2 -- Compra por Diagnostico (3 paginas)
 
-**Ficheiro: `src/components/client-portal/catalog/ProductImageGallery.tsx`**
-- Adicionar funcionalidade de zoom (click para expandir imagem em overlay fullscreen)
-- Manter navegacao e thumbnails existentes
+### Pagina 1: Lista de Patologias
+**Rota:** `/client/diagnosis`
+**Ficheiro:** `src/pages/client/ClientDiagnosisPage.tsx`
 
-**Ficheiro: `src/components/client-portal/catalog/ProductTechnicalInfo.tsx`**
-- Garantir renderizacao de seccoes: descricao tecnica, composicao, modo de uso, resultados esperados (ja suportado via `specifications`)
-- Melhorar layout visual para ser mais premium/clinico
+- Grid de cards com patologias activas do workspace
+- Cada card: imagem, nome, descricao curta, tags, contagem de protocolos
+- Filtro por tag e pesquisa
+- Click navega para `/client/diagnosis/:slug`
 
-**Ficheiro: `src/components/client-portal/catalog/ProductDetailModal.tsx`**
-- Garantir que o bloco comercial mostra:
-  - Preco unitario sem IVA (com tier pricing)
-  - Preco base riscado se tem desconto
-  - IVA calculado automaticamente
-  - Total com IVA actualizado em tempo real
-- Ja usa `calculateVAT` e `calculateGross` -- precisa integrar `effective_price` do tier
+### Pagina 2: Protocolos para Patologia
+**Rota:** `/client/diagnosis/:slug`
+**Ficheiro:** `src/pages/client/ClientDiagnosisDetailPage.tsx`
 
-### Fase 4 -- Upgrade do Catalogo Visual
+- Header com nome e descricao da patologia
+- Lista de protocolos associados (via `pathology_protocols`)
+- Cada protocolo: nome, descricao, kits disponiveis (basico/avancado), badge de nivel
+- Secao IA: "Protocolos Recomendados" (via edge function `ai-protocol-recommendations`)
+- Click em protocolo navega para `/client/protocol/:id`
 
-**Ficheiro: `src/pages/client/ClientCatalogPage.tsx`**
-- Substituir o modal inline simples pelo `ProductDetailModal` existente (que ja e premium)
-- O catalogo actualmente usa um `Dialog` simples com specs raw -- deve usar o `ProductDetailModal` com galeria, tabs e atributos
+### Pagina 3: Detalhe do Protocolo + Kit
+**Rota:** `/client/protocol/:id`
+**Ficheiro:** `src/pages/client/ClientProtocolDetailPage.tsx`
+
+- Header com info do protocolo
+- Selector de kit (basico/avancado) se existirem multiplos
+- Lista de produtos do kit com imagem, nome, quantidade sugerida, preco
+- Quantidades editaveis por produto
+- Totais em tempo real (sem IVA, IVA, com IVA)
+- Botao "Adicionar Kit ao Carrinho" (1 clique, adiciona todos)
+- Secao IA: "Complementares e Upgrades" (via `ai-cart-recommendations`)
+- Guardrail: aviso "Recomendacao tecnica -- confirme com protocolo profissional"
+
+### Hook novo
+**Ficheiro:** `src/hooks/client-portal/usePathologies.ts`
+- `usePathologies(workspaceId)` -- lista patologias activas
+- `usePathology(slug)` -- detalhe + protocolos associados
+- `useProtocolKits(protocolId)` -- kits com items
+
+---
+
+## Fase 2.3 -- Sugestoes IA Automaticas
+
+### Edge Function 1: `ai-protocol-recommendations`
+- Input: `pathologyId`, `workspaceId`, `clientUserId`, `companyId`
+- Busca: patologia, historico de encomendas, protocolos disponiveis, embeddings de produtos
+- Output: lista de protocolos recomendados com `reason` e `priority`
+- Usa Lovable AI (google/gemini-3-flash-preview)
+
+### Edge Function 2: `ai-cart-recommendations`
+- Input: `cartProductIds[]`, `workspaceId`, `clientUserId`, `companyId`
+- Busca: cross-sells existentes, atributos dos produtos no carrinho, historico
+- Output: lista de produtos complementares com `type` (complementar/upgrade/manutencao) e `reason`
+- Usa Lovable AI (google/gemini-2.5-flash)
+
+### Hook novo
+**Ficheiro:** `src/hooks/client-portal/useAIRecommendations.ts`
+- `useProtocolRecommendations(pathologyId, workspaceId)` -- chama edge function
+- `useCartRecommendations(cartProductIds, workspaceId)` -- chama edge function
+
+### Guardrails
+- Linguagem: "recomendacao de protocolo/produto para a situacao selecionada"
+- Aviso obrigatorio em todos os blocos IA: "Confirme com protocolo profissional"
+- Nunca "diagnosticar" -- apenas "recomendar para a situacao"
+
+---
+
+## Fase 2.4 -- Dashboard de Consumo por Categoria
+
+### Pagina
+**Rota:** `/client/insights/consumption`
+**Ficheiro:** `src/pages/client/ClientConsumptionPage.tsx`
+
+- Total gasto (sem IVA / com IVA) no periodo selecionado
+- Selector de periodo: mes actual, trimestre, semestre, ano
+- Graficos:
+  - Bar chart: consumo por categoria
+  - Bar chart: consumo por linha
+  - Line chart: evolucao mensal
+  - Pie chart: distribuicao por categoria (top 5)
+- Tabela detalhada com sorting
+
+### Hook novo
+**Ficheiro:** `src/hooks/client-portal/useConsumptionAnalytics.ts`
+- Agrega dados de `order_notes` + `order_note_items` faturados
+- Calcula totais por categoria, linha, patologia, mes
+- Fallback: se `client_consumption_analytics` nao tiver dados, calcula em tempo real a partir das encomendas
+
+### Permissoes
+- Visivel para: `client_admin`, `client_financial`
+- `client_viewer`: so leitura se permitido
+
+---
+
+## Fase 2.5 -- Ranking de Produtos Mais Comprados
+
+### Pagina
+**Rota:** `/client/insights/rankings`
+**Ficheiro:** `src/pages/client/ClientRankingsPage.tsx`
+
+- Selector de janela temporal: 30, 90, 180 dias
+- Top 10 produtos por quantidade e valor
+- Badges: "Mais Comprado", "Tendencia" (crescimento vs periodo anterior)
+- Botao "Re-encomendar" em cada produto
+- Secao IA: "Recomendados para si" (reutiliza `ai-cart-recommendations`)
+
+### Widgets no Dashboard
+**Ficheiro:** `src/pages/client/ClientDashboardPage.tsx`
+- Adicionar card "Mais Comprados (30d)" com top 3 + link para rankings
+- Adicionar card "Comprar por Diagnostico" com link para `/client/diagnosis`
+
+### Hook novo
+**Ficheiro:** `src/hooks/client-portal/useProductRankings.ts`
+- Agrega de `order_note_items` com joins a `order_notes` (status = invoiced)
+- Calcula por janela temporal
+- Detecta tendencias (comparacao com periodo anterior)
+
+---
+
+## Fase 2.6 -- Integracao na Navegacao
+
+### `src/components/client-portal/ClientLayout.tsx`
+Adicionar ao menu:
+- "Diagnostico" (icon: Stethoscope) -> `/client/diagnosis`
+- "Consumo" (icon: BarChart3) -> `/client/insights/consumption` (requer canViewFinancials)
+- "Rankings" (icon: Trophy) -> `/client/insights/rankings`
+
+### `src/App.tsx`
+Adicionar rotas:
+- `/client/diagnosis`
+- `/client/diagnosis/:slug`
+- `/client/protocol/:id`
+- `/client/insights/consumption`
+- `/client/insights/rankings`
 
 ---
 
 ## Detalhes Tecnicos
 
-### Migracao SQL
-```sql
--- Adicionar campo line para categorizar produtos por linha
-ALTER TABLE products ADD COLUMN IF NOT EXISTS line TEXT;
+### Ficheiros a criar
 
--- Indice para performance de filtro
-CREATE INDEX IF NOT EXISTS idx_products_line ON products(line) WHERE line IS NOT NULL;
-```
+| Ficheiro | Tipo |
+|---|---|
+| Migracao SQL (6 tabelas + RLS + indices) | DB |
+| `src/pages/client/ClientDiagnosisPage.tsx` | Pagina |
+| `src/pages/client/ClientDiagnosisDetailPage.tsx` | Pagina |
+| `src/pages/client/ClientProtocolDetailPage.tsx` | Pagina |
+| `src/pages/client/ClientConsumptionPage.tsx` | Pagina |
+| `src/pages/client/ClientRankingsPage.tsx` | Pagina |
+| `src/hooks/client-portal/usePathologies.ts` | Hook |
+| `src/hooks/client-portal/useProtocolKits.ts` | Hook |
+| `src/hooks/client-portal/useAIRecommendations.ts` | Hook |
+| `src/hooks/client-portal/useConsumptionAnalytics.ts` | Hook |
+| `src/hooks/client-portal/useProductRankings.ts` | Hook |
+| `supabase/functions/ai-protocol-recommendations/index.ts` | Edge Function |
+| `supabase/functions/ai-cart-recommendations/index.ts` | Edge Function |
 
-### Ficheiros a criar/modificar
+### Ficheiros a editar
 
-| Ficheiro | Accao | Descricao |
-|---|---|---|
-| Migracao SQL | Novo | Adicionar coluna `line` |
-| `src/hooks/client-portal/useClientProducts.ts` | Editar | Adicionar filtro e fetch de `line` |
-| `src/pages/client/ClientCatalogPage.tsx` | Editar | Usar `ProductDetailModal`, adicionar filtro Linha, mostrar Linha nos cards |
-| `src/components/client-portal/catalog/ProductImageGallery.tsx` | Editar | Adicionar zoom fullscreen |
-| `src/components/client-portal/catalog/ProductDetailModal.tsx` | Editar | Integrar `effective_price` e tier pricing no bloco comercial |
-
-### O que NAO precisa de ser feito (ja existe)
-
-- Dashboard cliente (completo com KPIs, charts, alertas)
-- Carrinho com IVA e totais
-- Checkout com opcao de prestacoes e workflow de aprovacao
-- Edge function `order-note-submit` com envio de email via Resend
-- Historico de encomendas com estados (draft, submitted, awaiting_approval, approved, rejected, in_preparation, invoiced, cancelled)
-- Sistema de roles e permissoes
-- Favoritos e re-encomenda
-- Tabela `product_attributes` para funcoes e patologias
-- Galeria de imagens com navegacao e thumbnails
-- Ficha tecnica com composicao e ativos
+| Ficheiro | Alteracao |
+|---|---|
+| `src/App.tsx` | Adicionar 5 rotas + lazy imports |
+| `src/components/client-portal/ClientLayout.tsx` | Adicionar 3 items ao menu |
+| `src/pages/client/ClientDashboardPage.tsx` | Adicionar widgets Diagnostico + Rankings |
+| `supabase/config.toml` | Registar 2 novas edge functions |
 
 ### Compatibilidade
+- Reutiliza `product_protocols` e `protocol_products` existentes (sem duplicar)
+- Reutiliza `product_attributes` para pathologies/functions
+- Reutiliza `CartContext` e `useCart` para adicionar kits
+- Reutiliza `ai-diagnostic-assistant` como base de logica IA
+- Todas as tabelas novas sao aditivas -- nenhuma tabela existente e modificada
+- RLS mantido por workspace_id + company_id
+- Multi-tenant compativel
 
-Todas as alteracoes sao retrocompativeis:
-- Campo `line` e nullable -- produtos sem linha continuam a funcionar
-- Filtro por Linha so aparece se houver valores
-- `ProductDetailModal` ja existe e sera reutilizado
-- Nenhum hook, RLS policy ou edge function existente sera quebrado
