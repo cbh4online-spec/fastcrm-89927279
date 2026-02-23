@@ -1,93 +1,46 @@
 
-# Corrigir mensagens do Instagram em falta no Inbox
+# Sincronizacao automatica e botao de refresh na Inbox
 
-## Problema identificado
+## O que muda
 
-Apos analise dos logs e do codigo, encontrei **3 causas** para as mensagens do Instagram nao aparecerem no FastCRM:
+Duas melhorias na Inbox para garantir que as conversas estao sempre atualizadas:
 
-### 1. Bug no mapeamento de canal (tipo 17)
-No ficheiro `cron-sync-messages`, o tipo GHL `17` esta mapeado como `"whatsapp"` quando deveria ser `"instagram"`. O mapeamento correto no `ghl-sync-conversations` tem ambos 17 e 18 como instagram.
+1. **Sync automatico ao abrir a Inbox** -- quando o utilizador abre a pagina, o sistema dispara uma sincronizacao rapida (ultimos 2 dias) em background, sem bloquear a interface
+2. **Botao de refresh no header** -- um botao visivel no header da Inbox para sincronizar manualmente a qualquer momento, com indicador de progresso
 
-```text
-cron-sync-messages (ERRADO):   "17": "whatsapp", "18": "instagram"
-ghl-sync-conversations (CORRETO): 17: "instagram", 18: "instagram"
-```
+## Comportamento
 
-Isto faz com que conversas do Instagram vindas do GHL com tipo 17 sejam classificadas como WhatsApp e nao aparecam no filtro Instagram.
-
-### 2. Cron sync so processa mensagens dos ultimos 30 minutos
-O `cron-sync-messages` filtra `recentConversations` apenas com atividade nos ultimos 30 minutos. Nos logs, o workspace mostra "50 total, 0 recent conversations" -- ou seja, ha 50 conversas no GHL mas nenhuma com atividade recente, portanto nenhuma e sincronizada. Mensagens mais antigas ficam para sempre por sincronizar.
-
-### 3. Cron sync ignora conversas sem lead pre-existente
-Ao contrario do `ghl-sync-conversations` (que faz auto-create de leads), o `cron-sync-messages` simplesmente faz `if (!leadId) continue;` -- ignora silenciosamente conversas cujo contacto GHL nao tem lead criado.
-
-## Solucao
-
-### Ficheiro 1: `supabase/functions/cron-sync-messages/index.ts`
-
-**a) Corrigir mapeamento do tipo 17:**
-```typescript
-// ANTES
-"17": "whatsapp", "18": "instagram",
-
-// DEPOIS  
-"17": "instagram", "18": "instagram",
-```
-
-**b) Auto-criar leads para contactos GHL desconhecidos** (igual ao que `ghl-sync-conversations` ja faz):
-Adicionar as funcoes `fetchGHLContact` e `createLeadFromGHLContact` e usa-las quando `leadId` nao existe, em vez de fazer `continue`.
-
-**c) Expandir janela de sincronizacao de 30 min para 2 horas:**
-Alterar `thirtyMinAgo` para `twoHoursAgo` (120 minutos). Isto aumenta a probabilidade de apanhar mensagens que nao foram sincronizadas a tempo, sem sobrecarregar a API.
-
-### Ficheiro 2: `supabase/functions/ghl-sync-conversations/index.ts`
-
-Nenhuma alteracao necessaria -- o mapeamento aqui ja esta correto.
+- Ao entrar na Inbox, se o workspace tiver GHL configurado, o sync e disparado automaticamente (silencioso, sem toast a menos que encontre novas mensagens)
+- O botao de refresh fica no header ao lado das metricas, com icone de refresh e animacao de spin enquanto sincroniza
+- O dropdown do botao oferece "Sincronizar recentes" (2 dias) e "Sincronizar tudo" (30 dias)
+- Se nao houver GHL configurado, o botao so sincroniza email (comportamento existente do InboxMetricsBar)
 
 ## Detalhes tecnicos
 
-### Alteracoes em `cron-sync-messages/index.ts`
+### Ficheiro: `src/components/inbox/InboxView.tsx`
 
-1. Linha 27: Mudar `"17": "whatsapp"` para `"17": "instagram"`
+1. Importar `useGHLConversationSync` e `useWorkspaceGHLConfig`
+2. Adicionar `useEffect` que ao montar (uma vez), chama `syncConversations(true, 2)` se GHL estiver configurado -- sync silencioso dos ultimos 2 dias
+3. Adicionar botao de sync no header com dropdown:
+   - Importar `RefreshCw`, `RotateCcw`, `ChevronDown` de lucide
+   - Importar `DropdownMenu` components
+   - Renderizar entre o contador "X abertas" e o AutopilotToggle
+   - "Sincronizar recentes" -> `syncConversations(true, 2)`
+   - "Sincronizar tudo" -> `syncConversations(true, 30)`
+   - Animacao `animate-spin` no icone enquanto `isSyncing`
+4. Tambem integrar o sync de email existente (`useSyncEmail`, `useActiveEmailConnection`) no mesmo dropdown, para unificar num so botao
 
-2. Adicionar helper functions (antes de `syncAllWorkspaces`):
-   - `fetchGHLContactBasic(apiKey, contactId)` -- buscar nome/email/phone do GHL
-   - `createLeadFromGHLContact(supabase, workspaceId, contactData)` -- criar lead
+### Logica de auto-sync
 
-3. Substituir `if (!leadId) continue;` (linha 208) por logica de auto-create:
-```typescript
-if (!leadId) {
-  const contactData = await fetchGHLContactBasic(apiKey, ghlConv.contactId);
-  if (contactData) {
-    const newLead = await createLeadFromGHLContact(supabase, workspace_id, contactData);
-    if (newLead) {
-      leadId = newLead.id;
-      leadsByGhlId.set(ghlConv.contactId, leadId);
-    }
-  }
-  if (!leadId) continue;
-}
+```text
+useEffect (mount only):
+  - Se isGHLConfigured -> syncConversations(true, 2) silenciosamente
+  - Se emailConnection -> syncEmail(emailConnection.id)
+  - Usar ref para garantir que so executa uma vez
 ```
 
-4. Linha 146: Expandir janela temporal:
-```typescript
-// ANTES
-const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
-
-// DEPOIS
-const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-```
-
-## Ficheiros a modificar
+### Ficheiros a modificar
 
 | Ficheiro | Alteracao |
 |---|---|
-| `supabase/functions/cron-sync-messages/index.ts` | Corrigir tipo 17, auto-create leads, expandir janela temporal |
-
-## Resultado esperado
-
-- Mensagens do Instagram tipo 17 sao corretamente classificadas como "instagram"
-- Leads sao auto-criados para contactos GHL desconhecidos (nao sao ignorados)
-- Mensagens ate 2 horas atras sao sincronizadas (vs 30 min anteriormente)
-- Apos deploy, as proximas mensagens do Instagram no GHL aparecerao no Inbox do FastCRM
-- Para sincronizar historico antigo, o utilizador pode usar o botao "Sincronizar Conversas GHL" que ja existe
+| `src/components/inbox/InboxView.tsx` | Adicionar auto-sync ao montar + botao de sync com dropdown no header |
