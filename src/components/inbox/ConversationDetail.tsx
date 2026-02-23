@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import { VariableContext } from "@/lib/templateVariables";
 import { EmailMessageBubble } from "./EmailMessageBubble";
 import { AIMessageComposer, AIMessageComposerRef } from "./AIMessageComposer";
+import { InstagramWindowAlert } from "./InstagramWindowAlert";
 import { CreateProposalDialog } from "@/components/proposals/CreateProposalDialog";
 import { LeadData, OpportunityData } from "@/hooks/useInboxAI";
 import { PriorityScoreBadge } from "./PriorityScoreBadge";
@@ -69,6 +70,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
 
   const [showProposalDialog, setShowProposalDialog] = useState(false);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
+  const [igWindowExpired, setIgWindowExpired] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<AIMessageComposerRef>(null);
   const trackedConvId = useRef<string | null>(null);
@@ -268,6 +270,11 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
 
       {/* Messages Area */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <InstagramWindowAlert
+          messages={messages || []}
+          channel={conversation.channel}
+          onExpiredChange={setIgWindowExpired}
+        />
         <ScrollArea className="flex-1 p-4">
           {messagesLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -357,6 +364,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
           templateContext={templateContext}
           onSend={handleSendMessage}
           isSending={sendMessage.isPending}
+          disabled={igWindowExpired}
         />
       </div>
 
