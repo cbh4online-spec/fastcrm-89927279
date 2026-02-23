@@ -17,6 +17,7 @@ import {
   type VerticalTemplateRow,
 } from "@/hooks/useVerticalTemplates";
 import { VerticalLandingTemplate } from "@/components/vertical-landing/VerticalLandingTemplate";
+import { AppearanceEditor, defaultAppearance, type AppearanceValues } from "@/components/funnels/AppearanceEditor";
 import type { VerticalConfig } from "@/config/verticalConfigs";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -43,7 +44,7 @@ const defaultForm = (): FormData => ({
   ],
   antes_depois: { antes: ["", "", "", ""], depois: ["", "", "", ""] },
   roi_exemplo: { clientes_extra: 10, valor_medio: 500, periodo: "mês" },
-  cores: { primaria: "hsl(221, 83%, 53%)", accent: "hsl(250, 83%, 60%)" },
+  cores: { ...defaultAppearance, primaria: "#3b82f6", accent: "#7c3aed" },
   cta_principal: "Agendar Diagnóstico Estratégico",
   cta_secundario: "Receber Plano Personalizado",
   ai_persona_nome: "",
@@ -515,41 +516,10 @@ export function VerticalTemplateBuilder({ templateId, onBack }: Props) {
 
         {/* Tab: Aparência */}
         <TabsContent value="aparencia">
-          <Card>
-            <CardHeader><CardTitle>Cores do Template</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Cor Primária (HSL)</Label>
-                  <Input
-                    placeholder="hsl(221, 83%, 53%)"
-                    value={form.cores.primaria}
-                    onChange={(e) =>
-                      updateField("cores", { ...form.cores, primaria: e.target.value })
-                    }
-                  />
-                  <div
-                    className="h-8 rounded-md border"
-                    style={{ backgroundColor: form.cores.primaria }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Cor Accent (HSL)</Label>
-                  <Input
-                    placeholder="hsl(250, 83%, 60%)"
-                    value={form.cores.accent}
-                    onChange={(e) =>
-                      updateField("cores", { ...form.cores, accent: e.target.value })
-                    }
-                  />
-                  <div
-                    className="h-8 rounded-md border"
-                    style={{ backgroundColor: form.cores.accent }}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <AppearanceEditor
+            values={form.cores as AppearanceValues}
+            onChange={(v) => updateField("cores", v)}
+          />
         </TabsContent>
 
         {/* Tab: CTAs & SEO */}
