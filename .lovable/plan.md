@@ -1,113 +1,79 @@
 
-# Edge Function: product-publish
+
+# Tracking Analytics para MQPC
 
 ## Resumo
 
-Criar a Edge Function `product-publish` que permite alterar o status de um produto entre `draft` e `active`, separando a logica de publicacao da criacao. Segue o mesmo padrao de autorizacao e resposta das functions `product-quick-create` e `product-ai-improve`.
+Adicionar 7 eventos de tracking ao sistema de analytics privacy-first existente (`useCRMAnalytics`) e integra-los nos componentes MQPC. Segue o mesmo padrao `safePush` -> dataLayer/GTM ja usado nos modulos Inbox, CRM, Templates, etc.
 
 ## Alteracoes
 
-### 1. Nova Edge Function: `supabase/functions/product-publish/index.ts`
+### 1. `src/hooks/useCRMAnalytics.ts` -- Adicionar seccao ECOMMERCE / MQPC
 
-**Fluxo:**
-
-1. CORS preflight
-2. Validar JWT e extrair `userId`
-3. Ler `X-Workspace-Id` (obrigatorio)
-4. Validar workspace membership (owner, admin, agent)
-5. Parse body: `product_id`, `status`, `options`
-6. Validar:
-   - `product_id`: uuid, obrigatorio
-   - `status`: deve ser `"active"` ou `"draft"` (obrigatorio)
-7. Buscar produto via `adminClient.from("products")` com filtro `id = product_id` e `workspace_id` -- se nao encontrado, retornar FORBIDDEN
-8. Se `options.require_min_images = true`, verificar que o produto tem pelo menos 1 imagem (array `images` nao vazio ou `product_images` com registos) -- se falhar, retornar VALIDATION_ERROR "Product must have at least one image to publish"
-9. Atualizar produto:
-   - `status` = valor pedido
-   - `store_published` = `status === "active"`
-   - `published_at` = `new Date().toISOString()` (se status = active) ou `null` (se draft)
-   - `updated_at` = `new Date().toISOString()`
-10. Se `options.create_audit_log = true`, inserir registo em `crm_activities` com event `product_published` (se active) ou `product_unpublished` (se draft)
-11. Retornar resposta estruturada
-
-**Respostas de erro (mesmo formato):**
-- 401 UNAUTHORIZED
-- 403 FORBIDDEN (JWT invalido, nao membro, ou produto nao pertence ao workspace)
-- 400 VALIDATION_ERROR (body invalido ou imagens insuficientes)
-- 500 INTERNAL_ERROR
-
-**Resposta 200 (sucesso):**
-```text
-{
-  "success": true,
-  "data": {
-    "product_id": "uuid",
-    "status": "active",
-    "published_at": "2026-02-23T11:00:00Z",
-    "audit": { "log_id": "uuid", "event": "product_published" }
-  },
-  "meta": {
-    "request_id": "uuid",
-    "workspace_id": "uuid",
-    "timestamp": "2026-02-23T11:00:00Z"
-  }
-}
-```
-
-### 2. `supabase/config.toml`
-
-Adicionar:
-```text
-[functions.product-publish]
-verify_jwt = false
-```
-
-### 3. Hook: `src/hooks/useProductPublish.ts` (Novo)
-
-Hook com `useMutation` para facilitar integracao no frontend:
+Nova seccao no hook com 7 funcoes de tracking:
 
 ```text
-interface PublishRequest {
-  productId: string;
-  status: "active" | "draft";
-  options?: {
-    require_min_images?: boolean;
-    create_audit_log?: boolean;
-    channel?: string;
-  };
-}
+// ECOMMERCE / MQPC
 
-interface PublishResult {
-  product_id: string;
-  status: string;
-  published_at: string | null;
-  audit: { log_id: string; event: string } | null;
-}
+trackMQPCOpen()
+  -> push('mqpc.open', { device_type })
+
+trackMQPCImageUploadSuccess(data: { images_count: number })
+  -> push('mqpc.image_upload_success', { images_count })
+
+trackMQPCCreatedDraft(data: { images_count, has_ai, category_id, channel })
+  -> push('mqpc.created_draft', { images_count, has_ai, category_id, channel })
+
+trackMQPCCreatedActive(data: { images_count, has_ai, category_id, channel })
+  -> push('mqpc.created_active', { images_count, has_ai, category_id, channel })
+
+trackMQPCAIImproveClicked()
+  -> push('mqpc.ai_improve_clicked', { device_type })
+
+trackMQPCAIImproveSuccess()
+  -> push('mqpc.ai_improve_success', { device_type })
+
+trackMQPCPublishClicked(data: { product_id })
+  -> push('mqpc.publish_clicked', { product_id })
 ```
 
-O hook chama `supabase.functions.invoke("product-publish")` com `X-Workspace-Id` no header e invalida a query cache de produtos apos sucesso.
+Todas as funcoes seguem o padrao `useCallback` + `push` existente. Os valores sao seguros (contadores, IDs, booleans) -- sem PII.
 
-## Detalhes tecnicos
+### 2. `src/components/mqpc/MQPCFloatingButton.tsx` -- Evento `mqpc_open`
 
-### Verificacao de imagens (opcional)
+- Importar `useCRMAnalytics`
+- No `onClick`, chamar `trackMQPCOpen()` antes de navegar
 
-Quando `require_min_images = true`:
-- Verificar `product.images` (array jsonb) -- se nao vazio, passa
-- Fallback: query `product_images` com `product_id` -- se count > 0, passa
-- Se ambos vazios, retornar erro 400
+### 3. `src/components/mqpc/MQPCStepImages.tsx` -- Evento `mqpc_image_upload_success`
 
-### Mapeamento de campos na DB
+- Importar `useCRMAnalytics`
+- Apos upload bem-sucedido de uma imagem, chamar `trackMQPCImageUploadSuccess({ images_count })` com o total de imagens atual
 
-| Campo response | Campo DB |
-|---|---|
-| `status` | `products.status` |
-| `published_at` | `products.store_published` (boolean) + timestamp no audit log |
+### 4. `src/components/mqpc/MQPCWizard.tsx` -- Eventos `mqpc_created_draft` / `mqpc_created_active`
 
-Nota: a tabela `products` nao tem coluna `published_at` dedicada. O campo `store_published` (boolean) sera usado para indicar se esta publicado, e o timestamp sera registado via `updated_at` e no audit log.
+- Importar `useCRMAnalytics`
+- Apos `data.success` no `handleCreate`, chamar:
+  - `trackMQPCCreatedDraft(...)` se status = draft
+  - `trackMQPCCreatedActive(...)` se status = active
+- Payload: `{ images_count: images.length, has_ai: !!extras.shortDescription, category_id: details.categoryId, channel: "mobile_quick" }`
 
-## Ficheiros criados/modificados
+### 5. `src/components/mqpc/MQPCStepExtras.tsx` -- Eventos `mqpc_ai_improve_clicked` / `mqpc_ai_improve_success`
+
+- Importar `useCRMAnalytics`
+- No inicio de `handleAIImprove`, chamar `trackMQPCAIImproveClicked()`
+- Apos sucesso (`setAiDone(true)`), chamar `trackMQPCAIImproveSuccess()`
+
+### 6. Evento `mqpc_publish_clicked` (integracao futura)
+
+Este evento sera usado quando o botao de publicacao pos-criacao for implementado (via `useProductPublish`). Por agora, a funcao `trackMQPCPublishClicked` fica disponivel no hook para uso futuro.
+
+## Ficheiros modificados
 
 | Ficheiro | Acao |
 |---|---|
-| `supabase/functions/product-publish/index.ts` | Novo |
-| `supabase/config.toml` | Modificado (nova entry) |
-| `src/hooks/useProductPublish.ts` | Novo (hook de integracao) |
+| `src/hooks/useCRMAnalytics.ts` | Modificado (nova seccao MQPC com 7 trackers) |
+| `src/components/mqpc/MQPCFloatingButton.tsx` | Modificado (tracking mqpc_open) |
+| `src/components/mqpc/MQPCStepImages.tsx` | Modificado (tracking image_upload_success) |
+| `src/components/mqpc/MQPCWizard.tsx` | Modificado (tracking created_draft / created_active) |
+| `src/components/mqpc/MQPCStepExtras.tsx` | Modificado (tracking ai_improve_clicked / ai_improve_success) |
+
