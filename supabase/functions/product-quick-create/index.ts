@@ -226,12 +226,24 @@ Deno.serve(async (req) => {
 
       if (moveError) {
         console.error(`Failed to move image ${fileId}:`, moveError);
-        // Continue with remaining images
+        // Mark intent as expired (eligible for cleanup)
+        adminClient
+          .from("storage_upload_intents")
+          .update({ status: "expired", updated_at: new Date().toISOString() })
+          .eq("id", fileId)
+          .then(() => {});
         continue;
       }
 
       const publicUrl = `${supabaseUrl}/storage/v1/object/public/product-images/${newPath}`;
       publicUrls.push(publicUrl);
+
+      // Mark intent as promoted (fire-and-forget)
+      adminClient
+        .from("storage_upload_intents")
+        .update({ status: "promoted", updated_at: new Date().toISOString() })
+        .eq("id", fileId)
+        .then(() => {});
 
       // Insert product_images record
       const { data: imgRecord, error: imgError } = await adminClient
@@ -240,6 +252,7 @@ Deno.serve(async (req) => {
           workspace_id: workspaceId,
           product_id: productId,
           url: publicUrl,
+          storage_path: newPath,
           alt_text: img.alt || null,
           position: img.position ?? promotedImages.length,
         })
