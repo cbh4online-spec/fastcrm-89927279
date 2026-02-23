@@ -150,7 +150,7 @@ export function BioBlockPreviewCard({ block, primaryColor, index }: BioBlockPrev
             {content.title || "Feature"}
           </h3>
           <p className="text-xs leading-relaxed" style={{ color: bgImage ? "rgba(255,255,255,0.8)" : subtleColor }}>
-            {content.subtitle || "Descrição da feature"}
+            {content.description || content.subtitle || "Descrição da feature"}
           </p>
           {content.cta_text && (
             <button
@@ -216,13 +216,24 @@ export function BioBlockPreviewCard({ block, primaryColor, index }: BioBlockPrev
         </div>
       );
 
-    case "social":
+    case "social": {
+      // Extract platforms from both formats
+      const platforms: string[] = [];
+      if (Array.isArray(content.links)) {
+        content.links.forEach((l: any) => { if (l.platform) platforms.push(l.platform); });
+      }
+      ["instagram", "facebook", "linkedin", "twitter", "youtube", "tiktok", "website"].forEach(k => {
+        if (content[k] && !platforms.includes(k)) platforms.push(k);
+      });
       return (
-        <div className="rounded-2xl p-5 flex items-center justify-center gap-4" style={{ background: `${primaryColor}10` }}>
+        <div className="rounded-2xl p-5 flex items-center justify-center gap-3" style={{ background: `${primaryColor}10` }}>
           <Share2 className="h-5 w-5" style={{ color: primaryColor }} />
-          <span className="text-sm font-medium" style={{ color: primaryColor }}>Redes Sociais</span>
+          <span className="text-sm font-medium" style={{ color: primaryColor }}>
+            {content.title || "Redes Sociais"}{platforms.length > 0 ? ` (${platforms.length})` : ""}
+          </span>
         </div>
       );
+    }
 
     case "whatsapp":
       return (
@@ -240,16 +251,26 @@ export function BioBlockPreviewCard({ block, primaryColor, index }: BioBlockPrev
         </div>
       );
 
-    case "faq":
+    case "faq": {
+      const faqItems = content.items || (content.question ? [{ question: content.question, answer: content.answer }] : []);
       return (
         <div className="rounded-2xl p-5 shadow-lg" style={cardStyle}>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-2">
             <HelpCircle className="h-4 w-4" style={{ color: textColor }} />
             <span className="font-bold text-sm" style={{ color: textColor }}>FAQ</span>
           </div>
-          <p className="text-xs" style={{ color: subtleColor }}>Perguntas frequentes</p>
+          {faqItems.length > 0 ? (
+            <div className="space-y-1.5">
+              {faqItems.slice(0, 2).map((item: any, i: number) => (
+                <p key={i} className="text-xs" style={{ color: subtleColor }}>❓ {item.question}</p>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs" style={{ color: subtleColor }}>Perguntas frequentes</p>
+          )}
         </div>
       );
+    }
 
     case "testimonials": {
       // Support both formats: simple (text+author) and array (testimonials[])

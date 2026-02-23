@@ -285,30 +285,50 @@ function WhatsAppBlock({ block, onTrack }: { block: BioBlock; onTrack: () => voi
 
 function SocialBlock({ block, primaryColor }: { block: BioBlock; primaryColor: string }) {
   const content = block.content;
-  const socials = [
+  
+  // Build social map: support both direct keys (content.instagram) and links array format
+  const socialMap: Record<string, string> = {};
+  const platformDefs = [
     { key: "instagram", icon: "Instagram", prefix: "https://instagram.com/" },
     { key: "facebook", icon: "Facebook", prefix: "https://facebook.com/" },
     { key: "linkedin", icon: "Linkedin", prefix: "https://linkedin.com/in/" },
     { key: "twitter", icon: "Twitter", prefix: "https://twitter.com/" },
     { key: "youtube", icon: "Youtube", prefix: "https://youtube.com/" },
     { key: "tiktok", icon: "Music2", prefix: "https://tiktok.com/@" },
+    { key: "spotify", icon: "Music", prefix: "https://open.spotify.com/" },
+    { key: "dribbble", icon: "Dribbble", prefix: "https://dribbble.com/" },
     { key: "website", icon: "Globe", prefix: "" },
-  ].filter((s) => content[s.key]);
+  ];
+
+  // Direct keys
+  platformDefs.forEach(p => { if (content[p.key]) socialMap[p.key] = content[p.key]; });
+  
+  // Links array format
+  if (Array.isArray(content.links)) {
+    content.links.forEach((link: any) => {
+      if (link.platform && link.url) socialMap[link.platform] = link.url;
+    });
+  }
+
+  const socials = platformDefs.filter(p => socialMap[p.key]);
 
   return (
-    <div className="flex items-center justify-center gap-4 py-2">
-      {socials.map((s) => (
-        <a
-          key={s.key}
-          href={content[s.key].startsWith("http") ? content[s.key] : s.prefix + content[s.key]}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-11 h-11 rounded-full flex items-center justify-center transition-transform hover:scale-110"
-          style={{ backgroundColor: primaryColor + "30" }}
-        >
-          <DynamicIcon name={s.icon} className="w-5 h-5 text-white" />
-        </a>
-      ))}
+    <div>
+      {content.title && <p className="text-white/60 text-xs text-center mb-3 font-medium">{content.title}</p>}
+      <div className="flex items-center justify-center gap-4 py-2">
+        {socials.map((s) => (
+          <a
+            key={s.key}
+            href={socialMap[s.key].startsWith("http") ? socialMap[s.key] : s.prefix + socialMap[s.key]}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-11 h-11 rounded-full flex items-center justify-center transition-transform hover:scale-110"
+            style={{ backgroundColor: primaryColor + "30" }}
+          >
+            <DynamicIcon name={s.icon} className="w-5 h-5 text-white" />
+          </a>
+        ))}
+      </div>
     </div>
   );
 }
@@ -336,7 +356,8 @@ function VideoBlock({ block }: { block: BioBlock }) {
 }
 
 function FAQBlock({ block, primaryColor }: { block: BioBlock; primaryColor: string }) {
-  const { items = [] } = block.content;
+  const content = block.content;
+  const items = content.items || (content.question ? [{ question: content.question, answer: content.answer }] : []);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   return (
     <div className="space-y-2 w-full">
@@ -359,7 +380,8 @@ function FAQBlock({ block, primaryColor }: { block: BioBlock; primaryColor: stri
 }
 
 function TestimonialsBlock({ block, primaryColor }: { block: BioBlock; primaryColor: string }) {
-  const { items = [] } = block.content;
+  const content = block.content;
+  const items = content.items || (content.text ? [{ text: content.text, author: content.author }] : []);
   return (
     <div className="space-y-3 w-full">
       {items.map((item: any, i: number) => (
@@ -412,7 +434,8 @@ function CountdownBlock({ block, primaryColor, contrastColor }: { block: BioBloc
 }
 
 function FeatureBlock({ block, primaryColor }: { block: BioBlock; primaryColor: string }) {
-  const { title, description, icon, items = [] } = block.content;
+  const { title, description, subtitle, icon, items = [], cta_text, cta_url } = block.content;
+  const featureDescription = description || subtitle;
   return (
     <div className="w-full rounded-xl p-5" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
       {(title || icon) && (
@@ -421,7 +444,15 @@ function FeatureBlock({ block, primaryColor }: { block: BioBlock; primaryColor: 
           {title && <h3 className="text-white font-semibold text-lg">{title}</h3>}
         </div>
       )}
-      {description && <p className="text-white/70 text-sm mb-3">{description}</p>}
+      {featureDescription && <p className="text-white/70 text-sm mb-3">{featureDescription}</p>}
+      {cta_text && (
+        <a href={cta_url || "#"} target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 text-sm font-semibold mb-3 transition-opacity hover:opacity-80"
+          style={{ color: primaryColor }}
+        >
+          {cta_text} <ArrowRight className="w-3 h-3" />
+        </a>
+      )}
       {items.length > 0 && (
         <ul className="space-y-2">
           {items.map((item: any, i: number) => (
