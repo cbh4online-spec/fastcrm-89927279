@@ -1,85 +1,98 @@
 
 
-# Reorganizar MQPC: SKU como primeiro passo
+# Corrigir erro ao enviar mensagem SMS sem numero de telefone
 
-## Conceito
+## Problema
 
-Alterar o fluxo de criacao de produto para iniciar pelo SKU. Quando o utilizador introduz um SKU, o sistema pesquisa automaticamente via IA e pre-preenche o maximo de campos possiveis (nome, preco, descricoes, imagens externas). O utilizador revisa e ajusta apenas o necessario.
+Ao tentar enviar uma mensagem na conversa de "paulasoares.bealeader" (canal SMS), o GHL retorna erro 422: "Missing phone number". O lead nao tem numero de telefone registado, tornando impossivel o envio por SMS.
 
-## Novo fluxo (4 passos)
+O erro aparece como "Falha ao enviar mensagem" generico, sem indicar ao utilizador qual e o problema real.
 
-```text
-[1. SKU]  -->  [2. Imagens]  -->  [3. Dados]  -->  [4. Extras]
-   |                                   |               |
-   +-- Pesquisa IA automatica          |               |
-   +-- Pre-preenche nome, preco,       |               |
-       descricoes, categoria           |               |
-                      Pre-carrega imagens do SKU       |
-                                  Campos ja preenchidos pela IA
-                                                   Descricoes ja geradas
+## Causa raiz
+
+1. O lead "paulasoares.bealeader" tem `phone: null` na base de dados
+2. O canal da conversa e `sms`, que requer numero de telefone
+3. A edge function `ghl-send-message` tenta enviar sem validar a existencia do telefone
+4. O erro do GHL e propagado mas nao e traduzido para uma mensagem util ao utilizador
+
+## Solucao
+
+### 1. Edge function: `supabase/functions/ghl-send-message/index.ts`
+
+Adicionar validacao antes de enviar mensagens SMS: verificar se o lead/contacto tem telefone. Se nao tiver, retornar erro 422 com mensagem clara em vez de delegar ao GHL.
+
+Apos obter o `lead` e `contact` (linha ~70), adicionar:
+
+```typescript
+// Para SMS, verificar se existe telefone
+const effectiveChannel = channel || conversation.channel || "sms";
+if (effectiveChannel === "sms") {
+  const contactPhone = phone || lead?.phone || contact?.phone;
+  if (!contactPhone) {
+    return new Response(
+      JSON.stringify({ 
+        error: "Este contacto não tem número de telefone. Adicione um número ao lead antes de enviar SMS.",
+        code: "MISSING_PHONE"
+      }),
+      { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+}
 ```
 
-## Alteracoes
+### 2. Hook: `src/hooks/useMessages.ts`
 
-### 1. Novo componente: `src/components/mqpc/MQPCStepSKU.tsx`
+No bloco que processa a resposta do `ghl-send-message` (linhas 145-150), melhorar o tratamento de erro para extrair a mensagem do GHL em vez de mostrar erro generico:
 
-- Campo de input para SKU com botao "Pesquisar"
-- Ao submeter, chama `searchBySKU` do hook `useProductAIAssistant`
-- Mostra loading com animacao durante a pesquisa
-- Se encontrar resultado:
-  - Mostra preview do que a IA encontrou (nome, preco sugerido, categoria, imagens)
-  - Botao "Usar estes dados" para aceitar e avancar
-  - Botao "Ignorar e continuar manualmente" para saltar
-- Se nao encontrar: mensagem informativa + botao para continuar manualmente
-- Botao "Saltar" sempre visivel para quem nao tem SKU
-
-### 2. Modificar: `src/components/mqpc/MQPCWizard.tsx`
-
-- Adicionar Step 0 (SKU) antes dos steps actuais
-- Actualizar `STEPS` de `["Imagens", "Dados", "Extras"]` para `["SKU", "Imagens", "Dados", "Extras"]`
-- Quando a pesquisa SKU retorna dados, pre-preencher:
-  - `details.name` com `commercialName` ou `name`
-  - `details.price` com `suggestedPrice` (convertido a string)
-  - `extras.shortDescription` com `commercialDescription`
-  - `extras.fullDescription` com `technicalDescription`
-  - `extras.sku` com o SKU introduzido
-- Se a IA retornar `category`, tentar fazer match com as categorias existentes pelo nome e pre-seleccionar `details.categoryId`
-- Se a IA retornar imagens (`images` array), pre-carregar no state de imagens como URLs externas para o utilizador ver (sem upload -- o upload real acontece no Step Imagens)
-
-### 3. Modificar: `src/components/mqpc/MQPCStepDetails.tsx`
-
-- Sem alteracoes estruturais -- os campos simplesmente aparecem pre-preenchidos
-- Indicacao visual (badge ou texto) nos campos que foram preenchidos pela IA para o utilizador saber
-
-### 4. Modificar: `src/components/mqpc/MQPCStepExtras.tsx`
-
-- Se as descricoes ja vieram do SKU, o botao "Melhorar com IA" mostra estado "ja melhorado" automaticamente
-- Sem alteracoes estruturais
-
-## Detalhes tecnicos
-
-### `MQPCStepSKU.tsx` -- Componente principal
-
-```text
-Estado interno:
-- skuInput: string
-- searchResult: SKUSearchResult | null
-- searched: boolean
-
-Props:
-- onSKUResult: (result: SKUSearchResult, sku: string) => void
-- onSkip: () => void
-
-Usa: useProductAIAssistant().searchBySKU
+```typescript
+if (error) throw error;
+if (data?.error) throw new Error(data.error);
 ```
 
-### `MQPCWizard.tsx` -- Alteracoes chave
+Isto ja esta correcto -- o `data.error` contem a mensagem descritiva. O problema e que o `error` do `functions.invoke` e lancado primeiro quando o status nao e 2xx.
 
-- Nova funcao `handleSKUResult(result, sku)` que pre-preenche todos os states
-- Match de categoria por nome: `categories.find(c => c.name.toLowerCase().includes(result.category.toLowerCase()))`
-- Step counter passa de 3 para 4 steps
-- Validacoes e navegacao actualizadas para o novo indice
+Alterar para capturar o corpo da resposta mesmo em caso de erro:
 
-### Sem alteracoes no backend
+```typescript
+const { data, error } = await mainClient.functions.invoke("ghl-send-message", {
+  body: { conversationId, message: content, channel: conversation.channel },
+});
 
-A edge function `ai-product-assistant` (modo `sku-search`) ja retorna todos os dados necessarios. Nenhuma alteracao no backend e necessaria.
+if (error) {
+  // Try to extract meaningful error from response
+  const errorMsg = data?.error || error.message;
+  throw new Error(errorMsg);
+}
+if (data?.error) throw new Error(data.error);
+```
+
+### 3. Componente: `src/components/inbox/ConversationDetail.tsx`
+
+Melhorar o `handleSendMessage` (linha 136) para mostrar a mensagem de erro real em vez de "Falha ao enviar mensagem" generico:
+
+```typescript
+const handleSendMessage = async (content: string) => {
+  if (!conversationId) return;
+  try {
+    await sendMessage.mutateAsync({ conversationId, content });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Falha ao enviar mensagem";
+    toast.error(msg);
+  }
+};
+```
+
+## Ficheiros a modificar
+
+| Ficheiro | Alteracao |
+|---|---|
+| `supabase/functions/ghl-send-message/index.ts` | Validacao de telefone antes de enviar SMS |
+| `src/hooks/useMessages.ts` | Extrair mensagem de erro detalhada |
+| `src/components/inbox/ConversationDetail.tsx` | Mostrar mensagem de erro real no toast |
+
+## Resultado esperado
+
+- Quando o lead nao tem telefone e o canal e SMS, o utilizador ve: "Este contacto nao tem numero de telefone. Adicione um numero ao lead antes de enviar SMS."
+- Outros erros do GHL tambem mostram a mensagem real em vez do generico "Falha ao enviar mensagem"
+- Validacao feita antes de chamar o GHL para evitar chamadas desnecessarias
+
