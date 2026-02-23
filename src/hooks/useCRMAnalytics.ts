@@ -279,6 +279,50 @@ export function useCRMAnalytics() {
     [push]
   );
 
+  // ════════════════════════════════════════
+  //  ECOMMERCE / MQPC
+  // ════════════════════════════════════════
+
+  const trackMQPCOpen = useCallback(() => {
+    push('mqpc.open', { device_type: getDeviceType() });
+  }, [push]);
+
+  const trackMQPCImageUploadSuccess = useCallback(
+    (data: { images_count: number }) => {
+      push('mqpc.image_upload_success', { images_count: data.images_count });
+    },
+    [push]
+  );
+
+  const trackMQPCCreatedDraft = useCallback(
+    (data: { images_count: number; has_ai: boolean; category_id: string; channel: string }) => {
+      push('mqpc.created_draft', data);
+    },
+    [push]
+  );
+
+  const trackMQPCCreatedActive = useCallback(
+    (data: { images_count: number; has_ai: boolean; category_id: string; channel: string }) => {
+      push('mqpc.created_active', data);
+    },
+    [push]
+  );
+
+  const trackMQPCAIImproveClicked = useCallback(() => {
+    push('mqpc.ai_improve_clicked', { device_type: getDeviceType() });
+  }, [push]);
+
+  const trackMQPCAIImproveSuccess = useCallback(() => {
+    push('mqpc.ai_improve_success', { device_type: getDeviceType() });
+  }, [push]);
+
+  const trackMQPCPublishClicked = useCallback(
+    (data: { product_id: string }) => {
+      push('mqpc.publish_clicked', { product_id: data.product_id });
+    },
+    [push]
+  );
+
   return {
     // Inbox
     trackInboxOpened,
@@ -303,5 +347,13 @@ export function useCRMAnalytics() {
     // Billing
     trackCheckoutStarted,
     trackCheckoutCompleted,
+    // MQPC
+    trackMQPCOpen,
+    trackMQPCImageUploadSuccess,
+    trackMQPCCreatedDraft,
+    trackMQPCCreatedActive,
+    trackMQPCAIImproveClicked,
+    trackMQPCAIImproveSuccess,
+    trackMQPCPublishClicked,
   };
 }

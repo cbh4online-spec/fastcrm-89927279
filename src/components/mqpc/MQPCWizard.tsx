@@ -7,6 +7,7 @@ import { MQPCStepDetails, type ProductDetails } from "./MQPCStepDetails";
 import { MQPCStepExtras, type ExtrasData } from "./MQPCStepExtras";
 import { useAdminStoreCategories } from "@/hooks/useAdminStoreCategories";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -16,6 +17,7 @@ export function MQPCWizard() {
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const { data: categories = [] } = useAdminStoreCategories();
+  const { trackMQPCCreatedDraft, trackMQPCCreatedActive } = useCRMAnalytics();
   const [step, setStep] = useState(0);
   const [creating, setCreating] = useState(false);
 
@@ -147,6 +149,19 @@ export function MQPCWizard() {
 
       // Reset idempotency key after successful creation
       idempotencyKeyRef.current = null;
+
+      const trackingPayload = {
+        images_count: images.filter((img) => img.url).length,
+        has_ai: !!extras.shortDescription,
+        category_id: details.categoryId,
+        channel: "mobile_quick" as const,
+      };
+
+      if (details.publishNow) {
+        trackMQPCCreatedActive(trackingPayload);
+      } else {
+        trackMQPCCreatedDraft(trackingPayload);
+      }
 
       toast.success("Produto criado com sucesso! 🎉");
       navigate("/dashboard/store-products");
