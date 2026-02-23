@@ -1,55 +1,39 @@
 
-
-# Edge Function: product-ai-improve
+# Edge Function: product-publish
 
 ## Resumo
 
-Criar a Edge Function `product-ai-improve` que recebe um `product_id`, busca os dados do produto na DB, gera conteudo melhorado via Lovable AI (descripcoes, bullets, tags, SEO snippet), e opcionalmente grava os resultados de volta no produto e enfileira embeddings.
-
-O `MQPCStepExtras` sera atualizado para chamar esta nova function em vez da `ai-product-assistant` com mode `generate-description`.
+Criar a Edge Function `product-publish` que permite alterar o status de um produto entre `draft` e `active`, separando a logica de publicacao da criacao. Segue o mesmo padrao de autorizacao e resposta das functions `product-quick-create` e `product-ai-improve`.
 
 ## Alteracoes
 
-### 1. Nova Edge Function: `supabase/functions/product-ai-improve/index.ts`
+### 1. Nova Edge Function: `supabase/functions/product-publish/index.ts`
 
-**Fluxo completo:**
+**Fluxo:**
 
 1. CORS preflight
 2. Validar JWT e extrair `userId`
 3. Ler `X-Workspace-Id` (obrigatorio)
 4. Validar workspace membership (owner, admin, agent)
-5. Parse body: `product_id`, `goals`, `generate`, `inputs_override`, `options`
-6. Validar `product_id` obrigatorio
-7. Buscar produto da DB via `adminClient.from("products").select(...)` com `workspace_id` e `product_id` -- se nao encontrado, retornar FORBIDDEN
-8. Construir prompt de IA com dados do produto (name, category, short_description, commercial_description, sku, price) + `inputs_override` + `goals`
-9. Chamar Lovable AI Gateway (`google/gemini-3-flash-preview`) com tool calling para extrair output estruturado:
-   - `short_description` (se `generate.short_description`)
-   - `long_description` (se `generate.long_description`)
-   - `bullets` (se `generate.bullets`)
-   - `tags` (se `generate.tags`)
-   - `seo_snippet` (se `generate.seo_snippet`)
-10. Se `options.write_back = true`, atualizar produto na DB:
-    - `short_description` <- `generated.short_description`
-    - `commercial_description` <- `generated.long_description`
-    - `search_keywords` <- `generated.tags.join(", ")`
-11. Se `options.create_embeddings = true`, chamar `supabase.functions.invoke("product-embedding", { body: { productId } })` (fire-and-forget)
-12. Criar audit log em `crm_activities` com event `product_ai_improved`
-13. Retornar resposta estruturada
+5. Parse body: `product_id`, `status`, `options`
+6. Validar:
+   - `product_id`: uuid, obrigatorio
+   - `status`: deve ser `"active"` ou `"draft"` (obrigatorio)
+7. Buscar produto via `adminClient.from("products")` com filtro `id = product_id` e `workspace_id` -- se nao encontrado, retornar FORBIDDEN
+8. Se `options.require_min_images = true`, verificar que o produto tem pelo menos 1 imagem (array `images` nao vazio ou `product_images` com registos) -- se falhar, retornar VALIDATION_ERROR "Product must have at least one image to publish"
+9. Atualizar produto:
+   - `status` = valor pedido
+   - `store_published` = `status === "active"`
+   - `published_at` = `new Date().toISOString()` (se status = active) ou `null` (se draft)
+   - `updated_at` = `new Date().toISOString()`
+10. Se `options.create_audit_log = true`, inserir registo em `crm_activities` com event `product_published` (se active) ou `product_unpublished` (se draft)
+11. Retornar resposta estruturada
 
-**Validacoes:**
-- `product_id`: uuid, obrigatorio
-- `goals.tone`: string, default "profissional"
-- `goals.language`: string, default "pt-PT"
-- `goals.max_length.short_description`: number, default 180
-- `goals.max_length.seo_snippet`: number, default 160
-- `generate`: objeto com booleans, pelo menos um deve ser true
-
-**Respostas de erro:**
-- 401 UNAUTHORIZED: JWT invalido
-- 403 FORBIDDEN: nao membro do workspace ou produto nao pertence ao workspace
-- 400 VALIDATION_ERROR: body invalido
-- 502 AI_PROVIDER_ERROR: falha na chamada ao Lovable AI Gateway (429/402/5xx)
-- 500 INTERNAL_ERROR: erro generico
+**Respostas de erro (mesmo formato):**
+- 401 UNAUTHORIZED
+- 403 FORBIDDEN (JWT invalido, nao membro, ou produto nao pertence ao workspace)
+- 400 VALIDATION_ERROR (body invalido ou imagens insuficientes)
+- 500 INTERNAL_ERROR
 
 **Resposta 200 (sucesso):**
 ```text
@@ -57,118 +41,73 @@ O `MQPCStepExtras` sera atualizado para chamar esta nova function em vez da `ai-
   "success": true,
   "data": {
     "product_id": "uuid",
-    "generated": {
-      "short_description": "...",
-      "long_description": "...",
-      "bullets": ["...", "..."],
-      "tags": ["...", "..."],
-      "seo_snippet": "..."
-    },
-    "updated_fields": ["short_description", "description", "tags"],
-    "embeddings": { "requested": true, "status": "queued" },
-    "audit": { "log_id": "uuid", "event": "product_ai_improved" }
+    "status": "active",
+    "published_at": "2026-02-23T11:00:00Z",
+    "audit": { "log_id": "uuid", "event": "product_published" }
   },
-  "meta": { "request_id": "uuid", "workspace_id": "uuid", "timestamp": "..." }
+  "meta": {
+    "request_id": "uuid",
+    "workspace_id": "uuid",
+    "timestamp": "2026-02-23T11:00:00Z"
+  }
 }
 ```
-
-**Prompt de IA (resumo):**
-- System: "Especialista em copywriting de produtos. Gerar conteudo no tom e lingua pedidos. Respeitar limites de comprimento."
-- User: Dados do produto (nome, categoria, preco, descricao atual, SKU) + inputs_override (features, materiais, dimensoes, publico-alvo)
-- Tool calling com funcao `improve_product` para output estruturado (short_description, long_description, bullets, tags, seo_snippet)
-- Apenas os campos com `generate[field] = true` serao pedidos no prompt
 
 ### 2. `supabase/config.toml`
 
 Adicionar:
 ```text
-[functions.product-ai-improve]
+[functions.product-publish]
 verify_jwt = false
 ```
 
-### 3. `src/components/mqpc/MQPCStepExtras.tsx`
+### 3. Hook: `src/hooks/useProductPublish.ts` (Novo)
 
-Atualizar o botao "Melhorar com IA" para chamar a nova Edge Function quando o produto ja foi criado (pos-criacao), ou manter o fluxo atual para pre-criacao (pois o produto ainda nao existe na DB).
-
-**Duas abordagens possiveis:**
-
-**Abordagem A (recomendada):** Como o MQPC chama `product-ai-improve` APOS a criacao via `product-quick-create`, o botao "Melhorar com IA" no step 3 continua a usar o fluxo atual (`ai-product-assistant` com mode `generate-description`) porque o produto ainda nao existe. A nova function `product-ai-improve` sera usada em contextos pos-criacao (pagina de edicao de produto, detalhe de produto).
-
-Neste caso, as alteracoes ao `MQPCStepExtras` sao minimas -- nenhuma alteracao necessaria.
-
-**Abordagem B:** Alterar o fluxo do MQPC para primeiro criar o produto (via `product-quick-create`) e depois melhorar com IA (via `product-ai-improve`). Isto muda significativamente o UX do wizard.
-
-**Decisao: Abordagem A** -- o `MQPCStepExtras` mantem-se inalterado. A nova function sera integrada futuramente na pagina de edicao de produtos.
-
-### 4. Hook: `src/hooks/useProductAIImprove.ts` (Novo)
-
-Criar hook para facilitar a integracao futura:
+Hook com `useMutation` para facilitar integracao no frontend:
 
 ```text
-interface AIImproveRequest {
+interface PublishRequest {
   productId: string;
-  goals?: { tone?: string; language?: string; seo?: boolean; max_length?: { short_description?: number; seo_snippet?: number } };
-  generate?: { short_description?: boolean; long_description?: boolean; bullets?: boolean; tags?: boolean; seo_snippet?: boolean };
-  inputsOverride?: { key_features?: string[]; materials?: string; dimensions?: string; target_audience?: string };
-  options?: { write_back?: boolean; create_embeddings?: boolean; channel?: string };
+  status: "active" | "draft";
+  options?: {
+    require_min_images?: boolean;
+    create_audit_log?: boolean;
+    channel?: string;
+  };
 }
 
-Retorna useMutation com:
-  - mutateAsync(request) -> AIImproveResult
-  - isPending, isError, error
+interface PublishResult {
+  product_id: string;
+  status: string;
+  published_at: string | null;
+  audit: { log_id: string; event: string } | null;
+}
 ```
 
-O hook chama `supabase.functions.invoke("product-ai-improve")` com `X-Workspace-Id` no header.
+O hook chama `supabase.functions.invoke("product-publish")` com `X-Workspace-Id` no header e invalida a query cache de produtos apos sucesso.
 
 ## Detalhes tecnicos
 
-### Prompt com tool calling
+### Verificacao de imagens (opcional)
 
-Para extrair output estruturado, a Edge Function usa tool calling em vez de pedir JSON no prompt:
+Quando `require_min_images = true`:
+- Verificar `product.images` (array jsonb) -- se nao vazio, passa
+- Fallback: query `product_images` com `product_id` -- se count > 0, passa
+- Se ambos vazios, retornar erro 400
 
-```text
-tools: [{
-  type: "function",
-  function: {
-    name: "improve_product",
-    description: "Return improved product content",
-    parameters: {
-      type: "object",
-      properties: {
-        short_description: { type: "string" },
-        long_description: { type: "string" },
-        bullets: { type: "array", items: { type: "string" } },
-        tags: { type: "array", items: { type: "string" } },
-        seo_snippet: { type: "string" }
-      },
-      required: [campos solicitados em generate],
-      additionalProperties: false
-    }
-  }
-}]
-tool_choice: { type: "function", function: { name: "improve_product" } }
-```
+### Mapeamento de campos na DB
 
-### Write-back para DB
+| Campo response | Campo DB |
+|---|---|
+| `status` | `products.status` |
+| `published_at` | `products.store_published` (boolean) + timestamp no audit log |
 
-Mapeamento de campos:
-- `generated.short_description` -> `products.short_description`
-- `generated.long_description` -> `products.commercial_description`
-- `generated.tags` -> `products.search_keywords` (join com ", ")
-- `generated.seo_snippet` -> nao tem coluna dedicada; guardar em `products.specifications.seo_snippet` (campo jsonb)
-
-### Embeddings (fire-and-forget)
-
-Se `options.create_embeddings = true`:
-- Chamar `fetch(supabaseUrl + "/functions/v1/product-embedding", { body: { productId } })` internamente
-- Nao esperar pela resposta (fire-and-forget)
-- Retornar `embeddings: { requested: true, status: "queued" }`
+Nota: a tabela `products` nao tem coluna `published_at` dedicada. O campo `store_published` (boolean) sera usado para indicar se esta publicado, e o timestamp sera registado via `updated_at` e no audit log.
 
 ## Ficheiros criados/modificados
 
 | Ficheiro | Acao |
 |---|---|
-| `supabase/functions/product-ai-improve/index.ts` | Novo |
+| `supabase/functions/product-publish/index.ts` | Novo |
 | `supabase/config.toml` | Modificado (nova entry) |
-| `src/hooks/useProductAIImprove.ts` | Novo (hook de integracao) |
-
+| `src/hooks/useProductPublish.ts` | Novo (hook de integracao) |
