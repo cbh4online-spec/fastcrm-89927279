@@ -340,3 +340,6 @@ verify_jwt = false
 [functions.product-quick-create]
 verify_jwt = false
 
+[functions.product-ai-improve]
+verify_jwt = false
+
