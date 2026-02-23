@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
     // 5. Fetch product
     const { data: product, error: productError } = await adminClient
       .from("products")
-      .select("id, name, short_description, commercial_description, category, sku, price_amount, currency, search_keywords, specifications")
+      .select("id, name, short_description, commercial_description, category, sku, price_amount, currency, search_keywords, specifications, metadata")
       .eq("id", product_id)
       .eq("workspace_id", workspaceId)
       .single();
@@ -231,6 +231,17 @@ Gera APENAS os campos pedidos.`;
 
       if (Object.keys(updatePayload).length > 0) {
         updatePayload.updated_at = new Date().toISOString();
+
+        // Merge AI enrichment info into metadata JSONB
+        const existingMetadata = (product as any).metadata || {};
+        updatePayload.metadata = {
+          ...existingMetadata,
+          ai_last_enriched_at: new Date().toISOString(),
+          ai_last_enriched_by: userId,
+          ai_model: "google/gemini-3-flash-preview",
+          ai_fields_generated: updatedFields,
+        };
+
         const { error: updateError } = await adminClient
           .from("products")
           .update(updatePayload)
@@ -262,12 +273,12 @@ Gera APENAS os campos pedidos.`;
       const { data: logData } = await adminClient.from("crm_activities").insert({
         workspace_id: workspaceId,
         user_id: userId,
-        activity_type: "ai_action",
-        subject: `IA melhorou produto: ${product.name}`,
+        activity_type: "product_ai_improved",
+        title: `IA melhorou produto: ${product.name}`,
         description: `Campos gerados: ${fieldsRequested.join(", ")}. Write-back: ${options.write_back ? "sim" : "não"}.`,
         entity_type: "product",
         entity_id: product_id,
-        metadata: { event: "product_ai_improved", channel: options.channel || "unknown", fields: fieldsRequested },
+        metadata: { event: "product_ai_improved", channel: options.channel || "unknown", fields: fieldsRequested, ai_model: "google/gemini-3-flash-preview" },
       }).select("id").single();
       auditLogId = logData?.id || null;
     } catch (e) {
