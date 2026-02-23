@@ -16,9 +16,17 @@ interface ImageItem {
 }
 
 interface PresignedUpload {
-  path: string;
-  signedUrl: string;
-  token: string;
+  file_id: string;
+  storage_path: string;
+  signed_upload_url: string;
+  public_url: string;
+  expires_in_seconds: number;
+}
+
+interface FileMetadata {
+  filename: string;
+  content_type: string;
+  size_bytes: number;
 }
 
 interface MQPCStepImagesProps {
@@ -61,19 +69,24 @@ async function compressImage(file: File): Promise<Blob> {
 }
 
 async function requestPresignedUrls(
-  count: number,
+  files: FileMetadata[],
   workspaceId: string
 ): Promise<PresignedUpload[]> {
   const { data, error } = await supabase.functions.invoke(
     "product-images-presign",
     {
-      body: { count },
+      body: {
+        files,
+        context: { channel: "mobile_quick", intent: "product_create" },
+      },
       headers: { "X-Workspace-Id": workspaceId },
     }
   );
   if (error) throw new Error(error.message || "Failed to get upload URLs");
-  if (!data?.uploads) throw new Error("Invalid presign response");
-  return data.uploads as PresignedUpload[];
+  if (!data?.success || !data?.data?.uploads) {
+    throw new Error(data?.message || "Invalid presign response");
+  }
+  return data.data.uploads as PresignedUpload[];
 }
 
 async function uploadToSignedUrl(
@@ -88,11 +101,6 @@ async function uploadToSignedUrl(
   if (!res.ok) {
     throw new Error(`Upload failed: ${res.status}`);
   }
-}
-
-function buildPublicUrl(storagePath: string): string {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  return `${supabaseUrl}/storage/v1/object/public/product-images/${storagePath}`;
 }
 
 export function MQPCStepImages({ images, onImagesChange }: MQPCStepImagesProps) {
@@ -110,12 +118,11 @@ export function MQPCStepImages({ images, onImagesChange }: MQPCStepImagesProps) 
     ): Promise<ImageItem> => {
       try {
         const compressed = await compressImage(item.file);
-        await uploadToSignedUrl(presigned.signedUrl, compressed);
-        const publicUrl = buildPublicUrl(presigned.path);
+        await uploadToSignedUrl(presigned.signed_upload_url, compressed);
         return {
           ...item,
-          url: publicUrl,
-          storagePath: presigned.path,
+          url: presigned.public_url,
+          storagePath: presigned.storage_path,
           uploading: false,
           error: false,
         };
@@ -154,15 +161,18 @@ export function MQPCStepImages({ images, onImagesChange }: MQPCStepImagesProps) 
     onImagesChange(updated);
     setCompressing(false);
 
+    // Build file metadata for presign request
+    const fileMeta: FileMetadata[] = selected.map((file) => ({
+      filename: file.name,
+      content_type: "image/jpeg",
+      size_bytes: file.size,
+    }));
+
     // Request presigned URLs for all new images at once
     let presignedUrls: PresignedUpload[];
     try {
-      presignedUrls = await requestPresignedUrls(
-        newItems.length,
-        currentWorkspace.id
-      );
+      presignedUrls = await requestPresignedUrls(fileMeta, currentWorkspace.id);
     } catch (err: any) {
-      // Mark all as error
       onImagesChange(
         imagesRef.current.map((img) =>
           newItems.some((ni) => ni.id === img.id)
@@ -207,8 +217,11 @@ export function MQPCStepImages({ images, onImagesChange }: MQPCStepImagesProps) 
     );
 
     try {
-      const [presigned] = await requestPresignedUrls(1, currentWorkspace.id);
-      const result = await uploadSingleImage(item, presigned);
+      const presignedUrls = await requestPresignedUrls(
+        [{ filename: item.file.name, content_type: "image/jpeg", size_bytes: item.file.size }],
+        currentWorkspace.id
+      );
+      const result = await uploadSingleImage(item, presignedUrls[0]);
       onImagesChange(
         imagesRef.current.map((img) => (img.id === id ? result : img))
       );

@@ -6,6 +6,16 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-workspace-id, x-idempotency-key, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const MAX_FILES = 6;
+const MAX_SIZE_BYTES = 8_388_608; // 8MB
+
+function errorResponse(status: number, error: string, message: string) {
+  return new Response(
+    JSON.stringify({ success: false, error, message }),
+    { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -15,10 +25,7 @@ Deno.serve(async (req) => {
     // 1. Validate JWT
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return errorResponse(401, "UNAUTHORIZED", "Missing or invalid Authorization header");
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -33,10 +40,7 @@ Deno.serve(async (req) => {
     const { data: claimsData, error: claimsError } =
       await userClient.auth.getClaims(token);
     if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return errorResponse(401, "UNAUTHORIZED", "Invalid token");
     }
 
     const userId = claimsData.claims.sub as string;
@@ -44,13 +48,7 @@ Deno.serve(async (req) => {
     // 2. Get workspace ID from header
     const workspaceId = req.headers.get("X-Workspace-Id");
     if (!workspaceId) {
-      return new Response(
-        JSON.stringify({ error: "X-Workspace-Id header required" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return errorResponse(400, "VALIDATION_ERROR", "X-Workspace-Id header required");
     }
 
     // 3. Validate workspace membership
@@ -63,70 +61,79 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (memberError || !membership) {
-      return new Response(
-        JSON.stringify({ error: "Not a member of this workspace" }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return errorResponse(403, "FORBIDDEN", "Not a member of this workspace");
     }
 
-    // 4. Parse body
-    const { count } = await req.json();
-    if (!count || count < 1 || count > 6) {
-      return new Response(
-        JSON.stringify({ error: "count must be between 1 and 6" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    // 4. Parse and validate body
+    const body = await req.json();
+    const { files } = body;
+
+    if (!Array.isArray(files) || files.length < 1 || files.length > MAX_FILES) {
+      return errorResponse(400, "VALIDATION_ERROR", `files must be an array with 1 to ${MAX_FILES} elements`);
+    }
+
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      if (!f.filename || typeof f.filename !== "string" || !f.filename.trim()) {
+        return errorResponse(400, "VALIDATION_ERROR", `files[${i}].filename is required`);
+      }
+      if (!f.content_type || typeof f.content_type !== "string" || !f.content_type.startsWith("image/")) {
+        return errorResponse(400, "VALIDATION_ERROR", `files[${i}].content_type must start with image/`);
+      }
+      if (typeof f.size_bytes !== "number" || f.size_bytes <= 0 || f.size_bytes > MAX_SIZE_BYTES) {
+        return errorResponse(400, "VALIDATION_ERROR", `files[${i}].size_bytes must be between 1 and ${MAX_SIZE_BYTES}`);
+      }
     }
 
     // 5. Generate signed upload URLs
-    const timestamp = Date.now();
-    const uploads: { path: string; signedUrl: string; token: string }[] = [];
+    const requestId = crypto.randomUUID();
+    const uploads: {
+      file_id: string;
+      storage_path: string;
+      signed_upload_url: string;
+      public_url: string;
+      expires_in_seconds: number;
+    }[] = [];
 
-    for (let i = 0; i < count; i++) {
-      const path = `products/${workspaceId}/${timestamp}-${i}.jpg`;
+    for (let i = 0; i < files.length; i++) {
+      const fileId = crypto.randomUUID();
+      const storagePath = `workspaces/${workspaceId}/products/tmp/${fileId}.jpg`;
+
       const { data, error } = await adminClient.storage
         .from("product-images")
-        .createSignedUploadUrl(path);
+        .createSignedUploadUrl(storagePath);
 
       if (error || !data) {
-        console.error(`Failed to create signed URL for ${path}:`, error);
-        return new Response(
-          JSON.stringify({
-            error: "Failed to generate upload URL",
-            detail: error?.message,
-          }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+        console.error(`Failed to create signed URL for ${storagePath}:`, error);
+        return errorResponse(500, "INTERNAL_ERROR", "Failed to generate upload URL");
       }
 
       uploads.push({
-        path,
-        signedUrl: data.signedUrl,
-        token: data.token,
+        file_id: fileId,
+        storage_path: storagePath,
+        signed_upload_url: data.signedUrl,
+        public_url: `${supabaseUrl}/storage/v1/object/public/product-images/${storagePath}`,
+        expires_in_seconds: 600,
       });
     }
 
-    return new Response(JSON.stringify({ uploads }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: {
+          bucket: "product-images",
+          uploads,
+        },
+        meta: {
+          request_id: requestId,
+          workspace_id: workspaceId,
+          timestamp: new Date().toISOString(),
+        },
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (err) {
     console.error("product-images-presign error:", err);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return errorResponse(500, "INTERNAL_ERROR", "Internal server error");
   }
 });
