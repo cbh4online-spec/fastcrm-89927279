@@ -187,12 +187,8 @@ export function ConversationList({
       filtered = filtered.filter(conv => conv.channel === channelFilter);
     }
 
-    // Sort by priority score DESC, then last_message_at DESC
+    // Sort by last_message_at DESC (most recent first)
     filtered.sort((a, b) => {
-      const scoreA = (a as any).conversation_priority_score || 0;
-      const scoreB = (b as any).conversation_priority_score || 0;
-      if (scoreA !== scoreB) return scoreB - scoreA;
-
       const dateA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
       const dateB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
       return dateB - dateA;
@@ -356,7 +352,7 @@ export function ConversationList({
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
-                        {/* Line 1: Name + Channel Icon */}
+                        {/* Line 1: Name + Channel Icon + Time */}
                         <div className="flex items-center gap-1.5">
                           <span className={cn(
                             "text-sm truncate",
@@ -365,9 +361,14 @@ export function ConversationList({
                             {displayName}
                           </span>
                           <ChannelIcon className={cn("w-3 h-3 flex-shrink-0", channelColors[conv.channel])} />
+                          {conv.last_message_at && (
+                            <span className="text-[11px] text-muted-foreground flex-shrink-0 whitespace-nowrap ml-auto">
+                              {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false, locale: pt })}
+                            </span>
+                          )}
                         </div>
 
-                        {/* Line 2: Preview + Time + Unread dot */}
+                        {/* Line 2: Preview + Unread dot */}
                         <div className="flex items-center gap-1 mt-0.5">
                           <p className={cn(
                             "text-xs truncate flex-1 min-w-0",
@@ -378,11 +379,6 @@ export function ConversationList({
                             )}
                             {conv.last_message_preview || "Sem mensagens"}
                           </p>
-                          {conv.last_message_at && (
-                            <span className="text-[11px] text-muted-foreground flex-shrink-0 whitespace-nowrap">
-                              · {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false, locale: pt })}
-                            </span>
-                          )}
                           {hasUnread && (
                             <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
                           )}
