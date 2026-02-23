@@ -93,9 +93,17 @@ export function useReviewModerationItem(workspaceId: string | undefined) {
           .eq("id", item.entity_id);
       }
     },
-    onSuccess: (_, { action }) => {
+    onSuccess: (_, { itemId, action }) => {
       qc.invalidateQueries({ queryKey: ["moderation-queue"] });
       toast.success(action === "approved" ? "Conteúdo aprovado" : "Conteúdo rejeitado");
+
+      supabase.rpc("log_admin_action", {
+        p_action_type: "moderation_reviewed",
+        p_target_type: "moderation_item",
+        p_target_id: itemId,
+        p_workspace_id: workspaceId || null,
+        p_details: { item_id: itemId, action },
+      });
     },
     onError: () => toast.error("Erro ao processar"),
   });
@@ -144,9 +152,17 @@ export function useUpdateModerationFilters(workspaceId: string | undefined) {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, updates) => {
       qc.invalidateQueries({ queryKey: ["moderation-filters"] });
       toast.success("Filtros atualizados");
+
+      supabase.rpc("log_admin_action", {
+        p_action_type: "moderation_filters_updated",
+        p_target_type: "moderation_filters",
+        p_target_id: workspaceId || null,
+        p_workspace_id: workspaceId || null,
+        p_details: JSON.parse(JSON.stringify(updates)),
+      });
     },
     onError: () => toast.error("Erro ao atualizar filtros"),
   });

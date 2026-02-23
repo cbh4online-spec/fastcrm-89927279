@@ -131,6 +131,13 @@ export function AlertsSection() {
         .eq("id", id);
 
       if (error) throw error;
+
+      await supabase.rpc("log_admin_action", {
+        p_action_type: "incident_dismissed",
+        p_target_type: "system_incident",
+        p_target_id: id,
+        p_details: {},
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["super-admin-incidents"] });

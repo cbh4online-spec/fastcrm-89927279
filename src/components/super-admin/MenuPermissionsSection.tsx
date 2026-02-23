@@ -109,11 +109,19 @@ export function MenuPermissionsSection() {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, changes) => {
       queryClient.invalidateQueries({ queryKey: ["menu-permissions-admin"] });
       queryClient.invalidateQueries({ queryKey: ["menu-permissions"] });
       setPendingChanges(new Map());
       toast.success("Permissões atualizadas com sucesso");
+
+      // Audit log
+      supabase.rpc("log_admin_action", {
+        p_action_type: "permissions_updated",
+        p_target_type: "menu_permissions",
+        p_target_id: null,
+        p_details: { changes_count: changes.length, changes },
+      });
     },
     onError: (error: any) => {
       toast.error("Erro ao atualizar permissões: " + error.message);
