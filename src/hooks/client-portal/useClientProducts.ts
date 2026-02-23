@@ -25,6 +25,7 @@ interface ProductFilters {
   category?: string;
   function?: string;
   pathology?: string;
+  line?: string;
 }
 
 interface UseClientProductsReturn {
@@ -36,6 +37,7 @@ interface UseClientProductsReturn {
   categories: string[];
   functions: string[];
   pathologies: string[];
+  lines: string[];
   tier: ClientPriceTier | null;
   discountPercentage: number;
 }
@@ -108,6 +110,10 @@ export function useClientProducts(
 
       if (filters.category) {
         query = query.eq("category", filters.category);
+      }
+
+      if (filters.line) {
+        query = query.eq("line", filters.line);
       }
 
       const { data, error } = await query;
@@ -188,6 +194,24 @@ export function useClientProducts(
     enabled: !!workspaceId,
   });
 
+  // Fetch unique lines from products
+  const { data: lines = [] } = useQuery({
+    queryKey: ["client-product-lines", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return [];
+      const { data } = await supabase
+        .from("products")
+        .select("line")
+        .eq("workspace_id", workspaceId)
+        .eq("status", "active")
+        .not("line", "is", null);
+      
+      const uniqueLines = [...new Set((data || []).map((p: any) => p.line).filter(Boolean))] as string[];
+      return uniqueLines.sort();
+    },
+    enabled: !!workspaceId,
+  });
+
   // Fetch unique attribute values for filters
   const { data: attributeValues = { functions: [], pathologies: [] } } = useQuery({
     queryKey: ["client-attribute-values", workspaceId],
@@ -225,6 +249,7 @@ export function useClientProducts(
     categories,
     functions: attributeValues.functions,
     pathologies: attributeValues.pathologies,
+    lines,
     tier: tierData || null,
     discountPercentage: tierData?.discount_percentage || 0,
   };

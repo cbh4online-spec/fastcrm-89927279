@@ -3,17 +3,11 @@ import { ClientLayout } from "@/components/client-portal/ClientLayout";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
 import { useClientProducts } from "@/hooks/client-portal/useClientProducts";
 import { useCart } from "@/contexts/CartContext";
-import { ProtocolsSection } from "@/components/client-portal/catalog/ProtocolsSection";
+import { ProductDetailModal } from "@/components/client-portal/catalog/ProductDetailModal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { 
   Select,
   SelectContent,
@@ -25,7 +19,6 @@ import {
   Search, 
   Package, 
   Plus, 
-  Minus,
   ShoppingCart,
   Loader2,
   Filter,
@@ -43,13 +36,13 @@ export default function ClientCatalogPage() {
     categories,
     functions,
     pathologies,
+    lines,
     tier,
     discountPercentage,
   } = useClientProducts(clientUser?.workspace_id, clientUser?.id);
   const { addItem, itemCount } = useCart();
   
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [quantity, setQuantity] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
 
   const handleAddToCart = (product: any, qty: number = 1) => {
@@ -57,7 +50,6 @@ export default function ClientCatalogPage() {
       ? product.images[product.primary_image_index || 0] 
       : null;
     
-    // Use effective_price (tier price) instead of base_price
     const unitPrice = product.effective_price ?? product.base_price;
     
     addItem({
@@ -67,19 +59,18 @@ export default function ClientCatalogPage() {
       product_image_url: imageUrl,
       quantity: qty,
       unit_price_net: unitPrice,
-      vat_rate: 23, // Default VAT rate
+      vat_rate: 23,
     });
     
     toast.success(`${product.name} adicionado ao carrinho`);
     setSelectedProduct(null);
-    setQuantity(1);
   };
 
   const clearFilters = () => {
     setFilters({});
   };
 
-  const hasActiveFilters = filters.search || filters.category || filters.function || filters.pathology;
+  const hasActiveFilters = filters.search || filters.category || filters.function || filters.pathology || filters.line;
 
   return (
     <ClientLayout>
@@ -128,7 +119,7 @@ export default function ClientCatalogPage() {
         {/* Filters */}
         <Card className={showFilters ? "block" : "hidden sm:block"}>
           <CardContent className="pt-6">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
               {/* Search */}
               <div className="relative lg:col-span-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -139,6 +130,24 @@ export default function ClientCatalogPage() {
                   className="pl-9"
                 />
               </div>
+
+              {/* Line Filter */}
+              {lines.length > 0 && (
+                <Select
+                  value={filters.line || "all"}
+                  onValueChange={(value) => setFilters({ ...filters, line: value === "all" ? undefined : value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Linha" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as linhas</SelectItem>
+                    {lines.map((line) => (
+                      <SelectItem key={line} value={line}>{line}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
 
               {/* Category Filter */}
               <Select
@@ -251,11 +260,18 @@ export default function ClientCatalogPage() {
                         <Package className="h-16 w-16 text-muted-foreground/30" />
                       </div>
                     )}
-                    {product.category && (
-                      <Badge className="absolute top-2 left-2" variant="secondary">
-                        {product.category}
-                      </Badge>
-                    )}
+                    <div className="absolute top-2 left-2 flex flex-wrap gap-1">
+                      {product.category && (
+                        <Badge variant="secondary">
+                          {product.category}
+                        </Badge>
+                      )}
+                      {(product as any).line && (
+                        <Badge variant="outline" className="bg-background/80 backdrop-blur-sm">
+                          {(product as any).line}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
 
                   <CardContent className="p-4">
@@ -298,124 +314,15 @@ export default function ClientCatalogPage() {
         )}
       </div>
 
-      {/* Product Detail Modal */}
-      <Dialog open={!!selectedProduct} onOpenChange={() => setSelectedProduct(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          {selectedProduct && (
-            <>
-              <DialogHeader>
-                <DialogTitle>{selectedProduct.name}</DialogTitle>
-              </DialogHeader>
-
-              <div className="space-y-6">
-                {/* Image */}
-                <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-                  {selectedProduct.images?.length > 0 ? (
-                    <img 
-                      src={selectedProduct.images[selectedProduct.primary_image_index || 0]} 
-                      alt={selectedProduct.name}
-                      className="w-full h-full object-contain"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Package className="h-24 w-24 text-muted-foreground/30" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Info */}
-                <div className="space-y-4">
-                  {selectedProduct.sku && (
-                    <p className="text-sm text-muted-foreground">SKU: {selectedProduct.sku}</p>
-                  )}
-
-                  {selectedProduct.commercial_description && (
-                    <div>
-                      <h4 className="font-semibold mb-2">Descrição</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedProduct.commercial_description}
-                      </p>
-                    </div>
-                  )}
-
-                  {selectedProduct.specifications && Object.keys(selectedProduct.specifications).length > 0 && (
-                    <div>
-                      <h4 className="font-semibold mb-2">Especificações</h4>
-                      <div className="grid gap-2">
-                        {Object.entries(selectedProduct.specifications).map(([key, value]) => (
-                          <div key={key} className="flex justify-between text-sm">
-                            <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</span>
-                            <span>{String(value)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Purchase Section */}
-                <div className="border-t pt-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Preço unitário (s/ IVA)</p>
-                      <p className="text-2xl font-bold text-primary">
-                        {(selectedProduct.effective_price ?? selectedProduct.base_price).toFixed(2)}€
-                      </p>
-                      {selectedProduct.has_discount && (
-                        <p className="text-sm text-muted-foreground line-through">
-                          {selectedProduct.base_price.toFixed(2)}€
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">IVA (23%)</p>
-                      <p className="text-lg font-medium">
-                        {((selectedProduct.effective_price ?? selectedProduct.base_price) * 0.23).toFixed(2)}€
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center border rounded-md">
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <span className="w-12 text-center font-medium">{quantity}</span>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => setQuantity(quantity + 1)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    
-                    <div className="flex-1">
-                      <p className="text-sm text-muted-foreground">Subtotal (c/ IVA)</p>
-                      <p className="text-lg font-bold">
-                        {((selectedProduct.effective_price ?? selectedProduct.base_price) * quantity * 1.23).toFixed(2)}€
-                      </p>
-                    </div>
-                  </div>
-
-                  <Button 
-                    className="w-full mt-4" 
-                    size="lg"
-                    onClick={() => handleAddToCart(selectedProduct, quantity)}
-                  >
-                    <ShoppingCart className="h-5 w-5 mr-2" />
-                    Adicionar ao Carrinho
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Premium Product Detail Modal */}
+      <ProductDetailModal
+        product={selectedProduct}
+        open={!!selectedProduct}
+        onOpenChange={(open) => { if (!open) setSelectedProduct(null); }}
+        onAddToCart={handleAddToCart}
+        effectivePrice={selectedProduct?.effective_price}
+        hasDiscount={selectedProduct?.has_discount}
+      />
     </ClientLayout>
   );
 }
