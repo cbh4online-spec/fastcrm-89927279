@@ -1,98 +1,81 @@
 
 
-# Corrigir erro ao enviar mensagem SMS sem numero de telefone
+# Corrigir validacao SMS e propagacao de erro
 
-## Problema
+## Problema actual
 
-Ao tentar enviar uma mensagem na conversa de "paulasoares.bealeader" (canal SMS), o GHL retorna erro 422: "Missing phone number". O lead nao tem numero de telefone registado, tornando impossivel o envio por SMS.
+A validacao de telefone adicionada nao esta a funcionar porque:
 
-O erro aparece como "Falha ao enviar mensagem" generico, sem indicar ao utilizador qual e o problema real.
-
-## Causa raiz
-
-1. O lead "paulasoares.bealeader" tem `phone: null` na base de dados
-2. O canal da conversa e `sms`, que requer numero de telefone
-3. A edge function `ghl-send-message` tenta enviar sem validar a existencia do telefone
-4. O erro do GHL e propagado mas nao e traduzido para uma mensagem util ao utilizador
+1. **Channel case-sensitivity**: O check `effectiveChannel === "sms"` pode falhar se o canal estiver guardado como `"SMS"`, `"Sms"`, ou outro formato
+2. **Status 500 generico**: Quando o GHL retorna erro 422 "Missing phone number", a edge function devolve status 500 (linha 410), o que faz o Supabase SDK tratar como erro de rede e o `data` fica inacessivel no cliente
+3. **Dupla fonte de erro**: Mesmo que a validacao funcione, o `functions.invoke` do Supabase nao disponibiliza o `data` quando o status nao e 2xx, entao `data?.error` no hook e sempre `undefined`
 
 ## Solucao
 
 ### 1. Edge function: `supabase/functions/ghl-send-message/index.ts`
 
-Adicionar validacao antes de enviar mensagens SMS: verificar se o lead/contacto tem telefone. Se nao tiver, retornar erro 422 com mensagem clara em vez de delegar ao GHL.
-
-Apos obter o `lead` e `contact` (linha ~70), adicionar:
-
+**a)** Normalizar o canal para lowercase na validacao (linha 76):
 ```typescript
-// Para SMS, verificar se existe telefone
-const effectiveChannel = channel || conversation.channel || "sms";
-if (effectiveChannel === "sms") {
-  const contactPhone = phone || lead?.phone || contact?.phone;
-  if (!contactPhone) {
-    return new Response(
-      JSON.stringify({ 
-        error: "Este contacto não tem número de telefone. Adicione um número ao lead antes de enviar SMS.",
-        code: "MISSING_PHONE"
-      }),
-      { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
+const effectiveChannel = (channel || conversation.channel || "sms").toLowerCase();
+```
+
+**b)** Alterar o status do erro generico do GHL (linha 410) de 500 para 422 quando o GHL retorna 422, para que o status real seja preservado:
+```typescript
+{ status: sendResponse.status >= 400 && sendResponse.status < 500 ? sendResponse.status : 500 }
+```
+
+**c)** Tambem melhorar a mensagem de erro para "Missing phone number" especificamente -- adicionar deteccao antes do bloco generico (apos o check de Instagram, linha 397):
+```typescript
+if (responseText.includes("Missing phone number")) {
+  return new Response(
+    JSON.stringify({ 
+      error: "Este contacto não tem número de telefone. Adicione um número ao lead antes de enviar SMS.",
+      code: "MISSING_PHONE"
+    }),
+    { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
 }
 ```
 
 ### 2. Hook: `src/hooks/useMessages.ts`
 
-No bloco que processa a resposta do `ghl-send-message` (linhas 145-150), melhorar o tratamento de erro para extrair a mensagem do GHL em vez de mostrar erro generico:
+O problema e que quando `functions.invoke` recebe status nao-2xx, o `error` e preenchido mas o `data` pode conter o body da resposta OU ser null. Precisamos tentar parsear a mensagem do `error.message` que pode conter o JSON:
 
 ```typescript
-if (error) throw error;
-if (data?.error) throw new Error(data.error);
-```
-
-Isto ja esta correcto -- o `data.error` contem a mensagem descritiva. O problema e que o `error` do `functions.invoke` e lancado primeiro quando o status nao e 2xx.
-
-Alterar para capturar o corpo da resposta mesmo em caso de erro:
-
-```typescript
-const { data, error } = await mainClient.functions.invoke("ghl-send-message", {
-  body: { conversationId, message: content, channel: conversation.channel },
-});
-
 if (error) {
-  // Try to extract meaningful error from response
-  const errorMsg = data?.error || error.message;
+  // functions.invoke wraps non-2xx as FunctionsHttpError with context in message
+  let errorMsg = "Falha ao enviar mensagem";
+  try {
+    // Try to parse error context (may contain JSON body)
+    const ctx = (error as any)?.context;
+    if (ctx?.json) {
+      const body = await ctx.json();
+      errorMsg = body?.error || errorMsg;
+    } else if (data?.error) {
+      errorMsg = data.error;
+    } else {
+      errorMsg = error.message || errorMsg;
+    }
+  } catch {
+    errorMsg = data?.error || error.message || errorMsg;
+  }
   throw new Error(errorMsg);
 }
-if (data?.error) throw new Error(data.error);
 ```
 
 ### 3. Componente: `src/components/inbox/ConversationDetail.tsx`
 
-Melhorar o `handleSendMessage` (linha 136) para mostrar a mensagem de erro real em vez de "Falha ao enviar mensagem" generico:
-
-```typescript
-const handleSendMessage = async (content: string) => {
-  if (!conversationId) return;
-  try {
-    await sendMessage.mutateAsync({ conversationId, content });
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : "Falha ao enviar mensagem";
-    toast.error(msg);
-  }
-};
-```
+Ja corrigido na ultima alteracao -- mostra `error.message` no toast. Sem alteracao adicional necessaria.
 
 ## Ficheiros a modificar
 
 | Ficheiro | Alteracao |
 |---|---|
-| `supabase/functions/ghl-send-message/index.ts` | Validacao de telefone antes de enviar SMS |
-| `src/hooks/useMessages.ts` | Extrair mensagem de erro detalhada |
-| `src/components/inbox/ConversationDetail.tsx` | Mostrar mensagem de erro real no toast |
+| `supabase/functions/ghl-send-message/index.ts` | Normalizar canal para lowercase; detectar "Missing phone number" do GHL; preservar status code real |
+| `src/hooks/useMessages.ts` | Extrair mensagem de erro do FunctionsHttpError context |
 
 ## Resultado esperado
 
-- Quando o lead nao tem telefone e o canal e SMS, o utilizador ve: "Este contacto nao tem numero de telefone. Adicione um numero ao lead antes de enviar SMS."
-- Outros erros do GHL tambem mostram a mensagem real em vez do generico "Falha ao enviar mensagem"
-- Validacao feita antes de chamar o GHL para evitar chamadas desnecessarias
-
+- A validacao previa funciona independentemente do case do canal
+- Se a validacao falhar (ex: canal nao e "sms" mas GHL exige telefone), o erro do GHL e traduzido para mensagem clara
+- O utilizador ve "Este contacto nao tem numero de telefone..." em vez de erro generico
