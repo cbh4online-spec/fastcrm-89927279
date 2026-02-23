@@ -1,56 +1,93 @@
 
-# Alerta visual de janela de 24h do Instagram
+# Corrigir mensagens do Instagram em falta no Inbox
 
-## O que muda
+## Problema identificado
 
-Adicionar um banner de alerta no topo da area de mensagens quando a conversa e do Instagram e a ultima mensagem inbound foi ha mais de 24h (ou esta proxima de expirar). O composer (campo de escrita) fica desativado quando a janela expirou.
+Apos analise dos logs e do codigo, encontrei **3 causas** para as mensagens do Instagram nao aparecerem no FastCRM:
 
-## Novo componente: `src/components/inbox/InstagramWindowAlert.tsx`
+### 1. Bug no mapeamento de canal (tipo 17)
+No ficheiro `cron-sync-messages`, o tipo GHL `17` esta mapeado como `"whatsapp"` quando deveria ser `"instagram"`. O mapeamento correto no `ghl-sync-conversations` tem ambos 17 e 18 como instagram.
 
-Banner compacto que calcula o tempo desde a ultima mensagem inbound:
+```text
+cron-sync-messages (ERRADO):   "17": "whatsapp", "18": "instagram"
+ghl-sync-conversations (CORRETO): 17: "instagram", 18: "instagram"
+```
 
-- **Expirada (>24h)**: Banner vermelho/destrutivo com icone de alerta -- "Janela de 24h expirada. Nao e possivel enviar mensagens ate o contacto enviar nova mensagem."
-- **A expirar (20-24h)**: Banner amarelo/warning -- "Janela de resposta expira em Xh Xmin."
-- **Dentro do prazo (<20h)**: Nao mostra nada.
+Isto faz com que conversas do Instagram vindas do GHL com tipo 17 sejam classificadas como WhatsApp e nao aparecam no filtro Instagram.
 
-O componente recebe as `messages` e o `channel`, filtra a ultima mensagem inbound, e calcula o `differenceInHours` / `differenceInMinutes` com atualizacao a cada minuto via `setInterval`.
+### 2. Cron sync so processa mensagens dos ultimos 30 minutos
+O `cron-sync-messages` filtra `recentConversations` apenas com atividade nos ultimos 30 minutos. Nos logs, o workspace mostra "50 total, 0 recent conversations" -- ou seja, ha 50 conversas no GHL mas nenhuma com atividade recente, portanto nenhuma e sincronizada. Mensagens mais antigas ficam para sempre por sincronizar.
 
-## Alteracoes em `src/components/inbox/ConversationDetail.tsx`
+### 3. Cron sync ignora conversas sem lead pre-existente
+Ao contrario do `ghl-sync-conversations` (que faz auto-create de leads), o `cron-sync-messages` simplesmente faz `if (!leadId) continue;` -- ignora silenciosamente conversas cujo contacto GHL nao tem lead criado.
 
-1. Importar e renderizar `InstagramWindowAlert` entre o header e a area de mensagens (antes do ScrollArea), passando `messages`, `channel` e expondo um `isExpired` flag.
-2. Passar `isExpired` para o `AIMessageComposer` como prop `disabled` -- quando `true`, o composer mostra estado desativado com placeholder explicativo.
+## Solucao
 
-## Alteracoes em `src/components/inbox/AIMessageComposer.tsx`
+### Ficheiro 1: `supabase/functions/cron-sync-messages/index.ts`
 
-Adicionar prop opcional `disabled?: boolean`. Quando `true`:
-- O textarea fica `disabled` com placeholder "Janela de 24h expirada"
-- O botao de enviar fica desativado
-- O componente mostra opacidade reduzida
+**a) Corrigir mapeamento do tipo 17:**
+```typescript
+// ANTES
+"17": "whatsapp", "18": "instagram",
+
+// DEPOIS  
+"17": "instagram", "18": "instagram",
+```
+
+**b) Auto-criar leads para contactos GHL desconhecidos** (igual ao que `ghl-sync-conversations` ja faz):
+Adicionar as funcoes `fetchGHLContact` e `createLeadFromGHLContact` e usa-las quando `leadId` nao existe, em vez de fazer `continue`.
+
+**c) Expandir janela de sincronizacao de 30 min para 2 horas:**
+Alterar `thirtyMinAgo` para `twoHoursAgo` (120 minutos). Isto aumenta a probabilidade de apanhar mensagens que nao foram sincronizadas a tempo, sem sobrecarregar a API.
+
+### Ficheiro 2: `supabase/functions/ghl-sync-conversations/index.ts`
+
+Nenhuma alteracao necessaria -- o mapeamento aqui ja esta correto.
 
 ## Detalhes tecnicos
 
-### InstagramWindowAlert
+### Alteracoes em `cron-sync-messages/index.ts`
 
-```text
-Props:
-- messages: Message[]
-- channel: string
-- onExpiredChange?: (expired: boolean) => void
+1. Linha 27: Mudar `"17": "whatsapp"` para `"17": "instagram"`
 
-Logica:
-1. Filtrar messages com direction === "inbound"
-2. Pegar a mais recente (max sent_at)
-3. Calcular differenceInHours(now, lastInboundDate)
-4. Se channel !== "instagram" -> return null
-5. Se >= 24h -> banner vermelho
-6. Se >= 20h -> banner amarelo com countdown
-7. useEffect com setInterval(60000) para atualizar
+2. Adicionar helper functions (antes de `syncAllWorkspaces`):
+   - `fetchGHLContactBasic(apiKey, contactId)` -- buscar nome/email/phone do GHL
+   - `createLeadFromGHLContact(supabase, workspaceId, contactData)` -- criar lead
+
+3. Substituir `if (!leadId) continue;` (linha 208) por logica de auto-create:
+```typescript
+if (!leadId) {
+  const contactData = await fetchGHLContactBasic(apiKey, ghlConv.contactId);
+  if (contactData) {
+    const newLead = await createLeadFromGHLContact(supabase, workspace_id, contactData);
+    if (newLead) {
+      leadId = newLead.id;
+      leadsByGhlId.set(ghlConv.contactId, leadId);
+    }
+  }
+  if (!leadId) continue;
+}
 ```
 
-### Ficheiros a criar/modificar
+4. Linha 146: Expandir janela temporal:
+```typescript
+// ANTES
+const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
 
-| Ficheiro | Tipo |
+// DEPOIS
+const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+```
+
+## Ficheiros a modificar
+
+| Ficheiro | Alteracao |
 |---|---|
-| `src/components/inbox/InstagramWindowAlert.tsx` | Novo |
-| `src/components/inbox/ConversationDetail.tsx` | Modificar -- adicionar banner + estado expired |
-| `src/components/inbox/AIMessageComposer.tsx` | Modificar -- adicionar prop disabled |
+| `supabase/functions/cron-sync-messages/index.ts` | Corrigir tipo 17, auto-create leads, expandir janela temporal |
+
+## Resultado esperado
+
+- Mensagens do Instagram tipo 17 sao corretamente classificadas como "instagram"
+- Leads sao auto-criados para contactos GHL desconhecidos (nao sao ignorados)
+- Mensagens ate 2 horas atras sao sincronizadas (vs 30 min anteriormente)
+- Apos deploy, as proximas mensagens do Instagram no GHL aparecerao no Inbox do FastCRM
+- Para sincronizar historico antigo, o utilizador pode usar o botao "Sincronizar Conversas GHL" que ja existe
