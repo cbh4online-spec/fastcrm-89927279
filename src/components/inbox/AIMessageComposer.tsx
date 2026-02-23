@@ -39,6 +39,7 @@ interface AIMessageComposerProps {
   templateContext: VariableContext;
   onSend: (message: string) => Promise<void>;
   isSending?: boolean;
+  disabled?: boolean;
 }
 
 export interface AIMessageComposerRef {
@@ -47,7 +48,7 @@ export interface AIMessageComposerRef {
 }
 
 export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageComposerProps>(
-  ({ conversationId, messages, leadData, opportunityData, channel, templateContext, onSend, isSending }, ref) => {
+  ({ conversationId, messages, leadData, opportunityData, channel, templateContext, onSend, isSending, disabled }, ref) => {
     const [message, setMessage] = useState("");
     const [showAIPanel, setShowAIPanel] = useState(false);
     const [suggestions, setSuggestions] = useState<ReplySuggestion[]>([]);
@@ -151,7 +152,7 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
     };
 
     const handleSend = async () => {
-      if (!message.trim() || isSending) return;
+      if (!message.trim() || isSending || disabled) return;
       trackConversationReplied({
         response_time_minutes: 0,
         ai_used: aiUsedInReply.current,
@@ -396,7 +397,7 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
         <div className="flex gap-2">
           <Textarea
             ref={textareaRef}
-            placeholder="Escreva uma mensagem..."
+            placeholder={disabled ? "Janela de 24h expirada — não é possível responder" : "Escreva uma mensagem..."}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {
@@ -407,10 +408,11 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
             }}
             className="min-h-[60px] resize-none flex-1"
             rows={2}
+            disabled={disabled}
           />
           <Button
             onClick={handleSend}
-            disabled={!message.trim() || isSending}
+            disabled={!message.trim() || isSending || disabled}
             className="h-auto px-4"
           >
             {isSending ? (
