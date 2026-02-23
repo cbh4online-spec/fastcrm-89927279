@@ -89,6 +89,14 @@ export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDia
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["super-admin-workspaces"] });
       toast.success(`Workspace "${name}" criado com sucesso`);
+
+      supabase.rpc("log_admin_action", {
+        p_action_type: "workspace_created",
+        p_target_type: "workspace",
+        p_target_id: data as string || null,
+        p_details: { name, slug, plan, owner_email: selectedOwner?.email },
+      });
+
       resetForm();
       onOpenChange(false);
     },

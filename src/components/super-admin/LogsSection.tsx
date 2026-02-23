@@ -52,6 +52,7 @@ interface AuditLog {
   details: Record<string, any>;
   created_at: string;
   workspaces?: { name: string } | null;
+  admin_profile?: { full_name: string | null; email: string | null } | null;
 }
 
 export function LogsSection() {
@@ -62,6 +63,7 @@ export function LogsSection() {
   const { data: logs, isLoading, refetch } = useQuery({
     queryKey: ["super-admin-audit-logs", actionFilter],
     queryFn: async () => {
+      // First fetch logs
       let query = supabase
         .from("admin_audit_logs")
         .select(`
@@ -77,7 +79,20 @@ export function LogsSection() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as AuditLog[];
+
+      // Fetch admin profiles for display names
+      const adminIds = [...new Set((data || []).map((l: any) => l.admin_user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .in("user_id", adminIds);
+
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+
+      return (data || []).map((log: any) => ({
+        ...log,
+        admin_profile: profileMap.get(log.admin_user_id) || null,
+      })) as AuditLog[];
     },
   });
 
@@ -157,6 +172,10 @@ export function LogsSection() {
               <SelectContent>
                 <SelectItem value="all">Todas as ações</SelectItem>
                 <SelectItem value="workspace">Workspaces</SelectItem>
+                <SelectItem value="user">Utilizadores</SelectItem>
+                <SelectItem value="member">Membros</SelectItem>
+                <SelectItem value="permission">Permissões</SelectItem>
+                <SelectItem value="moderation">Moderação</SelectItem>
                 <SelectItem value="subscription">Subscrições</SelectItem>
                 <SelectItem value="payment">Pagamentos</SelectItem>
                 <SelectItem value="incident">Incidentes</SelectItem>
@@ -183,6 +202,7 @@ export function LogsSection() {
                 <TableRow>
                   <TableHead className="w-12"></TableHead>
                   <TableHead>Ação</TableHead>
+                  <TableHead>Admin</TableHead>
                   <TableHead>Target</TableHead>
                   <TableHead>Workspace</TableHead>
                   <TableHead>Data</TableHead>
@@ -199,6 +219,9 @@ export function LogsSection() {
                     </TableCell>
                     <TableCell>
                       {getActionBadge(log.action_type)}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {log.admin_profile?.full_name || log.admin_profile?.email || log.admin_user_id.slice(0, 8) + "..."}
                     </TableCell>
                     <TableCell>
                       <div>
@@ -275,10 +298,10 @@ export function LogsSection() {
               </div>
 
               <div>
-                <p className="text-sm text-muted-foreground">Admin User ID</p>
-                <code className="text-sm bg-muted px-2 py-1 rounded">
-                  {selectedLog.admin_user_id}
-                </code>
+                <p className="text-sm text-muted-foreground">Admin</p>
+                <p className="font-medium">
+                  {selectedLog.admin_profile?.full_name || selectedLog.admin_profile?.email || selectedLog.admin_user_id}
+                </p>
               </div>
 
               <div>

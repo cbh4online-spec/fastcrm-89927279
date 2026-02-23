@@ -208,13 +208,21 @@ export function UsersSection() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, { userId, workspaceId, role }) => {
       queryClient.invalidateQueries({ queryKey: ["super-admin-memberships"] });
       setAddToWorkspaceOpen(false);
       setSelectedUser(null);
       setTargetWorkspaceId("");
       setTargetRole("viewer");
       toast.success("Utilizador adicionado ao workspace");
+
+      supabase.rpc("log_admin_action", {
+        p_action_type: "user_added_to_workspace",
+        p_target_type: "workspace_member",
+        p_target_id: userId,
+        p_workspace_id: workspaceId,
+        p_details: { user_id: userId, workspace_id: workspaceId, role },
+      });
     },
     onError: (error: any) => {
       toast.error("Erro: " + error.message);
@@ -232,11 +240,19 @@ export function UsersSection() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, { userId, workspaceId }) => {
       queryClient.invalidateQueries({ queryKey: ["super-admin-memberships"] });
       setRemoveConfirmOpen(false);
       setMembershipToRemove(null);
       toast.success("Utilizador removido do workspace");
+
+      supabase.rpc("log_admin_action", {
+        p_action_type: "user_removed_from_workspace",
+        p_target_type: "workspace_member",
+        p_target_id: userId,
+        p_workspace_id: workspaceId,
+        p_details: { user_id: userId, workspace_id: workspaceId },
+      });
     },
     onError: (error: any) => {
       toast.error("Erro: " + error.message);
@@ -254,9 +270,16 @@ export function UsersSection() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, { userId, status }) => {
       queryClient.invalidateQueries({ queryKey: ["super-admin-profiles"] });
       toast.success("Status atualizado com sucesso");
+
+      supabase.rpc("log_admin_action", {
+        p_action_type: "user_status_changed",
+        p_target_type: "user",
+        p_target_id: userId,
+        p_details: { user_id: userId, new_status: status },
+      });
     },
     onError: (error: any) => {
       toast.error("Erro: " + error.message);

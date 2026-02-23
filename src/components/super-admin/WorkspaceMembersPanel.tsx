@@ -153,10 +153,18 @@ export function WorkspaceMembersPanel({
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, { userId, role }) => {
       queryClient.invalidateQueries({ queryKey: ["workspace-members-admin", workspaceId] });
       setSearchEmail("");
       toast.success("Membro adicionado com sucesso");
+
+      supabase.rpc("log_admin_action", {
+        p_action_type: "member_added",
+        p_target_type: "workspace_member",
+        p_target_id: userId,
+        p_workspace_id: workspaceId,
+        p_details: { user_id: userId, role, workspace_id: workspaceId },
+      });
     },
     onError: (error: any) => {
       toast.error("Erro ao adicionar membro: " + error.message);
@@ -175,9 +183,17 @@ export function WorkspaceMembersPanel({
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, { userId, newRole }) => {
       queryClient.invalidateQueries({ queryKey: ["workspace-members-admin", workspaceId] });
       toast.success("Role atualizada com sucesso");
+
+      supabase.rpc("log_admin_action", {
+        p_action_type: "member_role_updated",
+        p_target_type: "workspace_member",
+        p_target_id: userId,
+        p_workspace_id: workspaceId,
+        p_details: { user_id: userId, new_role: newRole, workspace_id: workspaceId },
+      });
     },
     onError: (error: any) => {
       toast.error("Erro ao atualizar role: " + error.message);
@@ -195,10 +211,18 @@ export function WorkspaceMembersPanel({
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: ["workspace-members-admin", workspaceId] });
       setMemberToRemove(null);
       toast.success("Membro removido com sucesso");
+
+      supabase.rpc("log_admin_action", {
+        p_action_type: "member_removed",
+        p_target_type: "workspace_member",
+        p_target_id: userId,
+        p_workspace_id: workspaceId,
+        p_details: { user_id: userId, workspace_id: workspaceId },
+      });
     },
     onError: (error: any) => {
       toast.error("Erro ao remover membro: " + error.message);

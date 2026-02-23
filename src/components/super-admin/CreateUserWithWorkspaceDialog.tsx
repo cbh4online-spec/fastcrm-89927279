@@ -110,6 +110,14 @@ export function CreateUserWithWorkspaceDialog({
           ? `Workspace "${workspaceName}" criado. ${requiresOnboarding ? "Onboarding ativo no primeiro login." : ""}`
           : undefined
       });
+
+      supabase.rpc("log_admin_action", {
+        p_action_type: "user_created",
+        p_target_type: "user",
+        p_target_id: data?.userId || null,
+        p_details: { email, full_name: fullName, workspace_created: createWorkspace, workspace_name: createWorkspace ? workspaceName : null, plan: createWorkspace ? plan : null },
+      });
+
       resetForm();
       onOpenChange(false);
     },
