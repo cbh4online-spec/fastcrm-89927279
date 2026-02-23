@@ -298,6 +298,8 @@ Deno.serve(async (req) => {
             is_quick_created: options.is_quick_created,
             images_count: promotedImages.length,
             device: clientInfo.device,
+            status: newProduct.status,
+            category_id: newProduct.category_id,
           },
         })
         .select("id")
