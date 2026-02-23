@@ -8,10 +8,19 @@ import { AutopilotToggle } from "./AutopilotToggle";
 import { ConversationChannel } from "@/hooks/useConversations";
 import { useConversations } from "@/hooks/useConversations";
 import { Button } from "@/components/ui/button";
-import { PanelRightClose, PanelRight } from "lucide-react";
+import { PanelRightClose, PanelRight, RefreshCw, RotateCcw, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
+import { useGHLConversationSync } from "@/hooks/useGHLConversationSync";
+import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
+import { useSyncEmail, useActiveEmailConnection } from "@/hooks/useEmailConnection";
 
 export function InboxView() {
   const [searchParams] = useSearchParams();
@@ -23,6 +32,38 @@ export function InboxView() {
 
   const { data: conversations } = useConversations();
   const openCount = conversations?.filter(c => c.status === "open").length || 0;
+
+  // Sync hooks
+  const { syncConversations, isSyncing: isGHLSyncing } = useGHLConversationSync();
+  const { isConfigured: isGHLConfigured } = useWorkspaceGHLConfig();
+  const { data: emailConnection } = useActiveEmailConnection();
+  const syncEmail = useSyncEmail();
+  const isEmailSyncing = syncEmail.isPending;
+  const isSyncing = isGHLSyncing || isEmailSyncing;
+
+  // Auto-sync on mount (once)
+  const hasSyncedRef = useRef(false);
+  useEffect(() => {
+    if (hasSyncedRef.current) return;
+    hasSyncedRef.current = true;
+
+    if (isGHLConfigured) {
+      syncConversations(true, 2);
+    }
+    if (emailConnection?.id) {
+      syncEmail.mutate(emailConnection.id);
+    }
+  }, [isGHLConfigured, emailConnection?.id]);
+
+  const handleSyncRecent = () => {
+    if (isGHLConfigured) syncConversations(true, 2);
+    if (emailConnection?.id) syncEmail.mutate(emailConnection.id);
+  };
+
+  const handleSyncAll = () => {
+    if (isGHLConfigured) syncConversations(true, 30);
+    if (emailConnection?.id) syncEmail.mutate(emailConnection.id);
+  };
 
   // ── Analytics: inbox.opened ──
   const { trackInboxOpened } = useCRMAnalytics();
@@ -52,6 +93,34 @@ export function InboxView() {
             <span className="text-sm text-muted-foreground">
               <span className="font-medium text-foreground">{openCount}</span> abertas
             </span>
+
+            {/* Sync Button with Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={isSyncing}
+                  className="gap-1 h-8 px-2"
+                >
+                  <RefreshCw className={cn(
+                    "w-3.5 h-3.5",
+                    isSyncing && "animate-spin"
+                  )} />
+                  <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={handleSyncRecent} disabled={isSyncing}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Sincronizar recentes
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSyncAll} disabled={isSyncing}>
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Sincronizar tudo
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <div className="flex items-center gap-2">
