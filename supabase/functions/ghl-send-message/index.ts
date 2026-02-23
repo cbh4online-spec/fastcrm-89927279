@@ -71,6 +71,22 @@ Deno.serve(async (req) => {
     const ghlContactId = lead?.ghl_contact_id || contact?.ghl_contact_id;
     const channelMetadata = conversation.channel_metadata as Record<string, unknown> | null;
     const ghlConversationId = channelMetadata?.ghl_conversation_id as string | undefined;
+
+    // Para SMS, verificar se existe telefone antes de prosseguir
+    const effectiveChannel = channel || conversation.channel || "sms";
+    if (effectiveChannel === "sms") {
+      const contactPhone = phone || lead?.phone || contact?.phone;
+      if (!contactPhone) {
+        console.warn("[GHL-SEND] SMS sem telefone", { conversationId, leadId: lead?.id });
+        return new Response(
+          JSON.stringify({ 
+            error: "Este contacto não tem número de telefone. Adicione um número ao lead antes de enviar SMS.",
+            code: "MISSING_PHONE"
+          }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
     
     // Also try to get from channel_metadata
     const metaGhlContactId = channelMetadata?.ghl_contact_id as string | undefined;
