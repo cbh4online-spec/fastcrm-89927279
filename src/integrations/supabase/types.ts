@@ -2456,6 +2456,162 @@ export type Database = {
           },
         ]
       }
+      b2b_subscription_plan_items: {
+        Row: {
+          created_at: string
+          id: string
+          plan_id: string
+          price_override: number | null
+          product_id: string
+          qty: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          plan_id: string
+          price_override?: number | null
+          product_id: string
+          qty?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          plan_id?: string
+          price_override?: number | null
+          product_id?: string
+          qty?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "b2b_subscription_plan_items_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "b2b_subscription_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "b2b_subscription_plan_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "b2b_subscription_plan_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      b2b_subscription_plans: {
+        Row: {
+          approval_mode: string
+          cadence: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          max_cycle_value: number | null
+          name: string
+          next_run_at: string | null
+          status: string
+          stripe_subscription_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          approval_mode?: string
+          cadence?: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          max_cycle_value?: number | null
+          name: string
+          next_run_at?: string | null
+          status?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          approval_mode?: string
+          cadence?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          max_cycle_value?: number | null
+          name?: string
+          next_run_at?: string | null
+          status?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "b2b_subscription_plans_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "client_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "b2b_subscription_plans_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      b2b_subscription_runs: {
+        Row: {
+          amount: number | null
+          created_at: string
+          id: string
+          invoice_id: string | null
+          notes: string | null
+          order_id: string | null
+          plan_id: string
+          run_at: string
+          status: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          order_id?: string | null
+          plan_id: string
+          run_at?: string
+          status?: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          order_id?: string | null
+          plan_id?: string
+          run_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "b2b_subscription_runs_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "b2b_subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_partners: {
         Row: {
           avg_approval_rate: number | null
@@ -5332,6 +5488,120 @@ export type Database = {
           },
         ]
       }
+      client_favorite_protocol_overrides: {
+        Row: {
+          company_id: string
+          created_at: string
+          default_qty: number
+          id: string
+          product_id: string
+          protocol_id: string
+          workspace_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          default_qty?: number
+          id?: string
+          product_id: string
+          protocol_id: string
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          default_qty?: number
+          id?: string
+          product_id?: string
+          protocol_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_favorite_protocol_overrides_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "client_favorite_protocol_overrides_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_favorite_protocol_overrides_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "product_protocols"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_favorite_protocol_overrides_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_favorite_protocols: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          default_kit_level: string
+          id: string
+          notes: string | null
+          protocol_id: string
+          workspace_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          default_kit_level?: string
+          id?: string
+          notes?: string | null
+          protocol_id: string
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          default_kit_level?: string
+          id?: string
+          notes?: string | null
+          protocol_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_favorite_protocols_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "client_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_favorite_protocols_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "product_protocols"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_favorite_protocols_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_favorites: {
         Row: {
           client_user_id: string
@@ -5371,6 +5641,56 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_notification_settings: {
+        Row: {
+          channel_email: boolean
+          channel_whatsapp: boolean
+          company_id: string
+          created_at: string
+          frequency: string
+          id: string
+          opt_in_whatsapp: boolean
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          channel_email?: boolean
+          channel_whatsapp?: boolean
+          company_id: string
+          created_at?: string
+          frequency?: string
+          id?: string
+          opt_in_whatsapp?: boolean
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          channel_email?: boolean
+          channel_whatsapp?: boolean
+          company_id?: string
+          created_at?: string
+          frequency?: string
+          id?: string
+          opt_in_whatsapp?: boolean
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_notification_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -5482,6 +5802,97 @@ export type Database = {
           },
           {
             foreignKeyName: "client_product_rankings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_replenishment_rules: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          min_qty_suggestion: number
+          reference_id: string
+          reorder_threshold_days: number
+          scope: string
+          workspace_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_qty_suggestion?: number
+          reference_id: string
+          reorder_threshold_days?: number
+          scope: string
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_qty_suggestion?: number
+          reference_id?: string
+          reorder_threshold_days?: number
+          scope?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_replenishment_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_replenishment_suggestions: {
+        Row: {
+          company_id: string
+          confidence_score: number | null
+          converted_order_id: string | null
+          created_at: string
+          id: string
+          reason: string | null
+          sent_at: string | null
+          status: string
+          suggested_items: Json
+          workspace_id: string
+        }
+        Insert: {
+          company_id: string
+          confidence_score?: number | null
+          converted_order_id?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          sent_at?: string | null
+          status?: string
+          suggested_items?: Json
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string
+          confidence_score?: number | null
+          converted_order_id?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          sent_at?: string | null
+          status?: string
+          suggested_items?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_replenishment_suggestions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -9903,6 +10314,64 @@ export type Database = {
           },
         ]
       }
+      demand_forecast: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          drivers: Json | null
+          forecast_qty: number
+          id: string
+          period_month: string
+          product_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          drivers?: Json | null
+          forecast_qty?: number
+          id?: string
+          period_month: string
+          product_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          drivers?: Json | null
+          forecast_qty?: number
+          id?: string
+          period_month?: string
+          product_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demand_forecast_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "demand_forecast_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demand_forecast_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demo_leads: {
         Row: {
           ai_summary: string | null
@@ -13804,6 +14273,67 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "internal_posts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          product_id: string
+          qty: number
+          ref_id: string | null
+          source: string
+          type: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          product_id: string
+          qty: number
+          ref_id?: string | null
+          source?: string
+          type: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          product_id?: string
+          qty?: number
+          ref_id?: string | null
+          source?: string
+          type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -20717,6 +21247,64 @@ export type Database = {
           },
           {
             foreignKeyName: "product_images_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_inventory: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          reorder_point: number
+          stock_on_hand: number
+          stock_reserved: number
+          supplier_lead_time_days: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          reorder_point?: number
+          stock_on_hand?: number
+          stock_reserved?: number
+          supplier_lead_time_days?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          reorder_point?: number
+          stock_on_hand?: number
+          stock_reserved?: number
+          supplier_lead_time_days?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_inventory_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_inventory_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_inventory_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
