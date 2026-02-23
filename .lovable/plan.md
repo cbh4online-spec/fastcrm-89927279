@@ -1,104 +1,81 @@
 
 
-# Storage Upload Intents -- Rastreio de uploads no presign
+# product-quick-create -- Campos em falta e slug unico
 
 ## Resumo
 
-Criar a tabela `storage_upload_intents` e integra-la na Edge Function `product-images-presign` para registar cada presigned URL emitida. Isto permite rastrear uploads pendentes, expirados e concluidos, reduzindo erros e duplicacoes em redes moveis.
+Adicionar 3 colunas em falta na tabela `products` (`tax_included`, `tags`, `barcode`), criar constraint de slug unico por workspace, e atualizar a Edge Function para usar estes campos e resolver conflitos de slug automaticamente.
 
 ## Alteracoes
 
-### 1. Migration: Criar tabela `storage_upload_intents`
+### 1. Migration: Novas colunas + constraint de slug unico
 
 ```text
-CREATE TABLE public.storage_upload_intents (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL,
-  bucket TEXT NOT NULL DEFAULT 'product-images',
-  storage_path_tmp TEXT NOT NULL,
-  content_type TEXT NOT NULL,
-  size_bytes INTEGER NOT NULL,
-  status TEXT NOT NULL DEFAULT 'issued' CHECK (status IN ('issued', 'uploaded', 'expired', 'promoted')),
-  expires_at TIMESTAMPTZ NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+-- Novas colunas
+ALTER TABLE public.products
+  ADD COLUMN IF NOT EXISTS tax_included BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS tags TEXT[] NOT NULL DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS barcode TEXT;
 
-CREATE INDEX idx_upload_intents_workspace ON public.storage_upload_intents(workspace_id);
-CREATE INDEX idx_upload_intents_status ON public.storage_upload_intents(status, expires_at);
+-- Slug unico por workspace (parcial, ignora NULLs)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_products_slug_workspace_unique
+  ON public.products (workspace_id, sheet_slug)
+  WHERE sheet_slug IS NOT NULL;
 ```
 
-**RLS:** Habilitado com policies para membros do workspace (SELECT, UPDATE do status).
+Nota: `tax_included` com default `true` (padrao europeu, IVA incluido). `tags` como `TEXT[]` (consistente com `benefits`, `business_types`).
 
-### 2. Modificar `supabase/functions/product-images-presign/index.ts`
+### 2. Modificar `supabase/functions/product-quick-create/index.ts`
 
-Apos gerar cada presigned URL, inserir um registo na tabela:
+**2a. Incluir novos campos no INSERT (linha ~149-172):**
+
+Adicionar ao objecto de insert:
+- `tax_included: product.price?.tax_included ?? true`
+- `tags: product.tags || []`
+- `barcode: product.barcode || null`
+
+**2b. Resolver conflito de slug (antes do INSERT):**
+
+Apos gerar o slug base, verificar se ja existe no workspace. Se existir, adicionar sufixo numerico:
 
 ```text
-// Para cada ficheiro, apos createSignedUploadUrl:
-await adminClient
-  .from("storage_upload_intents")
-  .insert({
-    id: fileId,
-    workspace_id: workspaceId,
-    user_id: userId,
-    bucket: "product-images",
-    storage_path_tmp: storagePath,
-    content_type: files[i].content_type,
-    size_bytes: files[i].size_bytes,
-    status: "issued",
-    expires_at: new Date(Date.now() + 600_000).toISOString(), // 10 min
-  });
+// Pseudocodigo
+let finalSlug = slug;
+if (slug) {
+  const { data: existing } = await adminClient
+    .from("products")
+    .select("id")
+    .eq("workspace_id", workspaceId)
+    .eq("sheet_slug", slug)
+    .maybeSingle();
+
+  if (existing) {
+    // Buscar quantos slugs comecam com este prefixo
+    const { count } = await adminClient
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .like("sheet_slug", `${slug}%`);
+
+    finalSlug = `${slug}-${(count || 1) + 1}`;
+  }
+}
 ```
 
-Nao bloqueia o fluxo se o INSERT falhar (log de warning, continua normalmente).
+**2c. Incluir novos campos na resposta (linha ~278-296):**
 
-### 3. Modificar `src/components/mqpc/MQPCStepImages.tsx` (opcional)
+Adicionar `tax_included`, `tags`, `barcode` ao objecto `product` do response payload.
 
-Apos upload bem-sucedido de cada imagem, atualizar o intent para `status = 'uploaded'`:
+### 3. Impacto no fluxo existente
 
-```text
-await supabase
-  .from("storage_upload_intents")
-  .update({ status: "uploaded", updated_at: new Date().toISOString() })
-  .eq("id", fileId);
-```
-
-Isto e fire-and-forget (sem await bloqueante no fluxo principal). Permite saber quais URLs foram efetivamente usadas.
-
-## Detalhes tecnicos
-
-### Ciclo de vida do status
-
-```text
-issued --> uploaded --> promoted
-  |
-  +--> expired (cleanup futuro)
-```
-
-- **issued**: presigned URL gerada, aguarda upload do client
-- **uploaded**: client confirmou upload bem-sucedido
-- **promoted**: imagem movida de `tmp/` para path final (feito pelo `product-quick-create`)
-- **expired**: limpeza periodica futura (intents com `expires_at < now()` e status = 'issued')
-
-### RLS Policies
-
-- SELECT: membros do workspace podem ver os seus intents
-- UPDATE: membros do workspace podem atualizar status (apenas de 'issued' para 'uploaded')
-- INSERT: apenas via service role (Edge Function)
-- DELETE: nenhum (cleanup via job futuro ou soft-delete)
-
-### Impacto no fluxo existente
-
-- O `product-quick-create` ja move ficheiros de `tmp/` para o path final. Pode opcionalmente atualizar o intent para `status = 'promoted'` (melhoria futura, nao incluida agora).
-- O presign continua a funcionar normalmente mesmo se o INSERT na tabela falhar (graceful degradation).
+- O `MQPCWizard.tsx` nao precisa de alteracoes -- os novos campos sao opcionais e tem defaults no servidor.
+- O `MQPCStepExtras.tsx` ja podera enviar `tags` no futuro quando essa UI existir.
+- A constraint de slug unico protege contra duplicados mesmo em chamadas concorrentes.
 
 ## Ficheiros criados/modificados
 
 | Ficheiro | Acao |
 |---|---|
-| Migration SQL | Nova tabela `storage_upload_intents` + RLS + indices |
-| `supabase/functions/product-images-presign/index.ts` | Modificado (INSERT apos presign) |
-| `src/components/mqpc/MQPCStepImages.tsx` | Modificado (UPDATE status apos upload, fire-and-forget) |
+| Migration SQL | 3 colunas novas + unique index no slug |
+| `supabase/functions/product-quick-create/index.ts` | Modificado (novos campos + slug conflict resolution) |
 
