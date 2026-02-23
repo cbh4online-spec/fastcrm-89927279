@@ -1,70 +1,46 @@
 
 
-# product_images -- storage_path e promoção robusta
+# product_inventory -- Inventario ja integrado no modelo actual
 
-## Resumo
+## Analise
 
-Adicionar a coluna `storage_path` à tabela `product_images` para guardar o path final no Storage, e melhorar o fluxo de promoção de imagens no `product-quick-create` com atualização do `storage_upload_intents` para `promoted`.
+Apos inspecao do codigo, o inventario ja esta implementado directamente na tabela `products` com as colunas:
 
-## Alterações
+- `track_stock` (boolean)
+- `stock_quantity` (integer, nullable)
+- `stock_status` (text -- 'available', 'limited', 'backorder', 'out_of_stock', 'in_stock')
 
-### 1. Migration: Adicionar `storage_path` à tabela `product_images`
-
-```text
-ALTER TABLE public.product_images
-  ADD COLUMN IF NOT EXISTS storage_path TEXT;
-```
-
-Coluna nullable -- imagens já existentes (criadas antes desta migração) ficam com `NULL` e continuam a funcionar normalmente via `url`.
-
-### 2. Modificar `supabase/functions/product-quick-create/index.ts`
-
-**2a. Incluir `storage_path` no INSERT de `product_images` (linhas 237-247):**
-
-Atualmente o insert usa apenas `url`, `alt_text`, `position`. Adicionar `storage_path: newPath` para guardar o path final no bucket.
-
-**2b. Atualizar `storage_upload_intents` para `promoted` após move bem-sucedido:**
-
-Após o `storage.move()` com sucesso, fire-and-forget update:
+O `product-quick-create` ja faz o INSERT destes campos (linhas 190-192):
 
 ```text
-adminClient
-  .from("storage_upload_intents")
-  .update({ status: "promoted", updated_at: new Date().toISOString() })
-  .eq("id", fileId);
+stock_quantity: inventory.quantity || null,
+stock_status: inventory.track_stock ? "in_stock" : null,
+track_stock: inventory.track_stock ?? false,
 ```
 
-**2c. Marcar intent como erro se promoção falhar:**
+## Recomendacao
 
-Se o `storage.move()` falhar, em vez de apenas `continue`, também atualizar o intent:
+**Nao e necessaria nenhuma alteracao.** O modelo actual ja cobre o caso de uso descrito:
 
-```text
-adminClient
-  .from("storage_upload_intents")
-  .update({ status: "expired", updated_at: new Date().toISOString() })
-  .eq("id", fileId);
-```
-
-Usa `expired` porque a imagem tmp não foi promovida e será elegível para cleanup.
-
-### 3. Fluxo atualizado do ciclo de vida
-
-```text
-issued --> uploaded --> promoted (sucesso)
-  |            |
-  |            +--> expired (promoção falhou)
-  |
-  +--> expired (URL expirou sem upload)
-```
-
-### 4. Resposta -- incluir `storage_path` no array `images`
-
-O objecto `promotedImages` já inclui `storage_path`. Nenhuma alteração necessária no response payload.
-
-## Ficheiros criados/modificados
-
-| Ficheiro | Acção |
+| Campo pedido | Mapeamento actual |
 |---|---|
-| Migration SQL | Adicionar coluna `storage_path` a `product_images` |
-| `supabase/functions/product-quick-create/index.ts` | storage_path no insert + update intents para promoted/expired |
+| `track_stock` (bool) | `products.track_stock` |
+| `quantity` (int nullable) | `products.stock_quantity` |
+| `in_stock` (bool) | Derivado de `stock_status` e `stock_quantity` |
+| `updated_at` | `products.updated_at` |
+
+A idempotencia do UPSERT e garantida pelo header `X-Idempotency-Key` ja implementado na Edge Function. Se o mesmo pedido for repetido, o produto existente e retornado sem duplicacao.
+
+### Quando separar para tabela propria?
+
+Uma tabela `product_inventory` separada faria sentido se:
+- Houver variantes com stock independente (ja existe `product_variants.stock_quantity`)
+- Multi-warehouse / multi-location
+- Historico de movimentos de stock (stock ledger)
+
+Nenhum destes cenarios esta activo, pelo que o modelo inline e suficiente.
+
+## Resultado
+
+Nenhum ficheiro a criar ou modificar. O fluxo actual ja esta correcto.
 
