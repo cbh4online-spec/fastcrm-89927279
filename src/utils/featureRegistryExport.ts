@@ -689,3 +689,430 @@ export function exportCommercialPDF() {
 
   downloadPDF(doc, `fastcrm-catalogo-funcionalidades-${today()}.pdf`);
 }
+
+// ══════════════════════════════════════════
+// 4. Export B2B Module PDF
+// ══════════════════════════════════════════
+
+export function exportB2BModulePDF() {
+  const doc = new jsPDF();
+  const teal: [number, number, number] = [13, 148, 136];
+  const darkTeal: [number, number, number] = [6, 95, 87];
+
+  // Get B2B modules
+  const b2bModules = FEATURE_REGISTRY.filter((m) => m.category === "Portal B2B");
+  const allFeatures = b2bModules.flatMap((m) => m.features);
+  const allPages = b2bModules.flatMap((m) => m.pages);
+  const allHooks = [...new Set(b2bModules.flatMap((m) => m.hooks))];
+  const allEF = [...new Set(b2bModules.flatMap((m) => m.edgeFunctions))];
+  const allTables = [...new Set(b2bModules.flatMap((m) => m.tables))];
+  const aiFeatures = allFeatures.filter((f) => f.aiPowered);
+
+  // ── COVER ──
+  doc.setFillColor(teal[0], teal[1], teal[2]);
+  doc.rect(0, 0, 210, 90, "F");
+
+  // Darker strip at top
+  doc.setFillColor(darkTeal[0], darkTeal[1], darkTeal[2]);
+  doc.rect(0, 0, 210, 12, "F");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(36);
+  doc.setFont("helvetica", "bold");
+  doc.text("FastCRM", 105, 40, { align: "center" });
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "normal");
+  doc.text("Portal B2B", 105, 55, { align: "center" });
+  doc.setFontSize(11);
+  doc.setTextColor(200, 240, 235);
+  doc.text("Documentação Completa do Módulo", 105, 68, { align: "center" });
+  doc.setFontSize(9);
+  doc.text(todayFormatted(), 105, 80, { align: "center" });
+
+  // Decorative line
+  doc.setFillColor(255, 255, 255);
+  doc.rect(60, 92, 90, 1, "F");
+
+  // Stats boxes
+  const statsData = [
+    { label: "Sub-módulos", value: b2bModules.length, icon: "◆" },
+    { label: "Funcionalidades", value: allFeatures.length, icon: "●" },
+    { label: "Com IA", value: aiFeatures.length, icon: "★" },
+    { label: "Páginas", value: allPages.length, icon: "📄" },
+    { label: "Hooks", value: allHooks.length, icon: "⚙" },
+    { label: "Edge Functions", value: allEF.length, icon: "⚡" },
+  ];
+
+  const sBoxW = 28;
+  const sBoxGap = 2;
+  const sStartX = (210 - (sBoxW * 6 + sBoxGap * 5)) / 2;
+  const sBoxY = 100;
+
+  for (let i = 0; i < statsData.length; i++) {
+    const x = sStartX + i * (sBoxW + sBoxGap);
+    doc.setFillColor(240, 248, 247);
+    doc.roundedRect(x, sBoxY, sBoxW, 24, 2, 2, "F");
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(6, 95, 87);
+    doc.text(`${statsData[i].value}`, x + sBoxW / 2, sBoxY + 10, { align: "center" });
+    doc.setFontSize(6);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 116, 139);
+    doc.text(statsData[i].label, x + sBoxW / 2, sBoxY + 19, { align: "center" });
+  }
+
+  // ── VISÃO GERAL ──
+  doc.addPage();
+  let y = 20;
+  y = drawColoredHeader(doc, "Visão Geral", teal, y);
+  y += 4;
+
+  doc.setFontSize(9);
+  doc.setTextColor(40, 40, 40);
+  const overviewText = [
+    "O Portal B2B do FastCRM é uma solução completa de self-service para clientes empresariais.",
+    "Permite que empresas clientes façam encomendas, consultem faturas, acompanhem contratos,",
+    "abram tickets de suporte e utilizem ferramentas de inteligência artificial — tudo isto",
+    "através de um portal dedicado com autenticação e permissões isoladas do CRM principal.",
+    "",
+    "A arquitectura divide-se em dois eixos:",
+    "",
+    "  • Admin CRM — Onde a equipa interna gere clientes, aprovações e configurações",
+    "  • Portal Cliente — Interface self-service para os utilizadores das empresas clientes",
+  ];
+  for (const line of overviewText) {
+    doc.text(line, 20, y);
+    y += 5;
+  }
+
+  y += 4;
+  // Roles section
+  doc.setFillColor(240, 248, 247);
+  doc.roundedRect(15, y - 3, 180, 32, 3, 3, "F");
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(teal[0], teal[1], teal[2]);
+  doc.text("Roles Disponíveis", 20, y + 3);
+  y += 10;
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(40, 40, 40);
+
+  const roles = [
+    ["client_admin", "Acesso total: gestão de equipa, aprovações, financeiro, suporte"],
+    ["client_financial", "Acesso a faturas, contratos, histórico financeiro e tickets"],
+    ["client_operational", "Pode comprar, criar tickets e usar o catálogo"],
+    ["client_viewer", "Acesso apenas de leitura ao portal"],
+  ];
+  for (const [role, desc] of roles) {
+    doc.setFont("helvetica", "bold");
+    doc.text(role, 22, y);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 120);
+    doc.text(`— ${desc}`, 22 + doc.getTextWidth(role) + 3, y);
+    doc.setTextColor(40, 40, 40);
+    y += 5;
+  }
+
+  // ── SUB-MÓDULOS ──
+  for (const mod of b2bModules) {
+    doc.addPage();
+    let y = 20;
+
+    // Sub-module header
+    y = drawColoredHeader(doc, mod.name, teal, y);
+    y += 2;
+
+    // Description
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(80, 80, 100);
+    const descLines = doc.splitTextToSize(mod.description, 170);
+    for (const dl of descLines) {
+      doc.text(dl, 20, y);
+      y += 4.5;
+    }
+    doc.setFont("helvetica", "normal");
+    y += 4;
+
+    // Pages
+    if (mod.pages.length > 0) {
+      y = checkPage(doc, y, 10 + mod.pages.length * 5);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(teal[0], teal[1], teal[2]);
+      doc.text("📄 Páginas", 20, y);
+      y += 5;
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      for (const p of mod.pages) {
+        doc.setTextColor(40, 40, 40);
+        doc.text(`• ${p.name}`, 24, y);
+        doc.setTextColor(130, 130, 150);
+        doc.text(p.route, 90, y);
+        y += 4.5;
+      }
+      y += 3;
+    }
+
+    // Features
+    if (mod.features.length > 0) {
+      y = checkPage(doc, y, 10 + mod.features.length * 9);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(teal[0], teal[1], teal[2]);
+      doc.text("★ Funcionalidades", 20, y);
+      y += 6;
+
+      for (const f of mod.features) {
+        y = checkPage(doc, y, 10);
+        drawStatusDot(doc, f.status, 24, y);
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(40, 40, 40);
+        let textX = 28;
+        doc.text(f.name, textX, y);
+        textX += doc.getTextWidth(f.name) + 3;
+        if (f.aiPowered) {
+          drawAITag(doc, textX, y);
+        }
+        y += 4;
+        if (f.description) {
+          doc.setFontSize(7);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(120, 120, 140);
+          doc.text(f.description, 28, y);
+          y += 4.5;
+        }
+      }
+      y += 3;
+    }
+
+    // Hooks
+    if (mod.hooks.length > 0) {
+      y = checkPage(doc, y, 12);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(teal[0], teal[1], teal[2]);
+      doc.text("⚙ Hooks", 20, y);
+      y += 5;
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(60, 60, 60);
+      doc.text(mod.hooks.join("  ·  "), 24, y);
+      y += 5;
+    }
+
+    // Edge Functions
+    if (mod.edgeFunctions.length > 0) {
+      y = checkPage(doc, y, 12);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(teal[0], teal[1], teal[2]);
+      doc.text("⚡ Edge Functions", 20, y);
+      y += 5;
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(60, 60, 60);
+      doc.text(mod.edgeFunctions.join("  ·  "), 24, y);
+      y += 5;
+    }
+
+    // Tables
+    if (mod.tables.length > 0) {
+      y = checkPage(doc, y, 12);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(teal[0], teal[1], teal[2]);
+      doc.text("🗄 Tabelas", 20, y);
+      y += 5;
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(60, 60, 60);
+      doc.text(mod.tables.join("  ·  "), 24, y);
+      y += 5;
+    }
+  }
+
+  // ── FLUXO DE ONBOARDING ──
+  doc.addPage();
+  y = 20;
+  y = drawColoredHeader(doc, "Fluxo de Onboarding", teal, y);
+  y += 6;
+
+  const onboardingSteps = [
+    { step: "1", title: "Criar Empresa Cliente", desc: "Admin CRM cria registo da empresa com condições comerciais (descontos, preços especiais, limites)" },
+    { step: "2", title: "Enviar Convite", desc: "Admin envia convite por email via edge function 'send-client-invitation' com template personalizável" },
+    { step: "3", title: "Receber Email", desc: "Utilizador recebe email com link único contendo token seguro (invite_token)" },
+    { step: "4", title: "Activar Conta", desc: "Utilizador acede ao link, define password e activa conta via 'activate-client-invite'" },
+    { step: "5", title: "Criar Auth User", desc: "Edge function 'create-client-auth-user' cria utilizador no sistema de autenticação" },
+    { step: "6", title: "Acesso ao Portal", desc: "Conta muda de 'pending' para 'active', utilizador pode fazer login no portal B2B" },
+    { step: "7", title: "Atribuir Roles", desc: "Admin pode atribuir roles adicionais (financial, operational) conforme necessário" },
+  ];
+
+  for (const s of onboardingSteps) {
+    y = checkPage(doc, y, 18);
+    // Step circle
+    doc.setFillColor(teal[0], teal[1], teal[2]);
+    doc.circle(24, y + 1, 4, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text(s.step, 24, y + 2.5, { align: "center" });
+
+    // Title
+    doc.setTextColor(26, 26, 46);
+    doc.setFontSize(10);
+    doc.text(s.title, 32, y + 2);
+    y += 7;
+
+    // Description
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 100);
+    const stepLines = doc.splitTextToSize(s.desc, 158);
+    for (const sl of stepLines) {
+      doc.text(sl, 32, y);
+      y += 4;
+    }
+
+    // Connector line (except last)
+    if (s.step !== "7") {
+      doc.setDrawColor(teal[0], teal[1], teal[2]);
+      doc.setLineWidth(0.4);
+      doc.line(24, y - 1, 24, y + 4);
+      doc.setLineWidth(0.2);
+    }
+    y += 5;
+  }
+
+  // ── MAPA DE PERMISSÕES ──
+  doc.addPage();
+  y = 20;
+  y = drawColoredHeader(doc, "Mapa de Permissões", teal, y);
+  y += 4;
+
+  const permHeaders = ["Funcionalidade", "Admin", "Financial", "Operational", "Viewer"];
+  const permRows = [
+    ["Gerir equipa", "✓", "—", "—", "—"],
+    ["Aprovar encomendas", "✓", "—", "—", "—"],
+    ["Comprar / Encomendar", "✓", "—", "✓", "—"],
+    ["Ver faturas", "✓", "✓", "—", "—"],
+    ["Ver financeiro", "✓", "✓", "—", "—"],
+    ["Ver contratos", "✓", "✓", "—", "—"],
+    ["Criar tickets", "✓", "✓", "✓", "—"],
+    ["Ver catálogo", "✓", "✓", "✓", "✓"],
+    ["Ver encomendas", "✓", "✓", "✓", "✓"],
+    ["Usar Copilot IA", "✓", "✓", "✓", "✓"],
+    ["Pesquisa semântica", "✓", "✓", "✓", "✓"],
+  ];
+
+  // Table header
+  const colWidths = [65, 25, 30, 32, 25];
+  const colX = [20, 85, 110, 140, 172];
+
+  doc.setFillColor(darkTeal[0], darkTeal[1], darkTeal[2]);
+  doc.rect(15, y - 4, 180, 8, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  for (let i = 0; i < permHeaders.length; i++) {
+    doc.text(permHeaders[i], colX[i], y + 1);
+  }
+  y += 8;
+  doc.setFont("helvetica", "normal");
+
+  // Rows with zebra
+  for (let r = 0; r < permRows.length; r++) {
+    y = checkPage(doc, y, 7);
+    if (r % 2 === 0) {
+      doc.setFillColor(240, 248, 247);
+      doc.rect(15, y - 4, 180, 7, "F");
+    }
+    doc.setFontSize(8);
+    doc.setTextColor(40, 40, 40);
+    for (let c = 0; c < permRows[r].length; c++) {
+      const val = permRows[r][c];
+      if (val === "✓") {
+        doc.setTextColor(teal[0], teal[1], teal[2]);
+        doc.setFont("helvetica", "bold");
+      } else if (val === "—") {
+        doc.setTextColor(180, 180, 190);
+        doc.setFont("helvetica", "normal");
+      } else {
+        doc.setTextColor(40, 40, 40);
+        doc.setFont("helvetica", "normal");
+      }
+      doc.text(val, colX[c], y);
+    }
+    y += 7;
+  }
+
+  // ── RESUMO TÉCNICO ──
+  doc.addPage();
+  y = 20;
+  y = drawColoredHeader(doc, "Resumo Técnico", teal, y);
+  y += 6;
+
+  // Hooks list
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(teal[0], teal[1], teal[2]);
+  doc.text(`Hooks (${allHooks.length})`, 20, y);
+  y += 6;
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(60, 60, 60);
+  for (const h of allHooks) {
+    y = checkPage(doc, y, 4);
+    doc.text(`• ${h}`, 24, y);
+    y += 4;
+  }
+
+  y += 6;
+  y = checkPage(doc, y, 20);
+
+  // Edge Functions list
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(teal[0], teal[1], teal[2]);
+  doc.text(`Edge Functions (${allEF.length})`, 20, y);
+  y += 6;
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(60, 60, 60);
+  for (const ef of allEF) {
+    y = checkPage(doc, y, 4);
+    doc.text(`• ${ef}`, 24, y);
+    y += 4;
+  }
+
+  y += 6;
+  y = checkPage(doc, y, 20);
+
+  // Tables list
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(teal[0], teal[1], teal[2]);
+  doc.text(`Tabelas (${allTables.length})`, 20, y);
+  y += 6;
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(60, 60, 60);
+  // Dual column
+  const midT = Math.ceil(allTables.length / 2);
+  const tCol1 = allTables.slice(0, midT);
+  const tCol2 = allTables.slice(midT);
+  for (let i = 0; i < Math.max(tCol1.length, tCol2.length); i++) {
+    y = checkPage(doc, y, 4);
+    if (tCol1[i]) doc.text(`• ${tCol1[i]}`, 24, y);
+    if (tCol2[i]) doc.text(`• ${tCol2[i]}`, 110, y);
+    y += 4;
+  }
+
+  // ── Footers ──
+  addFooters(doc, "FastCRM — Portal B2B");
+
+  downloadPDF(doc, `fastcrm-portal-b2b-${today()}.pdf`);
+}

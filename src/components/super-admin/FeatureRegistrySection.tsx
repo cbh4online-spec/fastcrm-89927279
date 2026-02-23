@@ -22,7 +22,7 @@ import {
   Sparkles, Code, Globe, Layers, Check, Clock, FlaskConical,
   BookOpen, Download, FileJson, FileDown,
 } from "lucide-react";
-import { exportTechnicalJSON, exportTechnicalPDF, exportCommercialPDF } from "@/utils/featureRegistryExport";
+import { exportTechnicalJSON, exportTechnicalPDF, exportCommercialPDF, exportB2BModulePDF } from "@/utils/featureRegistryExport";
 import { toast } from "sonner";
 
 const planLabels: Record<string, string> = {
@@ -145,6 +145,17 @@ export function FeatureRegistrySection() {
             >
               <FileDown className="h-4 w-4" />
               Comercial (PDF)
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => {
+                exportB2BModulePDF();
+                toast.success("PDF do módulo B2B exportado com sucesso");
+              }}
+              className="gap-2 cursor-pointer"
+            >
+              <FileDown className="h-4 w-4" />
+              Módulo B2B (PDF)
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
