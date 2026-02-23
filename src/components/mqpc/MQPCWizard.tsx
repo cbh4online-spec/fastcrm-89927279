@@ -72,7 +72,11 @@ export function MQPCWizard() {
     setCreating(true);
     try {
       const category = categories.find((c) => c.id === details.categoryId);
-      const imageUrls = images.filter((img) => img.url).map((img) => img.url!);
+      // Prefer storage_paths for future product-quick-create; fallback to public URLs for current useCreateProduct
+      const storagePaths = images.filter((img) => img.storagePath).map((img) => img.storagePath!);
+      const imageUrls = storagePaths.length > 0
+        ? storagePaths.map((p) => `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/product-images/${p}`)
+        : images.filter((img) => img.url).map((img) => img.url!);
 
       await createProduct.mutateAsync({
         name: details.name.trim(),

@@ -334,3 +334,6 @@ verify_jwt = false
 [functions.batch-generate-prospecting-messages]
 verify_jwt = false
 
+[functions.product-images-presign]
+verify_jwt = false
+
