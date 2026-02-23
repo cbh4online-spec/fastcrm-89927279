@@ -38,6 +38,7 @@ export function MQPCWizard() {
 
   // Idempotency key ref - generated once per creation attempt, reused on retries
   const idempotencyKeyRef = useRef<string | null>(null);
+  const submittingRef = useRef(false);
 
   const validateStep1 = () => true;
   const validateStep2 = () => {
@@ -60,6 +61,8 @@ export function MQPCWizard() {
   };
 
   const handleCreate = async () => {
+    if (submittingRef.current) return;
+
     if (!validateStep2()) {
       setStep(1);
       return;
@@ -70,6 +73,7 @@ export function MQPCWizard() {
       return;
     }
 
+    submittingRef.current = true;
     setCreating(true);
 
     // Generate idempotency key once
@@ -168,6 +172,7 @@ export function MQPCWizard() {
     } catch (err: any) {
       toast.error("Erro ao criar: " + err.message);
     } finally {
+      submittingRef.current = false;
       setCreating(false);
     }
   };
