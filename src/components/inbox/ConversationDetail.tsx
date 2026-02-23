@@ -138,7 +138,8 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
     try {
       await sendMessage.mutateAsync({ conversationId, content });
     } catch (error) {
-      toast.error("Falha ao enviar mensagem");
+      const msg = error instanceof Error ? error.message : "Falha ao enviar mensagem";
+      toast.error(msg);
     }
   };
 

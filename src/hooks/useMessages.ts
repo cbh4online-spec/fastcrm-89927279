@@ -146,7 +146,10 @@ export function useSendMessage() {
           body: { conversationId, message: content, channel: conversation.channel },
         });
 
-        if (error) throw error;
+        if (error) {
+          const errorMsg = data?.error || error.message;
+          throw new Error(errorMsg);
+        }
         if (data?.error) throw new Error(data.error);
 
         // Message is saved by the edge function
