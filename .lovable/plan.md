@@ -1,66 +1,61 @@
 
 
-# Restringir visibilidade das pesquisas de prospecao por utilizador
+# Melhorar a mensagem inicial de prospecao para apresentar servicos
 
 ## Problema
 
-Atualmente, qualquer membro do workspace consegue ver todas as pesquisas e perfis de prospecao de todos os outros utilizadores. O Daniel consegue ver as pesquisas do Jorge e vice-versa, porque as politicas de seguranca (RLS) e os filtros no frontend apenas verificam a pertenca ao workspace, nao quem criou a pesquisa.
-
-## Solucao
-
-Restringir a visibilidade a dois niveis:
-
-1. **Base de dados (RLS)**: Cada utilizador so pode ver as suas proprias pesquisas e perfis, exceto admins/owners que mantem acesso total
-2. **Frontend**: Adicionar filtro por `created_by` nas queries de pesquisas e perfis
+A mensagem inicial (Etapa 1) gerada pela IA foca-se em "criar curiosidade" e "perguntas abertas", mas nao apresenta claramente os servicos que ofereces. Alem disso, no modo bulk (envio em massa), o contexto do servico (`serviceContext`) e enviado como `null`, ignorando completamente a oferta configurada nas definicoes.
 
 ## Alteracoes
 
-### 1. Politicas RLS na base de dados
+### 1. Edge Function `generate-prospecting-message/index.ts`
 
-**Tabela `professional_prospecting_searches`:**
-- Substituir a politica SELECT atual (workspace member) por uma nova que verifica `created_by = auth.uid()` para utilizadores normais
-- Admins/owners do workspace e super admins mantem acesso a tudo
+Reescrever as instrucoes da Etapa 1 para seguir uma abordagem PAS (Problema-Agitacao-Solucao) em vez de AIDA puro:
 
-**Tabela `professional_prospecting_profiles`:**
-- Substituir a politica SELECT atual por uma que verifica se o perfil pertence a uma pesquisa criada pelo utilizador (`search_id` -> `created_by`)
-- Admins/owners do workspace e super admins mantem acesso a tudo
-
-SQL resumido:
-
-```text
--- Searches: utilizador so ve as suas
-DROP POLICY "Users can view searches in their workspace" ON professional_prospecting_searches;
-CREATE POLICY "Users can view own searches or admin sees all"
-  ON professional_prospecting_searches FOR SELECT
-  USING (
-    created_by = auth.uid()
-    OR is_workspace_admin_or_owner(auth.uid(), workspace_id)
-    OR is_super_admin(auth.uid())
-  );
-
--- Profiles: utilizador so ve perfis das suas pesquisas
-DROP POLICY "Users can view profiles in their workspace" ON professional_prospecting_profiles;
-CREATE POLICY "Users can view own profiles or admin sees all"
-  ON professional_prospecting_profiles FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM professional_prospecting_searches s
-      WHERE s.id = search_id AND s.created_by = auth.uid()
-    )
-    OR is_workspace_admin_or_owner(auth.uid(), workspace_id)
-    OR is_super_admin(auth.uid())
-  );
+**De:**
+```
+ETAPA 1 - ABERTURA (Dia 0):
+- Método AIDA completo
+- Primeiro contacto, criar curiosidade
+- Referência directa ao trabalho do prospect
+- Termina com pergunta aberta
 ```
 
-### 2. Frontend - sem alteracoes necessarias
+**Para:**
+```
+ETAPA 1 - ABERTURA (Dia 0):
+- Comeca por identificar uma DOR ou desafio real que o prospect enfrenta (baseado na profissao/bio)
+- Apresenta brevemente quem es e o que fazes (nome da empresa + servico principal)
+- Mostra como o teu servico resolve essa dor especifica (resultado concreto)
+- Termina com CTA suave (pergunta ou convite para saber mais)
+- A mensagem deve parecer uma apresentacao natural, nao um pitch agressivo
+- Se tiveres contexto do servico, USA-O obrigatoriamente para personalizar
+```
 
-As queries no frontend ja filtram por `workspace_id`. Com as novas politicas RLS, a base de dados automaticamente filtra os resultados por utilizador, sem necessidade de alterar o codigo React.
+Tambem reforcar o bloco `serviceBlock` para ser mais explicito:
 
-## Resumo
+**De:**
+```
+IMPORTANTE: Foca a mensagem na DOR especifica deste prospect e como a tua oferta a resolve.
+```
 
-| Componente | Alteracao |
+**Para:**
+```
+OBRIGATORIO: A mensagem DEVE mencionar o servico/oferta e como resolve a dor do prospect.
+Estrutura: Dor do prospect -> O que fazes -> Como resolves -> CTA
+```
+
+### 2. Frontend `ProspectingResults.tsx` (linha 563)
+
+Corrigir o envio do `serviceContext` no modo bulk. Atualmente envia `null`, deve enviar os dados configurados:
+
+**De:** `serviceContext: null`
+**Para:** Ler `settings.service_offer` e `settings.service_pain_points` e passar como `serviceContext`
+
+### Resumo
+
+| Ficheiro | Alteracao |
 |---|---|
-| RLS `professional_prospecting_searches` | SELECT restrito a `created_by = auth.uid()` ou admin/owner |
-| RLS `professional_prospecting_profiles` | SELECT restrito a perfis de pesquisas proprias ou admin/owner |
-| Frontend | Nenhuma alteracao necessaria (RLS filtra automaticamente) |
+| `generate-prospecting-message/index.ts` | Reescrever instrucoes Etapa 1 para apresentar servicos + reforcar uso do serviceContext |
+| `ProspectingResults.tsx` | Passar `serviceContext` real em vez de `null` no modo bulk |
 
