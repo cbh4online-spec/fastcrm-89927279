@@ -1,106 +1,106 @@
 
 
-# Fluxo de Upload via Presigned URLs para MQPC
+# Refactoring: product-images-presign para contrato v2
 
-## Problema
+## Resumo
 
-Atualmente, o `MQPCStepImages` faz upload direto para o Storage usando o Supabase client SDK (`supabase.storage.from("product-images").upload(...)`). Isto funciona, mas em redes moveis instáveis pode haver falhas silenciosas e nao há controlo server-side sobre os paths ou validação dos ficheiros.
-
-O fluxo recomendado separa a responsabilidade:
-1. Edge Function gera URLs assinadas (presigned)
-2. App faz upload direto para Storage via HTTP PUT
-3. App passa os `storage_paths` ao `product-quick-create`
+A Edge Function `product-images-presign` atual aceita um body simples `{ count }` e retorna `{ uploads: [{ path, signedUrl, token }] }`. O novo contrato exige um body mais rico com metadata por ficheiro (`files[]` com `filename`, `content_type`, `size_bytes`, `sha256`) e um `context`, e a response segue um formato estruturado com `success`, `data`, e `meta`.
 
 ## Alteracoes
 
-### 1. Nova Edge Function: `product-images-presign/index.ts`
+### 1. Edge Function `supabase/functions/product-images-presign/index.ts`
 
-Recebe um pedido com o numero de imagens a fazer upload e retorna URLs assinadas para cada uma.
+Reescrever para aceitar o novo contrato:
 
+**Request body novo:**
 ```text
-POST /product-images-presign
-
-Headers:
-  Authorization: Bearer <jwt>
-  X-Workspace-Id: <uuid>
-
-Body:
-  { count: number }  (1 a 6)
-
-Fluxo:
-  1. Validar JWT
-  2. Validar workspace membership
-  3. Gerar paths únicos: products/{workspaceId}/{timestamp}-{0..n}.jpg
-  4. Chamar supabase.storage.from("product-images").createSignedUploadUrl(path) para cada
-  5. Retornar array de { path, signedUrl, token }
-
-Response 200:
-  { uploads: [{ path, signedUrl, token }, ...] }
+{
+  "files": [
+    { "filename": "produto-1.jpg", "content_type": "image/jpeg", "size_bytes": 483920, "sha256": "optional" }
+  ],
+  "context": { "channel": "mobile_quick", "intent": "product_create" }
+}
 ```
 
-### 2. Atualizar `MQPCStepImages.tsx`
+**Validacoes novas:**
+- `files` array obrigatorio, 1 a 6 elementos (VALIDATION_ERROR se exceder)
+- Cada ficheiro: `content_type` deve comecar por `image/` (VALIDATION_ERROR)
+- `size_bytes` obrigatorio e <= 8388608 (8MB) por ficheiro (VALIDATION_ERROR)
+- `filename` obrigatorio e nao vazio
 
-Substituir o fluxo de upload atual (SDK direto) por:
+**Path novo:** `workspaces/{workspaceId}/products/tmp/{file_id}.jpg` (onde `file_id` e um UUID gerado server-side)
 
+**Response nova (200):**
 ```text
-Fluxo anterior:
-  compressImage() -> supabase.storage.upload(path, blob) -> getPublicUrl()
-
-Fluxo novo:
-  1. compressImage() (igual)
-  2. supabase.functions.invoke("product-images-presign", { body: { count }, headers: { "X-Workspace-Id": ... } })
-  3. Para cada imagem: fetch(signedUrl, { method: "PUT", body: blob, headers: { "Content-Type": "image/jpeg" } })
-  4. Guardar o storage_path (nao a URL publica) no estado do ImageItem
-  5. Gerar URL publica localmente: ${SUPABASE_URL}/storage/v1/object/public/product-images/${path}
+{
+  "success": true,
+  "data": {
+    "bucket": "product-images",
+    "uploads": [
+      {
+        "file_id": "<uuid>",
+        "storage_path": "workspaces/<workspace_id>/products/tmp/<file_id>.jpg",
+        "signed_upload_url": "https://...",
+        "public_url": "https://.../object/public/product-images/workspaces/...",
+        "expires_in_seconds": 600
+      }
+    ]
+  },
+  "meta": {
+    "request_id": "<uuid>",
+    "workspace_id": "<uuid>",
+    "timestamp": "<ISO 8601>"
+  }
+}
 ```
 
-O retry individual continua a funcionar - basta repetir o PUT para o mesmo signedUrl (válido por ~60 minutos).
+**Respostas de erro:**
+- 401: `{ "success": false, "error": "UNAUTHORIZED", "message": "..." }`
+- 403: `{ "success": false, "error": "FORBIDDEN", "message": "Not a member of this workspace" }`
+- 400: `{ "success": false, "error": "VALIDATION_ERROR", "message": "..." }`
+- 500: `{ "success": false, "error": "INTERNAL_ERROR", "message": "..." }`
 
-Adicionar novo campo ao `ImageItem`:
-- `storagePath: string | null` - o path no bucket, usado pelo `product-quick-create`
+### 2. `src/components/mqpc/MQPCStepImages.tsx`
 
-### 3. Atualizar `MQPCWizard.tsx`
+Atualizar o cliente para enviar o novo formato e consumir a nova response:
 
-Na chamada final de criação, passar `storage_paths` em vez de `image_urls`:
-
+**Interface `PresignedUpload` atualizada:**
 ```text
-De: images: imageUrls (URLs públicas)
-Para: storage_paths: images.filter(i => i.storagePath).map(i => i.storagePath)
+interface PresignedUpload {
+  file_id: string;
+  storage_path: string;
+  signed_upload_url: string;
+  public_url: string;
+  expires_in_seconds: number;
+}
 ```
 
-O `product-quick-create` (quando implementado) receberá estes paths e criará os registos em `product_images` com as URLs completas.
+**Funcao `requestPresignedUrls` atualizada:**
+- Aceita array de `{ filename, content_type, size_bytes }` em vez de `count`
+- Envia body com `files[]` e `context: { channel: "mobile_quick", intent: "product_create" }`
+- Le resposta de `data.data.uploads` (porque `supabase.functions.invoke` faz parse do JSON exterior)
 
-Enquanto o `product-quick-create` nao estiver implementado (usa `useCreateProduct`), manter compatibilidade: converter paths para URLs públicas no frontend.
+**Funcao `uploadToSignedUrl`:**
+- Usa `presigned.signed_upload_url` em vez de `presigned.signedUrl`
 
-### 4. Registar em `supabase/config.toml`
+**Funcao `buildPublicUrl` removida:**
+- A public_url ja vem na response do server
 
-```text
-[functions.product-images-presign]
-verify_jwt = false
-```
+**`uploadSingleImage` atualizado:**
+- Usa `presigned.public_url` diretamente
+- Usa `presigned.storage_path` para o campo `storagePath`
 
-## Detalhes técnicos
+**`handleFilesWithRef` atualizado:**
+- Antes de pedir presigned URLs, obter o tamanho de cada ficheiro via `file.size`
+- Construir o array `files[]` com `filename: file.name`, `content_type: "image/jpeg"`, `size_bytes: file.size`
 
-### Presigned URLs do Supabase Storage
+### 3. `src/components/mqpc/MQPCWizard.tsx`
 
-O Supabase Storage suporta `createSignedUploadUrl` que retorna um URL + token válidos por um periodo limitado. O cliente faz PUT diretamente para esse URL sem precisar do Supabase client SDK.
+Sem alteracoes - ja usa `storagePath` dos ImageItems, que continua a ser preenchido.
 
-Vantagens:
-- Upload vai direto para o Storage (nao passa pela Edge Function)
-- Edge Function apenas valida permissoes e gera os URLs
-- Melhor performance em mobile (menos hops)
-- Token expira automaticamente (segurança)
-
-### Compatibilidade
-
-Como o bucket `product-images` é público, as URLs públicas continuam a funcionar para exibicao. O presign é apenas para a operação de upload.
-
-## Ficheiros criados/modificados
+## Ficheiros modificados
 
 | Ficheiro | Acao |
 |---|---|
-| `supabase/functions/product-images-presign/index.ts` | Novo |
-| `supabase/config.toml` | Modificado (nova entry) |
-| `src/components/mqpc/MQPCStepImages.tsx` | Modificado (usar presigned URLs) |
-| `src/components/mqpc/MQPCWizard.tsx` | Modificado (passar storage_paths) |
-
+| `supabase/functions/product-images-presign/index.ts` | Modificado (novo contrato request/response) |
+| `src/components/mqpc/MQPCStepImages.tsx` | Modificado (adaptar ao novo contrato) |
