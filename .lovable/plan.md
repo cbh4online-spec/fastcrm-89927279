@@ -1,51 +1,102 @@
 
+# Corrigir Autopilot que nao responde apos mensagem manual
 
-# Corrigir ordenacao e visibilidade do tempo nas conversas
+## Problema identificado
 
-## Problema 1: Conversas nao ordenadas pela mais recente
+Quando envias uma mensagem manualmente pela Inbox, o sistema guarda essa mensagem com o teu `sender_id`. Quando o cliente responde, o autopilot verifica a ultima mensagem de saida e encontra um `sender_id` humano -- e entra em modo "sleep" (pausa), assumindo que um humano esta a tratar da conversa.
 
-Atualmente, a lista ordena primeiro por `conversation_priority_score` (pontuacao de prioridade) e so depois por `last_message_at`. Isto significa que conversas com pontuacao alta ficam no topo mesmo que tenham mensagens antigas, e conversas com mensagens recentes ficam abaixo.
+Este comportamento e controlado pela opcao `sleep_on_human_reply` (linha 856 do `ghl-webhook-message`). O autopilot faz exatamente o que esta programado, mas o resultado e que nunca responde automaticamente numa conversa onde o utilizador ja tenha enviado uma mensagem manual.
 
-### Solucao
+## Solucao
 
-Alterar a ordenacao para usar apenas `last_message_at` descendente (mais recente primeiro), removendo a ordenacao por priority score.
+Alterar a logica de `sleep_on_human_reply` para verificar nao apenas se o ultimo outbound tem `sender_id`, mas tambem se houve um inbound DEPOIS desse outbound humano. Se o cliente ja respondeu a mensagem humana, o autopilot deve retomar automaticamente.
 
-## Problema 2: Tempo da mensagem nao visivel
+Logica atual:
+```text
+ultimo outbound tem sender_id? --> SLEEP (sempre)
+```
 
-O tempo relativo (ex: "3 h", "17 h") esta na mesma linha do preview da mensagem e e cortado quando o preview e longo. Precisa de ter mais destaque visual.
+Logica corrigida:
+```text
+ultimo outbound tem sender_id?
+  --> houve inbound DEPOIS desse outbound? --> CONTINUAR (cliente respondeu)
+  --> nao houve inbound depois? --> SLEEP (humano ainda a tratar)
+```
 
-### Solucao
-
-Mover o tempo relativo para a linha do nome (primeira linha), alinhado a direita, como no estilo Instagram DMs. Isto garante que o tempo e sempre visivel independentemente do tamanho do preview.
+Isto permite que:
+- Envies uma mensagem manual
+- O cliente responda
+- O autopilot retome e responda automaticamente
 
 ## Detalhes tecnicos
 
-### Ficheiro: `src/components/inbox/ConversationList.tsx`
+### Ficheiro: `supabase/functions/ghl-webhook-message/index.ts`
 
-**Ordenacao (linhas 190-199):** Substituir a ordenacao dupla por ordenacao simples por data:
+**Linhas 855-877** - Alterar o bloco `sleep_on_human_reply`:
 
+Atual:
+```typescript
+if (autopilotConfig.sleep_on_human_reply) {
+  const { data: lastOutbound } = await supabase
+    .from("messages")
+    .select("sender_id")
+    .eq("conversation_id", conversationId)
+    .eq("direction", "outbound")
+    .order("sent_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (lastOutbound?.sender_id) {
+    console.log("[AUTOPILOT] Human agent replied, sleeping autopilot");
+    // ... log event and return
+  }
+}
 ```
-filtered.sort((a, b) => {
-  const dateA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
-  const dateB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
-  return dateB - dateA;
-});
+
+Corrigido:
+```typescript
+if (autopilotConfig.sleep_on_human_reply) {
+  const { data: lastOutbound } = await supabase
+    .from("messages")
+    .select("sender_id, sent_at")
+    .eq("conversation_id", conversationId)
+    .eq("direction", "outbound")
+    .order("sent_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (lastOutbound?.sender_id) {
+    // Check if there was an inbound AFTER the human reply
+    const { data: inboundAfterHuman } = await supabase
+      .from("messages")
+      .select("id")
+      .eq("conversation_id", conversationId)
+      .eq("direction", "inbound")
+      .gt("sent_at", lastOutbound.sent_at)
+      .limit(1)
+      .maybeSingle();
+
+    if (!inboundAfterHuman) {
+      // No client reply after human message - stay sleeping
+      console.log("[AUTOPILOT] Human agent replied, no client response yet, sleeping");
+      // ... log event and return
+    } else {
+      // Client responded after human message - autopilot can resume
+      console.log("[AUTOPILOT] Client replied after human message, autopilot resuming");
+    }
+  }
+}
 ```
-
-**Layout do item (linhas 360-390):** Mover o tempo para a primeira linha (junto ao nome), alinhado a direita:
-
-```text
-Linha 1: [Nome]  [canal-icon]  ............  [3 h]
-Linha 2: [Tu: preview da mensagem...]              [●]
-```
-
-- Remover o tempo da segunda linha (junto ao preview)
-- Adicionar o tempo como `<span>` a direita na primeira linha, com `ml-auto`
-- Usar `text-[11px] text-muted-foreground` para o tempo
 
 ### Ficheiros a modificar
 
 | Ficheiro | Alteracao |
 |---|---|
-| `src/components/inbox/ConversationList.tsx` | Ordenar apenas por data; mover tempo para linha do nome |
+| `supabase/functions/ghl-webhook-message/index.ts` | Ajustar logica sleep_on_human_reply para verificar se houve inbound apos mensagem humana |
 
+## Resultado esperado
+
+- Envias mensagem manual pela Inbox
+- Cliente responde
+- Autopilot retoma automaticamente e gera resposta AI
+- Se o cliente ainda NAO respondeu a mensagem manual, o autopilot permanece em pausa
