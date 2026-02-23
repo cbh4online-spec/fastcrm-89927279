@@ -24661,6 +24661,56 @@ export type Database = {
           },
         ]
       }
+      storage_upload_intents: {
+        Row: {
+          bucket: string
+          content_type: string
+          created_at: string
+          expires_at: string
+          id: string
+          size_bytes: number
+          status: string
+          storage_path_tmp: string
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          bucket?: string
+          content_type: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          size_bytes: number
+          status?: string
+          storage_path_tmp: string
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          bucket?: string
+          content_type?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          size_bytes?: number
+          status?: string
+          storage_path_tmp?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storage_upload_intents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_abandoned_carts: {
         Row: {
           abandoned_at: string

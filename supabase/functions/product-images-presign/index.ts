@@ -108,6 +108,25 @@ Deno.serve(async (req) => {
         return errorResponse(500, "INTERNAL_ERROR", "Failed to generate upload URL");
       }
 
+      // Register upload intent (non-blocking)
+      try {
+        await adminClient
+          .from("storage_upload_intents")
+          .insert({
+            id: fileId,
+            workspace_id: workspaceId,
+            user_id: userId,
+            bucket: "product-images",
+            storage_path_tmp: storagePath,
+            content_type: files[i].content_type,
+            size_bytes: files[i].size_bytes,
+            status: "issued",
+            expires_at: new Date(Date.now() + 600_000).toISOString(),
+          });
+      } catch (intentErr) {
+        console.warn(`Failed to register upload intent for ${fileId}:`, intentErr);
+      }
+
       uploads.push({
         file_id: fileId,
         storage_path: storagePath,
