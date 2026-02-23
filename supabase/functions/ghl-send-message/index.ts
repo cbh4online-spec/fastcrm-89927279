@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
     const ghlConversationId = channelMetadata?.ghl_conversation_id as string | undefined;
 
     // Para SMS, verificar se existe telefone antes de prosseguir
-    const effectiveChannel = channel || conversation.channel || "sms";
+    const effectiveChannel = (channel || conversation.channel || "sms").toLowerCase();
     if (effectiveChannel === "sms") {
       const contactPhone = phone || lead?.phone || contact?.phone;
       if (!contactPhone) {
@@ -384,6 +384,17 @@ Deno.serve(async (req) => {
         response: responseText 
       });
       
+      // Detect Missing phone number error from GHL
+      if (responseText.includes("Missing phone number")) {
+        return new Response(
+          JSON.stringify({ 
+            error: "Este contacto não tem número de telefone. Adicione um número ao lead antes de enviar SMS.",
+            code: "MISSING_PHONE"
+          }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       // Detect Instagram-specific error - user hasn't initiated contact
       if (responseText.includes("no Instagram id") || responseText.includes("skipping")) {
         return new Response(
@@ -407,7 +418,7 @@ Deno.serve(async (req) => {
           ghlStatus: sendResponse.status,
           details: responseData
         }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: sendResponse.status >= 400 && sendResponse.status < 500 ? sendResponse.status : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
