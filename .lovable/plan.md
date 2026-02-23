@@ -1,94 +1,102 @@
 
 
-# Exportar Feature Registry - Nivel Tecnico e Comercial
+# Melhorar Formatacao dos PDFs do Feature Registry
 
-## Objectivo
+## Problemas Actuais
 
-Adicionar botoes de exportacao ao Feature Registry com dois formatos distintos:
-- **Tecnico**: Para developers/equipa interna -- inclui hooks, edge functions, tabelas, rotas
-- **Comercial**: Para demos/clientes/vendas -- linguagem acessivel, sem detalhes tecnicos, foco em beneficios
+Os PDFs actuais usam apenas texto simples com `jsPDF`, sem cores, sem fundos, sem bordas, sem tabelas formatadas. O resultado e um documento pouco profissional e dificil de ler.
 
-## Formatos de Export
+## Melhorias a Implementar
 
-### 1. Export Tecnico (JSON + PDF)
+### PDF Tecnico
 
-**JSON** com estrutura completa:
+1. **Capa profissional**
+   - Fundo azul escuro (#1a1a2e) no topo com titulo em branco
+   - Linha decorativa separadora
+   - Stats em cards lado-a-lado com fundo cinza claro
+
+2. **Headers de categoria**
+   - Barra de fundo colorida com texto branco por cada categoria
+   - Cores distintas por categoria (CRM azul, IA roxo, Marketing verde, etc.)
+
+3. **Cards de modulo**
+   - Fundo cinza claro (#f5f5f5) em rectángulo arredondado
+   - Nome do modulo em bold, badge de plano alinhado a direita
+   - Seccoes (Pages, Hooks, Edge Functions, Tables, Features) com icones textuais e indentacao clara
+
+4. **Features**
+   - Tag "[IA]" com fundo roxo claro e texto roxo
+   - Status com cor (active = verde, beta = amarelo, planned = cinza)
+
+5. **Separadores visuais**
+   - Linhas com gradiente ou cor por categoria entre modulos
+
+6. **Footer**
+   - Numero de pagina centrado em todas as paginas
+   - "FastCRM - Technical Architecture" no rodape
+
+7. **Appendix**
+   - Edge functions e tabelas em colunas duplas para melhor uso do espaco
+
+### PDF Comercial
+
+1. **Capa premium**
+   - Fundo gradient azul escuro para azul
+   - "FastCRM" grande em branco, subtitulo elegante
+   - Stats em 4 boxes com icones textuais e numeros grandes
+   - Data formatada por extenso
+
+2. **Headers de categoria**
+   - Barra colorida com label e contagem de modulos
+
+3. **Modulos**
+   - Card com borda esquerda colorida (accent da categoria)
+   - Nome em bold, plano como badge com fundo colorido
+   - Descricao em italico
+   - Features com bullet colorido, tag "IA" destacada com estrela dourada
+
+4. **Tabela resumo final**
+   - Tabela com linhas alternadas (zebra striping)
+   - Header com fundo escuro e texto branco
+   - Linha de totais em bold com fundo destacado
+
+5. **Footer**
+   - Numero de pagina + "Confidencial" no rodape
+
+## Detalhes Tecnicos
+
+### Ficheiro a editar: `src/utils/featureRegistryExport.ts`
+
+Usar exclusivamente APIs do `jsPDF`:
+- `doc.setFillColor(r, g, b)` + `doc.rect(x, y, w, h, 'F')` para fundos coloridos
+- `doc.setTextColor(r, g, b)` para texto colorido
+- `doc.setFont(undefined, 'bold')` / `doc.setFont(undefined, 'normal')` para bold
+- `doc.setDrawColor()` + `doc.line()` para linhas decorativas
+- `doc.setPage()` + loop final para adicionar footers a todas as paginas
+
+### Cores por categoria
 ```text
-{
-  "exportDate": "2026-02-23",
-  "stats": { totalModules: 45, totalFeatures: 300, ... },
-  "modules": [
-    {
-      "name": "Leads",
-      "category": "CRM",
-      "pages": [...],
-      "hooks": [...],
-      "edgeFunctions": [...],
-      "tables": [...],
-      "features": [...],
-      "dependencies": [...]
-    }
-  ]
-}
+Core:         #3b82f6 (azul)
+CRM:          #2563eb (azul escuro)
+Comunicacao:  #0891b2 (cyan)
+Vendas:       #059669 (verde)
+Marketing:    #d97706 (amber)
+Loja Online:  #7c3aed (roxo)
+Portal B2B:   #0d9488 (teal)
+Comunidade:   #e11d48 (rosa)
+IA:           #8b5cf6 (violeta)
+Estrategia:   #4f46e5 (indigo)
+Vertical:     #ca8a04 (amarelo)
+Admin:        #64748b (slate)
 ```
 
-**PDF** com layout tecnico:
-- Capa com titulo e data
-- Indice por categoria
-- Para cada modulo: paginas, hooks, edge functions, tabelas, features com estado
+### Helpers adicionais
+- `drawColoredHeader(doc, text, color, y)` -- barra colorida com texto
+- `drawStatBox(doc, label, value, x, y)` -- box de estatistica
+- `drawModuleCard(doc, mod, y, accentColor)` -- card de modulo com borda
+- `addFooters(doc, title)` -- loop final para numeros de pagina
 
-### 2. Export Comercial (PDF)
-
-**PDF** com linguagem comercial:
-- Capa profissional com branding FastCRM
-- Sumario executivo (totais de modulos, features IA, etc.)
-- Para cada categoria: lista de modulos com descricao e features em linguagem de beneficio
-- Sem hooks, tabelas, edge functions -- so funcionalidades e plano minimo
-- Badge "IA" nas features com inteligencia artificial
-- Tabela resumo de planos vs funcionalidades
-
-## Implementacao
-
-### Ficheiro 1: `src/utils/featureRegistryExport.ts` (NOVO)
-
-Funcoes de exportacao:
-
-- `exportTechnicalJSON()` -- gera e faz download de JSON completo
-- `exportTechnicalPDF()` -- gera PDF tecnico com jsPDF (ja instalado)
-- `exportCommercialPDF()` -- gera PDF comercial com jsPDF, linguagem acessivel, sem detalhes tecnicos
-- Helpers para formatacao de tabelas em PDF, headers por categoria, badges de plano
-
-### Ficheiro 2: `src/components/super-admin/FeatureRegistrySection.tsx` (EDITAR)
-
-- Adicionar dropdown "Exportar" com 3 opcoes:
-  - "Tecnico (JSON)" -- download imediato
-  - "Tecnico (PDF)" -- gera e download PDF
-  - "Comercial (PDF)" -- gera e download PDF comercial
-- Dropdown posicionado ao lado da barra de pesquisa
-- Usa `DropdownMenu` do shadcn
-
-## Detalhes do PDF Comercial
-
-Estrutura do documento:
-1. **Capa**: "FastCRM - Catalogo de Funcionalidades" + data + stats resumidos
-2. **Por categoria**: Titulo da categoria + lista de modulos
-3. **Por modulo**: Nome, descricao, plano minimo, lista de features (nome + descricao)
-4. **Resumo final**: Tabela com totais por categoria
-
-Linguagem: sem termos tecnicos, foco em "o que o utilizador pode fazer"
-
-## Detalhes do PDF Tecnico
-
-Estrutura:
-1. **Capa**: "FastCRM - Technical Architecture" + data + stats
-2. **Por categoria**: Todos os modulos com detalhes completos
-3. **Por modulo**: Pages, hooks, edge functions, tables, features, dependencies
-4. **Appendix**: Lista completa de edge functions e tabelas
-
-## Ficheiros a criar/modificar
-
-| Ficheiro | Accao |
-|---|---|
-| `src/utils/featureRegistryExport.ts` | **Novo** - Logica de exportacao (JSON + 2 PDFs) |
-| `src/components/super-admin/FeatureRegistrySection.tsx` | Adicionar dropdown de exportacao |
-
+### Resultado
+- PDFs visualmente profissionais, prontos para apresentacao a clientes
+- Hierarquia visual clara com cores, espacamento e tipografia
+- Consistencia de branding FastCRM em ambos os formatos
