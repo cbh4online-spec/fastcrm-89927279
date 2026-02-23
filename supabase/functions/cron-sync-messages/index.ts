@@ -398,16 +398,33 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalS
             if (!msgError) {
               convMessagesCreated++;
               messagesCreated++;
-              if (channel === "other" && msg.type !== undefined) {
-                const inferredChannel = resolveChannel(msg.type);
-                if (inferredChannel !== "other") {
-                  channel = inferredChannel;
-                  await supabase
-                    .from("conversations")
-                    .update({ channel: inferredChannel })
-                    .eq("id", conversationId);
-                }
+            }
+          }
+
+          // After processing all messages, infer real channel from message types if current is "other" or "sms"
+          if ((channel === "other" || channel === "sms") && recentMessages.length > 0) {
+            const msgTypeSet = new Set<number>();
+            for (const msg of recentMessages) {
+              if (msg.type !== undefined) {
+                const numType = typeof msg.type === "number" ? msg.type : Number(msg.type);
+                if (!isNaN(numType)) msgTypeSet.add(numType);
               }
+            }
+            let inferredChannel: string | null = null;
+            if (msgTypeSet.has(17) || msgTypeSet.has(18)) {
+              inferredChannel = "instagram";
+            } else if (msgTypeSet.has(15) || msgTypeSet.has(16)) {
+              inferredChannel = "whatsapp";
+            } else if (msgTypeSet.has(5) || msgTypeSet.has(6) || msgTypeSet.has(19)) {
+              inferredChannel = "messenger";
+            }
+            if (inferredChannel && inferredChannel !== channel) {
+              console.log(`[Cron Sync] Reclassifying conv ${ghlConvId} from "${channel}" to "${inferredChannel}" based on message types [${[...msgTypeSet].join(",")}]`);
+              channel = inferredChannel;
+              await supabase
+                .from("conversations")
+                .update({ channel: inferredChannel })
+                .eq("id", conversationId);
             }
           }
 
