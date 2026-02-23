@@ -121,6 +121,16 @@ export function MQPCStepImages({ images, onImagesChange }: MQPCStepImagesProps) 
       try {
         const compressed = await compressImage(item.file);
         await uploadToSignedUrl(presigned.signed_upload_url, compressed);
+
+        // Fire-and-forget: confirm upload intent
+        supabase
+          .from("storage_upload_intents" as any)
+          .update({ status: "uploaded", updated_at: new Date().toISOString() })
+          .eq("id", presigned.file_id)
+          .then(({ error }) => {
+            if (error) console.warn("Failed to confirm upload intent:", error.message);
+          });
+
         return {
           ...item,
           url: presigned.public_url,
