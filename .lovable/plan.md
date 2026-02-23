@@ -1,81 +1,70 @@
 
 
-# product-quick-create -- Campos em falta e slug unico
+# product_images -- storage_path e promoção robusta
 
 ## Resumo
 
-Adicionar 3 colunas em falta na tabela `products` (`tax_included`, `tags`, `barcode`), criar constraint de slug unico por workspace, e atualizar a Edge Function para usar estes campos e resolver conflitos de slug automaticamente.
+Adicionar a coluna `storage_path` à tabela `product_images` para guardar o path final no Storage, e melhorar o fluxo de promoção de imagens no `product-quick-create` com atualização do `storage_upload_intents` para `promoted`.
 
-## Alteracoes
+## Alterações
 
-### 1. Migration: Novas colunas + constraint de slug unico
+### 1. Migration: Adicionar `storage_path` à tabela `product_images`
 
 ```text
--- Novas colunas
-ALTER TABLE public.products
-  ADD COLUMN IF NOT EXISTS tax_included BOOLEAN NOT NULL DEFAULT true,
-  ADD COLUMN IF NOT EXISTS tags TEXT[] NOT NULL DEFAULT '{}',
-  ADD COLUMN IF NOT EXISTS barcode TEXT;
-
--- Slug unico por workspace (parcial, ignora NULLs)
-CREATE UNIQUE INDEX IF NOT EXISTS idx_products_slug_workspace_unique
-  ON public.products (workspace_id, sheet_slug)
-  WHERE sheet_slug IS NOT NULL;
+ALTER TABLE public.product_images
+  ADD COLUMN IF NOT EXISTS storage_path TEXT;
 ```
 
-Nota: `tax_included` com default `true` (padrao europeu, IVA incluido). `tags` como `TEXT[]` (consistente com `benefits`, `business_types`).
+Coluna nullable -- imagens já existentes (criadas antes desta migração) ficam com `NULL` e continuam a funcionar normalmente via `url`.
 
 ### 2. Modificar `supabase/functions/product-quick-create/index.ts`
 
-**2a. Incluir novos campos no INSERT (linha ~149-172):**
+**2a. Incluir `storage_path` no INSERT de `product_images` (linhas 237-247):**
 
-Adicionar ao objecto de insert:
-- `tax_included: product.price?.tax_included ?? true`
-- `tags: product.tags || []`
-- `barcode: product.barcode || null`
+Atualmente o insert usa apenas `url`, `alt_text`, `position`. Adicionar `storage_path: newPath` para guardar o path final no bucket.
 
-**2b. Resolver conflito de slug (antes do INSERT):**
+**2b. Atualizar `storage_upload_intents` para `promoted` após move bem-sucedido:**
 
-Apos gerar o slug base, verificar se ja existe no workspace. Se existir, adicionar sufixo numerico:
+Após o `storage.move()` com sucesso, fire-and-forget update:
 
 ```text
-// Pseudocodigo
-let finalSlug = slug;
-if (slug) {
-  const { data: existing } = await adminClient
-    .from("products")
-    .select("id")
-    .eq("workspace_id", workspaceId)
-    .eq("sheet_slug", slug)
-    .maybeSingle();
-
-  if (existing) {
-    // Buscar quantos slugs comecam com este prefixo
-    const { count } = await adminClient
-      .from("products")
-      .select("id", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId)
-      .like("sheet_slug", `${slug}%`);
-
-    finalSlug = `${slug}-${(count || 1) + 1}`;
-  }
-}
+adminClient
+  .from("storage_upload_intents")
+  .update({ status: "promoted", updated_at: new Date().toISOString() })
+  .eq("id", fileId);
 ```
 
-**2c. Incluir novos campos na resposta (linha ~278-296):**
+**2c. Marcar intent como erro se promoção falhar:**
 
-Adicionar `tax_included`, `tags`, `barcode` ao objecto `product` do response payload.
+Se o `storage.move()` falhar, em vez de apenas `continue`, também atualizar o intent:
 
-### 3. Impacto no fluxo existente
+```text
+adminClient
+  .from("storage_upload_intents")
+  .update({ status: "expired", updated_at: new Date().toISOString() })
+  .eq("id", fileId);
+```
 
-- O `MQPCWizard.tsx` nao precisa de alteracoes -- os novos campos sao opcionais e tem defaults no servidor.
-- O `MQPCStepExtras.tsx` ja podera enviar `tags` no futuro quando essa UI existir.
-- A constraint de slug unico protege contra duplicados mesmo em chamadas concorrentes.
+Usa `expired` porque a imagem tmp não foi promovida e será elegível para cleanup.
+
+### 3. Fluxo atualizado do ciclo de vida
+
+```text
+issued --> uploaded --> promoted (sucesso)
+  |            |
+  |            +--> expired (promoção falhou)
+  |
+  +--> expired (URL expirou sem upload)
+```
+
+### 4. Resposta -- incluir `storage_path` no array `images`
+
+O objecto `promotedImages` já inclui `storage_path`. Nenhuma alteração necessária no response payload.
 
 ## Ficheiros criados/modificados
 
-| Ficheiro | Acao |
+| Ficheiro | Acção |
 |---|---|
-| Migration SQL | 3 colunas novas + unique index no slug |
-| `supabase/functions/product-quick-create/index.ts` | Modificado (novos campos + slug conflict resolution) |
+| Migration SQL | Adicionar coluna `storage_path` a `product_images` |
+| `supabase/functions/product-quick-create/index.ts` | storage_path no insert + update intents para promoted/expired |
 
