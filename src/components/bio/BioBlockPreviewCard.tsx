@@ -251,18 +251,36 @@ export function BioBlockPreviewCard({ block, primaryColor, index }: BioBlockPrev
         </div>
       );
 
-    case "testimonials":
+    case "testimonials": {
+      // Support both formats: simple (text+author) and array (testimonials[])
+      const testimonials: { text: string; author: string }[] = [];
+      if (content.testimonials && Array.isArray(content.testimonials)) {
+        content.testimonials.slice(0, 3).forEach((t: any) => {
+          testimonials.push({ text: t.text || "", author: t.name || t.author || "Cliente" });
+        });
+      } else {
+        testimonials.push({ text: content.text || "Depoimento incrível...", author: content.author || "Cliente" });
+      }
       return (
-        <div className="rounded-3xl p-6 shadow-lg" style={cardStyle}>
-          <Star className="h-5 w-5 mb-2" style={{ color: textColor }} />
-          <p className="text-sm italic leading-relaxed" style={{ color: textColor }}>
-            "{content.text || "Depoimento incrível..."}"
-          </p>
-          <p className="text-xs mt-2 font-semibold" style={{ color: subtleColor }}>
-            — {content.author || "Cliente"}
-          </p>
+        <div className="rounded-3xl p-6 shadow-lg space-y-4" style={cardStyle}>
+          {testimonials.map((t, i) => (
+            <div key={i} className={i > 0 ? "pt-3 border-t border-white/10" : ""}>
+              <div className="flex gap-0.5 mb-1.5">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star key={s} className="h-3.5 w-3.5 fill-current" style={{ color: textColor }} />
+                ))}
+              </div>
+              <p className="text-sm italic leading-relaxed" style={{ color: textColor }}>
+                "{t.text}"
+              </p>
+              <p className="text-xs mt-1.5 font-semibold" style={{ color: subtleColor }}>
+                — {t.author}
+              </p>
+            </div>
+          ))}
         </div>
       );
+    }
 
     case "divider":
       return (
