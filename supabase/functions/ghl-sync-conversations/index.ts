@@ -566,9 +566,13 @@ Deno.serve(async (req) => {
                     .eq("id", conversationId)
                     .single();
                   
-                  if (existingConv?.channel === "other" && channel !== "other") {
+                  if (
+                    (existingConv?.channel === "other" || existingConv?.channel === "sms") &&
+                    channel !== "other" && channel !== "sms" &&
+                    channel !== existingConv?.channel
+                  ) {
                     updateData.channel = channel;
-                    console.log(`[GHL Sync] Reclassifying conversation ${conversationId} from "other" to "${channel}"`);
+                    console.log(`[GHL Sync] Reclassifying conversation ${conversationId} from "${existingConv.channel}" to "${channel}"`);
                   }
                   
                   await supabase
@@ -651,22 +655,31 @@ Deno.serve(async (req) => {
                           existingMessageIds.add(msg.id);
                         }
                       }
-                      // After processing messages, infer channel from message types if still "other"
-                      if (channel === "other" && messages.length > 0) {
+                      // After processing messages, infer channel from message types if current channel is "other" or "sms"
+                      if ((channel === "other" || channel === "sms") && messages.length > 0) {
+                        const msgTypeSet = new Set<number>();
                         for (const msg of messages) {
                           if (msg.type !== undefined) {
-                            const inferredChannel = resolveChannel(msg.type);
-                            if (inferredChannel !== "other") {
-                              console.log(`[GHL Sync] Inferred channel "${inferredChannel}" from message type ${msg.type} for conv ${ghlConv.id}`);
-                              channel = inferredChannel;
-                              // Update the conversation channel in the database
-                              await supabase
-                                .from("conversations")
-                                .update({ channel: inferredChannel })
-                                .eq("id", conversationId);
-                              break;
-                            }
+                            const numType = typeof msg.type === "number" ? msg.type : Number(msg.type);
+                            if (!isNaN(numType)) msgTypeSet.add(numType);
                           }
+                        }
+                        // Determine real channel from message types (priority: instagram > whatsapp > messenger)
+                        let inferredChannel: string | null = null;
+                        if (msgTypeSet.has(17) || msgTypeSet.has(18)) {
+                          inferredChannel = "instagram";
+                        } else if (msgTypeSet.has(15) || msgTypeSet.has(16)) {
+                          inferredChannel = "whatsapp";
+                        } else if (msgTypeSet.has(5) || msgTypeSet.has(6) || msgTypeSet.has(19)) {
+                          inferredChannel = "messenger";
+                        }
+                        if (inferredChannel && inferredChannel !== channel) {
+                          console.log(`[GHL Sync] Inferred channel "${inferredChannel}" from message types [${[...msgTypeSet].join(",")}] for conv ${ghlConv.id} (was "${channel}")`);
+                          channel = inferredChannel;
+                          await supabase
+                            .from("conversations")
+                            .update({ channel: inferredChannel })
+                            .eq("id", conversationId);
                         }
                       }
 
