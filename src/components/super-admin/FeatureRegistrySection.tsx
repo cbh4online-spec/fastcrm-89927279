@@ -8,12 +8,22 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import {
   Package, Brain, Zap, FileText, Database, Search,
   Sparkles, Code, Globe, Layers, Check, Clock, FlaskConical,
-  BookOpen,
+  BookOpen, Download, FileJson, FileDown,
 } from "lucide-react";
+import { exportTechnicalJSON, exportTechnicalPDF, exportCommercialPDF } from "@/utils/featureRegistryExport";
+import { toast } from "sonner";
 
 const planLabels: Record<string, string> = {
   free: "Free",
@@ -95,6 +105,49 @@ export function FeatureRegistrySection() {
             className="pl-9"
           />
         </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <Download className="h-4 w-4" />
+              Exportar
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56 bg-popover z-50">
+            <DropdownMenuLabel>Exportar Registry</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => {
+                exportTechnicalJSON();
+                toast.success("JSON técnico exportado com sucesso");
+              }}
+              className="gap-2 cursor-pointer"
+            >
+              <FileJson className="h-4 w-4" />
+              Técnico (JSON)
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                exportTechnicalPDF();
+                toast.success("PDF técnico exportado com sucesso");
+              }}
+              className="gap-2 cursor-pointer"
+            >
+              <FileText className="h-4 w-4" />
+              Técnico (PDF)
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => {
+                exportCommercialPDF();
+                toast.success("PDF comercial exportado com sucesso");
+              }}
+              className="gap-2 cursor-pointer"
+            >
+              <FileDown className="h-4 w-4" />
+              Comercial (PDF)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Category tabs */}
