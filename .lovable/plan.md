@@ -1,238 +1,350 @@
 
 
-# Fase 2 -- Portal B2B "Comprar por Diagnostico" + IA + BI
+# Fase 3 -- Motor de Retencao B2B (Reposicao + Favoritos + Assinaturas + Stock)
 
-## Resumo da Analise
+## Estado Actual do Codebase
 
-O codebase ja tem infraestrutura solida que podemos reutilizar:
-- `product_protocols` + `protocol_products` (tabelas e hooks ja existem)
-- `product_attributes` com tipos `pathology` e `function` (filtros ja funcionam)
-- `ai-diagnostic-assistant` edge function (Copilot B2B ja funcional)
-- `product_cross_sells` (cross-sell ja existe)
-- `useProtocols` hook (fetch de protocolos com produtos)
+O Portal B2B ja tem:
+- `client_users` com `company_id` e `workspace_id` (multi-tenant)
+- Sistema de roles (`client_admin`, `client_financial`, `client_operational`, `client_viewer`)
+- `useClientOrders` com `order_notes` + `order_note_items` (status inclui `invoiced`)
+- `useClientFavorites` (para produtos, via `client_favorites`)
+- `useProtocols` + `useProtocolKits` (protocolos com kits basico/avancado)
 - `CartContext` com IVA automatico
+- `useClientApprovals` (workflow de aprovacao)
+- Edge function `whatsapp-send-message` (ja existe)
+- Edge function `order-note-submit` (envio email via Resend)
+- Stripe integrado no sistema
 
-O que **falta** e novo:
-- Catalogo de patologias e ligacao patologia-protocolo
-- Kits com niveis (basico/avancado) dentro dos protocolos
-- Paginas de compra por diagnostico
-- Edge functions de recomendacao IA
-- Dashboard de consumo e rankings
+O que **nao existe** e sera criado:
+- Alertas de reposicao (tabelas, edge functions, paginas)
+- Protocolos favoritos (distinto de produtos favoritos)
+- Planos de manutencao recorrente (assinatura B2B)
+- Gestao de stock e previsao (admin CRM)
 
 ---
 
-## Fase 2.1 -- Migracoes de Base de Dados
+## Fase 3.1 -- Migracao de Base de Dados (12 tabelas novas)
 
-### Tabelas novas
+### Bloco A: Alertas de Reposicao
 
 ```
-pathologies
-  id, workspace_id, name, slug, description, image_url, tags[], is_active, position, created_at
+client_notification_settings
+  id, workspace_id, company_id, channel_email (bool default true),
+  channel_whatsapp (bool default false), frequency (text: weekly/biweekly/monthly),
+  opt_in_whatsapp (bool default false), quiet_hours_start (time),
+  quiet_hours_end (time), created_at, updated_at
 
-pathology_protocols (N:N)
-  id, pathology_id, protocol_id, notes, position, created_at
+client_replenishment_rules
+  id, workspace_id, company_id, scope (text: category/line/protocol/product),
+  reference_id (text), reorder_threshold_days (int default 30),
+  min_qty_suggestion (int default 1), is_active (bool default true), created_at
 
-protocol_kits
-  id, protocol_id, kit_name, kit_level (basic/advanced/custom), description, is_default, position, created_at
+client_replenishment_suggestions
+  id, workspace_id, company_id, suggested_items (jsonb),
+  reason (text), confidence_score (numeric),
+  status (text: new/sent/dismissed/converted), sent_at, converted_order_id,
+  created_at
+```
 
-protocol_kit_items
-  id, kit_id, product_id, suggested_qty, is_optional, notes, position, created_at
+### Bloco B: Protocolos Favoritos
 
-client_consumption_analytics
-  id, workspace_id, company_id, period_month (date), category, line, pathology, total_qty, total_value_net, created_at, updated_at
+```
+client_favorite_protocols
+  id, workspace_id, company_id, protocol_id (FK product_protocols),
+  created_by (FK client_users), default_kit_level (text: basic/advanced),
+  notes (text), created_at
 
-client_product_rankings
-  id, workspace_id, company_id, period_days (30/90/180), product_id, product_name, total_qty, total_value_net, last_purchased_at, updated_at
+client_favorite_protocol_overrides
+  id, workspace_id, company_id, protocol_id, product_id,
+  default_qty (int), created_at
+```
+
+### Bloco C: Planos de Manutencao Recorrente
+
+```
+b2b_subscription_plans
+  id, workspace_id, company_id, name (text), cadence (text: monthly/bi-monthly/quarterly),
+  status (text: active/paused/cancelled/draft), approval_mode (text: auto/approval_required),
+  max_cycle_value (numeric), stripe_subscription_id (text),
+  next_run_at (timestamptz), created_by (FK client_users),
+  created_at, updated_at
+
+b2b_subscription_plan_items
+  id, plan_id (FK b2b_subscription_plans), product_id (FK products),
+  qty (int), price_override (numeric), created_at
+
+b2b_subscription_runs
+  id, plan_id (FK b2b_subscription_plans), run_at (timestamptz),
+  status (text: draft/approved/ordered/invoiced/failed/needs_attention),
+  order_id (text), invoice_id (text), notes (text),
+  amount (numeric), created_at
+```
+
+### Bloco D: Stock e Previsao
+
+```
+product_inventory
+  id, product_id (FK products), workspace_id, stock_on_hand (int default 0),
+  stock_reserved (int default 0), reorder_point (int default 5),
+  supplier_lead_time_days (int default 7), updated_at, created_at
+
+inventory_movements
+  id, workspace_id, product_id, type (text: in/out/reserve/release),
+  qty (int), source (text: order/erp/manual), ref_id (text),
+  notes (text), created_by, created_at
+
+demand_forecast
+  id, workspace_id, product_id, period_month (date),
+  forecast_qty (int), confidence (numeric),
+  drivers (jsonb), created_at, updated_at
 ```
 
 ### RLS
 - Todas as tabelas com `workspace_id`
-- `pathologies`, `pathology_protocols`, `protocol_kits`, `protocol_kit_items`: leitura autenticada por workspace
-- `client_consumption_analytics`, `client_product_rankings`: leitura filtrada por `company_id` do utilizador autenticado (via security definer function)
+- Tabelas `client_*` e `b2b_*`: leitura filtrada por `company_id` (security definer)
+- `product_inventory`, `inventory_movements`, `demand_forecast`: leitura por workspace (admin CRM)
+- Insercao/update em `b2b_subscription_plans`: validar role via security definer
 
 ### Indices
-- `pathologies(workspace_id, is_active)`
-- `pathology_protocols(pathology_id)`, `pathology_protocols(protocol_id)`
-- `protocol_kits(protocol_id)`
-- `protocol_kit_items(kit_id)`
-- `client_consumption_analytics(company_id, period_month)`
-- `client_product_rankings(company_id, period_days)`
+- `client_notification_settings(company_id)`
+- `client_replenishment_suggestions(company_id, status)`
+- `client_favorite_protocols(company_id)`
+- `b2b_subscription_plans(company_id, status)`
+- `b2b_subscription_runs(plan_id, status)`
+- `product_inventory(product_id, workspace_id)` UNIQUE
+- `inventory_movements(product_id, created_at)`
+- `demand_forecast(product_id, period_month)` UNIQUE
 
 ---
 
-## Fase 2.2 -- Compra por Diagnostico (3 paginas)
+## Fase 3.2 -- Alertas de Reposicao
 
-### Pagina 1: Lista de Patologias
-**Rota:** `/client/diagnosis`
-**Ficheiro:** `src/pages/client/ClientDiagnosisPage.tsx`
+### Paginas novas
 
-- Grid de cards com patologias activas do workspace
-- Cada card: imagem, nome, descricao curta, tags, contagem de protocolos
-- Filtro por tag e pesquisa
-- Click navega para `/client/diagnosis/:slug`
+**`/client/settings/notifications`** (`ClientNotificationSettingsPage.tsx`)
+- Form para configurar preferencias: canais (email/whatsapp), frequencia, opt-in WhatsApp
+- Gestao de regras de reposicao: adicionar/remover por categoria, linha, protocolo ou produto
+- Toggle "Cancelar todos os alertas" em 1 clique
 
-### Pagina 2: Protocolos para Patologia
-**Rota:** `/client/diagnosis/:slug`
-**Ficheiro:** `src/pages/client/ClientDiagnosisDetailPage.tsx`
+**`/client/replenishment`** (`ClientReplenishmentPage.tsx`)
+- Lista de sugestoes de reposicao (status: new/sent/dismissed/converted)
+- Cada sugestao: lista de produtos, motivo, score de confianca
+- CTA: "Repor Agora" (abre carrinho pre-preenchido via CartContext)
+- Historico de sugestoes anteriores
 
-- Header com nome e descricao da patologia
-- Lista de protocolos associados (via `pathology_protocols`)
-- Cada protocolo: nome, descricao, kits disponiveis (basico/avancado), badge de nivel
-- Secao IA: "Protocolos Recomendados" (via edge function `ai-protocol-recommendations`)
-- Click em protocolo navega para `/client/protocol/:id`
+### Hooks novos
+- `useNotificationSettings.ts` -- CRUD preferencias de notificacao
+- `useReplenishmentRules.ts` -- CRUD regras de reposicao
+- `useReplenishmentSuggestions.ts` -- fetch sugestoes + accoes (dismiss/convert)
 
-### Pagina 3: Detalhe do Protocolo + Kit
-**Rota:** `/client/protocol/:id`
-**Ficheiro:** `src/pages/client/ClientProtocolDetailPage.tsx`
-
-- Header com info do protocolo
-- Selector de kit (basico/avancado) se existirem multiplos
-- Lista de produtos do kit com imagem, nome, quantidade sugerida, preco
-- Quantidades editaveis por produto
-- Totais em tempo real (sem IVA, IVA, com IVA)
-- Botao "Adicionar Kit ao Carrinho" (1 clique, adiciona todos)
-- Secao IA: "Complementares e Upgrades" (via `ai-cart-recommendations`)
-- Guardrail: aviso "Recomendacao tecnica -- confirme com protocolo profissional"
-
-### Hook novo
-**Ficheiro:** `src/hooks/client-portal/usePathologies.ts`
-- `usePathologies(workspaceId)` -- lista patologias activas
-- `usePathology(slug)` -- detalhe + protocolos associados
-- `useProtocolKits(protocolId)` -- kits com items
-
----
-
-## Fase 2.3 -- Sugestoes IA Automaticas
-
-### Edge Function 1: `ai-protocol-recommendations`
-- Input: `pathologyId`, `workspaceId`, `clientUserId`, `companyId`
-- Busca: patologia, historico de encomendas, protocolos disponiveis, embeddings de produtos
-- Output: lista de protocolos recomendados com `reason` e `priority`
-- Usa Lovable AI (google/gemini-3-flash-preview)
-
-### Edge Function 2: `ai-cart-recommendations`
-- Input: `cartProductIds[]`, `workspaceId`, `clientUserId`, `companyId`
-- Busca: cross-sells existentes, atributos dos produtos no carrinho, historico
-- Output: lista de produtos complementares com `type` (complementar/upgrade/manutencao) e `reason`
-- Usa Lovable AI (google/gemini-2.5-flash)
-
-### Hook novo
-**Ficheiro:** `src/hooks/client-portal/useAIRecommendations.ts`
-- `useProtocolRecommendations(pathologyId, workspaceId)` -- chama edge function
-- `useCartRecommendations(cartProductIds, workspaceId)` -- chama edge function
+### Edge Functions novas
+- **`replenishment-generate-suggestions`** -- Analisa historico de encomendas, calcula cadencia por produto/categoria, gera sugestoes com Lovable AI (gemini-2.5-flash). Pensada para job diario/semanal.
+- **`replenishment-send-email`** -- Template transacional com lista de produtos sugeridos + CTA link para carrinho pre-preenchido.
+- **`replenishment-send-whatsapp`** -- Reutiliza `whatsapp-send-message` existente. Envia mensagem curta com link para reposicao. So envia se opt-in activo.
+- **`replenishment-convert-to-cart`** -- Recebe `suggestion_id`, cria items no carrinho (via API), marca sugestao como "converted".
 
 ### Guardrails
-- Linguagem: "recomendacao de protocolo/produto para a situacao selecionada"
-- Aviso obrigatorio em todos os blocos IA: "Confirme com protocolo profissional"
-- Nunca "diagnosticar" -- apenas "recomendar para a situacao"
+- Opt-in explicito para WhatsApp (toggle + confirmacao)
+- Frequencia maxima: 1x por semana (anti-spam)
+- Botao "Cancelar alertas" em 1 clique
+- Linguagem: "reposicoes recomendadas para manutencao do protocolo"
 
 ---
 
-## Fase 2.4 -- Dashboard de Consumo por Categoria
+## Fase 3.3 -- Protocolos Favoritos
 
-### Pagina
-**Rota:** `/client/insights/consumption`
-**Ficheiro:** `src/pages/client/ClientConsumptionPage.tsx`
+### Componentes / Paginas
 
-- Total gasto (sem IVA / com IVA) no periodo selecionado
-- Selector de periodo: mes actual, trimestre, semestre, ano
-- Graficos:
-  - Bar chart: consumo por categoria
-  - Bar chart: consumo por linha
-  - Line chart: evolucao mensal
-  - Pie chart: distribuicao por categoria (top 5)
-- Tabela detalhada com sorting
+**Widget no Dashboard** (`ClientDashboardPage.tsx`)
+- Card "Protocolos Favoritos" com top 3 + link para lista completa
+- CTA "Adicionar kit ao carrinho" em 1 clique
+
+**`/client/protocols/favorites`** (`ClientFavoriteProtocolsPage.tsx`)
+- Lista de protocolos marcados como favoritos
+- Cada protocolo: nome, kit default (basico/avancado), botao "Adicionar ao carrinho"
+- Opcao de personalizar quantidades (overrides por produto)
+
+**Botao na pagina do protocolo** (`ClientProtocolDetailPage.tsx`)
+- Botao estrela "Guardar como Favorito" no header
+- Selector de kit level default ao guardar
 
 ### Hook novo
-**Ficheiro:** `src/hooks/client-portal/useConsumptionAnalytics.ts`
-- Agrega dados de `order_notes` + `order_note_items` faturados
-- Calcula totais por categoria, linha, patologia, mes
-- Fallback: se `client_consumption_analytics` nao tiver dados, calcula em tempo real a partir das encomendas
-
-### Permissoes
-- Visivel para: `client_admin`, `client_financial`
-- `client_viewer`: so leitura se permitido
+- `useFavoriteProtocols.ts` -- CRUD favoritos + overrides + toggle + isFavorite check
 
 ---
 
-## Fase 2.5 -- Ranking de Produtos Mais Comprados
+## Fase 3.4 -- Planos de Manutencao Recorrente (Assinatura B2B)
 
-### Pagina
-**Rota:** `/client/insights/rankings`
-**Ficheiro:** `src/pages/client/ClientRankingsPage.tsx`
+### Paginas novas
 
-- Selector de janela temporal: 30, 90, 180 dias
-- Top 10 produtos por quantidade e valor
-- Badges: "Mais Comprado", "Tendencia" (crescimento vs periodo anterior)
-- Botao "Re-encomendar" em cada produto
-- Secao IA: "Recomendados para si" (reutiliza `ai-cart-recommendations`)
+**`/client/plans`** (`ClientPlansPage.tsx`)
+- Lista de planos do cliente (activos, pausados, cancelados)
+- KPIs: total planos activos, valor mensal estimado, proximo ciclo
+- Botao "Criar Plano"
 
-### Widgets no Dashboard
-**Ficheiro:** `src/pages/client/ClientDashboardPage.tsx`
-- Adicionar card "Mais Comprados (30d)" com top 3 + link para rankings
-- Adicionar card "Comprar por Diagnostico" com link para `/client/diagnosis`
+**`/client/plans/new`** (`ClientPlanCreatePage.tsx`)
+- Wizard de criacao:
+  1. Escolher base: protocolo favorito, kit ou seleccao manual
+  2. Ajustar produtos e quantidades
+  3. Definir cadencia (mensal/bimestral/trimestral)
+  4. Modo aprovacao: auto vs aprovacao obrigatoria
+  5. Limite maximo por ciclo
+  6. Confirmar termos
+- Permissao: `client_admin` ou `client_financial`
 
-### Hook novo
-**Ficheiro:** `src/hooks/client-portal/useProductRankings.ts`
-- Agrega de `order_note_items` com joins a `order_notes` (status = invoiced)
-- Calcula por janela temporal
-- Detecta tendencias (comparacao com periodo anterior)
+**`/client/plans/:id`** (`ClientPlanDetailPage.tsx`)
+- Detalhes do plano: produtos, cadencia, status, proximo ciclo
+- Accoes: Pausar, Retomar, Cancelar, Editar
+- Lista de ciclos (runs) com estado
+
+**`/client/plans/:id/history`** (`ClientPlanHistoryPage.tsx`)
+- Historico completo de execucoes do plano
+- Cada run: data, estado, valor, link para encomenda/fatura
+
+### Hooks novos
+- `useSubscriptionPlans.ts` -- CRUD planos + items + runs
+- `usePlanActions.ts` -- pause/resume/cancel/edit
+
+### Edge Functions novas
+- **`b2b-plan-create`** -- Valida permissoes, cria plano e items, opcionalmente cria subscription no Stripe
+- **`b2b-plan-schedule-run`** -- Job periodico: verifica planos com `next_run_at <= now()`, gera draft order ou envia para aprovacao
+- **`b2b-plan-generate-order`** -- Cria `order_note` a partir dos items do plano, actualiza `next_run_at`
+- **`b2b-plan-generate-invoice`** -- Cria invoice via Stripe para o ciclo (associa `customer_id` a `company_id`)
+- **`b2b-plan-notify-cycle`** -- Notifica cliente (email/whatsapp) sobre proximo ciclo ou ciclo executado
+
+### Controlos
+- Limites por role e por plano (`max_cycle_value`)
+- Estado `needs_attention` para falhas de pagamento
+- Logs de auditoria (todas as accoes registadas em `b2b_subscription_runs`)
+- Cancelamento e pausa sem perda de dados
 
 ---
 
-## Fase 2.6 -- Integracao na Navegacao
+## Fase 3.5 -- Gestao de Stock e Previsao (Admin CRM)
 
-### `src/components/client-portal/ClientLayout.tsx`
+### Paginas novas (Admin, nao portal cliente)
+
+**`/dashboard/b2b/stock`** (`B2BStockPage.tsx`)
+- Tabela de inventario: produto, stock on hand, reservado, disponivel, reorder point
+- Filtros por categoria, linha, status
+- Alertas de ruptura (stock < reorder point)
+- Accoes: ajustar stock manual, registar entrada/saida
+- Import CSV para actualizacao em massa
+
+**`/dashboard/b2b/forecast`** (`B2BForecastPage.tsx`)
+- Previsao de procura por produto (media movel 30/90 dias)
+- Ajuste automatico com planos recorrentes (soma quantidades previstas)
+- Alertas: forecast > stock disponivel
+- Graficos de tendencia por produto
+
+### Hooks novos
+- `useProductInventory.ts` -- CRUD inventario + movimentos
+- `useDemandForecast.ts` -- calculo de forecast + alertas
+
+### Edge Functions novas
+- **`erp-sync-inventory`** -- Conector generico: recebe payload de ERP, actualiza `product_inventory` e regista `inventory_movements`. Config por workspace (endpoint, auth, mapeamento). Preparado mas nao activado.
+
+### Regras de Previsao (MVP)
+- Media movel simples (30 e 90 dias baseado em `order_note_items` faturados)
+- Soma de quantidades de planos recorrentes activos para o periodo
+- Alerta quando forecast > (stock_on_hand - stock_reserved)
+
+---
+
+## Fase 3.6 -- Integracao na Navegacao
+
+### `ClientLayout.tsx`
 Adicionar ao menu:
-- "Diagnostico" (icon: Stethoscope) -> `/client/diagnosis`
-- "Consumo" (icon: BarChart3) -> `/client/insights/consumption` (requer canViewFinancials)
-- "Rankings" (icon: Trophy) -> `/client/insights/rankings`
+- "Reposicao" (icon: RefreshCw) -> `/client/replenishment`
+- "Planos" (icon: CalendarClock) -> `/client/plans` (requer `canPurchase`)
+- "Definicoes" (icon: Settings) -> `/client/settings/notifications`
 
-### `src/App.tsx`
-Adicionar rotas:
-- `/client/diagnosis`
-- `/client/diagnosis/:slug`
-- `/client/protocol/:id`
-- `/client/insights/consumption`
-- `/client/insights/rankings`
+### `App.tsx`
+Adicionar rotas no `ClientPortalRoutes`:
+- `replenishment`
+- `settings/notifications`
+- `protocols/favorites`
+- `plans`
+- `plans/new`
+- `plans/:id`
+- `plans/:id/history`
+
+Adicionar rotas no `CRMRoutes` (admin):
+- `b2b/stock`
+- `b2b/forecast`
+
+### `supabase/config.toml`
+Registar novas edge functions (9):
+- `replenishment-generate-suggestions`
+- `replenishment-send-email`
+- `replenishment-send-whatsapp`
+- `replenishment-convert-to-cart`
+- `b2b-plan-create`
+- `b2b-plan-schedule-run`
+- `b2b-plan-generate-order`
+- `b2b-plan-generate-invoice`
+- `b2b-plan-notify-cycle`
 
 ---
 
-## Detalhes Tecnicos
+## Resumo de Ficheiros
 
-### Ficheiros a criar
-
+### Criar (Portal Cliente)
 | Ficheiro | Tipo |
 |---|---|
-| Migracao SQL (6 tabelas + RLS + indices) | DB |
-| `src/pages/client/ClientDiagnosisPage.tsx` | Pagina |
-| `src/pages/client/ClientDiagnosisDetailPage.tsx` | Pagina |
-| `src/pages/client/ClientProtocolDetailPage.tsx` | Pagina |
-| `src/pages/client/ClientConsumptionPage.tsx` | Pagina |
-| `src/pages/client/ClientRankingsPage.tsx` | Pagina |
-| `src/hooks/client-portal/usePathologies.ts` | Hook |
-| `src/hooks/client-portal/useProtocolKits.ts` | Hook |
-| `src/hooks/client-portal/useAIRecommendations.ts` | Hook |
-| `src/hooks/client-portal/useConsumptionAnalytics.ts` | Hook |
-| `src/hooks/client-portal/useProductRankings.ts` | Hook |
-| `supabase/functions/ai-protocol-recommendations/index.ts` | Edge Function |
-| `supabase/functions/ai-cart-recommendations/index.ts` | Edge Function |
+| Migracao SQL (12 tabelas + RLS + indices) | DB |
+| `src/pages/client/ClientNotificationSettingsPage.tsx` | Pagina |
+| `src/pages/client/ClientReplenishmentPage.tsx` | Pagina |
+| `src/pages/client/ClientFavoriteProtocolsPage.tsx` | Pagina |
+| `src/pages/client/ClientPlansPage.tsx` | Pagina |
+| `src/pages/client/ClientPlanCreatePage.tsx` | Pagina |
+| `src/pages/client/ClientPlanDetailPage.tsx` | Pagina |
+| `src/pages/client/ClientPlanHistoryPage.tsx` | Pagina |
+| `src/hooks/client-portal/useNotificationSettings.ts` | Hook |
+| `src/hooks/client-portal/useReplenishmentRules.ts` | Hook |
+| `src/hooks/client-portal/useReplenishmentSuggestions.ts` | Hook |
+| `src/hooks/client-portal/useFavoriteProtocols.ts` | Hook |
+| `src/hooks/client-portal/useSubscriptionPlans.ts` | Hook |
+| `src/hooks/client-portal/usePlanActions.ts` | Hook |
 
-### Ficheiros a editar
+### Criar (Admin CRM)
+| Ficheiro | Tipo |
+|---|---|
+| `src/pages/B2BStockPage.tsx` | Pagina |
+| `src/pages/B2BForecastPage.tsx` | Pagina |
+| `src/hooks/useProductInventory.ts` | Hook |
+| `src/hooks/useDemandForecast.ts` | Hook |
 
+### Criar (Edge Functions)
+| Ficheiro | Tipo |
+|---|---|
+| `supabase/functions/replenishment-generate-suggestions/index.ts` | Edge Function |
+| `supabase/functions/replenishment-send-email/index.ts` | Edge Function |
+| `supabase/functions/replenishment-send-whatsapp/index.ts` | Edge Function |
+| `supabase/functions/replenishment-convert-to-cart/index.ts` | Edge Function |
+| `supabase/functions/b2b-plan-create/index.ts` | Edge Function |
+| `supabase/functions/b2b-plan-schedule-run/index.ts` | Edge Function |
+| `supabase/functions/b2b-plan-generate-order/index.ts` | Edge Function |
+| `supabase/functions/b2b-plan-generate-invoice/index.ts` | Edge Function |
+| `supabase/functions/b2b-plan-notify-cycle/index.ts` | Edge Function |
+
+### Editar
 | Ficheiro | Alteracao |
 |---|---|
-| `src/App.tsx` | Adicionar 5 rotas + lazy imports |
+| `src/App.tsx` | Adicionar 9 rotas (7 portal + 2 admin) |
 | `src/components/client-portal/ClientLayout.tsx` | Adicionar 3 items ao menu |
-| `src/pages/client/ClientDashboardPage.tsx` | Adicionar widgets Diagnostico + Rankings |
-| `supabase/config.toml` | Registar 2 novas edge functions |
+| `src/pages/client/ClientDashboardPage.tsx` | Adicionar widgets Protocolos Favoritos + Planos Activos + Reposicao |
+| `src/pages/client/ClientProtocolDetailPage.tsx` | Adicionar botao "Guardar como Favorito" |
+| `supabase/config.toml` | Registar 9 edge functions |
 
 ### Compatibilidade
-- Reutiliza `product_protocols` e `protocol_products` existentes (sem duplicar)
-- Reutiliza `product_attributes` para pathologies/functions
-- Reutiliza `CartContext` e `useCart` para adicionar kits
-- Reutiliza `ai-diagnostic-assistant` como base de logica IA
-- Todas as tabelas novas sao aditivas -- nenhuma tabela existente e modificada
-- RLS mantido por workspace_id + company_id
-- Multi-tenant compativel
+- Reutiliza `client_users.company_id` para multi-tenant (sem novas tabelas de empresas)
+- Reutiliza `product_protocols` + `protocol_products` para protocolos (sem duplicar)
+- Reutiliza `CartContext` para adicionar items de reposicao/plano
+- Reutiliza `useClientApprovals` para aprovacao de planos
+- Reutiliza `whatsapp-send-message` para notificacoes WhatsApp
+- Reutiliza Stripe existente para billing B2B
+- Nenhuma tabela existente e modificada estruturalmente
+- RLS mantido com security definer functions
 
