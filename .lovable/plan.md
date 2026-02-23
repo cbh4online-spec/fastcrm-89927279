@@ -1,56 +1,47 @@
 
 
-# analytics_events -- Tracking ja integrado no fluxo actual
+# product_embeddings -- Sistema ja implementado via fire-and-forget
 
 ## Analise
 
-O tracking de analytics para criacao de produtos via MQPC ja esta completamente implementado atraves do hook `useCRMAnalytics`:
+O sistema de embeddings para produtos ja esta implementado com o seguinte fluxo:
 
-### Eventos existentes no `MQPCWizard.tsx`
-
-| Evento | Quando dispara |
+| Componente | Estado |
 |---|---|
-| `mqpc.created_draft` | Produto criado com `publishNow = false` |
-| `mqpc.created_active` | Produto criado com `publishNow = true` |
+| Edge Function `product-embedding` | Existe e funcional (extrai keywords via Gemini) |
+| Edge Function `product-ai-improve` | Chama `product-embedding` via fire-and-forget quando `create_embeddings=true` |
+| Edge Function `product-quick-create` | Nao chama embeddings (correcto -- e criacao rapida) |
+| Hook `useProductAIImprove` | Passa `create_embeddings` como opcao (default `false`) |
 
-### Payload actual (em `useCRMAnalytics.ts`, linhas 297-308)
+### Fluxo actual
 
 ```text
-{
-  images_count: number,
-  has_ai: boolean,
-  category_id: string,
-  channel: string
-}
+product-ai-improve (create_embeddings=true)
+  --> fire-and-forget HTTP POST --> product-embedding
+    --> extrai keywords via Gemini
+    --> retorna resultado (sem persistir embedding vector)
 ```
 
-### Mapeamento com os campos pedidos
+### Sobre a tabela de queue
 
-| Campo pedido | Estado actual |
-|---|---|
-| `event` = mqpc_created_draft/active | Ja existe como `mqpc.created_draft` / `mqpc.created_active` |
-| `workspace_id` | Injectado automaticamente pelo `useSafePush` (via contexto) |
-| `user_id` | Nao enviado por design (privacy-first -- sem PII no dataLayer) |
-| `entity_type` / `entity_id` | Nao incluidos no payload analytics (existem no audit log em `crm_activities`) |
-| `properties.images_count` | Ja incluido |
-| `properties.has_ai` | Ja incluido |
-| `properties.category_id` | Ja incluido |
-| `properties.channel` | Ja incluido |
-| `created_at` | Adicionado automaticamente como `event_timestamp` pelo `safePush` |
+O sistema actual usa fire-and-forget em vez de tabela de queue. Isto e adequado para o MVP porque:
 
-### Sobre `entity_type`/`entity_id` e `user_id`
+1. O `product-embedding` ja e idempotente (pode ser chamado varias vezes para o mesmo produto)
+2. Nao ha necessidade de retry automatico -- se falhar, o utilizador pode re-executar o AI improve
+3. O `product-quick-create` nao dispara embeddings propositadamente (o produto ainda nao tem descricao enriquecida)
 
-Estes campos nao sao incluidos no analytics propositadamente:
+### Quando adicionar tabela de queue?
 
-- **`user_id`**: O sistema de analytics e privacy-first -- nenhum identificador pessoal e enviado para o GTM/Clarity. O `sanitizeEventData` em `analyticsHelpers.ts` bloqueia campos PII.
-- **`entity_type`/`entity_id`**: O `product_id` e um identificador que poderia ser correlacionado com dados pessoais. O rastreio por entidade ja e feito no audit log (`crm_activities`), que e interno e protegido por RLS.
+Uma tabela `embedding_jobs` faria sentido quando:
+- Houver processamento em batch (centenas de produtos)
+- For necessario retry automatico com backoff
+- For necessario dashboard de monitoring de jobs
+
+Nenhum destes cenarios esta activo no MVP.
 
 ## Resultado
 
-**Nenhuma alteracao necessaria.** O tracking analytics ja cobre o caso de uso com a separacao correcta:
-
-- **Analytics (GTM/Clarity)**: Eventos anonimizados com metricas agregaveis (`images_count`, `has_ai`, `category_id`, `channel`)
-- **Audit log (crm_activities)**: Registo completo com `entity_id`, `user_id`, `workspace_id`, `metadata`
+**Nenhuma alteracao necessaria.** O padrao fire-and-forget actual e suficiente para o MVP. O embedding so e disparado apos o AI improve (quando o produto ja tem conteudo enriquecido), o que e o momento correcto.
 
 ## Ficheiros a modificar
 
