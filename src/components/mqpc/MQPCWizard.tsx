@@ -1,29 +1,20 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ArrowRight, Loader2, Check } from "lucide-react";
 import { MQPCStepImages, type ImageItem } from "./MQPCStepImages";
 import { MQPCStepDetails, type ProductDetails } from "./MQPCStepDetails";
 import { MQPCStepExtras, type ExtrasData } from "./MQPCStepExtras";
-import { useCreateProduct } from "@/hooks/useProducts";
 import { useAdminStoreCategories } from "@/hooks/useAdminStoreCategories";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const STEPS = ["Imagens", "Dados", "Extras"];
 
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
 export function MQPCWizard() {
   const navigate = useNavigate();
-  const createProduct = useCreateProduct();
+  const { currentWorkspace } = useWorkspace();
   const { data: categories = [] } = useAdminStoreCategories();
   const [step, setStep] = useState(0);
   const [creating, setCreating] = useState(false);
@@ -43,7 +34,10 @@ export function MQPCWizard() {
     stockQuantity: "",
   });
 
-  const validateStep1 = () => true; // Images are optional
+  // Idempotency key ref - generated once per creation attempt, reused on retries
+  const idempotencyKeyRef = useRef<string | null>(null);
+
+  const validateStep1 = () => true;
   const validateStep2 = () => {
     const errors: Record<string, string> = {};
     if (!details.name.trim()) errors.name = "Nome é obrigatório";
@@ -69,31 +63,90 @@ export function MQPCWizard() {
       return;
     }
 
-    setCreating(true);
-    try {
-      const category = categories.find((c) => c.id === details.categoryId);
-      // Prefer storage_paths for future product-quick-create; fallback to public URLs for current useCreateProduct
-      const storagePaths = images.filter((img) => img.storagePath).map((img) => img.storagePath!);
-      const imageUrls = storagePaths.length > 0
-        ? storagePaths.map((p) => `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/product-images/${p}`)
-        : images.filter((img) => img.url).map((img) => img.url!);
+    if (!currentWorkspace?.id) {
+      toast.error("Workspace não encontrado");
+      return;
+    }
 
-      await createProduct.mutateAsync({
-        name: details.name.trim(),
-        base_price: parseFloat(details.price),
-        category: category?.name || "",
-        status: details.publishNow ? "active" : "draft",
-        short_description: extras.shortDescription || undefined,
-        commercial_description: extras.fullDescription || undefined,
-        sku: extras.sku || undefined,
-        images: imageUrls.length > 0 ? imageUrls : undefined,
-        sheet_slug: slugify(details.name),
-        stock_quantity: extras.stockQuantity ? parseInt(extras.stockQuantity) : undefined,
-        stock_status: extras.stockQuantity ? "in_stock" : undefined,
-        store_published: details.publishNow,
-        is_quick_created: true,
-        created_channel: "mobile_quick",
-      } as any);
+    setCreating(true);
+
+    // Generate idempotency key once
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current = `mqpc:${currentWorkspace.id}:${Date.now()}:${crypto.randomUUID().slice(0, 8)}`;
+    }
+
+    try {
+      const stockQty = extras.stockQuantity ? parseInt(extras.stockQuantity) : null;
+
+      const body = {
+        product: {
+          name: details.name.trim(),
+          price: {
+            amount: parseFloat(details.price),
+            currency: "EUR",
+            tax_included: true,
+          },
+          category_id: details.categoryId,
+          status: details.publishNow ? "active" : "draft",
+          short_description: extras.shortDescription || null,
+          description: extras.fullDescription || null,
+          sku: extras.sku || null,
+        },
+        images: images
+          .filter((img) => img.storagePath)
+          .map((img, i) => {
+            // Extract file_id from storage_path: workspaces/.../tmp/{file_id}.jpg
+            const parts = img.storagePath!.split("/");
+            const fileName = parts[parts.length - 1];
+            const fileId = fileName.replace(".jpg", "");
+            return {
+              file_id: fileId,
+              storage_path: img.storagePath!,
+              position: i + 1,
+              alt: details.name.trim(),
+            };
+          }),
+        inventory: {
+          track_stock: !!stockQty,
+          quantity: stockQty,
+          in_stock: true,
+        },
+        variants: [],
+        options: {
+          publish_now: details.publishNow,
+          generate_slug: true,
+          channel: "mobile_quick",
+          is_quick_created: true,
+          create_audit_log: true,
+        },
+        client: {
+          device: "mobile",
+          app_version: "fastcrm-web",
+          locale: "pt-PT",
+        },
+      };
+
+      const { data, error } = await supabase.functions.invoke(
+        "product-quick-create",
+        {
+          body,
+          headers: {
+            "X-Workspace-Id": currentWorkspace.id,
+            "X-Idempotency-Key": idempotencyKeyRef.current,
+          },
+        }
+      );
+
+      if (error) {
+        throw new Error(error.message || "Erro ao criar produto");
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.message || "Erro ao criar produto");
+      }
+
+      // Reset idempotency key after successful creation
+      idempotencyKeyRef.current = null;
 
       toast.success("Produto criado com sucesso! 🎉");
       navigate("/dashboard/store-products");
