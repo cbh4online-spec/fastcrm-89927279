@@ -8649,6 +8649,7 @@ export type Database = {
           external_thread_id: string | null
           id: string
           last_message_at: string | null
+          last_message_direction: string | null
           last_message_preview: string | null
           lead_id: string | null
           potential_value_estimate: number | null
@@ -8683,6 +8684,7 @@ export type Database = {
           external_thread_id?: string | null
           id?: string
           last_message_at?: string | null
+          last_message_direction?: string | null
           last_message_preview?: string | null
           lead_id?: string | null
           potential_value_estimate?: number | null
@@ -8717,6 +8719,7 @@ export type Database = {
           external_thread_id?: string | null
           id?: string
           last_message_at?: string | null
+          last_message_direction?: string | null
           last_message_preview?: string | null
           lead_id?: string | null
           potential_value_estimate?: number | null

@@ -384,7 +384,10 @@ export function ConversationList({
 
                         {/* Preview */}
                         {conv.last_message_preview && (
-                          <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                            {(conv as any).last_message_direction === "outbound" && (
+                              <span className="font-medium text-foreground/70">Você: </span>
+                            )}
                             {conv.last_message_preview}
                           </p>
                         )}

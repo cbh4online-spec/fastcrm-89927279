@@ -96,7 +96,17 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
       setMessage: (text: string) => setMessage(text),
     }));
 
+    const isLastMessageOutbound = messages.length > 0 && messages[messages.length - 1]?.direction === "outbound";
+
     const handleSuggestReply = async () => {
+      if (messages.length === 0) {
+        toast.info("Sem mensagens para analisar.");
+        return;
+      }
+      if (isLastMessageOutbound) {
+        toast.info("O cliente ainda não respondeu. Aguarde uma resposta antes de pedir sugestões.");
+        return;
+      }
       setShowAIPanel(true);
       setSuggestions([]);
       setReasoning("");
@@ -216,7 +226,7 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
                   variant="outline"
                   size="sm"
                   onClick={handleSuggestReply}
-                  disabled={isLoading}
+                  disabled={isLoading || isLastMessageOutbound}
                   className="h-7 text-xs gap-1"
                 >
                   {isLoading && !isModifying ? (
@@ -228,7 +238,7 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>AI sugere respostas com base no contexto da conversa e dados do CRM</p>
+                <p>{isLastMessageOutbound ? "O cliente ainda não respondeu — aguarde uma resposta" : "AI sugere respostas com base no contexto da conversa e dados do CRM"}</p>
               </TooltipContent>
             </Tooltip>
 
