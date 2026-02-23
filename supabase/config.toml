@@ -343,3 +343,6 @@ verify_jwt = false
 [functions.product-ai-improve]
 verify_jwt = false
 
+[functions.product-publish]
+verify_jwt = false
+
