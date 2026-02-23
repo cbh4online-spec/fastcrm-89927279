@@ -271,6 +271,78 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 9b. Handle image move failures
+    const totalRequested = images.length;
+    const totalFailed = totalRequested - promotedImages.length;
+    const allImagesFailed = totalFailed > 0 && totalFailed === totalRequested;
+
+    if (allImagesFailed) {
+      status = "draft";
+      await adminClient
+        .from("products")
+        .update({
+          status: "draft",
+          store_published: false,
+          metadata: {
+            last_error: "STORAGE_MOVE_FAILED",
+            failed_at: new Date().toISOString(),
+            failed_images_count: totalFailed,
+            requested_images_count: totalRequested,
+          },
+        })
+        .eq("id", productId);
+
+      await adminClient
+        .from("crm_activities")
+        .insert({
+          workspace_id: workspaceId,
+          entity_type: "product",
+          entity_id: productId,
+          activity_type: "product_image_finalize_failed",
+          title: `Falha ao finalizar imagens: ${name}`,
+          description: `Todas as ${totalRequested} imagens falharam no move storage`,
+          performed_by: userId,
+          metadata: {
+            channel: options.channel,
+            failed_images_count: totalFailed,
+            requested_images_count: totalRequested,
+            error_type: "STORAGE_MOVE_FAILED",
+          },
+        });
+
+      newProduct.status = "draft";
+
+    } else if (totalFailed > 0) {
+      await adminClient
+        .from("products")
+        .update({
+          metadata: {
+            partial_image_failure: true,
+            failed_images_count: totalFailed,
+            successful_images_count: promotedImages.length,
+            failed_at: new Date().toISOString(),
+          },
+        })
+        .eq("id", productId);
+
+      await adminClient
+        .from("crm_activities")
+        .insert({
+          workspace_id: workspaceId,
+          entity_type: "product",
+          entity_id: productId,
+          activity_type: "product_image_finalize_partial",
+          title: `Falha parcial nas imagens: ${name}`,
+          description: `${totalFailed} de ${totalRequested} imagens falharam`,
+          performed_by: userId,
+          metadata: {
+            channel: options.channel,
+            failed_images_count: totalFailed,
+            successful_images_count: promotedImages.length,
+          },
+        });
+    }
+
     // 10. Update product images array
     if (publicUrls.length > 0) {
       await adminClient
