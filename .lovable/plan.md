@@ -1,102 +1,70 @@
 
 
-# Melhorar Formatacao dos PDFs do Feature Registry
+# PDF Detalhado do Modulo B2B
 
-## Problemas Actuais
+## Problema
 
-Os PDFs actuais usam apenas texto simples com `jsPDF`, sem cores, sem fundos, sem bordas, sem tabelas formatadas. O resultado e um documento pouco profissional e dificil de ler.
+O registo actual do Portal B2B no Feature Registry tem apenas 2 modulos com 5 features no total, mas o codebase real mostra um sistema muito mais rico com 20+ paginas, 12 hooks dedicados, assistente de diagnostico IA, pesquisa semantica, aprovacoes, contratos, faturas, favoritos, gestao de equipas e tickets de suporte.
 
-## Melhorias a Implementar
+## O que sera feito
 
-### PDF Tecnico
+### 1. Expandir os dados B2B no Feature Registry
 
-1. **Capa profissional**
-   - Fundo azul escuro (#1a1a2e) no topo com titulo em branco
-   - Linha decorativa separadora
-   - Stats em cards lado-a-lado com fundo cinza claro
+Actualizar `src/types/featureRegistry.ts` para reflectir a realidade completa do modulo B2B, passando de 2 modulos para 6 sub-modulos:
 
-2. **Headers de categoria**
-   - Barra de fundo colorida com texto branco por cada categoria
-   - Cores distintas por categoria (CRM azul, IA roxo, Marketing verde, etc.)
+| Sub-modulo | Paginas | Hooks | Features |
+|---|---|---|---|
+| Portal B2B (Core) | 3 | useClientAuth, useClientPermissions | Gestao clientes, convites, activacao, roles |
+| Catalogo & Encomendas | 5 | useClientOrders, useClientProducts, useClientFavorites, useCart | Catalogo, carrinho, checkout, favoritos, re-encomenda 1 clique, prestacoes |
+| Aprovacoes & Workflow | 2 | useClientApprovals | Fluxo aprovacao, limites gastos, centro aprovacao |
+| Financeiro | 3 | useClientInvoices, useClientContracts | Faturas, contratos, SLAs, historico financeiro |
+| Suporte & Tickets | 2 | useClientTickets | Tickets, mensagens, estados, prioridades |
+| Intelligence Hub | 2 | useDiagnosticAssistant, useProductSemanticSearch, useProtocols | Copilot B2B, pesquisa semantica, diagnostico IA, recomendacoes, protocolos |
 
-3. **Cards de modulo**
-   - Fundo cinza claro (#f5f5f5) em rectángulo arredondado
-   - Nome do modulo em bold, badge de plano alinhado a direita
-   - Seccoes (Pages, Hooks, Edge Functions, Tables, Features) com icones textuais e indentacao clara
+### 2. Criar funcao de export PDF dedicado ao B2B
 
-4. **Features**
-   - Tag "[IA]" com fundo roxo claro e texto roxo
-   - Status com cor (active = verde, beta = amarelo, planned = cinza)
+Adicionar em `src/utils/featureRegistryExport.ts` uma nova funcao `exportB2BModulePDF()` que gera um PDF completo e detalhado focado exclusivamente no modulo B2B:
 
-5. **Separadores visuais**
-   - Linhas com gradiente ou cor por categoria entre modulos
+**Estrutura do PDF:**
 
-6. **Footer**
-   - Numero de pagina centrado em todas as paginas
-   - "FastCRM - Technical Architecture" no rodape
+1. **Capa** -- Fundo teal (#0d9488), titulo "FastCRM - Portal B2B", subtitulo "Documentacao Completa do Modulo", data e stats resumidos (total sub-modulos, features, paginas, hooks, edge functions)
 
-7. **Appendix**
-   - Edge functions e tabelas em colunas duplas para melhor uso do espaco
+2. **Visao Geral** -- Descricao do que e o Portal B2B, arquitectura de alto nivel (Admin CRM + Portal Cliente), roles disponiveis (client_admin, client_manager, client_viewer)
 
-### PDF Comercial
+3. **Por cada sub-modulo:**
+   - Header colorido com nome do sub-modulo
+   - Descricao detalhada
+   - Lista de paginas com rotas
+   - Lista de features com estado e badge IA
+   - Hooks utilizados
+   - Edge functions associadas
+   - Tabelas da base de dados
 
-1. **Capa premium**
-   - Fundo gradient azul escuro para azul
-   - "FastCRM" grande em branco, subtitulo elegante
-   - Stats em 4 boxes com icones textuais e numeros grandes
-   - Data formatada por extenso
+4. **Fluxo de Onboarding** -- Descricao passo-a-passo do processo de convite e activacao de conta
 
-2. **Headers de categoria**
-   - Barra colorida com label e contagem de modulos
+5. **Mapa de Permissoes** -- Tabela com roles vs funcionalidades (quem pode fazer o que)
 
-3. **Modulos**
-   - Card com borda esquerda colorida (accent da categoria)
-   - Nome em bold, plano como badge com fundo colorido
-   - Descricao em italico
-   - Features com bullet colorido, tag "IA" destacada com estrela dourada
+6. **Resumo Tecnico** -- Tabela final com todos os hooks, edge functions e tabelas do modulo
 
-4. **Tabela resumo final**
-   - Tabela com linhas alternadas (zebra striping)
-   - Header com fundo escuro e texto branco
-   - Linha de totais em bold com fundo destacado
+7. **Footer** -- "FastCRM - Portal B2B" + numero de pagina em todas as paginas
 
-5. **Footer**
-   - Numero de pagina + "Confidencial" no rodape
+### 3. Adicionar botao na UI
+
+Editar `src/components/super-admin/FeatureRegistrySection.tsx`:
+- Adicionar nova opcao "Modulo B2B (PDF)" no dropdown de exportacao
+- Importar e chamar `exportB2BModulePDF()`
+
+## Ficheiros a modificar
+
+| Ficheiro | Accao |
+|---|---|
+| `src/types/featureRegistry.ts` | Expandir dados dos modulos Portal B2B (linhas 697-738) |
+| `src/utils/featureRegistryExport.ts` | Adicionar funcao `exportB2BModulePDF()` |
+| `src/components/super-admin/FeatureRegistrySection.tsx` | Adicionar opcao no dropdown de export |
 
 ## Detalhes Tecnicos
 
-### Ficheiro a editar: `src/utils/featureRegistryExport.ts`
-
-Usar exclusivamente APIs do `jsPDF`:
-- `doc.setFillColor(r, g, b)` + `doc.rect(x, y, w, h, 'F')` para fundos coloridos
-- `doc.setTextColor(r, g, b)` para texto colorido
-- `doc.setFont(undefined, 'bold')` / `doc.setFont(undefined, 'normal')` para bold
-- `doc.setDrawColor()` + `doc.line()` para linhas decorativas
-- `doc.setPage()` + loop final para adicionar footers a todas as paginas
-
-### Cores por categoria
-```text
-Core:         #3b82f6 (azul)
-CRM:          #2563eb (azul escuro)
-Comunicacao:  #0891b2 (cyan)
-Vendas:       #059669 (verde)
-Marketing:    #d97706 (amber)
-Loja Online:  #7c3aed (roxo)
-Portal B2B:   #0d9488 (teal)
-Comunidade:   #e11d48 (rosa)
-IA:           #8b5cf6 (violeta)
-Estrategia:   #4f46e5 (indigo)
-Vertical:     #ca8a04 (amarelo)
-Admin:        #64748b (slate)
-```
-
-### Helpers adicionais
-- `drawColoredHeader(doc, text, color, y)` -- barra colorida com texto
-- `drawStatBox(doc, label, value, x, y)` -- box de estatistica
-- `drawModuleCard(doc, mod, y, accentColor)` -- card de modulo com borda
-- `addFooters(doc, title)` -- loop final para numeros de pagina
-
-### Resultado
-- PDFs visualmente profissionais, prontos para apresentacao a clientes
-- Hierarquia visual clara com cores, espacamento e tipografia
-- Consistencia de branding FastCRM em ambos os formatos
+A funcao `exportB2BModulePDF()` reutilizara os helpers existentes (`drawColoredHeader`, `drawStatBox`, `checkPage`, `drawAITag`, `drawPlanBadge`, `addFooters`) e adicionara helpers especificos:
+- `drawPermissionsTable()` -- tabela de roles vs permissoes com zebra striping
+- `drawOnboardingFlow()` -- fluxo visual passo-a-passo
+- Cor principal: teal `[13, 148, 136]` consistente com a categoria Portal B2B
