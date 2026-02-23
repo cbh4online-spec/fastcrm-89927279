@@ -1,84 +1,119 @@
 
-# Corrigir classificacao de canal: conversas do Instagram a aparecer como SMS
 
-## Problema raiz
+# Corrigir conversas existentes com canal errado
 
-A API do GHL retorna `type: 1` (SMS) ao nivel da conversa, mesmo para conversas que sao de Instagram. O campo `lastMessageType` tambem nem sempre reflete o canal correto. O canal real so e visivel no campo `type` de cada mensagem individual (tipo 17 ou 18 = Instagram).
+## Problema
 
-O codigo atual em `ghl-sync-conversations/index.ts` usa `resolveChannel(ghlConv.type, ghlConv.lastMessageType)` para determinar o canal, resultando em "sms" para conversas que na realidade sao do Instagram.
-
-Alem disso, a logica de reclassificacao (linha 569) so corrige conversas com canal `"other"` -- conversas ja marcadas como `"sms"` nunca sao reclassificadas.
+As alteracoes anteriores ao sync vao prevenir futuras classificacoes erradas, mas as conversas **ja existentes** na base de dados continuam com `channel = "sms"` quando na realidade sao do Instagram. Isto impede o envio de respostas porque o sistema tenta enviar como SMS (tipo GHL "SMS") em vez de Instagram (tipo GHL "IG").
 
 ## Solucao
 
-### Ficheiro: `supabase/functions/ghl-sync-conversations/index.ts`
+Duas acoes complementares:
 
-**a) Reclassificar com base nas mensagens individuais:**
+### 1. Migracao para corrigir dados existentes
 
-Apos buscar as mensagens de uma conversa, verificar os tipos das mensagens para determinar o canal real. Se alguma mensagem tiver tipo 17 ou 18 (Instagram), reclassificar a conversa de "sms" para "instagram".
+Criar uma migracao SQL que reclassifica conversas existentes com base nos tipos das mensagens ja guardadas. Se uma conversa tem `channel = "sms"` mas as suas mensagens foram sincronizadas com `external_message_id` contendo tipos Instagram (ou o `channel_metadata` indica fonte GHL com tipos IG), atualizar o canal.
 
-Adicionar logica apos o loop de mensagens (depois da linha ~650):
+A abordagem mais fiavel: verificar a tabela `messages` para cada conversa "sms" de fonte GHL e ver se o `channel_metadata` contem indicadores de Instagram (como `ghl_message_type` 17 ou 18), ou usar os dados do `ghl_sync_log` para inferir o canal real.
 
-```text
-// Apos processar todas as mensagens, verificar se o canal precisa de reclassificacao
-// Coletar os tipos das mensagens processadas
-// Se encontrar tipo 17/18 e a conversa esta como "sms" -> atualizar para "instagram"
-// Mesma logica para tipo 15/16 (whatsapp), 5/19 (messenger), etc.
-```
+Alternativa mais simples e segura: como o `cron-sync-messages` e `ghl-sync-conversations` agora ja fazem reclassificacao automatica, basta **forcar uma re-sincronizacao completa** que vai corrigir os canais. Mas para correcao imediata, uma migracao e mais rapida.
 
-**b) Expandir reclassificacao para alem de "other":**
+### 2. Protecao no envio de mensagens
 
-Na linha 569, mudar a condicao de `existingConv?.channel === "other"` para tambem incluir `"sms"` quando o canal resolvido for mais especifico (instagram, whatsapp, messenger):
-
-```text
-// ANTES
-if (existingConv?.channel === "other" && channel !== "other")
-
-// DEPOIS  
-if ((existingConv?.channel === "other" || existingConv?.channel === "sms") && 
-    channel !== "other" && channel !== "sms" && 
-    channel !== existingConv?.channel)
-```
-
-**c) Inferir canal a partir das mensagens quando o canal da conversa e "sms":**
-
-Apos o loop de mensagens, se o canal inicial era "sms", analisar os tipos das mensagens para determinar o canal real e atualizar a conversa:
-
-```text
-// Recolher os tipos das mensagens num Set
-// Se contem tipo 17 ou 18 -> canal real = "instagram"
-// Se contem tipo 15 ou 16 -> canal real = "whatsapp"  
-// Se o canal real != canal atual da conversa -> UPDATE
-```
-
-### Ficheiro: `supabase/functions/cron-sync-messages/index.ts`
-
-**Mesma logica de reclassificacao apos processar mensagens:**
-
-No cron sync, apos inserir mensagens, verificar se os tipos indicam um canal diferente do registado na conversa e atualizar.
+Adicionar logica ao `ghl-send-message` para que, antes de enviar, verifique os tipos das mensagens recentes da conversa. Se detectar que as mensagens sao de tipo Instagram (17/18) mas o canal esta como "sms", corrigir automaticamente o canal e enviar com o tipo correto ("IG" em vez de "SMS").
 
 ## Detalhes tecnicos
 
-### Alteracoes em `ghl-sync-conversations/index.ts`
+### Migracao SQL
 
-1. No loop de mensagens (linhas 612-650), acumular os `msg.type` num array/set
-2. Apos o loop, determinar o "canal real" com base nos tipos das mensagens
-3. Se o canal real for diferente do canal da conversa e mais especifico (nao "sms"/"other"), atualizar a conversa
-4. Expandir condicao de reclassificacao na linha 569
+```sql
+-- Reclassificar conversas "sms" que tem mensagens com ghl_message_type 17 ou 18
+-- Baseado no channel_metadata das conversas que foram sincronizadas do GHL
+UPDATE conversations c
+SET channel = 'instagram'
+WHERE c.channel = 'sms'
+  AND c.channel_metadata IS NOT NULL
+  AND (c.channel_metadata->>'source' IN ('ghl', 'ghl_sync'))
+  AND EXISTS (
+    SELECT 1 FROM messages m 
+    WHERE m.conversation_id = c.id 
+    AND m.external_message_id IS NOT NULL
+  )
+  AND EXISTS (
+    SELECT 1 FROM ghl_sync_log g
+    WHERE g.workspace_id = c.workspace_id
+    AND g.ghl_entity_type IN ('message_inbound', 'message_outbound')
+    AND (g.payload->>'messageType')::int IN (17, 18)
+    AND g.fastcrm_entity_id IN (
+      SELECT m2.id FROM messages m2 WHERE m2.conversation_id = c.id
+    )
+  );
+```
 
-### Alteracoes em `cron-sync-messages/index.ts`
+Se o `ghl_sync_log` nao tiver dados suficientes, uma alternativa mais agressiva (mas segura para este caso):
 
-1. Mesma logica: apos inserir mensagens, verificar tipos e reclassificar se necessario
+```sql
+-- Alternativa: reclassificar TODAS as conversas "sms" de fonte GHL 
+-- que tenham metadata com indicadores de Instagram
+UPDATE conversations
+SET channel = 'instagram'
+WHERE channel = 'sms'
+  AND channel_metadata IS NOT NULL
+  AND (
+    channel_metadata->>'source' IN ('ghl', 'ghl_sync')
+  )
+  AND (
+    channel_metadata->>'ghl_last_message_type' IN ('17', '18')
+    OR channel_metadata->>'lastMessageType' IN ('17', '18')
+  );
+```
+
+### Alteracoes em `supabase/functions/ghl-send-message/index.ts`
+
+Na funcao `mapChannelToGHLType`, adicionar uma verificacao extra: antes de determinar o tipo GHL, consultar as ultimas mensagens da conversa para inferir o canal real. Se o canal registado e "sms" mas as mensagens indicam Instagram, usar "IG".
+
+Concretamente, apos a linha 301 (`const ghlMessageType = mapChannelToGHLType(messageChannel)`), adicionar:
+
+```typescript
+// Auto-detect real channel from recent messages if current is "sms"
+let finalMessageType = ghlMessageType;
+if (messageChannel === "sms" && channelMetadata?.source) {
+  // Check ghl_sync_log or message patterns for Instagram indicators
+  const { data: recentSyncLogs } = await supabase
+    .from("ghl_sync_log")
+    .select("payload")
+    .eq("workspace_id", conversation.workspace_id)
+    .eq("fastcrm_entity_id", conversationId)
+    .in("ghl_entity_type", ["message_inbound", "message_outbound"])
+    .order("created_at", { ascending: false })
+    .limit(5);
+  
+  const hasIGType = recentSyncLogs?.some(log => {
+    const mt = (log.payload as any)?.messageType;
+    return mt === 17 || mt === 18;
+  });
+  
+  if (hasIGType) {
+    finalMessageType = "IG";
+    // Also fix the conversation channel for future
+    await supabase.from("conversations")
+      .update({ channel: "instagram" })
+      .eq("id", conversationId);
+  }
+}
+```
 
 ### Ficheiros a modificar
 
 | Ficheiro | Alteracao |
 |---|---|
-| `supabase/functions/ghl-sync-conversations/index.ts` | Inferir canal real a partir dos tipos de mensagens; expandir reclassificacao |
-| `supabase/functions/cron-sync-messages/index.ts` | Mesma logica de reclassificacao baseada nos tipos de mensagens |
+| Migracao SQL | Corrigir canal de conversas existentes mal classificadas |
+| `supabase/functions/ghl-send-message/index.ts` | Auto-detectar e corrigir canal antes de enviar; usar tipo GHL correto |
 
 ## Resultado esperado
 
-- Conversas do Instagram que estavam como "sms" serao reclassificadas para "instagram" na proxima sincronizacao
-- Novas conversas do Instagram serao criadas com o canal correto
-- O utilizador pode clicar "Sincronizar tudo" para forcar a reclassificacao de todas as conversas existentes
+- Conversas existentes mal classificadas sao corrigidas imediatamente pela migracao
+- O envio de mensagens auto-detecta o canal correto mesmo se a conversa ainda tiver canal errado
+- O canal e corrigido automaticamente no momento do envio para evitar problemas futuros
+- O utilizador consegue responder a todas as conversas do Instagram sem erros
+
