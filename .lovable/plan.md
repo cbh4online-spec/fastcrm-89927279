@@ -1,113 +1,104 @@
 
-# Criar Editor de Aparência Premium para Funis
 
-## Problema atual
+# Templates Premium com IA para Bio OS
 
-A tab "Aparência" do template builder tem apenas 2 campos de texto para cores HSL. O editor de steps dos funis (FunnelStepEditor) tambem e muito basico -- apenas titulo, subtitulo, corpo e cor do CTA. Nao existe controlo real sobre tipografia, backgrounds, espacamento, sombras ou layout.
+## Conceito
 
-## Solucao
+Criar uma galeria de templates premium pre-definidos que o utilizador pode aplicar com 1 clique, cada um optimizado para uma vertical/industria especifica. Os templates sao gerados via IA no momento da seleccao (usando o edge function `bio-ai-builder` existente), mas com parametros pre-configurados para garantir resultados de alta qualidade.
 
-Criar um editor de aparencia premium com controlo visual completo, organizado em seccoes claras, para ambos os contextos (Templates AIDA e Steps de Funis).
+## O que sera criado
 
-## Componentes a criar
+### 1. Galeria de Templates (`src/components/bio/BioTemplateGallery.tsx`)
 
-### 1. Color Picker visual (`src/components/ui/color-picker.tsx`)
+Um dialog/modal com uma grelha visual de templates premium, cada um com:
+- Card com preview visual (gradiente de cores + icone da industria)
+- Nome do template (ex: "Coach de Fitness", "Restaurante Gourmet", "Consultora Imobiliaria")
+- Descricao curta (1 linha)
+- Indicador de vertical e tom
+- Botao "Usar Template" que gera a pagina automaticamente
 
-Componente reutilizavel que combina:
-- Input nativo `type="color"` para seleccao visual
-- Campo de texto para valor hex/hsl
-- Preview da cor seleccionada
-- Presets de cores populares (paleta rapida)
+**Templates incluidos (12 templates em 4 categorias):**
 
-### 2. Editor de Aparencia Premium (`src/components/funnels/AppearanceEditor.tsx`)
+| Categoria | Template | Cor | Tom |
+|---|---|---|---|
+| **Servicos** | Coach de Fitness | #16a34a | Energetico |
+| | Consultoria de Negocios | #2563eb | Profissional |
+| | Terapeuta / Wellness | #8b5cf6 | Elegante |
+| **Comercio** | Restaurante Gourmet | #dc2626 | Casual |
+| | Loja Online | #f59e0b | Divertido |
+| | Salao de Beleza | #ec4899 | Elegante |
+| **Criativo** | Fotografo Profissional | #1e1b4b | Minimalista |
+| | Designer / Portfolio | #6366f1 | Profissional |
+| | Musico / Artista | #7c3aed | Energetico |
+| **Digital** | Agencia de Marketing | #0891b2 | Profissional |
+| | Freelancer Tech | #059669 | Casual |
+| | Influencer / Creator | #e11d48 | Divertido |
 
-Painel completo com 4 seccoes colapsaveis (Accordion):
+### 2. Integracao na pagina Bio OS (`src/pages/BioOS.tsx`)
 
-**A. Paleta de Cores**
-- Cor primaria (com color picker visual)
-- Cor accent/secundaria (com color picker visual)
-- Cor de fundo (background)
-- Cor de texto
-- 6-8 presets de paletas prontas (ex: "Profissional Azul", "Energia Verde", "Luxo Dourado", "Tech Roxo")
+- Adicionar botao "Templates Premium" ao lado dos botoes existentes
+- O botao abre a galeria de templates
+- Ao seleccionar um template, o sistema chama o `bio-ai-builder` com os parametros pre-configurados do template
+- Mostra o mesmo ecrã de loading do BioAIWizard durante a geracao
+- Apos geracao, abre directamente o builder da pagina
 
-**B. Tipografia**
-- Font family para titulos (select com 8-10 Google Fonts populares: Inter, Poppins, Montserrat, Playfair Display, etc.)
-- Font family para corpo
-- Tamanho base (slider: 14-20px)
-- Peso dos titulos (slider: 400-900)
-
-**C. Layout e Espacamento**
-- Border radius (slider: 0-24px com preview)
-- Padding das seccoes (slider: compact/normal/spacious)
-- Estilo do CTA: filled, outline, gradient
-- Sombra dos cards (none, sm, md, lg)
-
-**D. Background e Efeitos**
-- Tipo de fundo: cor solida, gradiente, imagem
-- Gradiente: seleccao de 2 cores + direcao (0-360 graus)
-- Opacidade do overlay (slider 0-100)
-
-### 3. Preview em tempo real
-
-Painel lateral direito com mini-preview que actualiza em tempo real conforme as opcoes sao alteradas, mostrando uma mini landing page com as cores/fontes/espacamento aplicados.
-
-## Alteracoes nos ficheiros existentes
-
-### `src/components/landing-pages/VerticalTemplateBuilder.tsx`
-- Substituir o conteudo da tab "Aparência" (linhas 516-553) pelo novo `AppearanceEditor`
-- Expandir o objecto `cores` no form para incluir os novos campos (background, text_color, font_heading, font_body, border_radius, cta_style, shadow, gradient)
-
-### `src/components/funnels/FunnelStepEditor.tsx`
-- Adicionar uma seccao de "Design" abaixo do conteudo actual, usando o mesmo `AppearanceEditor` adaptado ao contexto de step
-
-### Schema do form (campos novos no objecto `cores`)
+### 3. Fluxo do utilizador
 
 ```text
-cores: {
-  primaria: string        (existente)
-  accent: string          (existente)
-  background: string      (novo, default: "#ffffff")
-  text_color: string      (novo, default: "#1a1a1a")
-  font_heading: string    (novo, default: "Inter")
-  font_body: string       (novo, default: "Inter")
-  border_radius: number   (novo, default: 12)
-  cta_style: string       (novo, default: "filled")
-  shadow: string          (novo, default: "md")
-  gradient: {             (novo, opcional)
-    from: string
-    to: string
-    angle: number
-  } | null
+Bio OS --> [Templates Premium] --> Galeria (12 templates)
+  --> Clica num template --> Loading com animacao
+  --> Pagina criada --> Abre o Builder
+```
+
+## Detalhes tecnicos
+
+### Ficheiro: `src/components/bio/BioTemplateGallery.tsx` (novo)
+
+Componente principal com:
+- Array de `PREMIUM_TEMPLATES` com parametros pre-definidos para cada template (vertical, objective, offer, tone)
+- Dialog com grelha responsiva (2-3 colunas)
+- Cards visuais com gradiente baseado na cor do template
+- Estado de geracao com animacao (reutiliza o padrao do BioAIWizard)
+- Chamada ao edge function `bio-ai-builder` existente (nao e necessario criar novo)
+- Apos sucesso, cria a pagina e blocos usando os hooks existentes (`useCreateBioPage`, `useCreateBioBlock`)
+
+Estrutura de cada template:
+```typescript
+interface PremiumTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: string; // nome do icone Lucide
+  color: string; // cor primaria hex
+  params: {
+    vertical: string;
+    objective: string;
+    offer: string;
+    tone: string;
+  };
 }
 ```
 
-Nota: Como o campo `cores` na base de dados e JSONB, nao e necessaria migracao -- os novos campos sao adicionados automaticamente ao objecto JSON.
+### Ficheiro: `src/pages/BioOS.tsx` (modificar)
 
-## Ficheiros a criar/modificar
+- Importar `BioTemplateGallery`
+- Adicionar estado `templateGalleryOpen`
+- Adicionar botao "Templates" com icone `LayoutGrid`
+- Renderizar `BioTemplateGallery` com as mesmas props do `BioAIWizard` (open, onOpenChange, onPageCreated)
+
+### Ficheiros a criar/modificar
 
 | Ficheiro | Accao |
 |---|---|
-| `src/components/ui/color-picker.tsx` | Criar -- componente color picker reutilizavel |
-| `src/components/funnels/AppearanceEditor.tsx` | Criar -- editor premium com 4 seccoes |
-| `src/components/landing-pages/VerticalTemplateBuilder.tsx` | Modificar -- substituir tab Aparência |
-| `src/components/funnels/FunnelStepEditor.tsx` | Modificar -- adicionar seccao de design |
-
-## Presets de paletas incluidos
-
-| Nome | Primaria | Accent | Background | Texto |
-|---|---|---|---|---|
-| Profissional Azul | #2563eb | #3b82f6 | #f8fafc | #0f172a |
-| Energia Verde | #16a34a | #22c55e | #f0fdf4 | #14532d |
-| Luxo Dourado | #b45309 | #f59e0b | #fffbeb | #451a03 |
-| Tech Roxo | #7c3aed | #a78bfa | #f5f3ff | #1e1b4b |
-| Coral Moderno | #e11d48 | #fb7185 | #fff1f2 | #4c0519 |
-| Neutro Elegante | #374151 | #6b7280 | #f9fafb | #111827 |
+| `src/components/bio/BioTemplateGallery.tsx` | Criar -- galeria de 12 templates premium com geracao IA |
+| `src/pages/BioOS.tsx` | Modificar -- adicionar botao e integrar galeria |
 
 ## Resultado esperado
 
-- Editor de aparencia visualmente rico e intuitivo
-- Seleccao de cores com picker visual (nao apenas texto HSL)
-- Paletas pre-definidas para aplicar com 1 clique
-- Controlo de tipografia, espacamento e efeitos
-- Preview em tempo real das alteracoes
-- Compativel com ambos os contextos (Templates AIDA e Steps de Funis)
+- 12 templates premium organizados por categoria
+- Geracao com 1 clique (sem wizard de 4 passos)
+- Mesmo edge function `bio-ai-builder` reutilizado
+- Cards visuais com cores e icones representativos
+- Animacao de loading durante geracao
+- Pagina pronta para editar apos geracao
