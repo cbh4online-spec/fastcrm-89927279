@@ -17,6 +17,7 @@ import {
   MenuPermissionsSection,
   FunctionalAuditSection,
   ModerationSection,
+  ActivityLogsSection,
 } from "@/components/super-admin";
 import { AdminSettingsPanel } from "@/components/admin/AdminSettingsPanel";
 import { UserRolesPanel } from "@/components/admin/UserRolesPanel";
@@ -98,6 +99,8 @@ export default function SuperAdmin() {
         return <WorkspacesSection />; // Filter for suspended
       case "moderation":
         return <ModerationSection />;
+      case "activity-logs":
+        return <ActivityLogsSection />;
       case "logs":
         return <LogsSection />;
       case "audit":
