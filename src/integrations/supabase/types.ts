@@ -5081,6 +5081,56 @@ export type Database = {
           },
         ]
       }
+      client_consumption_analytics: {
+        Row: {
+          category: string | null
+          company_id: string
+          created_at: string | null
+          id: string
+          line: string | null
+          pathology: string | null
+          period_month: string
+          total_qty: number | null
+          total_value_net: number | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          category?: string | null
+          company_id: string
+          created_at?: string | null
+          id?: string
+          line?: string | null
+          pathology?: string | null
+          period_month: string
+          total_qty?: number | null
+          total_value_net?: number | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          category?: string | null
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          line?: string | null
+          pathology?: string | null
+          period_month?: string
+          total_qty?: number | null
+          total_value_net?: number | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_consumption_analytics_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_contracts: {
         Row: {
           auto_renew: boolean
@@ -5371,6 +5421,67 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "client_price_tiers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_product_rankings: {
+        Row: {
+          company_id: string
+          id: string
+          last_purchased_at: string | null
+          period_days: number
+          product_id: string
+          product_name: string
+          total_qty: number | null
+          total_value_net: number | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          company_id: string
+          id?: string
+          last_purchased_at?: string | null
+          period_days?: number
+          product_id: string
+          product_name: string
+          total_qty?: number | null
+          total_value_net?: number | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string
+          id?: string
+          last_purchased_at?: string | null
+          period_days?: number
+          product_id?: string
+          product_name?: string
+          total_qty?: number | null
+          total_value_net?: number | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_product_rankings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "client_product_rankings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_product_rankings_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -18936,6 +19047,95 @@ export type Database = {
           },
         ]
       }
+      pathologies: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          position: number | null
+          slug: string
+          tags: string[] | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          position?: number | null
+          slug: string
+          tags?: string[] | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          position?: number | null
+          slug?: string
+          tags?: string[] | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pathologies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pathology_protocols: {
+        Row: {
+          created_at: string | null
+          id: string
+          notes: string | null
+          pathology_id: string
+          position: number | null
+          protocol_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          pathology_id: string
+          position?: number | null
+          protocol_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          pathology_id?: string
+          position?: number | null
+          protocol_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pathology_protocols_pathology_id_fkey"
+            columns: ["pathology_id"]
+            isOneToOne: false
+            referencedRelation: "pathologies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pathology_protocols_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "product_protocols"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_conditions: {
         Row: {
           code: string
@@ -22181,6 +22381,102 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocol_kit_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_optional: boolean | null
+          kit_id: string
+          notes: string | null
+          position: number | null
+          product_id: string
+          suggested_qty: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_optional?: boolean | null
+          kit_id: string
+          notes?: string | null
+          position?: number | null
+          product_id: string
+          suggested_qty?: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_optional?: boolean | null
+          kit_id?: string
+          notes?: string | null
+          position?: number | null
+          product_id?: string
+          suggested_qty?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocol_kit_items_kit_id_fkey"
+            columns: ["kit_id"]
+            isOneToOne: false
+            referencedRelation: "protocol_kits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_kit_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "protocol_kit_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocol_kits: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_default: boolean | null
+          kit_level: Database["public"]["Enums"]["kit_level"]
+          kit_name: string
+          position: number | null
+          protocol_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          kit_level?: Database["public"]["Enums"]["kit_level"]
+          kit_name: string
+          position?: number | null
+          protocol_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          kit_level?: Database["public"]["Enums"]["kit_level"]
+          kit_name?: string
+          position?: number | null
+          protocol_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocol_kits_protocol_id_fkey"
+            columns: ["protocol_id"]
+            isOneToOne: false
+            referencedRelation: "product_protocols"
             referencedColumns: ["id"]
           },
         ]
@@ -31043,6 +31339,7 @@ export type Database = {
         Args: { p_channel: string; p_workspace_id: string }
         Returns: Json
       }
+      get_client_company_id: { Args: { _user_id: string }; Returns: string }
       get_client_roles: {
         Args: { _auth_user_id: string }
         Returns: Database["public"]["Enums"]["client_role"][]
@@ -31660,6 +31957,7 @@ export type Database = {
       goal_status: "not_started" | "in_progress" | "completed" | "failed"
       integration_mode: "embed" | "redirect" | "headless"
       job_status: "pending" | "running" | "completed" | "failed" | "cancelled"
+      kit_level: "basic" | "advanced" | "custom"
       opportunity_subscription_status:
         | "draft"
         | "active"
@@ -32048,6 +32346,7 @@ export const Constants = {
       goal_status: ["not_started", "in_progress", "completed", "failed"],
       integration_mode: ["embed", "redirect", "headless"],
       job_status: ["pending", "running", "completed", "failed", "cancelled"],
+      kit_level: ["basic", "advanced", "custom"],
       opportunity_subscription_status: [
         "draft",
         "active",

@@ -346,3 +346,9 @@ verify_jwt = false
 [functions.product-publish]
 verify_jwt = false
 
+[functions.ai-protocol-recommendations]
+verify_jwt = false
+
+[functions.ai-cart-recommendations]
+verify_jwt = false
+
