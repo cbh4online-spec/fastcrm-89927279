@@ -10,8 +10,15 @@ interface ImageItem {
   file: File;
   preview: string;
   url: string | null;
+  storagePath: string | null;
   uploading: boolean;
   error: boolean;
+}
+
+interface PresignedUpload {
+  path: string;
+  signedUrl: string;
+  token: string;
 }
 
 interface MQPCStepImagesProps {
@@ -53,57 +60,71 @@ async function compressImage(file: File): Promise<Blob> {
   });
 }
 
+async function requestPresignedUrls(
+  count: number,
+  workspaceId: string
+): Promise<PresignedUpload[]> {
+  const { data, error } = await supabase.functions.invoke(
+    "product-images-presign",
+    {
+      body: { count },
+      headers: { "X-Workspace-Id": workspaceId },
+    }
+  );
+  if (error) throw new Error(error.message || "Failed to get upload URLs");
+  if (!data?.uploads) throw new Error("Invalid presign response");
+  return data.uploads as PresignedUpload[];
+}
+
+async function uploadToSignedUrl(
+  signedUrl: string,
+  blob: Blob
+): Promise<void> {
+  const res = await fetch(signedUrl, {
+    method: "PUT",
+    body: blob,
+    headers: { "Content-Type": "image/jpeg" },
+  });
+  if (!res.ok) {
+    throw new Error(`Upload failed: ${res.status}`);
+  }
+}
+
+function buildPublicUrl(storagePath: string): string {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  return `${supabaseUrl}/storage/v1/object/public/product-images/${storagePath}`;
+}
+
 export function MQPCStepImages({ images, onImagesChange }: MQPCStepImagesProps) {
   const { currentWorkspace } = useWorkspace();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [compressing, setCompressing] = useState(false);
 
-  const uploadImage = useCallback(
-    async (item: ImageItem): Promise<ImageItem> => {
-      if (!currentWorkspace?.id) return { ...item, error: true };
+  const imagesRef = useRef(images);
+  imagesRef.current = images;
+
+  const uploadSingleImage = useCallback(
+    async (
+      item: ImageItem,
+      presigned: PresignedUpload
+    ): Promise<ImageItem> => {
       try {
         const compressed = await compressImage(item.file);
-        const path = `products/${currentWorkspace.id}/${Date.now()}-${item.id}.jpg`;
-        const { error } = await supabase.storage
-          .from("product-images")
-          .upload(path, compressed, { contentType: "image/jpeg" });
-        if (error) throw error;
-        const { data: urlData } = supabase.storage
-          .from("product-images")
-          .getPublicUrl(path);
-        return { ...item, url: urlData.publicUrl, uploading: false, error: false };
+        await uploadToSignedUrl(presigned.signedUrl, compressed);
+        const publicUrl = buildPublicUrl(presigned.path);
+        return {
+          ...item,
+          url: publicUrl,
+          storagePath: presigned.path,
+          uploading: false,
+          error: false,
+        };
       } catch {
         return { ...item, uploading: false, error: true };
       }
     },
-    [currentWorkspace?.id]
+    []
   );
-
-  const handleFiles = async (files: FileList) => {
-    const remaining = MAX_IMAGES - images.length;
-    if (remaining <= 0) {
-      toast.error(`Máximo de ${MAX_IMAGES} imagens`);
-      return;
-    }
-    const selected = Array.from(files).slice(0, remaining);
-    setCompressing(true);
-
-    const newItems: ImageItem[] = selected.map((file, i) => ({
-      id: `${Date.now()}-${i}`,
-      file,
-      preview: URL.createObjectURL(file),
-      url: null,
-      uploading: true,
-      error: false,
-    }));
-
-    const updated = [...images, ...newItems];
-    onImagesChange(updated);
-    setCompressing(false);
-  };
-
-  const imagesRef = useRef(images);
-  imagesRef.current = images;
 
   const handleFilesWithRef = async (files: FileList) => {
     const remaining = MAX_IMAGES - imagesRef.current.length;
@@ -111,6 +132,11 @@ export function MQPCStepImages({ images, onImagesChange }: MQPCStepImagesProps) 
       toast.error(`Máximo de ${MAX_IMAGES} imagens`);
       return;
     }
+    if (!currentWorkspace?.id) {
+      toast.error("Workspace não encontrado");
+      return;
+    }
+
     const selected = Array.from(files).slice(0, remaining);
     setCompressing(true);
 
@@ -119,6 +145,7 @@ export function MQPCStepImages({ images, onImagesChange }: MQPCStepImagesProps) 
       file,
       preview: URL.createObjectURL(file),
       url: null,
+      storagePath: null,
       uploading: true,
       error: false,
     }));
@@ -127,10 +154,33 @@ export function MQPCStepImages({ images, onImagesChange }: MQPCStepImagesProps) 
     onImagesChange(updated);
     setCompressing(false);
 
-    for (const item of newItems) {
-      const result = await uploadImage(item);
+    // Request presigned URLs for all new images at once
+    let presignedUrls: PresignedUpload[];
+    try {
+      presignedUrls = await requestPresignedUrls(
+        newItems.length,
+        currentWorkspace.id
+      );
+    } catch (err: any) {
+      // Mark all as error
       onImagesChange(
-        imagesRef.current.map((img) => (img.id === item.id ? result : img))
+        imagesRef.current.map((img) =>
+          newItems.some((ni) => ni.id === img.id)
+            ? { ...img, uploading: false, error: true }
+            : img
+        )
+      );
+      toast.error("Erro ao preparar upload: " + err.message);
+      return;
+    }
+
+    // Upload each image individually via presigned URL
+    for (let i = 0; i < newItems.length; i++) {
+      const result = await uploadSingleImage(newItems[i], presignedUrls[i]);
+      onImagesChange(
+        imagesRef.current.map((img) =>
+          img.id === newItems[i].id ? result : img
+        )
       );
     }
   };
@@ -149,10 +199,26 @@ export function MQPCStepImages({ images, onImagesChange }: MQPCStepImagesProps) 
 
   const retryUpload = async (id: string) => {
     const item = images.find((img) => img.id === id);
-    if (!item) return;
-    onImagesChange(images.map((img) => (img.id === id ? { ...img, uploading: true, error: false } : img)));
-    const result = await uploadImage(item);
-    onImagesChange(imagesRef.current.map((img) => (img.id === id ? result : img)));
+    if (!item || !currentWorkspace?.id) return;
+    onImagesChange(
+      images.map((img) =>
+        img.id === id ? { ...img, uploading: true, error: false } : img
+      )
+    );
+
+    try {
+      const [presigned] = await requestPresignedUrls(1, currentWorkspace.id);
+      const result = await uploadSingleImage(item, presigned);
+      onImagesChange(
+        imagesRef.current.map((img) => (img.id === id ? result : img))
+      );
+    } catch {
+      onImagesChange(
+        imagesRef.current.map((img) =>
+          img.id === id ? { ...img, uploading: false, error: true } : img
+        )
+      );
+    }
   };
 
   return (
