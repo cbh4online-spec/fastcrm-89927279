@@ -21168,6 +21168,7 @@ export type Database = {
           labor_hours: number | null
           labor_included_in_price: boolean | null
           labor_notes: string | null
+          line: string | null
           low_stock_threshold: number
           metadata: Json | null
           min_order_quantity: number | null
@@ -21246,6 +21247,7 @@ export type Database = {
           labor_hours?: number | null
           labor_included_in_price?: boolean | null
           labor_notes?: string | null
+          line?: string | null
           low_stock_threshold?: number
           metadata?: Json | null
           min_order_quantity?: number | null
@@ -21324,6 +21326,7 @@ export type Database = {
           labor_hours?: number | null
           labor_included_in_price?: boolean | null
           labor_notes?: string | null
+          line?: string | null
           low_stock_threshold?: number
           metadata?: Json | null
           min_order_quantity?: number | null

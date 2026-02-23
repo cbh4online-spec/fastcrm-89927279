@@ -57,6 +57,8 @@ interface ProductDetailModalProps {
   onOpenChange: (open: boolean) => void;
   onAddToCart: (product: Product, quantity: number) => void;
   vatRate?: number;
+  effectivePrice?: number;
+  hasDiscount?: boolean;
 }
 
 export function ProductDetailModal({
@@ -65,6 +67,8 @@ export function ProductDetailModal({
   onOpenChange,
   onAddToCart,
   vatRate = 23,
+  effectivePrice,
+  hasDiscount,
 }: ProductDetailModalProps) {
   const [quantity, setQuantity] = useState(1);
 
@@ -94,7 +98,8 @@ export function ProductDetailModal({
 
   if (!product) return null;
 
-  const unitPriceNet = product.base_price;
+  const unitPriceNet = effectivePrice ?? product.base_price;
+  const showStrikethrough = hasDiscount && effectivePrice != null && effectivePrice < product.base_price;
   const lineVat = calculateVAT(unitPriceNet * quantity, vatRate);
   const lineGross = calculateGross(unitPriceNet * quantity, vatRate);
 
@@ -156,10 +161,18 @@ export function ProductDetailModal({
                 <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                   <div className="flex items-baseline justify-between">
                     <span className="text-sm text-muted-foreground">Preço unitário (s/IVA)</span>
-                    <span className="text-lg font-semibold">
-                      {unitPriceNet.toFixed(2)}€
-                    </span>
+                    <div className="text-right">
+                      <span className="text-lg font-semibold">
+                        {unitPriceNet.toFixed(2)}€
+                      </span>
+                      {showStrikethrough && (
+                        <span className="text-sm text-muted-foreground line-through ml-2">
+                          {product.base_price.toFixed(2)}€
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  
                   
                   <Separator />
                   
