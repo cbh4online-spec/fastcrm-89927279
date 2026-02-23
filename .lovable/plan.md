@@ -1,77 +1,64 @@
 
 
-# Corrigir e Enriquecer Templates Premium do Bio OS
+# Corrigir Incompatibilidades de Campos nos Templates Premium
 
-## Problema Identificado
+## Problema Principal
 
-Os templates parecem "vazios" no preview por duas razoes:
+Os templates tem conteudo rico, mas os renderers da pagina publica (`PublicBioPage.tsx`) esperam campos com nomes diferentes dos que os templates enviam. Resultado: blocos ficam vazios ou nao aparecem.
 
-1. **Campos com nomes errados**: Os templates usam `buttonText` e `buttonUrl` mas o sistema espera `cta_text` e `cta_url`. O CTA do hero nunca aparece no preview.
-2. **Testimonials mal formatados**: Os templates enviam `testimonials[]` (array) mas o preview le `content.text` e `content.author` (campos simples). O depoimento nunca aparece.
-3. **Poucos blocos visuais**: Faltam blocos de FAQ, imagem e mais features para dar "corpo" a pagina.
+## Incompatibilidades Detectadas
+
+| Bloco | Template envia | Renderer espera | Resultado |
+|---|---|---|---|
+| **Testimonials** | `{ text, author }` (campos simples) | `{ items: [{ text, author }] }` (array) | Testemunhos vazios |
+| **FAQ** | `{ question, answer }` (campo unico) | `{ items: [{ question, answer }] }` (array) | FAQ vazio |
+| **Feature** | `subtitle` | `description` | Descricao nao aparece |
+| **Social** | `{ links: [{ platform, url }] }` (array) | `content.instagram`, `content.facebook` (campos directos) | Icones nao aparecem |
 
 ## Solucao
 
-### 1. Corrigir campos dos templates (`BioTemplateGallery.tsx`)
+Corrigir os **templates** para usar os formatos que os renderers ja esperam, E actualizar os **renderers** para suportar ambos os formatos (retrocompatibilidade).
 
-Para todos os 12 templates:
-- Substituir `buttonText` por `cta_text` e `buttonUrl` por `cta_url` nos blocos hero
-- Converter blocos `testimonials` de array para blocos individuais com `text` e `author`
-- Adicionar mais blocos por template (12-15 cada) incluindo:
-  - Segundo bloco de texto motivacional / prova social
-  - Bloco FAQ com pergunta/resposta
-  - Mais features com subtitulos detalhados
-  - Bloco de imagem placeholder
-  - Segundo botao CTA no final
+### Ficheiro 1: `src/components/bio/BioTemplateGallery.tsx`
 
-### 2. Melhorar o preview de testimonials (`BioBlockPreviewCard.tsx`)
+Corrigir os campos de todos os 12 templates:
 
-- Actualizar o renderer `testimonials` para suportar AMBOS os formatos:
-  - Formato antigo: `content.text` + `content.author` (campo simples)
-  - Formato novo: `content.testimonials[]` (array com `name` e `text`)
-- Mostrar multiplos testemunhos se existir array (ate 3)
-- Adicionar estrelas visuais ao preview
+- **Testimonials**: mudar de `{ text, author }` para `{ items: [{ text, author }] }` -- agrupar os 3 testemunhos num so bloco com array `items`
+- **FAQ**: mudar de `{ question, answer }` para `{ items: [{ question, answer }] }` -- ou agrupar multiplas FAQs num bloco
+- **Feature**: mudar `subtitle` para `description` (campo que o renderer le)
+- **Social**: mudar de `{ links: [] }` para `{ instagram: "url", facebook: "url", ... }` (campos directos por plataforma)
 
-### 3. Estrutura enriquecida de cada template (exemplo Coach Fitness)
+### Ficheiro 2: `src/pages/PublicBioPage.tsx`
 
-| # | Tipo | Conteudo |
-|---|---|---|
-| 1 | hero | Titulo + Subtitulo + CTA (com `cta_text`/`cta_url`) |
-| 2 | feature | Treino Personalizado (com subtitulo detalhado + CTA) |
-| 3 | feature | Acompanhamento Semanal |
-| 4 | feature | Plano Nutricional |
-| 5 | feature | App de Treino (novo) |
-| 6 | text | Citacao motivacional |
-| 7 | button | "Marcar Avaliacao Gratuita" |
-| 8 | testimonials | Testemunho 1 (text + author) |
-| 9 | testimonials | Testemunho 2 (text + author) |
-| 10 | testimonials | Testemunho 3 (text + author) |
-| 11 | text | Prova social / numeros |
-| 12 | button | "Comecar Hoje — Condicoes Especiais" |
-| 13 | divider | Separador |
-| 14 | whatsapp | Contacto WhatsApp |
-| 15 | social | Redes sociais |
+Actualizar renderers para suportar ambos os formatos (templates novos + blocos criados manualmente):
 
-Todos os 12 templates seguirao esta estrutura mais rica (14-15 blocos cada).
+- **TestimonialsBlock**: se `items` nao existir, usar `[{ text: content.text, author: content.author }]`
+- **FAQBlock**: se `items` nao existir, usar `[{ question: content.question, answer: content.answer }]`
+- **FeatureBlock**: ler `description || subtitle` para retrocompatibilidade
+- **SocialBlock**: suportar tanto `content.instagram` como `content.links[]`
 
-### 4. Melhorias adicionais nos blocos
+### Ficheiro 3: `src/components/bio/BioBlockPreviewCard.tsx`
 
-- Features com `cta_text` preenchido (ex: "Saber Mais", "Ver Detalhes") para os CTAs aparecerem no preview
-- Cada template tera 3 testimonials individuais em vez de 1 bloco com array
-- Textos mais longos e detalhados nos subtitulos das features
-- Segundo bloco de texto com numeros/metricas (prova social)
+Actualizar previews para consistencia:
+
+- **FAQ preview**: mostrar as perguntas do array `items` em vez de apenas o label "FAQ"
+- **Feature preview**: garantir que le `description || subtitle`
+- **Social preview**: mostrar icones das plataformas configuradas
 
 ## Ficheiros a modificar
 
 | Ficheiro | Accao |
 |---|---|
-| `src/components/bio/BioTemplateGallery.tsx` | Corrigir nomes dos campos, adicionar mais blocos, enriquecer conteudo |
-| `src/components/bio/BioBlockPreviewCard.tsx` | Melhorar renderer de testimonials para suportar ambos formatos e mostrar estrelas |
+| `src/components/bio/BioTemplateGallery.tsx` | Corrigir nomes dos campos em todos os 12 templates |
+| `src/pages/PublicBioPage.tsx` | Actualizar renderers para suportar ambos formatos |
+| `src/components/bio/BioBlockPreviewCard.tsx` | Melhorar previews de FAQ, Feature e Social |
 
 ## Resultado esperado
 
-- Hero com CTA visivel no preview (botao "Comecar Agora" aparece)
-- Testemunhos com texto e autor visiveis
-- Features com sub-CTAs visiveis
-- 14-15 blocos por template em vez de 10
-- Pagina com aspecto completo e profissional ao ser criada
+- Todos os blocos dos templates aparecem com conteudo completo na pagina publica
+- Testemunhos com texto, autor e estrelas visiveis
+- FAQs com perguntas expandiveis
+- Features com descricoes e CTAs
+- Redes sociais com icones clicaveis
+- Retrocompatibilidade com blocos criados manualmente
+
