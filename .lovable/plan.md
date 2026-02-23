@@ -1,119 +1,119 @@
 
 
-# Auditoria C/D/E/F -- Estado actual e melhorias
+# Correcao: Mensagens nao actualizam em tempo real + impossibilidade de responder
 
-## C) product-ai-improve
+## Problema identificado
 
-### C.1 products UPDATE -- Estado: Parcialmente implementado
+Existem dois problemas relacionados com o cliente Supabase utilizado para operacoes de mensagens:
 
-O write-back ja funciona (linha 210-243), actualizando `short_description`, `commercial_description`, `search_keywords`, `specifications.seo_snippet` e `updated_at`.
+### 1. Realtime nao funciona (mensagens nao actualizam)
 
-**Falta**: campos `ai_last_enriched_at` e `ai_last_enriched_by`. Estes campos nao existem na tabela `products`. Recomendo adiciona-los ao `metadata` JSONB (ja existe apos a migracao anterior) em vez de criar colunas dedicadas:
+O hook `useMessages` (linha 67) usa `workspaceClient` para criar a subscricao Realtime:
 
 ```text
-metadata: {
-  ai_last_enriched_at: now,
-  ai_last_enriched_by: userId,
-  ai_model: "google/gemini-3-flash-preview",
-  ai_fields_generated: ["short_description", "tags", ...]
-}
+const channel = workspaceClient
+  .channel(`messages-${conversationId}`)
+  .on("postgres_changes", ...)
 ```
 
-**Accao**: No bloco write-back (linha 232), adicionar merge de `metadata` com info de enriquecimento IA.
+Enquanto o hook `useConversations` (linha 86) usa correctamente o cliente principal `supabase`:
 
-### C.2 activity_logs -- Estado: Implementado com ajuste necessario
+```text
+const channel = supabase
+  .channel(`conversations-realtime-${currentWorkspace.id}`)
+  .on("postgres_changes", ...)
+```
 
-O audit log ja existe (linha 262-272) mas usa:
-- `activity_type: "ai_action"` em vez de `"product_ai_improved"`
-- `subject` em vez de `title` (campo que pode nao existir na tabela)
+Quando o `workspaceClient` e um cliente dinamico (criado via `createDynamicClient`), este cliente nao partilha a sessao autenticada do cliente principal. Resultado: a subscricao Realtime falha silenciosamente porque o cliente dinamico nao tem token de autenticacao valido, e as policies RLS bloqueiam o acesso.
 
-**Accao**: Alterar `activity_type` para `"product_ai_improved"` e usar `title` em vez de `subject`. Adicionar `ai_model` ao metadata.
+### 2. Impossibilidade de responder
 
-### C.3 analytics_events -- Estado: Nao implementado na Edge Function
+O `useSendMessage` (linha 270) usa `workspaceClient` para inserir mensagens directamente na tabela `messages`:
 
-O analytics e tratado no frontend (hook `useCRMAnalytics`), nao na Edge Function. Isto e o padrao correcto -- a Edge Function grava audit log, o frontend dispara analytics.
+```text
+const { data: message, error: messageError } = await workspaceClient
+  .from("messages")
+  .insert({...})
+```
 
-**Accao**: Nenhuma na Edge Function. O frontend ja trata disto quando chama o hook.
+A tabela `messages` tem RLS activo com a policy:
 
-### C.4 product_embeddings -- Estado: Implementado
+```sql
+CREATE POLICY "Members can create messages"
+  ON public.messages FOR INSERT
+  WITH CHECK (is_workspace_member(auth.uid(), workspace_id));
+```
 
-O fire-and-forget para `product-embedding` ja existe (linha 247-257) quando `create_embeddings=true`.
+Se o `workspaceClient` nao tem sessao valida, `auth.uid()` retorna `null` e a policy bloqueia o INSERT.
 
-**Accao**: Nenhuma.
+## Solucao
 
----
+Alterar o `useMessages` para usar o cliente principal `supabase` (importado de `@/integrations/supabase/client`) para a subscricao Realtime, seguindo o mesmo padrao que o `useConversations` ja usa com sucesso.
 
-## D) product-publish
-
-### D.1 products UPDATE -- Estado: Completo
-
-Ja actualiza `status`, `store_published`, `updated_at` (linha 118-125). Nao tem campo `published_at` dedicado na tabela, mas o `updated_at` serve esse proposito.
-
-**Accao**: Nenhuma.
-
-### D.2 activity_logs -- Estado: Completo
-
-Ja insere com `activity_type: "product_published"` ou `"product_unpublished"`, com `title`, `description`, `metadata` incluindo `channel` e `previous_status` (linha 136-154).
-
-**Accao**: Nenhuma.
-
-### D.3 analytics_events -- Estado: Tratado pelo frontend
-
-O analytics de publish e disparado pelo frontend ao chamar o hook `useProductPublish`. Nao e responsabilidade da Edge Function.
-
-**Accao**: Nenhuma.
+Adicionalmente, apos o envio de uma mensagem, fazer `refetch` imediato das mensagens para garantir que a UI actualiza instantaneamente (sem depender apenas do Realtime).
 
 ---
 
-## E) Leituras (SELECT) -- Estado: Completo
+## Detalhes tecnicos
 
-Todas as validacoes de leitura ja estao implementadas:
+### Ficheiro: `src/hooks/useMessages.ts`
 
-| Tabela | Funcao | Linha |
-|---|---|---|
-| workspace_members (membership + role) | Todas as 3 functions | product-quick-create:64, product-ai-improve:55, product-publish:58 |
-| product_categories | product-quick-create | Linha 130-134 |
-| products | product-ai-improve, product-publish | ai-improve:91, publish:89 |
-| product_images | product-publish | Linha 105-108 (fallback de validacao) |
-| storage_upload_intents | product-quick-create | Linha 230-234 (update status) |
-| product_creation_idempotency | product-quick-create | Linha 82-94 |
+**Alteracao 1 -- Realtime subscription (linhas 63-87)**
 
-**Accao**: Nenhuma.
+Substituir `workspaceClient` por `supabase` (cliente principal) na subscricao Realtime:
 
----
+```typescript
+import { supabase } from "@/integrations/supabase/client";
 
-## F) Idempotencia -- Estado: Implementado
+// Dentro do useEffect de realtime:
+const channel = supabase  // <-- usar supabase em vez de workspaceClient
+  .channel(`messages-${conversationId}`)
+  .on(
+    "postgres_changes",
+    {
+      event: "INSERT",
+      schema: "public",
+      table: "messages",
+      filter: `conversation_id=eq.${conversationId}`,
+    },
+    () => {
+      queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
+      queryClient.invalidateQueries({ queryKey: ["conversations", currentWorkspace.id] });
+    }
+  )
+  .subscribe();
 
-O `product-quick-create` ja implementa idempotencia completa:
+return () => {
+  supabase.removeChannel(channel);  // <-- usar supabase
+};
+```
 
-1. Header `X-Idempotency-Key` aceite (linha 60)
-2. SELECT da tabela `product_creation_idempotency` no inicio (linha 82-94)
-3. INSERT do `response_payload` no fim (linha 425-434)
-4. Se a key ja existe, retorna a resposta original sem re-processar
+Remover `workspaceClient` das dependencias do useEffect ja que deixa de ser necessario.
 
-A tabela `product_creation_idempotency` ja grava `workspace_id`, `product_id`, `response_payload` e `idempotency_key`.
+**Alteracao 2 -- Refetch imediato apos envio (linhas 302-307)**
 
-**Accao**: Nenhuma. O campo `status='processing'/'completed'` mencionado na recomendacao seria um nice-to-have, mas o padrao actual (INSERT no fim com response completa) ja previne duplicados. Um request concorrente simplesmente nao encontraria a key e criaria um segundo produto -- mas isso e um edge case extremamente raro em mobile.
+No `onSuccess` do `useSendMessage`, adicionar `refetchQueries` em vez de apenas `invalidateQueries` para garantir actualizacao imediata:
 
----
+```typescript
+onSuccess: (data, variables) => {
+  recordMessage(data.conversation_id, "outbound", variables.isAutomated);
+  
+  // Refetch imediato para actualizar a UI sem esperar pelo Realtime
+  queryClient.refetchQueries({ queryKey: ["messages", data.conversation_id] });
+  queryClient.invalidateQueries({ queryKey: ["conversations", currentWorkspace?.id] });
+},
+```
 
-## Resumo de alteracoes
+### Ficheiros a modificar
 
-Apenas a Edge Function `product-ai-improve` precisa de ajustes:
-
-### Ficheiro: `supabase/functions/product-ai-improve/index.ts`
-
-1. **Write-back** (linha 232): Adicionar merge de `metadata` com campos de enriquecimento IA (`ai_last_enriched_at`, `ai_last_enriched_by`, `ai_model`, `ai_fields_generated`)
-
-2. **Audit log** (linha 262): Corrigir `activity_type` de `"ai_action"` para `"product_ai_improved"` e usar `title` em vez de `subject`. Adicionar `ai_model` ao metadata.
-
-### Sem alteracoes necessarias
-
-| Componente | Razao |
+| Ficheiro | Alteracao |
 |---|---|
-| product-publish | Completo |
-| SELECTs (E) | Todos implementados |
-| Idempotencia (F) | Ja funcional |
-| Analytics | Responsabilidade do frontend |
-| Embeddings | Fire-and-forget ja implementado |
+| `src/hooks/useMessages.ts` | Usar `supabase` no Realtime + refetch imediato apos envio |
+
+### Impacto
+
+- Mensagens inbound aparecem em tempo real (subscricao Realtime funcional)
+- Respostas enviadas aparecem instantaneamente na UI (refetch imediato)
+- Zero breaking changes -- apenas corrige o cliente usado internamente
+- Segue o padrao ja estabelecido pelo `useConversations`
 
