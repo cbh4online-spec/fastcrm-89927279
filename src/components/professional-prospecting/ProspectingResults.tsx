@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useLeadEnricherSettings } from "@/hooks/useLeadEnricherSettings";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -120,6 +121,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { settings: enricherSettings } = useLeadEnricherSettings();
   const [pollingStartTime] = useState(() => Date.now());
   const [searchFilter, setSearchFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
@@ -560,7 +562,10 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
             profiles: profileInputs,
             tone: defaultTone || "casual",
             workspaceContext: wsContext,
-            serviceContext: null,
+            serviceContext: enricherSettings.service_offer ? {
+              offer: enricherSettings.service_offer,
+              painPoints: enricherSettings.service_pain_points,
+            } : null,
           },
         });
 
