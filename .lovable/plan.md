@@ -1,97 +1,74 @@
 
-# Corrigir sugestao AI prematura e preview da lista de conversas
 
-## Problema 1: AI sugere resposta quando o cliente ainda nao respondeu
+# Redesign da lista de conversas ao estilo Instagram DMs
 
-Na imagem, a conversa so tem uma mensagem outbound (enviada pelo utilizador). Ainda assim, o AI gerou uma sugestao de resposta. Isto nao faz sentido -- o AI so deve sugerir respostas quando a ultima mensagem for do cliente (inbound), caso contrario esta a "responder a si proprio".
+## Objetivo
 
-### Solucao
+Simplificar a lista de conversas para seguir o estilo visual do Instagram Direct Messages, com layout limpo e claro onde se identifica facilmente a mensagem mais recente e quem a enviou.
 
-No ficheiro `src/components/inbox/AIMessageComposer.tsx`:
+## Alteracoes visuais
 
-1. Na funcao `handleSuggestReply`, verificar se a ultima mensagem e inbound antes de gerar sugestoes
-2. Se a ultima mensagem for outbound, mostrar um aviso ao utilizador: "O cliente ainda nao respondeu. Aguarde uma resposta antes de pedir sugestoes."
-3. Permitir override com um clique adicional caso o utilizador queira forcar a sugestao (ex: para gerar follow-up)
+### Layout de cada item da conversa
 
-Logica:
+Estilo atual: avatar + nome + canal + preview (2 linhas) + badges de prioridade + valor + unread count
 
-```text
-handleSuggestReply:
-  lastMessage = messages[messages.length - 1]
-  if lastMessage.direction === "outbound":
-    toast.info("O cliente ainda nao respondeu. Aguarde uma resposta.")
-    return (sem chamar AI)
-```
+Estilo novo (Instagram-like):
+- Avatar (40px) a esquerda
+- Nome em bold no topo, preview numa unica linha abaixo
+- Preview com prefixo "Tu: " para mensagens outbound
+- Tempo relativo alinhado a direita do preview (ex: "3 h", "17 h")
+- Indicador de nao lida: ponto azul a direita (em vez de badge com numero)
+- Nome em bold quando ha mensagens nao lidas
+- Icone de canal pequeno junto ao nome (manter para distinguir canais)
+- Remover badges de prioridade, valor estimado e SLA da lista (manter no painel de contexto)
 
-Tambem desativar visualmente o botao "Sugerir resposta" quando a ultima mensagem for outbound, com tooltip explicativo.
-
----
-
-## Problema 2: Lista de conversas corta mensagens sem contexto
-
-O preview da ultima mensagem na lista lateral:
-- Usa `truncate` que corta o texto numa unica linha sem indicacao de quem enviou
-- Nao mostra se a mensagem e do cliente ou do utilizador
-- Nao se percebe se esta alinhado pela mensagem mais recente
-
-### Solucao
-
-No ficheiro `src/components/inbox/ConversationList.tsx`:
-
-1. Adicionar prefixo ao preview indicando a direcao: "Voce: ..." para outbound, sem prefixo para inbound
-2. Aumentar o preview para 2 linhas usando `line-clamp-2` em vez de `truncate` (1 linha)
-3. Garantir que o `last_message_preview` ja reflete a mensagem mais recente (verificar query)
-
-Alteracao concreta na linha 387-389:
+### Estrutura visual de cada item
 
 ```text
-// ANTES
-<p className="text-xs text-muted-foreground truncate mt-0.5">
-  {conv.last_message_preview}
-</p>
-
-// DEPOIS
-<p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-  {conv.last_message_direction === "outbound" && (
-    <span className="font-medium text-foreground/70">Voce: </span>
-  )}
-  {conv.last_message_preview}
-</p>
++-------------------------------------------+
+| [Avatar]  Nome do Contacto  [canal]       |
+|           Tu: Ultima mensagem...  · 3 h  ●|
++-------------------------------------------+
 ```
 
-Nota: preciso verificar se o campo `last_message_direction` existe na query de conversas. Se nao existir, adicionar ao hook `useConversations`.
+Quando nao lida:
+- Nome em **bold** (font-semibold)
+- Preview em texto mais escuro
+- Ponto azul (w-2 h-2 rounded-full bg-blue-500) a direita
 
----
+Quando lida:
+- Nome em peso normal (font-normal)
+- Preview em text-muted-foreground
+- Sem ponto
 
 ## Detalhes tecnicos
 
-### Ficheiro: `src/components/inbox/AIMessageComposer.tsx`
-
-- Na funcao `handleSuggestReply` (linha 99), adicionar verificacao:
-  - Se `messages.length === 0` ou ultima mensagem e `outbound`, mostrar toast e nao chamar AI
-  - Alterar estado do botao "Sugerir resposta" para disabled quando ultima mensagem e outbound
-
 ### Ficheiro: `src/components/inbox/ConversationList.tsx`
 
-- Linha 387-389: mudar `truncate` para `line-clamp-2`
-- Adicionar prefixo "Voce: " quando a ultima mensagem for outbound
-- Verificar se `last_message_direction` esta disponivel no tipo `Conversation` (se nao, verificar o hook `useConversations`)
+1. **Simplificar o bloco de cada conversa** (linhas 336-414):
+   - Remover a linha de badges (priority, value, unread count badge)
+   - Preview numa unica linha com `truncate` (nao `line-clamp-2`)
+   - Mover o tempo para a mesma linha do preview, separado por " · "
+   - Substituir o badge de unread por um ponto azul simples
+   - Aplicar `font-semibold` ao nome quando `unread_count > 0`
 
-### Ficheiro: `src/hooks/useConversations.ts` (se necessario)
+2. **Aumentar ligeiramente o avatar** de `h-9 w-9` para `h-10 w-10`
 
-- Verificar se o campo `last_message_direction` e retornado pela view/query
-- Se nao existir, adicionar ao select ou calcular a partir da `last_message_preview`
+3. **Simplificar o layout da linha do nome**:
+   - Nome + icone de canal na primeira linha
+   - Preview + tempo + ponto azul na segunda linha
 
 ### Ficheiros a modificar
 
 | Ficheiro | Alteracao |
 |---|---|
-| `src/components/inbox/AIMessageComposer.tsx` | Bloquear sugestao AI quando ultima mensagem e outbound |
-| `src/components/inbox/ConversationList.tsx` | Preview em 2 linhas com prefixo de direcao |
-| `src/hooks/useConversations.ts` | Adicionar `last_message_direction` se nao existir |
+| `src/components/inbox/ConversationList.tsx` | Redesign dos itens da lista ao estilo Instagram DMs |
 
 ## Resultado esperado
 
-- O AI so sugere respostas quando ha uma mensagem do cliente para responder
-- A lista de conversas mostra previews mais completos (2 linhas) com indicacao de quem enviou
-- O utilizador percebe rapidamente quais conversas aguardam resposta do cliente vs quais tem mensagens novas do cliente
+- Lista de conversas limpa e facil de ler
+- Identificacao imediata de mensagens nao lidas (ponto azul + nome bold)
+- Preview claro com indicacao de quem enviou ("Tu: ...")
+- Tempo relativo visivel junto ao preview
+- Menos ruido visual, foco na informacao essencial
+
