@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { GlobalSearch } from "./GlobalSearch";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { SmartAlertsPopover } from "@/components/inbox/SmartAlertsPopover";
+
 import { HelpSupportDropdown } from "./HelpSupportDropdown";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
@@ -89,7 +89,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
 
         <NotificationBell />
         
-        <SmartAlertsPopover className="h-9 w-9 p-0" />
+        
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
