@@ -137,7 +137,7 @@ export function EntitySidebarMenu({
   };
 
   return (
-    <div className="w-56 border-r bg-muted/30 flex-shrink-0">
+    <div className="w-56 border-r bg-muted/30 flex-shrink-0 h-full overflow-hidden">
       <ScrollArea className="h-full">
         <div className="p-3 space-y-1">
           {MENU_SECTIONS.map((section, sectionIndex) => {

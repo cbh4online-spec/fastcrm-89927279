@@ -322,7 +322,7 @@ export function LeadDetailWithSidebar() {
   };
 
   return (
-    <div className="h-full flex flex-col -m-6">
+    <div className="flex flex-col -m-6" style={{ height: 'calc(100vh - 64px)' }}>
       {/* Breadcrumbs */}
       <div className="bg-background px-6 pt-4">
         <PageBreadcrumbs

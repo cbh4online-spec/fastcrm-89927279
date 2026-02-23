@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import { LinkedConversationsCard } from "./LinkedConversationsCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -830,21 +831,8 @@ export function ContactMessagesSection({
             </CardContent>
           </Card>
 
-          {/* Recent Activity Placeholder */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Histórico Recente
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-4 text-muted-foreground">
-                <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-xs">Nenhuma mensagem recente</p>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Recent Conversations - Real Data */}
+          <LinkedConversationsCard entityType={entityType} entityId={entityId} />
         </div>
       </div>
 
