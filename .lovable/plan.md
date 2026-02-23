@@ -1,102 +1,113 @@
 
-# Corrigir Autopilot que nao responde apos mensagem manual
+# Criar Editor de Aparência Premium para Funis
 
-## Problema identificado
+## Problema atual
 
-Quando envias uma mensagem manualmente pela Inbox, o sistema guarda essa mensagem com o teu `sender_id`. Quando o cliente responde, o autopilot verifica a ultima mensagem de saida e encontra um `sender_id` humano -- e entra em modo "sleep" (pausa), assumindo que um humano esta a tratar da conversa.
-
-Este comportamento e controlado pela opcao `sleep_on_human_reply` (linha 856 do `ghl-webhook-message`). O autopilot faz exatamente o que esta programado, mas o resultado e que nunca responde automaticamente numa conversa onde o utilizador ja tenha enviado uma mensagem manual.
+A tab "Aparência" do template builder tem apenas 2 campos de texto para cores HSL. O editor de steps dos funis (FunnelStepEditor) tambem e muito basico -- apenas titulo, subtitulo, corpo e cor do CTA. Nao existe controlo real sobre tipografia, backgrounds, espacamento, sombras ou layout.
 
 ## Solucao
 
-Alterar a logica de `sleep_on_human_reply` para verificar nao apenas se o ultimo outbound tem `sender_id`, mas tambem se houve um inbound DEPOIS desse outbound humano. Se o cliente ja respondeu a mensagem humana, o autopilot deve retomar automaticamente.
+Criar um editor de aparencia premium com controlo visual completo, organizado em seccoes claras, para ambos os contextos (Templates AIDA e Steps de Funis).
 
-Logica atual:
+## Componentes a criar
+
+### 1. Color Picker visual (`src/components/ui/color-picker.tsx`)
+
+Componente reutilizavel que combina:
+- Input nativo `type="color"` para seleccao visual
+- Campo de texto para valor hex/hsl
+- Preview da cor seleccionada
+- Presets de cores populares (paleta rapida)
+
+### 2. Editor de Aparencia Premium (`src/components/funnels/AppearanceEditor.tsx`)
+
+Painel completo com 4 seccoes colapsaveis (Accordion):
+
+**A. Paleta de Cores**
+- Cor primaria (com color picker visual)
+- Cor accent/secundaria (com color picker visual)
+- Cor de fundo (background)
+- Cor de texto
+- 6-8 presets de paletas prontas (ex: "Profissional Azul", "Energia Verde", "Luxo Dourado", "Tech Roxo")
+
+**B. Tipografia**
+- Font family para titulos (select com 8-10 Google Fonts populares: Inter, Poppins, Montserrat, Playfair Display, etc.)
+- Font family para corpo
+- Tamanho base (slider: 14-20px)
+- Peso dos titulos (slider: 400-900)
+
+**C. Layout e Espacamento**
+- Border radius (slider: 0-24px com preview)
+- Padding das seccoes (slider: compact/normal/spacious)
+- Estilo do CTA: filled, outline, gradient
+- Sombra dos cards (none, sm, md, lg)
+
+**D. Background e Efeitos**
+- Tipo de fundo: cor solida, gradiente, imagem
+- Gradiente: seleccao de 2 cores + direcao (0-360 graus)
+- Opacidade do overlay (slider 0-100)
+
+### 3. Preview em tempo real
+
+Painel lateral direito com mini-preview que actualiza em tempo real conforme as opcoes sao alteradas, mostrando uma mini landing page com as cores/fontes/espacamento aplicados.
+
+## Alteracoes nos ficheiros existentes
+
+### `src/components/landing-pages/VerticalTemplateBuilder.tsx`
+- Substituir o conteudo da tab "Aparência" (linhas 516-553) pelo novo `AppearanceEditor`
+- Expandir o objecto `cores` no form para incluir os novos campos (background, text_color, font_heading, font_body, border_radius, cta_style, shadow, gradient)
+
+### `src/components/funnels/FunnelStepEditor.tsx`
+- Adicionar uma seccao de "Design" abaixo do conteudo actual, usando o mesmo `AppearanceEditor` adaptado ao contexto de step
+
+### Schema do form (campos novos no objecto `cores`)
+
 ```text
-ultimo outbound tem sender_id? --> SLEEP (sempre)
-```
-
-Logica corrigida:
-```text
-ultimo outbound tem sender_id?
-  --> houve inbound DEPOIS desse outbound? --> CONTINUAR (cliente respondeu)
-  --> nao houve inbound depois? --> SLEEP (humano ainda a tratar)
-```
-
-Isto permite que:
-- Envies uma mensagem manual
-- O cliente responda
-- O autopilot retome e responda automaticamente
-
-## Detalhes tecnicos
-
-### Ficheiro: `supabase/functions/ghl-webhook-message/index.ts`
-
-**Linhas 855-877** - Alterar o bloco `sleep_on_human_reply`:
-
-Atual:
-```typescript
-if (autopilotConfig.sleep_on_human_reply) {
-  const { data: lastOutbound } = await supabase
-    .from("messages")
-    .select("sender_id")
-    .eq("conversation_id", conversationId)
-    .eq("direction", "outbound")
-    .order("sent_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (lastOutbound?.sender_id) {
-    console.log("[AUTOPILOT] Human agent replied, sleeping autopilot");
-    // ... log event and return
-  }
+cores: {
+  primaria: string        (existente)
+  accent: string          (existente)
+  background: string      (novo, default: "#ffffff")
+  text_color: string      (novo, default: "#1a1a1a")
+  font_heading: string    (novo, default: "Inter")
+  font_body: string       (novo, default: "Inter")
+  border_radius: number   (novo, default: 12)
+  cta_style: string       (novo, default: "filled")
+  shadow: string          (novo, default: "md")
+  gradient: {             (novo, opcional)
+    from: string
+    to: string
+    angle: number
+  } | null
 }
 ```
 
-Corrigido:
-```typescript
-if (autopilotConfig.sleep_on_human_reply) {
-  const { data: lastOutbound } = await supabase
-    .from("messages")
-    .select("sender_id, sent_at")
-    .eq("conversation_id", conversationId)
-    .eq("direction", "outbound")
-    .order("sent_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+Nota: Como o campo `cores` na base de dados e JSONB, nao e necessaria migracao -- os novos campos sao adicionados automaticamente ao objecto JSON.
 
-  if (lastOutbound?.sender_id) {
-    // Check if there was an inbound AFTER the human reply
-    const { data: inboundAfterHuman } = await supabase
-      .from("messages")
-      .select("id")
-      .eq("conversation_id", conversationId)
-      .eq("direction", "inbound")
-      .gt("sent_at", lastOutbound.sent_at)
-      .limit(1)
-      .maybeSingle();
+## Ficheiros a criar/modificar
 
-    if (!inboundAfterHuman) {
-      // No client reply after human message - stay sleeping
-      console.log("[AUTOPILOT] Human agent replied, no client response yet, sleeping");
-      // ... log event and return
-    } else {
-      // Client responded after human message - autopilot can resume
-      console.log("[AUTOPILOT] Client replied after human message, autopilot resuming");
-    }
-  }
-}
-```
-
-### Ficheiros a modificar
-
-| Ficheiro | Alteracao |
+| Ficheiro | Accao |
 |---|---|
-| `supabase/functions/ghl-webhook-message/index.ts` | Ajustar logica sleep_on_human_reply para verificar se houve inbound apos mensagem humana |
+| `src/components/ui/color-picker.tsx` | Criar -- componente color picker reutilizavel |
+| `src/components/funnels/AppearanceEditor.tsx` | Criar -- editor premium com 4 seccoes |
+| `src/components/landing-pages/VerticalTemplateBuilder.tsx` | Modificar -- substituir tab Aparência |
+| `src/components/funnels/FunnelStepEditor.tsx` | Modificar -- adicionar seccao de design |
+
+## Presets de paletas incluidos
+
+| Nome | Primaria | Accent | Background | Texto |
+|---|---|---|---|---|
+| Profissional Azul | #2563eb | #3b82f6 | #f8fafc | #0f172a |
+| Energia Verde | #16a34a | #22c55e | #f0fdf4 | #14532d |
+| Luxo Dourado | #b45309 | #f59e0b | #fffbeb | #451a03 |
+| Tech Roxo | #7c3aed | #a78bfa | #f5f3ff | #1e1b4b |
+| Coral Moderno | #e11d48 | #fb7185 | #fff1f2 | #4c0519 |
+| Neutro Elegante | #374151 | #6b7280 | #f9fafb | #111827 |
 
 ## Resultado esperado
 
-- Envias mensagem manual pela Inbox
-- Cliente responde
-- Autopilot retoma automaticamente e gera resposta AI
-- Se o cliente ainda NAO respondeu a mensagem manual, o autopilot permanece em pausa
+- Editor de aparencia visualmente rico e intuitivo
+- Seleccao de cores com picker visual (nao apenas texto HSL)
+- Paletas pre-definidas para aplicar com 1 clique
+- Controlo de tipografia, espacamento e efeitos
+- Preview em tempo real das alteracoes
+- Compativel com ambos os contextos (Templates AIDA e Steps de Funis)
