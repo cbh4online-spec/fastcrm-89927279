@@ -84,6 +84,11 @@ import ClientContractsPage from "./pages/client/ClientContractsPage";
 import ClientSupportPage from "./pages/client/ClientSupportPage";
 import ClientTicketDetailPage from "./pages/client/ClientTicketDetailPage";
 import ClientInvitePage from "./pages/client/ClientInvitePage";
+import ClientDiagnosisPage from "./pages/client/ClientDiagnosisPage";
+import ClientDiagnosisDetailPage from "./pages/client/ClientDiagnosisDetailPage";
+import ClientProtocolDetailPage from "./pages/client/ClientProtocolDetailPage";
+import ClientConsumptionPage from "./pages/client/ClientConsumptionPage";
+import ClientRankingsPage from "./pages/client/ClientRankingsPage";
 // Admin Order Notes
 import OrderNotesPage from "./pages/OrderNotesPage";
 import CreateOrderNotePage from "./pages/CreateOrderNotePage";
@@ -299,6 +304,11 @@ function ClientPortalRoutes() {
         <Route path="contracts" element={<ClientContractsPage />} />
         <Route path="support" element={<ClientSupportPage />} />
         <Route path="support/:ticketId" element={<ClientTicketDetailPage />} />
+        <Route path="diagnosis" element={<ClientDiagnosisPage />} />
+        <Route path="diagnosis/:slug" element={<ClientDiagnosisDetailPage />} />
+        <Route path="protocol/:id" element={<ClientProtocolDetailPage />} />
+        <Route path="insights/consumption" element={<ClientConsumptionPage />} />
+        <Route path="insights/rankings" element={<ClientRankingsPage />} />
         <Route path="*" element={<Navigate to="/client/login" replace />} />
       </Routes>
     </CartProvider>

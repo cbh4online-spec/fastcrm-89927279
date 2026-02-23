@@ -16,7 +16,10 @@ import {
   TrendingUp,
   FileCheck,
   HeadphonesIcon,
-  CheckCircle
+  CheckCircle,
+  Stethoscope,
+  BarChart3,
+  Trophy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
@@ -48,10 +51,13 @@ interface NavItem {
 const allNavItems: NavItem[] = [
   { path: "/client/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { path: "/client/catalog", icon: Package, label: "Catálogo" },
+  { path: "/client/diagnosis", icon: Stethoscope, label: "Diagnóstico" },
   { path: "/client/assistant", icon: Sparkles, label: "Assistente IA" },
   { path: "/client/favorites", icon: Heart, label: "Favoritos", showBadge: "favorites" },
   { path: "/client/cart", icon: ShoppingCart, label: "Carrinho", showBadge: "cart" },
   { path: "/client/orders", icon: FileText, label: "Encomendas" },
+  { path: "/client/insights/consumption", icon: BarChart3, label: "Consumo", requiredPermission: "canViewFinancials" },
+  { path: "/client/insights/rankings", icon: Trophy, label: "Rankings" },
   { path: "/client/invoices", icon: Receipt, label: "Faturas", requiredPermission: "canViewInvoices" },
   { path: "/client/financial", icon: TrendingUp, label: "Financeiro", requiredPermission: "canViewFinancials" },
   { path: "/client/approvals", icon: CheckCircle, label: "Aprovações", requiredPermission: "canApprove" },

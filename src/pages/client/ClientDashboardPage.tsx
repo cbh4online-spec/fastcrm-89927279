@@ -263,7 +263,23 @@ export default function ClientDashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Link to="/client/diagnosis">
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" /> Comprar por Diagnóstico
+                </CardTitle>
+                <CardDescription>Selecione a patologia e veja protocolos</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="ghost" className="p-0 h-auto">
+                  Ver diagnósticos <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              </CardContent>
+            </Card>
+          </Link>
+
           <Link to="/client/catalog">
             <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
               <CardHeader>
@@ -297,17 +313,17 @@ export default function ClientDashboardPage() {
             </Card>
           </Link>
 
-          <Link to="/client/orders">
+          <Link to="/client/insights/rankings">
             <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" /> Histórico
+                  <BarChart3 className="h-5 w-5 text-primary" /> Mais Comprados
                 </CardTitle>
-                <CardDescription>Veja todas as suas encomendas</CardDescription>
+                <CardDescription>Rankings e re-encomenda rápida</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button variant="ghost" className="p-0 h-auto">
-                  Ver histórico <ArrowRight className="h-4 w-4 ml-1" />
+                  Ver rankings <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               </CardContent>
             </Card>
