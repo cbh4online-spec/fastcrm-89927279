@@ -1,98 +1,77 @@
 
-# Templates Premium com Conteudo Completo para Bio OS
 
-## Problema
+# Corrigir e Enriquecer Templates Premium do Bio OS
 
-Os templates actuais dependem inteiramente da geracao por IA, que frequentemente produz paginas com pouco conteudo -- blocos quase vazios, apenas icone e textos genericos. O resultado e uma pagina "em branco" que nao impressiona.
+## Problema Identificado
+
+Os templates parecem "vazios" no preview por duas razoes:
+
+1. **Campos com nomes errados**: Os templates usam `buttonText` e `buttonUrl` mas o sistema espera `cta_text` e `cta_url`. O CTA do hero nunca aparece no preview.
+2. **Testimonials mal formatados**: Os templates enviam `testimonials[]` (array) mas o preview le `content.text` e `content.author` (campos simples). O depoimento nunca aparece.
+3. **Poucos blocos visuais**: Faltam blocos de FAQ, imagem e mais features para dar "corpo" a pagina.
 
 ## Solucao
 
-Criar **templates estaticos pre-preenchidos** com conteudo real e completo (8-12 blocos cada), aplicados **instantaneamente** sem necessidade de chamada a IA. Cada template tera copy persuasivo, CTAs, secoes de features, testimonials, FAQ e redes sociais -- tudo pronto para editar.
+### 1. Corrigir campos dos templates (`BioTemplateGallery.tsx`)
 
-## Alteracoes
+Para todos os 12 templates:
+- Substituir `buttonText` por `cta_text` e `buttonUrl` por `cta_url` nos blocos hero
+- Converter blocos `testimonials` de array para blocos individuais com `text` e `author`
+- Adicionar mais blocos por template (12-15 cada) incluindo:
+  - Segundo bloco de texto motivacional / prova social
+  - Bloco FAQ com pergunta/resposta
+  - Mais features com subtitulos detalhados
+  - Bloco de imagem placeholder
+  - Segundo botao CTA no final
 
-### 1. Ficheiro: `src/components/bio/BioTemplateGallery.tsx` (reescrever)
+### 2. Melhorar o preview de testimonials (`BioBlockPreviewCard.tsx`)
 
-Substituir a logica actual (que chama o edge function `bio-ai-builder`) por templates estaticos com blocos pre-definidos.
+- Actualizar o renderer `testimonials` para suportar AMBOS os formatos:
+  - Formato antigo: `content.text` + `content.author` (campo simples)
+  - Formato novo: `content.testimonials[]` (array com `name` e `text`)
+- Mostrar multiplos testemunhos se existir array (ate 3)
+- Adicionar estrelas visuais ao preview
 
-**Cada template passara a incluir:**
-- `blocks[]` com 8-12 blocos completamente preenchidos (em vez de chamar a IA)
-- Conteudo real e persuasivo em portugues de Portugal
-- Aplicacao imediata (sem loading de IA)
-
-**Estrutura de cada template:**
-
-```text
-PremiumTemplate {
-  id, name, description, category, icon, color,
-  pageName: string,
-  slug: string,
-  blocks: Array<{
-    type: string,
-    content: Record<string, any>
-  }>
-}
-```
-
-**Conteudo dos 12 templates (exemplo do "Coach de Fitness"):**
+### 3. Estrutura enriquecida de cada template (exemplo Coach Fitness)
 
 | # | Tipo | Conteudo |
 |---|---|---|
-| 1 | hero | Titulo: "Transforma o teu corpo em 90 dias" / Subtitulo: "Treinos personalizados..." / CTA: "Comecar Agora" / Icon: Dumbbell |
-| 2 | feature | Titulo: "Treino Personalizado" / Subtitulo: "Planos adaptados ao teu nivel..." |
-| 3 | feature | Titulo: "Acompanhamento Semanal" / Subtitulo: "Check-ins semanais com ajustes..." |
-| 4 | feature | Titulo: "Plano Nutricional" / Subtitulo: "Orientacoes alimentares simples..." |
-| 5 | text | Depoimento ou frase motivacional |
-| 6 | button | "Marcar Avaliacao Gratuita" |
-| 7 | testimonials | "Perdi 12kg em 3 meses..." -- Maria S. |
-| 8 | divider | Separador visual |
-| 9 | whatsapp | "Fala comigo no WhatsApp" + mensagem pre-escrita |
-| 10 | social | Links Instagram, Facebook, YouTube |
+| 1 | hero | Titulo + Subtitulo + CTA (com `cta_text`/`cta_url`) |
+| 2 | feature | Treino Personalizado (com subtitulo detalhado + CTA) |
+| 3 | feature | Acompanhamento Semanal |
+| 4 | feature | Plano Nutricional |
+| 5 | feature | App de Treino (novo) |
+| 6 | text | Citacao motivacional |
+| 7 | button | "Marcar Avaliacao Gratuita" |
+| 8 | testimonials | Testemunho 1 (text + author) |
+| 9 | testimonials | Testemunho 2 (text + author) |
+| 10 | testimonials | Testemunho 3 (text + author) |
+| 11 | text | Prova social / numeros |
+| 12 | button | "Comecar Hoje — Condicoes Especiais" |
+| 13 | divider | Separador |
+| 14 | whatsapp | Contacto WhatsApp |
+| 15 | social | Redes sociais |
 
-Todos os 12 templates terao estrutura semelhante com conteudo especifico e relevante para cada vertical.
+Todos os 12 templates seguirao esta estrutura mais rica (14-15 blocos cada).
 
-### 2. Logica de aplicacao
+### 4. Melhorias adicionais nos blocos
 
-Substituir a chamada ao `bio-ai-builder` por criacao directa:
-- Criar pagina com `createPage.mutateAsync()`
-- Iterar pelos blocos estaticos e criar cada um com `createBlock.mutateAsync()`
-- Sem loading de IA (apenas um spinner rapido durante a escrita na base de dados)
-- Manter animacao de sucesso
-
-### 3. Verticais com conteudo completo (12 templates)
-
-Cada um com 8-12 blocos pre-escritos:
-
-**Servicos:**
-- Coach de Fitness -- treinos, transformacao corporal, avaliacao gratuita
-- Consultoria de Negocios -- diagnostico, estrategia, ROI
-- Terapeuta / Wellness -- equilibrio, sessoes, auto-cuidado
-
-**Comercio:**
-- Restaurante Gourmet -- menu, reservas, experiencia gastronomica
-- Loja Online -- produtos, descontos, colecoes
-- Salao de Beleza -- tratamentos, packs, transformacao
-
-**Criativo:**
-- Fotografo Profissional -- portfolio, sessoes, estilo
-- Designer / Portfolio -- projectos, branding, processo criativo
-- Musico / Artista -- musica, eventos, streaming
-
-**Digital:**
-- Agencia de Marketing -- auditoria, resultados, casos de estudo
-- Freelancer Tech -- servicos, stack, orcamentos
-- Influencer / Creator -- conteudo, parcerias, media kit
+- Features com `cta_text` preenchido (ex: "Saber Mais", "Ver Detalhes") para os CTAs aparecerem no preview
+- Cada template tera 3 testimonials individuais em vez de 1 bloco com array
+- Textos mais longos e detalhados nos subtitulos das features
+- Segundo bloco de texto com numeros/metricas (prova social)
 
 ## Ficheiros a modificar
 
 | Ficheiro | Accao |
 |---|---|
-| `src/components/bio/BioTemplateGallery.tsx` | Reescrever -- templates estaticos com blocos pre-preenchidos, remover chamada IA |
+| `src/components/bio/BioTemplateGallery.tsx` | Corrigir nomes dos campos, adicionar mais blocos, enriquecer conteudo |
+| `src/components/bio/BioBlockPreviewCard.tsx` | Melhorar renderer de testimonials para suportar ambos formatos e mostrar estrelas |
 
 ## Resultado esperado
 
-- Templates aplicados instantaneamente (sem esperar pela IA)
-- Cada pagina criada com 8-12 blocos de conteudo real e completo
-- Preview imediatamente visivel com textos, CTAs, testimonials e redes sociais
-- Conteudo editavel pelo utilizador apos aplicacao
-- Zero dependencia de chamadas API para templates premium
+- Hero com CTA visivel no preview (botao "Comecar Agora" aparece)
+- Testemunhos com texto e autor visiveis
+- Features com sub-CTAs visiveis
+- 14-15 blocos por template em vez de 10
+- Pagina com aspecto completo e profissional ao ser criada
