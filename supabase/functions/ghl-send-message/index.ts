@@ -299,7 +299,61 @@ Deno.serve(async (req) => {
 
     // 5. Determine message type based on channel
     const messageChannel = channel || conversation.channel || "sms";
-    const ghlMessageType = mapChannelToGHLType(messageChannel);
+    let ghlMessageType = mapChannelToGHLType(messageChannel);
+
+    // Auto-detect real channel from recent sync logs if current is "sms"
+    if (messageChannel.toLowerCase() === "sms" && channelMetadata?.source) {
+      try {
+        const { data: recentSyncLogs } = await supabase
+          .from("ghl_sync_log")
+          .select("payload")
+          .eq("workspace_id", conversation.workspace_id)
+          .in("ghl_entity_type", ["message_inbound", "message_outbound"])
+          .order("created_at", { ascending: false })
+          .limit(10);
+
+        // Filter logs that belong to messages of this conversation
+        const { data: convMessages } = await supabase
+          .from("messages")
+          .select("id")
+          .eq("conversation_id", conversationId)
+          .limit(50);
+
+        const convMessageIds = new Set(convMessages?.map(m => m.id) || []);
+
+        const relevantLogs = recentSyncLogs?.filter(log => {
+          const entityId = (log as any).fastcrm_entity_id;
+          return !entityId || convMessageIds.has(entityId);
+        }) || recentSyncLogs || [];
+
+        const hasIGType = relevantLogs.some(log => {
+          const mt = (log.payload as any)?.messageType;
+          return mt === 17 || mt === 18;
+        });
+
+        const hasWAType = relevantLogs.some(log => {
+          const mt = (log.payload as any)?.messageType;
+          return mt === 15 || mt === 16;
+        });
+
+        if (hasIGType) {
+          console.log("[GHL-SEND] Auto-detected Instagram channel from sync logs, overriding SMS -> IG");
+          ghlMessageType = "IG";
+          // Fix conversation channel for future
+          await supabase.from("conversations")
+            .update({ channel: "instagram" })
+            .eq("id", conversationId);
+        } else if (hasWAType) {
+          console.log("[GHL-SEND] Auto-detected WhatsApp channel from sync logs, overriding SMS -> WhatsApp");
+          ghlMessageType = "WhatsApp";
+          await supabase.from("conversations")
+            .update({ channel: "whatsapp" })
+            .eq("id", conversationId);
+        }
+      } catch (detectErr) {
+        console.warn("[GHL-SEND] Channel auto-detect failed, using original", detectErr);
+      }
+    }
 
     console.log("[GHL-SEND] Sending to GHL", { 
       ghlContactId: finalGhlContactId, 
