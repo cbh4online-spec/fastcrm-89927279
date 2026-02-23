@@ -1,74 +1,101 @@
 
+# Corrigir menu cortado e sincronizar mensagens com lead/contacto
 
-# Redesign da lista de conversas ao estilo Instagram DMs
+## Problema 1: Menu lateral da lead cortado
 
-## Objetivo
+Na pagina de detalhe da lead, o menu lateral esquerdo (EntitySidebarMenu) tem as secoes parcialmente cortadas. As labels das secoes como "CONTEXTO", "ATIVIDADE", "NEGOCIO", "DADOS" aparecem truncadas. O problema esta no layout pai que usa `flex overflow-hidden` (linha 450 de LeadDetailWithSidebar.tsx), combinado com a falta de uma altura explicita no container da ScrollArea do menu.
 
-Simplificar a lista de conversas para seguir o estilo visual do Instagram Direct Messages, com layout limpo e claro onde se identifica facilmente a mensagem mais recente e quem a enviou.
+### Solucao
 
-## Alteracoes visuais
+No ficheiro `src/components/crm/LeadDetailWithSidebar.tsx`, o container principal (linha 325) usa `-m-6` para compensar padding do layout pai, mas o `flex-1 flex overflow-hidden` (linha 450) pode nao estar a calcular a altura corretamente. Ajustar para garantir que o menu lateral tem `h-full` e `overflow-y-auto` adequados.
 
-### Layout de cada item da conversa
+No `EntitySidebarMenu.tsx`, a ScrollArea precisa de uma altura explicita ou `h-full` no container pai para funcionar corretamente dentro do flex layout.
 
-Estilo atual: avatar + nome + canal + preview (2 linhas) + badges de prioridade + valor + unread count
+## Problema 2: Mensagens nao sincronizadas com a lead
 
-Estilo novo (Instagram-like):
-- Avatar (40px) a esquerda
-- Nome em bold no topo, preview numa unica linha abaixo
-- Preview com prefixo "Tu: " para mensagens outbound
-- Tempo relativo alinhado a direita do preview (ex: "3 h", "17 h")
-- Indicador de nao lida: ponto azul a direita (em vez de badge com numero)
-- Nome em bold quando ha mensagens nao lidas
-- Icone de canal pequeno junto ao nome (manter para distinguir canais)
-- Remover badges de prioridade, valor estimado e SLA da lista (manter no painel de contexto)
+O "Historico Recente" no `ContactMessagesSection` e apenas um placeholder estatico (linhas 833-847) que mostra sempre "Nenhuma mensagem recente". Nunca faz query a base de dados para buscar conversas/mensagens associadas a lead.
 
-### Estrutura visual de cada item
+A tabela `conversations` tem um campo `lead_id` que liga conversas a leads. Precisamos de:
 
-```text
-+-------------------------------------------+
-| [Avatar]  Nome do Contacto  [canal]       |
-|           Tu: Ultima mensagem...  · 3 h  ●|
-+-------------------------------------------+
-```
+1. Fazer query as conversas onde `lead_id = entityId` (ou `contact_id` para contactos)
+2. Mostrar as mensagens reais no "Historico Recente"
+3. Permitir que o utilizador abra/continue a conversa existente
 
-Quando nao lida:
-- Nome em **bold** (font-semibold)
-- Preview em texto mais escuro
-- Ponto azul (w-2 h-2 rounded-full bg-blue-500) a direita
+### Solucao
 
-Quando lida:
-- Nome em peso normal (font-normal)
-- Preview em text-muted-foreground
-- Sem ponto
+Substituir o placeholder por uma query real que busca conversas e mensagens recentes associadas a entidade.
 
 ## Detalhes tecnicos
 
-### Ficheiro: `src/components/inbox/ConversationList.tsx`
+### Ficheiro: `src/components/crm/LeadDetailWithSidebar.tsx`
 
-1. **Simplificar o bloco de cada conversa** (linhas 336-414):
-   - Remover a linha de badges (priority, value, unread count badge)
-   - Preview numa unica linha com `truncate` (nao `line-clamp-2`)
-   - Mover o tempo para a mesma linha do preview, separado por " · "
-   - Substituir o badge de unread por um ponto azul simples
-   - Aplicar `font-semibold` ao nome quando `unread_count > 0`
+- Linha 325: garantir que o container principal calcula altura corretamente
+- Linha 450: ajustar `overflow-hidden` para que o menu nao fique cortado
 
-2. **Aumentar ligeiramente o avatar** de `h-9 w-9` para `h-10 w-10`
+Alterar:
+```
+<div className="h-full flex flex-col -m-6">
+```
+Para:
+```
+<div className="flex flex-col -m-6" style={{ height: 'calc(100vh - 64px)' }}>
+```
 
-3. **Simplificar o layout da linha do nome**:
-   - Nome + icone de canal na primeira linha
-   - Preview + tempo + ponto azul na segunda linha
+Isto garante que o layout tem uma altura fixa baseada no viewport menos o topbar.
+
+### Ficheiro: `src/components/entity/EntitySidebarMenu.tsx`
+
+- Adicionar `h-full` ao container da ScrollArea para garantir scroll correto dentro do flex
+
+### Ficheiro: `src/components/messages/ContactMessagesSection.tsx`
+
+Substituir o bloco "Historico Recente" (linhas 833-847) por um componente que:
+
+1. Faz query `conversations` onde `lead_id = entityId` (se entityType === 'lead') ou `contact_id = entityId` (se entityType === 'contact')
+2. Para cada conversa encontrada, busca as ultimas 3-5 mensagens
+3. Mostra uma lista com:
+   - Canal da conversa (icone)
+   - Preview da ultima mensagem
+   - Data relativa
+   - Botao para abrir a conversa na Inbox
+
+Query necessaria:
+```typescript
+const { data: linkedConversations } = useQuery({
+  queryKey: ['entity-conversations', entityType, entityId],
+  queryFn: async () => {
+    const column = entityType === 'lead' ? 'lead_id' 
+                 : entityType === 'contact' ? 'contact_id' 
+                 : 'company_id';
+    
+    const { data } = await supabase
+      .from('conversations')
+      .select('id, channel, last_message_preview, last_message_at, last_message_direction, status')
+      .eq(column, entityId)
+      .order('last_message_at', { ascending: false })
+      .limit(5);
+    
+    return data;
+  },
+  enabled: !!entityId,
+});
+```
+
+A secao mostrara:
+- Lista de conversas associadas com canal, preview e data
+- Link para abrir cada conversa na Inbox (`/dashboard/inbox?conversation=ID`)
+- Estado vazio so quando realmente nao existem conversas
 
 ### Ficheiros a modificar
 
 | Ficheiro | Alteracao |
 |---|---|
-| `src/components/inbox/ConversationList.tsx` | Redesign dos itens da lista ao estilo Instagram DMs |
+| `src/components/crm/LeadDetailWithSidebar.tsx` | Corrigir altura do layout para evitar corte do menu |
+| `src/components/entity/EntitySidebarMenu.tsx` | Garantir scroll correto com altura explicita |
+| `src/components/messages/ContactMessagesSection.tsx` | Substituir placeholder por query real de conversas associadas |
 
 ## Resultado esperado
 
-- Lista de conversas limpa e facil de ler
-- Identificacao imediata de mensagens nao lidas (ponto azul + nome bold)
-- Preview claro com indicacao de quem enviou ("Tu: ...")
-- Tempo relativo visivel junto ao preview
-- Menos ruido visual, foco na informacao essencial
-
+- Menu lateral completamente visivel sem cortes, com scroll funcional
+- "Historico Recente" mostra conversas reais associadas a lead/contacto
+- Utilizador consegue ver e aceder as conversas existentes diretamente da ficha da lead
