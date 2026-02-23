@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Camera, X, ArrowUp, ArrowDown, RefreshCw, ImagePlus, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { toast } from "sonner";
 
 interface ImageItem {
@@ -105,6 +106,7 @@ async function uploadToSignedUrl(
 
 export function MQPCStepImages({ images, onImagesChange }: MQPCStepImagesProps) {
   const { currentWorkspace } = useWorkspace();
+  const { trackMQPCImageUploadSuccess } = useCRMAnalytics();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [compressing, setCompressing] = useState(false);
 
@@ -192,6 +194,10 @@ export function MQPCStepImages({ images, onImagesChange }: MQPCStepImagesProps) 
           img.id === newItems[i].id ? result : img
         )
       );
+      if (!result.error) {
+        const totalUploaded = imagesRef.current.filter((img) => img.url && img.id !== newItems[i].id).length + 1;
+        trackMQPCImageUploadSuccess({ images_count: totalUploaded });
+      }
     }
   };
 

@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sparkles, ChevronDown, Loader2, Check } from "lucide-react";
 import { useProductAIAssistant } from "@/hooks/useProductAIAssistant";
+import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { toast } from "sonner";
 
 interface ExtrasData {
@@ -23,6 +24,7 @@ interface MQPCStepExtrasProps {
 
 export function MQPCStepExtras({ extras, onExtrasChange, productName, categoryName }: MQPCStepExtrasProps) {
   const { generateDescription } = useProductAIAssistant();
+  const { trackMQPCAIImproveClicked, trackMQPCAIImproveSuccess } = useCRMAnalytics();
   const [aiDone, setAiDone] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
@@ -36,6 +38,8 @@ export function MQPCStepExtras({ extras, onExtrasChange, productName, categoryNa
       return;
     }
 
+    trackMQPCAIImproveClicked();
+
     try {
       const result = await generateDescription.mutateAsync({
         productName,
@@ -48,6 +52,7 @@ export function MQPCStepExtras({ extras, onExtrasChange, productName, categoryNa
         fullDescription: result.fullDescription || "",
       });
       setAiDone(true);
+      trackMQPCAIImproveSuccess();
       toast.success("Descrições geradas com IA!");
     } catch (err: any) {
       toast.error("Erro ao gerar descrição: " + err.message);
