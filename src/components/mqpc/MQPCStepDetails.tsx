@@ -21,6 +21,7 @@ interface MQPCStepDetailsProps {
   details: ProductDetails;
   onDetailsChange: (details: ProductDetails) => void;
   errors: Record<string, string>;
+  aiPrefilled?: boolean;
 }
 
 function slugify(text: string): string {
@@ -32,7 +33,7 @@ function slugify(text: string): string {
     .replace(/^-|-$/g, "");
 }
 
-export function MQPCStepDetails({ details, onDetailsChange, errors }: MQPCStepDetailsProps) {
+export function MQPCStepDetails({ details, onDetailsChange, errors, aiPrefilled }: MQPCStepDetailsProps) {
   const { data: categories = [] } = useAdminStoreCategories();
 
   const update = (field: keyof ProductDetails, value: string | boolean) => {
@@ -44,8 +45,13 @@ export function MQPCStepDetails({ details, onDetailsChange, errors }: MQPCStepDe
       <div className="text-center space-y-2">
         <h2 className="text-lg font-semibold">Dados do Produto</h2>
         <p className="text-sm text-muted-foreground">
-          Informação essencial para criar o produto
+          {aiPrefilled ? "Revise os dados preenchidos pela IA" : "Informação essencial para criar o produto"}
         </p>
+        {aiPrefilled && (
+          <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+            ✨ Preenchido por IA
+          </span>
+        )}
       </div>
 
       <div className="space-y-4">

@@ -20,12 +20,13 @@ interface MQPCStepExtrasProps {
   onExtrasChange: (extras: ExtrasData) => void;
   productName: string;
   categoryName: string;
+  aiPrefilled?: boolean;
 }
 
-export function MQPCStepExtras({ extras, onExtrasChange, productName, categoryName }: MQPCStepExtrasProps) {
+export function MQPCStepExtras({ extras, onExtrasChange, productName, categoryName, aiPrefilled }: MQPCStepExtrasProps) {
   const { generateDescription } = useProductAIAssistant();
   const { trackMQPCAIImproveClicked, trackMQPCAIImproveSuccess } = useCRMAnalytics();
-  const [aiDone, setAiDone] = useState(false);
+  const [aiDone, setAiDone] = useState(aiPrefilled ?? false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const update = (field: keyof ExtrasData, value: string) => {

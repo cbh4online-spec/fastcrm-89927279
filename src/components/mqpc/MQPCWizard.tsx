@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Loader2, Check } from "lucide-react";
+import { MQPCStepSKU, type SKUSearchResult } from "./MQPCStepSKU";
 import { MQPCStepImages, type ImageItem } from "./MQPCStepImages";
 import { MQPCStepDetails, type ProductDetails } from "./MQPCStepDetails";
 import { MQPCStepExtras, type ExtrasData } from "./MQPCStepExtras";
@@ -11,7 +12,7 @@ import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const STEPS = ["Imagens", "Dados", "Extras"];
+const STEPS = ["SKU", "Imagens", "Dados", "Extras"];
 
 export function MQPCWizard() {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ export function MQPCWizard() {
   const { trackMQPCCreatedDraft, trackMQPCCreatedActive } = useCRMAnalytics();
   const [step, setStep] = useState(0);
   const [creating, setCreating] = useState(false);
+  const [aiPrefilled, setAiPrefilled] = useState(false);
 
   const [images, setImages] = useState<ImageItem[]>([]);
   const [details, setDetails] = useState<ProductDetails>({
@@ -40,8 +42,48 @@ export function MQPCWizard() {
   const idempotencyKeyRef = useRef<string | null>(null);
   const submittingRef = useRef(false);
 
-  const validateStep1 = () => true;
-  const validateStep2 = () => {
+  const handleSKUResult = useCallback((result: SKUSearchResult, sku: string) => {
+    // Pre-fill details
+    const name = result.commercialName || result.name || "";
+    const price = result.suggestedPrice ? result.suggestedPrice.toString() : "";
+
+    // Match category by name
+    let categoryId = "";
+    if (result.category) {
+      const match = categories.find(c =>
+        c.is_active && c.name.toLowerCase().includes(result.category!.toLowerCase())
+      );
+      if (match) categoryId = match.id;
+    }
+
+    setDetails(prev => ({
+      ...prev,
+      name: name || prev.name,
+      price: price || prev.price,
+      categoryId: categoryId || prev.categoryId,
+    }));
+
+    // Pre-fill extras
+    setExtras(prev => ({
+      ...prev,
+      shortDescription: result.commercialDescription || result.description || prev.shortDescription,
+      fullDescription: result.technicalDescription || prev.fullDescription,
+      sku: sku,
+    }));
+
+    setAiPrefilled(true);
+
+    // Advance to images step
+    setStep(1);
+    toast.success("Dados preenchidos pela IA!");
+  }, [categories]);
+
+  const handleSKUSkip = useCallback(() => {
+    setStep(1);
+  }, []);
+
+  const validateStepImages = () => true;
+  const validateStepDetails = () => {
     const errors: Record<string, string> = {};
     if (!details.name.trim()) errors.name = "Nome é obrigatório";
     if (!details.price || parseFloat(details.price) <= 0) errors.price = "Preço é obrigatório";
@@ -51,8 +93,8 @@ export function MQPCWizard() {
   };
 
   const goNext = () => {
-    if (step === 0 && validateStep1()) setStep(1);
-    else if (step === 1 && validateStep2()) setStep(2);
+    if (step === 1 && validateStepImages()) setStep(2);
+    else if (step === 2 && validateStepDetails()) setStep(3);
   };
 
   const goBack = () => {
@@ -63,8 +105,8 @@ export function MQPCWizard() {
   const handleCreate = async () => {
     if (submittingRef.current) return;
 
-    if (!validateStep2()) {
-      setStep(1);
+    if (!validateStepDetails()) {
+      setStep(2);
       return;
     }
 
@@ -101,7 +143,6 @@ export function MQPCWizard() {
         images: images
           .filter((img) => img.storagePath)
           .map((img, i) => {
-            // Extract file_id from storage_path: workspaces/.../tmp/{file_id}.jpg
             const parts = img.storagePath!.split("/");
             const fileName = parts[parts.length - 1];
             const fileId = fileName.replace(".jpg", "");
@@ -151,7 +192,6 @@ export function MQPCWizard() {
         throw new Error(data?.message || "Erro ao criar produto");
       }
 
-      // Reset idempotency key after successful creation
       idempotencyKeyRef.current = null;
 
       const trackingPayload = {
@@ -210,45 +250,49 @@ export function MQPCWizard() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto px-4 py-6">
-        {step === 0 && <MQPCStepImages images={images} onImagesChange={setImages} />}
-        {step === 1 && <MQPCStepDetails details={details} onDetailsChange={setDetails} errors={detailErrors} />}
-        {step === 2 && (
+        {step === 0 && <MQPCStepSKU onSKUResult={handleSKUResult} onSkip={handleSKUSkip} />}
+        {step === 1 && <MQPCStepImages images={images} onImagesChange={setImages} />}
+        {step === 2 && <MQPCStepDetails details={details} onDetailsChange={setDetails} errors={detailErrors} aiPrefilled={aiPrefilled} />}
+        {step === 3 && (
           <MQPCStepExtras
             extras={extras}
             onExtrasChange={setExtras}
             productName={details.name}
             categoryName={categoryName}
+            aiPrefilled={aiPrefilled}
           />
         )}
       </div>
 
-      {/* Footer */}
-      <div className="sticky bottom-0 bg-background/95 backdrop-blur border-t px-4 py-4 safe-area-pb">
-        {step < 2 ? (
-          <Button onClick={goNext} className="w-full h-12 text-base gap-2">
-            Seguinte
-            <ArrowRight className="h-5 w-5" />
-          </Button>
-        ) : (
-          <Button
-            onClick={handleCreate}
-            disabled={creating}
-            className="w-full h-12 text-base gap-2"
-          >
-            {creating ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                A criar...
-              </>
-            ) : (
-              <>
-                <Check className="h-5 w-5" />
-                Criar Produto
-              </>
-            )}
-          </Button>
-        )}
-      </div>
+      {/* Footer - hidden on SKU step (it has its own buttons) */}
+      {step > 0 && (
+        <div className="sticky bottom-0 bg-background/95 backdrop-blur border-t px-4 py-4 safe-area-pb">
+          {step < 3 ? (
+            <Button onClick={goNext} className="w-full h-12 text-base gap-2">
+              Seguinte
+              <ArrowRight className="h-5 w-5" />
+            </Button>
+          ) : (
+            <Button
+              onClick={handleCreate}
+              disabled={creating}
+              className="w-full h-12 text-base gap-2"
+            >
+              {creating ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  A criar...
+                </>
+              ) : (
+                <>
+                  <Check className="h-5 w-5" />
+                  Criar Produto
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
