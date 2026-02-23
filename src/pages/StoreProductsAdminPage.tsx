@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -61,6 +62,7 @@ interface PriceSuggestion {
 }
 
 export default function StoreProductsAdminPage() {
+  const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -285,6 +287,14 @@ export default function StoreProductsAdminPage() {
             >
               <RefreshCw className={`h-4 w-4 ${bulkProgress ? "animate-spin" : ""}`} />
               Atualizar Preços
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/mobile/products/quick-create")}
+              className="gap-2"
+            >
+              <Package className="h-4 w-4" />
+              Criar Rápido
             </Button>
             <Button onClick={() => setAiDialogOpen(true)} className="gap-2">
               <Sparkles className="h-4 w-4" />

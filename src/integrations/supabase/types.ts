@@ -21049,6 +21049,7 @@ export type Database = {
           consumption_model: string | null
           created_at: string
           created_by: string
+          created_channel: string | null
           currency: string
           delivery_estimate: string | null
           delivery_mode: string | null
@@ -21059,6 +21060,7 @@ export type Database = {
           id: string
           images: string[] | null
           included_quantity: number | null
+          is_quick_created: boolean | null
           is_trackable: boolean | null
           labor_hourly_rate: number | null
           labor_hours: number | null
@@ -21121,6 +21123,7 @@ export type Database = {
           consumption_model?: string | null
           created_at?: string
           created_by: string
+          created_channel?: string | null
           currency?: string
           delivery_estimate?: string | null
           delivery_mode?: string | null
@@ -21131,6 +21134,7 @@ export type Database = {
           id?: string
           images?: string[] | null
           included_quantity?: number | null
+          is_quick_created?: boolean | null
           is_trackable?: boolean | null
           labor_hourly_rate?: number | null
           labor_hours?: number | null
@@ -21193,6 +21197,7 @@ export type Database = {
           consumption_model?: string | null
           created_at?: string
           created_by?: string
+          created_channel?: string | null
           currency?: string
           delivery_estimate?: string | null
           delivery_mode?: string | null
@@ -21203,6 +21208,7 @@ export type Database = {
           id?: string
           images?: string[] | null
           included_quantity?: number | null
+          is_quick_created?: boolean | null
           is_trackable?: boolean | null
           labor_hourly_rate?: number | null
           labor_hours?: number | null

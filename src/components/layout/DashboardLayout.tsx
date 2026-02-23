@@ -2,10 +2,11 @@ import { ReactNode, useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { WorkspaceStatusGuard } from "@/components/workspace/WorkspaceStatusGuard";
 import { Loader2 } from "lucide-react";
+import { MQPCFloatingButton } from "@/components/mqpc/MQPCFloatingButton";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -15,6 +16,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, loading: authLoading } = useAuth();
   const { loading: workspaceLoading, workspaces } = useWorkspace();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+  const showFAB = location.pathname.includes("store-products") || location.pathname.includes("products");
 
   if (authLoading || workspaceLoading) {
     return (
@@ -42,6 +45,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <main className="flex-1 animate-fade-in">
             {children}
           </main>
+          {showFAB && <MQPCFloatingButton />}
         </div>
       </div>
     </WorkspaceStatusGuard>
