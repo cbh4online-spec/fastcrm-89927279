@@ -1,104 +1,98 @@
 
+# Templates Premium com Conteudo Completo para Bio OS
 
-# Templates Premium com IA para Bio OS
+## Problema
 
-## Conceito
+Os templates actuais dependem inteiramente da geracao por IA, que frequentemente produz paginas com pouco conteudo -- blocos quase vazios, apenas icone e textos genericos. O resultado e uma pagina "em branco" que nao impressiona.
 
-Criar uma galeria de templates premium pre-definidos que o utilizador pode aplicar com 1 clique, cada um optimizado para uma vertical/industria especifica. Os templates sao gerados via IA no momento da seleccao (usando o edge function `bio-ai-builder` existente), mas com parametros pre-configurados para garantir resultados de alta qualidade.
+## Solucao
 
-## O que sera criado
+Criar **templates estaticos pre-preenchidos** com conteudo real e completo (8-12 blocos cada), aplicados **instantaneamente** sem necessidade de chamada a IA. Cada template tera copy persuasivo, CTAs, secoes de features, testimonials, FAQ e redes sociais -- tudo pronto para editar.
 
-### 1. Galeria de Templates (`src/components/bio/BioTemplateGallery.tsx`)
+## Alteracoes
 
-Um dialog/modal com uma grelha visual de templates premium, cada um com:
-- Card com preview visual (gradiente de cores + icone da industria)
-- Nome do template (ex: "Coach de Fitness", "Restaurante Gourmet", "Consultora Imobiliaria")
-- Descricao curta (1 linha)
-- Indicador de vertical e tom
-- Botao "Usar Template" que gera a pagina automaticamente
+### 1. Ficheiro: `src/components/bio/BioTemplateGallery.tsx` (reescrever)
 
-**Templates incluidos (12 templates em 4 categorias):**
+Substituir a logica actual (que chama o edge function `bio-ai-builder`) por templates estaticos com blocos pre-definidos.
 
-| Categoria | Template | Cor | Tom |
-|---|---|---|---|
-| **Servicos** | Coach de Fitness | #16a34a | Energetico |
-| | Consultoria de Negocios | #2563eb | Profissional |
-| | Terapeuta / Wellness | #8b5cf6 | Elegante |
-| **Comercio** | Restaurante Gourmet | #dc2626 | Casual |
-| | Loja Online | #f59e0b | Divertido |
-| | Salao de Beleza | #ec4899 | Elegante |
-| **Criativo** | Fotografo Profissional | #1e1b4b | Minimalista |
-| | Designer / Portfolio | #6366f1 | Profissional |
-| | Musico / Artista | #7c3aed | Energetico |
-| **Digital** | Agencia de Marketing | #0891b2 | Profissional |
-| | Freelancer Tech | #059669 | Casual |
-| | Influencer / Creator | #e11d48 | Divertido |
+**Cada template passara a incluir:**
+- `blocks[]` com 8-12 blocos completamente preenchidos (em vez de chamar a IA)
+- Conteudo real e persuasivo em portugues de Portugal
+- Aplicacao imediata (sem loading de IA)
 
-### 2. Integracao na pagina Bio OS (`src/pages/BioOS.tsx`)
-
-- Adicionar botao "Templates Premium" ao lado dos botoes existentes
-- O botao abre a galeria de templates
-- Ao seleccionar um template, o sistema chama o `bio-ai-builder` com os parametros pre-configurados do template
-- Mostra o mesmo ecrã de loading do BioAIWizard durante a geracao
-- Apos geracao, abre directamente o builder da pagina
-
-### 3. Fluxo do utilizador
+**Estrutura de cada template:**
 
 ```text
-Bio OS --> [Templates Premium] --> Galeria (12 templates)
-  --> Clica num template --> Loading com animacao
-  --> Pagina criada --> Abre o Builder
-```
-
-## Detalhes tecnicos
-
-### Ficheiro: `src/components/bio/BioTemplateGallery.tsx` (novo)
-
-Componente principal com:
-- Array de `PREMIUM_TEMPLATES` com parametros pre-definidos para cada template (vertical, objective, offer, tone)
-- Dialog com grelha responsiva (2-3 colunas)
-- Cards visuais com gradiente baseado na cor do template
-- Estado de geracao com animacao (reutiliza o padrao do BioAIWizard)
-- Chamada ao edge function `bio-ai-builder` existente (nao e necessario criar novo)
-- Apos sucesso, cria a pagina e blocos usando os hooks existentes (`useCreateBioPage`, `useCreateBioBlock`)
-
-Estrutura de cada template:
-```typescript
-interface PremiumTemplate {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  icon: string; // nome do icone Lucide
-  color: string; // cor primaria hex
-  params: {
-    vertical: string;
-    objective: string;
-    offer: string;
-    tone: string;
-  };
+PremiumTemplate {
+  id, name, description, category, icon, color,
+  pageName: string,
+  slug: string,
+  blocks: Array<{
+    type: string,
+    content: Record<string, any>
+  }>
 }
 ```
 
-### Ficheiro: `src/pages/BioOS.tsx` (modificar)
+**Conteudo dos 12 templates (exemplo do "Coach de Fitness"):**
 
-- Importar `BioTemplateGallery`
-- Adicionar estado `templateGalleryOpen`
-- Adicionar botao "Templates" com icone `LayoutGrid`
-- Renderizar `BioTemplateGallery` com as mesmas props do `BioAIWizard` (open, onOpenChange, onPageCreated)
+| # | Tipo | Conteudo |
+|---|---|---|
+| 1 | hero | Titulo: "Transforma o teu corpo em 90 dias" / Subtitulo: "Treinos personalizados..." / CTA: "Comecar Agora" / Icon: Dumbbell |
+| 2 | feature | Titulo: "Treino Personalizado" / Subtitulo: "Planos adaptados ao teu nivel..." |
+| 3 | feature | Titulo: "Acompanhamento Semanal" / Subtitulo: "Check-ins semanais com ajustes..." |
+| 4 | feature | Titulo: "Plano Nutricional" / Subtitulo: "Orientacoes alimentares simples..." |
+| 5 | text | Depoimento ou frase motivacional |
+| 6 | button | "Marcar Avaliacao Gratuita" |
+| 7 | testimonials | "Perdi 12kg em 3 meses..." -- Maria S. |
+| 8 | divider | Separador visual |
+| 9 | whatsapp | "Fala comigo no WhatsApp" + mensagem pre-escrita |
+| 10 | social | Links Instagram, Facebook, YouTube |
 
-### Ficheiros a criar/modificar
+Todos os 12 templates terao estrutura semelhante com conteudo especifico e relevante para cada vertical.
+
+### 2. Logica de aplicacao
+
+Substituir a chamada ao `bio-ai-builder` por criacao directa:
+- Criar pagina com `createPage.mutateAsync()`
+- Iterar pelos blocos estaticos e criar cada um com `createBlock.mutateAsync()`
+- Sem loading de IA (apenas um spinner rapido durante a escrita na base de dados)
+- Manter animacao de sucesso
+
+### 3. Verticais com conteudo completo (12 templates)
+
+Cada um com 8-12 blocos pre-escritos:
+
+**Servicos:**
+- Coach de Fitness -- treinos, transformacao corporal, avaliacao gratuita
+- Consultoria de Negocios -- diagnostico, estrategia, ROI
+- Terapeuta / Wellness -- equilibrio, sessoes, auto-cuidado
+
+**Comercio:**
+- Restaurante Gourmet -- menu, reservas, experiencia gastronomica
+- Loja Online -- produtos, descontos, colecoes
+- Salao de Beleza -- tratamentos, packs, transformacao
+
+**Criativo:**
+- Fotografo Profissional -- portfolio, sessoes, estilo
+- Designer / Portfolio -- projectos, branding, processo criativo
+- Musico / Artista -- musica, eventos, streaming
+
+**Digital:**
+- Agencia de Marketing -- auditoria, resultados, casos de estudo
+- Freelancer Tech -- servicos, stack, orcamentos
+- Influencer / Creator -- conteudo, parcerias, media kit
+
+## Ficheiros a modificar
 
 | Ficheiro | Accao |
 |---|---|
-| `src/components/bio/BioTemplateGallery.tsx` | Criar -- galeria de 12 templates premium com geracao IA |
-| `src/pages/BioOS.tsx` | Modificar -- adicionar botao e integrar galeria |
+| `src/components/bio/BioTemplateGallery.tsx` | Reescrever -- templates estaticos com blocos pre-preenchidos, remover chamada IA |
 
 ## Resultado esperado
 
-- 12 templates premium organizados por categoria
-- Geracao com 1 clique (sem wizard de 4 passos)
-- Mesmo edge function `bio-ai-builder` reutilizado
-- Cards visuais com cores e icones representativos
-- Animacao de loading durante geracao
-- Pagina pronta para editar apos geracao
+- Templates aplicados instantaneamente (sem esperar pela IA)
+- Cada pagina criada com 8-12 blocos de conteudo real e completo
+- Preview imediatamente visivel com textos, CTAs, testimonials e redes sociais
+- Conteudo editavel pelo utilizador apos aplicacao
+- Zero dependencia de chamadas API para templates premium
