@@ -5,7 +5,6 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { PriorityScoreBadge } from "./PriorityScoreBadge";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,9 +35,7 @@ import {
   Globe,
   Trash2,
   CheckSquare,
-  AlertCircle,
   Zap,
-  Filter,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -327,11 +324,8 @@ export function ConversationList({
                 const ChannelIcon = channelIcons[conv.channel];
                 const displayName = conv.contact?.name || conv.lead?.name || conv.external_thread_id || "Desconhecido";
                 const avatarUrl = (conv.lead as any)?.avatar_url || (conv.contact as any)?.avatar_url;
-                const priorityScore = (conv as any).conversation_priority_score || 0;
-                const potentialValue = (conv as any).potential_value_estimate || 0;
-                const slaDeadline = (conv as any).sla_deadline;
                 const isSelected = selectedIds.has(conv.id);
-                const isSlaRisk = slaDeadline && new Date(slaDeadline) < new Date(Date.now() + 60 * 60 * 1000); // within 1h
+                const hasUnread = conv.unread_count > 0;
 
                 return (
                   <div
@@ -343,18 +337,17 @@ export function ConversationList({
                     )}
                     onClick={() => !selectionMode && onSelect(conv.id)}
                   >
-                    <div className="flex items-start gap-2.5">
+                    <div className="flex items-center gap-3">
                       {/* Selection Checkbox */}
                       {selectionMode && (
                         <Checkbox
                           checked={isSelected}
                           onClick={(e) => toggleSelect(conv.id, e)}
-                          className="mt-1"
                         />
                       )}
 
                       {/* Avatar */}
-                      <Avatar className="h-9 w-9 flex-shrink-0">
+                      <Avatar className="h-10 w-10 flex-shrink-0">
                         <AvatarImage src={avatarUrl} />
                         <AvatarFallback className="text-xs font-medium bg-muted">
                           {getInitials(displayName)}
@@ -363,50 +356,36 @@ export function ConversationList({
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1.5">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="font-medium text-foreground truncate text-sm">
-                              {displayName}
-                            </span>
-                            <ChannelIcon className={cn("w-3 h-3 flex-shrink-0", channelColors[conv.channel])} />
-                            {isSlaRisk && (
-                              <AlertCircle className="w-3 h-3 text-destructive flex-shrink-0" />
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1.5 flex-shrink-0">
-                            {conv.last_message_at && (
-                              <span className="text-[11px] text-muted-foreground">
-                                {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false, locale: pt })}
-                              </span>
-                            )}
-                          </div>
+                        {/* Line 1: Name + Channel Icon */}
+                        <div className="flex items-center gap-1.5">
+                          <span className={cn(
+                            "text-sm truncate",
+                            hasUnread ? "font-semibold text-foreground" : "font-normal text-foreground"
+                          )}>
+                            {displayName}
+                          </span>
+                          <ChannelIcon className={cn("w-3 h-3 flex-shrink-0", channelColors[conv.channel])} />
                         </div>
 
-                        {/* Preview */}
-                        {conv.last_message_preview && (
-                          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                        {/* Line 2: Preview + Time + Unread dot */}
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <p className={cn(
+                            "text-xs truncate flex-1 min-w-0",
+                            hasUnread ? "text-foreground/80" : "text-muted-foreground"
+                          )}>
                             {(conv as any).last_message_direction === "outbound" && (
-                              <span className="font-medium text-foreground/70">Você: </span>
+                              <span className="text-muted-foreground">Tu: </span>
                             )}
-                            {conv.last_message_preview}
+                            {conv.last_message_preview || "Sem mensagens"}
                           </p>
-                        )}
-
-                        {/* Bottom row: priority + value + unread */}
-                        <div className="flex items-center gap-1.5 mt-1">
-                          {priorityScore > 0 && <PriorityScoreBadge score={priorityScore} />}
-                          {potentialValue > 0 && (
-                            <span className="text-[10px] text-primary font-medium">
-                              {new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(potentialValue)}
+                          {conv.last_message_at && (
+                            <span className="text-[11px] text-muted-foreground flex-shrink-0 whitespace-nowrap">
+                              · {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false, locale: pt })}
                             </span>
                           )}
-                          <div className="ml-auto">
-                            {conv.unread_count > 0 && (
-                              <Badge className="bg-green-500 hover:bg-green-500 text-white text-[10px] px-1.5 py-0 h-4 min-w-[16px] flex items-center justify-center rounded-full">
-                                {conv.unread_count}
-                              </Badge>
-                            )}
-                          </div>
+                          {hasUnread && (
+                            <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
+                          )}
                         </div>
                       </div>
                     </div>
