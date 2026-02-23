@@ -193,11 +193,17 @@ export function BioBlockEditor({ pageId, page }: BioBlockEditorProps) {
             {previewMode === "mobile" && (
               <div className="absolute top-3 left-1/2 -translate-x-1/2 w-28 h-6 bg-foreground rounded-b-2xl z-10" />
             )}
-            <div className="rounded-[2rem] overflow-hidden bg-background" style={{ minHeight: previewMode === "mobile" ? 680 : 500 }}>
+            <div 
+              className="rounded-[2rem] overflow-hidden" 
+              style={{ 
+                minHeight: previewMode === "mobile" ? 680 : 500,
+                background: `linear-gradient(135deg, #0f0f23 0%, ${page.primary_color}22 50%, #0f0f23 100%)`,
+              }}
+            >
               <ScrollArea style={{ height: previewMode === "mobile" ? 680 : 500 }}>
                 <div className="p-5 pt-10 space-y-3">
                   {blocks.length === 0 ? (
-                    <p className="text-center text-sm text-muted-foreground py-20">Adicione blocos para começar</p>
+                    <p className="text-center text-sm text-white/40 py-20">Adicione blocos para começar</p>
                   ) : (
                     blocks.map((block, index) => (
                       <div

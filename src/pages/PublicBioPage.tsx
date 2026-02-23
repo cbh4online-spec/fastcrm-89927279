@@ -45,6 +45,26 @@ function hexToRgb(hex: string) {
   };
 }
 
+function hexToHSL(hex: string) {
+  const c = hex.replace("#", "");
+  const r = parseInt(c.substring(0, 2), 16) / 255;
+  const g = parseInt(c.substring(2, 4), 16) / 255;
+  const b = parseInt(c.substring(4, 6), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
 // Dynamic Lucide icon component
 function DynamicIcon({ name, className, style }: { name: string; className?: string; style?: React.CSSProperties }) {
   const IconComponent = (LucideIcons as any)[name];
@@ -89,33 +109,30 @@ function trackBlockClick(page: BioPage, blockId: string) {
   } as any).then(() => {});
 }
 
+// ─── CSS for staggered animations ──────────────────────────────
+const bioAnimationCSS = `
+@keyframes bio-block-enter {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.bio-block-animate {
+  animation: bio-block-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes bio-pulse-subtle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+.bio-whatsapp-pulse {
+  animation: bio-pulse-subtle 2.5s ease-in-out infinite;
+}
+`;
+
 // ─── Block Renderers ────────────────────────────────────────
 
 function HeroBlock({ block, primaryColor, contrastColor, index }: { block: BioBlock; primaryColor: string; contrastColor: string; index: number }) {
   const { title, subtitle, cta_text, cta_url, icon, bg_image, gradient_variant } = block.content;
-  const rgb = hexToRgb(primaryColor);
   const variantIndex = gradient_variant ?? index;
-
-  // Generate gradient similar to preview card
-  const hsl = (() => {
-    const c = primaryColor.replace("#", "");
-    const r = parseInt(c.substring(0, 2), 16) / 255;
-    const g = parseInt(c.substring(2, 4), 16) / 255;
-    const b = parseInt(c.substring(4, 6), 16) / 255;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-    let h = 0, s = 0;
-    const l = (max + min) / 2;
-    if (max !== min) {
-      const d = max - min;
-      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-      switch (max) {
-        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-        case g: h = ((b - r) / d + 2) / 6; break;
-        case b: h = ((r - g) / d + 4) / 6; break;
-      }
-    }
-    return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
-  })();
+  const hsl = hexToHSL(primaryColor);
 
   const GRADIENT_VARIANTS = [
     (h: number, s: number, l: number) => `linear-gradient(135deg, hsl(${h}, ${s}%, ${l}%) 0%, hsl(${(h + 15) % 360}, ${Math.min(s + 10, 100)}%, ${Math.max(l - 15, 10)}%) 100%)`,
@@ -142,51 +159,50 @@ function HeroBlock({ block, primaryColor, contrastColor, index }: { block: BioBl
   const btnColor = bg_image ? "#000" : primaryColor;
 
   return (
-    <div className="rounded-3xl p-6 pt-4 shadow-lg text-center" style={cardStyle}>
+    <div className="rounded-3xl p-8 pt-6 shadow-xl text-center" style={cardStyle}>
       {(() => {
         const heroMediaType = block.content.hero_media_type || "icon";
         const heroImage = block.content.hero_image;
 
         if (heroMediaType === "avatar" && heroImage) {
           return (
-            <div className="mx-auto -mt-6 mb-4 flex h-20 w-20 items-center justify-center rounded-full backdrop-blur-sm"
-              style={{ border: `3px solid ${primaryColor}25`, boxShadow: `0 0 30px 8px ${primaryColor}20` }}
+            <div className="mx-auto -mt-6 mb-5 flex h-24 w-24 items-center justify-center rounded-full backdrop-blur-sm"
+              style={{ border: `3px solid ${primaryColor}30`, boxShadow: `0 0 40px 10px ${primaryColor}25` }}
             >
-              <img src={heroImage} alt="Avatar" className="h-14 w-14 rounded-full object-cover shadow-2xl" style={{ boxShadow: `0 8px 25px -3px ${primaryColor}50` }} />
+              <img src={heroImage} alt="Avatar" className="h-18 w-18 rounded-full object-cover shadow-2xl" style={{ boxShadow: `0 8px 30px -3px ${primaryColor}50` }} />
             </div>
           );
         }
         if (heroMediaType === "logo" && heroImage) {
           return (
-            <div className="mx-auto -mt-4 mb-4 flex items-center justify-center">
-              <img src={heroImage} alt="Logo" className="h-16 max-w-[160px] object-contain rounded-lg drop-shadow-lg" />
+            <div className="mx-auto -mt-4 mb-5 flex items-center justify-center">
+              <img src={heroImage} alt="Logo" className="h-20 max-w-[180px] object-contain rounded-lg drop-shadow-xl" />
             </div>
           );
         }
-        // Default: icon
         if (icon) {
           return (
-            <div className="mx-auto -mt-6 mb-4 flex h-20 w-20 items-center justify-center rounded-full backdrop-blur-sm"
-              style={{ border: `3px solid ${primaryColor}25`, boxShadow: `0 0 30px 8px ${primaryColor}20` }}
+            <div className="mx-auto -mt-6 mb-5 flex h-24 w-24 items-center justify-center rounded-full backdrop-blur-sm"
+              style={{ border: `3px solid ${primaryColor}30`, boxShadow: `0 0 40px 10px ${primaryColor}25` }}
             >
-              <div className="flex h-14 w-14 items-center justify-center rounded-full shadow-2xl"
+              <div className="flex h-16 w-16 items-center justify-center rounded-full shadow-2xl"
                 style={{
                   background: bg_image ? "rgba(255,255,255,0.2)" : iconGradient,
-                  boxShadow: `inset 0 -3px 6px rgba(0,0,0,0.15), 0 8px 25px -3px ${primaryColor}50, 0 0 40px 5px ${primaryColor}30`,
+                  boxShadow: `inset 0 -3px 6px rgba(0,0,0,0.15), 0 8px 30px -3px ${primaryColor}50, 0 0 50px 5px ${primaryColor}30`,
                 }}
               >
-                <DynamicIcon name={icon} className="h-8 w-8 drop-shadow-lg" style={{ color: "#fff" }} />
+                <DynamicIcon name={icon} className="h-9 w-9 drop-shadow-lg" style={{ color: "#fff" }} />
               </div>
             </div>
           );
         }
         return null;
       })()}
-      <h1 className="text-2xl md:text-3xl font-extrabold leading-tight mb-2" style={{ color: textColor }}>
+      <h1 className="text-3xl md:text-4xl font-extrabold leading-tight mb-3" style={{ color: textColor }}>
         {title}
       </h1>
       {subtitle && (
-        <p className="text-sm md:text-base mb-5 leading-relaxed max-w-md mx-auto" style={{ color: subtleTextColor }}>
+        <p className="text-base md:text-lg mb-6 leading-relaxed max-w-md mx-auto" style={{ color: subtleTextColor }}>
           {subtitle}
         </p>
       )}
@@ -195,7 +211,7 @@ function HeroBlock({ block, primaryColor, contrastColor, index }: { block: BioBl
           href={cta_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-full px-8 py-3 text-sm font-semibold shadow-md transition-transform hover:scale-105"
+          className="inline-flex items-center gap-2 rounded-2xl px-8 py-3.5 text-sm font-bold shadow-lg transition-all hover:scale-105 hover:shadow-xl"
           style={{ backgroundColor: btnBg, color: btnColor }}
         >
           {cta_text}
@@ -214,14 +230,14 @@ function LinkBlock({ block, primaryColor, contrastColor, onTrack }: { block: Bio
       target="_blank"
       rel="noopener noreferrer"
       onClick={onTrack}
-      className="flex items-center justify-between w-full px-5 py-4 rounded-xl font-medium transition-all hover:scale-[1.02] hover:shadow-lg"
+      className="group flex items-center justify-between w-full px-6 py-4 rounded-2xl font-semibold transition-all duration-300 hover:scale-[1.03] hover:shadow-xl hover:translate-x-1"
       style={{ backgroundColor: primaryColor, color: contrastColor }}
     >
       <div className="flex items-center gap-3">
         {icon && <DynamicIcon name={icon} className="w-5 h-5" />}
         <span>{text}</span>
       </div>
-      <ExternalLink className="w-4 h-4 opacity-60" />
+      <ArrowRight className="w-4 h-4 opacity-60 transition-transform duration-300 group-hover:translate-x-1" />
     </a>
   );
 }
@@ -229,17 +245,23 @@ function LinkBlock({ block, primaryColor, contrastColor, onTrack }: { block: Bio
 function ButtonBlock({ block, primaryColor, contrastColor, onTrack }: { block: BioBlock; primaryColor: string; contrastColor: string; onTrack: () => void }) {
   const { text, url, icon, variant } = block.content;
   const isOutline = variant === "outline";
+  const hsl = hexToHSL(primaryColor);
   return (
     <a
       href={url}
       target="_blank"
       rel="noopener noreferrer"
       onClick={onTrack}
-      className="flex items-center justify-center gap-2 w-full px-5 py-4 rounded-xl font-semibold transition-all hover:scale-[1.02]"
+      className="flex items-center justify-center gap-2 w-full px-6 py-4 rounded-2xl font-bold transition-all duration-300 hover:scale-[1.03] hover:shadow-xl"
       style={
         isOutline
           ? { border: `2px solid ${primaryColor}`, color: primaryColor, backgroundColor: "transparent" }
-          : { backgroundColor: primaryColor, color: contrastColor }
+          : {
+              background: `linear-gradient(135deg, hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%), hsl(${(hsl.h + 15) % 360}, ${hsl.s}%, ${Math.max(hsl.l - 10, 15)}%))`,
+              backgroundColor: primaryColor,
+              color: contrastColor,
+              boxShadow: `0 4px 20px ${primaryColor}40`,
+            }
       }
     >
       {icon && <DynamicIcon name={icon} className="w-5 h-5" />}
@@ -251,17 +273,20 @@ function ButtonBlock({ block, primaryColor, contrastColor, onTrack }: { block: B
 function TextBlock({ block }: { block: BioBlock }) {
   const { text, align = "center", size = "base" } = block.content;
   const sizeClass = size === "lg" ? "text-lg" : size === "sm" ? "text-sm" : "text-base";
+  const isLong = (text?.length || 0) > 100;
   return (
-    <p className={`${sizeClass} text-white/90 leading-relaxed`} style={{ textAlign: align }}>
-      {text}
-    </p>
+    <div className={isLong ? "rounded-2xl p-5 backdrop-blur-sm" : ""} style={isLong ? { backgroundColor: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" } : undefined}>
+      <p className={`${sizeClass} text-white/90 leading-relaxed`} style={{ textAlign: align }}>
+        {text}
+      </p>
+    </div>
   );
 }
 
 function ImageBlock({ block }: { block: BioBlock }) {
   const { url, alt, link } = block.content;
-  const img = <img src={url} alt={alt || ""} className="w-full rounded-xl" loading="lazy" />;
-  if (link) return <a href={link} target="_blank" rel="noopener noreferrer">{img}</a>;
+  const img = <img src={url} alt={alt || ""} className="w-full rounded-2xl shadow-lg" loading="lazy" />;
+  if (link) return <a href={link} target="_blank" rel="noopener noreferrer" className="block transition-transform hover:scale-[1.02]">{img}</a>;
   return img;
 }
 
@@ -274,10 +299,10 @@ function WhatsAppBlock({ block, onTrack }: { block: BioBlock; onTrack: () => voi
       target="_blank"
       rel="noopener noreferrer"
       onClick={onTrack}
-      className="flex items-center justify-center gap-3 w-full px-5 py-4 rounded-xl font-semibold text-white transition-all hover:scale-[1.02]"
-      style={{ backgroundColor: "#25D366" }}
+      className="bio-whatsapp-pulse flex items-center justify-center gap-3 w-full px-6 py-4 rounded-2xl font-bold text-white transition-all hover:scale-[1.03] hover:shadow-xl"
+      style={{ background: "linear-gradient(135deg, #25D366 0%, #128C7E 50%, #075E54 100%)", boxShadow: "0 4px 20px rgba(37, 211, 102, 0.35)" }}
     >
-      <MessageCircle className="w-5 h-5" />
+      <MessageCircle className="w-6 h-6" />
       <span>{text}</span>
     </a>
   );
@@ -286,7 +311,6 @@ function WhatsAppBlock({ block, onTrack }: { block: BioBlock; onTrack: () => voi
 function SocialBlock({ block, primaryColor }: { block: BioBlock; primaryColor: string }) {
   const content = block.content;
   
-  // Build social map: support both direct keys (content.instagram) and links array format
   const socialMap: Record<string, string> = {};
   const platformDefs = [
     { key: "instagram", icon: "Instagram", prefix: "https://instagram.com/" },
@@ -300,10 +324,7 @@ function SocialBlock({ block, primaryColor }: { block: BioBlock; primaryColor: s
     { key: "website", icon: "Globe", prefix: "" },
   ];
 
-  // Direct keys
   platformDefs.forEach(p => { if (content[p.key]) socialMap[p.key] = content[p.key]; });
-  
-  // Links array format
   if (Array.isArray(content.links)) {
     content.links.forEach((link: any) => {
       if (link.platform && link.url) socialMap[link.platform] = link.url;
@@ -314,16 +335,18 @@ function SocialBlock({ block, primaryColor }: { block: BioBlock; primaryColor: s
 
   return (
     <div>
-      {content.title && <p className="text-white/60 text-xs text-center mb-3 font-medium">{content.title}</p>}
-      <div className="flex items-center justify-center gap-4 py-2">
+      {content.title && <p className="text-white/50 text-xs text-center mb-4 font-semibold uppercase tracking-wider">{content.title}</p>}
+      <div className="flex items-center justify-center gap-3 py-2">
         {socials.map((s) => (
           <a
             key={s.key}
             href={socialMap[s.key].startsWith("http") ? socialMap[s.key] : s.prefix + socialMap[s.key]}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-11 h-11 rounded-full flex items-center justify-center transition-transform hover:scale-110"
-            style={{ backgroundColor: primaryColor + "30" }}
+            className="group relative w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
+            style={{ backgroundColor: primaryColor + "25", boxShadow: `0 0 0 0 ${primaryColor}00` }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = `0 0 20px ${primaryColor}50`; (e.currentTarget as HTMLElement).style.backgroundColor = primaryColor + "40"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = `0 0 0 0 ${primaryColor}00`; (e.currentTarget as HTMLElement).style.backgroundColor = primaryColor + "25"; }}
           >
             <DynamicIcon name={s.icon} className="w-5 h-5 text-white" />
           </a>
@@ -337,7 +360,7 @@ function DividerBlock({ block, primaryColor }: { block: BioBlock; primaryColor: 
   const style = block.content.style || "line";
   if (style === "space") return <div className="h-6" />;
   if (style === "dots") return <div className="flex justify-center gap-2 py-3">{[0,1,2].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: primaryColor + "50" }} />)}</div>;
-  return <hr className="border-t border-white/20 my-2" />;
+  return <hr className="border-t border-white/10 my-2" />;
 }
 
 function VideoBlock({ block }: { block: BioBlock }) {
@@ -349,7 +372,7 @@ function VideoBlock({ block }: { block: BioBlock }) {
   if (vimeoMatch) embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}`;
 
   return (
-    <div className="w-full aspect-video rounded-xl overflow-hidden">
+    <div className="w-full aspect-video rounded-2xl overflow-hidden shadow-lg">
       <iframe src={embedUrl} className="w-full h-full" allowFullScreen allow="autoplay; encrypted-media" />
     </div>
   );
@@ -360,19 +383,25 @@ function FAQBlock({ block, primaryColor }: { block: BioBlock; primaryColor: stri
   const items = content.items || (content.question ? [{ question: content.question, answer: content.answer }] : []);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   return (
-    <div className="space-y-2 w-full">
+    <div className="space-y-2.5 w-full">
       {items.map((item: any, i: number) => (
-        <div key={i} className="rounded-xl overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
+        <div key={i} className="rounded-2xl overflow-hidden backdrop-blur-sm transition-all duration-300" style={{ backgroundColor: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.08)" }}>
           <button
-            className="w-full flex items-center justify-between px-4 py-3 text-left text-white font-medium"
+            className="w-full flex items-center justify-between px-5 py-4 text-left text-white font-semibold text-sm"
             onClick={() => setOpenIndex(openIndex === i ? null : i)}
           >
             <span>{item.question}</span>
-            {openIndex === i ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            <ChevronDown 
+              className="w-4 h-4 flex-shrink-0 transition-transform duration-300" 
+              style={{ color: primaryColor, transform: openIndex === i ? "rotate(180deg)" : "rotate(0deg)" }}
+            />
           </button>
-          {openIndex === i && (
-            <div className="px-4 pb-3 text-white/70 text-sm">{item.answer}</div>
-          )}
+          <div 
+            className="overflow-hidden transition-all duration-300"
+            style={{ maxHeight: openIndex === i ? 200 : 0, opacity: openIndex === i ? 1 : 0 }}
+          >
+            <div className="px-5 pb-4 text-white/70 text-sm leading-relaxed">{item.answer}</div>
+          </div>
         </div>
       ))}
     </div>
@@ -384,17 +413,31 @@ function TestimonialsBlock({ block, primaryColor }: { block: BioBlock; primaryCo
   const items = content.items || (content.text ? [{ text: content.text, author: content.author }] : []);
   return (
     <div className="space-y-3 w-full">
-      {items.map((item: any, i: number) => (
-        <div key={i} className="rounded-xl p-4" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
-          <div className="flex items-start gap-3">
-            <Quote className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: primaryColor }} />
-            <div>
-              <p className="text-white/90 text-sm italic mb-2">"{item.text}"</p>
-              <p className="text-white/60 text-xs font-medium">{item.author}</p>
+      {items.map((item: any, i: number) => {
+        const initials = (item.author || "C").split(" ").map((w: string) => w[0]).join("").substring(0, 2).toUpperCase();
+        return (
+          <div key={i} className="rounded-2xl p-5 backdrop-blur-sm transition-all duration-300 hover:scale-[1.01]" style={{ backgroundColor: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.08)" }}>
+            {/* Stars */}
+            <div className="flex gap-0.5 mb-3">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star key={s} className="h-4 w-4 fill-current text-amber-400" />
+              ))}
+            </div>
+            {/* Quote */}
+            <div className="relative">
+              <Quote className="absolute -top-1 -left-1 w-8 h-8 opacity-10" style={{ color: primaryColor }} />
+              <p className="text-white/90 text-sm italic leading-relaxed pl-4 mb-3">"{item.text}"</p>
+            </div>
+            {/* Author */}
+            <div className="flex items-center gap-3 pt-2 border-t border-white/10">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}80)` }}>
+                {initials}
+              </div>
+              <p className="text-white/60 text-xs font-semibold">{item.author}</p>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -420,12 +463,12 @@ function CountdownBlock({ block, primaryColor, contrastColor }: { block: BioBloc
 
   return (
     <div className="text-center w-full">
-      {label && <p className="text-white/80 text-sm mb-3">{label}</p>}
+      {label && <p className="text-white/80 text-sm mb-3 font-medium">{label}</p>}
       <div className="flex justify-center gap-3">
         {(["days", "hours", "minutes", "seconds"] as const).map((unit) => (
-          <div key={unit} className="rounded-xl px-3 py-2 min-w-[60px]" style={{ backgroundColor: primaryColor + "30" }}>
-            <div className="text-xl font-bold text-white">{timeLeft[unit]}</div>
-            <div className="text-[10px] text-white/50 uppercase">{unit === "days" ? "Dias" : unit === "hours" ? "Hrs" : unit === "minutes" ? "Min" : "Seg"}</div>
+          <div key={unit} className="rounded-2xl px-4 py-3 min-w-[65px] backdrop-blur-sm" style={{ backgroundColor: primaryColor + "25", border: `1px solid ${primaryColor}20` }}>
+            <div className="text-2xl font-bold text-white">{timeLeft[unit]}</div>
+            <div className="text-[10px] text-white/50 uppercase font-medium">{unit === "days" ? "Dias" : unit === "hours" ? "Hrs" : unit === "minutes" ? "Min" : "Seg"}</div>
           </div>
         ))}
       </div>
@@ -436,27 +479,32 @@ function CountdownBlock({ block, primaryColor, contrastColor }: { block: BioBloc
 function FeatureBlock({ block, primaryColor }: { block: BioBlock; primaryColor: string }) {
   const { title, description, subtitle, icon, items = [], cta_text, cta_url } = block.content;
   const featureDescription = description || subtitle;
+  const hsl = hexToHSL(primaryColor);
   return (
-    <div className="w-full rounded-xl p-5" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
+    <div className="w-full rounded-2xl p-6 backdrop-blur-sm" style={{ backgroundColor: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.08)" }}>
       {(title || icon) && (
-        <div className="flex items-center gap-3 mb-3">
-          {icon && <DynamicIcon name={icon} className="w-6 h-6" style={{ color: primaryColor }} />}
-          {title && <h3 className="text-white font-semibold text-lg">{title}</h3>}
+        <div className="flex items-center gap-3 mb-4">
+          {icon && (
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${primaryColor}30, ${primaryColor}15)`, border: `1px solid ${primaryColor}20` }}>
+              <DynamicIcon name={icon} className="w-5 h-5" style={{ color: primaryColor }} />
+            </div>
+          )}
+          {title && <h3 className="text-white font-bold text-lg">{title}</h3>}
         </div>
       )}
-      {featureDescription && <p className="text-white/70 text-sm mb-3">{featureDescription}</p>}
+      {featureDescription && <p className="text-white/70 text-sm mb-4 leading-relaxed">{featureDescription}</p>}
       {cta_text && (
         <a href={cta_url || "#"} target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-sm font-semibold mb-3 transition-opacity hover:opacity-80"
+          className="group inline-flex items-center gap-2 text-sm font-bold mb-4 transition-all duration-300 hover:opacity-80"
           style={{ color: primaryColor }}
         >
-          {cta_text} <ArrowRight className="w-3 h-3" />
+          {cta_text} <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
         </a>
       )}
       {items.length > 0 && (
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
           {items.map((item: any, i: number) => (
-            <li key={i} className="flex items-start gap-2 text-white/80 text-sm">
+            <li key={i} className="flex items-start gap-2.5 text-white/80 text-sm">
               <Star className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: primaryColor }} />
               <span>{typeof item === "string" ? item : item.text}</span>
             </li>
@@ -477,7 +525,6 @@ function FormBlock({ block, page, primaryColor, contrastColor }: { block: BioBlo
     e.preventDefault();
     setLoading(true);
     try {
-      // Track lead event
       const visitorId = localStorage.getItem("bio_visitor_id") || crypto.randomUUID();
       await supabase.from("bio_events").insert({
         workspace_id: page.workspace_id,
@@ -488,7 +535,6 @@ function FormBlock({ block, page, primaryColor, contrastColor }: { block: BioBlo
         device: /Mobile|Android/i.test(navigator.userAgent) ? "mobile" : "desktop",
       } as any);
 
-      // Try to create contact in CRM
       if (formData.email || formData.phone) {
         await supabase.from("contacts").insert({
           workspace_id: page.workspace_id,
@@ -511,8 +557,8 @@ function FormBlock({ block, page, primaryColor, contrastColor }: { block: BioBlo
 
   if (submitted) {
     return (
-      <div className="text-center py-6 px-4 rounded-xl" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
-        <p className="text-white font-medium">{success_message}</p>
+      <div className="text-center py-6 px-4 rounded-2xl backdrop-blur-sm" style={{ backgroundColor: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.08)" }}>
+        <p className="text-white font-semibold">{success_message}</p>
       </div>
     );
   }
@@ -520,8 +566,8 @@ function FormBlock({ block, page, primaryColor, contrastColor }: { block: BioBlo
   const fieldLabels: Record<string, string> = { name: "Nome", email: "Email", phone: "Telefone", message: "Mensagem" };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full rounded-xl p-5 space-y-3" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
-      {title && <h3 className="text-white font-semibold text-center mb-2">{title}</h3>}
+    <form onSubmit={handleSubmit} className="w-full rounded-2xl p-6 space-y-3 backdrop-blur-sm" style={{ backgroundColor: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.08)" }}>
+      {title && <h3 className="text-white font-bold text-center mb-3">{title}</h3>}
       {fields.map((field: string) => (
         <input
           key={field}
@@ -530,14 +576,14 @@ function FormBlock({ block, page, primaryColor, contrastColor }: { block: BioBlo
           required={field === "email" || field === "name"}
           value={formData[field] || ""}
           onChange={(e) => setFormData((d) => ({ ...d, [field]: e.target.value }))}
-          className="w-full px-4 py-3 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/10 focus:border-white/30 focus:outline-none text-sm"
+          className="w-full px-4 py-3 rounded-xl bg-white/10 text-white placeholder-white/40 border border-white/10 focus:border-white/30 focus:outline-none text-sm transition-colors"
         />
       ))}
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-3 rounded-lg font-semibold transition-all hover:scale-[1.02] disabled:opacity-50"
-        style={{ backgroundColor: primaryColor, color: contrastColor }}
+        className="w-full py-3 rounded-xl font-bold transition-all hover:scale-[1.02] hover:shadow-lg disabled:opacity-50"
+        style={{ backgroundColor: primaryColor, color: contrastColor, boxShadow: `0 4px 15px ${primaryColor}30` }}
       >
         {loading ? "..." : button_text}
       </button>
@@ -552,8 +598,8 @@ function CalendarBlock({ block, primaryColor, contrastColor }: { block: BioBlock
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center justify-center gap-3 w-full px-5 py-4 rounded-xl font-semibold transition-all hover:scale-[1.02]"
-      style={{ backgroundColor: primaryColor, color: contrastColor }}
+      className="flex items-center justify-center gap-3 w-full px-6 py-4 rounded-2xl font-bold transition-all duration-300 hover:scale-[1.03] hover:shadow-xl"
+      style={{ backgroundColor: primaryColor, color: contrastColor, boxShadow: `0 4px 15px ${primaryColor}30` }}
     >
       <Clock className="w-5 h-5" />
       <span>{text}</span>
@@ -572,13 +618,11 @@ export default function PublicBioPage() {
 
   const primaryColor = page?.primary_color || "#6366f1";
   const contrastColor = useMemo(() => getContrastColor(primaryColor), [primaryColor]);
-  const rgb = useMemo(() => hexToRgb(primaryColor), [primaryColor]);
 
   useEffect(() => {
     if (!workspaceSlug || !pageSlug) { setNotFound(true); setLoading(false); return; }
 
     (async () => {
-      // Resolve workspace by slug first
       const { data: workspace, error: wsError } = await supabase
         .from("workspaces")
         .select("id")
@@ -613,7 +657,6 @@ export default function PublicBioPage() {
     })();
   }, [workspaceSlug, pageSlug]);
 
-  // Background style
   const bgStyle = useMemo(() => {
     const bg = page?.background_style;
     if (!bg) return { background: `linear-gradient(135deg, #0f0f23 0%, ${primaryColor}22 50%, #0f0f23 100%)` };
@@ -673,18 +716,29 @@ export default function PublicBioPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Helmet>
 
+      <style dangerouslySetInnerHTML={{ __html: bioAnimationCSS }} />
+
       <div className="min-h-screen" style={bgStyle}>
         {page.custom_css && <style dangerouslySetInnerHTML={{ __html: page.custom_css }} />}
 
-        <div className="max-w-lg mx-auto px-4 py-8 space-y-4">
+        <div className="max-w-lg mx-auto px-4 py-10 space-y-5">
           {blocks.map((block, i) => (
-            <div key={block.id}>{renderBlock(block, i)}</div>
+            <div 
+              key={block.id} 
+              className="bio-block-animate"
+              style={{ animationDelay: `${i * 80}ms` }}
+            >
+              {renderBlock(block, i)}
+            </div>
           ))}
         </div>
 
-        {/* Subtle branding */}
-        <div className="text-center pb-6">
-          <span className="text-white/20 text-xs">Powered by FastCRM</span>
+        {/* Premium branding */}
+        <div className="text-center pb-8">
+          <a href="https://fastcrm.lovable.app" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-white/25 text-xs hover:text-white/40 transition-colors">
+            <span>⚡</span>
+            <span>Powered by FastCRM</span>
+          </a>
         </div>
       </div>
     </>
