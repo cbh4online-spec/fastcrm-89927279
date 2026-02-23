@@ -20419,6 +20419,7 @@ export type Database = {
           is_ai_generated: boolean
           position: number
           product_id: string
+          storage_path: string | null
           url: string
           workspace_id: string
         }
@@ -20430,6 +20431,7 @@ export type Database = {
           is_ai_generated?: boolean
           position?: number
           product_id: string
+          storage_path?: string | null
           url: string
           workspace_id: string
         }
@@ -20441,6 +20443,7 @@ export type Database = {
           is_ai_generated?: boolean
           position?: number
           product_id?: string
+          storage_path?: string | null
           url?: string
           workspace_id?: string
         }
