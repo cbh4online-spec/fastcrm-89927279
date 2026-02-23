@@ -106,6 +106,7 @@ const navigation: NavSection[] = [
     icon: Settings,
     items: [
       { id: "logs", label: "Logs", icon: FileText },
+      { id: "activity-logs", label: "Activity Logs", icon: Database },
       { id: "permissions", label: "Permissões", icon: Lock },
       { id: "settings", label: "Configurações", icon: Settings },
       { id: "audit", label: "Auditoria", icon: FileText },
