@@ -8,12 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Globe, Eye, Trash2, ExternalLink, PenLine, Sparkles, Copy, Check, Link2 } from "lucide-react";
+import { Plus, Globe, Eye, Trash2, ExternalLink, PenLine, Sparkles, Copy, Check, Link2, LayoutGrid } from "lucide-react";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { getShareUrl } from "@/utils/getShareUrl";
 import { toast } from "sonner";
 import { BioPageBuilder } from "@/components/bio/BioPageBuilder";
 import { BioAIWizard } from "@/components/bio/BioAIWizard";
+import { BioTemplateGallery } from "@/components/bio/BioTemplateGallery";
 
 function CopyLinkButton({ page, workspaceSlug }: { page: { slug: string }; workspaceSlug: string }) {
   const [copied, setCopied] = useState(false);
@@ -43,6 +44,7 @@ function BioOSContent() {
   const [newName, setNewName] = useState("");
   const [newSlug, setNewSlug] = useState("");
   const [aiWizardOpen, setAiWizardOpen] = useState(false);
+  const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
 
   if (selectedPageId) {
     return (
@@ -69,6 +71,9 @@ function BioOSContent() {
             <p className="text-muted-foreground text-sm">Crie páginas bio e micro-sites com tracking integrado</p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setTemplateGalleryOpen(true)}>
+              <LayoutGrid className="h-4 w-4 mr-2" /> Templates
+            </Button>
             <Button variant="outline" onClick={() => setAiWizardOpen(true)}>
               <Sparkles className="h-4 w-4 mr-2" /> Criar com IA
             </Button>
@@ -100,6 +105,11 @@ function BioOSContent() {
           <BioAIWizard
             open={aiWizardOpen}
             onOpenChange={setAiWizardOpen}
+            onPageCreated={(id) => setSelectedPageId(id)}
+          />
+          <BioTemplateGallery
+            open={templateGalleryOpen}
+            onOpenChange={setTemplateGalleryOpen}
             onPageCreated={(id) => setSelectedPageId(id)}
           />
         </div>
