@@ -147,7 +147,20 @@ export function useSendMessage() {
         });
 
         if (error) {
-          const errorMsg = data?.error || error.message;
+          let errorMsg = "Falha ao enviar mensagem";
+          try {
+            const ctx = (error as any)?.context;
+            if (ctx?.json) {
+              const body = await ctx.json();
+              errorMsg = body?.error || errorMsg;
+            } else if (data?.error) {
+              errorMsg = data.error;
+            } else {
+              errorMsg = error.message || errorMsg;
+            }
+          } catch {
+            errorMsg = data?.error || error.message || errorMsg;
+          }
           throw new Error(errorMsg);
         }
         if (data?.error) throw new Error(data.error);
