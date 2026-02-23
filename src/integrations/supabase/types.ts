@@ -21078,6 +21078,7 @@ export type Database = {
       products: {
         Row: {
           b2b_published: boolean | null
+          barcode: string | null
           base_price: number
           benefits: string[] | null
           billing_frequency: string | null
@@ -21138,7 +21139,9 @@ export type Database = {
           store_published: boolean | null
           store_sort_order: number | null
           store_visibility: string
+          tags: string[]
           target_margin_pct: number | null
+          tax_included: boolean
           tax_rate_estimate_pct: number | null
           total_units: number | null
           track_stock: boolean | null
@@ -21152,6 +21155,7 @@ export type Database = {
         }
         Insert: {
           b2b_published?: boolean | null
+          barcode?: string | null
           base_price?: number
           benefits?: string[] | null
           billing_frequency?: string | null
@@ -21212,7 +21216,9 @@ export type Database = {
           store_published?: boolean | null
           store_sort_order?: number | null
           store_visibility?: string
+          tags?: string[]
           target_margin_pct?: number | null
+          tax_included?: boolean
           tax_rate_estimate_pct?: number | null
           total_units?: number | null
           track_stock?: boolean | null
@@ -21226,6 +21232,7 @@ export type Database = {
         }
         Update: {
           b2b_published?: boolean | null
+          barcode?: string | null
           base_price?: number
           benefits?: string[] | null
           billing_frequency?: string | null
@@ -21286,7 +21293,9 @@ export type Database = {
           store_published?: boolean | null
           store_sort_order?: number | null
           store_visibility?: string
+          tags?: string[]
           target_margin_pct?: number | null
+          tax_included?: boolean
           tax_rate_estimate_pct?: number | null
           total_units?: number | null
           track_stock?: boolean | null

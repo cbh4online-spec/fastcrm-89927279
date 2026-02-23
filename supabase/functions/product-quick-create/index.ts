@@ -140,7 +140,28 @@ Deno.serve(async (req) => {
       status = "active";
     }
 
-    const slug = options.generate_slug !== false ? slugify(name) : null;
+    const baseSlug = options.generate_slug !== false ? slugify(name) : null;
+
+    // 7b. Resolve slug conflicts
+    let finalSlug = baseSlug;
+    if (baseSlug) {
+      const { data: existing } = await adminClient
+        .from("products")
+        .select("id")
+        .eq("workspace_id", workspaceId)
+        .eq("sheet_slug", baseSlug)
+        .maybeSingle();
+
+      if (existing) {
+        const { count } = await adminClient
+          .from("products")
+          .select("id", { count: "exact", head: true })
+          .eq("workspace_id", workspaceId)
+          .like("sheet_slug", `${baseSlug}%`);
+
+        finalSlug = `${baseSlug}-${(count || 1) + 1}`;
+      }
+    }
 
     // 8. Insert product
     const currency = product.price?.currency || "EUR";
@@ -159,7 +180,10 @@ Deno.serve(async (req) => {
         short_description: product.short_description || null,
         commercial_description: product.description || null,
         sku: product.sku || null,
-        sheet_slug: slug,
+        sheet_slug: finalSlug,
+        tax_included: product.price?.tax_included ?? true,
+        tags: product.tags || [],
+        barcode: product.barcode || null,
         is_quick_created: options.is_quick_created ?? true,
         created_channel: options.channel || "mobile_quick",
         store_published: status === "active",
@@ -286,9 +310,10 @@ Deno.serve(async (req) => {
           category_id: categoryId,
           short_description: newProduct.short_description,
           description: newProduct.commercial_description,
-          tags: [],
+          tax_included: newProduct.tax_included,
+          tags: newProduct.tags || [],
           sku: newProduct.sku,
-          barcode: null,
+          barcode: newProduct.barcode || null,
           is_quick_created: newProduct.is_quick_created,
           created_channel: newProduct.created_channel,
           created_at: newProduct.created_at,
