@@ -133,6 +133,7 @@ import StoreProductsAdminPage from "./pages/StoreProductsAdminPage";
 import StoreCategoriesPage from "./pages/StoreCategoriesPage";
 import StoreCouponsPage from "./pages/StoreCouponsPage";
 import StoreAnalyticsPage from "./pages/StoreAnalyticsPage";
+import MobileQuickProductCreate from "./pages/MobileQuickProductCreate";
 
 // C2C Marketplace
 import C2CMarketplace from "./pages/c2c/C2CMarketplace";
@@ -428,6 +429,9 @@ function CRMRoutes() {
                 <Route path="/dashboard/store-categories" element={<StoreCategoriesPage />} />
                 <Route path="/dashboard/store-coupons" element={<StoreCouponsPage />} />
                 <Route path="/dashboard/store-analytics" element={<StoreAnalyticsPage />} />
+                
+                {/* Mobile Quick Product Creator */}
+                <Route path="/mobile/products/quick-create" element={<MobileQuickProductCreate />} />
                 
                 {/* C2C Marketplace */}
                 <Route path="/dashboard/c2c" element={<C2CMarketplace />} />
