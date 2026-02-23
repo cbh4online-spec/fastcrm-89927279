@@ -856,7 +856,7 @@ async function triggerAutopilotResponse(
   if (autopilotConfig.sleep_on_human_reply) {
     const { data: lastOutbound } = await supabase
       .from("messages")
-      .select("sender_id")
+      .select("sender_id, sent_at")
       .eq("conversation_id", conversationId)
       .eq("direction", "outbound")
       .order("sent_at", { ascending: false })
@@ -864,15 +864,29 @@ async function triggerAutopilotResponse(
       .maybeSingle();
 
     if (lastOutbound?.sender_id) {
-      console.log("[AUTOPILOT] Human agent replied, sleeping autopilot", { senderId: lastOutbound.sender_id });
-      
-      await supabase.from("autopilot_events").insert({
-        workspace_id: workspaceId,
-        conversation_id: conversationId,
-        event_type: "sleeping",
-        event_data: { reason: "human_reply", human_id: lastOutbound.sender_id }
-      });
-      return;
+      // Check if there was an inbound AFTER the human reply
+      const { data: inboundAfterHuman } = await supabase
+        .from("messages")
+        .select("id")
+        .eq("conversation_id", conversationId)
+        .eq("direction", "inbound")
+        .gt("sent_at", lastOutbound.sent_at)
+        .limit(1)
+        .maybeSingle();
+
+      if (!inboundAfterHuman) {
+        console.log("[AUTOPILOT] Human agent replied, no client response yet, sleeping", { senderId: lastOutbound.sender_id });
+        
+        await supabase.from("autopilot_events").insert({
+          workspace_id: workspaceId,
+          conversation_id: conversationId,
+          event_type: "sleeping",
+          event_data: { reason: "human_reply", human_id: lastOutbound.sender_id }
+        });
+        return;
+      } else {
+        console.log("[AUTOPILOT] Client replied after human message, autopilot resuming");
+      }
     }
   }
 
