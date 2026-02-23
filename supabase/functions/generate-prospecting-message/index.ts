@@ -22,10 +22,12 @@ Deno.serve(async (req) => {
 
     const stepInstructions: Record<number, string> = {
       1: `ETAPA 1 - ABERTURA (Dia 0):
-- Método AIDA completo (Atenção, Interesse, Desejo, Ação)
-- Primeiro contacto, criar curiosidade
-- Referência directa ao trabalho do prospect
-- Termina com pergunta aberta`,
+- Começa por identificar uma DOR ou desafio real que o prospect enfrenta (baseado na profissão/bio)
+- Apresenta brevemente quem és e o que fazes (nome da empresa + serviço principal)
+- Mostra como o teu serviço resolve essa dor específica (resultado concreto)
+- Termina com CTA suave (pergunta ou convite para saber mais)
+- A mensagem deve parecer uma apresentação natural, não um pitch agressivo
+- Se tiveres contexto do serviço, USA-O obrigatoriamente para personalizar`,
       2: `ETAPA 2 - FOLLOW-UP (Dia 3):
 - Referir subtilmente que já contactaste antes (sem ser insistente)
 - Partilhar um caso de estudo ou resultado concreto
@@ -43,7 +45,8 @@ Deno.serve(async (req) => {
       ? `\nCONTEXTO DO SERVIÇO QUE VENDES:
 - Oferta: ${serviceContext.offer}
 - Dores que resolves: ${serviceContext.painPoints || "N/A"}
-IMPORTANTE: Foca a mensagem na DOR específica deste prospect e como a tua oferta a resolve. Não sejas genérico.`
+OBRIGATÓRIO: A mensagem DEVE mencionar o serviço/oferta e como resolve a dor do prospect.
+Estrutura: Dor do prospect -> O que fazes -> Como resolves -> CTA`
       : "";
 
     // Detect language for the message
