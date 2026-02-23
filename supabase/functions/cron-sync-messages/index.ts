@@ -24,7 +24,7 @@ function resolveChannel(type: number | string | undefined): string {
     "1": "sms", "2": "email", "3": "sms", "4": "sms",
     "5": "voicemail", "6": "facebook", "7": "facebook",
     "8": "email", "15": "whatsapp", "16": "whatsapp",
-    "17": "whatsapp", "18": "instagram",
+    "17": "instagram", "18": "instagram",
   };
   return typeMap[String(type)] || "other";
 }
@@ -51,6 +51,79 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 1
   } catch (err) {
     clearTimeout(timeoutId);
     throw err;
+  }
+}
+
+// Helper: fetch basic contact info from GHL
+async function fetchGHLContactBasic(apiKey: string, contactId: string): Promise<{ id: string; name: string; email?: string; phone?: string } | null> {
+  try {
+    const response = await fetchWithTimeout(
+      `https://services.leadconnectorhq.com/contacts/${contactId}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          Version: "2021-07-28",
+          Accept: "application/json",
+        },
+      },
+      10000
+    );
+    if (!response.ok) return null;
+    const data = await response.json();
+    const contact = data.contact || data;
+    return {
+      id: contact.id || contactId,
+      name: [contact.firstName, contact.lastName].filter(Boolean).join(" ") || contact.name || "Contacto GHL",
+      email: contact.email || undefined,
+      phone: contact.phone || undefined,
+    };
+  } catch (err) {
+    console.error(`[Cron Sync] Error fetching GHL contact ${contactId}:`, err);
+    return null;
+  }
+}
+
+// Helper: create a lead from GHL contact data
+async function createLeadFromGHLContact(
+  supabase: ReturnType<typeof createClient>,
+  workspaceId: string,
+  contactData: { id: string; name: string; email?: string; phone?: string }
+): Promise<{ id: string } | null> {
+  try {
+    const { data: newLead, error } = await supabase
+      .from("leads")
+      .insert({
+        workspace_id: workspaceId,
+        name: contactData.name,
+        email: contactData.email || null,
+        phone: contactData.phone || null,
+        ghl_contact_id: contactData.id,
+        source: "ghl",
+        status: "new",
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      // Handle duplicate — contact already exists
+      if (error.code === "23505") {
+        const { data: existing } = await supabase
+          .from("leads")
+          .select("id")
+          .eq("ghl_contact_id", contactData.id)
+          .eq("workspace_id", workspaceId)
+          .maybeSingle();
+        return existing || null;
+      }
+      console.error(`[Cron Sync] Error creating lead for contact ${contactData.id}:`, error);
+      return null;
+    }
+    console.log(`[Cron Sync] Auto-created lead ${newLead.id} for GHL contact ${contactData.id}`);
+    return newLead;
+  } catch (err) {
+    console.error(`[Cron Sync] Error creating lead:`, err);
+    return null;
   }
 }
 
@@ -143,11 +216,12 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalS
       const ghlData = await ghlResponse.json();
       const conversations = ghlData.conversations || [];
 
-      const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
+      // Expanded window: 2 hours instead of 30 minutes
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
       const recentConversations = conversations.filter((conv: { lastMessageDate?: string; dateUpdated?: string }) => {
         const lastDate = conv.lastMessageDate || conv.dateUpdated;
         if (!lastDate) return false;
-        return new Date(lastDate) > thirtyMinAgo;
+        return new Date(lastDate) > twoHoursAgo;
       });
 
       console.log(`[Cron Sync] Workspace ${workspace_id}: ${conversations.length} total, ${recentConversations.length} recent conversations`);
@@ -203,9 +277,20 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalS
 
         const ghlConvId = ghlConv.id;
         let channel = resolveChannel(ghlConv.type);
-        const leadId = leadsByGhlId.get(ghlConv.contactId);
+        let leadId = leadsByGhlId.get(ghlConv.contactId);
 
-        if (!leadId) continue;
+        // Auto-create lead if not found
+        if (!leadId) {
+          const contactData = await fetchGHLContactBasic(apiKey, ghlConv.contactId);
+          if (contactData) {
+            const newLead = await createLeadFromGHLContact(supabase, workspace_id, contactData);
+            if (newLead) {
+              leadId = newLead.id;
+              leadsByGhlId.set(ghlConv.contactId, leadId);
+            }
+          }
+          if (!leadId) continue;
+        }
 
         // Deduplicate: check by thread_id (with/without ghl_ prefix) then by lead+channel
         let conversationId = convsByThreadId.get(ghlConvId)
@@ -283,7 +368,7 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalS
 
           const recentMessages = messages.filter((msg) => {
             const msgDate = msg.dateAdded ? new Date(msg.dateAdded) : null;
-            return msgDate && msgDate > thirtyMinAgo;
+            return msgDate && msgDate > twoHoursAgo;
           });
 
           console.log(`[Cron Sync] Conv ${ghlConvId}: ${messages.length} total messages, ${recentMessages.length} recent`);
