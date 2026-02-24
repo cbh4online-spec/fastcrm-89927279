@@ -11,6 +11,9 @@ interface OnboardingInput {
   successDefinition: string;
   processDescription: string;
   channels: string[];
+  revenueModel?: string;
+  teamSize?: string;
+  salesComplexity?: string;
 }
 
 Deno.serve(async (req) => {
@@ -19,7 +22,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { businessType, customBusinessType, successDefinition, processDescription, channels }: OnboardingInput = await req.json();
+    const { businessType, customBusinessType, successDefinition, processDescription, channels, revenueModel, teamSize, salesComplexity }: OnboardingInput = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -110,7 +113,31 @@ O JSON deve ter esta estrutura:
     
     const selectedChannels = channels?.map((c: string) => channelNames[c] || c).join(", ") || "Não especificados";
 
+    const revenueLabels: Record<string, string> = {
+      subscription: "Subscrição recorrente",
+      "one-time": "Venda única",
+      "project-based": "Baseado em projetos",
+      mixed: "Modelo misto",
+    };
+    const teamLabels: Record<string, string> = {
+      solo: "1 pessoa (solo)",
+      "2-5": "2-5 pessoas",
+      "6-20": "6-20 pessoas",
+      "20+": "Mais de 20 pessoas",
+    };
+    const complexityLabels: Record<string, string> = {
+      simple: "Simples (decisão rápida)",
+      medium: "Médio (várias etapas)",
+      complex: "Complexo (vários decisores, longo)",
+    };
+
     const userPrompt = `Tipo de negócio: ${actualBusinessType}
+
+Modelo de receita: ${revenueLabels[revenueModel || ""] || revenueModel || "Não especificado"}
+
+Tamanho da equipa: ${teamLabels[teamSize || ""] || teamSize || "Não especificado"}
+
+Complexidade do ciclo de vendas: ${complexityLabels[salesComplexity || ""] || salesComplexity || "Não especificado"}
 
 O que representa uma venda bem-sucedida: ${successDefinition}
 
@@ -120,6 +147,8 @@ Descrição do processo de vendas:
 ${processDescription}
 
 Com base nestas informações, cria uma configuração completa e personalizada para este CRM. Considera as especificidades deste tipo de negócio e adapta os nomes, etapas e campos para o contexto português/brasileiro. 
+
+Adapta o número de etapas do pipeline à complexidade indicada. Se o ciclo é simples, usa 3-4 etapas. Se complexo, usa 6-8 etapas.
 
 Adapta os formulários para capturar leads dos canais indicados. Se usam WhatsApp ou Instagram, cria campos específicos para esses canais.`;
 
