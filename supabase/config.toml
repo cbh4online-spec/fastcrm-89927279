@@ -355,3 +355,6 @@ verify_jwt = false
 [functions.deal-intelligence]
 verify_jwt = false
 
+[functions.intelligence-panel]
+verify_jwt = false
+
