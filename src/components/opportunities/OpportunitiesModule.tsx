@@ -346,6 +346,7 @@ export function OpportunitiesModule() {
                 onDragStart={setDraggedId}
                 onDragEnd={() => setDraggedId(null)}
                 scoresMap={scoresMap}
+                healthMap={healthMap}
               />
             ))}
           </div>

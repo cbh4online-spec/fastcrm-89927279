@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { DealScore, getCategoryColors, getCategoryLabel } from "@/hooks/useDealScores";
+import { DealHealthBadge } from "@/components/intelligence/DealHealthBadge";
+import type { CompactDealIntelligence } from "@/types/dealIntelligence";
 
 
 interface OpportunityCardProps {
@@ -21,10 +23,11 @@ interface OpportunityCardProps {
   isDragging?: boolean;
   onClick?: () => void;
   dealScore?: DealScore;
+  healthIntelligence?: CompactDealIntelligence;
 }
 
 
-export function OpportunityCard({ opportunity, isDragging, onClick, dealScore }: OpportunityCardProps) {
+export function OpportunityCard({ opportunity, isDragging, onClick, dealScore, healthIntelligence }: OpportunityCardProps) {
   const getTemperatureColor = (temp: string | null) => {
     switch (temp) {
       case "hot": return "bg-red-100 text-red-700 border-red-200";
@@ -102,6 +105,9 @@ export function OpportunityCard({ opportunity, isDragging, onClick, dealScore }:
               {opportunity.probability}%
             </Badge>
           )}
+
+          {/* Deal Health Badge */}
+          <DealHealthBadge intelligence={healthIntelligence} />
 
           {/* Temperature Badge (ai_temperature) */}
           {opportunity.ai_temperature && (
