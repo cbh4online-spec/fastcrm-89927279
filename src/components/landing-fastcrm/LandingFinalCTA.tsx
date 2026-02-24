@@ -19,11 +19,11 @@ export function LandingFinalCTA() {
           className="space-y-8"
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
-            Ready to grow your revenue?
+            See your revenue clearly.
           </h2>
 
           <p className="text-lg text-[hsl(215,20%,65%)] max-w-xl mx-auto">
-            Start free. No credit card required. Set up your workspace in under 2 minutes.
+            Start free. No credit card required. Your first deal insight in under 2 minutes.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">

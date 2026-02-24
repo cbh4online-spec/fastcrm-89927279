@@ -4,27 +4,31 @@ import { Layers, Brain, Workflow, Puzzle } from "lucide-react";
 const pillars = [
   {
     icon: Layers,
+    headline: "Your data, your structure.",
     name: "Flexible Object-Based CRM",
     desc: "Contacts, Companies, Deals as flexible objects. Custom fields, views, and pipelines that adapt to how you sell.",
-    features: ["Custom objects & fields", "Saved views & filters", "Multiple pipelines", "Activity timeline"],
+    features: ["Custom objects and fields that match your process", "Saved views and filters for every team member", "Multiple pipelines for different products or segments"],
   },
   {
     icon: Brain,
+    headline: "Know what to do next.",
     name: "Revenue Intelligence Built In",
-    desc: "Health scores, stage benchmarks, and deal insights powered by AI — not just dashboards.",
-    features: ["Deal health scoring", "Stage benchmarks", "Win/loss analysis", "Revenue forecasting"],
+    desc: "Health scores, stage benchmarks, and deal insights — not just dashboards.",
+    features: ["Deal health scoring on every opportunity", "Stage benchmarks that flag stalled deals", "Win/loss analysis powered by your own data"],
   },
   {
     icon: Workflow,
+    headline: "From follow-up to full workflow.",
     name: "Automations That Scale",
-    desc: "From simple follow-ups to complex workflows. Templates, triggers, and smart suggestions.",
-    features: ["Trigger → Condition → Action", "Pre-built templates", "Smart suggestions", "Audit logging"],
+    desc: "Start with simple reminders. Scale to complex, multi-step automations as your team grows.",
+    features: ["Trigger, condition, action — visual builder", "Pre-built templates for common workflows", "Smart suggestions based on deal patterns"],
   },
   {
     icon: Puzzle,
+    headline: "Activate what you need.",
     name: "Extend with Marketplace",
-    desc: "Official extensions and bundles. Proposals, invoicing, B2B portal — activate what you need.",
-    features: ["Official extension packs", "One-click activation", "Curated bundles", "14-day free trials"],
+    desc: "Official extensions for proposals, invoicing, and B2B revenue. One click to activate, zero friction.",
+    features: ["Curated extension packs and bundles", "One-click activation with instant provisioning", "Extensions follow your CRM design — no \"bolted-on\" feel"],
   },
 ];
 
@@ -67,12 +71,13 @@ export function LandingSolutionSection() {
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                 <pillar.icon className="h-6 w-6 text-primary" />
               </div>
+              <p className="text-xs font-semibold text-primary tracking-wide uppercase mb-1">{pillar.headline}</p>
               <h3 className="font-bold text-lg mb-2">{pillar.name}</h3>
               <p className="text-sm text-[hsl(215,20%,65%)] leading-relaxed mb-4">{pillar.desc}</p>
-              <ul className="grid grid-cols-2 gap-2">
+              <ul className="space-y-2">
                 {pillar.features.map((feat) => (
-                  <li key={feat} className="flex items-center gap-2 text-xs text-[hsl(215,20%,65%)]">
-                    <div className="w-1 h-1 rounded-full bg-primary shrink-0" />
+                  <li key={feat} className="flex items-start gap-2.5 text-sm text-[hsl(215,20%,65%)]">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
                     {feat}
                   </li>
                 ))}

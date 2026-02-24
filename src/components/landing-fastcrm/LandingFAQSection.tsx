@@ -24,8 +24,12 @@ const faqs = [
     a: "Yes. Upgrade instantly, downgrade at the end of your billing period. No lock-in contracts. You can also start with Starter (free) and upgrade when your team is ready.",
   },
   {
+    q: "How is FastCRM different from traditional CRMs?",
+    a: "Traditional CRMs store contacts. FastCRM tells you what to do with them. Every deal gets a health score, every stage has benchmarks, and the system surfaces actionable insights — not just dashboards.",
+  },
+  {
     q: "Do I need technical knowledge to use FastCRM?",
-    a: "No. FastCRM is designed for sales teams and founders, not developers. The interface is intuitive, onboarding is conversational, and AI helps optimize your processes automatically. No code required.",
+    a: "No. FastCRM is designed for sales teams and founders, not developers. The interface is intuitive, onboarding is conversational, and intelligence is built in. No code required.",
   },
   {
     q: "Is my data secure?",

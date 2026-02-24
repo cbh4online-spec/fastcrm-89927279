@@ -23,15 +23,14 @@ export function LandingPositioningSection() {
           </h2>
 
           <p className="text-lg text-[hsl(215,20%,65%)] max-w-2xl mx-auto leading-relaxed">
-            FastCRM is for revenue teams that want structure, intelligence, and scale.
-            Not for those who just want to store contacts.
+            FastCRM is for SaaS teams that care about revenue clarity — not contact storage.
           </p>
 
           <div className="grid sm:grid-cols-3 gap-4 pt-4">
             {[
-              { title: "Founders", desc: "Building their first structured sales process" },
-              { title: "Sales Teams", desc: "Ready to move beyond spreadsheets and basic CRMs" },
-              { title: "Scaling Companies", desc: "Revenue operations that need intelligence at scale" },
+              { title: "SaaS Founders", desc: "Building their first structured sales motion with real intelligence" },
+              { title: "Growing Sales Teams", desc: "Moving beyond spreadsheets to pipeline visibility and deal insights" },
+              { title: "Revenue Leaders", desc: "Scaling revenue operations with forecasting, automations, and data" },
             ].map((segment) => (
               <div
                 key={segment.title}
