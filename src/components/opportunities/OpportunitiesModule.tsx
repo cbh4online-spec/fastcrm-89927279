@@ -50,6 +50,7 @@ import { PipelineSettingsDialog } from "@/components/crm/PipelineSettingsDialog"
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { toast } from "sonner";
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
+import { useBulkDealIntelligence } from "@/hooks/useBulkDealIntelligence";
 // Design System imports
 import { PageLoading, EmptyState } from "@/components/design-system";
 
@@ -80,6 +81,7 @@ export function OpportunitiesModule() {
   const closeOpportunity = useCloseOpportunity();
   const { trackLeadMovedPipeline } = useCRMAnalytics();
   const { scoresMap } = useDealScores();
+  const { scoresMap: healthMap } = useBulkDealIntelligence(opportunities);
 
   // Filter by search + hotDeals
   const filteredOpportunities = useMemo(() => {
@@ -360,6 +362,7 @@ export function OpportunitiesModule() {
             onMarkAsWon={handleMarkAsWon}
             onMarkAsLost={handleMarkAsLost}
             scoresMap={scoresMap}
+            healthMap={healthMap}
           />
         </div>
       )}
