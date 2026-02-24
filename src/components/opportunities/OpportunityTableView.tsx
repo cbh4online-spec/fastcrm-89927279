@@ -33,6 +33,8 @@ import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { DealScore, getCategoryColors, getCategoryLabel } from "@/hooks/useDealScores";
+import { DealIntelligence } from "@/hooks/useDealIntelligence";
+import { DealHealthBadge } from "@/components/intelligence/DealHealthBadge";
 
 interface OpportunityTableViewProps {
   opportunities: Opportunity[];
@@ -43,6 +45,7 @@ interface OpportunityTableViewProps {
   onMarkAsWon: (id: string) => void;
   onMarkAsLost: (id: string) => void;
   scoresMap?: Map<string, DealScore>;
+  healthMap?: Map<string, DealIntelligence>;
 }
 
 
@@ -55,6 +58,7 @@ export function OpportunityTableView({
   onMarkAsWon,
   onMarkAsLost,
   scoresMap,
+  healthMap,
 }: OpportunityTableViewProps) {
   const [scoreSortDir, setScoreSortDir] = useState<"asc" | "desc" | null>(null);
 
@@ -135,6 +139,7 @@ export function OpportunityTableView({
               </Button>
             </TableHead>
             <TableHead>Data Fecho</TableHead>
+            <TableHead className="text-center">Health</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead className="w-10"></TableHead>
           </TableRow>
@@ -234,6 +239,9 @@ export function OpportunityTableView({
                     <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
+                <TableCell className="text-center">
+                  <DealHealthBadge intelligence={healthMap?.get(opp.id)} />
+                </TableCell>
                 <TableCell>{getStatusBadge(opp.status)}</TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
@@ -273,7 +281,7 @@ export function OpportunityTableView({
           })}
           {opportunities.length === 0 && (
             <TableRow>
-              <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
+              <TableCell colSpan={12} className="text-center py-12 text-muted-foreground">
                 Nenhuma oportunidade encontrada
               </TableCell>
             </TableRow>

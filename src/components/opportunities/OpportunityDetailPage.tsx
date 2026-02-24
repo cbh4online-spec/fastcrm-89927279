@@ -13,12 +13,15 @@ import { useActivities } from "@/hooks/useActivities";
 import { useLeads } from "@/hooks/useLeads";
 import { useContacts } from "@/hooks/useContacts";
 import { useCompanies } from "@/hooks/useCompanies";
+import { useTasks } from "@/hooks/useTasks";
+import { useDealIntelligence } from "@/hooks/useDealIntelligence";
 import { OpportunityStagesStepper } from "./detail/OpportunityStagesStepper";
 import { OpportunityDetailsGrid } from "./detail/OpportunityDetailsGrid";
 import { OpportunityActivityTimeline } from "./detail/OpportunityActivityTimeline";
 import { OpportunityAIInsightsSection } from "./OpportunityAIInsightsSection";
 import { OpportunityAssociationsSection } from "./sections/OpportunityAssociationsSection";
 import { OpportunityCommissionSection } from "./sections/OpportunityCommissionSection";
+import { DealIntelligencePanel } from "@/components/intelligence/DealIntelligencePanel";
 import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
 import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
 import { toast } from "sonner";
@@ -38,7 +41,12 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
     entityId: opportunityId,
     limit: 50,
   });
+  const { data: dealTasks = [] } = useTasks({
+    related_type: "opportunity",
+    related_id: opportunityId,
+  });
   const updateOpportunity = useUpdateOpportunityEnhanced();
+  const intelligence = useDealIntelligence(opportunity, activities, dealTasks);
   
   // Fetch entities for associations
   const { data: leadsData = [], isLoading: isLoadingLeads } = useLeads();
@@ -236,6 +244,12 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
 
         {/* Sidebar - Fixed width on desktop */}
         <div className="w-full lg:w-80 lg:flex-shrink-0 space-y-4">
+          {/* Intelligence Panel */}
+          <DealIntelligencePanel
+            intelligence={intelligence}
+            dealId={opportunity.id}
+          />
+
           {/* Associations Section */}
           <OpportunityAssociationsSection
             opportunity={opportunity}
