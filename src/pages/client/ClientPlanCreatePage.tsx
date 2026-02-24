@@ -36,9 +36,9 @@ export default function ClientPlanCreatePage() {
     queryKey: ["products-for-plan", clientUser?.workspace_id],
     queryFn: async () => {
       if (!clientUser?.workspace_id) return [];
-      const { data } = await supabase
+      const { data } = await (supabase
         .from("products")
-        .select("id, name, base_price, sku")
+        .select("id, name, base_price, sku") as any)
         .eq("workspace_id", clientUser.workspace_id)
         .eq("is_active", true)
         .order("name");
