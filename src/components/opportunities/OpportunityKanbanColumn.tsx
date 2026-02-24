@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { differenceInDays } from "date-fns";
 import { DealScore, getCategoryColors } from "@/hooks/useDealScores";
+import type { CompactDealIntelligence } from "@/types/dealIntelligence";
 
 
 interface OpportunityKanbanColumnProps {
@@ -28,6 +29,7 @@ interface OpportunityKanbanColumnProps {
   onDragStart: (oppId: string) => void;
   onDragEnd: () => void;
   scoresMap?: Map<string, DealScore>;
+  healthMap?: Map<string, CompactDealIntelligence>;
 }
 
 
@@ -41,6 +43,7 @@ export function OpportunityKanbanColumn({
   onDragStart,
   onDragEnd,
   scoresMap,
+  healthMap,
 }: OpportunityKanbanColumnProps) {
 
   const [isDragOver, setIsDragOver] = useState(false);
@@ -230,6 +233,7 @@ export function OpportunityKanbanColumn({
                 isDragging={draggedId === opp.id}
                 onClick={onOpportunityClick ? () => onOpportunityClick(opp) : undefined}
                 dealScore={scoresMap?.get(opp.id)}
+                healthIntelligence={healthMap?.get(opp.id)}
               />
             </div>
           ))}
