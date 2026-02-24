@@ -102,3 +102,63 @@ export function canInstallPack(pack: ExtensionPack, currentPlan: PlanTier): bool
   const tierOrder: PlanTier[] = ["free", "basic", "pro", "agency"];
   return tierOrder.indexOf(currentPlan) >= tierOrder.indexOf(pack.requiredPlan);
 }
+
+// ── Onboarding Bundles ──
+
+import type { OnboardingSegment } from "./onboardingSegments";
+
+export interface OnboardingBundle {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  segments: OnboardingSegment[];
+  modules: string[]; // marketplace module slugs
+  highlights: string[];
+}
+
+export const ONBOARDING_BUNDLES: OnboardingBundle[] = [
+  {
+    id: "startup-growth",
+    name: "Startup Growth Bundle",
+    description: "Tudo o que precisas para escalar vendas rapidamente",
+    icon: "🚀",
+    segments: ["startup_saas"],
+    modules: ["proposals"],
+    highlights: [
+      "Propostas comerciais integradas",
+      "Intelligence scoring avançado",
+      "Templates de follow-up automático",
+    ],
+  },
+  {
+    id: "smb-revenue",
+    name: "SMB Revenue Bundle",
+    description: "Gestão completa de vendas e faturação",
+    icon: "💼",
+    segments: ["smb_traditional", "generic"],
+    modules: ["proposals", "invoices"],
+    highlights: [
+      "Propostas e faturação integradas",
+      "Alertas de faturas vencidas",
+      "Pipeline otimizado para ciclos curtos",
+    ],
+  },
+  {
+    id: "b2b-revenue",
+    name: "B2B Revenue Bundle",
+    description: "Pipeline avançado para vendas complexas B2B",
+    icon: "🏢",
+    segments: ["b2b_complex"],
+    modules: ["proposals", "invoices", "b2b-portal"],
+    highlights: [
+      "Encomendas com aprovações",
+      "Forecast benchmarks avançados",
+      "Pipeline para vendas complexas",
+    ],
+  },
+];
+
+export function getBundleForSegment(segment: OnboardingSegment): OnboardingBundle | undefined {
+  return ONBOARDING_BUNDLES.find((b) => b.segments.includes(segment));
+}

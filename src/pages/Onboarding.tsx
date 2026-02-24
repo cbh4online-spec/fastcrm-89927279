@@ -43,7 +43,7 @@ export default function Onboarding() {
   };
 
   const handleComplete = () => {
-    navigate("/dashboard");
+    navigate("/dashboard?onboarding=complete");
   };
 
   const handleSkip = async () => {

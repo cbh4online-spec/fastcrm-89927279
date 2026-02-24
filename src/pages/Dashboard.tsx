@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { WelcomeOverlay } from "@/components/dashboard/WelcomeOverlay";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -34,6 +35,7 @@ import { useCreateTask } from "@/hooks/useTasks";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const createTask = useCreateTask();
 
   const [createLeadOpen, setCreateLeadOpen] = useState(false);
@@ -41,6 +43,24 @@ export default function Dashboard() {
   const [createContactOpen, setCreateContactOpen] = useState(false);
   const [createCompanyOpen, setCreateCompanyOpen] = useState(false);
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
+
+  // Post-onboarding welcome state
+  const isOnboardingComplete = searchParams.get("onboarding") === "complete";
+  const onboardingSegment = searchParams.get("segment");
+  const onboardingBundle = searchParams.get("bundle");
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  useEffect(() => {
+    if (isOnboardingComplete) {
+      setShowWelcome(true);
+      // Clean up URL params
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("onboarding");
+      newParams.delete("segment");
+      newParams.delete("bundle");
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [isOnboardingComplete]);
 
   return (
     <DashboardLayout>
@@ -85,6 +105,15 @@ export default function Dashboard() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+
+          {/* Welcome overlay (post-onboarding) */}
+          {showWelcome && (
+            <WelcomeOverlay
+              segment={onboardingSegment}
+              bundleActivated={onboardingBundle}
+              onDismiss={() => setShowWelcome(false)}
+            />
+          )}
 
           {/* Revenue Hero */}
           <RevenueHero />

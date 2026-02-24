@@ -386,6 +386,45 @@ export function useCRMAnalytics() {
     [push]
   );
 
+  // ════════════════════════════════════════
+  //  ONBOARDING
+  // ════════════════════════════════════════
+
+  const trackOnboardingStepCompleted = useCallback(
+    (data: { step: string; duration_ms: number }) => {
+      push('onboarding.step_completed', {
+        step: data.step,
+        duration_ms_bucket: bucketizeTime(data.duration_ms / 60000),
+      });
+    },
+    [push]
+  );
+
+  const trackOnboardingCompleted = useCallback(
+    (data: { segment: string; duration_ms: number; bundle_activated: boolean }) => {
+      push('onboarding.completed', {
+        segment: data.segment,
+        duration_ms: data.duration_ms,
+        bundle_activated: data.bundle_activated,
+      });
+    },
+    [push]
+  );
+
+  const trackOnboardingSkipped = useCallback(
+    (data: { last_step: string }) => {
+      push('onboarding.skipped', data);
+    },
+    [push]
+  );
+
+  const trackBundleActivated = useCallback(
+    (data: { bundle_id: string; modules_count: number }) => {
+      push('onboarding.bundle_activated', data);
+    },
+    [push]
+  );
+
   return {
     // Inbox
     trackInboxOpened,
@@ -427,5 +466,10 @@ export function useCRMAnalytics() {
     trackIntelligencePanelOpened,
     trackNBAClicked,
     trackTaskCreatedFromIntelligence,
+    // Onboarding
+    trackOnboardingStepCompleted,
+    trackOnboardingCompleted,
+    trackOnboardingSkipped,
+    trackBundleActivated,
   };
 }

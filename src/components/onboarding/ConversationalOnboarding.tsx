@@ -3,15 +3,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Sparkles, X } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Send, Sparkles, X, Check, Loader2, Rocket } from "lucide-react";
 import { ChatMessage, ChatMessageData } from "./ChatMessage";
 import { QuickReplies, QuickReplyOption } from "./QuickReplies";
-import { ExtensionSuggestions } from "./ExtensionSuggestions";
 import { ApplyingStep } from "./steps/ApplyingStep";
 import { useIntelligentOnboarding, OnboardingConfig } from "@/hooks/useIntelligentOnboarding";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 import { toast } from "sonner";
+import { resolveSegment, getSegmentProfile, OnboardingSegment } from "@/config/onboardingSegments";
+import { getBundleForSegment, OnboardingBundle } from "@/config/extensionPacks";
 
 interface ConversationalOnboardingProps {
   workspaceName: string;
@@ -25,14 +28,34 @@ type ConvoStep =
   | "revenue_model"
   | "team_size"
   | "sales_complexity"
+  | "objective"
   | "success"
   | "process"
   | "channels"
   | "generating"
   | "preview_summary"
   | "applying"
-  | "extensions"
+  | "bundle"
+  | "bundle_activating"
   | "done";
+
+const STEP_PROGRESS: Record<ConvoStep, number> = {
+  welcome: 0,
+  business_type: 15,
+  revenue_model: 25,
+  team_size: 35,
+  sales_complexity: 45,
+  objective: 55,
+  success: 65,
+  process: 75,
+  channels: 85,
+  generating: 90,
+  preview_summary: 92,
+  applying: 95,
+  bundle: 97,
+  bundle_activating: 98,
+  done: 100,
+};
 
 const BUSINESS_TYPES: QuickReplyOption[] = [
   { label: "SaaS / Software", value: "saas", icon: "💻" },
@@ -65,6 +88,13 @@ const COMPLEXITY: QuickReplyOption[] = [
   { label: "Complexo", value: "complex", description: "Longo, vários decisores" },
 ];
 
+const OBJECTIVES: QuickReplyOption[] = [
+  { label: "Organizar pipeline", value: "organize_pipeline", icon: "📊" },
+  { label: "Melhorar forecast", value: "improve_forecast", icon: "📈" },
+  { label: "Automatizar follow-ups", value: "automate_followups", icon: "🤖" },
+  { label: "Gerir propostas/faturas", value: "manage_docs", icon: "📄" },
+];
+
 const CHANNELS: QuickReplyOption[] = [
   { label: "Formulários", value: "forms", icon: "📝" },
   { label: "Email", value: "email", icon: "📧" },
@@ -82,20 +112,24 @@ function makeMsg(role: "assistant" | "user", content: string, type: ChatMessageD
 export function ConversationalOnboarding({ workspaceName, onComplete, onSkip }: ConversationalOnboardingProps) {
   const onboarding = useIntelligentOnboarding();
   const { currentWorkspace } = useWorkspace();
+  const { installModule } = useWorkspaceModules();
 
   const [convoStep, setConvoStep] = useState<ConvoStep>("welcome");
   const [messages, setMessages] = useState<ChatMessageData[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
+  const [computedSegment, setComputedSegment] = useState<OnboardingSegment>("generic");
+  const [recommendedBundle, setRecommendedBundle] = useState<OnboardingBundle | null>(null);
+  const [bundleProgress, setBundleProgress] = useState<{ current: number; total: number; installing: boolean }>({ current: 0, total: 0, installing: false });
   const scrollRef = useRef<HTMLDivElement>(null);
+  const startTimeRef = useRef(Date.now());
 
   // Auto-scroll
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isTyping]);
 
-  // Add assistant message with typing delay
   const addAssistant = useCallback((content: string, type: ChatMessageData["type"] = "text") => {
     setIsTyping(true);
     const delay = Math.min(400 + content.length * 2, 1200);
@@ -123,10 +157,10 @@ export function ConversationalOnboarding({ workspaceName, onComplete, onSkip }: 
         addUser(label);
         onboarding.updateAnswer("businessType", value);
         if (value === "other") {
-          setConvoStep("welcome"); // temp: will show text input
+          setConvoStep("welcome");
           setTimeout(() => {
             addAssistant("Que tipo de negócio tens? Escreve em poucas palavras.");
-            setConvoStep("business_type"); // stay but expect text
+            setConvoStep("business_type");
           }, 600);
           return;
         }
@@ -154,12 +188,34 @@ export function ConversationalOnboarding({ workspaceName, onComplete, onSkip }: 
         const label = COMPLEXITY.find((c) => c.value === value)?.label || value;
         addUser(label);
         onboarding.updateAnswer("salesComplexity" as any, value);
+        setConvoStep("objective");
+        setTimeout(() => addAssistant("Qual é o teu objetivo principal com o CRM?"), 500);
+        break;
+      }
+      case "objective": {
+        const label = OBJECTIVES.find((o) => o.value === value)?.label || value;
+        addUser(label);
+        onboarding.updateAnswer("primaryObjective" as any, value);
+        
+        // Compute segment now
+        const segment = resolveSegment({
+          businessType: onboarding.answers.businessType,
+          revenueModel: (onboarding.answers as any).revenueModel,
+          teamSize: (onboarding.answers as any).teamSize,
+          salesComplexity: (onboarding.answers as any).salesComplexity,
+        });
+        setComputedSegment(segment);
+        const profile = getSegmentProfile(segment);
+        const bundle = getBundleForSegment(segment);
+        setRecommendedBundle(bundle || null);
+        
         setConvoStep("success");
-        setTimeout(() => addAssistant("O que representa uma venda bem-sucedida para ti? Descreve em poucas palavras."), 500);
+        setTimeout(() => {
+          addAssistant(`Entendido! Parece que tens um perfil de **${profile.labelPt}**. Vou adaptar tudo para ti. 🎯\n\nO que representa uma venda bem-sucedida para ti? Descreve em poucas palavras.`);
+        }, 500);
         break;
       }
       case "channels": {
-        // multi-select toggle
         setSelectedChannels((prev) =>
           prev.includes(value) ? prev.filter((c) => c !== value) : [...prev, value]
         );
@@ -176,7 +232,6 @@ export function ConversationalOnboarding({ workspaceName, onComplete, onSkip }: 
 
     switch (convoStep) {
       case "business_type": {
-        // Custom business type
         addUser(text);
         onboarding.updateAnswer("businessType", "other");
         onboarding.updateAnswer("customBusinessType", text);
@@ -219,6 +274,7 @@ export function ConversationalOnboarding({ workspaceName, onComplete, onSkip }: 
             revenueModel: (onboarding.answers as any).revenueModel,
             teamSize: (onboarding.answers as any).teamSize,
             salesComplexity: (onboarding.answers as any).salesComplexity,
+            primaryObjective: (onboarding.answers as any).primaryObjective,
           },
         });
 
@@ -250,29 +306,144 @@ export function ConversationalOnboarding({ workspaceName, onComplete, onSkip }: 
     }, 800);
   };
 
+  // Bundle activation
+  const handleActivateBundle = async () => {
+    if (!recommendedBundle) return;
+    setConvoStep("bundle_activating");
+    setBundleProgress({ current: 0, total: recommendedBundle.modules.length, installing: true });
+
+    for (let i = 0; i < recommendedBundle.modules.length; i++) {
+      setBundleProgress({ current: i, total: recommendedBundle.modules.length, installing: true });
+      await installModule(recommendedBundle.modules[i]);
+    }
+
+    setBundleProgress({ current: recommendedBundle.modules.length, total: recommendedBundle.modules.length, installing: false });
+
+    // Save bundle to workspace_onboarding
+    if (currentWorkspace) {
+      await supabase.from("workspace_onboarding" as any).upsert({
+        workspace_id: currentWorkspace.id,
+        activated_bundle: recommendedBundle.id,
+      } as any, { onConflict: 'workspace_id' });
+    }
+
+    toast.success(`${recommendedBundle.name} ativado!`);
+    setTimeout(() => {
+      onComplete();
+    }, 1500);
+  };
+
+  const handleSkipBundle = () => {
+    onComplete();
+  };
+
+  // Compute duration
+  const getDurationMs = () => Date.now() - startTimeRef.current;
+
   // Show applying step
   if (convoStep === "applying" && onboarding.config) {
     return (
       <ApplyingStep
         config={onboarding.config}
         answers={onboarding.answers}
-        onComplete={() => setConvoStep("extensions")}
+        segment={computedSegment}
+        durationMs={getDurationMs()}
+        onComplete={() => setConvoStep("bundle")}
       />
     );
   }
 
-  // Show extension suggestions
-  if (convoStep === "extensions") {
+  // Show bundle recommendation
+  if (convoStep === "bundle" || convoStep === "bundle_activating") {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-xl">
-          <ExtensionSuggestions
-            businessType={onboarding.answers.businessType}
-            onInstall={(pack) => {
-              toast.success(`${pack.name} será instalado!`);
-            }}
-            onSkip={onComplete}
-          />
+      <div className="min-h-screen bg-background flex flex-col">
+        {/* Header */}
+        <div className="border-b border-border px-4 py-3 flex items-center justify-between bg-card">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Configuração Inteligente</p>
+              <p className="text-xs text-muted-foreground">{workspaceName}</p>
+            </div>
+          </div>
+          <Progress value={STEP_PROGRESS[convoStep]} className="w-24 h-1.5" />
+        </div>
+
+        <div className="flex-1 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full max-w-lg space-y-6"
+          >
+            <div className="text-center space-y-2">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto text-3xl">
+                {recommendedBundle?.icon || "🚀"}
+              </div>
+              <h2 className="text-xl font-bold text-foreground">
+                Recomendação para o teu negócio
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                Baseado nas tuas respostas, recomendamos:
+              </p>
+            </div>
+
+            {recommendedBundle && (
+              <div className="p-5 rounded-xl border border-primary/20 bg-primary/5 space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{recommendedBundle.icon}</span>
+                  <div>
+                    <h3 className="font-semibold text-foreground">{recommendedBundle.name}</h3>
+                    <p className="text-xs text-muted-foreground">{recommendedBundle.description}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {recommendedBundle.highlights.map((h, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm text-foreground">
+                      <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Check className="w-3 h-3 text-primary" />
+                      </div>
+                      {h}
+                    </div>
+                  ))}
+                </div>
+
+                {convoStep === "bundle_activating" && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      A ativar ({bundleProgress.current}/{bundleProgress.total})...
+                    </div>
+                    <Progress value={(bundleProgress.current / bundleProgress.total) * 100} className="h-1.5" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {convoStep === "bundle" && (
+              <div className="flex flex-col gap-2">
+                <Button onClick={handleActivateBundle} className="gap-2 w-full">
+                  <Rocket className="w-4 h-4" />
+                  Ativar agora
+                </Button>
+                <Button variant="ghost" onClick={handleSkipBundle} className="text-muted-foreground">
+                  Saltar — ir para o Dashboard
+                </Button>
+              </div>
+            )}
+
+            {convoStep === "bundle_activating" && !bundleProgress.installing && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                  <Check className="w-6 h-6 text-primary" />
+                </div>
+                <p className="text-sm font-medium text-foreground">Bundle ativado com sucesso!</p>
+                <p className="text-xs text-muted-foreground">A redirecionar...</p>
+              </motion.div>
+            )}
+          </motion.div>
         </div>
       </div>
     );
@@ -284,6 +455,7 @@ export function ConversationalOnboarding({ workspaceName, onComplete, onSkip }: 
       case "revenue_model": return true;
       case "team_size": return true;
       case "sales_complexity": return true;
+      case "objective": return true;
       case "channels": return true;
       default: return false;
     }
@@ -298,6 +470,7 @@ export function ConversationalOnboarding({ workspaceName, onComplete, onSkip }: 
       case "revenue_model": return REVENUE_MODELS;
       case "team_size": return TEAM_SIZES;
       case "sales_complexity": return COMPLEXITY;
+      case "objective": return OBJECTIVES;
       case "channels": return CHANNELS;
       default: return [];
     }
@@ -316,9 +489,12 @@ export function ConversationalOnboarding({ workspaceName, onComplete, onSkip }: 
             <p className="text-xs text-muted-foreground">{workspaceName}</p>
           </div>
         </div>
-        <button onClick={onSkip} className="text-muted-foreground hover:text-foreground transition-colors">
-          <X className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-3">
+          <Progress value={STEP_PROGRESS[convoStep]} className="w-24 h-1.5" />
+          <button onClick={onSkip} className="text-muted-foreground hover:text-foreground transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -340,7 +516,7 @@ export function ConversationalOnboarding({ workspaceName, onComplete, onSkip }: 
           <QuickReplies
             options={currentQuickReplies}
             onSelect={handleQuickReply}
-            columns={convoStep === "sales_complexity" ? 3 : 2}
+            columns={convoStep === "sales_complexity" ? 3 : convoStep === "objective" ? 2 : 2}
           />
         )}
 
