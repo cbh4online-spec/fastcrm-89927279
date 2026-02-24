@@ -1,171 +1,127 @@
 
 
-# Objects MVP — "Attio Mode"
+# Intelligence Panel v1 — Deal Health & Next Best Action
 
-## Current State Analysis
+## Current State
 
-The codebase already has mature, feature-rich components for each entity:
+- **OpportunityDetailPage** renders a `flex-col-reverse lg:flex-row` layout with a right sidebar (w-80) for Associations + Commission sections
+- **Existing AI**: `OpportunityAIInsightsSection` and `deal_scores` table exist but use a different model (edge function `compute-deal-score` with engagement/recency/trust/intent factors). This is separate from the heuristic health score described here
+- **Activities**: `crm_activities` table with `entity_type`, `entity_id`, `created_at` — can filter by `entity_type='opportunity'`
+- **Tasks**: `tasks` table with `related_type`, `related_id`, `due_at`, `status` — can filter by `related_type='opportunity'`
+- **Opportunities**: has `value`, `expected_close_date`, `contact_id`, `company_id`, `stage_id`, `last_activity_at`, `updated_at`
+- **Pipeline stages**: `pipeline_stages` with `position`, `name`
+- **No tasks hook** exists yet — need to create one
 
-- **Contacts**: `SmartContactsTable` (908 lines), `ENIContactDetailWithSidebar` (589 lines) — full search, filters, columns, bulk actions, detail with sidebar menu
-- **Companies**: `SmartCompaniesTable`, `CompanyDetailWithSidebar` — similar feature set
-- **Deals/Opportunities**: `OpportunitiesModule` (kanban + table views), `OpportunityDetailPage` — full pipeline management
+## Architecture Decision
 
-**Current `/dashboard/objects`** page (`ObjectsPage.tsx`) is a simple Tabs component that embeds `SmartContactsTable`, a basic `CompaniesTab`, and `SmartLeadsTable` under tabs. It does NOT have:
-- Dedicated `/objects/contacts`, `/objects/companies`, `/objects/deals` routes
-- An "Objects Home" with cards
-- Detail views at `/objects/:type/:id`
-- Integration with `core_object_fields` (custom fields from Sprint 1)
+The plan calls for an "Intelligence Service" edge function. However, for v1 with a deterministic heuristic (no AI/LLM calls), all scoring logic can run **client-side** in a custom hook. This gives:
+- Zero latency (no network call)
+- Instant updates when data changes
+- Simpler implementation
+- Easy to swap for an edge function in v2
 
-**Key insight**: The existing list + detail components are production-quality. The goal is NOT to rewrite them, but to:
-1. Create a routing layer under `/objects/*`
-2. Build an Objects Home page
-3. Wire existing components into the new routes
-4. Add custom fields rendering from `core_object_fields`
-5. Keep legacy routes working via redirects
+The hook will consume data already fetched by the detail page (opportunity, activities, tasks, stages) and compute the score purely in-memory.
 
 ## Plan
 
-### 1. Object Registry Config
+### 1. Deal Intelligence Hook
 
-**New file: `src/config/objectRegistry.ts`**
+**New file: `src/hooks/useDealIntelligence.ts`**
 
-A static registry mapping object types to their underlying table, list component, detail component, icon, and routes:
+Pure computation hook that takes opportunity data + activities + tasks + stages and returns:
 
 ```text
-OBJECT_REGISTRY = {
-  contacts: {
-    slug: "contacts",
-    label: "Contacts", 
-    icon: Users,
-    table: "contacts",
-    listComponent: SmartContactsTable,
-    detailComponent: ENIContactDetailWithSidebar,
-    legacyListPath: "/dashboard/contacts",
-    legacyDetailPath: "/dashboard/contacts/:id",
-    objectsPath: "/objects/contacts",
-    objectsDetailPath: "/objects/contacts/:id",
-  },
-  companies: { ... SmartCompaniesTable / CompanyDetailWithSidebar },
-  deals: { ... OpportunitiesModule / OpportunityDetailPage, table: "opportunities" },
+{
+  healthScore: number (0-100)
+  healthLabel: "healthy" | "watch" | "at_risk"
+  riskDrivers: { reason: string, severity: "high" | "medium" | "low" }[]
+  nextBestAction: { title: string, type: "follow_up" | "create_task" | "review_blockers" | "complete_data" | "send_recap" }
+  dataCompleteness: { percent: number, missingFields: string[] }
 }
 ```
 
-This is the source of truth for the Objects UI. No DB query needed — it's config.
+Scoring logic (from the spec):
+- Start at 100, subtract penalties for: no recent activity (-25/-40), no next task (-20/-10), stage stagnation (-15/-25), missing data (-10/-10/-5)
+- Labels: 80-100 Healthy, 50-79 Watch, 0-49 At Risk
+- Risk drivers: top 3 penalties sorted by severity
+- NBA: first matching rule (no activity → follow up, no next step → create task, stagnated → review blockers, incomplete → complete data, else → send recap)
 
-### 2. Objects Home Page
+### 2. Tasks Hook
 
-**New file: `src/pages/ObjectsHomePage.tsx`**
+**New file: `src/hooks/useTasks.ts`**
 
-Route: `/objects` (also `/dashboard/objects` redirects here)
+Fetches tasks from the `tasks` table filtered by `related_type` and `related_id`. Also provides a `useCreateTask` mutation for the NBA CTA.
 
-UI:
-- Header: "Objects" + description
-- Grid of cards for Contacts, Companies, Deals (from `OBJECT_REGISTRY`)
-  - Each card shows: icon, name, record count (fetched via simple count queries), link to `/objects/:type`
-- "Create Custom Object" button (disabled/coming soon badge for MVP)
-- Link to Custom Objects manager for existing custom objects
+### 3. Intelligence Panel Component
 
-### 3. Object List Pages
+**New file: `src/components/intelligence/DealIntelligencePanel.tsx`**
 
-**New file: `src/pages/ObjectListPage.tsx`**
+A collapsible card/panel with 4 sections:
 
-Route: `/objects/:type` (e.g. `/objects/contacts`)
+**A) Health Score** — Circular badge (green/amber/red) + label + one-line reason
+**B) Risk Drivers** — Top 3 items with severity badges (High/Medium/Low)
+**C) Next Best Action** — Single recommendation with CTA button. "Create task" opens inline task creation (title pre-filled, linked to deal)
+**D) Data Completeness** — Progress bar + list of missing fields as clickable suggestions
 
-- Reads `:type` from params
-- Looks up `OBJECT_REGISTRY[type]`
-- Renders the existing list component (`SmartContactsTable`, `SmartCompaniesTable`, `OpportunitiesModule`)
-- Adds `SavedViewsDropdown` in header
-- Wraps in `DashboardLayout`
+Styling: compact, no long text. Uses existing `Card`, `Badge`, `Progress`, `Button` components.
 
-This is a thin wrapper — all the table logic (search, filters, sort, columns) already exists in the Smart*Table components.
+### 4. Integration into Deal Detail View
 
-### 4. Object Detail Pages
+**Edit: `src/components/opportunities/OpportunityDetailPage.tsx`**
 
-**New file: `src/pages/ObjectDetailPage.tsx`**
+Add `DealIntelligencePanel` to the right sidebar (above or below Associations), passing the opportunity, activities, tasks, and stages data.
 
-Route: `/objects/:type/:id`
+### 5. Health Badge in Deals List
 
-- Reads `:type` and `:id` from params
-- Looks up registry to render the correct detail component
-- For contacts: renders `ENIContactDetailWithSidebar` (already reads `id` from `useParams`)
-- For companies: renders `CompanyDetailWithSidebar`
-- For deals: renders `OpportunityDetailPage`
-- Wraps in `DashboardLayout`
+**New file: `src/components/intelligence/DealHealthBadge.tsx`**
 
-**Important**: The existing detail components already use `useParams` to get the `id`. They will work as-is because the route param name is the same.
+A small badge component that takes an opportunity + its activities/tasks and shows the health label with a tooltip showing the top risk reason.
 
-### 5. Custom Fields Integration
+**Edit: `src/components/opportunities/OpportunitiesModule.tsx`** (or the table columns config)
 
-**Edit: `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx`** (and similar for companies/deals)
+Add a "Health" column to the deals table view that renders `DealHealthBadge` for each row.
 
-Add a `ProfileCustomFieldsSection` (already exists in the codebase!) or a new `ObjectCustomFieldsSection` that:
-- Fetches `core_object_fields` for the object type (contacts/companies/deals)
-- Reads values from the entity record or a JSONB `custom_data` column
-- Renders fields using the existing `DynamicRecordForm` component from Sprint 1
+For the list view, we need a lightweight version: fetch activities and tasks in bulk for all visible deals. To avoid N+1 queries:
 
-For the list views, custom fields can appear as additional columns via the existing `ColumnSelector` system — each `SmartContactsTable` already supports configurable columns.
+**New file: `src/hooks/useBulkDealIntelligence.ts`**
 
-**Note**: For MVP, custom fields for core objects (contacts/companies/deals) will need a mapping. The `core_object_fields` table references `object_id` (UUID of a `custom_objects` record). For core objects, we'll create "system" entries in `custom_objects` for contacts, companies, and deals (is_system=true), so custom fields can be attached to them.
+Fetches all activities and tasks for a list of opportunity IDs in two queries, then computes health scores for each deal client-side.
 
-### 6. Routes & Redirects
+### 6. Create Task from Intelligence Panel
 
-**Edit: `src/App.tsx`**
+The NBA CTA "Create task" will:
+1. Open a small inline form (or dialog) with pre-filled title from the NBA recommendation
+2. Set `related_type: 'opportunity'`, `related_id: dealId`
+3. Set `due_at` to 48h from now (for follow-ups)
+4. On success, invalidate tasks query and show toast
 
-Add new routes:
-```text
-/objects              → ObjectsHomePage
-/objects/contacts     → ObjectListPage (type=contacts)
-/objects/companies    → ObjectListPage (type=companies) 
-/objects/deals        → ObjectListPage (type=deals)
-/objects/:type/:id    → ObjectDetailPage
-```
+### 7. Analytics Events (lightweight)
 
-Update `/dashboard/objects` to redirect to `/objects`.
+Track events via `crm_activities` table (reuse existing activity logging):
+- `intelligence_panel_opened` — logged when panel mounts
+- `nba_clicked` — logged when user clicks the NBA CTA
+- `task_created_from_intelligence` — logged on successful task creation
 
-Legacy routes stay intact:
-- `/dashboard/contacts` still works (existing `Contacts` page)
-- `/dashboard/contacts/:id` still works
-- `/dashboard/companies`, `/dashboard/companies/:id` still work
-- `/dashboard/opportunities`, `/dashboard/opportunities/:id` still work
-
-### 7. Navigation Update
-
-**Edit: `src/config/nav.v2.ts`**
-
-Change Objects href from `/dashboard/objects` to `/objects`.
-
-### 8. Seed System Objects
-
-**DB migration**: Insert 3 system records into `custom_objects` for contacts, companies, deals (with `is_system=true`). This allows `core_object_fields` to reference them for custom fields on core entities.
+No new table needed — just activity entries with `activity_type` set accordingly.
 
 ## Files Summary
 
 | File | Action |
 |---|---|
-| `src/config/objectRegistry.ts` | Create — registry mapping types to components |
-| `src/pages/ObjectsHomePage.tsx` | Create — cards grid for Contacts/Companies/Deals |
-| `src/pages/ObjectListPage.tsx` | Create — thin wrapper rendering existing list components |
-| `src/pages/ObjectDetailPage.tsx` | Create — thin wrapper rendering existing detail components |
-| `src/App.tsx` | Edit — add `/objects/*` routes, redirect `/dashboard/objects` |
-| `src/config/nav.v2.ts` | Edit — update Objects href to `/objects` |
-| `src/pages/ObjectsPage.tsx` | Keep — still used for legacy route, will redirect |
-| Migration SQL | Create — seed 3 system records in `custom_objects` |
+| `src/hooks/useDealIntelligence.ts` | Create — heuristic scoring logic |
+| `src/hooks/useTasks.ts` | Create — tasks CRUD for deals |
+| `src/hooks/useBulkDealIntelligence.ts` | Create — batch scoring for list view |
+| `src/components/intelligence/DealIntelligencePanel.tsx` | Create — sidebar panel with 4 sections |
+| `src/components/intelligence/DealHealthBadge.tsx` | Create — compact badge for list view |
+| `src/components/intelligence/CreateTaskFromIntelligence.tsx` | Create — inline task creation dialog |
+| `src/components/opportunities/OpportunityDetailPage.tsx` | Edit — add panel to sidebar |
+| `src/components/opportunities/OpportunitiesModule.tsx` | Edit — add Health column to table view |
 
-## What This Does NOT Do (deferred)
+## Technical Notes
 
-- No rewrite of existing Smart*Table components — they already have search, filters, sort, columns
-- No new Activity timeline component — existing detail pages already have timelines
-- No Intelligence sidebar — placeholder can be added later
-- No URL migration for legacy routes — they stay as-is
-
-## Acceptance Criteria
-
-- `/objects` shows a home page with Contacts, Companies, Deals cards
-- `/objects/contacts` shows the full SmartContactsTable with all existing features
-- `/objects/companies` shows the full SmartCompaniesTable
-- `/objects/deals` shows the OpportunitiesModule (kanban + table)
-- `/objects/:type/:id` opens the correct detail view
-- `/dashboard/contacts`, `/dashboard/companies/:id`, etc. continue to work
-- Saved views dropdown works on each list page
-- Custom fields can be defined per object type (via core_object_fields)
+- All scoring runs client-side in v1 — no edge function needed. Data is already fetched by the page
+- Stage stagnation uses `opportunity.updated_at` as proxy (no stage history table yet). Default stage limit: 14 days
+- `useBulkDealIntelligence` fetches activities/tasks for all visible deal IDs in 2 queries (using `.in()` filter), then maps scores per deal
+- The panel is collapsible via a simple `useState` toggle with localStorage persistence
+- No new DB tables or migrations needed — uses existing `tasks`, `crm_activities`, `opportunities`, `pipeline_stages`
 
