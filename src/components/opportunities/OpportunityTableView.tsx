@@ -61,6 +61,7 @@ export function OpportunityTableView({
   healthMap,
 }: OpportunityTableViewProps) {
   const [scoreSortDir, setScoreSortDir] = useState<"asc" | "desc" | null>(null);
+  const [healthSortDir, setHealthSortDir] = useState<"asc" | "desc" | null>(null);
 
   const formatCurrency = (value: number, currency: string = "EUR") => {
     return new Intl.NumberFormat("pt-PT", {
@@ -91,18 +92,38 @@ export function OpportunityTableView({
     }
   };
 
-  const sortedOpportunities = scoreSortDir && scoresMap
-    ? [...opportunities].sort((a, b) => {
+  const healthRank: Record<string, number> = { AT_RISK: 0, WATCH: 1, HEALTHY: 2 };
+
+  const sortedOpportunities = (() => {
+    if (healthSortDir && healthMap) {
+      return [...opportunities].sort((a, b) => {
+        const ha = healthRank[healthMap.get(a.id)?.health_label ?? "HEALTHY"] ?? 2;
+        const hb = healthRank[healthMap.get(b.id)?.health_label ?? "HEALTHY"] ?? 2;
+        return healthSortDir === "desc" ? ha - hb : hb - ha;
+      });
+    }
+    if (scoreSortDir && scoresMap) {
+      return [...opportunities].sort((a, b) => {
         const sa = scoresMap.get(a.id)?.close_score ?? -1;
         const sb = scoresMap.get(b.id)?.close_score ?? -1;
         return scoreSortDir === "desc" ? sb - sa : sa - sb;
-      })
-    : opportunities;
+      });
+    }
+    return opportunities;
+  })();
 
   const allSelected = opportunities.length > 0 && selectedIds.length === opportunities.length;
 
   const handleScoreSort = () => {
+    setHealthSortDir(null);
     setScoreSortDir((prev) =>
+      prev === null ? "desc" : prev === "desc" ? "asc" : null
+    );
+  };
+
+  const handleHealthSort = () => {
+    setScoreSortDir(null);
+    setHealthSortDir((prev) =>
       prev === null ? "desc" : prev === "desc" ? "asc" : null
     );
   };
@@ -139,7 +160,20 @@ export function OpportunityTableView({
               </Button>
             </TableHead>
             <TableHead>Data Fecho</TableHead>
-            <TableHead className="text-center">Health</TableHead>
+            <TableHead className="text-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs font-medium gap-1"
+                onClick={handleHealthSort}
+              >
+                <ArrowUpDown className="w-3 h-3" />
+                Health
+                {healthSortDir && (
+                  <span className="text-primary">{healthSortDir === "desc" ? "↓" : "↑"}</span>
+                )}
+              </Button>
+            </TableHead>
             <TableHead>Estado</TableHead>
             <TableHead className="w-10"></TableHead>
           </TableRow>
