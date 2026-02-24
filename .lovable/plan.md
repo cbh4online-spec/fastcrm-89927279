@@ -1,127 +1,113 @@
 
 
-# Add `deal_intelligence_cache` Table + Edge Function Caching
+# Intelligence Panel v1 — Backend Edge Function + Frontend
 
 ## Current State
 
-- The `deal-intelligence` edge function computes scores on every call — no caching
-- An `ai_agent_response_cache` table and `cache-manager.ts` exist for the AI agent system, but they're specific to that domain
-- The deal intelligence payload is deterministic (heuristic, no LLM) so caching is straightforward
-- Invalidation triggers: activity created/updated on an opportunity, task created/updated/deleted for an opportunity, opportunity itself updated
+- **Deal-level intelligence** is fully API-backed: `deal-intelligence` edge function with caching, consumed by `useDealIntelligenceAPI` and `useBulkDealIntelligenceAPI`
+- **Old client-side hooks** (`useDealIntelligence.ts`, `useBulkDealIntelligence.ts`) still exist but are **not imported by any component** — dead code
+- **Intelligence page** (`IntelligencePage.tsx`) has 3 tabs: Assist (chat), Analyze (revenue forecast), Automate (automation generator) — but **no portfolio-level deal intelligence overview**
+- The `strategic-intelligence-brief` edge function generates weekly AI briefs but is separate
+- The `DashboardAIInsightsPanel` shows generic dashboard insights, not deal health aggregation
+
+## What We'll Build
+
+A workspace-level **Intelligence Panel v1** that aggregates deal health across the portfolio — showing distribution of healthy/watch/at-risk deals, top risks, and recommended actions — powered by a new edge function.
 
 ## Plan
 
-### 1. Create `deal_intelligence_cache` table
+### 1. Create edge function: `intelligence-panel`
 
-**Database migration**
+**Create: `supabase/functions/intelligence-panel/index.ts`**
 
-```sql
-CREATE TABLE public.deal_intelligence_cache (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id uuid NOT NULL,
-  deal_id uuid NOT NULL,
-  payload jsonb NOT NULL,
-  computed_at timestamptz NOT NULL DEFAULT now(),
-  expires_at timestamptz NOT NULL DEFAULT (now() + interval '30 minutes'),
-  invalidated_at timestamptz DEFAULT NULL,
-  UNIQUE (workspace_id, deal_id)
-);
+This function aggregates deal intelligence across all open opportunities in the workspace:
 
-CREATE INDEX idx_dic_workspace_deal ON public.deal_intelligence_cache (workspace_id, deal_id)
-  WHERE invalidated_at IS NULL;
+- Auth validation via `getClaims()`
+- Requires `X-Workspace-Id` header
+- Queries all open opportunities, then calls the existing `deal_intelligence_cache` table to get cached scores (or computes missing ones using the same `scoreDeal` logic)
+- Returns aggregated response:
 
-ALTER TABLE public.deal_intelligence_cache ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Service role full access" ON public.deal_intelligence_cache
-  FOR ALL USING (true) WITH CHECK (true);
+```json
+{
+  "total_open": 15,
+  "health_distribution": { "HEALTHY": 8, "WATCH": 4, "AT_RISK": 3 },
+  "avg_health_score": 67,
+  "top_risks": [
+    { "deal_id": "...", "deal_title": "...", "reason": "No activity in 21 days", "severity": "HIGH", "health_score": 25 }
+  ],
+  "recommended_actions": [
+    { "deal_id": "...", "deal_title": "...", "action": "Schedule a follow-up within 48h", "type": "FOLLOW_UP", "priority": "HIGH" }
+  ],
+  "data_quality": { "avg_completeness": 78, "deals_missing_value": 3, "deals_missing_close_date": 5 },
+  "computed_at": "2026-02-24T..."
+}
 ```
 
-The table stores one row per deal (upserted). `expires_at` defaults to 30 minutes. `invalidated_at` is set by triggers when underlying data changes.
+- `top_risks`: top 5 risk drivers across all deals, sorted by severity + score
+- `recommended_actions`: top 5 next-best-actions from worst-scoring deals
+- Reuses the `scoreDeal` function (extracted into the function or computed from cache)
 
-### 2. Create invalidation triggers
+### 2. Create frontend hook: `useIntelligencePanel`
 
-**Same migration**
+**Create: `src/hooks/useIntelligencePanel.ts`**
 
-Three triggers that invalidate the cache when relevant data changes:
+- Calls `supabase.functions.invoke("intelligence-panel")` with workspace header
+- React Query with 5-minute stale time
+- Returns typed data matching the edge function response
+- Exposes a `refetch` function for manual refresh
 
-- **`crm_activities`**: On INSERT/UPDATE where `entity_type = 'opportunity'` → set `invalidated_at = now()` on matching `deal_id`
-- **`tasks`**: On INSERT/UPDATE/DELETE where `related_type = 'opportunity'` → invalidate matching `deal_id`
-- **`opportunities`**: On UPDATE → invalidate matching `deal_id`
+### 3. Create frontend component: `IntelligenceOverviewPanel`
 
-All use one shared function:
+**Create: `src/components/intelligence/IntelligenceOverviewPanel.tsx`**
 
-```sql
-CREATE OR REPLACE FUNCTION public.invalidate_deal_intelligence_cache()
-RETURNS trigger AS $$
-DECLARE
-  target_deal_id uuid;
-  target_workspace_id uuid;
-BEGIN
-  IF TG_TABLE_NAME = 'crm_activities' THEN
-    IF COALESCE(NEW.entity_type, OLD.entity_type) != 'opportunity' THEN
-      RETURN COALESCE(NEW, OLD);
-    END IF;
-    target_deal_id := COALESCE(NEW.entity_id, OLD.entity_id);
-    target_workspace_id := COALESCE(NEW.workspace_id, OLD.workspace_id);
-  ELSIF TG_TABLE_NAME = 'tasks' THEN
-    IF COALESCE(NEW.related_type, OLD.related_type) != 'opportunity' THEN
-      RETURN COALESCE(NEW, OLD);
-    END IF;
-    target_deal_id := COALESCE(NEW.related_id, OLD.related_id);
-    target_workspace_id := COALESCE(NEW.workspace_id, OLD.workspace_id);
-  ELSIF TG_TABLE_NAME = 'opportunities' THEN
-    target_deal_id := COALESCE(NEW.id, OLD.id);
-    target_workspace_id := COALESCE(NEW.workspace_id, OLD.workspace_id);
-  END IF;
+A dashboard-style panel with:
+- **Health Distribution** — 3 colored cards (Healthy/Watch/At Risk) with counts and a donut or bar visualization
+- **Average Health Score** — large number with color coding
+- **Top Risks** — list of top 5 at-risk deals with their primary risk reason, linking to deal detail
+- **Recommended Actions** — top 5 NBAs from worst deals with action buttons
+- **Data Quality** — progress bar showing average completeness, counts of missing fields
+- Refresh button calling the hook's refetch
+- Loading skeleton state
 
-  IF target_deal_id IS NOT NULL THEN
-    UPDATE public.deal_intelligence_cache
-    SET invalidated_at = now()
-    WHERE deal_id = target_deal_id
-      AND workspace_id = target_workspace_id
-      AND invalidated_at IS NULL;
-  END IF;
+### 4. Add to Intelligence page as a new tab
 
-  RETURN COALESCE(NEW, OLD);
-END;
-$$ LANGUAGE plpgsql;
+**Edit: `src/pages/IntelligencePage.tsx`**
+
+- Add a new "Overview" tab (first position, before Assist)
+- Icon: `LayoutDashboard` from lucide
+- Renders `<IntelligenceOverviewPanel />`
+- Set as default tab (`activeTab` defaults to `"overview"` instead of `"assist"`)
+
+### 5. Clean up dead code
+
+**Delete: `src/hooks/useDealIntelligence.ts`** — no longer imported anywhere
+**Delete: `src/hooks/useBulkDealIntelligence.ts`** — no longer imported anywhere
+
+### 6. Config update
+
+**Edit: `supabase/config.toml`** — add:
+```toml
+[functions.intelligence-panel]
+verify_jwt = false
 ```
-
-Three trigger attachments on the public tables.
-
-### 3. Update edge function to use cache
-
-**Edit: `supabase/functions/deal-intelligence/index.ts`**
-
-**Single deal flow:**
-1. Before computing, query `deal_intelligence_cache` where `deal_id` matches, `invalidated_at IS NULL`, and `expires_at > now()`
-2. If cache hit → return `payload` directly (skip all data fetches)
-3. If cache miss → compute as today, then upsert the result into the cache table (ON CONFLICT update payload, computed_at, expires_at, clear invalidated_at)
-
-**Batch flow:**
-1. Fetch all cached entries for the requested `deal_ids` in one query
-2. Separate into hits (valid cache) and misses (expired/invalidated/missing)
-3. For misses only, fetch opportunities + activities + tasks and compute
-4. Upsert computed results into cache
-5. Merge cached + freshly computed results and return
-
-### 4. Add `force` parameter
-
-Both single and batch endpoints accept an optional `force: true` in the body to bypass cache (useful for manual refresh from the UI).
 
 ## Files Summary
 
 | File | Action |
 |---|---|
-| Database migration | **Create** — `deal_intelligence_cache` table + invalidation triggers |
-| `supabase/functions/deal-intelligence/index.ts` | **Edit** — add cache read/write logic for single + batch |
+| `supabase/functions/intelligence-panel/index.ts` | **Create** — workspace-level intelligence aggregation |
+| `supabase/config.toml` | **Edit** — register new function |
+| `src/hooks/useIntelligencePanel.ts` | **Create** — React Query hook for the edge function |
+| `src/components/intelligence/IntelligenceOverviewPanel.tsx` | **Create** — overview dashboard panel |
+| `src/pages/IntelligencePage.tsx` | **Edit** — add Overview tab as default |
+| `src/hooks/useDealIntelligence.ts` | **Delete** — dead code (no importers) |
+| `src/hooks/useBulkDealIntelligence.ts` | **Delete** — dead code (no importers) |
 
 ## Technical Details
 
-- RLS policy allows full access (the edge function uses the service role client; no direct frontend access to this table)
-- 30-minute TTL is a safe default for heuristic scores; triggers handle immediate invalidation on data changes
-- The upsert uses `ON CONFLICT (workspace_id, deal_id)` to keep exactly one row per deal
-- Batch cache lookup uses a single `.in("deal_id", ids)` query — no N+1
-- Triggers use `COALESCE(NEW, OLD)` to handle INSERT, UPDATE, and DELETE uniformly
-- No frontend changes needed — the API response shape stays identical
+- The edge function queries `deal_intelligence_cache` first, then computes for any uncached deals — leveraging the cache infrastructure from the previous iteration
+- Auth follows project conventions: `getClaims()` validation, `X-Workspace-Id` header, service role client for data queries
+- The `top_risks` and `recommended_actions` arrays are capped at 5 items to keep the response compact
+- CORS headers follow the project pattern with all required headers
+- The cleanup of dead hooks is safe — verified zero imports in any `.tsx` file
 
