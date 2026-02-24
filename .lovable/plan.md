@@ -1,85 +1,118 @@
 
 
-# Rollout Dashboard — Feature Flag Adoption & Bulk Toggle
+# Intelligence Panel v1 — Backend Edge Function + Frontend Migration
 
 ## Current State
 
-- **`workspace_feature_flags`** table exists with columns: `id`, `workspace_id`, `flag_key`, `enabled`, `created_at`
-- **`useAllWorkspaces`** hook fetches all workspaces with subscriptions/usage
-- **`FeatureFlagsSettings`** component defines 5 known flags in `FLAG_META` (shell_v2, nav_v2, marketplace, objects, intelligence)
-- **`useFeatureFlags`** hook is workspace-scoped (current workspace only) — not usable for cross-workspace super admin view
-- **SuperAdmin sidebar** has a "Sistema" section — the rollout dashboard fits here as a new nav item
-- **No RLS bypass needed** — the `workspace_feature_flags` table likely has super admin read/write policies already (via `is_super_admin`)
+The Intelligence Panel v1 **already exists client-side**: `useDealIntelligence` hook computes health scores locally, `DealIntelligencePanel` renders in the deal sidebar, `DealHealthBadge` shows in the deals table, and `useBulkDealIntelligence` fetches activities/tasks for batch scoring. All scoring runs in the browser.
 
-## Plan
+The user now wants to **move scoring to a backend edge function** with proper API endpoints, matching the exact payload shape specified, including a `debug` object and a batch endpoint.
 
-### 1. Hook: `useAllFeatureFlags` (Super Admin scope)
+## What Changes
 
-**New file: `src/hooks/useAllFeatureFlags.ts`**
+### 1. Edge Function: `deal-intelligence`
 
-Fetches ALL rows from `workspace_feature_flags` (no workspace filter). Returns:
-- Raw flags data
-- Computed adoption stats per flag key: `{ flagKey, enabledCount, totalWorkspaces, percentage }`
-- A `bulkToggle` mutation that upserts a flag for multiple workspace IDs at once
+**New file: `supabase/functions/deal-intelligence/index.ts`**
 
-```text
-useAllFeatureFlags()
-├── allFlags: { workspace_id, flag_key, enabled }[]
-├── adoptionByFlag: Map<string, { enabled: number, disabled: number, noRecord: number, rate: number }>
-├── bulkToggle.mutate({ flagKey, workspaceIds, enabled })
-└── isLoading
-```
+Single edge function handling two modes via query params:
 
-The bulk toggle will use `supabase.from("workspace_feature_flags").upsert()` with an array of rows, leveraging the unique constraint on `(workspace_id, flag_key)`.
+- **Single deal**: `POST` with body `{ deal_id: "uuid" }` — returns the full payload (health_score, health_label, risk_drivers, next_best_action, data_completeness, debug)
+- **Batch deals**: `POST` with body `{ deal_ids: ["a","b","c"] }` — returns compact `{ items: { dealId: { health_score, health_label, top_reason } } }`
 
-### 2. Component: `RolloutDashboardSection`
+Implementation details:
+- Uses `X-Workspace-Id` header for workspace context (following existing convention from `product-ai-improve`, `product-quick-create`, etc.)
+- Auth via `Authorization` header — creates user-scoped Supabase client
+- Service role client for data queries (bypasses RLS for cross-table reads)
+- **Scoring logic**: Transplants the exact same heuristic from `useDealIntelligence.ts` (100 minus penalties) into the edge function
+- Parallel data fetch: opportunity + activities + tasks in `Promise.all`
+- For batch: fetches all opportunities, activities, and tasks in 3 queries using `.in()`, then maps per deal
+- Returns `debug` block with `last_activity_days`, `has_next_step`, `stage_days`
+- **No caching in v1** — queries are fast enough with parallel fetch; cache can be added later via a `deal_intelligence_cache` table
 
-**New file: `src/components/super-admin/RolloutDashboardSection.tsx`**
+### 2. Frontend Hook: `useDealIntelligenceAPI`
 
-Layout:
-- **Header**: "Rollout Dashboard" title + description
-- **Summary cards row**: One card per flag showing adoption rate (progress bar), enabled/total counts, and flag label
-- **Flag detail table**: For the selected flag, shows every workspace as a row with:
-  - Workspace name
-  - Plan badge
-  - Status (enabled / disabled / not set)
-  - Toggle switch
-- **Bulk actions bar**: Checkbox "select all" + buttons: "Enable Selected", "Disable Selected"
-- **Canary release helper**: A small section with presets — "Enable for 10%", "Enable for 25%", "Enable for 50%", "Enable for all" — which randomly selects the appropriate number of workspaces and bulk-toggles
+**New file: `src/hooks/useDealIntelligenceAPI.ts`**
 
-Key interactions:
-- Click a flag card → filters the table to that flag
-- Select workspaces via checkboxes → bulk enable/disable
-- Canary buttons → confirm dialog → bulk toggle random subset
+Two hooks:
+- `useDealIntelligenceAPI(dealId)` — calls the edge function for a single deal, returns the full payload. Uses `react-query` with 5-min stale time for implicit caching.
+- `useBulkDealIntelligenceAPI(dealIds)` — calls the batch endpoint, returns a `Map<string, CompactIntelligence>`
 
-### 3. Wire into Super Admin
+Both invoke via `supabase.functions.invoke("deal-intelligence", { body: {...}, headers: { "X-Workspace-Id": ... } })`.
 
-**Edit: `src/components/super-admin/SuperAdminSidebar.tsx`**
+### 3. Update `OpportunityDetailPage.tsx`
 
-Add `{ id: "rollout", label: "Rollout", icon: FlaskConical }` to the "Sistema" section items.
+**Edit existing file**
 
-**Edit: `src/pages/SuperAdmin.tsx`**
+Replace:
+- Remove imports of `useDealIntelligence`, `useActivities` (for intelligence), `useTasks` (for intelligence)
+- Import `useDealIntelligenceAPI` instead
+- Call `useDealIntelligenceAPI(opportunityId)` — returns the full payload
+- Pass the API response to `DealIntelligencePanel` (needs minor prop type update)
 
-Add case `"rollout"` → `<RolloutDashboardSection />` to `renderContent()`.
+Note: activities and tasks are still fetched for their own display purposes (timeline, tasks tab) — we just stop using them for scoring.
 
-**Edit: `src/components/super-admin/index.ts`**
+### 4. Update `DealIntelligencePanel.tsx`
 
-Export `RolloutDashboardSection`.
+**Edit existing file**
+
+Update the `DealIntelligence` type to match the API payload shape:
+- `health_score` (snake_case from API)
+- `health_label`: `"HEALTHY" | "WATCH" | "AT_RISK"` (uppercase from API)
+- `risk_drivers`: `{ reason: string, severity: "HIGH" | "MEDIUM" | "LOW" }[]`
+- `next_best_action`: `{ title, type, payload }` with `payload.suggested_due_days`, `suggested_title`, `suggested_priority`
+- `data_completeness`: `{ percent, missing_fields }`
+
+Adapt the component to use these shapes. The `CreateTaskFromIntelligence` component gets updated to use `suggested_title` and `suggested_due_days` from the NBA payload.
+
+### 5. Update `DealHealthBadge.tsx`
+
+**Edit existing file**
+
+Update to accept the compact batch payload type: `{ health_score, health_label, top_reason }`.
+
+### 6. Update `OpportunitiesModule.tsx` + `OpportunityTableView.tsx`
+
+**Edit existing files**
+
+Replace `useBulkDealIntelligence` with `useBulkDealIntelligenceAPI`. Pass the batch results to the table view.
+
+### 7. Types File
+
+**New file: `src/types/dealIntelligence.ts`**
+
+Shared TypeScript types for both API payload shapes (single + batch), used by the hook and components.
+
+### 8. Telemetry
+
+Add activity logging for:
+- `intelligence_panel_opened` — when panel mounts/opens
+- `nba_clicked` — when user clicks the NBA CTA
+- `task_created_from_intelligence` — on successful task creation
+
+Uses existing `crm_activities` table with `activity_type` set to these values. Implemented as simple `supabase.from("crm_activities").insert(...)` calls in the components.
 
 ## Files Summary
 
 | File | Action |
 |---|---|
-| `src/hooks/useAllFeatureFlags.ts` | Create — fetch all flags + adoption stats + bulk toggle mutation |
-| `src/components/super-admin/RolloutDashboardSection.tsx` | Create — full rollout dashboard UI |
-| `src/components/super-admin/SuperAdminSidebar.tsx` | Edit — add "Rollout" nav item |
-| `src/pages/SuperAdmin.tsx` | Edit — add rollout case to renderContent |
-| `src/components/super-admin/index.ts` | Edit — export new component |
+| `supabase/functions/deal-intelligence/index.ts` | **Create** — edge function with single + batch scoring |
+| `src/types/dealIntelligence.ts` | **Create** — shared TypeScript types for API payloads |
+| `src/hooks/useDealIntelligenceAPI.ts` | **Create** — hooks calling the edge function |
+| `src/components/intelligence/DealIntelligencePanel.tsx` | **Edit** — use API payload types |
+| `src/components/intelligence/DealHealthBadge.tsx` | **Edit** — use batch payload type |
+| `src/components/intelligence/CreateTaskFromIntelligence.tsx` | **Edit** — use NBA payload for prefill |
+| `src/components/opportunities/OpportunityDetailPage.tsx` | **Edit** — swap to API hook |
+| `src/components/opportunities/OpportunitiesModule.tsx` | **Edit** — swap to batch API hook |
+| `src/components/opportunities/OpportunityTableView.tsx` | **Edit** — update healthMap type |
+
+Old files `useDealIntelligence.ts` and `useBulkDealIntelligence.ts` remain for backward compat but are no longer imported by the main views.
 
 ## Technical Notes
 
-- The `FLAG_META` constant from `FeatureFlagsSettings` will be extracted into a shared `src/config/featureFlags.ts` file (or duplicated in the rollout component for simplicity — duplicating is fine since it's just 5 labels)
-- Bulk upsert uses `supabase.from("workspace_feature_flags").upsert([...rows], { onConflict: "workspace_id,flag_key" })` — requires the existing unique constraint
-- Canary percentages use `Math.ceil(totalWorkspaces * percentage)` and shuffle workspace IDs to pick random subset
-- No new database tables or migrations needed
+- The edge function follows the project's established pattern: `X-Workspace-Id` header, CORS with the extended header list, service role for data access
+- `verify_jwt = false` in config.toml with manual auth validation in the function (same as other functions)
+- Batch endpoint caps at 50 IDs per request to prevent overload
+- Scoring heuristic is identical to the existing client-side logic — just moved server-side for the architecture the user wants
+- React Query provides implicit 5-min caching, meeting the "< 500ms with cache" requirement
+- No new database tables needed
 
