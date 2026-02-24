@@ -6,7 +6,9 @@ import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
 import { PlanBadge } from "@/components/subscription/FeatureGate";
 import { NAV_V2_ITEMS } from "@/config/nav.v2";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { X } from "lucide-react";
+import { useMemo } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -19,12 +21,21 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-const navItems = NAV_V2_ITEMS;
-
 export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation();
   const { currentWorkspace } = useWorkspace();
   const { plan } = useSubscription();
+  const { data: flags, isLoading: flagsLoading } = useFeatureFlags();
+
+  const navItems = useMemo(() => {
+    if (flagsLoading) return [...NAV_V2_ITEMS];
+    return [...NAV_V2_ITEMS].filter((item) => {
+      const flag_key = (item as any).featureFlag as string | undefined;
+      if (!flag_key) return true;
+      const flag = flags?.find((f) => f.flag_key === flag_key);
+      return flag?.enabled ?? false;
+    });
+  }, [flags, flagsLoading]);
 
   const isActive = (href: string, end?: boolean) => {
     const basePath = href.split("?")[0];
