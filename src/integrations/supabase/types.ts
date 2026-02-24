@@ -10437,6 +10437,36 @@ export type Database = {
           },
         ]
       }
+      deal_intelligence_cache: {
+        Row: {
+          computed_at: string
+          deal_id: string
+          expires_at: string
+          id: string
+          invalidated_at: string | null
+          payload: Json
+          workspace_id: string
+        }
+        Insert: {
+          computed_at?: string
+          deal_id: string
+          expires_at?: string
+          id?: string
+          invalidated_at?: string | null
+          payload: Json
+          workspace_id: string
+        }
+        Update: {
+          computed_at?: string
+          deal_id?: string
+          expires_at?: string
+          id?: string
+          invalidated_at?: string | null
+          payload?: Json
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       deal_scores: {
         Row: {
           category: string
