@@ -4,17 +4,26 @@ import { SmartContactsTable } from "@/components/contacts/SmartContactsTable";
 import { SmartLeadsTable } from "@/components/leads/SmartLeadsTable";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Users, Building2, Kanban, Box } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { lazy, Suspense, useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import { SavedViewsDropdown } from "@/components/objects/SavedViewsDropdown";
 import { CustomObjectsManager } from "@/components/objects/CustomObjectsManager";
+import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
+import { getExtensionObjectTabs } from "@/config/extensionRegistry";
 
 const CompaniesContent = lazy(() => import("@/components/objects/CompaniesTab"));
 
 export default function ObjectsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const activeTab = searchParams.get("tab") || "contacts";
+  const { installedModuleIds } = useWorkspaceModules();
+
+  const extensionTabs = useMemo(
+    () => getExtensionObjectTabs(installedModuleIds),
+    [installedModuleIds]
+  );
 
   return (
     <DashboardLayout>
@@ -32,9 +41,17 @@ export default function ObjectsPage() {
 
           <Tabs
             value={activeTab}
-            onValueChange={(v) => setSearchParams({ tab: v })}
+            onValueChange={(v) => {
+              // If extension tab has a route, navigate there
+              const extTab = extensionTabs.find(t => t.key === v);
+              if (extTab?.route) {
+                navigate(extTab.route);
+                return;
+              }
+              setSearchParams({ tab: v });
+            }}
           >
-            <TabsList>
+            <TabsList className="flex-wrap h-auto gap-1">
               <TabsTrigger value="contacts" className="gap-1.5">
                 <Users className="h-4 w-4" />
                 Contacts
@@ -47,6 +64,15 @@ export default function ObjectsPage() {
                 <Kanban className="h-4 w-4" />
                 Deals
               </TabsTrigger>
+
+              {/* Extension object tabs */}
+              {extensionTabs.map((tab) => (
+                <TabsTrigger key={tab.key} value={tab.key} className="gap-1.5">
+                  <tab.icon className="h-4 w-4" />
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+
               <TabsTrigger value="custom" className="gap-1.5">
                 <Box className="h-4 w-4" />
                 Custom
