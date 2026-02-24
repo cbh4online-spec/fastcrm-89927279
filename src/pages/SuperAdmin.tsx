@@ -19,6 +19,7 @@ import {
   ModerationSection,
   ActivityLogsSection,
   FeatureRegistrySection,
+  RolloutDashboardSection,
 } from "@/components/super-admin";
 import { AdminSettingsPanel } from "@/components/admin/AdminSettingsPanel";
 import { UserRolesPanel } from "@/components/admin/UserRolesPanel";
@@ -108,6 +109,8 @@ export default function SuperAdmin() {
         return <FunctionalAuditSection />;
       case "feature-registry":
         return <FeatureRegistrySection />;
+      case "rollout":
+        return <RolloutDashboardSection />;
       case "permissions":
         return <MenuPermissionsSection />;
       case "settings":

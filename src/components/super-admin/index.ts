@@ -15,3 +15,4 @@ export { FunctionalAuditSection } from "./FunctionalAuditSection";
 export { ModerationSection } from "./ModerationSection";
 export { ActivityLogsSection } from "./ActivityLogsSection";
 export { FeatureRegistrySection } from "./FeatureRegistrySection";
+export { RolloutDashboardSection } from "./RolloutDashboardSection";
