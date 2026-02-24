@@ -323,6 +323,36 @@ export function useCRMAnalytics() {
     [push]
   );
 
+  // ── Extension Packs ──
+
+  const trackPackViewed = useCallback(
+    (data: { pack_id: string; pack_name: string; required_plan: string }) => {
+      push('pack.viewed', data);
+    },
+    [push]
+  );
+
+  const trackPackInstallStarted = useCallback(
+    (data: { pack_id: string; pack_name: string; modules_count: number; already_installed: number }) => {
+      push('pack.install_started', data);
+    },
+    [push]
+  );
+
+  const trackPackInstallCompleted = useCallback(
+    (data: { pack_id: string; pack_name: string; modules_installed: number; duration_ms: number }) => {
+      push('pack.install_completed', data);
+    },
+    [push]
+  );
+
+  const trackPackUpgradePrompted = useCallback(
+    (data: { pack_id: string; pack_name: string; required_plan: string; current_plan: string }) => {
+      push('pack.upgrade_prompted', data);
+    },
+    [push]
+  );
+
   return {
     // Inbox
     trackInboxOpened,
@@ -355,5 +385,10 @@ export function useCRMAnalytics() {
     trackMQPCAIImproveClicked,
     trackMQPCAIImproveSuccess,
     trackMQPCPublishClicked,
+    // Extension Packs
+    trackPackViewed,
+    trackPackInstallStarted,
+    trackPackInstallCompleted,
+    trackPackUpgradePrompted,
   };
 }
