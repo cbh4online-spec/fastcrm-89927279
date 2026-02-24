@@ -191,10 +191,49 @@ Deno.serve(async (req) => {
 
     const serviceClient = createClient(supabaseUrl, serviceKey);
     const body = await req.json();
+    const force = body.force === true;
 
-    // Single deal mode
+    // ---------- helpers ----------
+    async function cacheGet(ids: string[]) {
+      if (force || ids.length === 0) return new Map<string, any>();
+      const { data } = await serviceClient
+        .from("deal_intelligence_cache")
+        .select("deal_id, payload")
+        .eq("workspace_id", workspaceId)
+        .in("deal_id", ids)
+        .is("invalidated_at", null)
+        .gt("expires_at", new Date().toISOString());
+      const map = new Map<string, any>();
+      (data || []).forEach((r: any) => map.set(r.deal_id, r.payload));
+      return map;
+    }
+
+    async function cacheSet(results: { deal_id: string; [k: string]: any }[]) {
+      if (results.length === 0) return;
+      const rows = results.map((r) => ({
+        workspace_id: workspaceId,
+        deal_id: r.deal_id,
+        payload: r,
+        computed_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        invalidated_at: null,
+      }));
+      await serviceClient
+        .from("deal_intelligence_cache")
+        .upsert(rows, { onConflict: "workspace_id,deal_id" });
+    }
+
+    // ---------- Single deal mode ----------
     if (body.deal_id) {
       const dealId = body.deal_id;
+
+      // Cache lookup
+      const cached = await cacheGet([dealId]);
+      if (cached.has(dealId)) {
+        return new Response(JSON.stringify(cached.get(dealId)), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       const [oppRes, actRes, taskRes] = await Promise.all([
         serviceClient
@@ -230,66 +269,95 @@ Deno.serve(async (req) => {
       const opp = { ...oppRes.data, stage_name: oppRes.data.stage?.name };
       const result = scoreDeal(opp, actRes.data || [], taskRes.data || []);
 
+      // Store in cache (fire-and-forget)
+      cacheSet([result]);
+
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Batch mode
+    // ---------- Batch mode ----------
     if (body.deal_ids && Array.isArray(body.deal_ids)) {
-      const dealIds = body.deal_ids.slice(0, 50);
+      const dealIds: string[] = body.deal_ids.slice(0, 50);
       if (dealIds.length === 0) {
         return new Response(JSON.stringify({ items: {} }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const [oppsRes, actsRes, tasksRes] = await Promise.all([
-        serviceClient
-          .from("opportunities")
-          .select("*, stage:pipeline_stages(name)")
-          .in("id", dealIds)
-          .eq("workspace_id", workspaceId),
-        serviceClient
-          .from("crm_activities")
-          .select("entity_id, created_at")
-          .eq("entity_type", "opportunity")
-          .in("entity_id", dealIds)
-          .eq("workspace_id", workspaceId)
-          .order("created_at", { ascending: false }),
-        serviceClient
-          .from("tasks")
-          .select("*")
-          .eq("related_type", "opportunity")
-          .in("related_id", dealIds)
-          .eq("workspace_id", workspaceId)
-          .order("due_at", { ascending: true, nullsFirst: false }),
-      ]);
+      // Cache lookup
+      const cached = await cacheGet(dealIds);
+      const missIds = dealIds.filter((id) => !cached.has(id));
 
-      // Group activities and tasks by deal
-      const actsByDeal = new Map<string, any[]>();
-      (actsRes.data || []).forEach((a: any) => {
-        const list = actsByDeal.get(a.entity_id) || [];
-        list.push(a);
-        actsByDeal.set(a.entity_id, list);
-      });
+      let freshItems: Record<string, any> = {};
 
-      const tasksByDeal = new Map<string, any[]>();
-      (tasksRes.data || []).forEach((t: any) => {
-        const list = tasksByDeal.get(t.related_id) || [];
-        list.push(t);
-        tasksByDeal.set(t.related_id, list);
-      });
+      if (missIds.length > 0) {
+        const [oppsRes, actsRes, tasksRes] = await Promise.all([
+          serviceClient
+            .from("opportunities")
+            .select("*, stage:pipeline_stages(name)")
+            .in("id", missIds)
+            .eq("workspace_id", workspaceId),
+          serviceClient
+            .from("crm_activities")
+            .select("entity_id, created_at")
+            .eq("entity_type", "opportunity")
+            .in("entity_id", missIds)
+            .eq("workspace_id", workspaceId)
+            .order("created_at", { ascending: false }),
+          serviceClient
+            .from("tasks")
+            .select("*")
+            .eq("related_type", "opportunity")
+            .in("related_id", missIds)
+            .eq("workspace_id", workspaceId)
+            .order("due_at", { ascending: true, nullsFirst: false }),
+        ]);
 
+        const actsByDeal = new Map<string, any[]>();
+        (actsRes.data || []).forEach((a: any) => {
+          const list = actsByDeal.get(a.entity_id) || [];
+          list.push(a);
+          actsByDeal.set(a.entity_id, list);
+        });
+
+        const tasksByDeal = new Map<string, any[]>();
+        (tasksRes.data || []).forEach((t: any) => {
+          const list = tasksByDeal.get(t.related_id) || [];
+          list.push(t);
+          tasksByDeal.set(t.related_id, list);
+        });
+
+        const toCache: any[] = [];
+        (oppsRes.data || []).forEach((opp: any) => {
+          const o = { ...opp, stage_name: opp.stage?.name };
+          const result = scoreDeal(o, actsByDeal.get(opp.id) || [], tasksByDeal.get(opp.id) || []);
+          freshItems[opp.id] = {
+            health_score: result.health_score,
+            health_label: result.health_label,
+            top_reason: result.top_reason,
+          };
+          toCache.push(result);
+        });
+
+        // Store in cache (fire-and-forget)
+        cacheSet(toCache);
+      }
+
+      // Merge cached + fresh
       const items: Record<string, any> = {};
-      (oppsRes.data || []).forEach((opp: any) => {
-        const o = { ...opp, stage_name: opp.stage?.name };
-        const result = scoreDeal(o, actsByDeal.get(opp.id) || [], tasksByDeal.get(opp.id) || []);
-        items[opp.id] = {
-          health_score: result.health_score,
-          health_label: result.health_label,
-          top_reason: result.top_reason,
-        };
+      dealIds.forEach((id) => {
+        if (cached.has(id)) {
+          const c = cached.get(id);
+          items[id] = {
+            health_score: c.health_score,
+            health_label: c.health_label,
+            top_reason: c.top_reason,
+          };
+        } else if (freshItems[id]) {
+          items[id] = freshItems[id];
+        }
       });
 
       return new Response(JSON.stringify({ items }), {
