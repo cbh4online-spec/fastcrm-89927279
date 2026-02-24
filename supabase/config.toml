@@ -358,3 +358,6 @@ verify_jwt = false
 [functions.intelligence-panel]
 verify_jwt = false
 
+[functions.extension-provisioner]
+verify_jwt = false
+

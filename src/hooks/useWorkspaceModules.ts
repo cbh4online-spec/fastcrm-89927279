@@ -69,61 +69,34 @@ export function useWorkspaceModules() {
     mutationFn: async (moduleSlug: string) => {
       if (!workspaceId) throw new Error("Nenhum workspace selecionado");
 
-      const { data: module, error: moduleError } = await supabase
-        .from("marketplace_modules")
-        .select("id")
-        .eq("slug", moduleSlug)
-        .single();
-      if (moduleError || !module) throw new Error("Módulo não encontrado");
+      const { data, error } = await supabase.functions.invoke("extension-provisioner", {
+        body: { action: "enable", module_slug: moduleSlug },
+        headers: { "X-Workspace-Id": workspaceId },
+      });
 
-      const { data: existing } = await supabase
-        .from("workspace_modules")
-        .select("id, status")
-        .eq("workspace_id", workspaceId)
-        .eq("module_id", module.id)
-        .maybeSingle();
-
-      if (existing) {
-        if (existing.status === "active" || existing.status === "trial") {
-          toast.info("Este módulo já está instalado");
-          return false;
-        }
-        // Reactivate canceled/expired module
-        const { error: reactivateError } = await supabase
-          .from("workspace_modules")
-          .update({
-            status: "active",
-            cancel_at_period_end: false,
-            current_period_start: new Date().toISOString(),
-          })
-          .eq("id", existing.id);
-        if (reactivateError) throw reactivateError;
-        return true;
+      if (error) {
+        // Try to extract a meaningful message
+        const msg = (data as any)?.error || error.message || "Erro ao ativar extensão";
+        throw new Error(msg);
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Utilizador não autenticado");
+      if (data?.message === "Already enabled") {
+        toast.info("Esta extensão já está ativa");
+        return false;
+      }
 
-      const { error: installError } = await supabase
-        .from("workspace_modules")
-        .insert({
-          workspace_id: workspaceId,
-          module_id: module.id,
-          status: "active",
-          subscribed_by: user.id,
-          current_period_start: new Date().toISOString(),
-        });
-      if (installError) throw installError;
       return true;
     },
     onSuccess: (installed) => {
       if (installed) {
-        toast.success("Módulo instalado com sucesso!");
+        toast.success("Extensão ativada com sucesso!");
         queryClient.invalidateQueries({ queryKey });
+        queryClient.invalidateQueries({ queryKey: ["extension-manifests"] });
+        queryClient.invalidateQueries({ queryKey: ["extension-audit-log"] });
       }
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao instalar módulo");
+      toast.error(err.message || "Erro ao ativar extensão");
     },
   });
 
@@ -131,26 +104,24 @@ export function useWorkspaceModules() {
     mutationFn: async (moduleSlug: string) => {
       if (!workspaceId) throw new Error("Nenhum workspace selecionado");
 
-      const { data: module, error: moduleError } = await supabase
-        .from("marketplace_modules")
-        .select("id")
-        .eq("slug", moduleSlug)
-        .single();
-      if (moduleError || !module) throw new Error("Módulo não encontrado");
+      const { data, error } = await supabase.functions.invoke("extension-provisioner", {
+        body: { action: "disable", module_slug: moduleSlug },
+        headers: { "X-Workspace-Id": workspaceId },
+      });
 
-      const { error: updateError } = await supabase
-        .from("workspace_modules")
-        .update({ status: "canceled", cancel_at_period_end: true })
-        .eq("workspace_id", workspaceId)
-        .eq("module_id", module.id);
-      if (updateError) throw updateError;
+      if (error) {
+        const msg = (data as any)?.error || error.message || "Erro ao desativar extensão";
+        throw new Error(msg);
+      }
     },
     onSuccess: () => {
-      toast.success("Módulo desinstalado com sucesso!");
+      toast.success("Extensão desativada com sucesso!");
       queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ["extension-manifests"] });
+      queryClient.invalidateQueries({ queryKey: ["extension-audit-log"] });
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao desinstalar módulo");
+      toast.error(err.message || "Erro ao desativar extensão");
     },
   });
 
@@ -191,6 +162,8 @@ export function useWorkspaceModules() {
     installModule,
     uninstallModule,
     isModuleInstalled,
+    isInstalling: installMutation.isPending,
+    isUninstalling: uninstallMutation.isPending,
     refresh: () => queryClient.invalidateQueries({ queryKey }),
   };
 }

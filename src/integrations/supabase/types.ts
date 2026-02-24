@@ -11050,6 +11050,44 @@ export type Database = {
           },
         ]
       }
+      extension_audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          extension_key: string
+          id: string
+          metadata: Json | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          extension_key: string
+          id?: string
+          metadata?: Json | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          extension_key?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extension_audit_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fastclub_applications: {
         Row: {
           candidate_tier: string | null
@@ -17293,6 +17331,7 @@ export type Database = {
           internal_type: string
           is_featured: boolean | null
           is_new: boolean | null
+          manifest_json: Json | null
           name: string
           permissions: Json
           pricing: Json
@@ -17324,6 +17363,7 @@ export type Database = {
           internal_type?: string
           is_featured?: boolean | null
           is_new?: boolean | null
+          manifest_json?: Json | null
           name: string
           permissions?: Json
           pricing?: Json
@@ -17355,6 +17395,7 @@ export type Database = {
           internal_type?: string
           is_featured?: boolean | null
           is_new?: boolean | null
+          manifest_json?: Json | null
           name?: string
           permissions?: Json
           pricing?: Json

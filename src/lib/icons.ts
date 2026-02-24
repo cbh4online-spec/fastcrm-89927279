@@ -5,7 +5,8 @@ import {
   Target, FileText, Shield, Clock, Check, LayoutGrid, Sparkles, CreditCard,
   ExternalLink, Play, ArrowRight, Settings, Eye, Edit, Trash, Plus,
   Heart, Briefcase, ShoppingBag, Utensils, Scissors, Camera, Dumbbell,
-  GraduationCap, Stethoscope, Wrench, Palette, Music
+  GraduationCap, Stethoscope, Wrench, Palette, Music,
+  Receipt, ShoppingCart, Landmark, Store, Globe, Instagram
 } from "lucide-react";
 
 const iconMap: Record<string, LucideIcon> = {
@@ -14,7 +15,8 @@ const iconMap: Record<string, LucideIcon> = {
   Target, FileText, Shield, Clock, Check, LayoutGrid, Sparkles, CreditCard,
   ExternalLink, Play, ArrowRight, Settings, Eye, Edit, Trash, Plus,
   Heart, Briefcase, ShoppingBag, Utensils, Scissors, Camera, Dumbbell,
-  GraduationCap, Stethoscope, Wrench, Palette, Music
+  GraduationCap, Stethoscope, Wrench, Palette, Music,
+  Receipt, ShoppingCart, Landmark, Store, Globe, Instagram
 };
 
 // Industry icon categories for the editor picker
