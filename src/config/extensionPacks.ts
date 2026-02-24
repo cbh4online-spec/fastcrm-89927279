@@ -1,4 +1,4 @@
-export type PlanTier = "free" | "basic" | "pro" | "agency";
+export type PlanTier = "starter" | "growth" | "scale";
 
 export interface ExtensionPack {
   id: string;
@@ -8,62 +8,69 @@ export interface ExtensionPack {
   modules: string[];
   requiredPlan: PlanTier;
   color: string;
+  priceMonthly?: number;
 }
 
 export const EXTENSION_PACKS: ExtensionPack[] = [
   {
     id: "b2b-revenue",
     name: "B2B Revenue Pack",
-    description: "Propostas, faturas e portal para clientes B2B",
+    description: "Proposals, invoices and B2B client portal",
     icon: "💼",
     modules: ["proposals", "invoices", "b2b-portal"],
-    requiredPlan: "basic",
+    requiredPlan: "growth",
     color: "hsl(var(--primary))",
+    priceMonthly: 29,
   },
   {
     id: "finance",
     name: "Finance Pack",
-    description: "Faturação e intermediação de crédito",
+    description: "Invoicing and credit intermediation",
     icon: "💰",
     modules: ["invoices", "credit-intermediation"],
-    requiredPlan: "basic",
+    requiredPlan: "growth",
     color: "hsl(142 76% 36%)",
+    priceMonthly: 19,
   },
   {
     id: "proposals",
     name: "Proposals Pack",
-    description: "Criação e gestão de propostas comerciais",
+    description: "Create and manage commercial proposals",
     icon: "📝",
     modules: ["proposals"],
-    requiredPlan: "basic",
+    requiredPlan: "growth",
     color: "hsl(221 83% 53%)",
+    priceMonthly: 19,
   },
   {
     id: "education",
     name: "Education Pack",
-    description: "Jornada do aluno e gestão educacional",
+    description: "Student journey and education management",
     icon: "🎓",
     modules: ["student-journey"],
-    requiredPlan: "pro",
+    requiredPlan: "growth",
     color: "hsl(262 83% 58%)",
+    priceMonthly: 19,
   },
   {
     id: "commerce",
     name: "Commerce Pack",
-    description: "Loja online e marketplace C2C",
+    description: "Online store and C2C marketplace",
     icon: "🛒",
     modules: ["online-store", "c2c-marketplace"],
-    requiredPlan: "pro",
+    requiredPlan: "growth",
     color: "hsl(25 95% 53%)",
+    priceMonthly: 29,
   },
   {
     id: "advanced-intelligence",
     name: "Advanced Intelligence",
-    description: "Enriquecimento de leads, prospeção e SEO avançado",
+    description: "Lead enrichment, prospecting and advanced SEO",
     icon: "🧠",
     modules: ["lead-enricher", "prospecting-pro", "seo-growth"],
-    requiredPlan: "pro",
+    requiredPlan: "growth",
     color: "hsl(340 82% 52%)",
+    priceMonthly: 29,
   },
 ];
 
@@ -99,7 +106,7 @@ export function getRecommendedPacks(businessType: string): ExtensionPack[] {
 }
 
 export function canInstallPack(pack: ExtensionPack, currentPlan: PlanTier): boolean {
-  const tierOrder: PlanTier[] = ["free", "basic", "pro", "agency"];
+  const tierOrder: PlanTier[] = ["starter", "growth", "scale"];
   return tierOrder.indexOf(currentPlan) >= tierOrder.indexOf(pack.requiredPlan);
 }
 
@@ -115,47 +122,67 @@ export interface OnboardingBundle {
   segments: OnboardingSegment[];
   modules: string[]; // marketplace module slugs
   highlights: string[];
+  pricing: {
+    individual_total: number;
+    bundle_price: number;
+    discount_percent: number;
+  };
 }
 
 export const ONBOARDING_BUNDLES: OnboardingBundle[] = [
   {
     id: "startup-growth",
     name: "Startup Growth Bundle",
-    description: "Tudo o que precisas para escalar vendas rapidamente",
+    description: "Everything you need to scale sales fast",
     icon: "🚀",
     segments: ["startup_saas"],
     modules: ["proposals"],
     highlights: [
-      "Propostas comerciais integradas",
-      "Intelligence scoring avançado",
-      "Templates de follow-up automático",
+      "Integrated commercial proposals",
+      "Advanced intelligence scoring",
+      "Automatic follow-up templates",
     ],
+    pricing: {
+      individual_total: 19,
+      bundle_price: 19,
+      discount_percent: 0,
+    },
   },
   {
     id: "smb-revenue",
     name: "SMB Revenue Bundle",
-    description: "Gestão completa de vendas e faturação",
+    description: "Complete sales and invoicing management",
     icon: "💼",
     segments: ["smb_traditional", "generic"],
     modules: ["proposals", "invoices"],
     highlights: [
-      "Propostas e faturação integradas",
-      "Alertas de faturas vencidas",
-      "Pipeline otimizado para ciclos curtos",
+      "Integrated proposals & invoicing",
+      "Overdue invoice alerts",
+      "Pipeline optimized for short cycles",
     ],
+    pricing: {
+      individual_total: 38,
+      bundle_price: 29,
+      discount_percent: 24,
+    },
   },
   {
     id: "b2b-revenue",
     name: "B2B Revenue Bundle",
-    description: "Pipeline avançado para vendas complexas B2B",
+    description: "Advanced pipeline for complex B2B sales",
     icon: "🏢",
     segments: ["b2b_complex"],
     modules: ["proposals", "invoices", "b2b-portal"],
     highlights: [
-      "Encomendas com aprovações",
-      "Forecast benchmarks avançados",
-      "Pipeline para vendas complexas",
+      "Orders with approvals",
+      "Advanced forecast benchmarks",
+      "Complex sales pipeline",
     ],
+    pricing: {
+      individual_total: 67,
+      bundle_price: 49,
+      discount_percent: 27,
+    },
   },
 ];
 

@@ -41,7 +41,7 @@ export function useSaasManagement() {
         .order("plan", { ascending: true });
 
       if (error) throw error;
-      return data as PlanFeature[];
+      return data as unknown as PlanFeature[];
     },
   });
 

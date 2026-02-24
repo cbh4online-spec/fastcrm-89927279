@@ -4,7 +4,6 @@ import { LandingHeroSection } from "@/components/landing-fastcrm/LandingHeroSect
 import { LandingProblemSection } from "@/components/landing-fastcrm/LandingProblemSection";
 import { LandingSolutionSection } from "@/components/landing-fastcrm/LandingSolutionSection";
 import { LandingArchitectureSection } from "@/components/landing-fastcrm/LandingArchitectureSection";
-import { LandingMetricsSection } from "@/components/landing-fastcrm/LandingMetricsSection";
 import { LandingPositioningSection } from "@/components/landing-fastcrm/LandingPositioningSection";
 import { LandingPricingSection } from "@/components/landing-fastcrm/LandingPricingSection";
 import { LandingFastClubSection } from "@/components/landing-fastcrm/LandingFastClubSection";
@@ -21,18 +20,18 @@ export default function FastCRMLanding() {
   return (
     <>
       <Helmet>
-        <title>FastCRM — Infraestrutura Digital Empresarial com IA</title>
+        <title>FastCRM — AI-Native Revenue CRM Platform</title>
         <meta
           name="description"
-          content="O FastCRM integra CRM, IA, automação, comunicação omnicanal, marketplace de módulos e gestão multi-workspace numa única plataforma SaaS empresarial."
+          content="Build your CRM. Grow your revenue. FastCRM adapts to your business with smart extensions, revenue intelligence, and automations that scale."
         />
-        <meta property="og:title" content="FastCRM — Infraestrutura Digital Empresarial com IA" />
+        <meta property="og:title" content="FastCRM — AI-Native Revenue CRM" />
         <meta
           property="og:description"
-          content="Não é apenas um CRM. É a Infraestrutura Digital da Sua Empresa."
+          content="Build your CRM. Grow your revenue. Simple core, smart extensions, revenue intelligence built in."
         />
         <meta property="og:type" content="website" />
-        <link rel="canonical" href="https://fastcrm.metodopare.ai" />
+        <link rel="canonical" href="https://fastcrm.lovable.app" />
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
@@ -41,12 +40,12 @@ export default function FastCRMLanding() {
             applicationCategory: "BusinessApplication",
             operatingSystem: "Web",
             description:
-              "Infraestrutura digital empresarial com CRM, IA, automação e comunicação omnicanal integrada.",
+              "AI-Native Revenue CRM with smart extensions, revenue intelligence, and automations that scale.",
             offers: {
               "@type": "Offer",
               price: "0",
               priceCurrency: "EUR",
-              description: "Workspace gratuito para começar",
+              description: "Free Starter plan to get started",
             },
           })}
         </script>
@@ -59,7 +58,6 @@ export default function FastCRMLanding() {
           <LandingProblemSection />
           <LandingSolutionSection />
           <LandingArchitectureSection />
-          <LandingMetricsSection />
           <LandingPositioningSection />
           <LandingPricingSection />
           <LandingFastClubSection />

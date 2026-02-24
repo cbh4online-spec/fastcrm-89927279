@@ -12,7 +12,7 @@ interface ExtensionSuggestionsProps {
 
 export function ExtensionSuggestions({
   businessType,
-  currentPlan = "free",
+  currentPlan = "starter",
   onInstall,
   onSkip,
 }: ExtensionSuggestionsProps) {

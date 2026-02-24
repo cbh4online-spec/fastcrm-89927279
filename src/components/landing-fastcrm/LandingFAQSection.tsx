@@ -8,32 +8,32 @@ import {
 
 const faqs = [
   {
-    q: "O que diferencia o FastCRM de outros CRMs?",
-    a: "O FastCRM não é apenas um CRM — é uma infraestrutura digital completa. Integra CRM, IA nativa, automação avançada, comunicação omnicanal, marketplace de módulos e gestão multi-workspace numa única plataforma, eliminando a necessidade de ferramentas fragmentadas.",
+    q: "What's included in the free plan?",
+    a: "The Starter plan includes CRM core with objects, contacts, companies, and deals. You get 1 pipeline, basic health scores, 3 automations, and a shared inbox. Up to 3 users — perfect to get started and see if FastCRM is right for you.",
   },
   {
-    q: "Preciso de conhecimentos técnicos para usar?",
-    a: "Não. O FastCRM foi desenhado para equipas comerciais e de gestão. A interface é intuitiva e toda a configuração é feita sem código. Os assistentes de IA ajudam a optimizar processos automaticamente.",
+    q: "How do extensions work?",
+    a: "Extensions are official add-ons that expand FastCRM's capabilities. Things like Proposals, Invoicing, B2B Client Portal. You can activate them individually or as bundles (which come with a discount). All extensions include a 14-day free trial.",
   },
   {
-    q: "Como funciona o modelo de workspace?",
-    a: "Cada empresa ou unidade de negócio pode ter o seu próprio workspace com isolamento total de dados, permissões por role e configurações independentes. Ideal para grupos empresariais, agências e franchises.",
+    q: "What's the difference between extensions and bundles?",
+    a: "Extensions are individual feature packs (e.g., Proposals Pack at €19/mo). Bundles group related extensions at a discount — for example, the SMB Revenue Bundle includes Proposals + Finance for €29/mo instead of €38/mo.",
   },
   {
-    q: "Os dados estão seguros?",
-    a: "Sim. Implementamos Row Level Security (RLS) em 100% das tabelas, isolamento multi-tenant por workspace, encriptação de dados sensíveis e autenticação robusta. A plataforma é auditada regularmente.",
+    q: "Can I switch plans anytime?",
+    a: "Yes. Upgrade instantly, downgrade at the end of your billing period. No lock-in contracts. You can also start with Starter (free) and upgrade when your team is ready.",
   },
   {
-    q: "Posso integrar com ferramentas que já uso?",
-    a: "Sim. O FastCRM integra nativamente com Stripe, WhatsApp Business, Instagram, email (SMTP/Zoho), Google Places e muitos outros. O marketplace de módulos permite expandir funcionalidades continuamente.",
+    q: "Do I need technical knowledge to use FastCRM?",
+    a: "No. FastCRM is designed for sales teams and founders, not developers. The interface is intuitive, onboarding is conversational, and AI helps optimize your processes automatically. No code required.",
   },
   {
-    q: "Quanto custa?",
-    a: "Pode começar gratuitamente com um workspace. Os planos pagos escalam conforme as necessidades da sua operação — número de utilizadores, módulos activos e volume de IA utilizada.",
+    q: "Is my data secure?",
+    a: "Yes. We implement row-level security on every table, workspace isolation, encrypted sensitive data, and robust authentication. The platform is regularly audited.",
   },
   {
-    q: "Existe suporte em português?",
-    a: "Sim. Toda a plataforma, documentação e suporte estão disponíveis em português. A equipa de produto é portuguesa e compreende as necessidades do mercado local e europeu.",
+    q: "Can I integrate with tools I already use?",
+    a: "FastCRM integrates natively with Stripe, WhatsApp Business, Instagram, email providers (SMTP/Zoho), and more. The Scale plan includes API access for custom integrations.",
   },
 ];
 
@@ -49,10 +49,10 @@ export function LandingFAQSection() {
           className="text-center mb-12"
         >
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-            Perguntas Frequentes
+            Frequently Asked Questions
           </h2>
           <p className="text-[hsl(215,20%,65%)]">
-            Tudo o que precisa de saber antes de começar.
+            Everything you need to know before getting started.
           </p>
         </motion.div>
 

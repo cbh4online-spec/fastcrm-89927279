@@ -12,24 +12,24 @@ export function LandingFooter() {
             </div>
             <span className="font-bold">FastCRM</span>
             <span className="text-xs text-[hsl(215,20%,65%)] ml-2">
-              Infraestrutura Digital Empresarial
+              AI-Native Revenue CRM
             </span>
           </div>
 
           <nav className="flex items-center gap-6 text-sm text-[hsl(215,20%,65%)]">
             <Link to="/privacy" className="hover:text-[hsl(210,40%,98%)] transition-colors">
-              Privacidade
+              Privacy
             </Link>
             <Link to="/terms" className="hover:text-[hsl(210,40%,98%)] transition-colors">
-              Termos
+              Terms
             </Link>
             <Link to="/gdpr" className="hover:text-[hsl(210,40%,98%)] transition-colors">
-              RGPD
+              GDPR
             </Link>
           </nav>
 
           <div className="text-xs text-[hsl(215,20%,65%)]">
-            &copy; {new Date().getFullYear()} FastCRM. Todos os direitos reservados.
+            &copy; {new Date().getFullYear()} FastCRM. All rights reserved.
           </div>
         </div>
       </div>

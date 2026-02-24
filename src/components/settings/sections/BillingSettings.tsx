@@ -59,7 +59,7 @@ export function BillingSettings({ searchQuery = "", matchedSections }: BillingSe
       )}
 
       {/* Upgrade Options */}
-      {shouldShow("billing-upgrade") && plan !== "agency" && (
+      {shouldShow("billing-upgrade") && plan !== "scale" && (
         <SettingsSection
           title="Fazer Upgrade"
           description="Compare planos e faça upgrade para desbloquear mais funcionalidades"

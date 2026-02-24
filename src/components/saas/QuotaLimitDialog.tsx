@@ -66,9 +66,8 @@ export function QuotaLimitDialog({
   const isAtLimit = percent >= 100;
 
   const getSuggestedPlan = () => {
-    if (plan === "free") return "basic";
-    if (plan === "basic") return "pro";
-    return "agency";
+    if (plan === "starter") return "growth";
+    return "scale";
   };
 
   const suggestedPlan = getSuggestedPlan();
@@ -79,7 +78,7 @@ export function QuotaLimitDialog({
     if (onUpgrade) {
       onUpgrade();
     } else {
-      createCheckout(suggestedPlan as "basic" | "pro" | "agency");
+      createCheckout(suggestedPlan as "growth" | "scale");
     }
     onOpenChange(false);
   };

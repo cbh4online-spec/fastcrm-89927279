@@ -6,11 +6,9 @@ import { Zap, Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 const navLinks = [
-  { href: "#problema", label: "Problema" },
-  { href: "#solucao", label: "Solução" },
-  { href: "#arquitectura", label: "Arquitectura" },
-  { href: "#metricas", label: "Métricas" },
-  { href: "#pricing", label: "Investimento" },
+  { href: "#features", label: "Features" },
+  { href: "#for-teams", label: "For Teams" },
+  { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
   { href: "#fastclub", label: "FastClub" },
 ];
@@ -58,16 +56,15 @@ export function LandingStickyHeader() {
               size="sm"
               className="text-[hsl(210,40%,98%)] hover:bg-[hsl(217,33%,17%)]"
             >
-              Entrar
+              Sign In
             </Button>
           </Link>
           <Link to="/auth" className="hidden md:inline-flex">
             <Button size="sm" className="gradient-primary shadow-glow text-primary-foreground">
-              Criar Workspace
+              Start Free
             </Button>
           </Link>
 
-          {/* Mobile menu */}
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden text-[hsl(210,40%,98%)]">
@@ -79,7 +76,7 @@ export function LandingStickyHeader() {
               side="right"
               className="bg-[hsl(222,47%,4%)] border-[hsl(217,33%,17%)] w-72"
             >
-              <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
+              <SheetTitle className="sr-only">Navigation menu</SheetTitle>
               <nav className="flex flex-col gap-1 mt-8">
                 {navLinks.map((link) => (
                   <a
@@ -98,12 +95,12 @@ export function LandingStickyHeader() {
                     variant="ghost"
                     className="w-full text-[hsl(210,40%,98%)] hover:bg-[hsl(217,33%,17%)]"
                   >
-                    Entrar
+                    Sign In
                   </Button>
                 </Link>
                 <Link to="/auth" onClick={() => setMobileOpen(false)}>
                   <Button className="w-full gradient-primary shadow-glow text-primary-foreground">
-                    Criar Workspace
+                    Start Free
                   </Button>
                 </Link>
               </div>

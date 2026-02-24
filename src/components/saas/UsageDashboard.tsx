@@ -136,7 +136,7 @@ export function UsageDashboard({ className }: UsageDashboardProps) {
               const limit = getPlanLimit(plan, item.limitKey) ?? 0;
               const isEnabled = limit !== 0;
               
-              if (!isEnabled && plan === "free") {
+              if (!isEnabled && plan === "starter") {
                 return (
                   <div 
                     key={item.key}

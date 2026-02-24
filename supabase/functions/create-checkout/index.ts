@@ -11,11 +11,14 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
-// SaaS plan -> Stripe price mapping
+// SaaS plan -> Stripe price mapping (new + legacy aliases)
 const PLAN_PRICE_MAP: Record<string, string> = {
-  basic: "price_1SpWYGQpSN9dntDnbou09co0",
-  pro: "price_1SpWYwQpSN9dntDneKmQwHUU",
-  agency: "price_1SpWZ8QpSN9dntDnMeNvHIVO",
+  growth: "price_1T4UWYQpSN9dntDniCyqZLEG",
+  scale: "price_1T4UXEQpSN9dntDn30lSolkc",
+  // Legacy aliases
+  basic: "price_1T4UWYQpSN9dntDniCyqZLEG",
+  pro: "price_1T4UXEQpSN9dntDn30lSolkc",
+  agency: "price_1T4UXEQpSN9dntDn30lSolkc",
 };
 
 Deno.serve(async (req) => {

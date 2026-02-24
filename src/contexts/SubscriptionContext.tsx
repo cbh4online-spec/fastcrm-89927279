@@ -5,7 +5,7 @@ import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
 
 // Plan definitions
-export type SubscriptionPlan = "free" | "basic" | "pro" | "agency";
+export type SubscriptionPlan = "starter" | "growth" | "scale";
 
 export interface PlanLimits {
   max_users: number;
@@ -20,6 +20,11 @@ export interface PlanLimits {
   monthly_ai_calls: number;
   templates: boolean;
   white_label: boolean;
+  multi_pipeline: boolean;
+  marketplace_access: boolean;
+  api_access: boolean;
+  advanced_roles: boolean;
+  priority_support: boolean;
 }
 
 export interface SubscriptionState {
@@ -40,9 +45,9 @@ export interface SubscriptionContextType extends SubscriptionState {
   getUpgradeMessage: (feature: keyof PlanLimits) => string;
 }
 
-// Default free plan limits
-const FREE_LIMITS: PlanLimits = {
-  max_users: 1,
+// Default starter plan limits
+const STARTER_LIMITS: PlanLimits = {
+  max_users: 3,
   max_workspaces: 1,
   dashboard_customization: false,
   sidebar_customization: false,
@@ -50,10 +55,15 @@ const FREE_LIMITS: PlanLimits = {
   ai_suggestions: false,
   ai_insights: false,
   automation_custom_fields: false,
-  max_automations: 0,
+  max_automations: 3,
   monthly_ai_calls: 0,
   templates: false,
   white_label: false,
+  multi_pipeline: false,
+  marketplace_access: false,
+  api_access: false,
+  advanced_roles: false,
+  priority_support: false,
 };
 
 // Plan display info
@@ -63,71 +73,68 @@ export const PLAN_INFO: Record<SubscriptionPlan, {
   description: string;
   features: string[];
 }> = {
-  free: {
-    name: "Free",
+  starter: {
+    name: "Starter",
     price: 0,
-    description: "Para experimentar o FastCRM",
+    description: "For getting started",
     features: [
-      "1 utilizador",
-      "1 workspace",
-      "CRM básico",
+      "1-3 users",
+      "CRM core (Objects + Inbox)",
+      "Basic health score",
+      "1 pipeline",
+      "3 automations",
     ],
   },
-  basic: {
-    name: "Basic",
-    price: 29,
-    description: "Para equipas pequenas",
+  growth: {
+    name: "Growth",
+    price: 49,
+    description: "For growing teams",
     features: [
-      "Até 3 utilizadores",
-      "1 workspace",
-      "CRM, inbox e pagamentos",
-      "5 regras de automação",
+      "Up to 10 users",
+      "Multi-pipeline",
+      "Stage benchmarks",
+      "Advanced automation templates",
+      "Marketplace active",
+      "AI suggestions & insights",
+      "500 AI calls/month",
     ],
   },
-  pro: {
-    name: "Pro",
-    price: 79,
-    description: "Para equipas em crescimento",
+  scale: {
+    name: "Scale",
+    price: 149,
+    description: "For scaling companies",
     features: [
-      "Até 10 utilizadores",
-      "1 workspace",
-      "Dashboards personalizáveis",
-      "Sidebar configurável",
-      "Sugestões de IA",
-      "Insights de IA",
-      "50 regras de automação",
-      "500 chamadas IA/mês",
-    ],
-  },
-  agency: {
-    name: "Agency",
-    price: 199,
-    description: "Para agências e empresas",
-    features: [
-      "Utilizadores ilimitados",
-      "Múltiplos workspaces",
-      "Templates de configuração",
+      "Unlimited users",
+      "Advanced Intelligence",
+      "Advanced automations",
+      "API access",
+      "Advanced roles",
+      "Priority support",
       "White-label branding",
-      "Automações ilimitadas",
-      "5000 chamadas IA/mês",
+      "5,000 AI calls/month",
     ],
   },
 };
 
 // Feature to plan mapping for upgrade messages
 const FEATURE_REQUIRED_PLAN: Record<keyof PlanLimits, SubscriptionPlan> = {
-  max_users: "basic",
-  max_workspaces: "agency",
-  dashboard_customization: "pro",
-  sidebar_customization: "pro",
-  user_layout_overrides: "pro",
-  ai_suggestions: "pro",
-  ai_insights: "pro",
-  automation_custom_fields: "pro",
-  max_automations: "basic",
-  monthly_ai_calls: "pro",
-  templates: "agency",
-  white_label: "agency",
+  max_users: "growth",
+  max_workspaces: "scale",
+  dashboard_customization: "growth",
+  sidebar_customization: "growth",
+  user_layout_overrides: "growth",
+  ai_suggestions: "growth",
+  ai_insights: "growth",
+  automation_custom_fields: "growth",
+  max_automations: "growth",
+  monthly_ai_calls: "growth",
+  templates: "scale",
+  white_label: "scale",
+  multi_pipeline: "growth",
+  marketplace_access: "growth",
+  api_access: "scale",
+  advanced_roles: "scale",
+  priority_support: "scale",
 };
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -138,8 +145,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { user, session } = useAuth();
   
   const [state, setState] = useState<SubscriptionState>({
-    plan: "free",
-    limits: FREE_LIMITS,
+    plan: "starter",
+    limits: STARTER_LIMITS,
     subscribed: false,
     subscriptionEnd: null,
     cancelAtPeriodEnd: false,
@@ -163,8 +170,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
 
       setState({
-        plan: data.plan || "free",
-        limits: data.limits || FREE_LIMITS,
+        plan: data.plan || "starter",
+        limits: data.limits || STARTER_LIMITS,
         subscribed: data.subscribed || false,
         subscriptionEnd: data.subscription_end || null,
         cancelAtPeriodEnd: data.cancel_at_period_end || false,
@@ -182,7 +189,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [currentWorkspace?.id, session?.access_token, workspaceClient]);
 
   const createCheckout = useCallback(async (plan: SubscriptionPlan) => {
-    if (!currentWorkspace?.id || plan === "free") return;
+    if (!currentWorkspace?.id || plan === "starter") return;
 
     try {
       const { data, error } = await workspaceClient.functions.invoke("create-checkout", {
@@ -195,7 +202,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("Error creating checkout:", error);
-      toast.error("Erro ao criar sessão de pagamento");
+      toast.error("Error creating payment session");
     }
   }, [currentWorkspace?.id, workspaceClient]);
 
@@ -209,7 +216,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("Error opening customer portal:", error);
-      toast.error("Erro ao abrir portal de gestão");
+      toast.error("Error opening management portal");
     }
   }, [workspaceClient]);
 
@@ -223,7 +230,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const getUpgradeMessage = useCallback((feature: keyof PlanLimits): string => {
     const requiredPlan = FEATURE_REQUIRED_PLAN[feature];
     const planInfo = PLAN_INFO[requiredPlan];
-    return `Esta funcionalidade requer o plano ${planInfo.name} ou superior.`;
+    return `This feature requires the ${planInfo.name} plan or higher.`;
   }, []);
 
   // Check subscription on mount and when workspace changes
