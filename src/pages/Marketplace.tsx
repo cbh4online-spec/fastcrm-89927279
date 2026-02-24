@@ -10,33 +10,52 @@ import { FeaturedModules } from "@/components/marketplace/FeaturedModules";
 import { ExtensionPackCard } from "@/components/marketplace/ExtensionPackCard";
 import { MarketplaceModule, ModuleCategory, SAMPLE_MODULES } from "@/types/marketplace";
 import { EXTENSION_PACKS } from "@/config/extensionPacks";
-import { Search, Store, Package, Sparkles, ArrowLeft, Check, Boxes } from "lucide-react";
+import { Search, Store, Package, Sparkles, ArrowLeft, Check, Boxes, Puzzle } from "lucide-react";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
+import { useExtensionManifests } from "@/hooks/useExtensionManifests";
+import type { ExtensionManifest } from "@/types/extensionManifest";
 
 export default function Marketplace() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<ModuleCategory | "all">("all");
   const [selectedModule, setSelectedModule] = useState<MarketplaceModule | null>(null);
-  const [activeTab, setActiveTab] = useState<"all" | "packs" | "installed">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "extensions" | "packs" | "installed">("all");
+  const [togglingSlug, setTogglingSlug] = useState<string | null>(null);
 
-  // Fetch installed modules from the database for the current workspace
-  const { installedModuleIds, isLoading: isLoadingModules } = useWorkspaceModules();
+  const { installedModuleIds, installModule, uninstallModule, isLoading: isLoadingModules } = useWorkspaceModules();
+  const { modulesWithManifest } = useExtensionManifests();
+
+  // Build manifest lookup
+  const manifestMap = useMemo(() => {
+    const map: Record<string, ExtensionManifest> = {};
+    modulesWithManifest.forEach((m) => { map[m.slug] = m.manifest; });
+    return map;
+  }, [modulesWithManifest]);
+
+  // Modules that have manifests (are official extensions)
+  const extensionSlugs = useMemo(() => {
+    return SAMPLE_MODULES
+      .filter((m) => {
+        // Check if this module has a manifest (fetched or known extension)
+        return manifestMap[m.id] || ["proposals", "invoices", "b2b-portal"].includes(m.id);
+      })
+      .map((m) => m.id);
+  }, [manifestMap]);
 
   const filteredModules = useMemo(() => {
     let modules = SAMPLE_MODULES;
 
-    // Filter by tab
     if (activeTab === "installed") {
       modules = modules.filter(m => installedModuleIds.includes(m.id));
+    } else if (activeTab === "extensions") {
+      modules = modules.filter(m => extensionSlugs.includes(m.id));
     }
 
-    // Filter by category
     if (selectedCategory !== "all") {
       modules = modules.filter(m => m.category === selectedCategory);
     }
 
-    // Filter by search
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       modules = modules.filter(m =>
@@ -47,7 +66,7 @@ export default function Marketplace() {
     }
 
     return modules;
-  }, [searchQuery, selectedCategory, activeTab, installedModuleIds]);
+  }, [searchQuery, selectedCategory, activeTab, installedModuleIds, extensionSlugs]);
 
   const featuredModules = useMemo(() => {
     return SAMPLE_MODULES.filter(m => m.is_featured);
@@ -56,26 +75,26 @@ export default function Marketplace() {
   const moduleCounts = useMemo(() => {
     const counts: Record<ModuleCategory | "all", number> = {
       all: SAMPLE_MODULES.length,
-      prospecting: 0,
-      real_estate: 0,
-      customer_service: 0,
-      sales: 0,
-      marketing: 0,
-      finance: 0,
-      analytics: 0,
-      communication: 0,
-      automation: 0,
-      ai: 0,
-      integrations: 0,
-      education: 0,
+      prospecting: 0, real_estate: 0, customer_service: 0, sales: 0,
+      marketing: 0, finance: 0, analytics: 0, communication: 0,
+      automation: 0, ai: 0, integrations: 0, education: 0,
     };
-
-    SAMPLE_MODULES.forEach(m => {
-      counts[m.category]++;
-    });
-
+    SAMPLE_MODULES.forEach(m => { counts[m.category]++; });
     return counts;
   }, []);
+
+  const handleToggle = async (module: MarketplaceModule) => {
+    setTogglingSlug(module.id);
+    try {
+      if (installedModuleIds.includes(module.id)) {
+        await uninstallModule(module.id);
+      } else {
+        await installModule(module.id);
+      }
+    } finally {
+      setTogglingSlug(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -95,14 +114,13 @@ export default function Marketplace() {
             <div className="p-2 rounded-xl bg-primary/10">
               <Store className="w-6 h-6 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold">Marketplace de Módulos</h1>
+            <h1 className="text-2xl font-bold">Marketplace de Extensões</h1>
           </div>
           <p className="text-muted-foreground max-w-2xl">
-            Expanda as capacidades do seu CRM com módulos de negócio. 
-            Cada módulo resolve um problema específico, sem complexidade técnica.
+            Expanda as capacidades do seu CRM com extensões oficiais.
+            Cada extensão adiciona objects, automações e intelligence — sem complexidade.
           </p>
 
-          {/* Module Stats */}
           <div className="flex items-center gap-3 mt-4">
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
               <Package className="w-3.5 h-3.5" />
@@ -110,7 +128,7 @@ export default function Marketplace() {
             </div>
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm font-medium">
               <Check className="w-3.5 h-3.5" />
-              <span>{installedModuleIds.length} instalados</span>
+              <span>{installedModuleIds.length} ativos</span>
             </div>
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-sm font-medium">
               <Sparkles className="w-3.5 h-3.5" />
@@ -118,7 +136,6 @@ export default function Marketplace() {
             </div>
           </div>
 
-          {/* Search */}
           <div className="relative mt-6 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -132,12 +149,15 @@ export default function Marketplace() {
       </div>
 
       <div className="container mx-auto px-4 py-6">
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "all" | "packs" | "installed")} className="mb-6">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="mb-6">
           <TabsList>
             <TabsTrigger value="all" className="gap-2">
               <Sparkles className="w-4 h-4" />
               Descobrir
+            </TabsTrigger>
+            <TabsTrigger value="extensions" className="gap-2">
+              <Puzzle className="w-4 h-4" />
+              Extensões
             </TabsTrigger>
             <TabsTrigger value="packs" className="gap-2">
               <Boxes className="w-4 h-4" />
@@ -145,22 +165,16 @@ export default function Marketplace() {
             </TabsTrigger>
             <TabsTrigger value="installed" className="gap-2">
               <Package className="w-4 h-4" />
-              Instalados ({installedModuleIds.length})
+              Ativos ({installedModuleIds.length})
             </TabsTrigger>
           </TabsList>
         </Tabs>
 
-        {activeTab === "all" && (
+        {(activeTab === "all" || activeTab === "extensions") && (
           <>
-            {/* Featured Modules */}
-            {!searchQuery && selectedCategory === "all" && (
-              <FeaturedModules 
-                modules={featuredModules} 
-                onViewDetails={setSelectedModule} 
-              />
+            {activeTab === "all" && !searchQuery && selectedCategory === "all" && (
+              <FeaturedModules modules={featuredModules} onViewDetails={setSelectedModule} />
             )}
-
-            {/* Category Filter */}
             <CategoryFilter
               selectedCategory={selectedCategory}
               onCategoryChange={setSelectedCategory}
@@ -169,7 +183,6 @@ export default function Marketplace() {
           </>
         )}
 
-        {/* Extension Packs Tab */}
         {activeTab === "packs" && (
           <div className="space-y-6">
             <div>
@@ -186,7 +199,6 @@ export default function Marketplace() {
           </div>
         )}
 
-        {/* Modules Grid (all & installed tabs) */}
         {activeTab !== "packs" && filteredModules.length > 0 && (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filteredModules.map((module) => (
@@ -195,6 +207,9 @@ export default function Marketplace() {
                 module={module}
                 onViewDetails={setSelectedModule}
                 isInstalled={installedModuleIds.includes(module.id)}
+                manifest={manifestMap[module.id] || null}
+                onToggle={handleToggle}
+                isToggling={togglingSlug === module.id}
               />
             ))}
           </div>
@@ -205,16 +220,12 @@ export default function Marketplace() {
             <Package className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-medium mb-2">Nenhum módulo encontrado</h3>
             <p className="text-muted-foreground">
-              {activeTab === "installed" 
-                ? "Ainda não instalaste nenhum módulo. Explora o marketplace!"
+              {activeTab === "installed"
+                ? "Ainda não ativaste nenhuma extensão. Explora o marketplace!"
                 : "Tenta ajustar os filtros ou a pesquisa."}
             </p>
             {activeTab === "installed" && (
-              <Button 
-                variant="outline" 
-                className="mt-4"
-                onClick={() => setActiveTab("all")}
-              >
+              <Button variant="outline" className="mt-4" onClick={() => setActiveTab("all")}>
                 Explorar módulos
               </Button>
             )}
@@ -222,7 +233,6 @@ export default function Marketplace() {
         )}
       </div>
 
-      {/* Module Detail Sheet */}
       <ModuleDetailSheet
         module={selectedModule}
         open={!!selectedModule}

@@ -16,6 +16,7 @@ import {
   CreditCard,
   SlidersHorizontal,
   FlaskConical,
+  Puzzle,
 } from "lucide-react";
 
 export type SettingsCategory =
@@ -28,6 +29,7 @@ export type SettingsCategory =
   | "security"
   | "integrations"
   | "billing"
+  | "extensions"
   | "flags";
 
 interface SettingsNavigationProps {
@@ -94,6 +96,12 @@ const categories = [
     label: "Plano & Faturação",
     icon: CreditCard,
     description: "Subscrição, Utilização, Upgrade",
+  },
+  {
+    id: "extensions" as const,
+    label: "Extensões",
+    icon: Puzzle,
+    description: "Ativação, auditoria, manifests",
   },
   {
     id: "flags" as const,
