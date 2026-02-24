@@ -363,8 +363,14 @@ function CRMRoutes() {
                 <Route path="/dashboard/objects" element={<ObjectsPage />} />
                 <Route path="/dashboard/intelligence" element={<IntelligencePage />} />
                 <Route path="/dashboard/tasks" element={<TasksPage />} />
-                <Route path="/dashboard/settings" element={<Settings />} />
-                <Route path="/dashboard/settings/:section" element={<Settings />} />
+                
+                {/* Settings redirect to /settings */}
+                <Route path="/dashboard/settings" element={<Navigate to="/settings" replace />} />
+                <Route path="/dashboard/settings/:section" element={<Navigate to="/settings" replace />} />
+                
+                {/* Settings at clean URL */}
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/settings/:section" element={<Settings />} />
                 <Route path="/dashboard/leads" element={<Leads />} />
                 <Route path="/dashboard/leads/:id" element={<LeadDetail />} />
                 <Route path="/dashboard/prospecting/google-local" element={<GoogleLocalProspecting />} />

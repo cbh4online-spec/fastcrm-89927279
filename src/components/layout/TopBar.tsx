@@ -124,7 +124,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
               <User className="mr-2 h-4 w-4" />
               Perfil
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/dashboard/settings")}>
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
               <Settings className="mr-2 h-4 w-4" />
               Definições
             </DropdownMenuItem>
