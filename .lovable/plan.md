@@ -1,127 +1,51 @@
 
 
-# Intelligence Panel v1 — Deal Health & Next Best Action
+# Command Palette Enhancement — Index Nav V2 + Legacy Routes
 
 ## Current State
 
-- **OpportunityDetailPage** renders a `flex-col-reverse lg:flex-row` layout with a right sidebar (w-80) for Associations + Commission sections
-- **Existing AI**: `OpportunityAIInsightsSection` and `deal_scores` table exist but use a different model (edge function `compute-deal-score` with engagement/recency/trust/intent factors). This is separate from the heuristic health score described here
-- **Activities**: `crm_activities` table with `entity_type`, `entity_id`, `created_at` — can filter by `entity_type='opportunity'`
-- **Tasks**: `tasks` table with `related_type`, `related_id`, `due_at`, `status` — can filter by `related_type='opportunity'`
-- **Opportunities**: has `value`, `expected_close_date`, `contact_id`, `company_id`, `stage_id`, `last_activity_at`, `updated_at`
-- **Pipeline stages**: `pipeline_stages` with `position`, `name`
-- **No tasks hook** exists yet — need to create one
+`GlobalSearch.tsx` already exists and handles Cmd+K. It:
+- Searches CRM records (leads, contacts, companies, opportunities)
+- Has a hardcoded "Navegação Rápida" section with 5 static items
+- Does NOT index `nav.v2.ts` items (Home, Objects, Inbox, Automations, Intelligence, Reports, Marketplace, Settings)
+- Does NOT index `routes.legacy.ts` (50+ hidden legacy routes)
 
-## Architecture Decision
-
-The plan calls for an "Intelligence Service" edge function. However, for v1 with a deterministic heuristic (no AI/LLM calls), all scoring logic can run **client-side** in a custom hook. This gives:
-- Zero latency (no network call)
-- Instant updates when data changes
-- Simpler implementation
-- Easy to swap for an edge function in v2
-
-The hook will consume data already fetched by the detail page (opportunity, activities, tasks, stages) and compute the score purely in-memory.
+The `nav.v2.ts` config has icons via lucide imports. The `routes.legacy.ts` has path + label pairs.
 
 ## Plan
 
-### 1. Deal Intelligence Hook
+### Single file edit: `src/components/layout/GlobalSearch.tsx`
 
-**New file: `src/hooks/useDealIntelligence.ts`**
+Add a new "Pages" command group that combines both sources, appearing above the CRM record results:
 
-Pure computation hook that takes opportunity data + activities + tasks + stages and returns:
+1. **Import** `NAV_V2_ITEMS` from `@/config/nav.v2.ts` and `LEGACY_ROUTES` from `@/config/routes.legacy.ts`
 
-```text
-{
-  healthScore: number (0-100)
-  healthLabel: "healthy" | "watch" | "at_risk"
-  riskDrivers: { reason: string, severity: "high" | "medium" | "low" }[]
-  nextBestAction: { title: string, type: "follow_up" | "create_task" | "review_blockers" | "complete_data" | "send_recap" }
-  dataCompleteness: { percent: number, missingFields: string[] }
-}
-```
+2. **Build a unified pages list** by merging:
+   - `NAV_V2_ITEMS` mapped to `{ path: item.href, label: item.name, icon: item.icon, source: "nav" }`
+   - `LEGACY_ROUTES` mapped to `{ path: item.path, label: item.label, icon: null, source: "legacy" }`
 
-Scoring logic (from the spec):
-- Start at 100, subtract penalties for: no recent activity (-25/-40), no next task (-20/-10), stage stagnation (-15/-25), missing data (-10/-10/-5)
-- Labels: 80-100 Healthy, 50-79 Watch, 0-49 At Risk
-- Risk drivers: top 3 penalties sorted by severity
-- NBA: first matching rule (no activity → follow up, no next step → create task, stagnated → review blockers, incomplete → complete data, else → send recap)
+3. **Filter pages by search query** using `useMemo` — match against label (case-insensitive). Show all nav items + first 5 legacy when no search; when searching, filter both and show up to 10 matches.
 
-### 2. Tasks Hook
+4. **Render a "Páginas" CommandGroup** before the CRM record groups, with each page as a `CommandItem` that navigates on select. Nav items use their lucide icon; legacy items use a generic `FileText` or `ArrowRight` icon.
 
-**New file: `src/hooks/useTasks.ts`**
+5. **Remove the hardcoded "Navegação Rápida" section** at the bottom — it's superseded by the new Pages group.
 
-Fetches tasks from the `tasks` table filtered by `related_type` and `related_id`. Also provides a `useCreateTask` mutation for the NBA CTA.
+6. **Update placeholder text** to mention pages: `"Pesquisar páginas, leads, contactos, empresas..."`.
 
-### 3. Intelligence Panel Component
+### Technical Details
 
-**New file: `src/components/intelligence/DealIntelligencePanel.tsx`**
+- No new files needed — single edit to `GlobalSearch.tsx`
+- No database changes
+- The `cmdk` library handles fuzzy matching natively via its `value` prop, so we set `value` to `"page-{label}"` for natural filtering
+- Icons from `nav.v2.ts` are already lucide components; render them directly with `<item.icon className="mr-2 h-4 w-4" />`
+- Legacy routes get a subtle `Badge` with "Legacy" to distinguish them visually (optional, can skip for cleanliness)
 
-A collapsible card/panel with 4 sections:
+### Result
 
-**A) Health Score** — Circular badge (green/amber/red) + label + one-line reason
-**B) Risk Drivers** — Top 3 items with severity badges (High/Medium/Low)
-**C) Next Best Action** — Single recommendation with CTA button. "Create task" opens inline task creation (title pre-filled, linked to deal)
-**D) Data Completeness** — Progress bar + list of missing fields as clickable suggestions
-
-Styling: compact, no long text. Uses existing `Card`, `Badge`, `Progress`, `Button` components.
-
-### 4. Integration into Deal Detail View
-
-**Edit: `src/components/opportunities/OpportunityDetailPage.tsx`**
-
-Add `DealIntelligencePanel` to the right sidebar (above or below Associations), passing the opportunity, activities, tasks, and stages data.
-
-### 5. Health Badge in Deals List
-
-**New file: `src/components/intelligence/DealHealthBadge.tsx`**
-
-A small badge component that takes an opportunity + its activities/tasks and shows the health label with a tooltip showing the top risk reason.
-
-**Edit: `src/components/opportunities/OpportunitiesModule.tsx`** (or the table columns config)
-
-Add a "Health" column to the deals table view that renders `DealHealthBadge` for each row.
-
-For the list view, we need a lightweight version: fetch activities and tasks in bulk for all visible deals. To avoid N+1 queries:
-
-**New file: `src/hooks/useBulkDealIntelligence.ts`**
-
-Fetches all activities and tasks for a list of opportunity IDs in two queries, then computes health scores for each deal client-side.
-
-### 6. Create Task from Intelligence Panel
-
-The NBA CTA "Create task" will:
-1. Open a small inline form (or dialog) with pre-filled title from the NBA recommendation
-2. Set `related_type: 'opportunity'`, `related_id: dealId`
-3. Set `due_at` to 48h from now (for follow-ups)
-4. On success, invalidate tasks query and show toast
-
-### 7. Analytics Events (lightweight)
-
-Track events via `crm_activities` table (reuse existing activity logging):
-- `intelligence_panel_opened` — logged when panel mounts
-- `nba_clicked` — logged when user clicks the NBA CTA
-- `task_created_from_intelligence` — logged on successful task creation
-
-No new table needed — just activity entries with `activity_type` set accordingly.
-
-## Files Summary
-
-| File | Action |
-|---|---|
-| `src/hooks/useDealIntelligence.ts` | Create — heuristic scoring logic |
-| `src/hooks/useTasks.ts` | Create — tasks CRUD for deals |
-| `src/hooks/useBulkDealIntelligence.ts` | Create — batch scoring for list view |
-| `src/components/intelligence/DealIntelligencePanel.tsx` | Create — sidebar panel with 4 sections |
-| `src/components/intelligence/DealHealthBadge.tsx` | Create — compact badge for list view |
-| `src/components/intelligence/CreateTaskFromIntelligence.tsx` | Create — inline task creation dialog |
-| `src/components/opportunities/OpportunityDetailPage.tsx` | Edit — add panel to sidebar |
-| `src/components/opportunities/OpportunitiesModule.tsx` | Edit — add Health column to table view |
-
-## Technical Notes
-
-- All scoring runs client-side in v1 — no edge function needed. Data is already fetched by the page
-- Stage stagnation uses `opportunity.updated_at` as proxy (no stage history table yet). Default stage limit: 14 days
-- `useBulkDealIntelligence` fetches activities/tasks for all visible deal IDs in 2 queries (using `.in()` filter), then maps scores per deal
-- The panel is collapsible via a simple `useState` toggle with localStorage persistence
-- No new DB tables or migrations needed — uses existing `tasks`, `crm_activities`, `opportunities`, `pipeline_stages`
+Pressing Cmd+K shows:
+1. **Páginas** — Home, Objects, Inbox, Automations, Intelligence, Reports, Marketplace, Settings, then legacy routes matching the query
+2. **Leads** — CRM record matches
+3. **Contactos** — CRM record matches
+4. **Empresas** — CRM record matches
+5. **Oportunidades** — CRM record matches
 
