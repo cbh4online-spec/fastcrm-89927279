@@ -7,8 +7,10 @@ import { ModuleCard } from "@/components/marketplace/ModuleCard";
 import { CategoryFilter } from "@/components/marketplace/CategoryFilter";
 import { ModuleDetailSheet } from "@/components/marketplace/ModuleDetailSheet";
 import { FeaturedModules } from "@/components/marketplace/FeaturedModules";
+import { ExtensionPackCard } from "@/components/marketplace/ExtensionPackCard";
 import { MarketplaceModule, ModuleCategory, SAMPLE_MODULES } from "@/types/marketplace";
-import { Search, Store, Package, Sparkles, ArrowLeft, Check } from "lucide-react";
+import { EXTENSION_PACKS } from "@/config/extensionPacks";
+import { Search, Store, Package, Sparkles, ArrowLeft, Check, Boxes } from "lucide-react";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 
 export default function Marketplace() {
@@ -16,7 +18,7 @@ export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<ModuleCategory | "all">("all");
   const [selectedModule, setSelectedModule] = useState<MarketplaceModule | null>(null);
-  const [activeTab, setActiveTab] = useState<"all" | "installed">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "packs" | "installed">("all");
 
   // Fetch installed modules from the database for the current workspace
   const { installedModuleIds, isLoading: isLoadingModules } = useWorkspaceModules();
@@ -131,11 +133,15 @@ export default function Marketplace() {
 
       <div className="container mx-auto px-4 py-6">
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "all" | "installed")} className="mb-6">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "all" | "packs" | "installed")} className="mb-6">
           <TabsList>
             <TabsTrigger value="all" className="gap-2">
               <Sparkles className="w-4 h-4" />
               Descobrir
+            </TabsTrigger>
+            <TabsTrigger value="packs" className="gap-2">
+              <Boxes className="w-4 h-4" />
+              Packs
             </TabsTrigger>
             <TabsTrigger value="installed" className="gap-2">
               <Package className="w-4 h-4" />
@@ -163,8 +169,25 @@ export default function Marketplace() {
           </>
         )}
 
-        {/* Modules Grid */}
-        {filteredModules.length > 0 ? (
+        {/* Extension Packs Tab */}
+        {activeTab === "packs" && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Extension Packs</h2>
+              <p className="text-sm text-muted-foreground">
+                Pacotes temáticos que instalam vários módulos de uma vez.
+              </p>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {EXTENSION_PACKS.map((pack) => (
+                <ExtensionPackCard key={pack.id} pack={pack} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Modules Grid (all & installed tabs) */}
+        {activeTab !== "packs" && filteredModules.length > 0 && (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filteredModules.map((module) => (
               <ModuleCard
@@ -175,7 +198,9 @@ export default function Marketplace() {
               />
             ))}
           </div>
-        ) : (
+        )}
+
+        {activeTab !== "packs" && filteredModules.length === 0 && (
           <div className="text-center py-16">
             <Package className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-medium mb-2">Nenhum módulo encontrado</h3>
