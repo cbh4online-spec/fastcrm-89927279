@@ -4,6 +4,8 @@ import { useLeads } from "@/hooks/useLeads";
 import { useContacts } from "@/hooks/useContacts";
 import { useCompanies } from "@/hooks/useCompanies";
 import { useOpportunities } from "@/hooks/useOpportunities";
+import { NAV_V2_ITEMS } from "@/config/nav.v2";
+import { LEGACY_ROUTES } from "@/config/routes.legacy";
 import {
   CommandDialog,
   CommandEmpty,
@@ -22,7 +24,31 @@ import {
   Building2,
   Kanban,
   ArrowRight,
+  FileText,
+  type LucideIcon,
 } from "lucide-react";
+
+type PageEntry = {
+  path: string;
+  label: string;
+  icon: LucideIcon | null;
+  source: "nav" | "legacy";
+};
+
+const ALL_PAGES: PageEntry[] = [
+  ...NAV_V2_ITEMS.map((item) => ({
+    path: item.href,
+    label: item.name,
+    icon: item.icon as LucideIcon,
+    source: "nav" as const,
+  })),
+  ...LEGACY_ROUTES.map((item) => ({
+    path: item.path,
+    label: item.label,
+    icon: null,
+    source: "legacy" as const,
+  })),
+];
 
 interface GlobalSearchProps {
   trigger?: React.ReactNode;
@@ -103,7 +129,19 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
       .slice(0, 5);
   }, [opportunities, search]);
 
+  const filteredPages = useMemo(() => {
+    if (!search) {
+      // Show all nav items + first 5 legacy
+      const navItems = ALL_PAGES.filter((p) => p.source === "nav");
+      const legacyItems = ALL_PAGES.filter((p) => p.source === "legacy").slice(0, 5);
+      return [...navItems, ...legacyItems];
+    }
+    const query = search.toLowerCase();
+    return ALL_PAGES.filter((p) => p.label.toLowerCase().includes(query)).slice(0, 10);
+  }, [search]);
+
   const hasResults =
+    filteredPages.length > 0 ||
     filteredLeads.length > 0 ||
     filteredContacts.length > 0 ||
     filteredCompanies.length > 0 ||
@@ -145,12 +183,39 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
 
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput
-          placeholder="Pesquisar leads, contactos, empresas, oportunidades..."
+          placeholder="Pesquisar páginas, leads, contactos, empresas..."
           value={search}
           onValueChange={setSearch}
         />
         <CommandList>
           <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
+
+          {/* Pages */}
+          {filteredPages.length > 0 && (
+            <CommandGroup heading="Páginas">
+              {filteredPages.map((page) => {
+                const Icon = page.icon || FileText;
+                return (
+                  <CommandItem
+                    key={page.path}
+                    value={`page-${page.label}`}
+                    onSelect={() => handleSelect(page.path)}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-muted-foreground" />
+                      <span>{page.label}</span>
+                    </div>
+                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          )}
+
+          {filteredPages.length > 0 && filteredLeads.length > 0 && (
+            <CommandSeparator />
+          )}
 
           {/* Leads */}
           {filteredLeads.length > 0 && (
@@ -163,7 +228,7 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
                   className="flex items-center justify-between"
                 >
                   <div className="flex items-center gap-2">
-                    <Target className="h-4 w-4 text-amber-500" />
+                    <Target className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <span className="font-medium">{lead.name}</span>
                       {lead.email && (
@@ -213,7 +278,7 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
                   className="flex items-center justify-between"
                 >
                   <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-emerald-500" />
+                    <Users className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <span className="font-medium">{contact.name}</span>
                       {contact.company && (
@@ -254,7 +319,7 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
                   className="flex items-center justify-between"
                 >
                   <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-blue-500" />
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <span className="font-medium">{company.name}</span>
                       {company.industry && (
@@ -293,7 +358,7 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
                   className="flex items-center justify-between"
                 >
                   <div className="flex items-center gap-2">
-                    <Kanban className="h-4 w-4 text-purple-500" />
+                    <Kanban className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <span className="font-medium">{opp.title}</span>
                       {opp.lead?.name && (
@@ -322,35 +387,6 @@ export function GlobalSearch({ trigger }: GlobalSearchProps) {
                 </CommandItem>
               )}
             </CommandGroup>
-          )}
-
-          {/* Quick Actions */}
-          {!search && (
-            <>
-              <CommandSeparator />
-              <CommandGroup heading="Navegação Rápida">
-                <CommandItem onSelect={() => handleSelect("/dashboard/crm")}>
-                  <Search className="mr-2 h-4 w-4" />
-                  Abrir CRM
-                </CommandItem>
-                <CommandItem onSelect={() => handleSelect("/dashboard/leads")}>
-                  <Target className="mr-2 h-4 w-4" />
-                  Ver Leads
-                </CommandItem>
-                <CommandItem onSelect={() => handleSelect("/dashboard/contacts")}>
-                  <Users className="mr-2 h-4 w-4" />
-                  Ver Contactos
-                </CommandItem>
-                <CommandItem onSelect={() => handleSelect("/dashboard/companies")}>
-                  <Building2 className="mr-2 h-4 w-4" />
-                  Ver Empresas
-                </CommandItem>
-                <CommandItem onSelect={() => handleSelect("/dashboard/opportunities")}>
-                  <Kanban className="mr-2 h-4 w-4" />
-                  Ver Oportunidades
-                </CommandItem>
-              </CommandGroup>
-            </>
           )}
         </CommandList>
       </CommandDialog>
