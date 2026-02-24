@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Building2, Loader2, ArrowRight, Check, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { IntelligentOnboarding } from "@/components/onboarding/IntelligentOnboarding";
+import { ConversationalOnboarding } from "@/components/onboarding/ConversationalOnboarding";
 
 export default function Onboarding() {
   const { user } = useAuth();
@@ -60,7 +60,7 @@ export default function Onboarding() {
 
   if (showIntelligentOnboarding) {
     return (
-      <IntelligentOnboarding
+      <ConversationalOnboarding
         workspaceName={workspaceName}
         onComplete={handleComplete}
         onSkip={handleSkip}

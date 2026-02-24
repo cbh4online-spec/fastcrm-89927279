@@ -73,7 +73,10 @@ export interface OnboardingAnswers {
   successDefinition: string;
   processDescription: string;
   channels: string[];
-  activityProfileType?: ActivityProfileType; // NEW: Selected activity profile
+  activityProfileType?: ActivityProfileType;
+  revenueModel?: string;
+  teamSize?: string;
+  salesComplexity?: string;
 }
 
 // Map business types to activity profile types
