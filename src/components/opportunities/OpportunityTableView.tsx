@@ -33,7 +33,7 @@ import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { DealScore, getCategoryColors, getCategoryLabel } from "@/hooks/useDealScores";
-import { DealIntelligence } from "@/hooks/useDealIntelligence";
+import type { CompactDealIntelligence } from "@/types/dealIntelligence";
 import { DealHealthBadge } from "@/components/intelligence/DealHealthBadge";
 
 interface OpportunityTableViewProps {
@@ -45,7 +45,7 @@ interface OpportunityTableViewProps {
   onMarkAsWon: (id: string) => void;
   onMarkAsLost: (id: string) => void;
   scoresMap?: Map<string, DealScore>;
-  healthMap?: Map<string, DealIntelligence>;
+  healthMap?: Map<string, CompactDealIntelligence>;
 }
 
 

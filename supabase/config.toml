@@ -352,3 +352,6 @@ verify_jwt = false
 [functions.ai-cart-recommendations]
 verify_jwt = false
 
+[functions.deal-intelligence]
+verify_jwt = false
+

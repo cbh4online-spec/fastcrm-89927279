@@ -14,7 +14,7 @@ import { useLeads } from "@/hooks/useLeads";
 import { useContacts } from "@/hooks/useContacts";
 import { useCompanies } from "@/hooks/useCompanies";
 import { useTasks } from "@/hooks/useTasks";
-import { useDealIntelligence } from "@/hooks/useDealIntelligence";
+import { useDealIntelligenceAPI } from "@/hooks/useDealIntelligenceAPI";
 import { OpportunityStagesStepper } from "./detail/OpportunityStagesStepper";
 import { OpportunityDetailsGrid } from "./detail/OpportunityDetailsGrid";
 import { OpportunityActivityTimeline } from "./detail/OpportunityActivityTimeline";
@@ -46,7 +46,7 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
     related_id: opportunityId,
   });
   const updateOpportunity = useUpdateOpportunityEnhanced();
-  const intelligence = useDealIntelligence(opportunity, activities, dealTasks);
+  const { data: intelligence, isLoading: intelligenceLoading } = useDealIntelligenceAPI(opportunityId);
   
   // Fetch entities for associations
   const { data: leadsData = [], isLoading: isLoadingLeads } = useLeads();
@@ -248,6 +248,7 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
           <DealIntelligencePanel
             intelligence={intelligence}
             dealId={opportunity.id}
+            isLoading={intelligenceLoading}
           />
 
           {/* Associations Section */}

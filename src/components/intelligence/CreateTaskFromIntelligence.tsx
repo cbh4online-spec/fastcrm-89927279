@@ -5,23 +5,25 @@ import { Label } from "@/components/ui/label";
 import { useCreateTask } from "@/hooks/useTasks";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2 } from "lucide-react";
-import { addHours, format } from "date-fns";
+import { addDays, format } from "date-fns";
 
 interface CreateTaskFromIntelligenceProps {
   dealId: string;
   prefilledTitle: string;
+  suggestedDueDays?: number;
   onClose: () => void;
 }
 
 export function CreateTaskFromIntelligence({
   dealId,
   prefilledTitle,
+  suggestedDueDays = 2,
   onClose,
 }: CreateTaskFromIntelligenceProps) {
   const [title, setTitle] = useState(prefilledTitle);
   const createTask = useCreateTask();
 
-  const dueDate = format(addHours(new Date(), 48), "yyyy-MM-dd'T'HH:mm");
+  const dueDate = format(addDays(new Date(), suggestedDueDays), "yyyy-MM-dd'T'HH:mm");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
