@@ -1,53 +1,49 @@
 
 
-# Conditional Shell V1/V2 based on Feature Flag
+# Hide Nav Items Based on Feature Flags
 
 ## Current State
 
-- `DashboardLayout.tsx` always renders the single `Sidebar` component (which uses `NAV_V2_ITEMS` — 8 items)
-- There is **no V1 sidebar component** — only the V2 sidebar exists
-- `routes.legacy.ts` defines ~50 legacy routes that were the original navigation
-- `useFeatureFlag("ui.shell_v2_enabled")` hook exists and reads from `workspace_feature_flags`
-- The feature flag key used in `FeatureFlagsSettings.tsx` is `"ui.shell_v2_enabled"`
+- `NAV_V2_ITEMS` in `nav.v2.ts` is a static array of 8 items — no flag association
+- `Sidebar.tsx` iterates all items unconditionally
+- Feature flags exist with keys `marketplace`, `objects`, `intelligence` (per `FLAG_META` in `useAllFeatureFlags.ts`)
+- `useFeatureFlags()` already fetches all flags for the current workspace in one query (cached 5 min)
 
 ## Plan
 
-### 1. Create V1 nav config: `src/config/nav.v1.ts`
+### 1. Add optional `featureFlag` property to nav items
 
-Define the legacy sidebar navigation items (the "classic" CRM sidebar) with icons. This is the original navigation with all the traditional CRM sections visible — roughly 15–20 items grouped by category (CRM, Store, Marketing, Tools, Settings). Each item has `name`, `href`, `icon`, and optionally `group` for section headers.
+**Edit: `src/config/nav.v2.ts`**
 
-### 2. Create V1 Sidebar: `src/components/layout/SidebarV1.tsx`
+Add a `featureFlag?: string` field to three items:
+- Objects → `"objects"`
+- Intelligence → `"intelligence"`
+- Marketplace → `"marketplace"`
 
-A traditional full-nav sidebar with grouped sections. Same shell chrome as the current sidebar (workspace logo, workspace switcher, plan badge, role indicator) but with the V1 nav items organized by group headers (e.g., "CRM", "Loja", "Marketing", "Ferramentas"). Same `open`/`onClose` props interface so it's a drop-in replacement.
+Items without `featureFlag` are always visible.
 
-### 3. Edit `DashboardLayout.tsx`
+### 2. Filter nav items in `Sidebar.tsx`
 
-- Import `useFeatureFlag` from `@/hooks/useFeatureFlags`
-- Import both `Sidebar` (V2) and `SidebarV1`
-- Call `useFeatureFlag("ui.shell_v2_enabled")`
-- Conditionally render `<Sidebar />` or `<SidebarV1 />` based on the flag
-- While the flag is loading, show the V1 sidebar as default (safe fallback)
+**Edit: `src/components/layout/Sidebar.tsx`**
 
-```text
-DashboardLayout
-├── useFeatureFlag("ui.shell_v2_enabled")
-├── if shellV2 → <Sidebar /> (current V2)
-└── else      → <SidebarV1 /> (legacy nav)
-```
+- Import `useFeatureFlags` (the bulk hook that returns all flags at once — already cached, no extra queries)
+- Before rendering, filter `navItems`: keep items where `featureFlag` is undefined OR the corresponding flag is enabled
+- While flags are loading, show all items (avoid flash of missing nav)
 
-### Files Summary
+### 3. Same filtering in `SidebarV1.tsx`
+
+The V1 sidebar uses `nav.v1.ts` which has different items (no Objects/Intelligence/Marketplace), so no changes needed there.
+
+## Files
 
 | File | Action |
 |---|---|
-| `src/config/nav.v1.ts` | **Create** — legacy nav items with groups and icons |
-| `src/components/layout/SidebarV1.tsx` | **Create** — classic sidebar with grouped navigation |
-| `src/components/layout/DashboardLayout.tsx` | **Edit** — conditionally render V1 or V2 sidebar based on feature flag |
+| `src/config/nav.v2.ts` | **Edit** — add `featureFlag` to 3 items |
+| `src/components/layout/Sidebar.tsx` | **Edit** — filter items by enabled flags |
 
-### Technical Details
+## Technical Notes
 
-- Both sidebars share the same props interface (`open: boolean`, `onClose: () => void`) so the layout doesn't change
-- Both use `w-64` fixed width and `lg:pl-64` offset, so no layout shift between versions
-- The V1 sidebar reuses existing shared components: `WorkspaceSwitcher`, `WorkspaceLogo`, `PlanBadge`
-- `useFeatureFlag` returns `{ enabled, isLoading }` — during loading we default to V1 (the legacy experience) to avoid flash
-- V1 nav groups: **CRM** (Leads, Contacts, Companies, Opportunities, Tasks), **Loja** (Products, Orders, Categories), **Marketing** (Marketing, SEO), **Ferramentas** (Automations, AI Assistants, Form Studio), **Settings**
+- Uses the existing `useFeatureFlags()` hook which is already called in `DashboardLayout` (shared React Query cache — zero extra network requests)
+- Flag keys match the ones in `FLAG_META`: `marketplace`, `objects`, `intelligence`
+- During loading state, all items remain visible to prevent layout shift
 
