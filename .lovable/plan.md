@@ -1,111 +1,111 @@
 
 
-# Core Objects System — Database + Code Refactor
+# Shell V2 — Global Navigation Refactor
 
 ## Current State
 
-The database already has 3 tables for the custom objects system:
-- **`custom_objects`** — object type definitions (name, slug, icon, color, workspace_id)
-- **`object_records`** — JSON blob records linked to a custom_object
-- **`object_relationships`** — links between records across objects
-
-Missing pieces:
-- **No `object_fields` table** — fields are not defined; records just store arbitrary JSON in `data`
-- **No `object_views` table** — there's a separate `crm_saved_views` table but it's not tied to the core objects system
-- **No `object_types` table** — no way to categorize or template objects (e.g., system vs custom, CRM vs project)
+- **Sidebar.tsx** already has the 8 core items (Home, Objects, Inbox, Automations, Intelligence, Reports, Marketplace, Settings) — this was recently refactored
+- **DashboardLayout.tsx** wraps all CRM pages with Sidebar + TopBar
+- **App.tsx** has ~130+ routes inside `CRMRoutes()`, all under `/dashboard/*` — no grouping between "core" and "legacy"
+- **Feature flags** exist only as a TypeScript interface (`FeatureFlags` in `types/saas.ts`) — no runtime hook, no DB table, no workspace-scoped evaluation
+- **No redirect** from `/dashboard/settings` to `/settings` yet
+- **No command palette** exists (GlobalSearch is a simple search dialog)
 
 ## Plan
 
-### 1. Database Migration — Create 3 new tables
+### 1. Feature Flags System (DB + Hook)
 
-**`core_object_types`** — Categories/templates for objects (e.g., "CRM", "Projects", "Support")
+**New table: `workspace_feature_flags`**
+
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
 | workspace_id | uuid FK→workspaces | |
-| name | text | e.g. "CRM", "Project Management" |
-| slug | text | unique per workspace |
-| description | text nullable | |
-| icon | text default 'box' | |
-| color | text default '#6366f1' | |
-| is_system | boolean default false | |
+| flag_key | text | e.g. `ui.shell_v2_enabled` |
+| enabled | boolean default false | |
 | created_at | timestamptz | |
+| UNIQUE(workspace_id, flag_key) | | |
 
-**`core_object_fields`** — Dynamic field definitions per object
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid PK | |
-| workspace_id | uuid FK→workspaces | |
-| object_id | uuid FK→custom_objects | Which object this field belongs to |
-| name | text | Display name |
-| slug | text | Key used in record.data JSON |
-| field_type | text | 'text', 'number', 'date', 'select', 'email', 'url', 'boolean', 'relation' |
-| is_required | boolean default false | |
-| is_system | boolean default false | Prevents deletion of core fields |
-| options | jsonb nullable | For select fields: list of options |
-| default_value | text nullable | |
-| sort_order | int default 0 | Display ordering |
-| created_at / updated_at | timestamptz | |
+Seed default flags (all OFF):
+- `ui.shell_v2_enabled`
+- `ui.nav_v2_enabled`
+- `ui.marketplace_enabled`
+- `ui.objects_enabled`
+- `ui.intelligence_enabled`
 
-**`core_object_views`** — Saved views per object (filters, sorts, visible columns)
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid PK | |
-| workspace_id | uuid FK→workspaces | |
-| object_id | uuid FK→custom_objects | |
-| name | text | View name |
-| filters | jsonb default '{}' | Filter config |
-| sort_config | jsonb default '{}' | Sort config |
-| visible_fields | text[] nullable | Which field slugs to show |
-| is_default | boolean default false | |
-| created_by | uuid nullable | |
-| created_at / updated_at | timestamptz | |
+**New hook: `src/hooks/useFeatureFlags.ts`**
+- `useFeatureFlags()` — fetches all flags for current workspace, cached
+- `useFeatureFlag(key: string)` — returns `{ enabled, isLoading }`
+- Flags loaded once on workspace boot, cached via React Query (staleTime: 5min)
+- Default OFF if flag row doesn't exist
 
-Also add a `type_id` column to `custom_objects` referencing `core_object_types`.
+### 2. Navigation Source of Truth
 
-All tables get RLS policies scoped to workspace membership.
+**New file: `src/config/nav.v2.ts`**
+- Exports `NAV_V2_ITEMS` — the 8 core sidebar items with `name`, `href`, `icon`, `end?` flag
+- This is what `SidebarV2` consumes
 
-### 2. New Hook — `useCoreObjectFields`
+**New file: `src/config/routes.legacy.ts`**
+- Exports `LEGACY_ROUTES` — array of `{ path, redirect?: string, hidden: true }` for all old `/dashboard/*` routes that should not appear in nav but remain routable
+- Used by router to mount legacy routes and by GlobalSearch to index them
 
-- `useCoreObjectFields(objectId)` — fetch fields for an object, ordered by `sort_order`
-- `useCreateObjectField()` — add a field definition
-- `useUpdateObjectField()` — edit field name, type, options
-- `useDeleteObjectField()` — remove a field
-- `useCoreObjectViews(objectId)` — fetch saved views for an object
-- `useCreateObjectView()` / `useDeleteObjectView()` — manage views
+### 3. AppShellV2 Layout
 
-### 3. Updated UI — `CustomObjectsManager`
+**New file: `src/components/layout/AppShellV2.tsx`**
+- Same structure as current `DashboardLayout` (auth guard, workspace guard, sidebar + topbar + outlet)
+- Imports `SidebarV2` (which is the current `Sidebar.tsx` — already has the 8 items)
+- Imports `TopBarV2` (current `TopBar.tsx` — no changes needed)
+- Gate: if `ui.shell_v2_enabled` is OFF, falls back to `DashboardLayout`
 
-Enhance the existing component:
-- **Field Builder**: When an object is selected, show a "Fields" tab where users can add/reorder/edit field definitions (name, type, required, options for selects)
-- **Dynamic Record Form**: Replace the hardcoded name/notes form with a form generated from `core_object_fields` — render the correct input type per field
-- **Dynamic Record Table**: Replace the hardcoded name/notes columns with columns generated from field definitions, respecting `visible_fields` from the active view
-- **Views Tab**: Per-object saved views with filter/sort/column visibility
+In practice, since the current Sidebar already has the correct 8 items, `AppShellV2` is essentially the current `DashboardLayout` but flag-gated and prepared to be the single entry point.
 
-### 4. Object Type Categories (optional enhancement)
+### 4. Router Refactor — Legacy Route Group
 
-- Add a type selector when creating a custom object
-- Seed system types: "CRM", "General", "Project" on workspace creation
+**Edit: `src/App.tsx`**
+
+Inside `CRMRoutes()`:
+- Extract all `/dashboard/*` routes into two groups:
+  - **Core routes** (the 8 nav destinations): `/dashboard`, `/dashboard/objects`, `/dashboard/inbox`, `/dashboard/automations`, `/dashboard/intelligence`, `/dashboard/reports`, `/dashboard/marketplace`, `/dashboard/settings`
+  - **Legacy routes** (everything else): `/dashboard/leads`, `/dashboard/contacts`, `/dashboard/companies`, `/dashboard/proposals`, etc. — these remain mounted but are hidden from nav
+
+- Add redirect: `/dashboard/settings` → `/settings` (and mount `/settings` + `/settings/:section`)
+- All legacy routes render inside `DashboardLayout` (same shell, just not in sidebar)
+
+**No URL changes** for legacy routes — they keep working as-is for deep links and bookmarks.
+
+### 5. Settings URL Cleanup
+
+- Add new routes: `/settings` and `/settings/:section` pointing to same `Settings` component wrapped in `DashboardLayout`
+- Add redirect: `/dashboard/settings` → `/settings` and `/dashboard/settings/:section` → `/settings/:section`
+- Update Sidebar href from `/dashboard/settings` to `/settings`
+- Update TopBar profile menu link to `/settings`
+
+### 6. Feature Flag Admin UI
+
+**New section in Settings page** (under a new "Feature Flags" tab, visible to workspace owners only):
+- Toggle switches for each flag
+- Changes saved to `workspace_feature_flags` table
 
 ## Files
 
 | File | Action |
 |---|---|
-| Migration SQL | Create — 3 new tables + alter `custom_objects` |
-| `src/hooks/useCoreObjectFields.ts` | Create — CRUD hooks for fields and views |
-| `src/components/objects/ObjectFieldBuilder.tsx` | Create — UI to define fields for an object |
-| `src/components/objects/DynamicRecordForm.tsx` | Create — auto-generated form from field defs |
-| `src/components/objects/DynamicRecordTable.tsx` | Create — auto-generated table from field defs |
-| `src/components/objects/ObjectViewsManager.tsx` | Create — per-object saved views |
-| `src/components/objects/CustomObjectsManager.tsx` | Edit — integrate field builder, dynamic forms/tables |
-| `src/hooks/useCustomObjects.ts` | Edit — add `type_id` support |
+| Migration SQL | Create — `workspace_feature_flags` table + RLS + seed defaults |
+| `src/hooks/useFeatureFlags.ts` | Create — hook to read/toggle flags |
+| `src/config/nav.v2.ts` | Create — 8 core nav items (source of truth) |
+| `src/config/routes.legacy.ts` | Create — legacy route definitions |
+| `src/components/layout/AppShellV2.tsx` | Create — flag-gated shell wrapper |
+| `src/components/layout/Sidebar.tsx` | Edit — import nav items from `nav.v2.ts`, update Settings href to `/settings` |
+| `src/App.tsx` | Edit — add `/settings` routes, add redirects from `/dashboard/settings`, organize legacy route group |
+| `src/components/layout/TopBar.tsx` | Edit — update Settings link to `/settings` |
+| `src/components/settings/FeatureFlagsSettings.tsx` | Create — admin UI for toggling flags |
 
 ## Technical Details
 
-- Field types supported: `text`, `number`, `date`, `select`, `email`, `url`, `boolean`, `relation`
-- Select fields store options in JSONB: `{ "options": ["Option A", "Option B"] }`
-- `relation` type stores a reference object_id in options for cross-object lookups
-- Dynamic form uses field_type to render: Input, number input, date picker, Select dropdown, Switch, etc.
-- Dynamic table columns are generated from `core_object_fields` ordered by `sort_order`
-- RLS: all tables use `workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid())`
+- Feature flags use workspace-scoped RLS: `workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid())`
+- `useFeatureFlag` returns `false` by default (flag OFF) if loading or flag row missing — prevents flicker
+- Legacy routes stay at their current URLs; they just don't appear in the sidebar
+- The `nav.v2.ts` file becomes the single source of truth for sidebar navigation — any future nav changes happen there
+- Settings redirect uses `<Navigate to="/settings" replace />` for `/dashboard/settings` to preserve bookmark compat
+- No breaking changes to any existing page component — they all continue to use `DashboardLayout` internally
 
