@@ -319,12 +319,33 @@ export const OPPORTUNITY_AUTOMATION_TEMPLATES: AutomationTemplate[] = [
   }
 ];
 
+// Close-date escalation template
+export const OPPORTUNITY_CLOSE_ESCALATION_TEMPLATE: AutomationTemplate = {
+  id: 'opportunity-close-escalation',
+  name: 'Escalação por Data de Fecho',
+  description: 'Alerta quando data de fecho se aproxima e o score de saúde está baixo',
+  entityType: 'opportunity',
+  category: 'sales',
+  trigger: { type: 'opportunity_updated', config: { check_close_date: true } },
+  conditions: [{ field_name: 'health_score', operator: 'less_than', value: '50' }],
+  actions: [
+    { action_type: 'notify', config: { to: 'manager', message: 'Deal {{opportunity.name}} at risk — close date in {{days}} days' } },
+    { action_type: 'create_task', config: { title: 'Review deal before close date', priority: 'high' } }
+  ],
+  estimatedTimeSaved: 20,
+  successRate: 70,
+  popularity: 75,
+  icon: 'Clock',
+  color: 'red'
+};
+
 // All templates combined
 export const ALL_AUTOMATION_TEMPLATES: AutomationTemplate[] = [
   ...LEAD_AUTOMATION_TEMPLATES,
   ...CONTACT_AUTOMATION_TEMPLATES,
   ...COMPANY_AUTOMATION_TEMPLATES,
-  ...OPPORTUNITY_AUTOMATION_TEMPLATES
+  ...OPPORTUNITY_AUTOMATION_TEMPLATES,
+  OPPORTUNITY_CLOSE_ESCALATION_TEMPLATE,
 ];
 
 // Get templates by entity type

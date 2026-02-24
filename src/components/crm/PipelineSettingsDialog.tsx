@@ -18,20 +18,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, GripVertical, RotateCcw } from "lucide-react";
 
 const defaultColors = [
-  "#6366f1", // Indigo
-  "#8b5cf6", // Purple
-  "#ec4899", // Pink
-  "#f43f5e", // Rose
-  "#ef4444", // Red
-  "#f97316", // Orange
-  "#eab308", // Yellow
-  "#22c55e", // Green
-  "#14b8a6", // Teal
-  "#06b6d4", // Cyan
-  "#3b82f6", // Blue
+  "#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#ef4444",
+  "#f97316", "#eab308", "#22c55e", "#14b8a6", "#06b6d4", "#3b82f6",
 ];
 
 interface PipelineSettingsDialogProps {
@@ -39,10 +30,7 @@ interface PipelineSettingsDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function PipelineSettingsDialog({
-  open,
-  onOpenChange,
-}: PipelineSettingsDialogProps) {
+export function PipelineSettingsDialog({ open, onOpenChange }: PipelineSettingsDialogProps) {
   const { data: stages, isLoading } = usePipelineStages();
   const createStage = useCreatePipelineStage();
   const updateStage = useUpdatePipelineStage();
@@ -53,13 +41,13 @@ export function PipelineSettingsDialog({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedName, setEditedName] = useState("");
   const [editedColor, setEditedColor] = useState("");
+  const [editedExpectedDays, setEditedExpectedDays] = useState(14);
 
   const handleCreateStage = async () => {
     if (!newStageName.trim()) {
       toast.error("Stage name is required");
       return;
     }
-
     try {
       await createStage.mutateAsync({
         name: newStageName.trim(),
@@ -68,7 +56,7 @@ export function PipelineSettingsDialog({
       toast.success("Stage created successfully");
       setNewStageName("");
       setNewStageColor(defaultColors[(stages?.length || 0) % defaultColors.length]);
-    } catch (error) {
+    } catch {
       toast.error("Failed to create stage");
     }
   };
@@ -77,20 +65,21 @@ export function PipelineSettingsDialog({
     setEditingId(stage.id);
     setEditedName(stage.name);
     setEditedColor(stage.color);
+    setEditedExpectedDays(stage.expected_days ?? 14);
   };
 
   const handleSaveEdit = async () => {
     if (!editingId || !editedName.trim()) return;
-
     try {
       await updateStage.mutateAsync({
         id: editingId,
         name: editedName.trim(),
         color: editedColor,
+        expected_days: editedExpectedDays,
       });
       toast.success("Stage updated successfully");
       setEditingId(null);
-    } catch (error) {
+    } catch {
       toast.error("Failed to update stage");
     }
   };
@@ -108,18 +97,29 @@ export function PipelineSettingsDialog({
     }
   };
 
+  const handleResetDefaults = async () => {
+    if (!stages?.length) return;
+    try {
+      await Promise.all(
+        stages.map((s) => updateStage.mutateAsync({ id: s.id, expected_days: 14 }))
+      );
+      toast.success("Benchmarks reset to 14 days");
+    } catch {
+      toast.error("Failed to reset benchmarks");
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[540px]">
         <DialogHeader>
           <DialogTitle>Pipeline Settings</DialogTitle>
           <DialogDescription>
-            Configure your sales pipeline stages. Drag to reorder.
+            Configure your sales pipeline stages and stage benchmarks.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 max-h-[400px] overflow-y-auto">
-          {/* Existing Stages */}
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -136,7 +136,7 @@ export function PipelineSettingsDialog({
                   className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border border-border"
                 >
                   <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
-                  
+
                   {editingId === stage.id ? (
                     <>
                       <input
@@ -155,16 +155,19 @@ export function PipelineSettingsDialog({
                           if (e.key === "Escape") setEditingId(null);
                         }}
                       />
-                      <Button size="sm" onClick={handleSaveEdit}>
-                        Save
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setEditingId(null)}
-                      >
-                        Cancel
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          min={1}
+                          max={365}
+                          value={editedExpectedDays}
+                          onChange={(e) => setEditedExpectedDays(Number(e.target.value) || 14)}
+                          className="w-16 h-8 text-center"
+                        />
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">days</span>
+                      </div>
+                      <Button size="sm" onClick={handleSaveEdit}>Save</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
                     </>
                   ) : (
                     <>
@@ -177,6 +180,9 @@ export function PipelineSettingsDialog({
                         onClick={() => handleStartEdit(stage)}
                       >
                         {stage.name}
+                        <span className="text-xs text-muted-foreground ml-1.5">
+                          · {stage.expected_days ?? 14}d
+                        </span>
                       </span>
                       <Button
                         size="icon"
@@ -223,7 +229,17 @@ export function PipelineSettingsDialog({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-row gap-2 justify-between sm:justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-muted-foreground"
+            onClick={handleResetDefaults}
+            disabled={!stages?.length}
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            Reset benchmarks
+          </Button>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Done
           </Button>

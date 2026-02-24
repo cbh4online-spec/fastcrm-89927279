@@ -8,6 +8,7 @@ export interface PipelineStage {
   name: string;
   position: number;
   color: string;
+  expected_days: number;
   created_at: string;
   updated_at: string;
 }
@@ -16,6 +17,7 @@ export interface CreateStageInput {
   name: string;
   color?: string;
   position?: number;
+  expected_days?: number;
 }
 
 export interface UpdateStageInput extends Partial<CreateStageInput> {

@@ -30,6 +30,23 @@ export interface APIDebug {
   stage_days: number;
 }
 
+export interface APIBenchmarks {
+  expected_stage_days: number;
+  avg_stage_days: number | null;
+  deal_stage_days: number;
+}
+
+export interface APIHistoricalInsight {
+  text: string;
+  severity: "HIGH" | "MEDIUM" | "LOW";
+}
+
+export interface APIAutomationSuggestion {
+  title: string;
+  template_id: string;
+  reason: string;
+}
+
 export interface DealIntelligencePayload {
   deal_id: string;
   health_score: number;
@@ -38,6 +55,9 @@ export interface DealIntelligencePayload {
   next_best_action: APINextBestAction;
   data_completeness: APIDataCompleteness;
   debug: APIDebug;
+  benchmarks?: APIBenchmarks;
+  historical_insights?: APIHistoricalInsight[];
+  automation_suggestions?: APIAutomationSuggestion[];
 }
 
 export interface CompactDealIntelligence {

@@ -2,6 +2,19 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
+export interface StageBenchmark {
+  stage_id: string;
+  stage_name: string;
+  expected_days: number;
+  avg_days: number | null;
+  deals_count: number;
+}
+
+export interface PortfolioMomentum {
+  deals_with_recent_activity: number;
+  deals_stale: number;
+}
+
 export interface IntelligencePanelData {
   total_open: number;
   health_distribution: { HEALTHY: number; WATCH: number; AT_RISK: number };
@@ -25,6 +38,8 @@ export interface IntelligencePanelData {
     deals_missing_value: number;
     deals_missing_close_date: number;
   };
+  stage_benchmarks?: StageBenchmark[];
+  portfolio_momentum?: PortfolioMomentum;
   computed_at: string;
 }
 

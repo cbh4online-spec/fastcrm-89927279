@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, AlertTriangle, CheckCircle2, Eye, ArrowRight, Database } from "lucide-react";
+import { RefreshCw, AlertTriangle, CheckCircle2, Eye, ArrowRight, Database, Activity, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 export function IntelligenceOverviewPanel() {
   const { data, isLoading, refetch } = useIntelligencePanel();
@@ -39,7 +40,7 @@ export function IntelligenceOverviewPanel() {
     );
   }
 
-  const { health_distribution: dist, avg_health_score, top_risks, recommended_actions, data_quality } = data;
+  const { health_distribution: dist, avg_health_score, top_risks, recommended_actions, data_quality, stage_benchmarks, portfolio_momentum } = data;
 
   const scoreColor = avg_health_score >= 80
     ? "text-emerald-600 dark:text-emerald-400"
@@ -99,6 +100,84 @@ export function IntelligenceOverviewPanel() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Portfolio Momentum */}
+      {portfolio_momentum && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{portfolio_momentum.deals_with_recent_activity}</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Com atividade recente (7 dias)</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">{portfolio_momentum.deals_stale}</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Sem atividade recente</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Stage Performance */}
+      {stage_benchmarks && stage_benchmarks.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Performance por Estágio</CardTitle>
+            <CardDescription>Tempo médio vs esperado por estágio</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {stage_benchmarks.filter(s => s.deals_count > 0).map((stage) => {
+                const isOverExpected = stage.avg_days !== null && stage.avg_days > stage.expected_days;
+                const isOverDouble = stage.avg_days !== null && stage.avg_days > stage.expected_days * 2;
+                return (
+                  <div key={stage.stage_id} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium">{stage.stage_name}</span>
+                      <span className="text-muted-foreground">
+                        {stage.deals_count} deal{stage.deals_count !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs">
+                      <div className="flex-1">
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all",
+                              isOverDouble ? "bg-red-500" : isOverExpected ? "bg-amber-500" : "bg-green-500"
+                            )}
+                            style={{
+                              width: `${Math.min(100, ((stage.avg_days ?? 0) / (stage.expected_days * 2)) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <span className={cn(
+                        "w-16 text-right font-medium",
+                        isOverDouble ? "text-red-600" : isOverExpected ? "text-amber-600" : "text-foreground"
+                      )}>
+                        {stage.avg_days ?? "—"}d / {stage.expected_days}d
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+              {stage_benchmarks.filter(s => s.deals_count === 0).length > 0 && (
+                <p className="text-xs text-muted-foreground pt-1">
+                  {stage_benchmarks.filter(s => s.deals_count === 0).length} estágio(s) sem deals ativos
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Top risks + Recommended actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

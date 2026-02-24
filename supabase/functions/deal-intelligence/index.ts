@@ -7,8 +7,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const STAGE_LIMIT_DAYS = 14;
-
 function differenceInDays(a: Date, b: Date): number {
   return Math.floor((a.getTime() - b.getTime()) / 86400000);
 }
@@ -22,7 +20,8 @@ interface RiskDriver {
 function scoreDeal(
   opp: any,
   activities: any[],
-  tasks: any[]
+  tasks: any[],
+  expectedDays = 14
 ) {
   const now = new Date();
   const risks: RiskDriver[] = [];
@@ -49,7 +48,6 @@ function scoreDeal(
   const futureTasks = pendingTasks.filter(
     (t: any) => t.due_at && new Date(t.due_at) > now
   );
-
   const hasNextStep = pendingTasks.length > 0;
 
   if (pendingTasks.length === 0) {
@@ -62,14 +60,14 @@ function scoreDeal(
     }
   }
 
-  // Stage stagnation
+  // Stage stagnation — benchmark-aware
   const daysInStage = differenceInDays(now, new Date(opp.updated_at));
   const stageName = opp.stage_name || "current";
 
-  if (daysInStage > STAGE_LIMIT_DAYS * 2) {
-    risks.push({ reason: `Stuck in stage '${stageName}' for ${daysInStage} days`, severity: "HIGH", penalty: 25 });
-  } else if (daysInStage > STAGE_LIMIT_DAYS) {
-    risks.push({ reason: `In stage '${stageName}' for ${daysInStage} days`, severity: "MEDIUM", penalty: 15 });
+  if (daysInStage > expectedDays * 2) {
+    risks.push({ reason: `Stuck in stage '${stageName}' for ${daysInStage} days`, severity: "HIGH", penalty: 20 });
+  } else if (daysInStage > expectedDays) {
+    risks.push({ reason: `In stage '${stageName}' for ${daysInStage} days`, severity: "MEDIUM", penalty: 10 });
   }
 
   // Data completeness
@@ -91,12 +89,18 @@ function scoreDeal(
   const filledCount = totalCheckedFields - missingFields.length;
   const completenessPercent = Math.round((filledCount / totalCheckedFields) * 100);
 
+  // Deal momentum: +5 if ≥2 activities in last 7 days
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
+  const recentActivityCount = activities.filter(
+    (a) => new Date(a.created_at) >= sevenDaysAgo
+  ).length;
+  const momentumBonus = recentActivityCount >= 2 ? 5 : 0;
+
   // Score
   const totalPenalty = risks.reduce((sum, r) => sum + r.penalty, 0);
-  const healthScore = Math.max(0, Math.min(100, 100 - totalPenalty));
+  const healthScore = Math.max(0, Math.min(100, 100 - totalPenalty + momentumBonus));
   const healthLabel = healthScore >= 80 ? "HEALTHY" : healthScore >= 50 ? "WATCH" : "AT_RISK";
 
-  // Sort risks by penalty desc, top 3
   const sortedRisks = [...risks].sort((a, b) => b.penalty - a.penalty).slice(0, 3);
 
   // NBA
@@ -113,7 +117,7 @@ function scoreDeal(
       type: "CREATE_TASK",
       payload: { suggested_due_days: 3, suggested_title: "Next step for deal", suggested_priority: "MEDIUM" },
     };
-  } else if (daysInStage > STAGE_LIMIT_DAYS) {
+  } else if (daysInStage > expectedDays) {
     nba = {
       title: "Review blockers and advance stage",
       type: "REVIEW_BLOCKERS",
@@ -144,9 +148,43 @@ function scoreDeal(
       last_activity_days: daysSinceActivity === Infinity ? null : daysSinceActivity,
       has_next_step: hasNextStep,
       stage_days: daysInStage,
+      momentum_bonus: momentumBonus,
     },
     top_reason: sortedRisks.length > 0 ? sortedRisks[0].reason : null,
   };
+}
+
+function buildAutomationSuggestions(opp: any, hasNextStep: boolean, daysSinceActivity: number, healthScore: number, daysInStage: number) {
+  const suggestions: Array<{ title: string; template_id: string; reason: string }> = [];
+
+  if (!hasNextStep) {
+    suggestions.push({
+      title: "Auto-create follow-up when stage changes",
+      template_id: "opportunity-stage-tasks",
+      reason: "No next step detected",
+    });
+  }
+
+  if (daysSinceActivity > 3) {
+    suggestions.push({
+      title: "Nudge owner after days inactive",
+      template_id: "opportunity-stale-alert",
+      reason: `No activity in ${Math.round(daysSinceActivity)} days`,
+    });
+  }
+
+  if (opp.expected_close_date) {
+    const daysToClose = differenceInDays(new Date(opp.expected_close_date), new Date());
+    if (daysToClose <= 7 && daysToClose > 0 && healthScore < 50) {
+      suggestions.push({
+        title: "Escalate: close date approaching with low health",
+        template_id: "opportunity-close-escalation",
+        reason: `Close date in ${daysToClose} days, health ${healthScore}`,
+      });
+    }
+  }
+
+  return suggestions.slice(0, 3);
 }
 
 Deno.serve(async (req) => {
@@ -167,7 +205,6 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Validate user
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -192,6 +229,15 @@ Deno.serve(async (req) => {
     const serviceClient = createClient(supabaseUrl, serviceKey);
     const body = await req.json();
     const force = body.force === true;
+
+    // Fetch stage benchmarks for the workspace
+    const { data: stagesData } = await serviceClient
+      .from("pipeline_stages")
+      .select("id, expected_days")
+      .eq("workspace_id", workspaceId);
+
+    const stageExpectedDays = new Map<string, number>();
+    (stagesData || []).forEach((s: any) => stageExpectedDays.set(s.id, s.expected_days ?? 14));
 
     // ---------- helpers ----------
     async function cacheGet(ids: string[]) {
@@ -227,7 +273,6 @@ Deno.serve(async (req) => {
     if (body.deal_id) {
       const dealId = body.deal_id;
 
-      // Cache lookup
       const cached = await cacheGet([dealId]);
       if (cached.has(dealId)) {
         return new Response(JSON.stringify(cached.get(dealId)), {
@@ -238,7 +283,7 @@ Deno.serve(async (req) => {
       const [oppRes, actRes, taskRes] = await Promise.all([
         serviceClient
           .from("opportunities")
-          .select("*, stage:pipeline_stages(name)")
+          .select("*, stage:pipeline_stages(name, expected_days)")
           .eq("id", dealId)
           .eq("workspace_id", workspaceId)
           .single(),
@@ -266,13 +311,105 @@ Deno.serve(async (req) => {
         });
       }
 
+      const stageExpDays = oppRes.data.stage?.expected_days ?? stageExpectedDays.get(oppRes.data.stage_id) ?? 14;
       const opp = { ...oppRes.data, stage_name: oppRes.data.stage?.name };
-      const result = scoreDeal(opp, actRes.data || [], taskRes.data || []);
+      const activities = actRes.data || [];
+      const result = scoreDeal(opp, activities, taskRes.data || [], stageExpDays);
 
-      // Store in cache (fire-and-forget)
-      cacheSet([result]);
+      // Historical insights
+      const daysInStage = result.debug.stage_days;
+      const historicalInsights: Array<{ text: string; severity: string }> = [];
 
-      return new Response(JSON.stringify(result), {
+      // Compute avg stage days from historical data
+      let avgStageDays: number | null = null;
+      try {
+        const { data: stageActivities } = await serviceClient
+          .from("crm_activities")
+          .select("entity_id, created_at")
+          .eq("workspace_id", workspaceId)
+          .eq("activity_type", "stage_changed")
+          .gte("created_at", new Date(Date.now() - 90 * 86400000).toISOString())
+          .limit(500);
+
+        if (stageActivities && stageActivities.length >= 3) {
+          // Group by entity_id to get transitions
+          const dealTimes = new Map<string, Date[]>();
+          stageActivities.forEach((a: any) => {
+            const list = dealTimes.get(a.entity_id) || [];
+            list.push(new Date(a.created_at));
+            dealTimes.set(a.entity_id, list);
+          });
+          // Average gap between transitions
+          let totalDays = 0;
+          let count = 0;
+          dealTimes.forEach((dates) => {
+            dates.sort((a, b) => a.getTime() - b.getTime());
+            for (let i = 1; i < dates.length; i++) {
+              totalDays += differenceInDays(dates[i], dates[i - 1]);
+              count++;
+            }
+          });
+          if (count >= 3) {
+            avgStageDays = Math.round(totalDays / count);
+          }
+        }
+      } catch { /* ignore */ }
+
+      const refDays = avgStageDays ?? stageExpDays;
+      if (daysInStage > refDays) {
+        const severity = daysInStage > refDays * 1.5 ? "MEDIUM" : "LOW";
+        historicalInsights.push({
+          text: `This stage usually moves in ${refDays} days. You're at ${daysInStage}.`,
+          severity,
+        });
+      }
+
+      // Avg cycle length for won deals
+      try {
+        const { data: wonDeals } = await serviceClient
+          .from("opportunities")
+          .select("created_at, updated_at")
+          .eq("workspace_id", workspaceId)
+          .eq("status", "won")
+          .limit(50);
+        if (wonDeals && wonDeals.length >= 3) {
+          const avgCycle = Math.round(
+            wonDeals.reduce((sum, d) => sum + differenceInDays(new Date(d.updated_at), new Date(d.created_at)), 0) / wonDeals.length
+          );
+          historicalInsights.push({
+            text: `Deals like this close in ~${avgCycle} days on average.`,
+            severity: "LOW",
+          });
+        }
+      } catch { /* ignore */ }
+
+      if (historicalInsights.length === 0) {
+        historicalInsights.push({
+          text: "Not enough historical data yet — using configured defaults.",
+          severity: "LOW",
+        });
+      }
+
+      // Automation suggestions
+      const daysSinceAct = result.debug.last_activity_days ?? Infinity;
+      const automationSuggestions = buildAutomationSuggestions(
+        opp, result.debug.has_next_step, daysSinceAct, result.health_score, daysInStage
+      );
+
+      const fullResult = {
+        ...result,
+        benchmarks: {
+          expected_stage_days: stageExpDays,
+          avg_stage_days: avgStageDays,
+          deal_stage_days: daysInStage,
+        },
+        historical_insights: historicalInsights.slice(0, 2),
+        automation_suggestions: automationSuggestions,
+      };
+
+      cacheSet([fullResult]);
+
+      return new Response(JSON.stringify(fullResult), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -286,7 +423,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Cache lookup
       const cached = await cacheGet(dealIds);
       const missIds = dealIds.filter((id) => !cached.has(id));
 
@@ -296,7 +432,7 @@ Deno.serve(async (req) => {
         const [oppsRes, actsRes, tasksRes] = await Promise.all([
           serviceClient
             .from("opportunities")
-            .select("*, stage:pipeline_stages(name)")
+            .select("*, stage:pipeline_stages(name, expected_days)")
             .in("id", missIds)
             .eq("workspace_id", workspaceId),
           serviceClient
@@ -331,8 +467,9 @@ Deno.serve(async (req) => {
 
         const toCache: any[] = [];
         (oppsRes.data || []).forEach((opp: any) => {
+          const expDays = opp.stage?.expected_days ?? stageExpectedDays.get(opp.stage_id) ?? 14;
           const o = { ...opp, stage_name: opp.stage?.name };
-          const result = scoreDeal(o, actsByDeal.get(opp.id) || [], tasksByDeal.get(opp.id) || []);
+          const result = scoreDeal(o, actsByDeal.get(opp.id) || [], tasksByDeal.get(opp.id) || [], expDays);
           freshItems[opp.id] = {
             health_score: result.health_score,
             health_label: result.health_label,
@@ -341,11 +478,9 @@ Deno.serve(async (req) => {
           toCache.push(result);
         });
 
-        // Store in cache (fire-and-forget)
         cacheSet(toCache);
       }
 
-      // Merge cached + fresh
       const items: Record<string, any> = {};
       dealIds.forEach((id) => {
         if (cached.has(id)) {
