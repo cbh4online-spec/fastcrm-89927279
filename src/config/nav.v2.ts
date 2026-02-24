@@ -11,7 +11,7 @@ import {
 
 export const NAV_V2_ITEMS = [
   { name: "Home", href: "/dashboard", icon: LayoutDashboard, end: true },
-  { name: "Objects", href: "/dashboard/objects", icon: Box },
+  { name: "Objects", href: "/objects", icon: Box },
   { name: "Inbox", href: "/dashboard/inbox", icon: Inbox },
   { name: "Automations", href: "/dashboard/automations", icon: Zap },
   { name: "Intelligence", href: "/dashboard/intelligence", icon: Brain },

@@ -13,6 +13,9 @@ import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { ActivityProfileProvider } from "@/contexts/ActivityProfileContext";
 import Index from "./pages/Index";
 import ObjectsPage from "./pages/ObjectsPage";
+import ObjectsHomePage from "./pages/ObjectsHomePage";
+import ObjectListPage from "./pages/ObjectListPage";
+import ObjectDetailPage from "./pages/ObjectDetailPage";
 import IntelligencePage from "./pages/IntelligencePage";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -360,7 +363,12 @@ function CRMRoutes() {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/onboarding" element={<Onboarding />} />
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/dashboard/objects" element={<ObjectsPage />} />
+                <Route path="/dashboard/objects" element={<Navigate to="/objects" replace />} />
+                
+                {/* Objects MVP routes */}
+                <Route path="/objects" element={<ObjectsHomePage />} />
+                <Route path="/objects/:type" element={<ObjectListPage />} />
+                <Route path="/objects/:type/:id" element={<ObjectDetailPage />} />
                 <Route path="/dashboard/intelligence" element={<IntelligencePage />} />
                 <Route path="/dashboard/tasks" element={<TasksPage />} />
                 
