@@ -12,6 +12,8 @@ import { WorkspaceInstanceProvider } from "@/contexts/WorkspaceInstanceContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { ActivityProfileProvider } from "@/contexts/ActivityProfileContext";
 import Index from "./pages/Index";
+import ObjectsPage from "./pages/ObjectsPage";
+import IntelligencePage from "./pages/IntelligencePage";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Auth from "./pages/Auth";
@@ -358,6 +360,8 @@ function CRMRoutes() {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/onboarding" element={<Onboarding />} />
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard/objects" element={<ObjectsPage />} />
+                <Route path="/dashboard/intelligence" element={<IntelligencePage />} />
                 <Route path="/dashboard/tasks" element={<TasksPage />} />
                 <Route path="/dashboard/settings" element={<Settings />} />
                 <Route path="/dashboard/settings/:section" element={<Settings />} />
