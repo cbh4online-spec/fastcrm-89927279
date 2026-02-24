@@ -7,8 +7,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const STAGE_LIMIT_DAYS = 14;
-
 function differenceInDays(a: Date, b: Date): number {
   return Math.floor((a.getTime() - b.getTime()) / 86400000);
 }
@@ -19,7 +17,7 @@ interface RiskDriver {
   penalty: number;
 }
 
-function scoreDeal(opp: any, activities: any[], tasks: any[]) {
+function scoreDeal(opp: any, activities: any[], tasks: any[], expectedDays = 14) {
   const now = new Date();
   const risks: RiskDriver[] = [];
 
@@ -58,10 +56,10 @@ function scoreDeal(opp: any, activities: any[], tasks: any[]) {
   const daysInStage = differenceInDays(now, new Date(opp.updated_at));
   const stageName = opp.stage_name || "current";
 
-  if (daysInStage > STAGE_LIMIT_DAYS * 2) {
-    risks.push({ reason: `Stuck in stage '${stageName}' for ${daysInStage} days`, severity: "HIGH", penalty: 25 });
-  } else if (daysInStage > STAGE_LIMIT_DAYS) {
-    risks.push({ reason: `In stage '${stageName}' for ${daysInStage} days`, severity: "MEDIUM", penalty: 15 });
+  if (daysInStage > expectedDays * 2) {
+    risks.push({ reason: `Stuck in stage '${stageName}' for ${daysInStage} days`, severity: "HIGH", penalty: 20 });
+  } else if (daysInStage > expectedDays) {
+    risks.push({ reason: `In stage '${stageName}' for ${daysInStage} days`, severity: "MEDIUM", penalty: 10 });
   }
 
   const missingFields: string[] = [];
@@ -82,8 +80,16 @@ function scoreDeal(opp: any, activities: any[], tasks: any[]) {
   const filledCount = totalCheckedFields - missingFields.length;
   const completenessPercent = Math.round((filledCount / totalCheckedFields) * 100);
 
+  // Momentum bonus
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
+  const recentActivityCount = activities.filter(
+    (a) => new Date(a.created_at) >= sevenDaysAgo
+  ).length;
+  const momentumBonus = recentActivityCount >= 2 ? 5 : 0;
+  const hasRecentActivity = recentActivityCount > 0;
+
   const totalPenalty = risks.reduce((sum, r) => sum + r.penalty, 0);
-  const healthScore = Math.max(0, Math.min(100, 100 - totalPenalty));
+  const healthScore = Math.max(0, Math.min(100, 100 - totalPenalty + momentumBonus));
   const healthLabel = healthScore >= 80 ? "HEALTHY" : healthScore >= 50 ? "WATCH" : "AT_RISK";
 
   const sortedRisks = [...risks].sort((a, b) => b.penalty - a.penalty).slice(0, 3);
@@ -93,7 +99,7 @@ function scoreDeal(opp: any, activities: any[], tasks: any[]) {
     nba = { title: "Schedule a follow-up within 48h", type: "FOLLOW_UP", priority: "HIGH" };
   } else if (!hasNextStep) {
     nba = { title: "Create next step for this deal", type: "CREATE_TASK", priority: "MEDIUM" };
-  } else if (daysInStage > STAGE_LIMIT_DAYS) {
+  } else if (daysInStage > expectedDays) {
     nba = { title: "Review blockers and advance stage", type: "REVIEW_BLOCKERS", priority: "HIGH" };
   } else if (missingFields.length > 0) {
     nba = { title: "Complete deal details", type: "COMPLETE_DATA", priority: "LOW" };
@@ -109,6 +115,7 @@ function scoreDeal(opp: any, activities: any[], tasks: any[]) {
     risk_drivers: sortedRisks.map((r) => ({ reason: r.reason, severity: r.severity, penalty: r.penalty })),
     next_best_action: nba,
     data_completeness: { percent: completenessPercent, missing_fields: missingFields },
+    has_recent_activity: hasRecentActivity,
   };
 }
 
@@ -153,10 +160,19 @@ Deno.serve(async (req) => {
 
     const serviceClient = createClient(supabaseUrl, serviceKey);
 
-    // Fetch all open opportunities for the workspace
+    // Fetch stages with expected_days
+    const { data: stagesData } = await serviceClient
+      .from("pipeline_stages")
+      .select("id, name, expected_days")
+      .eq("workspace_id", workspaceId);
+
+    const stageMap = new Map<string, { name: string; expected_days: number }>();
+    (stagesData || []).forEach((s: any) => stageMap.set(s.id, { name: s.name, expected_days: s.expected_days ?? 14 }));
+
+    // Fetch all open opportunities
     const { data: openOpps, error: oppsError } = await serviceClient
       .from("opportunities")
-      .select("*, stage:pipeline_stages(name)")
+      .select("*, stage:pipeline_stages(name, expected_days)")
       .eq("workspace_id", workspaceId)
       .not("status", "in", '("won","lost","cancelled")');
 
@@ -176,6 +192,8 @@ Deno.serve(async (req) => {
         top_risks: [],
         recommended_actions: [],
         data_quality: { avg_completeness: 0, deals_missing_value: 0, deals_missing_close_date: 0 },
+        stage_benchmarks: [],
+        portfolio_momentum: { deals_with_recent_activity: 0, deals_stale: 0 },
         computed_at: new Date().toISOString(),
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -184,7 +202,6 @@ Deno.serve(async (req) => {
 
     const oppIds = opps.map((o: any) => o.id);
 
-    // Check cache first
     let body: any = {};
     try { body = await req.json(); } catch { /* empty body ok */ }
     const force = body?.force === true;
@@ -203,7 +220,6 @@ Deno.serve(async (req) => {
 
     const missIds = oppIds.filter((id: string) => !cachedMap.has(id));
 
-    // Compute missing deals
     const freshResults: any[] = [];
     if (missIds.length > 0) {
       const [actsRes, tasksRes] = await Promise.all([
@@ -238,11 +254,11 @@ Deno.serve(async (req) => {
       });
 
       opps.filter((o: any) => missIds.includes(o.id)).forEach((opp: any) => {
+        const expDays = opp.stage?.expected_days ?? stageMap.get(opp.stage_id)?.expected_days ?? 14;
         const o = { ...opp, stage_name: opp.stage?.name };
-        freshResults.push(scoreDeal(o, actsByDeal.get(opp.id) || [], tasksByDeal.get(opp.id) || []));
+        freshResults.push(scoreDeal(o, actsByDeal.get(opp.id) || [], tasksByDeal.get(opp.id) || [], expDays));
       });
 
-      // Cache results (fire-and-forget)
       if (freshResults.length > 0) {
         const rows = freshResults.map((r) => ({
           workspace_id: workspaceId,
@@ -256,11 +272,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Merge all results
-    const allResults: any[] = [
-      ...freshResults,
-      ...Array.from(cachedMap.values()),
-    ];
+    const allResults: any[] = [...freshResults, ...Array.from(cachedMap.values())];
 
     // Aggregate
     const distribution = { HEALTHY: 0, WATCH: 0, AT_RISK: 0 };
@@ -268,6 +280,11 @@ Deno.serve(async (req) => {
     let dealsMissingValue = 0;
     let dealsMissingCloseDate = 0;
     let totalCompleteness = 0;
+    let dealsWithRecentActivity = 0;
+    let dealsStale = 0;
+
+    // Track deals per stage for benchmarks
+    const stageDealDays = new Map<string, number[]>();
 
     const allRisks: any[] = [];
     const allActions: any[] = [];
@@ -280,7 +297,9 @@ Deno.serve(async (req) => {
       if (r.data_completeness?.missing_fields?.includes("amount")) dealsMissingValue++;
       if (r.data_completeness?.missing_fields?.includes("close_date")) dealsMissingCloseDate++;
 
-      // Collect risks from worst deals
+      if (r.has_recent_activity) dealsWithRecentActivity++;
+      else dealsStale++;
+
       (r.risk_drivers || []).forEach((rd: any) => {
         allRisks.push({
           deal_id: r.deal_id,
@@ -291,7 +310,6 @@ Deno.serve(async (req) => {
         });
       });
 
-      // Collect NBAs
       if (r.next_best_action) {
         allActions.push({
           deal_id: r.deal_id,
@@ -303,7 +321,28 @@ Deno.serve(async (req) => {
       }
     });
 
-    // Sort risks by severity (HIGH first) then health_score (lowest first)
+    // Compute stage days from open opps
+    opps.forEach((opp: any) => {
+      if (opp.stage_id) {
+        const days = differenceInDays(new Date(), new Date(opp.updated_at));
+        const list = stageDealDays.get(opp.stage_id) || [];
+        list.push(days);
+        stageDealDays.set(opp.stage_id, list);
+      }
+    });
+
+    const stageBenchmarks = (stagesData || []).map((s: any) => {
+      const dealDays = stageDealDays.get(s.id) || [];
+      const avgDays = dealDays.length > 0 ? Math.round(dealDays.reduce((a: number, b: number) => a + b, 0) / dealDays.length) : null;
+      return {
+        stage_id: s.id,
+        stage_name: s.name,
+        expected_days: s.expected_days ?? 14,
+        avg_days: avgDays,
+        deals_count: dealDays.length,
+      };
+    });
+
     const severityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
     allRisks.sort((a, b) => {
       const s = (severityOrder[a.severity as keyof typeof severityOrder] || 2) - (severityOrder[b.severity as keyof typeof severityOrder] || 2);
@@ -311,11 +350,9 @@ Deno.serve(async (req) => {
       return a.health_score - b.health_score;
     });
 
-    // Sort actions by priority then health_score
     const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
     allActions.sort((a, b) => {
-      const p = (priorityOrder[a.priority as keyof typeof priorityOrder] || 2) - (priorityOrder[b.priority as keyof typeof priorityOrder] || 2);
-      return p;
+      return (priorityOrder[a.priority as keyof typeof priorityOrder] || 2) - (priorityOrder[b.priority as keyof typeof priorityOrder] || 2);
     });
 
     const total = allResults.length;
@@ -329,6 +366,11 @@ Deno.serve(async (req) => {
         avg_completeness: total > 0 ? Math.round(totalCompleteness / total) : 0,
         deals_missing_value: dealsMissingValue,
         deals_missing_close_date: dealsMissingCloseDate,
+      },
+      stage_benchmarks: stageBenchmarks,
+      portfolio_momentum: {
+        deals_with_recent_activity: dealsWithRecentActivity,
+        deals_stale: dealsStale,
       },
       computed_at: new Date().toISOString(),
     };

@@ -14,6 +14,9 @@ import {
   Zap,
   Plus,
   ArrowRight,
+  Clock,
+  Lightbulb,
+  Workflow,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CreateTaskFromIntelligence } from "./CreateTaskFromIntelligence";
@@ -38,6 +41,12 @@ const severityConfig: Record<APIRiskSeverity, { label: string; className: string
   HIGH: { label: "High", className: "bg-red-100 text-red-700 border-red-200" },
   MEDIUM: { label: "Medium", className: "bg-amber-100 text-amber-700 border-amber-200" },
   LOW: { label: "Low", className: "bg-blue-100 text-blue-700 border-blue-200" },
+};
+
+const insightBorderColors: Record<string, string> = {
+  HIGH: "border-l-red-500",
+  MEDIUM: "border-l-amber-500",
+  LOW: "border-l-blue-500",
 };
 
 export function DealIntelligencePanel({ intelligence, dealId, isLoading }: DealIntelligencePanelProps) {
@@ -77,7 +86,7 @@ export function DealIntelligencePanel({ intelligence, dealId, isLoading }: DealI
 
   if (!intelligence) return null;
 
-  const { health_score, health_label, risk_drivers, next_best_action, data_completeness } = intelligence;
+  const { health_score, health_label, risk_drivers, next_best_action, data_completeness, benchmarks, historical_insights, automation_suggestions } = intelligence;
   const config = healthConfig[health_label];
   const HealthIcon = config.icon;
 
@@ -167,6 +176,94 @@ export function DealIntelligencePanel({ intelligence, dealId, isLoading }: DealI
                 />
               )}
             </div>
+
+            {/* Benchmarks */}
+            {benchmarks && (
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  Benchmarks
+                </p>
+                <div className="text-xs space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Esperado</span>
+                    <span className="font-medium">{benchmarks.expected_stage_days}d</span>
+                  </div>
+                  {benchmarks.avg_stage_days !== null && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Média histórica</span>
+                      <span className="font-medium">{benchmarks.avg_stage_days}d</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Atual</span>
+                    <span className={cn(
+                      "font-medium",
+                      benchmarks.deal_stage_days > benchmarks.expected_stage_days * 2 ? "text-red-600" :
+                      benchmarks.deal_stage_days > benchmarks.expected_stage_days ? "text-amber-600" :
+                      "text-foreground"
+                    )}>
+                      {benchmarks.deal_stage_days}d
+                    </span>
+                  </div>
+                  {/* Mini progress bar */}
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden mt-1">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        benchmarks.deal_stage_days > benchmarks.expected_stage_days * 2 ? "bg-red-500" :
+                        benchmarks.deal_stage_days > benchmarks.expected_stage_days ? "bg-amber-500" :
+                        "bg-green-500"
+                      )}
+                      style={{ width: `${Math.min(100, (benchmarks.deal_stage_days / (benchmarks.expected_stage_days * 2)) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Historical Insights */}
+            {historical_insights && historical_insights.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <Lightbulb className="w-3 h-3" />
+                  Insights
+                </p>
+                {historical_insights.map((insight, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "text-xs text-foreground/80 pl-2 border-l-2 py-0.5",
+                      insightBorderColors[insight.severity] || "border-l-muted"
+                    )}
+                  >
+                    {insight.text}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Automation Suggestions */}
+            {automation_suggestions && automation_suggestions.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <Workflow className="w-3 h-3" />
+                  Automações Sugeridas
+                </p>
+                {automation_suggestions.map((suggestion, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 p-2 rounded-md bg-muted/50 border border-border"
+                  >
+                    <Zap className="w-3 h-3 text-primary shrink-0" />
+                    <span className="text-xs text-foreground flex-1">{suggestion.title}</span>
+                    <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 shrink-0">
+                      Apply
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Data Completeness */}
             <div className="space-y-1.5">

@@ -20496,6 +20496,7 @@ export type Database = {
           color: string
           created_at: string
           description: string | null
+          expected_days: number
           id: string
           name: string
           pipeline_id: string | null
@@ -20508,6 +20509,7 @@ export type Database = {
           color?: string
           created_at?: string
           description?: string | null
+          expected_days?: number
           id?: string
           name: string
           pipeline_id?: string | null
@@ -20520,6 +20522,7 @@ export type Database = {
           color?: string
           created_at?: string
           description?: string | null
+          expected_days?: number
           id?: string
           name?: string
           pipeline_id?: string | null
