@@ -1,9 +1,10 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare, BarChart3, Zap } from "lucide-react";
+import { LayoutDashboard, MessageSquare, BarChart3, Zap } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useMemo } from "react";
+import { IntelligenceOverviewPanel } from "@/components/intelligence/IntelligenceOverviewPanel";
 import { AssistTab } from "@/components/intelligence/AssistTab";
 import { AnalyzeTab } from "@/components/intelligence/AnalyzeTab";
 import { AutomateTab } from "@/components/intelligence/AutomateTab";
@@ -15,7 +16,7 @@ import { Button } from "@/components/ui/button";
 export default function IntelligencePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const activeTab = searchParams.get("tab") || "assist";
+  const activeTab = searchParams.get("tab") || "overview";
   const { installedModuleIds } = useWorkspaceModules();
 
   const extensionCapabilities = useMemo(
@@ -39,6 +40,10 @@ export default function IntelligencePage() {
             onValueChange={(v) => setSearchParams({ tab: v })}
           >
             <TabsList className="flex-wrap h-auto gap-1">
+              <TabsTrigger value="overview" className="gap-1.5">
+                <LayoutDashboard className="h-4 w-4" />
+                Overview
+              </TabsTrigger>
               <TabsTrigger value="assist" className="gap-1.5">
                 <MessageSquare className="h-4 w-4" />
                 Assist
@@ -61,6 +66,9 @@ export default function IntelligencePage() {
               ))}
             </TabsList>
 
+            <TabsContent value="overview">
+              <IntelligenceOverviewPanel />
+            </TabsContent>
             <TabsContent value="assist">
               <AssistTab />
             </TabsContent>
