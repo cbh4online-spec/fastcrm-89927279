@@ -33,7 +33,7 @@ export function LandingHeroSection() {
           >
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-sm text-primary">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              AI-Native Revenue CRM
+              Revenue Intelligence Platform
             </div>
 
             <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold leading-[1.15] tracking-tight">
@@ -44,7 +44,7 @@ export function LandingHeroSection() {
             </h1>
 
             <p className="text-lg text-[hsl(215,20%,65%)] max-w-xl leading-relaxed">
-              FastCRM adapts to your business from day one. Simple core, smart extensions, revenue intelligence built in.
+              See your revenue before it happens. Health scores, deal intelligence, and smart automations — built into every object.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">

@@ -2,10 +2,10 @@ import { motion } from "framer-motion";
 import { TrendingDown, Clock, Eye, DollarSign } from "lucide-react";
 
 const problems = [
-  { icon: TrendingDown, text: "Deals slipping through cracks without alerts", color: "hsl(0, 84%, 60%)" },
-  { icon: Clock, text: "Hours lost on manual follow-ups and data entry", color: "hsl(38, 92%, 50%)" },
-  { icon: Eye, text: "No visibility into what's actually working", color: "hsl(250, 83%, 60%)" },
-  { icon: DollarSign, text: "Revenue forecasts based on gut feeling, not data", color: "hsl(340, 82%, 52%)" },
+  { icon: DollarSign, text: "\"I don't know which deals will actually close.\"", color: "hsl(0, 84%, 60%)" },
+  { icon: TrendingDown, text: "\"My forecast is a guess — not a strategy.\"", color: "hsl(38, 92%, 50%)" },
+  { icon: Clock, text: "\"I spend more time updating my CRM than selling.\"", color: "hsl(250, 83%, 60%)" },
+  { icon: Eye, text: "\"I need proposals and invoicing but don't want another tool.\"", color: "hsl(340, 82%, 52%)" },
 ];
 
 export function LandingProblemSection() {
@@ -21,11 +21,10 @@ export function LandingProblemSection() {
           transition={{ duration: 0.6 }}
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-6">
-            Your CRM shouldn't be a{" "}
-            <span className="text-destructive">spreadsheet upgrade.</span>
+            Sound familiar?
           </h2>
           <p className="text-lg text-[hsl(215,20%,65%)] max-w-2xl mx-auto mb-16">
-            Most CRMs store contacts. Few actually help you close deals, forecast revenue, and scale your team.
+            Most CRMs store contacts. FastCRM tells you what to do with them.
           </p>
         </motion.div>
 

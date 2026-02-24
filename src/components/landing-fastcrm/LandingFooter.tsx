@@ -12,7 +12,7 @@ export function LandingFooter() {
             </div>
             <span className="font-bold">FastCRM</span>
             <span className="text-xs text-[hsl(215,20%,65%)] ml-2">
-              AI-Native Revenue CRM
+              Revenue Intelligence Platform
             </span>
           </div>
 

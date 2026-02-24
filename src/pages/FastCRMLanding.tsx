@@ -4,6 +4,7 @@ import { LandingHeroSection } from "@/components/landing-fastcrm/LandingHeroSect
 import { LandingProblemSection } from "@/components/landing-fastcrm/LandingProblemSection";
 import { LandingSolutionSection } from "@/components/landing-fastcrm/LandingSolutionSection";
 import { LandingArchitectureSection } from "@/components/landing-fastcrm/LandingArchitectureSection";
+import { LandingComparisonSection } from "@/components/landing-fastcrm/LandingComparisonSection";
 import { LandingPositioningSection } from "@/components/landing-fastcrm/LandingPositioningSection";
 import { LandingPricingSection } from "@/components/landing-fastcrm/LandingPricingSection";
 import { LandingFastClubSection } from "@/components/landing-fastcrm/LandingFastClubSection";
@@ -20,15 +21,15 @@ export default function FastCRMLanding() {
   return (
     <>
       <Helmet>
-        <title>FastCRM — AI-Native Revenue CRM Platform</title>
+        <title>FastCRM — Revenue Intelligence Platform for Growing Teams</title>
         <meta
           name="description"
-          content="Build your CRM. Grow your revenue. FastCRM adapts to your business with smart extensions, revenue intelligence, and automations that scale."
+          content="See your revenue before it happens. FastCRM combines flexible CRM, built-in intelligence, and smart extensions for SaaS teams."
         />
-        <meta property="og:title" content="FastCRM — AI-Native Revenue CRM" />
+        <meta property="og:title" content="FastCRM — Revenue Intelligence Platform" />
         <meta
           property="og:description"
-          content="Build your CRM. Grow your revenue. Simple core, smart extensions, revenue intelligence built in."
+          content="See your revenue before it happens. Health scores, deal intelligence, and smart extensions for growing SaaS teams."
         />
         <meta property="og:type" content="website" />
         <link rel="canonical" href="https://fastcrm.lovable.app" />
@@ -40,7 +41,7 @@ export default function FastCRMLanding() {
             applicationCategory: "BusinessApplication",
             operatingSystem: "Web",
             description:
-              "AI-Native Revenue CRM with smart extensions, revenue intelligence, and automations that scale.",
+              "Revenue Intelligence Platform with flexible CRM, built-in deal intelligence, and smart extensions for SaaS teams.",
             offers: {
               "@type": "Offer",
               price: "0",
@@ -57,6 +58,7 @@ export default function FastCRMLanding() {
           <LandingHeroSection />
           <LandingProblemSection />
           <LandingSolutionSection />
+          <LandingComparisonSection />
           <LandingArchitectureSection />
           <LandingPositioningSection />
           <LandingPricingSection />
