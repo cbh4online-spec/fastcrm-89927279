@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +6,7 @@ import { Crown, Check, Loader2, Download, Lock } from "lucide-react";
 import { ExtensionPack, canInstallPack, PlanTier } from "@/config/extensionPacks";
 import { useSubscription, PLAN_INFO } from "@/contexts/SubscriptionContext";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
+import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { cn } from "@/lib/utils";
 
 interface ExtensionPackCardProps {
@@ -22,6 +23,7 @@ const PLAN_LABELS: Record<PlanTier, string> = {
 export function ExtensionPackCard({ pack }: ExtensionPackCardProps) {
   const { plan, createCheckout } = useSubscription();
   const { installModule, isModuleInstalled } = useWorkspaceModules();
+  const { trackPackViewed, trackPackInstallStarted, trackPackInstallCompleted, trackPackUpgradePrompted } = useCRMAnalytics();
   const [installing, setInstalling] = useState(false);
 
   const currentPlan = (plan || "free") as PlanTier;
@@ -29,17 +31,44 @@ export function ExtensionPackCard({ pack }: ExtensionPackCardProps) {
   const allInstalled = pack.modules.every((slug) => isModuleInstalled(slug));
   const installedCount = pack.modules.filter((slug) => isModuleInstalled(slug)).length;
 
+  // Track view on mount
+  useEffect(() => {
+    trackPackViewed({ pack_id: pack.id, pack_name: pack.name, required_plan: pack.requiredPlan });
+  }, [pack.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleInstallPack = async () => {
+    const toInstall = pack.modules.filter((slug) => !isModuleInstalled(slug));
+    trackPackInstallStarted({
+      pack_id: pack.id,
+      pack_name: pack.name,
+      modules_count: pack.modules.length,
+      already_installed: installedCount,
+    });
+    const start = Date.now();
     setInstalling(true);
     try {
-      for (const slug of pack.modules) {
-        if (!isModuleInstalled(slug)) {
-          await installModule(slug);
-        }
+      for (const slug of toInstall) {
+        await installModule(slug);
       }
+      trackPackInstallCompleted({
+        pack_id: pack.id,
+        pack_name: pack.name,
+        modules_installed: toInstall.length,
+        duration_ms: Date.now() - start,
+      });
     } finally {
       setInstalling(false);
     }
+  };
+
+  const handleUpgrade = () => {
+    trackPackUpgradePrompted({
+      pack_id: pack.id,
+      pack_name: pack.name,
+      required_plan: pack.requiredPlan,
+      current_plan: currentPlan,
+    });
+    createCheckout(suggestedPlan as "basic" | "pro" | "agency");
   };
 
   const suggestedPlan = pack.requiredPlan;
@@ -143,7 +172,7 @@ export function ExtensionPackCard({ pack }: ExtensionPackCardProps) {
               </span>
             </div>
             <Button
-              onClick={() => createCheckout(suggestedPlan as "basic" | "pro" | "agency")}
+              onClick={handleUpgrade}
               className="w-full gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
             >
               <Crown className="w-4 h-4" />
