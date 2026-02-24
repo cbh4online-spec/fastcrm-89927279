@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCreateTask } from "@/hooks/useTasks";
+import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { addDays, format } from "date-fns";
@@ -11,6 +12,8 @@ interface CreateTaskFromIntelligenceProps {
   dealId: string;
   prefilledTitle: string;
   suggestedDueDays?: number;
+  nbaType: string;
+  healthLabel: string;
   onClose: () => void;
 }
 
@@ -18,10 +21,13 @@ export function CreateTaskFromIntelligence({
   dealId,
   prefilledTitle,
   suggestedDueDays = 2,
+  nbaType,
+  healthLabel,
   onClose,
 }: CreateTaskFromIntelligenceProps) {
   const [title, setTitle] = useState(prefilledTitle);
   const createTask = useCreateTask();
+  const { trackTaskCreatedFromIntelligence } = useCRMAnalytics();
 
   const dueDate = format(addDays(new Date(), suggestedDueDays), "yyyy-MM-dd'T'HH:mm");
 
@@ -37,6 +43,7 @@ export function CreateTaskFromIntelligence({
         due_at: new Date(dueDate).toISOString(),
         status: "pending",
       });
+      trackTaskCreatedFromIntelligence({ nba_type: nbaType, health_label: healthLabel, suggested_due_days: suggestedDueDays });
       toast.success("Tarefa criada com sucesso");
       onClose();
     } catch {

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CreateTaskFromIntelligence } from "./CreateTaskFromIntelligence";
+import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import type { DealIntelligencePayload, APIHealthLabel, APIRiskSeverity } from "@/types/dealIntelligence";
 
 interface DealIntelligencePanelProps {
@@ -40,11 +41,22 @@ const severityConfig: Record<APIRiskSeverity, { label: string; className: string
 };
 
 export function DealIntelligencePanel({ intelligence, dealId, isLoading }: DealIntelligencePanelProps) {
+  const { trackIntelligencePanelOpened, trackNBAClicked } = useCRMAnalytics();
   const [isOpen, setIsOpen] = useState(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored !== null ? stored === "true" : true;
   });
   const [showTaskForm, setShowTaskForm] = useState(false);
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (open && intelligence) {
+      trackIntelligencePanelOpened({
+        health_label: intelligence.health_label,
+        health_score: intelligence.health_score,
+      });
+    }
+  };
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, String(isOpen));
@@ -73,7 +85,7 @@ export function DealIntelligencePanel({ intelligence, dealId, isLoading }: DealI
 
   return (
     <Card className="border">
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Collapsible open={isOpen} onOpenChange={handleOpenChange}>
         <CollapsibleTrigger asChild>
           <CardHeader className="cursor-pointer py-3 px-4 hover:bg-muted/50 transition-colors">
             <div className="flex items-center justify-between">
@@ -124,14 +136,22 @@ export function DealIntelligencePanel({ intelligence, dealId, isLoading }: DealI
                   variant="outline"
                   size="sm"
                   className="h-7 text-xs gap-1 w-full"
-                  onClick={() => setShowTaskForm(true)}
+                  onClick={() => {
+                    trackNBAClicked({ nba_type: next_best_action.type, health_label, action: 'create_task' });
+                    setShowTaskForm(true);
+                  }}
                 >
                   <Plus className="w-3 h-3" />
                   Criar tarefa
                 </Button>
               )}
               {!showCreateTask && (
-                <Button variant="outline" size="sm" className="h-7 text-xs gap-1 w-full">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1 w-full"
+                  onClick={() => trackNBAClicked({ nba_type: next_best_action.type, health_label, action: 'execute' })}
+                >
                   <ArrowRight className="w-3 h-3" />
                   Executar
                 </Button>
@@ -141,6 +161,8 @@ export function DealIntelligencePanel({ intelligence, dealId, isLoading }: DealI
                   dealId={dealId}
                   prefilledTitle={next_best_action.payload?.suggested_title || next_best_action.title}
                   suggestedDueDays={next_best_action.payload?.suggested_due_days}
+                  nbaType={next_best_action.type}
+                  healthLabel={health_label}
                   onClose={() => setShowTaskForm(false)}
                 />
               )}

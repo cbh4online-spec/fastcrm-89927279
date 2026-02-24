@@ -353,6 +353,39 @@ export function useCRMAnalytics() {
     [push]
   );
 
+  // ════════════════════════════════════════
+  //  INTELLIGENCE
+  // ════════════════════════════════════════
+
+  const trackIntelligencePanelOpened = useCallback(
+    (data: { health_label: string; health_score: number }) => {
+      push('intelligence.panel_opened', {
+        health_label: data.health_label,
+        health_score_bucket: bucketizeScore(data.health_score),
+        device_type: getDeviceType(),
+      });
+    },
+    [push]
+  );
+
+  const trackNBAClicked = useCallback(
+    (data: { nba_type: string; health_label: string; action: 'create_task' | 'execute' }) => {
+      push('intelligence.nba_clicked', data);
+    },
+    [push]
+  );
+
+  const trackTaskCreatedFromIntelligence = useCallback(
+    (data: { nba_type: string; health_label: string; suggested_due_days: number }) => {
+      push('intelligence.task_created', {
+        nba_type: data.nba_type,
+        health_label: data.health_label,
+        suggested_due_days_bucket: bucketizeDays(data.suggested_due_days),
+      });
+    },
+    [push]
+  );
+
   return {
     // Inbox
     trackInboxOpened,
@@ -390,5 +423,9 @@ export function useCRMAnalytics() {
     trackPackInstallStarted,
     trackPackInstallCompleted,
     trackPackUpgradePrompted,
+    // Intelligence
+    trackIntelligencePanelOpened,
+    trackNBAClicked,
+    trackTaskCreatedFromIntelligence,
   };
 }
