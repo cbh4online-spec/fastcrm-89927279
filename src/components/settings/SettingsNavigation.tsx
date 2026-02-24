@@ -15,6 +15,7 @@ import {
   FileText,
   CreditCard,
   SlidersHorizontal,
+  FlaskConical,
 } from "lucide-react";
 
 export type SettingsCategory =
@@ -26,7 +27,8 @@ export type SettingsCategory =
   | "experience"
   | "security"
   | "integrations"
-  | "billing";
+  | "billing"
+  | "flags";
 
 interface SettingsNavigationProps {
   activeCategory: SettingsCategory;
@@ -92,6 +94,12 @@ const categories = [
     label: "Plano & Faturação",
     icon: CreditCard,
     description: "Subscrição, Utilização, Upgrade",
+  },
+  {
+    id: "flags" as const,
+    label: "Feature Flags",
+    icon: FlaskConical,
+    description: "Funcionalidades experimentais",
   },
 ];
 

@@ -12,6 +12,7 @@ import { ExperienceSettings } from "@/components/settings/sections/ExperienceSet
 import { SecuritySettings } from "@/components/settings/sections/SecuritySettings";
 import { IntegrationsSettings } from "@/components/settings/sections/IntegrationsSettings";
 import { BillingSettings } from "@/components/settings/sections/BillingSettings";
+import { FeatureFlagsSettings } from "@/components/settings/FeatureFlagsSettings";
 import { searchSettings } from "@/components/settings/settingsSearchData";
 
 const categoryTitles: Record<SettingsCategory, { title: string; description: string }> = {
@@ -51,6 +52,10 @@ const categoryTitles: Record<SettingsCategory, { title: string; description: str
     title: "Plano & Faturação",
     description: "Gerir subscrição, ver utilização e fazer upgrade",
   },
+  flags: {
+    title: "Feature Flags",
+    description: "Controlar funcionalidades experimentais do workspace",
+  },
 };
 
 export default function Settings() {
@@ -60,7 +65,7 @@ export default function Settings() {
   // Map URL sections to valid categories
   const validCategories: SettingsCategory[] = [
     "workspace", "channels", "crm", "templates", 
-    "automation", "experience", "security", "integrations", "billing"
+    "automation", "experience", "security", "integrations", "billing", "flags"
   ];
   
   const initialCategory = validCategories.includes(section as SettingsCategory) 
@@ -73,7 +78,7 @@ export default function Settings() {
   // Sync URL when category changes
   const handleCategoryChange = (category: SettingsCategory) => {
     setActiveCategory(category);
-    navigate(`/dashboard/settings/${category}`, { replace: true });
+    navigate(`/settings/${category}`, { replace: true });
   };
 
   // Sync state when URL changes
@@ -121,6 +126,8 @@ export default function Settings() {
         return <IntegrationsSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
       case "billing":
         return <BillingSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
+      case "flags":
+        return <FeatureFlagsSettings />;
       default:
         return <WorkspaceSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
     }

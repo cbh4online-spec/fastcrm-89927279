@@ -5,17 +5,8 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
 import { PlanBadge } from "@/components/subscription/FeatureGate";
-import {
-  LayoutDashboard,
-  Box,
-  Inbox,
-  Zap,
-  Brain,
-  BarChart3,
-  Layers,
-  Settings,
-  X,
-} from "lucide-react";
+import { NAV_V2_ITEMS } from "@/config/nav.v2";
+import { X } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -28,16 +19,7 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-const navItems = [
-  { name: "Home", href: "/dashboard", icon: LayoutDashboard, end: true },
-  { name: "Objects", href: "/dashboard/objects", icon: Box },
-  { name: "Inbox", href: "/dashboard/inbox", icon: Inbox },
-  { name: "Automations", href: "/dashboard/automations", icon: Zap },
-  { name: "Intelligence", href: "/dashboard/intelligence", icon: Brain },
-  { name: "Reports", href: "/dashboard/reports", icon: BarChart3 },
-  { name: "Marketplace", href: "/dashboard/marketplace", icon: Layers },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
-];
+const navItems = NAV_V2_ITEMS;
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation();
@@ -106,7 +88,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             {/* Navigation */}
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto" style={{ colorScheme: "dark" }}>
               {navItems.map((item) => {
-                const active = isActive(item.href, item.end);
+                const end = 'end' in item ? item.end : undefined;
+                const active = isActive(item.href, end);
                 return (
                   <Tooltip key={item.name}>
                     <TooltipTrigger asChild>
