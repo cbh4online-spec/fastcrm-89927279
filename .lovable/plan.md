@@ -1,161 +1,92 @@
 
 
-# FastCRM 2.0 -- AI-Native Revenue CRM Platform
+# Sub-Phase D: Conversational Onboarding + Monetization
 
-## Analysis
+## What Exists
 
-The current codebase has ~15 navigation groups, ~80+ pages, and a module-gated marketplace system that already controls sidebar visibility via `moduleSlug`. The transformation requires reorganizing everything around 8 core navigation items while preserving all existing functionality behind marketplace extensions.
+- **Onboarding**: Multi-step form flow (business type → activity profile → success definition → process → channels → AI generation → preview → apply). Works but is form-based, not conversational.
+- **Subscription**: `SubscriptionContext` with 4 plans (free/basic/pro/agency), Stripe checkout via `create-checkout` edge function, `check-subscription` for validation.
+- **Extension Registry**: `extensionRegistry.ts` maps module slugs to object tabs, intelligence capabilities, automation templates.
 
-**What exists and can be reused:**
-- `useWorkspaceModules` + `marketplace_modules` + `workspace_modules` (module gating works)
-- `SAMPLE_MODULES` in `src/types/marketplace.ts` (27+ modules defined)
-- Sidebar already filters by `installedModuleIds` and `moduleSlug`
-- Revenue forecast (`useRevenueForecast`), deal scoring, AI suggestions all exist
-- Onboarding system (`useIntelligentOnboarding`) exists but needs redesign
+## Changes
 
-**What changes:**
-- Sidebar collapses from ~15 groups to 8 flat items
-- All current "sections" become Objects or Extensions
-- AI features merge into single Intelligence hub
-- Dashboard becomes revenue-focused
-- Onboarding becomes conversational
+### 1. Conversational Onboarding Redesign
 
----
+Replace the current step-by-step form with a chat-style conversational interface. The AI asks questions one at a time in a chat bubble format, the user responds via quick-reply buttons or text input.
 
-## Implementation Strategy
+**New questions added** (per spec):
+- Revenue model (subscription, one-time, project-based, mixed)
+- Team size (solo, 2-5, 6-20, 20+)
+- Sales cycle complexity (simple/medium/complex)
 
-Due to the massive scope, this will be implemented in **4 sub-phases** across multiple messages. Each sub-phase is independently deployable without breaking existing functionality.
+**Flow:**
+1. Welcome message (chat bubble) → Ask workspace name (text input)
+2. Business type → Quick-reply cards
+3. Revenue model → Quick-reply buttons
+4. Team size → Quick-reply buttons
+5. Sales cycle complexity → Quick-reply buttons
+6. AI generates config (typing indicator animation)
+7. Summary card with what was created
+8. Suggest relevant extensions from marketplace
 
----
+**After AI config applies:**
+- Create Objects (pipeline, fields)
+- Create recommended automations
+- Configure initial dashboard
+- Suggest extensions based on business type (e.g., education → Student Journey pack)
 
-## Sub-Phase A: New Sidebar + Core Navigation Shell (This message)
+### 2. Extension Packs for Monetization
 
-### 1. New Sidebar (`Sidebar.tsx` rewrite)
+Define extension packs in the extension registry that bundle related modules:
 
-Replace the current 15-group collapsible sidebar with 8 flat items:
+| Pack | Modules | Plan Required |
+|---|---|---|
+| B2B Revenue Pack | proposals, invoices, b2b-portal | basic+ |
+| Finance Pack | invoices, credit-intermediation | basic+ |
+| Proposals Pack | proposals | basic+ |
+| Education Pack | student-journey | pro+ |
+| Commerce Pack | online-store, c2c-marketplace | pro+ |
+| Advanced Intelligence | lead-enricher, prospecting-pro, seo-growth | pro+ |
 
-```
-Home          /dashboard
-Objects       /dashboard/objects
-Inbox         /dashboard/inbox
-Automations   /dashboard/automations
-Intelligence  /dashboard/intelligence
-Reports       /dashboard/reports
-Marketplace   /dashboard/marketplace
-Settings      /dashboard/settings
-```
+### 3. Onboarding Extension Suggestions
 
-- Remove all collapsible groups
-- Dark minimal design (keep current gradient)
-- Active route highlighting
-- No sub-items in sidebar -- sub-navigation handled within pages
-- Keep WorkspaceSwitcher and PlanBadge
+After onboarding completes, show a "Recommended Extensions" step based on business type mapping:
+- education → Education Pack
+- retail/ecommerce → Commerce Pack
+- b2b/services → B2B Revenue Pack
+- marketing → Advanced Intelligence Pack
 
-### 2. Objects Hub Page
+### 4. Plan Gating on Extensions
 
-**New file:** `src/pages/ObjectsPage.tsx`
-**Route:** `/dashboard/objects`
+Update the marketplace to show plan requirements on each extension pack. Free users see all packs but get an upgrade prompt when trying to install paid ones.
 
-- Tab-based view: Contacts | Companies | Deals (default objects)
-- Each tab renders the existing table component (`SmartContactsTable`, `SmartLeadsTable` renamed to Deals context, Companies list)
-- "Views" dropdown for saved filters
-- Search bar with advanced filters
-- Extension objects appear as additional tabs when installed
-
-### 3. Intelligence Hub Page
-
-**New file:** `src/pages/IntelligencePage.tsx`
-**Route:** `/dashboard/intelligence`
-
-- Three sections as tabs: **Assist** | **Analyze** | **Automate**
-- **Assist**: Embeds existing Copilot/AI Assistant chat
-- **Analyze**: Revenue forecast widget, deal scoring, pipeline health
-- **Automate**: AI-suggested automations, automation generator
-- Pulls from existing hooks: `useRevenueForecast`, `useGenerateAutomation`, AI suggestions
-
-### 4. Revenue Dashboard (Home redesign)
-
-**Edit:** `src/pages/Dashboard.tsx`
-
-- Hero section: Revenue Forecast (expected/best/worst case)
-- Pipeline Health Score card
-- Deals at Risk list (low confidence opportunities)
-- AI Action Suggestions (from existing `ai-suggestions`)
-- Keep period filter and quick-create dropdown
-- Remove detailed leads/tasks lists (move to Objects)
-
-### 5. Route Compatibility
-
-All existing routes (`/dashboard/leads`, `/dashboard/contacts`, etc.) remain functional via redirects or direct access. The new sidebar simply doesn't show them -- they're accessed through Objects or Extensions.
-
-**Add redirects in `App.tsx`:**
-- `/dashboard/leads` -> still works (accessed via Objects > Deals)
-- `/dashboard/contacts` -> still works (accessed via Objects > Contacts)
-- `/dashboard/companies` -> still works (accessed via Objects > Companies)
-
----
-
-## Sub-Phase B: Object-Based Architecture (Next message)
-
-- Custom Objects framework (database schema + CRUD)
-- Custom Fields engine (already partially exists via `custom_fields`)
-- Relationship Fields between objects
-- Saved Views with filters
-- Unified Timeline across objects
-
----
-
-## Sub-Phase C: Marketplace Extension Conversion (Following message)
-
-Convert these to marketplace extensions (add `moduleSlug` gating):
-- Proposals, Invoices, B2B Portal, Orders, Education, Credit, Commerce, C2C, FastClub, Advanced Intelligence
-
-Each extension when installed adds:
-- New object types to the Objects page
-- New automation templates
-- New Intelligence capabilities
-- **No new sidebar items** (consistent UX)
-
----
-
-## Sub-Phase D: Conversational Onboarding + Monetization (Final message)
-
-- Redesign onboarding as conversational flow
-- Auto-configure objects, pipeline, fields, automations
-- Extension packs (B2B Revenue, Proposals, Finance, Education, Commerce)
-- Plan-based feature gating
-
----
-
-## Files for Sub-Phase A
+## Files
 
 ### Create
 
 | File | Description |
 |---|---|
-| `src/pages/ObjectsPage.tsx` | Objects hub with Contacts/Companies/Deals tabs |
-| `src/pages/IntelligencePage.tsx` | Unified Intelligence hub (Assist/Analyze/Automate) |
-| `src/components/objects/ObjectsTabView.tsx` | Tab container for object types |
-| `src/components/intelligence/AssistTab.tsx` | Copilot/chat interface |
-| `src/components/intelligence/AnalyzeTab.tsx` | Revenue forecast + scoring |
-| `src/components/intelligence/AutomateTab.tsx` | AI automation suggestions |
-| `src/components/dashboard/RevenueHero.tsx` | Revenue forecast hero widget |
-| `src/components/dashboard/PipelineHealthCard.tsx` | Pipeline health score |
-| `src/components/dashboard/DealsAtRiskList.tsx` | At-risk deals list |
-| `src/components/dashboard/AIActionSuggestions.tsx` | AI-suggested next actions |
+| `src/components/onboarding/ConversationalOnboarding.tsx` | Chat-style onboarding UI with message bubbles, quick replies, typing indicators |
+| `src/components/onboarding/ChatMessage.tsx` | Individual chat message bubble component |
+| `src/components/onboarding/QuickReplies.tsx` | Quick-reply button grid for conversational choices |
+| `src/components/onboarding/ExtensionSuggestions.tsx` | Post-onboarding extension pack recommendations |
+| `src/config/extensionPacks.ts` | Extension pack definitions with plan gating |
 
 ### Edit
 
 | File | Change |
 |---|---|
-| `src/components/layout/Sidebar.tsx` | Complete rewrite: 8 flat items, minimal design |
-| `src/pages/Dashboard.tsx` | Redesign for revenue focus |
-| `src/App.tsx` | Add `/dashboard/objects` and `/dashboard/intelligence` routes |
+| `src/pages/Onboarding.tsx` | Replace `IntelligentOnboarding` with `ConversationalOnboarding` |
+| `src/hooks/useIntelligentOnboarding.ts` | Add revenue model, team size, sales complexity fields; update AI prompt to include new data |
+| `supabase/functions/ai-onboarding-setup/index.ts` | Accept new fields (revenue model, team size, complexity); include in AI prompt; add extension suggestions to response |
+| `src/components/onboarding/steps/ApplyingStep.tsx` | Add step for suggesting extensions after config is applied |
 
-### Compatibility
+### Technical Details
 
-- All existing routes remain functional
-- Existing pages remain accessible via direct URL
-- Module gating continues to work via `useWorkspaceModules`
-- No database changes needed for Sub-Phase A
+- Chat messages stored in local state array `{role: 'assistant' | 'user', content: string, type: 'text' | 'quick-reply' | 'card'}`
+- Each AI question renders with a typing delay (300-800ms) for natural feel
+- Quick replies render as pill buttons below the latest assistant message
+- After user selects, the choice appears as a user bubble and next question auto-triggers
+- The AI generation step shows a "thinking" animation in chat
+- Final summary renders as a rich card in the chat
 
