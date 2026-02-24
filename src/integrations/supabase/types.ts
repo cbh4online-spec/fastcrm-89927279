@@ -31280,47 +31280,68 @@ export type Database = {
       }
       workspace_onboarding: {
         Row: {
+          activated_bundle: string | null
           business_type: string | null
           channels: string[] | null
           completed_at: string | null
+          computed_segment: string | null
           created_at: string
           created_by_admin: string | null
           custom_business_type: string | null
           id: string
+          onboarding_duration_ms: number | null
+          primary_objective: string | null
           process_description: string | null
           requires_onboarding: boolean | null
+          revenue_model: string | null
+          sales_complexity: string | null
           skipped: boolean | null
           success_definition: string | null
+          team_size: string | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          activated_bundle?: string | null
           business_type?: string | null
           channels?: string[] | null
           completed_at?: string | null
+          computed_segment?: string | null
           created_at?: string
           created_by_admin?: string | null
           custom_business_type?: string | null
           id?: string
+          onboarding_duration_ms?: number | null
+          primary_objective?: string | null
           process_description?: string | null
           requires_onboarding?: boolean | null
+          revenue_model?: string | null
+          sales_complexity?: string | null
           skipped?: boolean | null
           success_definition?: string | null
+          team_size?: string | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          activated_bundle?: string | null
           business_type?: string | null
           channels?: string[] | null
           completed_at?: string | null
+          computed_segment?: string | null
           created_at?: string
           created_by_admin?: string | null
           custom_business_type?: string | null
           id?: string
+          onboarding_duration_ms?: number | null
+          primary_objective?: string | null
           process_description?: string | null
           requires_onboarding?: boolean | null
+          revenue_model?: string | null
+          sales_complexity?: string | null
           skipped?: boolean | null
           success_definition?: string | null
+          team_size?: string | null
           updated_at?: string
           workspace_id?: string
         }

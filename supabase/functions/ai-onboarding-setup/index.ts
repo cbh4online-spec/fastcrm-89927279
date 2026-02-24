@@ -14,6 +14,7 @@ interface OnboardingInput {
   revenueModel?: string;
   teamSize?: string;
   salesComplexity?: string;
+  primaryObjective?: string;
 }
 
 Deno.serve(async (req) => {
@@ -22,7 +23,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { businessType, customBusinessType, successDefinition, processDescription, channels, revenueModel, teamSize, salesComplexity }: OnboardingInput = await req.json();
+    const { businessType, customBusinessType, successDefinition, processDescription, channels, revenueModel, teamSize, salesComplexity, primaryObjective }: OnboardingInput = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -131,6 +132,13 @@ O JSON deve ter esta estrutura:
       complex: "Complexo (vários decisores, longo)",
     };
 
+    const objectiveLabels: Record<string, string> = {
+      organize_pipeline: "Organizar pipeline de vendas",
+      improve_forecast: "Melhorar previsão de receita (forecast)",
+      automate_followups: "Automatizar follow-ups",
+      manage_docs: "Gerir propostas e faturas",
+    };
+
     const userPrompt = `Tipo de negócio: ${actualBusinessType}
 
 Modelo de receita: ${revenueLabels[revenueModel || ""] || revenueModel || "Não especificado"}
@@ -138,6 +146,8 @@ Modelo de receita: ${revenueLabels[revenueModel || ""] || revenueModel || "Não 
 Tamanho da equipa: ${teamLabels[teamSize || ""] || teamSize || "Não especificado"}
 
 Complexidade do ciclo de vendas: ${complexityLabels[salesComplexity || ""] || salesComplexity || "Não especificado"}
+
+Objetivo principal: ${objectiveLabels[primaryObjective || ""] || primaryObjective || "Não especificado"}
 
 O que representa uma venda bem-sucedida: ${successDefinition}
 
@@ -150,7 +160,9 @@ Com base nestas informações, cria uma configuração completa e personalizada 
 
 Adapta o número de etapas do pipeline à complexidade indicada. Se o ciclo é simples, usa 3-4 etapas. Se complexo, usa 6-8 etapas.
 
-Adapta os formulários para capturar leads dos canais indicados. Se usam WhatsApp ou Instagram, cria campos específicos para esses canais.`;
+Adapta os formulários para capturar leads dos canais indicados. Se usam WhatsApp ou Instagram, cria campos específicos para esses canais.
+
+Dá prioridade às automações e KPIs que apoiam o objetivo principal indicado.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
