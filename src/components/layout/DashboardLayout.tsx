@@ -1,5 +1,6 @@
 import { ReactNode, useState } from "react";
 import { Sidebar } from "./Sidebar";
+import { SidebarV1 } from "./SidebarV1";
 import { TopBar } from "./TopBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useLocation } from "react-router-dom";
@@ -7,6 +8,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { WorkspaceStatusGuard } from "@/components/workspace/WorkspaceStatusGuard";
 import { Loader2 } from "lucide-react";
 import { MQPCFloatingButton } from "@/components/mqpc/MQPCFloatingButton";
+import { useFeatureFlag } from "@/hooks/useFeatureFlags";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -17,6 +19,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { loading: workspaceLoading, workspaces } = useWorkspace();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { enabled: shellV2 } = useFeatureFlag("ui.shell_v2_enabled");
   const showFAB = location.pathname.includes("store-products") || location.pathname.includes("products");
 
   if (authLoading || workspaceLoading) {
@@ -39,7 +42,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <WorkspaceStatusGuard>
       <div className="min-h-screen flex bg-gradient-to-br from-background via-background to-muted/20">
-        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        {shellV2 ? (
+          <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        ) : (
+          <SidebarV1 open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        )}
         <div className="flex-1 flex flex-col min-h-screen lg:pl-64">
           <TopBar onMenuClick={() => setSidebarOpen(true)} />
           <main className="flex-1 animate-fade-in">
