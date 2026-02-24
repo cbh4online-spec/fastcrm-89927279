@@ -12,11 +12,15 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
-// Map Stripe product IDs to plan names
+// Map Stripe product IDs to plan names (new + legacy)
 const PRODUCT_TO_PLAN: Record<string, string> = {
-  "prod_Tn6lMOO7zRREaL": "basic",
-  "prod_Tn6mQSM7DNs1TO": "pro",
-  "prod_Tn6mBblFLd6lD2": "agency",
+  // New plans
+  "prod_U2Zfz8Cws9opiL": "growth",
+  "prod_U2ZgsvWbkKLKaB": "scale",
+  // Legacy mappings
+  "prod_Tn6lMOO7zRREaL": "growth",   // old basic → growth
+  "prod_Tn6mQSM7DNs1TO": "scale",    // old pro → scale
+  "prod_Tn6mBblFLd6lD2": "scale",    // old agency → scale
 };
 
 // Plan limits
@@ -33,22 +37,13 @@ const PLAN_LIMITS: Record<string, {
   monthly_ai_calls: number;
   templates: boolean;
   white_label: boolean;
+  multi_pipeline: boolean;
+  marketplace_access: boolean;
+  api_access: boolean;
+  advanced_roles: boolean;
+  priority_support: boolean;
 }> = {
-  free: {
-    max_users: 1,
-    max_workspaces: 1,
-    dashboard_customization: false,
-    sidebar_customization: false,
-    user_layout_overrides: false,
-    ai_suggestions: false,
-    ai_insights: false,
-    automation_custom_fields: false,
-    max_automations: 0,
-    monthly_ai_calls: 0,
-    templates: false,
-    white_label: false,
-  },
-  basic: {
+  starter: {
     max_users: 3,
     max_workspaces: 1,
     dashboard_customization: false,
@@ -57,12 +52,17 @@ const PLAN_LIMITS: Record<string, {
     ai_suggestions: false,
     ai_insights: false,
     automation_custom_fields: false,
-    max_automations: 5,
+    max_automations: 3,
     monthly_ai_calls: 0,
     templates: false,
     white_label: false,
+    multi_pipeline: false,
+    marketplace_access: false,
+    api_access: false,
+    advanced_roles: false,
+    priority_support: false,
   },
-  pro: {
+  growth: {
     max_users: 10,
     max_workspaces: 1,
     dashboard_customization: true,
@@ -75,8 +75,13 @@ const PLAN_LIMITS: Record<string, {
     monthly_ai_calls: 500,
     templates: false,
     white_label: false,
+    multi_pipeline: true,
+    marketplace_access: true,
+    api_access: false,
+    advanced_roles: false,
+    priority_support: false,
   },
-  agency: {
+  scale: {
     max_users: -1,
     max_workspaces: -1,
     dashboard_customization: true,
@@ -89,8 +94,24 @@ const PLAN_LIMITS: Record<string, {
     monthly_ai_calls: 5000,
     templates: true,
     white_label: true,
+    multi_pipeline: true,
+    marketplace_access: true,
+    api_access: true,
+    advanced_roles: true,
+    priority_support: true,
   },
 };
+
+// Legacy plan name mapping
+function normalizePlanName(plan: string): string {
+  const legacyMap: Record<string, string> = {
+    free: "starter",
+    basic: "growth",
+    pro: "scale",
+    agency: "scale",
+  };
+  return legacyMap[plan] || plan;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -142,10 +163,10 @@ Deno.serve(async (req) => {
 
         const isActive = ["active", "trialing"].includes(stripeSubscription.status);
         const productId = stripeSubscription.items.data[0]?.price.product as string;
-        const plan = PRODUCT_TO_PLAN[productId] || "free";
+        const plan = PRODUCT_TO_PLAN[productId] || "starter";
 
         // Update database if status changed
-        if (subscription.status !== stripeSubscription.status || subscription.plan !== plan) {
+        if (subscription.status !== stripeSubscription.status || normalizePlanName(subscription.plan) !== plan) {
           await supabaseClient
             .from("workspace_subscriptions")
             .update({
@@ -174,16 +195,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Return database subscription or free plan
-    const plan = subscription?.plan || "free";
+    // Return database subscription or starter plan
+    const rawPlan = subscription?.plan || "starter";
+    const plan = normalizePlanName(rawPlan);
     const isActive = subscription?.status === "active";
 
     logStep("Returning subscription status", { plan, isActive });
 
     return new Response(JSON.stringify({
-      subscribed: isActive && plan !== "free",
+      subscribed: isActive && plan !== "starter",
       plan: plan,
-      limits: PLAN_LIMITS[plan],
+      limits: PLAN_LIMITS[plan] || PLAN_LIMITS.starter,
       subscription_end: subscription?.current_period_end || null,
       cancel_at_period_end: subscription?.cancel_at_period_end || false,
     }), {
@@ -196,11 +218,11 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ 
       error: errorMessage,
       subscribed: false,
-      plan: "free",
-      limits: PLAN_LIMITS.free,
+      plan: "starter",
+      limits: PLAN_LIMITS.starter,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200, // Return 200 with free plan on error
+      status: 200,
     });
   }
 });

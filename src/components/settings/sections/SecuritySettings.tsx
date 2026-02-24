@@ -20,7 +20,7 @@ interface SecuritySettingsProps {
 
 export function SecuritySettings({ searchQuery = "", matchedSections }: SecuritySettingsProps) {
   const { plan } = useSubscription();
-  const isAgency = plan === "agency";
+  const isAgency = plan === "scale";
   const hasSearch = searchQuery.trim().length > 0;
 
   const [objectPermissionsOpen, setObjectPermissionsOpen] = useState(false);

@@ -33,12 +33,12 @@ export function FeatureLockedState({
   const getRequiredPlan = () => {
     // Determine which plan unlocks this feature
     if (["inbox_enabled", "automations_enabled", "templates_enabled", "proposals_enabled", "landing_pages_enabled", "integrations_enabled"].includes(featureKey)) {
-      return "basic";
+      return "growth";
     }
     if (["ai_suggestions_enabled", "ai_insights_enabled", "dashboard_customization", "sidebar_customization"].includes(featureKey)) {
-      return "pro";
+      return "growth";
     }
-    return "agency";
+    return "scale";
   };
 
   const requiredPlan = getRequiredPlan();
@@ -47,7 +47,7 @@ export function FeatureLockedState({
   const microcopy = getFeatureMicrocopy(featureName, requiredPlanInfo.name);
 
   const handleUpgrade = () => {
-    createCheckout(requiredPlan as "basic" | "pro" | "agency");
+    createCheckout(requiredPlan as "growth" | "scale");
   };
 
   if (compact) {

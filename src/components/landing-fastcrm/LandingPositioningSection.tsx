@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Target, ArrowRight } from "lucide-react";
+import { Target } from "lucide-react";
 
 export function LandingPositioningSection() {
   return (
@@ -19,19 +19,19 @@ export function LandingPositioningSection() {
           </div>
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
-            Não é para todos.
+            Not for everyone.
           </h2>
 
           <p className="text-lg text-[hsl(215,20%,65%)] max-w-2xl mx-auto leading-relaxed">
-            O FastCRM é para empresas que querem estrutura, escala e inteligência operacional.
-            Não é para quem quer apenas guardar contactos.
+            FastCRM is for revenue teams that want structure, intelligence, and scale.
+            Not for those who just want to store contacts.
           </p>
 
           <div className="grid sm:grid-cols-3 gap-4 pt-4">
             {[
-              { title: "Clínicas & Saúde", desc: "Grupos com múltiplas unidades e equipas comerciais" },
-              { title: "Agências", desc: "Gestão multi-workspace para clientes em escala" },
-              { title: "Empresas B2B", desc: "Operações complexas com foco em conversão e automação" },
+              { title: "Founders", desc: "Building their first structured sales process" },
+              { title: "Sales Teams", desc: "Ready to move beyond spreadsheets and basic CRMs" },
+              { title: "Scaling Companies", desc: "Revenue operations that need intelligence at scale" },
             ].map((segment) => (
               <div
                 key={segment.title}

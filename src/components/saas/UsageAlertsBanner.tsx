@@ -97,8 +97,8 @@ export function UsageAlertsBanner({
     if (microcopy.isPayment) {
       openCustomerPortal();
     } else {
-      const suggestedPlan = plan === "free" ? "basic" : plan === "basic" ? "pro" : "agency";
-      createCheckout(suggestedPlan as "basic" | "pro" | "agency");
+      const suggestedPlan = plan === "starter" ? "growth" : "scale";
+      createCheckout(suggestedPlan as "growth" | "scale");
     }
   };
 

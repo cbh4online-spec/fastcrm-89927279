@@ -14,10 +14,9 @@ interface ExtensionPackCardProps {
 }
 
 const PLAN_LABELS: Record<PlanTier, string> = {
-  free: "Free",
-  basic: "Basic+",
-  pro: "Pro+",
-  agency: "Agency",
+  starter: "Starter",
+  growth: "Growth+",
+  scale: "Scale",
 };
 
 export function ExtensionPackCard({ pack }: ExtensionPackCardProps) {
@@ -26,7 +25,7 @@ export function ExtensionPackCard({ pack }: ExtensionPackCardProps) {
   const { trackPackViewed, trackPackInstallStarted, trackPackInstallCompleted, trackPackUpgradePrompted } = useCRMAnalytics();
   const [installing, setInstalling] = useState(false);
 
-  const currentPlan = (plan || "free") as PlanTier;
+  const currentPlan = (plan || "starter") as PlanTier;
   const canInstall = canInstallPack(pack, currentPlan);
   const allInstalled = pack.modules.every((slug) => isModuleInstalled(slug));
   const installedCount = pack.modules.filter((slug) => isModuleInstalled(slug)).length;
@@ -68,7 +67,7 @@ export function ExtensionPackCard({ pack }: ExtensionPackCardProps) {
       required_plan: pack.requiredPlan,
       current_plan: currentPlan,
     });
-    createCheckout(suggestedPlan as "basic" | "pro" | "agency");
+    createCheckout(suggestedPlan as "growth" | "scale");
   };
 
   const suggestedPlan = pack.requiredPlan;
