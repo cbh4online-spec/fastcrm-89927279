@@ -9426,6 +9426,170 @@ export type Database = {
           },
         ]
       }
+      core_object_fields: {
+        Row: {
+          created_at: string
+          default_value: string | null
+          field_type: string
+          id: string
+          is_required: boolean
+          is_system: boolean
+          name: string
+          object_id: string
+          options: Json | null
+          slug: string
+          sort_order: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_value?: string | null
+          field_type?: string
+          id?: string
+          is_required?: boolean
+          is_system?: boolean
+          name: string
+          object_id: string
+          options?: Json | null
+          slug: string
+          sort_order?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          default_value?: string | null
+          field_type?: string
+          id?: string
+          is_required?: boolean
+          is_system?: boolean
+          name?: string
+          object_id?: string
+          options?: Json | null
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_object_fields_object_id_fkey"
+            columns: ["object_id"]
+            isOneToOne: false
+            referencedRelation: "custom_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_object_fields_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_object_types: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          icon: string
+          id: string
+          is_system: boolean
+          name: string
+          slug: string
+          workspace_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_system?: boolean
+          name: string
+          slug: string
+          workspace_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_system?: boolean
+          name?: string
+          slug?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_object_types_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_object_views: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          filters: Json
+          id: string
+          is_default: boolean
+          name: string
+          object_id: string
+          sort_config: Json
+          updated_at: string
+          visible_fields: string[] | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          filters?: Json
+          id?: string
+          is_default?: boolean
+          name: string
+          object_id: string
+          sort_config?: Json
+          updated_at?: string
+          visible_fields?: string[] | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          filters?: Json
+          id?: string
+          is_default?: boolean
+          name?: string
+          object_id?: string
+          sort_config?: Json
+          updated_at?: string
+          visible_fields?: string[] | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_object_views_object_id_fkey"
+            columns: ["object_id"]
+            isOneToOne: false
+            referencedRelation: "custom_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_object_views_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_consumption_logs: {
         Row: {
           action_description: string | null
@@ -10119,6 +10283,7 @@ export type Database = {
           is_system: boolean | null
           name: string
           slug: string
+          type_id: string | null
           updated_at: string
           workspace_id: string
         }
@@ -10133,6 +10298,7 @@ export type Database = {
           is_system?: boolean | null
           name: string
           slug: string
+          type_id?: string | null
           updated_at?: string
           workspace_id: string
         }
@@ -10147,10 +10313,18 @@ export type Database = {
           is_system?: boolean | null
           name?: string
           slug?: string
+          type_id?: string | null
           updated_at?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "custom_objects_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "core_object_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "custom_objects_workspace_id_fkey"
             columns: ["workspace_id"]
