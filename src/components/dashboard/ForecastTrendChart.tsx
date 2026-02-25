@@ -5,21 +5,21 @@ import { formatCurrency } from "@/hooks/useRevenueForecast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, TrendingUp } from "lucide-react";
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  CartesianGrid,
+  AreaChart, Area, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 import { format } from "date-fns";
-import { pt } from "date-fns/locale";
+import { pt, enUS, es, fr, type Locale as DateLocale } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
+
+const dateLocales: Record<string, DateLocale> = { pt, en: enUS, es, fr };
 
 function useForecastHistory() {
   const { currentWorkspace } = useWorkspace();
+  const { i18n } = useTranslation();
+  const locale = dateLocales[i18n.language] || pt;
+
   return useQuery({
-    queryKey: ["forecast-history", currentWorkspace?.id],
+    queryKey: ["forecast-history", currentWorkspace?.id, i18n.language],
     queryFn: async () => {
       if (!currentWorkspace) return [];
       const { data, error } = await supabase
@@ -30,7 +30,7 @@ function useForecastHistory() {
         .limit(12);
       if (error) throw error;
       return (data || []).map((row: any) => ({
-        date: format(new Date(row.generated_at), "d MMM", { locale: pt }),
+        date: format(new Date(row.generated_at), "d MMM", { locale }),
         expected: row.expected_case,
         best: row.best_case,
         worst: row.worst_case,
@@ -44,6 +44,7 @@ function useForecastHistory() {
 }
 
 export function ForecastTrendChart() {
+  const { t } = useTranslation('dashboard');
   const { data: chartData, isLoading } = useForecastHistory();
 
   if (isLoading) {
@@ -56,9 +57,7 @@ export function ForecastTrendChart() {
     );
   }
 
-  if (!chartData || chartData.length < 2) {
-    return null;
-  }
+  if (!chartData || chartData.length < 2) return null;
 
   const hasRiskAdj = chartData.some((d) => d.riskAdj != null && d.riskAdj > 0);
   const hasStageWeighted = chartData.some((d) => d.stageWeighted != null && d.stageWeighted > 0);
@@ -68,7 +67,7 @@ export function ForecastTrendChart() {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-primary" />
-          Forecast Trend
+          {t('forecastTrend')}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -97,7 +96,7 @@ export function ForecastTrendChart() {
                 }}
                 formatter={(value: number, name: string) => [
                   formatCurrency(value),
-                  name === "expected" ? "Expected" : name === "best" ? "Best Case" : name === "worst" ? "Worst Case" : name === "stageWeighted" ? "Stage-Weighted" : "Risk-Adjusted",
+                  name === "expected" ? t('expected') : name === "best" ? t('bestCase') : name === "worst" ? t('worstCase') : name === "stageWeighted" ? t('stageWeighted') : t('riskAdjusted'),
                 ]}
               />
               <Area type="monotone" dataKey="worst" stroke="hsl(var(--destructive))" strokeWidth={1} strokeDasharray="4 2" fill="none" />
@@ -115,26 +114,26 @@ export function ForecastTrendChart() {
         <div className="flex items-center justify-center gap-4 mt-2 flex-wrap">
           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <div className="w-3 h-0.5 rounded bg-primary" />
-            Expected
+            {t('expected')}
           </div>
           {hasStageWeighted && (
             <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
               <div className="w-3 h-0.5 rounded bg-primary opacity-60" style={{ borderTop: "1px dashed" }} />
-              Stage-Wtd
+              {t('stageWtd')}
             </div>
           )}
           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <div className="w-3 h-0.5 rounded bg-emerald-600" />
-            Best
+            {t('best')}
           </div>
           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <div className="w-3 h-0.5 rounded bg-destructive" />
-            Worst
+            {t('worst')}
           </div>
           {hasRiskAdj && (
             <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
               <div className="w-3 h-0.5 rounded bg-primary border-dashed" style={{ borderTop: "1px dashed" }} />
-              Risk-Adj
+              {t('riskAdj')}
             </div>
           )}
         </div>

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Loader2, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 const healthColor = (score: number) =>
   score >= 70 ? "text-emerald-600" : score >= 40 ? "text-yellow-600" : "text-destructive";
@@ -12,6 +13,7 @@ const severityDot = (severity: string) =>
   severity === "HIGH" ? "bg-destructive" : severity === "MEDIUM" ? "bg-yellow-500" : "bg-muted-foreground";
 
 export function DealsAtRiskList() {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading } = useIntelligencePanel();
   const navigate = useNavigate();
 
@@ -32,13 +34,13 @@ export function DealsAtRiskList() {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-destructive" />
-          Deals at Risk
+          {t('dealsAtRisk')}
         </CardTitle>
       </CardHeader>
       <CardContent>
         {risks.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
-            No deals at risk right now 🎉
+            {t('noDealsAtRisk')}
           </p>
         ) : (
           <div className="space-y-1">

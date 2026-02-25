@@ -3,6 +3,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowUpRight, ArrowDownRight, Target, Briefcase, FileText, Clock, TrendingUp, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface KPIData {
   leadsToday: number;
@@ -24,28 +25,18 @@ interface DashboardKPICardsProps {
 }
 
 function formatCurrency(value: number): string {
-  if (value >= 1000000) {
-    return `€${(value / 1000000).toFixed(1)}M`;
-  }
-  if (value >= 1000) {
-    return `€${(value / 1000).toFixed(1)}K`;
-  }
+  if (value >= 1000000) return `€${(value / 1000000).toFixed(1)}M`;
+  if (value >= 1000) return `€${(value / 1000).toFixed(1)}K`;
   return `€${value.toFixed(0)}`;
 }
 
 function TrendIndicator({ value, size = "sm" }: { value: number; size?: "sm" | "md" }) {
   if (value === 0) return null;
-  
   const isPositive = value > 0;
   const Icon = isPositive ? ArrowUpRight : ArrowDownRight;
   const sizeClass = size === "sm" ? "text-xs" : "text-sm";
-  
   return (
-    <span className={cn(
-      "flex items-center gap-0.5",
-      sizeClass,
-      isPositive ? "text-emerald-600" : "text-red-500"
-    )}>
+    <span className={cn("flex items-center gap-0.5", sizeClass, isPositive ? "text-emerald-600" : "text-red-500")}>
       <Icon className={size === "sm" ? "h-3 w-3" : "h-4 w-4"} />
       {Math.abs(value)}%
     </span>
@@ -53,23 +44,10 @@ function TrendIndicator({ value, size = "sm" }: { value: number; size?: "sm" | "
 }
 
 function KPICard({
-  title,
-  mainValue,
-  subtitle,
-  trend,
-  icon: Icon,
-  tooltip,
-  accentColor = "primary",
-  isLoading,
+  title, mainValue, subtitle, trend, icon: Icon, tooltip, accentColor = "primary", isLoading,
 }: {
-  title: string;
-  mainValue: string | number;
-  subtitle?: string;
-  trend?: number;
-  icon: React.ElementType;
-  tooltip: string;
-  accentColor?: "primary" | "emerald" | "amber" | "blue";
-  isLoading?: boolean;
+  title: string; mainValue: string | number; subtitle?: string; trend?: number;
+  icon: React.ElementType; tooltip: string; accentColor?: "primary" | "emerald" | "amber" | "blue"; isLoading?: boolean;
 }) {
   const colorClasses = {
     primary: "bg-primary/10 text-primary",
@@ -90,7 +68,6 @@ function KPICard({
                 </div>
                 <Info className="h-3.5 w-3.5 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
-              
               {isLoading ? (
                 <div className="space-y-2">
                   <Skeleton className="h-8 w-20" />
@@ -103,9 +80,7 @@ function KPICard({
                     {trend !== undefined && <TrendIndicator value={trend} />}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">{title}</p>
-                  {subtitle && (
-                    <p className="text-xs text-muted-foreground/70 mt-0.5">{subtitle}</p>
-                  )}
+                  {subtitle && <p className="text-xs text-muted-foreground/70 mt-0.5">{subtitle}</p>}
                 </>
               )}
             </CardContent>
@@ -120,55 +95,53 @@ function KPICard({
 }
 
 export function DashboardKPICards({ data, isLoading }: DashboardKPICardsProps) {
+  const { t } = useTranslation('dashboard');
+
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
       <KPICard
-        title="Leads"
+        title={t('leads')}
         mainValue={data?.leadsToday ?? 0}
-        subtitle={`${data?.leadsWeek ?? 0} esta semana`}
+        subtitle={t('thisWeek', { count: data?.leadsWeek ?? 0 })}
         trend={data?.leadsTrend}
         icon={Target}
-        tooltip="Novos leads captados hoje e nos últimos 7 dias. Um aumento indica maior interesse no seu negócio."
+        tooltip={t('leadsTooltip')}
         accentColor="emerald"
         isLoading={isLoading}
       />
-      
       <KPICard
-        title="Oportunidades Ativas"
+        title={t('activeOpportunities')}
         mainValue={data?.activeOpportunities ?? 0}
         subtitle={formatCurrency(data?.opportunitiesValue ?? 0)}
         trend={data?.opportunitiesTrend}
         icon={Briefcase}
-        tooltip="Oportunidades em progresso no pipeline. O valor representa o potencial total de receita."
+        tooltip={t('opportunitiesTooltip')}
         accentColor="blue"
         isLoading={isLoading}
       />
-      
       <KPICard
-        title="Propostas Enviadas"
+        title={t('proposalsSent')}
         mainValue={data?.proposalsSent ?? 0}
         trend={data?.proposalsTrend}
         icon={FileText}
-        tooltip="Total de propostas enviadas este mês. Compare com meses anteriores para avaliar a atividade comercial."
+        tooltip={t('proposalsSentTooltip')}
         accentColor="primary"
         isLoading={isLoading}
       />
-      
       <KPICard
-        title="Propostas Pendentes"
+        title={t('proposalsPending')}
         mainValue={data?.proposalsPending ?? 0}
         icon={Clock}
-        tooltip="Propostas aguardando resposta do cliente. Propostas antigas podem precisar de follow-up."
+        tooltip={t('proposalsPendingTooltip')}
         accentColor="amber"
         isLoading={isLoading}
       />
-      
       <KPICard
-        title="Previsão de Receita"
+        title={t('revenueForecastKPI')}
         mainValue={formatCurrency(data?.revenueForecast ?? 0)}
         trend={data?.revenueTrend}
         icon={TrendingUp}
-        tooltip="Receita prevista baseada nas oportunidades ponderadas pela probabilidade de fecho."
+        tooltip={t('revenueForecastTooltip')}
         accentColor="emerald"
         isLoading={isLoading}
       />
