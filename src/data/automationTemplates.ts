@@ -425,6 +425,106 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
     color: "bg-yellow-500",
     popularity: 80,
   },
+  // =================== PLG (Product-Led Growth) ===================
+  {
+    id: "plg-signup-qualify",
+    name: "Signup + Score Alto → Tarefa Sales",
+    description: "Quando um product signal de signup chega e o lead tem score ≥ 70, cria tarefa para a equipa comercial",
+    category: "lead",
+    industry: ["general", "b2b", "ecommerce"],
+    trigger: "product_signal",
+    conditions: [
+      { field_name: "event_type", operator: "equals", value: "signup" },
+      { field_name: "lead_score", operator: "gte", value: "70" },
+    ],
+    actions: [
+      {
+        action_type: "create_task",
+        config: {
+          title: "🔥 High-score signup: {{lead.name}}",
+          due_in_hours: 2,
+          priority: "high",
+        },
+      },
+    ],
+    icon: "Zap",
+    color: "bg-emerald-500",
+    popularity: 88,
+    isNew: true,
+  },
+  {
+    id: "plg-trial-expired-nurture",
+    name: "Trial Expirado → Campanha Nurture",
+    description: "Quando o trial expira, adiciona o lead a uma campanha de nurture por email",
+    category: "follow-up",
+    industry: ["general", "b2b", "ecommerce"],
+    trigger: "product_signal",
+    conditions: [
+      { field_name: "event_type", operator: "equals", value: "trial_expired" },
+    ],
+    actions: [
+      {
+        action_type: "add_to_campaign",
+        config: {
+          campaign_type: "nurture",
+          message: "Notámos que o seu período de teste terminou. Gostaríamos de ajudar!",
+        },
+      },
+    ],
+    icon: "Clock",
+    color: "bg-orange-500",
+    popularity: 82,
+    isNew: true,
+  },
+  {
+    id: "plg-activation-pipeline",
+    name: "Ativação → Criar Oportunidade",
+    description: "Quando um utilizador ativa o produto, cria automaticamente uma oportunidade no pipeline",
+    category: "sales",
+    industry: ["general", "b2b"],
+    trigger: "product_signal",
+    conditions: [
+      { field_name: "event_type", operator: "equals", value: "activation" },
+    ],
+    actions: [
+      {
+        action_type: "create_opportunity",
+        config: {
+          title: "Oportunidade PLG - {{lead.name}}",
+          source: "product_activation",
+        },
+      },
+    ],
+    icon: "TrendingUp",
+    color: "bg-blue-500",
+    popularity: 85,
+    isNew: true,
+  },
+  {
+    id: "plg-upgrade-celebrate",
+    name: "Upgrade → Tarefa de Agradecimento",
+    description: "Quando um utilizador faz upgrade, cria tarefa para enviar mensagem de agradecimento",
+    category: "onboarding",
+    industry: ["general", "b2b", "ecommerce"],
+    trigger: "product_signal",
+    conditions: [
+      { field_name: "event_type", operator: "equals", value: "upgrade" },
+    ],
+    actions: [
+      {
+        action_type: "create_task",
+        config: {
+          title: "🎉 Enviar agradecimento: {{lead.name}} fez upgrade",
+          due_in_hours: 24,
+          priority: "medium",
+        },
+      },
+    ],
+    icon: "Gift",
+    color: "bg-amber-500",
+    popularity: 78,
+    isNew: true,
+  },
 ];
 
 export function getTemplatesByIndustry(industry: IndustryType): AutomationTemplate[] {
@@ -459,6 +559,7 @@ export const TEMPLATE_CATEGORIES = [
   { id: "financial", label: "Financeiro", icon: "CreditCard" },
   { id: "onboarding", label: "Onboarding", icon: "CheckCircle" },
   { id: "reactivation", label: "Reativação", icon: "RefreshCw" },
+  { id: "plg", label: "PLG", icon: "Zap" },
 ];
 
 export const INDUSTRY_OPTIONS = [
