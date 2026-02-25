@@ -5,17 +5,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Loader2, Eye } from "lucide-react";
+import { Plus, Trash2, Loader2, Eye, Filter } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { FilterCondition } from "@/hooks/useFilterEngine";
 
 interface Props {
   objectId: string;
   activeViewId: string | null;
   onSelectView: (view: CoreObjectView | null) => void;
+  onFiltersFromView?: (conditions: FilterCondition[]) => void;
 }
 
-export function ObjectViewsManager({ objectId, activeViewId, onSelectView }: Props) {
+function viewHasFilters(view: CoreObjectView): boolean {
+  const f = view.filters as any;
+  return f && Array.isArray(f.conditions) && f.conditions.length > 0;
+}
+
+function getFilterCount(view: CoreObjectView): number {
+  const f = view.filters as any;
+  if (f && Array.isArray(f.conditions)) return f.conditions.length;
+  return 0;
+}
+
+export function ObjectViewsManager({ objectId, activeViewId, onSelectView, onFiltersFromView }: Props) {
   const { data: views, isLoading } = useCoreObjectViews(objectId);
   const { data: fields } = useCoreObjectFields(objectId);
   const createView = useCreateObjectView();
@@ -30,6 +43,16 @@ export function ObjectViewsManager({ objectId, activeViewId, onSelectView }: Pro
       { object_id: objectId, name: newName, visible_fields: selectedFields.length > 0 ? selectedFields : undefined },
       { onSuccess: () => { setShowAdd(false); setNewName(""); setSelectedFields([]); } }
     );
+  };
+
+  const handleSelectView = (view: CoreObjectView) => {
+    onSelectView(view);
+    if (onFiltersFromView && viewHasFilters(view)) {
+      const f = view.filters as any;
+      onFiltersFromView(f.conditions || []);
+    } else if (onFiltersFromView) {
+      onFiltersFromView([]);
+    }
   };
 
   const toggleField = (slug: string) => {
@@ -76,19 +99,27 @@ export function ObjectViewsManager({ objectId, activeViewId, onSelectView }: Pro
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant={activeViewId === null ? "default" : "outline"} onClick={() => onSelectView(null)} className="gap-1.5">
+        <Button size="sm" variant={activeViewId === null ? "default" : "outline"} onClick={() => { onSelectView(null); onFiltersFromView?.([]); }} className="gap-1.5">
           <Eye className="h-3.5 w-3.5" /> Todos
         </Button>
-        {views?.map((view) => (
-          <div key={view.id} className="flex items-center gap-1">
-            <Button size="sm" variant={activeViewId === view.id ? "default" : "outline"} onClick={() => onSelectView(view)} className="gap-1.5">
-              <Eye className="h-3.5 w-3.5" /> {view.name}
-            </Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => { deleteView.mutate({ id: view.id, object_id: objectId }); if (activeViewId === view.id) onSelectView(null); }}>
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </div>
-        ))}
+        {views?.map((view) => {
+          const hasFilters = viewHasFilters(view);
+          const filterCount = getFilterCount(view);
+          return (
+            <div key={view.id} className="flex items-center gap-1">
+              <Button size="sm" variant={activeViewId === view.id ? "default" : "outline"} onClick={() => handleSelectView(view)} className="gap-1.5">
+                {hasFilters ? <Filter className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                {view.name}
+                {hasFilters && (
+                  <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">{filterCount}</Badge>
+                )}
+              </Button>
+              <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => { deleteView.mutate({ id: view.id, object_id: objectId }); if (activeViewId === view.id) { onSelectView(null); onFiltersFromView?.([]); } }}>
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
