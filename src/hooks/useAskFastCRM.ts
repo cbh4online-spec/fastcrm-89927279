@@ -18,7 +18,7 @@ export interface AskResultAction {
   id: string;
   label: string;
   icon: string;
-  type: "bulk_task" | "navigate" | "automation";
+  type: "bulk_task" | "navigate" | "automation" | "bulk_move_stage" | "bulk_assign_owner" | "create_saved_view";
   payload?: Record<string, any>;
 }
 
@@ -28,11 +28,17 @@ export interface AskResultMetric {
   trend?: "up" | "down" | "neutral";
 }
 
+export interface AskResultSuggestion {
+  text: string;
+  action: AskResultAction;
+}
+
 export interface AskResult {
   header: string;
   items: AskResultItem[];
   actions: AskResultAction[];
   metric?: AskResultMetric;
+  suggestion?: AskResultSuggestion;
 }
 
 export function useAskFastCRM() {
@@ -85,22 +91,18 @@ export function useAskFastCRM() {
 
       switch (action.type) {
         case "navigate": {
-          const link =
-            action.payload?.link || "/dashboard/opportunities";
+          const link = action.payload?.link || "/dashboard/opportunities";
           navigate(link);
           break;
         }
         case "automation": {
-          const link =
-            action.payload?.link ||
-            "/dashboard/automations?create=true";
+          const link = action.payload?.link || "/dashboard/automations?create=true";
           navigate(link);
           break;
         }
         case "bulk_task": {
           const dealIds: string[] = action.payload?.deal_ids || [];
-          const taskTitle =
-            action.payload?.task_title || "Follow up on deal";
+          const taskTitle = action.payload?.task_title || "Follow up on deal";
           const priority = action.payload?.priority || "MEDIUM";
 
           if (dealIds.length === 0) {
@@ -118,9 +120,7 @@ export function useAskFastCRM() {
               status: "pending",
               related_type: "opportunity",
               related_id: dealId,
-              due_at: new Date(
-                Date.now() + 2 * 86400000
-              ).toISOString(),
+              due_at: new Date(Date.now() + 2 * 86400000).toISOString(),
             }));
 
             const { error: insertError } = await supabase
@@ -133,9 +133,86 @@ export function useAskFastCRM() {
               `${dealIds.length} task${dealIds.length !== 1 ? "s" : ""} created.`
             );
           } catch (e: any) {
-            toast.error(
-              e?.message || "Failed to create tasks"
-            );
+            toast.error(e?.message || "Failed to create tasks");
+          }
+          break;
+        }
+        case "bulk_move_stage": {
+          const dealIds: string[] = action.payload?.deal_ids || [];
+          const targetStageId = action.payload?.target_stage_id;
+
+          if (dealIds.length === 0) {
+            toast.info("No deals to move.");
+            return;
+          }
+
+          if (!targetStageId) {
+            // Navigate to pipeline if no target stage specified
+            navigate("/dashboard/opportunities");
+            toast.info("Select a target stage in the pipeline view.");
+            return;
+          }
+
+          try {
+            const { error: updateError } = await supabase
+              .from("opportunities")
+              .update({ stage_id: targetStageId })
+              .in("id", dealIds);
+
+            if (updateError) throw updateError;
+
+            toast.success(`${dealIds.length} deal${dealIds.length !== 1 ? "s" : ""} moved.`);
+          } catch (e: any) {
+            toast.error(e?.message || "Failed to move deals");
+          }
+          break;
+        }
+        case "bulk_assign_owner": {
+          const dealIds: string[] = action.payload?.deal_ids || [];
+          const ownerId = action.payload?.owner_id;
+
+          if (dealIds.length === 0) {
+            toast.info("No deals to assign.");
+            return;
+          }
+
+          if (!ownerId) {
+            navigate("/dashboard/opportunities");
+            toast.info("Select an owner in the pipeline view.");
+            return;
+          }
+
+          try {
+            const { error: updateError } = await supabase
+              .from("opportunities")
+              .update({ owner_id: ownerId })
+              .in("id", dealIds);
+
+            if (updateError) throw updateError;
+
+            toast.success(`${dealIds.length} deal${dealIds.length !== 1 ? "s" : ""} reassigned.`);
+          } catch (e: any) {
+            toast.error(e?.message || "Failed to assign deals");
+          }
+          break;
+        }
+        case "create_saved_view": {
+          try {
+            const { error: insertError } = await supabase
+              .from("core_object_views")
+              .insert({
+                workspace_id: currentWorkspace.id,
+                object_id: action.payload?.object_type_id || "opportunity",
+                name: action.payload?.view_name || "Ask FastCRM View",
+                filters: action.payload?.filters || {},
+                visible_fields: action.payload?.columns || [],
+              });
+
+            if (insertError) throw insertError;
+
+            toast.success("View saved.");
+          } catch (e: any) {
+            toast.error(e?.message || "Failed to save view");
           }
           break;
         }
