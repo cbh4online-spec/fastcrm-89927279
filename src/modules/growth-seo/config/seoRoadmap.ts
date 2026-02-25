@@ -48,7 +48,7 @@ export const seoRoadmap: RoadmapPhase[] = [
         tasks: [
           { id: 't1-5', title: '50-100 páginas de keywords principais', priority: 'high', status: 'in_progress', dueDay: 20 },
           { id: 't1-6', title: 'Páginas de tools', priority: 'high', status: 'in_progress', dueDay: 15 },
-          { id: 't1-7', title: 'Templates core', priority: 'medium', status: 'todo', dueDay: 25 },
+          { id: 't1-7', title: 'Templates core', priority: 'medium', status: 'done', dueDay: 25 },
           { id: 't1-8', title: 'Exemplos reais em cada página', priority: 'high', status: 'todo', dueDay: 30 },
           { id: 't1-9', title: 'CTA "Generate keyword ideas" em todas', priority: 'high', status: 'done' },
         ],
