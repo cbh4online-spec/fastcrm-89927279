@@ -701,5 +701,17 @@
   "oppDetail_keyContact": "Key Contact",
   "oppDetail_partner": "Partner",
   "oppDetail_noRecordAssociated": "Nenhum {{type}} associado",
-  "oppDetail_associate": "+ Associar"
+  "oppDetail_associate": "+ Associar",
+  "oppDetail_commentsTab": "Comentários",
+  "oppDetail_noComments": "Sem comentários ainda",
+  "oppDetail_addComment": "Escrever um comentário...",
+  "oppDetail_postComment": "Publicar",
+  "oppDetail_reply": "Responder",
+  "oppDetail_deleteComment": "Eliminar",
+  "oppDetail_deleteCommentConfirm": "Eliminar este comentário?",
+  "oppDetail_editComment": "Editar",
+  "oppDetail_repliesCount": "{{count}} respostas",
+  "oppDetail_mentionSearch": "Procurar membros...",
+  "oppDetail_commentPosted": "Comentário publicado",
+  "oppDetail_commentDeleted": "Comentário eliminado"
 }

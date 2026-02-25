@@ -701,5 +701,17 @@
   "oppDetail_keyContact": "Key Contact",
   "oppDetail_partner": "Partner",
   "oppDetail_noRecordAssociated": "No {{type}} associated",
-  "oppDetail_associate": "+ Associate"
+  "oppDetail_associate": "+ Associate",
+  "oppDetail_commentsTab": "Comments",
+  "oppDetail_noComments": "No comments yet",
+  "oppDetail_addComment": "Write a comment...",
+  "oppDetail_postComment": "Post",
+  "oppDetail_reply": "Reply",
+  "oppDetail_deleteComment": "Delete",
+  "oppDetail_deleteCommentConfirm": "Delete this comment?",
+  "oppDetail_editComment": "Edit",
+  "oppDetail_repliesCount": "{{count}} replies",
+  "oppDetail_mentionSearch": "Search team members...",
+  "oppDetail_commentPosted": "Comment posted",
+  "oppDetail_commentDeleted": "Comment deleted"
 }

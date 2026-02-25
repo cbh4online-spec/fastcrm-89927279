@@ -19991,6 +19991,64 @@ export type Database = {
           },
         ]
       }
+      opportunity_comments: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          mentions: string[] | null
+          opportunity_id: string
+          parent_id: string | null
+          updated_at: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          mentions?: string[] | null
+          opportunity_id: string
+          parent_id?: string | null
+          updated_at?: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          mentions?: string[] | null
+          opportunity_id?: string
+          parent_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_comments_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunity_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunity_comments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_audit_log: {
         Row: {
           action: string
