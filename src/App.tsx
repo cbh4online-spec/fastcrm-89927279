@@ -125,6 +125,7 @@ import ProfessionalProspecting from "./pages/ProfessionalProspecting";
 import SchedulingPage from "./pages/SchedulingPage";
 import CalendarsPage from "./pages/CalendarsPage";
 import MeetingsPage from "./pages/MeetingsPage";
+import MeetingTranscriptPage from "./pages/MeetingTranscriptPage";
 import ServicesPage from "./pages/ServicesPage";
 import AvailabilityPage from "./pages/AvailabilityPage";
 import FeedPage from "./pages/FeedPage";
@@ -439,6 +440,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/meetings" element={<Navigate to="/dashboard/scheduling" replace />} />
                 <Route path="/dashboard/services" element={<Navigate to="/dashboard/scheduling" replace />} />
                 <Route path="/dashboard/availability" element={<Navigate to="/dashboard/scheduling" replace />} />
+                <Route path="/dashboard/meetings/:meetingId/transcript" element={<MeetingTranscriptPage />} />
                 <Route path="/dashboard/feed" element={<FeedPage />} />
                 <Route path="/dashboard/productivity" element={<ProductivityPage />} />
                 <Route path="/dashboard/member" element={<MemberPanelPage />} />

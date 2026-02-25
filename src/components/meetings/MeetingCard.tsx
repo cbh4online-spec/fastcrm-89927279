@@ -1,5 +1,6 @@
 import { format, isPast, isFuture, isToday, differenceInMinutes } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 import { 
   Video, 
   MapPin, 
@@ -20,6 +21,7 @@ import {
   Share2,
   ClipboardCheck,
   Brain,
+  FileAudio,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -72,6 +74,7 @@ const sourceConfig: Record<MeetingSource, { label: string; color: string }> = {
 };
 
 export function MeetingCard({ meeting, compact, onStatusChange, onClick, onRegisterOutcome, onPublishToTeam, onPrepare, onNoShow }: MeetingCardProps) {
+  const navigate = useNavigate();
   const startTime = new Date(meeting.start_time);
   const endTime = new Date(meeting.end_time);
   const duration = differenceInMinutes(endTime, startTime);
@@ -201,6 +204,11 @@ export function MeetingCard({ meeting, compact, onStatusChange, onClick, onRegis
                 </DropdownMenuItem>
               </>
             )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/meetings/${meeting.id}/transcript`); }}>
+              <FileAudio className="h-4 w-4 mr-2" />
+              Ver Transcrição
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -287,6 +295,11 @@ export function MeetingCard({ meeting, compact, onStatusChange, onClick, onRegis
                 </DropdownMenuItem>
               </>
             )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/meetings/${meeting.id}/transcript`); }}>
+              <FileAudio className="h-4 w-4 mr-2" />
+              Ver Transcrição
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
