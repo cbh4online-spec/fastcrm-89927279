@@ -1,157 +1,285 @@
 
 
-# Ask FastCRM — Premium UX Upgrade
+# Ask FastCRM — Natural Language Automation Rules (Ask → Automate)
 
-## Current State Analysis
+## Current State
 
-| Component | Status | Gap |
-|---|---|---|
-| `AskFastCRMDialog` | Uses ⌘J shortcut, Dialog-based overlay | Needs ⌘K (conflicts with GlobalSearch), autocomplete, keyboard nav, premium polish |
-| `AskFastCRMResultPanel` | Has headline/subtext, items, actions, did_you_mean, confirmation | Needs "View all" truncation, stage/company badges on items, max 3 actions + "More" |
-| `GlobalSearch` | Uses ⌘K, CommandDialog-based | Must yield ⌘K to Ask; GlobalSearch moves to ⌘/ or stays as secondary |
-| `TopBar` | Has Ask button with ⌘J badge | Must update shortcut badge to ⌘K |
-| `useRecentAskQueries` | Fetches 5 recent queries | Increase to 8 |
-| Autocomplete | Not implemented | Need inline suggestions while typing |
-| Empty results | Not handled | Need "Nothing found" + threshold chips |
+The system already has:
+- **Ask FastCRM edge function** with hybrid deterministic + LLM routing, strict JSON contract, whitelists, confidence scoring
+- **`automation_rules` table** with conditions, actions, logs — full CRUD via `useAutomations.ts` (`useCreateAutomationRule`)
+- **Automation triggers** as a Postgres enum including `opportunity_stage_changed`, `lead_no_response`, `conversation_no_reply`, etc.
+- **Automation action types** as enum: `create_task`, `assign_owner`, `notify_user`, `move_opportunity_stage`, `send_message`, etc.
+- **AskFastCRMResultPanel** with items, actions, confirmation overlay, "Did you mean?" chips
+- **AskFastCRMDialog** with autocomplete, keyboard nav, suggestion chips
 
-### Shortcut Conflict Resolution
+## Architecture Overview
 
-`GlobalSearch` currently owns ⌘K. The plan reassigns ⌘K to Ask FastCRM (the primary command interface) and moves GlobalSearch to ⌘/ (standard search shortcut in many apps). This is a clean separation: ⌘K = intelligence/revenue commands, ⌘/ = entity search.
-
----
+```text
+User types: "Remind me if no activity for 7 days"
+       │
+       ▼
+┌─────────────────────────┐
+│  Ask FastCRM Edge Func  │
+│  ┌───────────────────┐  │
+│  │ Intent Router     │  │ ← detects "create_automation_rule" intent
+│  │ (deterministic +  │  │
+│  │  LLM fallback)    │  │
+│  └───────┬───────────┘  │
+│          ▼              │
+│  ┌───────────────────┐  │
+│  │ Automation Rule   │  │ ← extracts trigger, conditions, actions
+│  │ Extractor (LLM)   │  │   returns structured JSON
+│  └───────┬───────────┘  │
+│          ▼              │
+│  ┌───────────────────┐  │
+│  │ Validate against  │  │ ← whitelist triggers, actions, fields
+│  │ guardrails        │  │
+│  └───────────────────┘  │
+└──────────┬──────────────┘
+           ▼
+┌────────────────────────────┐
+│  Frontend: Preview Panel   │
+│  When → If → Then          │  ← user reviews, edits params
+│  [Edit] [Confirm] [Cancel] │
+└──────────┬─────────────────┘
+           ▼ (on confirm)
+┌──────────────────────────┐
+│  useCreateAutomationRule │  ← saves to automation_rules + conditions + actions
+│  (existing hook)         │
+└──────────────────────────┘
+```
 
 ## Implementation Plan
 
-### 1. Shortcut Reassignment
+### 1. Edge Function — New Intent: `create_automation_rule`
 
-**`src/components/layout/GlobalSearch.tsx`**
-- Change keyboard shortcut from ⌘K to ⌘/ (line 71)
-- Update the `<kbd>` badge from `⌘K` to `⌘/` (line 178-179)
+**File: `supabase/functions/ask-fastcrm/index.ts`**
 
-**`src/components/ask-fastcrm/AskFastCRMDialog.tsx`**
-- Change shortcut from ⌘J to ⌘K (line 38)
-- Update the `<kbd>` badge from `⌘J` to `⌘K` (line 109)
+**1A. Add automation keywords to deterministic router**
 
-**`src/components/layout/TopBar.tsx`**
-- Update the Ask button kbd from `⌘J` to `⌘K` (line 72)
+Add entries to `KEYWORD_MAP` and `EXACT_PHRASES`:
+```
+"remind me" → create_automation_rule
+"alert me" → create_automation_rule
+"auto-assign" → create_automation_rule
+"notify me when" → create_automation_rule
+"create follow-up when" → create_automation_rule
+"create task when" → create_automation_rule
+```
 
-### 2. Autocomplete Suggestions While Typing
+Confidence: These always route to LLM (confidence set to 0.60) because we need structured extraction, not just classification.
 
-**`src/components/ask-fastcrm/AskFastCRMDialog.tsx`**
+**1B. Add second LLM tool: `extract_automation_rule`**
 
-Add a lightweight autocomplete system using a static map of keyword-to-suggestion:
+When intent is `create_automation_rule`, call the LLM with a specialized tool that extracts:
 
 ```typescript
-const AUTOCOMPLETE_MAP: Record<string, string> = {
-  "risk": "Which deals are at risk?",
-  "at risk": "Which deals are at risk?",
-  "close": "What will close this month?",
-  "closing": "What will close this month?",
-  "stuck": "Which deals are stuck in stage?",
-  "no act": "Deals with no activity in 14 days",
-  "inactive": "Deals with no activity in 14 days",
-  "next step": "Deals with no next step",
-  "high": "Show highest value deals",
-  "value": "Show highest value deals",
-  "pipeline": "How is my pipeline?",
-  "forecast": "What's blocking my forecast?",
+const AUTOMATION_TOOL = {
+  type: "function",
+  function: {
+    name: "extract_automation_rule",
+    description: "Extract a structured automation rule from a natural language request.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Short name for the rule" },
+        trigger: {
+          type: "string",
+          enum: ["opportunity_stage_changed", "lead_no_response", "conversation_no_reply", "lead_score_changed", "lead_temperature_changed"]
+        },
+        trigger_config: {
+          type: "object",
+          properties: {
+            delay_days: { type: "number" },
+            stage_name: { type: "string" },
+          }
+        },
+        conditions: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              field_name: { type: "string", enum: ["amount", "stage", "health_label", "close_date", "owner_id"] },
+              operator: { type: "string", enum: ["equals", "not_equals", "greater_than", "less_than", "is_empty"] },
+              value: { type: "string" }
+            }
+          }
+        },
+        actions: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              action_type: { type: "string", enum: ["create_task", "assign_owner", "notify_user", "move_opportunity_stage", "send_message"] },
+              config: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  due_in_days: { type: "number" },
+                  priority: { type: "string", enum: ["high", "medium", "low"] },
+                  message: { type: "string" },
+                  stage_name: { type: "string" },
+                }
+              }
+            }
+          }
+        }
+      },
+      required: ["name", "trigger", "actions"]
+    }
+  }
 };
 ```
 
-- Use `useDebounce(input, 150)` to debounce the input
-- Match against the map keys; show up to 3 suggestions below the input as clickable rows
-- Clicking a suggestion fills the input and submits immediately
-- Render suggestions only when `input.length >= 2` and no result is showing
-- Suggestions appear with a subtle fade-in animation
+**1C. Guardrails for automation extraction**
 
-### 3. Keyboard Navigation (Items + Suggestions)
+Whitelist of allowed triggers (v1 — deals only):
+- `opportunity_stage_changed`
+- `lead_no_response` (for "no activity" patterns)
+- `lead_score_changed`
+- `lead_temperature_changed`
 
-**`src/components/ask-fastcrm/AskFastCRMDialog.tsx`**
+Whitelist of allowed actions (v1):
+- `create_task`
+- `assign_owner`
+- `notify_user`
+- `move_opportunity_stage`
 
-Add `selectedIndex` state and `onKeyDown` handler on the dialog content:
+Validate extracted rule against whitelists. If invalid, return `did_you_mean` suggestions.
 
-- ↑/↓ arrows navigate through autocomplete suggestions or result items
-- Enter on a suggestion submits it; Enter on a result item opens the deal link
-- Esc closes the dialog (already works via Dialog)
-- Add `aria-activedescendant`, `role="listbox"` on the suggestions/items container
-- Add `role="option"`, `aria-selected` on each item
+**1D. Response format for automation intent**
 
-### 4. Result Panel Premium Polish
+Return a new response shape with `intent: "create_automation_rule"` and an `automation_preview` field:
 
-**`src/components/ask-fastcrm/AskFastCRMResultPanel.tsx`**
+```typescript
+{
+  version: "1.0",
+  routed_via: "llm",
+  confidence: 0.85,
+  intent: "create_automation_rule",
+  object_type: "deals",
+  query: { filters: [], sort: [], limit: 0 },
+  answer: {
+    headline: "You're creating a new automation rule.",
+    subtext: "Review the details below and confirm."
+  },
+  actions_available: ["CONFIRM_AUTOMATION", "CANCEL"],
+  items: [],
+  actions: [],
+  automation_preview: {
+    name: "Follow up on Proposal deals",
+    trigger: "opportunity_stage_changed",
+    trigger_config: { stage_name: "Proposal" },
+    trigger_label: "Deal enters \"Proposal\"",
+    conditions: [{ field_name: "amount", operator: "greater_than", value: "20000" }],
+    conditions_labels: ["Amount > €20,000"],
+    actions: [{ action_type: "create_task", config: { title: "Follow up on proposal", due_in_days: 3, priority: "high" } }],
+    actions_labels: ["Create task \"Follow up on proposal\" in 3 days"]
+  }
+}
+```
 
-4A. **Item rows — add stage badge + company**
-- Each item already has `health_label`, `title`, `subtitle`, `value`
-- Add a `stage` field to `AskResultItem` interface (optional string)
-- Render stage as a small neutral badge next to the health badge
-- Subtitle already shows company info from the edge function
+### 2. Frontend — Types Update
 
-4B. **Truncate items to 10 + "View all" button**
-- Show only the first 10 items from `result.items`
-- If more than 10, show a "View all (N)" button that navigates to the deals list with filters applied
+**File: `src/hooks/useAskFastCRM.ts`**
 
-4C. **Max 3 visible actions + "More" dropdown**
-- Show first 3 actions as buttons
-- If more than 3, wrap remaining in a DropdownMenu with "More..." trigger
+**2A. Add `AutomationPreview` interface**
 
-4D. **Empty results state**
-- When `result.items.length === 0` and no `did_you_mean` and no `metric`:
-  ```
-  "Nothing found for that query."
-  Try: [No activity 7d] [No activity 14d] [No activity 30d]
-  ```
+```typescript
+export interface AutomationPreview {
+  name: string;
+  trigger: string;
+  trigger_config?: Record<string, any>;
+  trigger_label: string;
+  conditions: Array<{ field_name: string; operator: string; value: string | null }>;
+  conditions_labels: string[];
+  actions: Array<{ action_type: string; config: Record<string, any> }>;
+  actions_labels: string[];
+}
+```
 
-4E. **Confirmation modal enhancement**
-- When `pendingAction` is set and items > 10, show a preview of the first 5 item names in the confirmation overlay
+**2B. Add `automation_preview` to `AskResult`**
 
-### 5. Loading State Polish
+Add optional `automation_preview?: AutomationPreview` to the `AskResult` interface.
 
-**`src/components/ask-fastcrm/AskFastCRMDialog.tsx`**
+**2C. Add `confirmAutomation` action**
 
-Already uses skeleton loading. Refine:
-- Add staggered fade-in on each skeleton line using framer-motion
-- Remove spinner from header area when loading (keep only skeleton in content)
+New function in `useAskFastCRM` that calls `useCreateAutomationRule` to save the automation from the preview. Maps `automation_preview` fields to the existing `CreateRuleInput` format.
 
-### 6. Recent Queries — Increase to 8
+### 3. Frontend — Automation Preview Panel
 
-**`src/hooks/useRecentAskQueries.ts`**
-- Change `.limit(5)` to `.limit(12)` (fetch more to account for deduplication)
-- After dedup, slice to 8 results
+**New file: `src/components/ask-fastcrm/AskAutomationPreview.tsx`**
 
-### 7. ARIA & Accessibility
+A dedicated component rendered when `result.automation_preview` is present:
 
-**`src/components/ask-fastcrm/AskFastCRMDialog.tsx`**
-- Add `aria-label="Ask FastCRM"` to the input
-- Add `role="listbox"` to the suggestions/items container
-- Add `role="option"` + `aria-selected` to each suggestion/item
-- Focus trap already handled by Dialog component
+```text
+┌─────────────────────────────────────┐
+│  ⚡ You're creating a new rule      │
+│                                     │
+│  When:                              │
+│  ┌─ Deal enters "Proposal" ───────┐ │
+│  └────────────────────────────────┘ │
+│                                     │
+│  If:                                │
+│  ┌─ Amount > €20,000 ────────────┐  │
+│  └────────────────────────────────┘ │
+│                                     │
+│  Then:                              │
+│  ┌─ Create task "Follow up" in 3d ┐ │
+│  └────────────────────────────────┘ │
+│                                     │
+│  [Edit] [Confirm & Activate] [Cancel]│
+└─────────────────────────────────────┘
+```
 
-### 8. AskFastCRMInline — Sync Changes
+- Each section (When/If/Then) uses the `_labels` arrays for human-readable text
+- "Edit" opens inline parameter editing (simple inputs for days, amount, priority, stage name)
+- "Confirm & Activate" calls `confirmAutomation` → saves rule → shows toast "Rule activated"
+- "Cancel" clears the result
 
-**`src/components/ask-fastcrm/AskFastCRMInline.tsx`**
-- Update SUGGESTED_CHIPS to match the 6-chip set: `["Deals at risk", "No activity in 14 days", "No next step", "Closing this month", "Stuck in stage", "High value deals"]`
-- Add loading skeleton instead of spinner
+### 4. Integrate into ResultPanel and Dialog
 
-### 9. Update AskResultItem Interface
+**File: `src/components/ask-fastcrm/AskFastCRMResultPanel.tsx`**
 
-**`src/hooks/useAskFastCRM.ts`**
-- Add `stage?: string` to `AskResultItem`
+- When `result.intent === "create_automation_rule"` and `result.automation_preview` exists, render `<AskAutomationPreview>` instead of the items list
+- The headline and subtext still render normally above the preview
+
+**File: `src/components/ask-fastcrm/AskFastCRMDialog.tsx`**
+
+- Pass `onConfirmAutomation` and `onCancelAutomation` handlers through to ResultPanel
+- On successful automation creation, show toast and optionally close dialog
+
+**File: `src/components/ask-fastcrm/AskFastCRMInline.tsx`**
+
+- Same integration — the preview renders inline when automation intent is detected
+
+### 5. Autocomplete for Automation Phrases
+
+**File: `src/components/ask-fastcrm/AskFastCRMDialog.tsx`**
+
+Add automation suggestions to `AUTOCOMPLETE_MAP`:
+```typescript
+"remind": "Remind me if no activity for 7 days",
+"alert": "Alert me when deals are at risk",
+"auto-assign": "Auto-assign high value deals",
+"follow-up": "Create follow-up when deal enters Proposal",
+"notify": "Notify me if close date is in 3 days",
+```
+
+### 6. No Database Changes Needed
+
+The existing `automation_rules`, `automation_conditions`, and `automation_actions` tables have everything needed. The `useCreateAutomationRule` hook handles the full insert flow. No migration required.
 
 ---
 
-## Files to Edit
+## Files to Create / Edit
 
-| File | Changes |
+| File | Change |
 |---|---|
-| `src/components/layout/GlobalSearch.tsx` | Change ⌘K → ⌘/, update kbd badge |
-| `src/components/layout/TopBar.tsx` | Update Ask button kbd badge ⌘J → ⌘K |
-| `src/components/ask-fastcrm/AskFastCRMDialog.tsx` | ⌘K shortcut, autocomplete, keyboard nav, refined chips (6), ARIA, skeleton polish |
-| `src/components/ask-fastcrm/AskFastCRMResultPanel.tsx` | Stage badge, 10-item truncation + View all, max 3 actions + More dropdown, empty state, confirmation preview |
-| `src/components/ask-fastcrm/AskFastCRMInline.tsx` | Sync chips, skeleton loading |
-| `src/hooks/useAskFastCRM.ts` | Add `stage` to `AskResultItem` |
-| `src/hooks/useRecentAskQueries.ts` | Increase limit to 8 |
-
-## No database migration needed
-
-All data structures already exist. No edge function changes required — this is purely a frontend UX upgrade.
+| `supabase/functions/ask-fastcrm/index.ts` | Add `create_automation_rule` intent detection, `extract_automation_rule` LLM tool, guardrails, `automation_preview` in response |
+| `src/hooks/useAskFastCRM.ts` | Add `AutomationPreview` interface, `automation_preview` to `AskResult`, `confirmAutomation` function |
+| `src/components/ask-fastcrm/AskAutomationPreview.tsx` | **NEW** — When/If/Then preview panel with edit + confirm + cancel |
+| `src/components/ask-fastcrm/AskFastCRMResultPanel.tsx` | Render `AskAutomationPreview` when automation intent detected |
+| `src/components/ask-fastcrm/AskFastCRMDialog.tsx` | Add automation autocomplete entries, pass confirm/cancel handlers |
+| `src/components/ask-fastcrm/AskFastCRMInline.tsx` | Pass confirm/cancel handlers for automation preview |
 
