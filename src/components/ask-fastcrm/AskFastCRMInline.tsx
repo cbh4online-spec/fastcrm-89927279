@@ -12,6 +12,8 @@ const SUGGESTED_CHIPS = [
   "Closing this month",
   "Pipeline summary",
   "Inactive deals",
+  "No next step",
+  "High value deals",
   "Forecast",
   "Stage bottlenecks",
 ];

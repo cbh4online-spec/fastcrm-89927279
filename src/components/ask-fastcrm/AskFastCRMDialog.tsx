@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAskFastCRM } from "@/hooks/useAskFastCRM";
+import { useRecentAskQueries } from "@/hooks/useRecentAskQueries";
 import { AskFastCRMResultPanel } from "./AskFastCRMResultPanel";
 import { Sparkles, Loader2, Command } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +14,8 @@ const SUGGESTED_CHIPS = [
   "Closing this month",
   "Pipeline summary",
   "Inactive deals",
+  "No next step",
+  "High value deals",
   "Forecast",
   "Stage bottlenecks",
 ];
@@ -24,6 +28,7 @@ interface Props {
 export function AskFastCRMDialog({ open, onOpenChange }: Props) {
   const [input, setInput] = useState("");
   const { isLoading, result, ask, clear, executeAction } = useAskFastCRM();
+  const { data: recentQueries } = useRecentAskQueries();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -103,33 +108,64 @@ export function AskFastCRMDialog({ open, onOpenChange }: Props) {
         {/* Content area */}
         <div className="px-4 py-4 max-h-[60vh] overflow-y-auto">
           {!result && !isLoading && (
-            <div className="space-y-3">
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                Suggested
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {SUGGESTED_CHIPS.map((chip) => (
-                  <button
-                    key={chip}
-                    onClick={() => handleChip(chip)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-full text-xs font-medium",
-                      "border border-border/60 bg-muted/30",
-                      "hover:bg-primary/10 hover:border-primary/30 hover:text-primary",
-                      "transition-colors"
-                    )}
-                  >
-                    {chip}
-                  </button>
-                ))}
+            <div className="space-y-4">
+              {/* Recent queries */}
+              {recentQueries && recentQueries.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                    Recent
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {recentQueries.map((q, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleChip(q.question)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-xs font-medium",
+                          "border border-border/60 bg-muted/40",
+                          "hover:bg-primary/10 hover:border-primary/30 hover:text-primary",
+                          "transition-colors"
+                        )}
+                      >
+                        {q.question}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Suggested */}
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                  Suggested
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {SUGGESTED_CHIPS.map((chip) => (
+                    <button
+                      key={chip}
+                      onClick={() => handleChip(chip)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-full text-xs font-medium",
+                        "border border-border/60 bg-muted/30",
+                        "hover:bg-primary/10 hover:border-primary/30 hover:text-primary",
+                        "transition-colors"
+                      )}
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
 
           {isLoading && !result && (
-            <div className="flex items-center gap-3 py-8 justify-center text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <span className="text-sm">Querying your data...</span>
+            <div className="space-y-3 py-4">
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-16 w-full rounded-lg" />
+              <Skeleton className="h-10 w-full rounded-lg" />
+              <Skeleton className="h-10 w-full rounded-lg" />
+              <Skeleton className="h-10 w-2/3 rounded-lg" />
             </div>
           )}
 
