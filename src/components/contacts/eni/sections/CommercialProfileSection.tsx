@@ -5,6 +5,7 @@ import { ENIContact, CLIENT_STATUS_LABELS, ABCCategory } from "../ENIContactType
 import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 import { cn } from "@/lib/utils";
 import { usePriceTiers } from "@/hooks/useClientPricing";
+import { useTranslation } from "react-i18next";
 
 interface CommercialProfileSectionProps {
   contact: ENIContact;
@@ -32,13 +33,11 @@ export function CommercialProfileSection({
   contact, 
   onFieldChange,
 }: CommercialProfileSectionProps) {
+  const { t } = useTranslation('crm');
   const abcCategory = contact.abc_category as ABCCategory;
   const { tiers } = usePriceTiers();
 
-  // Get current tier for display
   const currentTier = tiers.find(t => t.id === contact.price_tier_id);
-  
-  // Build tier options (only active ones)
   const activeTiers = tiers.filter(t => t.is_active);
 
   return (
@@ -49,23 +48,22 @@ export function CommercialProfileSection({
             <div className="p-1.5 rounded-md bg-emerald-500/10">
               <ShoppingBag className="h-4 w-4 text-emerald-500" />
             </div>
-            Perfil Comercial
+            {t('commercialProfile')}
           </CardTitle>
           {abcCategory && (
             <Badge 
               variant="outline" 
               className={cn("text-xs font-bold", ABC_COLORS[abcCategory])}
             >
-              Cliente {abcCategory}
+              {t('clientLabel')} {abcCategory}
             </Badge>
           )}
         </div>
-        <CardDescription>Dados comerciais e status do cliente.</CardDescription>
+        <CardDescription>{t('commercialProfileDesc')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-0 divide-y divide-border/50">
-        {/* Client Status */}
         <InlineEditableField
-          label="Status do Cliente"
+          label={t('clientStatus')}
           fieldId="client_status"
           fieldType="select"
           value={contact.client_status || 'ativo'}
@@ -74,9 +72,8 @@ export function CommercialProfileSection({
           icon={<Target className="h-3.5 w-3.5" />}
         />
 
-        {/* Client Since */}
         <InlineEditableField
-          label="Cliente Desde"
+          label={t('clientSince')}
           fieldId="client_since"
           fieldType="date"
           value={contact.client_since || ''}
@@ -84,9 +81,8 @@ export function CommercialProfileSection({
           icon={<Calendar className="h-3.5 w-3.5" />}
         />
 
-        {/* Price Tier */}
         <InlineEditableField
-          label="Escalão de Preço"
+          label={t('priceTier')}
           fieldId="price_tier_id"
           fieldType="select"
           value={contact.price_tier_id || ''}
@@ -97,13 +93,12 @@ export function CommercialProfileSection({
             [t.id]: `${t.name}${t.discount_percentage > 0 ? ` (${t.discount_percentage}%)` : ''}` 
           }), {})}
           icon={<Percent className="h-3.5 w-3.5" />}
-          placeholder="Sem escalão"
-          emptyOption="Sem escalão"
+          placeholder={t('noPriceTier')}
+          emptyOption={t('noPriceTier')}
         />
 
-        {/* Lead Source */}
         <InlineEditableField
-          label="Fonte do Lead"
+          label={t('leadSource')}
           fieldId="lead_source"
           fieldType="select"
           value={contact.lead_source || ''}
@@ -112,9 +107,8 @@ export function CommercialProfileSection({
           icon={<Users className="h-3.5 w-3.5" />}
         />
 
-        {/* Tags */}
         <InlineEditableField
-          label="Tags"
+          label={t('tags')}
           fieldId="tags"
           fieldType="tags"
           value={contact.tags || []}

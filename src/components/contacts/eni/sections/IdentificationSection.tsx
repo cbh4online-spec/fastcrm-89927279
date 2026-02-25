@@ -6,6 +6,7 @@ import { InlineEditableField } from "@/components/custom-fields/InlineEditableFi
 import { InlineNifField } from "@/components/custom-fields/InlineNifField";
 import { NifLookupResult } from "@/hooks/useNifLookup";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface IdentificationSectionProps {
   contact: ENIContact;
@@ -18,6 +19,8 @@ export function IdentificationSection({
   onFieldChange,
   onNifDataReceived,
 }: IdentificationSectionProps) {
+  const { t } = useTranslation('crm');
+  const { t: tc } = useTranslation('common');
   const entityType = (contact.entity_type || 'consumidor_final') as EntityType;
 
   return (
@@ -28,7 +31,7 @@ export function IdentificationSection({
             <div className="p-1.5 rounded-md bg-primary/10">
               <User className="h-4 w-4 text-primary" />
             </div>
-            Identificação
+            {t('identification')}
           </CardTitle>
           <Badge 
             variant="outline" 
@@ -42,12 +45,12 @@ export function IdentificationSection({
             {ENTITY_TYPE_LABELS[entityType]}
           </Badge>
         </div>
-        <CardDescription>Dados pessoais e fiscais do cliente.</CardDescription>
+        <CardDescription>{t('identificationDesc')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-0 divide-y divide-border/50">
         {/* Entity Type */}
         <InlineEditableField
-          label="Tipo de Entidade"
+          label={t('entityType')}
           fieldId="entity_type"
           fieldType="select"
           value={contact.entity_type || 'consumidor_final'}
@@ -58,7 +61,7 @@ export function IdentificationSection({
 
         {/* Name */}
         <InlineEditableField
-          label="Nome Completo"
+          label={t('fullName')}
           fieldId="name"
           fieldType="text"
           value={contact.name}
@@ -72,20 +75,20 @@ export function IdentificationSection({
           <div className="flex items-start py-3 border-b border-border/50 last:border-0 group">
             <div className="w-40 flex-shrink-0 text-sm text-muted-foreground flex items-center gap-2">
               <FileText className="h-3.5 w-3.5" />
-              Nº Cliente
+              {t('clientNumber')}
             </div>
             <div className="flex-1 text-sm flex items-center gap-2">
               <span className="text-foreground">
                 {(contact as any).client_number || "—"}
               </span>
               <span className="text-xs text-muted-foreground italic">
-                (herdado da empresa)
+                ({tc('inheritedFromCompany')})
               </span>
             </div>
           </div>
         ) : (
           <InlineEditableField
-            label="Nº Cliente"
+            label={t('clientNumber')}
             fieldId="client_number"
             fieldType="text"
             value={(contact as any).client_number || ''}
@@ -97,29 +100,29 @@ export function IdentificationSection({
 
         {/* NIF with lookup */}
         <InlineNifField
-          label="NIF"
+          label={t('nif')}
           value={contact.tax_id}
           onChange={async (value) => {
             await onFieldChange('tax_id', value);
           }}
           onDataReceived={onNifDataReceived}
           icon={<FileText className="h-3.5 w-3.5" />}
-          placeholder="Introduza o NIF..."
+          placeholder={t('enterNif')}
         />
 
         {/* Commercial Name */}
         <InlineEditableField
-          label="Nome Comercial"
+          label={t('commercialName')}
           fieldId="commercial_name"
           fieldType="text"
           value={contact.commercial_name || ''}
           onChange={(value) => onFieldChange('commercial_name', value)}
-          placeholder="Nome comercial ou marca"
+          placeholder={t('commercialNamePlaceholder')}
         />
 
         {/* Email */}
         <InlineEditableField
-          label="Email Principal"
+          label={t('mainEmail')}
           fieldId="email"
           fieldType="email"
           value={contact.email || ''}
@@ -131,7 +134,7 @@ export function IdentificationSection({
 
         {/* Phone */}
         <InlineEditableField
-          label="Telemóvel"
+          label={t('mobile')}
           fieldId="phone"
           fieldType="phone"
           value={contact.phone || ''}
@@ -143,7 +146,7 @@ export function IdentificationSection({
 
         {/* WhatsApp */}
         <InlineEditableField
-          label="Tem WhatsApp"
+          label={t('hasWhatsapp')}
           fieldId="has_whatsapp"
           fieldType="boolean"
           value={contact.has_whatsapp || false}
@@ -153,12 +156,12 @@ export function IdentificationSection({
 
         {contact.has_whatsapp && (
           <InlineEditableField
-            label="Número WhatsApp"
+            label={t('whatsappNumber')}
             fieldId="whatsapp_number"
             fieldType="phone"
             value={contact.whatsapp_number || contact.phone || ''}
             onChange={(value) => onFieldChange('whatsapp_number', value)}
-            placeholder="Número WhatsApp"
+            placeholder={t('whatsappNumber')}
           />
         )}
       </CardContent>

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useContacts } from "@/hooks/useContacts";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -56,24 +57,18 @@ import { ContactStudentJourneySection } from "@/components/contacts/sections/Con
 import { useContactStudentJourneyProfile } from "@/hooks/useContactStudentJourneyProfile";
 import { EntitySchedulingSection } from "@/components/scheduling/EntitySchedulingSection";
 
-const ROLE_LABELS: Record<string, string> = {
-  owner: "Proprietário",
-  admin: "Administrador",
-  agency: "Agência",
-  agent: "Vendas",
-  viewer: "Suporte",
-};
-
-function getTimeAgo(date: Date): string {
+// Role labels are now translated via t()
+function getTimeAgo(date: Date, t: (key: string, opts?: any) => string): string {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  if (diffInSeconds < 60) return "agora mesmo";
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} horas`;
-  return `${Math.floor(diffInSeconds / 86400)} dias`;
+  if (diffInSeconds < 60) return t('common:timeNow');
+  if (diffInSeconds < 3600) return t('common:timeMinutes', { count: Math.floor(diffInSeconds / 60) });
+  if (diffInSeconds < 86400) return t('common:timeHours', { count: Math.floor(diffInSeconds / 3600) });
+  return t('common:timeDays', { count: Math.floor(diffInSeconds / 86400) });
 }
 
 export function ENIContactDetailWithSidebar() {
+  const { t } = useTranslation(['common', 'crm']);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { contacts, isLoading, updateContact, deleteContact } = useContacts();
@@ -113,9 +108,9 @@ export function ENIContactDetailWithSidebar() {
         updateData.commercial_history_updated_at = new Date().toISOString();
       }
       await updateContact.mutateAsync(updateData as { id: string });
-      toast.success("Campo atualizado");
+      toast.success(t('common:fieldUpdated'));
     } catch {
-      toast.error("Erro ao atualizar campo");
+      toast.error(t('common:errorUpdatingField'));
     }
   }, [contact, updateContact]);
 
@@ -133,9 +128,9 @@ export function ENIContactDetailWithSidebar() {
     if (Object.keys(updateData).length > 1) {
       try {
         await updateContact.mutateAsync(updateData as { id: string });
-        toast.success("Dados preenchidos automaticamente!");
+        toast.success(t('common:dataAutoFilled'));
       } catch {
-        toast.error("Erro ao preencher dados");
+        toast.error(t('common:errorAutoFill'));
       }
     }
   }, [contact, updateContact]);
@@ -144,10 +139,10 @@ export function ENIContactDetailWithSidebar() {
     if (!contact) return;
     try {
       await deleteContact.mutateAsync(contact.id);
-      toast.success("Contacto eliminado");
+      toast.success(t('common:contactDeleted'));
       navigate("/dashboard/contacts");
     } catch {
-      toast.error("Erro ao eliminar contacto");
+      toast.error(t('common:errorDeletingContact'));
     }
   };
 
@@ -169,10 +164,10 @@ export function ENIContactDetailWithSidebar() {
     return (
       <div className="text-center py-12">
         <User className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-        <h2 className="text-xl font-semibold mb-2">Contacto não encontrado</h2>
+        <h2 className="text-xl font-semibold mb-2">{t('common:contactNotFound')}</h2>
         <Button onClick={() => navigate("/dashboard/contacts")}>
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Voltar
+          {t('common:back')}
         </Button>
       </div>
     );
@@ -388,7 +383,7 @@ export function ENIContactDetailWithSidebar() {
       default:
         return (
           <div className="text-center py-12 text-muted-foreground">
-            Secção em desenvolvimento
+            {t('common:sectionInDevelopment')}
           </div>
         );
     }
@@ -399,7 +394,7 @@ export function ENIContactDetailWithSidebar() {
       <div className="bg-background px-6 pt-4">
         <PageBreadcrumbs items={[
           { label: "CRM", href: "/dashboard" },
-          { label: "Contactos", href: "/dashboard/contacts" },
+          { label: t('crm:contacts'), href: "/dashboard/contacts" },
           { label: contact.name },
         ]} />
       </div>
@@ -447,18 +442,18 @@ export function ENIContactDetailWithSidebar() {
               <div className="flex items-center gap-3 mt-1">
                 <p className="text-sm text-muted-foreground flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5" />
-                  Atualizado há {getTimeAgo(new Date(contact.updated_at))}
+                  {t('common:updatedAgo', { time: getTimeAgo(new Date(contact.updated_at), t) })}
                 </p>
                 {role && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Badge variant="outline" className="gap-1 text-xs cursor-help">
                         <Shield className="w-3 h-3" />
-                        {ROLE_LABELS[role] || role}
+                        {t(`common:role${role.charAt(0).toUpperCase() + role.slice(1)}`) || role}
                       </Badge>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>O seu nível de acesso</p>
+                      <p>{t('common:yourAccessLevel')}</p>
                     </TooltipContent>
                   </Tooltip>
                 )}
@@ -474,7 +469,7 @@ export function ENIContactDetailWithSidebar() {
                 className="gap-2"
               >
                 <Mail className="w-4 h-4" />
-                Enviar Email
+                {t('common:sendEmail')}
               </Button>
             )}
             {contact.email && (
@@ -482,7 +477,7 @@ export function ENIContactDetailWithSidebar() {
                 trigger={
                   <Button variant="outline" className="gap-2">
                     <UserPlus className="w-4 h-4" />
-                    Convidar B2B
+                    {t('common:inviteB2B')}
                   </Button>
                 }
                 prefillData={{
@@ -500,7 +495,7 @@ export function ENIContactDetailWithSidebar() {
             )}
             <Button variant="outline" onClick={() => setShowInvoiceDialog(true)} className="gap-2">
               <FileText className="w-4 h-4" />
-              Nova Fatura
+              {t('common:newInvoice')}
             </Button>
             <Button 
               variant="outline" 
@@ -509,7 +504,7 @@ export function ENIContactDetailWithSidebar() {
               className="gap-2"
             >
               <Sparkles className="w-4 h-4" />
-              {analyzeContact.isPending ? "A analisar..." : "Analisar com IA"}
+              {analyzeContact.isPending ? t('common:analyzing') : t('common:analyzeWithAI')}
             </Button>
             {(role === 'owner' || role === 'admin') && (
               <AlertDialog>
@@ -520,13 +515,13 @@ export function ENIContactDetailWithSidebar() {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Eliminar Contacto</AlertDialogTitle>
-                    <AlertDialogDescription>Tem a certeza? Esta ação não pode ser revertida.</AlertDialogDescription>
+                    <AlertDialogTitle>{t('common:confirmDeleteTitle')}</AlertDialogTitle>
+                    <AlertDialogDescription>{t('common:confirmDeleteDescription')}</AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
                     <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-                      Eliminar
+                      {t('common:delete')}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

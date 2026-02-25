@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Briefcase, Building, Calendar, Users } from "lucide-react";
 import { ENIContact, BUSINESS_AREAS, FISCAL_REGIMES, CLIENT_TYPES_LABELS } from "../ENIContactTypes";
 import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
+import { useTranslation } from "react-i18next";
 
 interface ProfessionalProfileSectionProps {
   contact: ENIContact;
@@ -12,7 +13,8 @@ export function ProfessionalProfileSection({
   contact, 
   onFieldChange,
 }: ProfessionalProfileSectionProps) {
-  // Only show for ENI entity type
+  const { t } = useTranslation('crm');
+
   if (contact.entity_type !== 'eni') {
     return null;
   }
@@ -24,34 +26,31 @@ export function ProfessionalProfileSection({
           <div className="p-1.5 rounded-md bg-amber-500/10">
             <Briefcase className="h-4 w-4 text-amber-500" />
           </div>
-          Perfil Profissional (ENI)
+          {t('professionalProfile')}
         </CardTitle>
-        <CardDescription>Informação profissional associada à atividade do ENI.</CardDescription>
+        <CardDescription>{t('professionalProfileDesc')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-0 divide-y divide-border/50">
-        {/* CAE Code */}
         <InlineEditableField
-          label="Código CAE"
+          label={t('caeCode')}
           fieldId="cae_code"
           fieldType="text"
           value={contact.cae_code || ''}
           onChange={(value) => onFieldChange('cae_code', value)}
-          placeholder="Código de atividade económica"
+          placeholder={t('caePlaceholder')}
         />
 
-        {/* CAE Description */}
         <InlineEditableField
-          label="Descrição CAE"
+          label={t('caeDescription')}
           fieldId="cae_description"
           fieldType="text"
           value={contact.cae_description || ''}
           onChange={(value) => onFieldChange('cae_description', value)}
-          placeholder="Descrição da atividade"
+          placeholder={t('caeDescPlaceholder')}
         />
 
-        {/* Business Area */}
         <InlineEditableField
-          label="Área de Atuação"
+          label={t('businessArea')}
           fieldId="business_area"
           fieldType="select"
           value={contact.business_area || ''}
@@ -60,9 +59,8 @@ export function ProfessionalProfileSection({
           icon={<Building className="h-3.5 w-3.5" />}
         />
 
-        {/* Fiscal Regime */}
         <InlineEditableField
-          label="Regime Fiscal"
+          label={t('fiscalRegime')}
           fieldId="fiscal_regime"
           fieldType="select"
           value={contact.fiscal_regime || ''}
@@ -70,9 +68,8 @@ export function ProfessionalProfileSection({
           options={FISCAL_REGIMES}
         />
 
-        {/* Activity Start Date */}
         <InlineEditableField
-          label="Início de Atividade"
+          label={t('activityStart')}
           fieldId="activity_start_date"
           fieldType="date"
           value={contact.activity_start_date || ''}
@@ -80,9 +77,8 @@ export function ProfessionalProfileSection({
           icon={<Calendar className="h-3.5 w-3.5" />}
         />
 
-        {/* Client Types */}
         <InlineEditableField
-          label="Tipo de Clientes"
+          label={t('clientTypes')}
           fieldId="client_types"
           fieldType="select"
           value={contact.client_types || ''}

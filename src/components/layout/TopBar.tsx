@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -27,6 +28,8 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { isSuperAdmin } = useUserRole();
+  const { t } = useTranslation('nav');
+  const { t: tc } = useTranslation('common');
 
   // ⌘K shortcut to navigate to Ask page
   useEffect(() => {
@@ -79,12 +82,12 @@ export function TopBar({ onMenuClick }: TopBarProps) {
               className="hidden sm:flex gap-1.5 h-9 text-xs text-muted-foreground hover:text-primary"
             >
               <Sparkles className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">Ask</span>
+              <span className="hidden md:inline">{t('ask')}</span>
               <kbd className="hidden lg:flex items-center text-[10px] bg-muted px-1 py-0.5 rounded">⌘K</kbd>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p className="text-xs">Ask FastCRM about your revenue</p>
+            <p className="text-xs">{t('askFastcrm')}</p>
           </TooltipContent>
         </Tooltip>
 
@@ -113,7 +116,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p className="text-xs">Gestão SaaS</p>
+              <p className="text-xs">{t('saasManagement')}</p>
             </TooltipContent>
           </Tooltip>
         )}
@@ -154,16 +157,16 @@ export function TopBar({ onMenuClick }: TopBarProps) {
             <DropdownMenuSeparator className="my-1" />
             <DropdownMenuItem onClick={() => navigate("/dashboard/profile")}>
               <User className="mr-2 h-4 w-4" />
-              Perfil
+              {tc('profile')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/settings")}>
               <Settings className="mr-2 h-4 w-4" />
-              Definições
+              {tc('settings')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
-              Terminar sessão
+              {t('signOut')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
