@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +17,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 import { HelpSupportDropdown } from "./HelpSupportDropdown";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
-import { AskFastCRMDialog } from "@/components/ask-fastcrm";
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -27,7 +26,18 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { isSuperAdmin } = useUserRole();
-  const [askOpen, setAskOpen] = useState(false);
+
+  // ⌘K shortcut to navigate to Ask page
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        navigate("/dashboard/ask");
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [navigate]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -64,7 +74,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setAskOpen(true)}
+              onClick={() => navigate("/dashboard/ask")}
               className="hidden sm:flex gap-1.5 h-9 text-xs text-muted-foreground hover:text-primary"
             >
               <Sparkles className="h-3.5 w-3.5" />
@@ -159,7 +169,6 @@ export function TopBar({ onMenuClick }: TopBarProps) {
         </DropdownMenu>
       </div>
 
-      <AskFastCRMDialog open={askOpen} onOpenChange={setAskOpen} />
     </header>
   );
 }

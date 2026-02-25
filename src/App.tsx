@@ -22,6 +22,7 @@ import Signup from "./pages/Signup";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
+import AskPage from "./pages/AskPage";
 import TasksPage from "./pages/TasksPage";
 import Settings from "./pages/Settings";
 import Leads from "./pages/Leads";
@@ -370,6 +371,7 @@ function CRMRoutes() {
                 <Route path="/objects/:type" element={<ObjectListPage />} />
                 <Route path="/objects/:type/:id" element={<ObjectDetailPage />} />
                 <Route path="/dashboard/intelligence" element={<IntelligencePage />} />
+                <Route path="/dashboard/ask" element={<AskPage />} />
                 <Route path="/dashboard/tasks" element={<TasksPage />} />
                 
                 {/* Settings redirect to /settings */}
