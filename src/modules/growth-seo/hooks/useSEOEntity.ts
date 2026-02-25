@@ -76,14 +76,24 @@ export function useSEOComparison(slug: string) {
 
       if (error) throw error;
       
-      // Increment view count
+      // Fetch entity_a and entity_b titles
+      const [entityARes, entityBRes] = await Promise.all([
+        supabase.from('seo_entities').select('id, title, slug, tldr, entity_type').eq('id', data.entity_a_id).single(),
+        supabase.from('seo_entities').select('id, title, slug, tldr, entity_type').eq('id', data.entity_b_id).single(),
+      ]);
+
+      // Increment view count (fire and forget)
       supabase
         .from('seo_comparisons')
         .update({ views_count: (data.views_count || 0) + 1 })
         .eq('id', data.id)
         .then(() => {});
 
-      return data as unknown as SEOComparison;
+      return {
+        ...data,
+        entity_a: entityARes.data || undefined,
+        entity_b: entityBRes.data || undefined,
+      } as unknown as SEOComparison;
     },
     staleTime: 5 * 60 * 1000,
   });
