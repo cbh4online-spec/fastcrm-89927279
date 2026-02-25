@@ -1,100 +1,89 @@
 
 
-# Sales Performance Dashboard — Attio-Level Reporting
+# Batch 4 — CRM Pages i18n Migration
 
-## Current State
+## Scope
 
-The existing `ReportsSales.tsx` is basic: 4 KPI cards, a horizontal pipeline bar chart, a pie chart for status distribution, proposal metrics, and ticket size. No time-series analysis, no conversion funnels, no source attribution, no quarter-over-quarter comparison.
+Migrate the 4 main CRM list pages (Leads, Contacts, Companies, Opportunities) and their sub-components to use `t()` calls from the `crm` namespace. This covers ~200 hardcoded Portuguese strings across 12 files.
 
-## Proposed: Full Sales Performance Dashboard
+## Files to Edit (12 components)
 
-Inspired by the Attio screenshot but enhanced with features unique to FastCRM's intelligence engine.
+| File | Hardcoded Strings (approx.) |
+|---|---|
+| `SmartLeadsTable.tsx` | Column labels (30+), filter labels, tab labels, sort options, toast messages, empty states, pagination, bulk actions |
+| `SmartLeadsKPIs.tsx` | 6 KPI titles + descriptions |
+| `SmartFilters.tsx` | Filter labels, placeholders, select options |
+| `SmartLeadRow.tsx` | Status labels, temperature labels, next action labels, tooltips, dropdown menu items, hardcoded `pt` date locale |
+| `AttioContactsTable.tsx` | Column labels (20+), sort options, filter fields, bulk edit fields, header, tooltips, empty states, pagination, toast messages |
+| `SmartContactsKPIs.tsx` | 6 KPI titles + descriptions |
+| `SmartCompaniesTable.tsx` | Column labels (24+), filter groups, tab labels, sort options, toast messages, empty states, pagination, bulk actions |
+| `SmartCompaniesKPIs.tsx` | 6 KPI titles + descriptions |
+| `OpportunitiesModule.tsx` | Header, status filter labels, loading message, empty state, toast messages, button labels, invoice prompt dialog |
+| `OpportunityKPICards.tsx` | 8 KPI titles + descriptions |
+| `PipelineSummaryBar.tsx` | 5 metric labels + sublabels |
+| `OpportunityTableView.tsx` | Table headers (11), status badges, dropdown menu items, empty state, hardcoded `pt` date locale |
 
-### Layout (6 sections)
+## Translation Keys to Add (~150 new keys)
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│  Sales Performance                    [Period ▼] [↻] [+ Report] │
-├─────────────────────────────────────────────────────────────┤
-│ KPI Strip: 6 cards with sparklines & trends                 │
-│ Pipeline Value | Won Revenue | Win Rate | Avg Cycle |       │
-│ Proposals Conv | MQL→SQL Rate                               │
-├──────────────────────┬──────────────────────┬───────────────┤
-│ Weekly Lead Flow     │ Won Revenue by Month │ ARR Trend     │
-│ by Source (stacked)  │ (bar chart)          │ (area chart)  │
-├──────────────────────┴──────────────────────┴───────────────┤
-│ Pipeline Conversion Funnel — This Quarter vs Last Quarter   │
-│ Stage1 100% → Stage2 45% → Stage3 28% → Closed-Won 18%     │
-├──────────────────────────────┬──────────────────────────────┤
-│ Sales Velocity Matrix        │ Top Performers / Owners      │
-│ (deals × value × win rate    │ (leaderboard with bars)      │
-│  / cycle time)               │                              │
-├──────────────────────────────┴──────────────────────────────┤
-│ Deal Source Analysis (pie) │ Stage Duration Heatmap         │
-└─────────────────────────────────────────────────────────────┘
+### Leads Section
+- Column labels: `col_lead`, `col_email`, `col_phone`, `col_externalEmail`, `col_fax`, `col_source`, `col_status`, `col_tags`, `col_company`, `col_companyStatus`, `col_address`, `col_city`, `col_county`, `col_parish`, `col_region`, `col_postalCode`, `col_latitude`, `col_longitude`, `col_temperature`, `col_score`, `col_aiLeadType`, `col_nextAction`, `col_insight`, `col_lastAnalysis`, `col_sla`, `col_estimatedValue`, `col_conversionProb`, `col_automation`, `col_assignedTo`, `col_lastContact`, `col_businessCategory`, `col_services`, `col_taxId`, `col_foundingDate`, `col_capitalSocial`, `col_legalNature`, `col_caeCodes`, `col_caeDescription`, `col_website`, `col_linkedin`, `col_facebook`, `col_instagram`, `col_twitter`, `col_googlePlaceId`, `col_rating`, `col_reviewsCount`, `col_priceLevel`, `col_instagramId`, `col_whatsappId`, `col_externalUsername`, `col_createdAt`, `col_updatedAt`
+- Filter labels: `filterTemperature`, `filterStatus`, `filterActivity`, `filterSmartFilters`, `filterHot`, `filterWarm`, `filterCold`, `filterNew`, `filterContacted`, `filterQualified`, `filterInProposal`, `filterLost`, `filterWaitingReply`, `filterNoReply48h`, `filterActiveConversation`, `filterMaxPriority`, `filterReadyToConvert`, `filterNurture`, `filterAtRisk`
+- Tab labels: `tabLeads`, `tabSmartLists`, `tabAutomations`, `tabImport`
+- Sort labels: `sortNewest`, `sortOldest`, `sortHighestScore`, `sortLowestScore`, `sortHighestValue`, `sortLastContact`
+- Actions: `import`, `newLead`, `refresh`, `searchLeads`, `selected`, `analyzeAI`, `analyzeLinkedIn`, `export`, `delete`, `sendMessage`, `createOpportunity`, `activateAutomation`, `archive`
+- Empty states: `noLeadsYet`, `noLeadsDesc`, `addLead`
+- Pagination: `show`, `perPage`, `totalLeads`, `pageOf`
+- Toasts: `leadsDeleted`, `errorDeletingLeads`, `leadAnalyzed`, `rateLimitReached`, `aiCreditsExhausted`, `errorAnalyzing`, `analyzingLeads`, `leadsAnalyzed`, `errorBulkAnalyze`, `noLinkedInUrl`, `analyzingLinkedIn`, `exportComplete`
+- KPIs: `kpiLeadsToday`, `kpiLeadsTodayDesc`, `kpiHotLeads`, `kpiHotLeadsDesc`, `kpiNoResponse24h`, `kpiNoResponse24hDesc`, `kpiAvgTime`, `kpiAvgTimeDesc`, `kpiConversions`, `kpiConversionsDesc`, `kpiPipeline`, `kpiPipelineDesc`
+- SmartLeadRow: `statusNew`, `statusInProgress`, `statusQualified`, `tempCold`, `tempWarm`, `tempHot`, `tempTooltip`, `scoreTooltip`, `nextActionTooltip`, `actionReplyManual`, `actionSendTemplate`, `actionCreateOpportunity`, `actionActivateAutomation`, `actionArchive`, `actionFollowUp`, `insightTooltip`, `automationActive`, `now`
+
+### Contacts Section
+- Similar column/sort/filter labels
+- KPIs: `kpiTotalContacts`, `kpiHotContacts`, `kpiNoResponse`, `kpiAvgScore`, `kpiDecisionMakers`, `kpiContactsPipeline`
+- Header: `contactsTitle`, `contactsTooltip`, `newContact`
+- Empty: `noContactsYet`, `noContactsDesc`
+- Bulk edit field labels
+
+### Companies Section
+- Filter groups: company-specific (size, industry, activity labels)
+- KPIs: `kpiTotalCompanies`, `kpiHotCompanies`, `kpiClients`, `kpiProspects`
+- Tab labels, sort options, bulk actions
+- Empty: `noCompaniesYet`, `noCompaniesDesc`
+
+### Opportunities Section
+- Header: `opportunitiesTitle`, `opportunitiesDesc`, `newOpportunity`
+- Status filters: `allStatus`, `open`, `won`, `lost`
+- Pipeline metrics: `activeDeals`, `pipelineValue`, `weightedValue`, `avgCycle`, `conversionRate`
+- KPIs: 8 cards (pipelineValue, weightedValue, openOpps, conversionRate, won, lost, avgDealSize, avgCloseTime)
+- Table headers and dropdown actions
+- Invoice prompt dialog strings
+- Loading: `loadingOpportunities`
+
+## Implementation Pattern
+
+Each component gets:
+```typescript
+import { useTranslation } from 'react-i18next';
+const { t } = useTranslation('crm');
 ```
 
-### Data Sources (all from existing tables — no new DB tables needed)
+Date-fns locale switches to dynamic:
+```typescript
+import { pt, enUS, es, fr } from 'date-fns/locale';
+const dateLocales = { pt, en: enUS, es, fr };
+const locale = dateLocales[i18n.language] || pt;
+```
 
-| Chart | Source Table | Query |
-|---|---|---|
-| KPI strip | `opportunities`, `leads`, `proposals` | Aggregations with period filter |
-| Weekly Lead Flow by Source | `leads` grouped by `created_at` week + `source` | Weekly buckets, last 12 weeks |
-| Won Revenue by Month | `opportunities` where `status = 'closed_won'` grouped by month | Last 12 months |
-| ARR/Revenue Trend | `revenue_forecasts` snapshots or `invoices` paid | Monthly totals |
-| Pipeline Conversion Funnel | `opportunities` + `pipeline_stages` | Count deals that reached each stage, calculate pass-through rates |
-| Quarter comparison | Same as funnel but filtered by current vs previous quarter |
-| Sales Velocity | `opportunities` — formula: (deals × avg_value × win_rate) / avg_cycle_days |
-| Top Performers | `opportunities` grouped by `assigned_to` with profile join |
-| Source Analysis | `leads` grouped by `source` |
-| Stage Duration | `opportunity_activities` or stage timestamps |
+Column configs, filter groups, sort options, and status/temperature maps become functions that receive `t` instead of hardcoded objects.
 
-### New Hook: `useSalesPerformance`
+## Implementation Order
 
-Single hook that fetches all metrics in parallel using `Promise.all`:
-- `fetchKPIs()` — 6 headline numbers with trend vs previous period
-- `fetchLeadFlow()` — weekly lead counts by source (last 12 weeks)
-- `fetchWonRevenue()` — monthly won revenue (last 12 months)
-- `fetchARRTrend()` — monthly cumulative or snapshot revenue
-- `fetchConversionFunnel(quarter)` — stage-by-stage conversion rates
-- `fetchSalesVelocity()` — velocity formula components
-- `fetchTopPerformers()` — ranked owners by won value
-- `fetchSourceBreakdown()` — leads by source
+1. Expand all 4 `crm.json` files with ~150 new keys
+2. Edit all 12 component files in parallel
 
-### Components (modular, each in own file)
+## Technical Notes
 
-| Component | Description |
-|---|---|
-| `SalesKPIStrip` | 6 KPI cards in a row with trend badges and sparklines |
-| `LeadFlowChart` | Stacked bar chart — weekly MQL/lead flow by source (like Attio) |
-| `WonRevenueChart` | Bar chart — closed-won value per month |
-| `ARRTrendChart` | Area chart — cumulative revenue trend |
-| `ConversionFunnel` | Horizontal funnel with percentage badges between stages + quarter comparison |
-| `SalesVelocityCard` | Card showing velocity formula breakdown |
-| `TopPerformersCard` | Leaderboard with avatar, name, won value, deal count |
-| `SourceAnalysisChart` | Donut chart with source distribution |
+- Column labels like `LEAD_COLUMNS`, `CONTACT_COLUMNS`, `COMPANY_COLUMNS` are currently declared as module-level constants. They will need to be moved inside the component (or into a `useMemo` with `t` dependency) so they can access `t()`.
+- Same for `filterGroups`, `pageTabs`, `sortOptions`, `statusLabels`, `temperatureConfig`, `nextActionLabels` in the various files.
+- `SmartLeadRow.tsx` and `OpportunityTableView.tsx` use hardcoded `pt` locale for `date-fns` -- will be made dynamic.
 
-### File Plan
-
-| File | Action |
-|---|---|
-| `src/hooks/useSalesPerformance.ts` | **NEW** — All data fetching for the sales dashboard |
-| `src/components/reports/sales/SalesKPIStrip.tsx` | **NEW** — 6 KPI cards |
-| `src/components/reports/sales/LeadFlowChart.tsx` | **NEW** — Stacked bar (weekly leads by source) |
-| `src/components/reports/sales/WonRevenueChart.tsx` | **NEW** — Monthly won revenue bars |
-| `src/components/reports/sales/ARRTrendChart.tsx` | **NEW** — Cumulative revenue area chart |
-| `src/components/reports/sales/ConversionFunnel.tsx` | **NEW** — Stage conversion with quarter comparison |
-| `src/components/reports/sales/SalesVelocityCard.tsx` | **NEW** — Velocity metric breakdown |
-| `src/components/reports/sales/TopPerformersCard.tsx` | **NEW** — Owner leaderboard |
-| `src/components/reports/sales/SourceAnalysisChart.tsx` | **NEW** — Donut by source |
-| `src/pages/ReportsSales.tsx` | **REWRITE** — Compose all components into full dashboard |
-| `src/i18n/locales/{pt,en,es,fr}/reports.json` | **NEW** — Translation keys for all labels |
-
-### Enhancements Over Attio
-
-1. **Sales Velocity formula** — Attio shows raw charts, we show the actual velocity metric with breakdown
-2. **Health-aware conversion** — Funnel stages show health distribution (healthy/watch/at-risk deals at each stage)
-3. **AI Insights strip** — Reuse existing `useReportAIInsights` to show contextual insights below the funnel
-4. **Period comparison** — Not just "this quarter vs last" but configurable: week, month, quarter, year
-5. **i18n ready** — All strings translated from day one
-6. **Real data** — All queries hit existing tables (opportunities, leads, proposals, pipeline_stages, invoices)
