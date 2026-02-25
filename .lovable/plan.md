@@ -1,27 +1,73 @@
 
 
-# Phase 2: Already Implemented
+# Replicate Scores, Lifecycle & Audit for Lead Page
 
-After reviewing the codebase, **all three hooks are already fully implemented**:
+## Current State
 
-## `useCompanies.ts` — Soft Delete/Restore
-- **Soft delete**: `deleteCompany` sets `deleted_at` timestamp instead of hard deleting (line 248-264)
-- **Restore**: `restoreCompany` sets `deleted_at` back to `null` (line 266-282)
-- **Query filter**: `companiesQuery` already filters `.is("deleted_at", null)` (line 134)
-- **Domain extraction**: `createCompany` auto-extracts domain from website (line 147-149)
-- **Core Object fields**: `updateCompany` handles all 22 new columns via `extraFields` array (line 223-226)
-- **Company interface**: Includes all new fields (`icp_fit_score`, `pare_score`, `deleted_at`, `domain`, etc.)
+- **Company**: Has `CompanyScoresCard`, `CompanyLifecycleSection`, `CompanyFirmographicsSection`, `CompanyAuditSection` -- all integrated in overview and audit tabs.
+- **Contact**: Already has `ContactScoresCard`, `ContactLifecycleSection`, `ContactAuditSection` integrated (lines 197-199 and 401 of `ENIContactDetailWithSidebar.tsx`). No firmographics needed for contacts.
+- **Lead**: Missing all three. The `leads` DB table lacks `icp_fit_score`, `engagement_score`, `pare_score` columns. No `leads_audit_log` table exists.
 
-## `useCompanyAuditLog.ts` — Already Created
-- Queries `companies_audit_log` table by `company_id`
-- Returns entries ordered by `changed_at` descending, limited to 100
-- Exports `CompanyAuditLogEntry` interface
+## Changes Required
 
-## `useCompanyScores.ts` — Already Created
-- `useUpdateCompanyScores` mutation updates `icp_fit_score` and/or `pare_score`
-- Sets `updated_by` for audit trail
-- Invalidates both `companies` and `company` query caches
-- Shows success/error toasts
+### 1. Database Migration
 
-**No changes are required.** Phase 2 is complete.
+Add score columns to `leads` table and create audit log table:
+
+```sql
+ALTER TABLE public.leads
+  ADD COLUMN IF NOT EXISTS icp_fit_score integer DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS engagement_score integer DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS pare_score integer DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS public.leads_audit_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid REFERENCES public.workspaces(id),
+  lead_id uuid REFERENCES public.leads(id) ON DELETE CASCADE,
+  changed_by uuid,
+  changed_at timestamptz DEFAULT now(),
+  field_name text NOT NULL,
+  old_value jsonb,
+  new_value jsonb
+);
+
+ALTER TABLE public.leads_audit_log ENABLE ROW LEVEL SECURITY;
+-- RLS policy matching existing audit log patterns
+```
+
+### 2. New Hooks
+
+| File | Purpose |
+|------|---------|
+| `src/hooks/useLeadScores.ts` | `useUpdateLeadScores` mutation -- mirrors `useContactScores.ts` but for leads table |
+| `src/hooks/useLeadAuditLog.ts` | Query `leads_audit_log` -- mirrors `useContactAuditLog.ts` |
+
+### 3. New Components
+
+| File | Based On |
+|------|----------|
+| `src/components/leads/sections/LeadScoresCard.tsx` | `ContactScoresCard` -- ICP Fit, Engagement, PARE with editable progress bars |
+| `src/components/leads/sections/LeadLifecycleSection.tsx` | `ContactLifecycleSection` -- pipeline with statuses: New, Contacted, Qualified, Customer |
+| `src/components/leads/sections/LeadAuditSection.tsx` | `ContactAuditSection` -- audit log table using `useLeadAuditLog` |
+
+### 4. Integration: `LeadDetailWithSidebar.tsx`
+
+- **Overview section** (line 181): Add `LeadScoresCard` + `LeadLifecycleSection` in a 2-column grid before existing content
+- **Audit case**: Add `case 'audit'` to the switch returning `<LeadAuditSection leadId={id!} />`
+- Update Lead interface in `useLeads.ts` to include the 3 new score fields
+
+### 5. Files Changed Summary
+
+| File | Change |
+|------|--------|
+| DB migration | Add 3 columns to `leads`, create `leads_audit_log` table + RLS |
+| `src/hooks/useLeads.ts` | Add `icp_fit_score`, `engagement_score`, `pare_score` to `Lead` interface |
+| `src/hooks/useLeadScores.ts` | **New** -- mutation hook for lead scores |
+| `src/hooks/useLeadAuditLog.ts` | **New** -- query hook for lead audit log |
+| `src/components/leads/sections/LeadScoresCard.tsx` | **New** -- scores card component |
+| `src/components/leads/sections/LeadLifecycleSection.tsx` | **New** -- lifecycle pipeline component |
+| `src/components/leads/sections/LeadAuditSection.tsx` | **New** -- audit log table component |
+| `src/components/crm/LeadDetailWithSidebar.tsx` | Integrate scores + lifecycle in overview, add audit case |
+
+No changes needed for Contacts -- already fully integrated.
 
