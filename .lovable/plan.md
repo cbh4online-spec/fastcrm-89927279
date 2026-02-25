@@ -1,113 +1,116 @@
 
 
-# Plano: Interface Attio/Basepoint -- View Selector + Sidebar Expandida + Table Footer
+# Plano: Refinamentos Finais Estilo Attio -- Quick Actions, Records Expandidos, Invite Members
 
-## Análise do Screenshot
+## Análise do Screenshot vs Estado Atual
 
-A imagem mostra o Basepoint com funcionalidades que ainda faltam na implementação atual:
+O screenshot mostra refinamentos que ainda faltam na implementação atual:
 
-1. **View Selector Dropdown no header** -- dropdown "New Trial Workspaces ▾" com campo de pesquisa e lista de vistas guardadas, separado do sidebar
-2. **Sidebar com navegação expandida** -- secções adicionais: Quick Actions, Notifications, Tasks, Notes, Emails, Calls, Reports, Automations (Sequences, Workflows)
-3. **"+ Add calculation" no footer da tabela** -- placeholder por coluna no rodapé (não apenas contagem total)
-4. **"+ New [Entity]" botão prominente** no canto superior direito com cor de destaque
+1. **"Quick actions" com atalho ⌘K** no topo da sidebar -- botão com indicadores de keyboard shortcut (⌘K, /)
+2. **Records expandidos** -- além de Companies, People (Contacts), Deals e Invoices, faltam: **Users**, **Workspaces**, **Partners**
+3. **"Invite team members"** no fundo da sidebar -- link fixo no bottom
+4. **"+ Add column"** como último header da tabela -- botão visível no header, não apenas no footer
+5. **Filter pills com dot colorido** nos valores (ex: "Subscription Status is `●` Active") -- refinamento visual
+6. **"Sorted by X"** como pill na barra de filtros, com ícone de sort, em vez de badge separada
 
-## Estado Atual vs Melhorias
+## Componentes a Editar
 
-| Funcionalidade | Estado Atual | Melhoria |
-|---|---|---|
-| View selector no header | Não existe -- vistas apenas no sidebar | Dropdown com pesquisa + lista de vistas no header |
-| Sidebar navegação | Apenas Records, Views, Favorites, Lists | Adicionar Quick Actions, Notifications, Tasks, Notes, Emails, Calls, Reports, Automations |
-| Footer "+ Add calculation" | Apenas contagem total | Placeholder "+ Add calculation" por coluna visível |
-| Botão New Entity | Existe mas sem destaque visual | Cor de destaque (primary) com ícone + |
-| Automations sub-items | Não existe | Secção colapsável com Sequences e Workflows |
+### 1. `DealsSidebar.tsx` -- EDIT
+- Adicionar botão **"Quick actions"** no topo com indicadores de shortcut `⌘K` e `/`
+- Expandir `RECORDS_LINKS` com **Users** (`Users` icon → `/dashboard`), **Workspaces** (`Building` → `/dashboard`), **Partners** (`Handshake` → `/dashboard`)
+- Adicionar **"Invite team members"** como link fixo no bottom da sidebar (fora do ScrollArea), com ícone `UserPlus`
+- O "Quick actions" abre um Command Palette (cmdk dialog) -- implementação básica com pesquisa de vistas e navegação
 
-## Componentes a Criar/Editar
+### 2. `OpportunityTableView.tsx` -- EDIT
+- Adicionar **"+ Add column"** como último `TableHead` no header (botão ghost com tooltip "Em breve")
+- Ajustar footer para alinhar melhor com as colunas reais da tabela
 
-### 1. `DealViewSelectorDropdown.tsx` -- **NEW**
-- Dropdown trigger no header mostrando nome da vista ativa (ex: "New Trial Workspaces ▾")
-- Campo de pesquisa dentro do dropdown
-- Lista de vistas com ícone/dot colorido, nome e botão de 3 pontos (opções)
-- Opção "Create new view" no fundo
-- Integra com `useSavedViews` e `activeViewId`
+### 3. `ActiveFilterPills.tsx` -- EDIT
+- Adicionar suporte para **dot colorido** antes dos valores de filtro (quando o campo é "status", "stage", etc.)
+- Aceitar prop `sortField` e `sortDir` para renderizar "Sorted by X" como pill integrada (em vez de badge separada no `OpportunitiesModule`)
 
-### 2. `DealsSidebar.tsx` -- **EDIT**
-- Adicionar secções de navegação no topo (antes das Views):
-  - Quick Actions, Notifications, Tasks, Notes, Emails, Calls, Reports
-  - Automations (colapsável) com sub-items: Sequences, Workflows
-- Links navegam para as rotas existentes do dashboard (ex: `/dashboard/tasks`, `/dashboard/notes`)
-- Ícones Lucide para cada item
+### 4. `OpportunitiesModule.tsx` -- EDIT
+- Mover o indicador "Sorted by" para dentro do `ActiveFilterPills` como props
+- Remover o Badge separado de sorted by
 
-### 3. `OpportunityTableView.tsx` -- **EDIT**
-- Substituir footer simples por footer com "+ Add calculation" placeholder por cada coluna visível
-- Manter contagem de registos na primeira coluna do footer
-- Cada placeholder "+ Add calculation" é clicável mas mostra tooltip "Em breve"
-
-### 4. `OpportunitiesModule.tsx` -- **EDIT**
-- Substituir título estático "Opportunities" pelo `DealViewSelectorDropdown` no header
-- Manter "View settings" e "Import / Export" à direita do view selector
-- Botão "+ New Deal" com estilo mais prominente
+### 5. `CommandPalette.tsx` -- NEW (opcional, pode ser simplificado)
+- Dialog com `Command` (cmdk) que abre com `⌘K`
+- Pesquisa rápida de vistas, navegação para páginas (Companies, Contacts, etc.)
+- Ações rápidas: "Create Deal", "Create Contact", etc.
 
 ## Ficheiros
 
 | Ficheiro | Ação | Descrição |
 |---|---|---|
-| `src/components/opportunities/DealViewSelectorDropdown.tsx` | **NEW** | Dropdown de seleção de vista com pesquisa |
-| `src/components/opportunities/DealsSidebar.tsx` | **EDIT** | Navegação expandida com Quick Actions, Tasks, Notes, etc. |
-| `src/components/opportunities/OpportunityTableView.tsx` | **EDIT** | Footer com "+ Add calculation" por coluna |
-| `src/components/opportunities/OpportunitiesModule.tsx` | **EDIT** | Integrar view selector dropdown no header |
-| `src/i18n/locales/*/crm.json` | **EDIT** | ~10 novas keys |
+| `src/components/opportunities/DealsSidebar.tsx` | **EDIT** | Quick actions, Records expandidos, Invite team members |
+| `src/components/opportunities/OpportunityTableView.tsx` | **EDIT** | "+ Add column" no header |
+| `src/components/opportunities/ActiveFilterPills.tsx` | **EDIT** | Dot colorido + "Sorted by" integrado |
+| `src/components/opportunities/OpportunitiesModule.tsx` | **EDIT** | Mover sorted by para ActiveFilterPills |
+| `src/components/opportunities/CommandPalette.tsx` | **NEW** | Command palette com ⌘K |
+| `src/i18n/locales/*/crm.json` | **EDIT** | ~6 novas keys |
 
 ## Detalhes Técnicos
 
-### DealViewSelectorDropdown
+### Quick Actions + Command Palette
+```text
+┌─────────────────────────────────┐
+│ 🔍 Search or type a command...  │
+├─────────────────────────────────┤
+│ NAVIGATION                      │
+│   Companies                     │
+│   Contacts                      │
+│   Deals                         │
+│   Invoices                      │
+├─────────────────────────────────┤
+│ ACTIONS                         │
+│   + Create Deal                 │
+│   + Create Contact              │
+│   + Create Company              │
+├─────────────────────────────────┤
+│ VIEWS                           │
+│   🎯 Inbound Leads              │
+│   🎊 Product Launch Campaign    │
+└─────────────────────────────────┘
+```
+- Abre com `⌘K` ou clique no botão
+- Usa `CommandDialog` do cmdk (já instalado)
+- Registra `useEffect` com event listener de keyboard
+
+### Records Expandidos
+Adicionar ao array `RECORDS_LINKS`:
+- `{ key: "sidebarUsers", icon: Users, href: "/dashboard" }`
+- `{ key: "sidebarWorkspaces", icon: Building, href: "/dashboard" }`
+- `{ key: "sidebarPartners", icon: Handshake, href: "/dashboard" }`
+
+### Sidebar Bottom
+Abaixo do `ScrollArea`, um div fixo com:
 ```text
 ┌─────────────────────────────┐
-│ 🔍 Search views...          │
-├─────────────────────────────┤
-│ ● New Trial Workspaces    ⋯ │  ← ativa (highlight)
-│ ● Workspaces Overview     ⋯ │
-│ ● PQL upsell opps         ⋯ │
-│ ● Active Accounts         ⋯ │
-│ ● Renewals this Quarter   ⋯ │
-├─────────────────────────────┤
-│ + Create new view            │
+│ 👤 Invite team members      │
 └─────────────────────────────┘
 ```
-- Usa `DropdownMenu` ou `Popover` com `Command` (cmdk) para pesquisa
-- Cada item mostra emoji/dot + nome + menu contextual (⋯)
-- Trigger: `<Button variant="ghost">` com nome da vista + `ChevronDown`
 
-### Sidebar Expandida
-Novas secções no topo (links simples com ícones):
-- `Bell` → Notifications
-- `CheckSquare` → Tasks  
-- `StickyNote` → Notes
-- `Mail` → Emails
-- `Phone` → Calls
-- `BarChart3` → Reports
-- `Zap` → Automations (colapsável)
-  - `GitBranch` → Sequences
-  - `Workflow` → Workflows
+### Filter Pills Melhorados
+- Quando o valor do filtro é um status/stage, mostrar um dot colorido antes do texto
+- Aceitar `sortField?: string` e `sortDir?: "asc" | "desc"` como props
+- Renderizar "Sorted by {field}" como primeiro pill (com ícone ArrowUpDown e botão X para limpar)
 
-### Table Footer
-```text
-│ 25 count │ + Add calculation │ + Add calculation │ ... │
-```
-- Primeira célula: contagem de registos
-- Restantes células: botão ghost "+ Add calculation" com tooltip
+### "+ Add column" no Header
+- Último `TableHead` com botão ghost `+ Add column`
+- `onClick` mostra toast "Em breve" ou tooltip
 
-## i18n Keys Novas (~10)
+## i18n Keys Novas (~6)
 ```
-quickActions, notifications, tasks, notes, emails, calls,
-reports, automations, sequences, workflows
+quickActions, inviteTeamMembers, sidebarUsers,
+sidebarWorkspaces, sidebarPartners, commandPaletteSearch
 ```
-(Muitas já podem existir -- verificar antes de adicionar)
 
 ## Ordem de Implementação
 
-1. `DealViewSelectorDropdown.tsx` -- novo componente
-2. `DealsSidebar.tsx` -- navegação expandida
-3. `OpportunityTableView.tsx` -- footer melhorado
-4. `OpportunitiesModule.tsx` -- integrar view selector
-5. i18n keys
+1. `CommandPalette.tsx` -- novo componente
+2. `DealsSidebar.tsx` -- quick actions, records expandidos, invite link
+3. `ActiveFilterPills.tsx` -- dots coloridos + sorted by integrado
+4. `OpportunityTableView.tsx` -- "+ Add column" no header
+5. `OpportunitiesModule.tsx` -- integrar sorted by nas pills
+6. i18n keys
 
