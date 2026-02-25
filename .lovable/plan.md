@@ -1,85 +1,93 @@
 
 
-# Plan: Add Emoji/Icon Picker to View Rename Dialog
+# Plan: Adopt Attio-style Template Detail View
 
-## Overview
+## What's Changing
 
-Add an emoji/icon picker alongside the rename input so users can customize the view's icon. This applies to both the inline rename in `DealsSidebar.tsx` and the dialog rename in `ViewSettingsDropdown.tsx`.
+The current template preview is a simple pre-formatted text block. The screenshot shows a much richer detail view with section cards (title + description + format badge) and a right sidebar summary. We'll redesign the preview mode inside `TemplateLibraryDialog` to match this pattern.
 
-## Current State
+## Current vs Target
 
-- `SavedView` already has an `icon: string | null` field stored in the database
-- The sidebar already renders `view.icon` as a text emoji when present (line 567)
-- `useUpdateSavedView` already supports updating `icon` in the `updates` partial
-- Rename in `DealsSidebar` is an inline input (lines 605-624) — callback is `onRename(newName: string)`
-- Rename in `ViewSettingsDropdown` is a Dialog with input (lines 94-112)
+**Current preview**: Plain `<pre>` block showing the raw body text, with subject above it.
 
-## Implementation Steps
+**Target (from screenshot)**:
+- **Left area**: Vertical list of section cards, each with bold title, description paragraph, and a "Format: Tt Text" or "Format: ≡ List" badge at the bottom
+- **Right sidebar (~280px)**: Category badge, template name, description, and a "Sections" list with type icons
+- **Breadcrumb**: "Templates › ChAMP" at the top instead of a back button
+- **"Use this template →" button**: Bottom-right, styled with accent color
 
-### 1. Create `EmojiIconPicker` component — NEW `src/components/opportunities/EmojiIconPicker.tsx`
+## Implementation
 
-A small Popover-based picker with:
-- A grid of common emojis organized by category (Objects, Faces, Nature, Symbols — ~60 emojis total)
-- A "Remove" option to clear the icon back to the default colored dot
-- Trigger is the current icon (emoji or colored dot) rendered as a clickable button
-- Static emoji list embedded in the component (no external dependency needed)
+### 1. Add `sectionDescription` to `LibraryTemplateField` — `templateLibraryData.ts`
 
-Categories and emojis:
-- **Objects**: 📋 📊 📈 💼 🎯 ⭐ 💡 🔔 📌 🏷️ 📁 📂 💰 🏆 🎨
-- **People**: 👥 👤 🤝 💪 🙌 👋 ✋ 🫂
-- **Status**: ✅ ❌ ⚡ 🔥 ❄️ 🚀 ⏰ 🔒 🔓
-- **Shapes**: 🔴 🟢 🔵 🟡 🟣 ⬛ 🔶 🔷
+Each field currently only has `name` and `type`. Add an optional `description: string` field so each section card can show explanatory text matching the screenshot pattern.
 
-### 2. Update inline rename in `DealsSidebar.tsx` ViewItem (lines 605-624)
-
-- Change `onRename` callback signature to `onRename: (newName: string, icon?: string | null) => void`
-- Add local `newIcon` state initialized from `view.icon`
-- Place `EmojiIconPicker` to the left of the name input
-- On submit, pass both `newName` and `newIcon`
-
-### 3. Update rename dialog in `ViewSettingsDropdown.tsx` (lines 94-112)
-
-- Add `newIcon` state initialized from `activeView.icon`
-- Place `EmojiIconPicker` to the left of the name input inside the Dialog
-- Update `onRename` prop signature to include icon: `onRename?: (id: string, newName: string, icon?: string | null) => void`
-- Pass icon in `handleRenameSubmit`
-
-### 4. Update parent callbacks in `DealsSidebar.tsx` (view mapping, ~line 272-290)
-
-- Update the `onRename` handler to call `updateView.mutate` with both `name` and `icon` in the `updates` object
-
-## Component Design — `EmojiIconPicker`
-
-```text
-┌──────────────────────────┐
-│ [Current Icon ▾]         │  ← Popover trigger (button)
-├──────────────────────────┤
-│ Objects                  │
-│ 📋 📊 📈 💼 🎯 ⭐ 💡 🔔 │
-│ People                   │
-│ 👥 👤 🤝 💪 🙌          │
-│ Status                   │
-│ ✅ ❌ ⚡ 🔥 🚀 ⏰       │
-│ Shapes                   │
-│ 🔴 🟢 🔵 🟡 🟣          │
-├──────────────────────────┤
-│ [✕ Remove icon]          │
-└──────────────────────────┘
+Update all 18 templates to include descriptions for their fields. Example for BANT:
+```typescript
+{ name: 'Budget', type: 'Text', description: 'Summarize any discussion around budget, pricing concerns, or willingness to invest in a solution.' },
+{ name: 'Authority', type: 'List', description: 'Identify who the key decision-makers are, their role in the purchasing process, and any internal influencers mentioned.' },
 ```
 
-Props: `currentIcon: string | null`, `viewName: string` (for fallback dot color), `onSelect: (icon: string | null) => void`
+### 2. Redesign preview mode — `TemplateLibraryDialog.tsx`
+
+Replace the current simple preview (lines 118-135) with a two-column layout:
+
+**Left column (flex-1)**: Section cards stacked vertically — each card is a bordered container with:
+- Bold section title
+- Description paragraph in muted text
+- Bottom row with format badge: icon (Tt for Text, ≡ for List, # for Number, 📅 for Date) + type label
+
+**Right column (~280px)**: Sticky sidebar card with:
+- Category badge (colored)
+- Template name (h3)
+- Description
+- "Sections" label with list of section names + type icons
+
+**Breadcrumb**: Replace "← Voltar à lista" button with "Templates › {name}" breadcrumb where "Templates" is clickable.
+
+### 3. Update footer for preview mode
+
+When in preview, show "Use this template →" button (primary, with arrow icon) aligned to the bottom-right of the right sidebar or in the footer bar.
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/opportunities/EmojiIconPicker.tsx` | NEW — Popover emoji grid picker |
-| `src/components/opportunities/DealsSidebar.tsx` | Update `onRename` signature, add icon state to inline rename, wire `EmojiIconPicker` |
-| `src/components/opportunities/ViewSettingsDropdown.tsx` | Add icon state + `EmojiIconPicker` to rename dialog, update callback signature |
+| `src/components/communication/templateLibraryData.ts` | Add `description` field to `LibraryTemplateField` interface; add descriptions to all template fields |
+| `src/components/communication/TemplateLibraryDialog.tsx` | Redesign preview mode with section cards + right sidebar layout |
+
+## Visual Layout (Preview Mode)
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│ Templates › ChAMP                                    ✕  │
+├────────────────────────────────┬────────────────────────┤
+│                                │  Sales                 │
+│  ┌──────────────────────────┐  │  ChAMP                 │
+│  │ Challenges               │  │  Identify challenges,  │
+│  │                          │  │  authority, budget...   │
+│  │ Summarize the key pain   │  │                        │
+│  │ points and challenges... │  │  Sections              │
+│  │                          │  │  Tt Challenges         │
+│  │ Format  Tt Text          │  │  ≡  Authority          │
+│  └──────────────────────────┘  │  Tt Money              │
+│                                │  ≡  Prioritization     │
+│  ┌──────────────────────────┐  │                        │
+│  │ Authority                │  │                        │
+│  │                          │  │                        │
+│  │ Identify who the key     │  │                        │
+│  │ decision-makers are...   │  │                        │
+│  │                          │  │ ┌────────────────────┐ │
+│  │ Format  ≡ List           │  │ │ Use this template →│ │
+│  └──────────────────────────┘  │ └────────────────────┘ │
+│  ...                           │                        │
+└────────────────────────────────┴────────────────────────┘
+```
 
 ## Technical Notes
 
-- No new dependencies — uses existing `@radix-ui/react-popover` and native emoji characters
-- The `icon` column is already `text | null` in the database, so any emoji string works
-- `useUpdateSavedView` already handles `icon` in the updates partial — no hook changes needed
+- No new dependencies needed
+- The `description` field is optional so existing code won't break
+- Type icons: `Type` (lucide) for Text, `List` for List, `Hash` for Number, `Calendar` for Date, `ChevronDown` for Select
+- Right sidebar uses `sticky top-0` for scroll behavior
 
