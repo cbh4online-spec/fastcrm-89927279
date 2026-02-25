@@ -10108,6 +10108,7 @@ export type Database = {
           entity_type: Database["public"]["Enums"]["crm_entity_type"]
           filters: Json | null
           for_role: Database["public"]["Enums"]["workspace_role"] | null
+          icon: string | null
           id: string
           is_default: boolean | null
           is_favorite: boolean
@@ -10125,6 +10126,7 @@ export type Database = {
           entity_type: Database["public"]["Enums"]["crm_entity_type"]
           filters?: Json | null
           for_role?: Database["public"]["Enums"]["workspace_role"] | null
+          icon?: string | null
           id?: string
           is_default?: boolean | null
           is_favorite?: boolean
@@ -10142,6 +10144,7 @@ export type Database = {
           entity_type?: Database["public"]["Enums"]["crm_entity_type"]
           filters?: Json | null
           for_role?: Database["public"]["Enums"]["workspace_role"] | null
+          icon?: string | null
           id?: string
           is_default?: boolean | null
           is_favorite?: boolean

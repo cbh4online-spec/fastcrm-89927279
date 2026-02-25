@@ -628,5 +628,18 @@
   "sidebarInvoices": "Faturas",
   "sidebarDeleteView": "Eliminar vista",
   "sidebarEditView": "Editar vista",
-  "sidebarSetDefault": "Definir como padrão"
+  "sidebarSetDefault": "Definir como padrão",
+  "sidebarDuplicate": "Duplicar",
+  "sidebarNoLists": "Sem listas ainda",
+
+  "filterPillAdd": "Adicionar filtro",
+  "filterPillRemove": "Remover filtro",
+  "sortedBy": "Ordenado por",
+  "viewSettings": "Definições da vista",
+  "viewSettingsRename": "Renomear",
+  "importExport": "Importar / Exportar",
+  "exportExcel": "Exportar Excel",
+  "tableRowCount": "registos",
+  "addColumn": "+ Adicionar coluna",
+  "addCalculation": "+ Adicionar cálculo"
 }

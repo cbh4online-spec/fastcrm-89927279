@@ -257,9 +257,7 @@ export function DealsSidebar({
               <CollapsibleTrigger className="w-full flex items-center gap-1 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
                 {listsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                 {t("sidebarLists")}
-                {smartLists.length > 0 && (
-                  <Badge variant="secondary" className="ml-auto h-4 px-1 text-[10px]">{smartLists.length}</Badge>
-                )}
+                <Badge variant="secondary" className="ml-auto h-4 px-1 text-[10px]">{smartLists.length}</Badge>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-0.5">
                 {smartLists.length === 0 ? (
@@ -276,7 +274,11 @@ export function DealsSidebar({
                         )}
                         onClick={() => onSelectView(list)}
                       >
-                        <div className={cn("w-2 h-2 rounded-full flex-shrink-0", hashColor(list.name))} />
+                        {list.icon ? (
+                          <span className="flex-shrink-0 text-sm">{list.icon}</span>
+                        ) : (
+                          <div className={cn("w-2 h-2 rounded-full flex-shrink-0", hashColor(list.name))} />
+                        )}
                         <span className="truncate flex-1">{list.name}</span>
                         {count !== null && (
                           <Badge variant="secondary" className="h-4 px-1 text-[10px]">{count}</Badge>
@@ -291,6 +293,13 @@ export function DealsSidebar({
                 >
                   <Plus className="h-3.5 w-3.5" />
                   {t("sidebarCreateView")}
+                </button>
+                <button
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => {/* scroll to show all lists */}}
+                >
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                  {t("sidebarAllLists")}
                 </button>
               </CollapsibleContent>
             </Collapsible>
@@ -325,6 +334,8 @@ function ViewItem({
     >
       {showStar ? (
         <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500 flex-shrink-0" />
+      ) : view.icon ? (
+        <span className="flex-shrink-0 text-sm">{view.icon}</span>
       ) : (
         <div className={cn("w-2.5 h-2.5 rounded-full flex-shrink-0", hashColor(view.name))} />
       )}

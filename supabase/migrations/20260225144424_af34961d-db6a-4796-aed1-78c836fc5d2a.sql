@@ -1,0 +1,1 @@
+ALTER TABLE public.crm_saved_views ADD COLUMN IF NOT EXISTS icon TEXT DEFAULT NULL;
