@@ -1,8 +1,8 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { applyFilters, FilterCondition } from "@/hooks/useFilterEngine";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useSavedViews, useDeleteSavedView, useToggleFavorite, useUpdateSavedView, useDuplicateSavedView, SavedView } from "@/hooks/useSavedViews";
+import { useSavedViews, useDeleteSavedView, useToggleFavorite, useUpdateSavedView, useDuplicateSavedView, useReorderSavedViews, SavedView } from "@/hooks/useSavedViews";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +48,7 @@ import {
   Handshake,
   UserPlus,
   Command,
+  GripVertical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -113,6 +114,7 @@ export function DealsSidebar({
   const toggleFavorite = useToggleFavorite();
   const updateView = useUpdateSavedView();
   const duplicateView = useDuplicateSavedView();
+  const reorderViews = useReorderSavedViews();
   const [searchQuery, setSearchQuery] = useState("");
   const [viewsOpen, setViewsOpen] = useState(true);
   const [favoritesOpen, setFavoritesOpen] = useState(true);
@@ -120,7 +122,19 @@ export function DealsSidebar({
   const [listsOpen, setListsOpen] = useState(true);
   const [automationsOpen, setAutomationsOpen] = useState(false);
 
+  // Drag-and-drop state
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [localOrder, setLocalOrder] = useState<SavedView[] | null>(null);
+  const dragCounterRef = useRef<Record<string, number>>({});
+
   const allViews = useMemo(() => views || [], [views]);
+
+  // Reset local order when views change from server
+  useEffect(() => {
+    setLocalOrder(null);
+  }, [views]);
+
   const favorites = useMemo(() => allViews.filter((v) => v.is_favorite), [allViews]);
   const smartLists = useMemo(
     () => allViews.filter((v) => {
@@ -130,11 +144,62 @@ export function DealsSidebar({
     [allViews]
   );
 
-  const filteredViews = useMemo(() => {
-    if (!searchQuery) return allViews;
+  const displayViews = useMemo(() => {
+    const source = localOrder || allViews;
+    if (!searchQuery) return source;
     const q = searchQuery.toLowerCase();
-    return allViews.filter((v) => v.name.toLowerCase().includes(q));
-  }, [allViews, searchQuery]);
+    return source.filter((v) => v.name.toLowerCase().includes(q));
+  }, [localOrder, allViews, searchQuery]);
+
+  const handleDragStart = useCallback((id: string) => {
+    setDraggedId(id);
+  }, []);
+
+  const handleDragEnter = useCallback((id: string) => {
+    dragCounterRef.current[id] = (dragCounterRef.current[id] || 0) + 1;
+    if (id !== draggedId) setDragOverId(id);
+  }, [draggedId]);
+
+  const handleDragLeave = useCallback((id: string) => {
+    dragCounterRef.current[id] = (dragCounterRef.current[id] || 0) - 1;
+    if (dragCounterRef.current[id] <= 0) {
+      dragCounterRef.current[id] = 0;
+      setDragOverId((prev) => (prev === id ? null : prev));
+    }
+  }, []);
+
+  const handleDrop = useCallback((targetId: string) => {
+    dragCounterRef.current = {};
+    if (!draggedId || draggedId === targetId) {
+      setDraggedId(null);
+      setDragOverId(null);
+      return;
+    }
+    const items = [...(localOrder || allViews)];
+    const fromIndex = items.findIndex((v) => v.id === draggedId);
+    const toIndex = items.findIndex((v) => v.id === targetId);
+    if (fromIndex === -1 || toIndex === -1) return;
+
+    const [moved] = items.splice(fromIndex, 1);
+    items.splice(toIndex, 0, moved);
+
+    setLocalOrder(items);
+    setDraggedId(null);
+    setDragOverId(null);
+
+    reorderViews.mutate({
+      entity_type: "opportunities",
+      items: items.map((v, i) => ({ id: v.id, position: i })),
+    }, {
+      onSettled: () => setLocalOrder(null),
+    });
+  }, [draggedId, localOrder, allViews, reorderViews]);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedId(null);
+    setDragOverId(null);
+    dragCounterRef.current = {};
+  }, []);
 
   const getListCount = useCallback((view: SavedView): number | null => {
     if (!opportunities) return null;
@@ -269,7 +334,7 @@ export function DealsSidebar({
               <Badge variant="secondary" className="ml-auto h-4 px-1 text-[10px]">{allViews.length}</Badge>
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-0.5">
-              {filteredViews.map((view) => (
+              {displayViews.map((view) => (
                 <ViewItem
                   key={view.id}
                   view={view}
@@ -281,6 +346,13 @@ export function DealsSidebar({
                   }
                   onRename={(newName) => updateView.mutate({ id: view.id, entity_type: "opportunities", updates: { name: newName } })}
                   onDuplicate={() => duplicateView.mutate({ view })}
+                  isDragging={draggedId === view.id}
+                  isDragOver={dragOverId === view.id}
+                  onDragStart={() => handleDragStart(view.id)}
+                  onDragEnter={() => handleDragEnter(view.id)}
+                  onDragLeave={() => handleDragLeave(view.id)}
+                  onDrop={() => handleDrop(view.id)}
+                  onDragEnd={handleDragEnd}
                 />
               ))}
               <button
@@ -419,6 +491,13 @@ function ViewItem({
   onRename,
   onDuplicate,
   showStar,
+  isDragging,
+  isDragOver,
+  onDragStart,
+  onDragEnter,
+  onDragLeave,
+  onDrop,
+  onDragEnd,
 }: {
   view: SavedView;
   isActive: boolean;
@@ -428,6 +507,13 @@ function ViewItem({
   onRename: (newName: string) => void;
   onDuplicate: () => void;
   showStar?: boolean;
+  isDragging?: boolean;
+  isDragOver?: boolean;
+  onDragStart?: () => void;
+  onDragEnter?: () => void;
+  onDragLeave?: () => void;
+  onDrop?: () => void;
+  onDragEnd?: () => void;
 }) {
   const { t } = useTranslation("crm");
   const [renameOpen, setRenameOpen] = useState(false);
@@ -444,11 +530,37 @@ function ViewItem({
     <>
       <div
         className={cn(
-          "group flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors hover:bg-accent/50 cursor-pointer",
-          isActive && "bg-accent text-accent-foreground font-medium"
+          "group flex items-center gap-1 px-1 py-1.5 rounded-md text-sm transition-colors hover:bg-accent/50 cursor-pointer",
+          isActive && "bg-accent text-accent-foreground font-medium",
+          isDragging && "opacity-40",
+          isDragOver && "border-t-2 border-primary"
         )}
         onClick={onClick}
+        draggable={!!onDragStart}
+        onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", view.id);
+          onDragStart?.();
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+        }}
+        onDragEnter={(e) => {
+          e.preventDefault();
+          onDragEnter?.();
+        }}
+        onDragLeave={() => onDragLeave?.()}
+        onDrop={(e) => {
+          e.preventDefault();
+          onDrop?.();
+        }}
+        onDragEnd={() => onDragEnd?.()}
       >
+        {/* Drag handle - only show if draggable */}
+        {onDragStart && (
+          <GripVertical className="h-3 w-3 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab flex-shrink-0" />
+        )}
         {showStar ? (
           <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500 flex-shrink-0" />
         ) : view.icon ? (

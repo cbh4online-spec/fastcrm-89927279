@@ -32,6 +32,7 @@ export function useSavedViews(entityType: string) {
         .select("*") as any)
         .eq("workspace_id", currentWorkspace.id)
         .eq("entity_type", entityType)
+        .order("position")
         .order("name");
       if (error) throw error;
       return (data || []) as SavedView[];
@@ -173,5 +174,26 @@ export function useDuplicateSavedView() {
       toast.success("View duplicated");
     },
     onError: () => toast.error("Failed to duplicate view"),
+  });
+}
+
+export function useReorderSavedViews() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+
+  return useMutation({
+    mutationFn: async (input: { entity_type: string; items: { id: string; position: number }[] }) => {
+      for (const item of input.items) {
+        const { error } = await (supabase
+          .from("crm_saved_views")
+          .update({ position: item.position } as any) as any)
+          .eq("id", item.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["saved-views", currentWorkspace?.id, vars.entity_type] });
+    },
+    onError: () => toast.error("Failed to reorder views"),
   });
 }
