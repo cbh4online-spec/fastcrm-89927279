@@ -40,7 +40,12 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
       transition={{ duration: 0.25, ease: "easeOut" }}
     >
       {/* Header */}
-      <p className="font-semibold text-base text-foreground">{result.header}</p>
+      <p className="font-semibold text-base text-foreground">
+        {result.answer?.headline || (result as any).header || ""}
+      </p>
+      {result.answer?.subtext && (
+        <p className="text-sm text-muted-foreground -mt-2">{result.answer.subtext}</p>
+      )}
 
       {/* Bulk action confirmation overlay */}
       {pendingAction && (

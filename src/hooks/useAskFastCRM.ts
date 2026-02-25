@@ -34,23 +34,30 @@ export interface AskResultSuggestion {
 }
 
 export interface AskStructuredQuery {
-  intent: string;
-  object_type: "deals" | "contacts" | "companies";
   filters: { field: string; op: string; value: any }[];
   sort: { field: string; dir: "asc" | "desc" }[];
   limit: number;
 }
 
 export interface AskResult {
-  header: string;
+  version: string;
+  routed_via: "deterministic" | "llm";
+  confidence: number;
+  intent: string;
+  object_type: "deals" | "contacts" | "companies";
+  query: AskStructuredQuery;
+  answer: {
+    headline: string;
+    subtext?: string;
+  };
+  actions_available: string[];
   items: AskResultItem[];
   actions: AskResultAction[];
   metric?: AskResultMetric;
   suggestion?: AskResultSuggestion;
-  query?: AskStructuredQuery;
-  routed_via?: "deterministic" | "llm";
-  confidence?: number;
   did_you_mean?: string[];
+  // Backward compat
+  header?: string;
 }
 
 const BULK_CONFIRM_THRESHOLD = 10;
@@ -117,7 +124,6 @@ export function useAskFastCRM() {
     async (action: AskResultAction, skipConfirmation = false) => {
       if (!currentWorkspace?.id || !user?.id) return;
 
-      // Bulk confirmation check
       if (!skipConfirmation) {
         const dealIds: string[] = action.payload?.deal_ids || [];
         const needsConfirmation =
