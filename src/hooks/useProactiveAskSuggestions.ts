@@ -95,16 +95,38 @@ export function useProactiveAskSuggestions() {
         }
       }
 
-      // 5. Forecast drift
+      // 5. Forecast confidence low
       if (latestForecast) {
+        const fc = (latestForecast as any).forecast_confidence as number | undefined;
+        const blockers: string[] = (latestForecast as any).blockers ?? [];
+        if (fc != null && fc < 50) {
+          suggestions.push({
+            id: "forecast-confidence-low",
+            message: `Forecast confidence is ${fc}% — review data quality.`,
+            askQuery: "Is my forecast realistic?",
+            priority: fc < 30 ? "high" : "medium",
+            icon: "ShieldAlert",
+          });
+        } else if (blockers.length >= 3) {
+          suggestions.push({
+            id: "forecast-blockers",
+            message: `${blockers.length} blockers affecting your forecast.`,
+            askQuery: "Revenue forecast details",
+            priority: "medium",
+            icon: "TrendingDown",
+          });
+        }
+
+        // Forecast drift (V2 with stage-weighted)
         const healthAdj = (latestForecast as any).health_adjusted_expected as number | undefined;
-        if (healthAdj && healthAdj > 0 && latestForecast.expected_case > 0) {
-          const drift = Math.abs(healthAdj - latestForecast.expected_case) / latestForecast.expected_case;
+        const stageWeighted = (latestForecast as any).stage_weighted as number | undefined;
+        if (healthAdj && stageWeighted && stageWeighted > 0) {
+          const drift = Math.abs(healthAdj - stageWeighted) / stageWeighted;
           if (drift > 0.2) {
             const pct = Math.round(drift * 100);
             suggestions.push({
               id: "forecast-drift",
-              message: `Risk-adjusted forecast differs ${pct}% from expected.`,
+              message: `Risk-adjusted forecast differs ${pct}% from stage-weighted.`,
               askQuery: "Revenue forecast details",
               priority: drift > 0.3 ? "high" : "medium",
               icon: "TrendingDown",

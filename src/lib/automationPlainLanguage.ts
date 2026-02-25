@@ -42,6 +42,8 @@ const triggerDescriptions: Record<AutomationTrigger, string> = {
   health_label_changed: "Quando o estado de saúde de um deal muda",
   health_score_below_threshold: "Quando o score de saúde cai abaixo do limite",
   health_score_dropped: "Quando o score de saúde diminui significativamente",
+  forecast_confidence_below_threshold: "Quando a confiança do forecast cai abaixo do limite",
+  forecast_drop_percentage: "Quando o forecast cai uma percentagem significativa",
 };
 
 /**

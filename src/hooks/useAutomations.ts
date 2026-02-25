@@ -45,7 +45,9 @@ export type AutomationTrigger =
   | "store_order_status_changed"
   | "health_label_changed"
   | "health_score_below_threshold"
-  | "health_score_dropped";
+  | "health_score_dropped"
+  | "forecast_confidence_below_threshold"
+  | "forecast_drop_percentage";
 
 export type AutomationActionType =
   | "create_task"

@@ -604,6 +604,8 @@ function getTriggerDescription(trigger: AutomationTrigger): string {
     health_label_changed: "When deal health label changes",
     health_score_below_threshold: "When health score drops below threshold",
     health_score_dropped: "When health score drops significantly",
+    forecast_confidence_below_threshold: "When forecast confidence drops below threshold",
+    forecast_drop_percentage: "When forecast drops by a significant percentage",
   };
   return descriptions[trigger] || trigger;
 }

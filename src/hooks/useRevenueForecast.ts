@@ -20,6 +20,15 @@ export interface RevenueForecast {
   uncertain_count: number;
   low_count: number;
   created_at: string;
+  // V2 fields
+  stage_weighted: number;
+  healthy_revenue: number;
+  watch_revenue: number;
+  at_risk_revenue: number;
+  blockers: string[];
+  health_adjusted_expected: number;
+  pipeline_health_avg: number;
+  forecast_confidence: number;
 }
 
 export function useRevenueForecast() {

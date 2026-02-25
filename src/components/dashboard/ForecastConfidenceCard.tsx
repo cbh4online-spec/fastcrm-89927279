@@ -1,7 +1,7 @@
-import { useRevenueForecast } from "@/hooks/useRevenueForecast";
+import { useRevenueForecast, formatCurrency } from "@/hooks/useRevenueForecast";
 import { useIntelligencePanel } from "@/hooks/useIntelligencePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldCheck, Loader2 } from "lucide-react";
+import { ShieldCheck, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ForecastConfidenceCard() {
@@ -35,6 +35,18 @@ export function ForecastConfidenceCard() {
     (b) => b.avg_days !== null && b.expected_days > 0 && (b.avg_days ?? 0) > b.expected_days * 1.5
   ) || [];
 
+  // V2: Blockers from forecast
+  const blockers: string[] = (latestForecast as any)?.blockers ?? [];
+
+  // V2: Deal breakdown by health label
+  const healthyRev = (latestForecast as any)?.healthy_revenue ?? 0;
+  const watchRev = (latestForecast as any)?.watch_revenue ?? 0;
+  const atRiskRev = (latestForecast as any)?.at_risk_revenue ?? 0;
+  const totalRev = healthyRev + watchRev + atRiskRev;
+  const healthyPct = totalRev > 0 ? (healthyRev / totalRev) * 100 : 0;
+  const watchPct = totalRev > 0 ? (watchRev / totalRev) * 100 : 0;
+  const atRiskPct = totalRev > 0 ? (atRiskRev / totalRev) * 100 : 0;
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -56,6 +68,51 @@ export function ForecastConfidenceCard() {
         </div>
 
         <p className="text-xs text-muted-foreground">{message}</p>
+
+        {/* Deal breakdown bar */}
+        {totalRev > 0 && (
+          <div className="space-y-1.5 pt-1">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Revenue by Health</p>
+            <div className="flex h-2 rounded-full overflow-hidden bg-muted">
+              {healthyPct > 0 && (
+                <div className="bg-emerald-500 transition-all duration-500" style={{ width: `${healthyPct}%` }} />
+              )}
+              {watchPct > 0 && (
+                <div className="bg-yellow-500 transition-all duration-500" style={{ width: `${watchPct}%` }} />
+              )}
+              {atRiskPct > 0 && (
+                <div className="bg-destructive transition-all duration-500" style={{ width: `${atRiskPct}%` }} />
+              )}
+            </div>
+            <div className="flex justify-between text-[10px] text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+                Healthy {formatCurrency(healthyRev)}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full bg-yellow-500" />
+                Watch {formatCurrency(watchRev)}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full bg-destructive" />
+                Risk {formatCurrency(atRiskRev)}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Blockers */}
+        {blockers.length > 0 && (
+          <div className="pt-2 border-t border-border/30 space-y-1.5">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Forecast Blockers</p>
+            {blockers.slice(0, 5).map((blocker, i) => (
+              <div key={i} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <AlertTriangle className="h-3 w-3 mt-0.5 text-yellow-500 shrink-0" />
+                <span>{blocker}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Data quality breakdown */}
         {intel?.data_quality && (

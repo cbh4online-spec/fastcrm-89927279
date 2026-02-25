@@ -1,7 +1,7 @@
 import { useRevenueForecast, formatCurrency } from "@/hooks/useRevenueForecast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Loader2, ShieldCheck } from "lucide-react";
+import { TrendingUp, TrendingDown, Loader2, ShieldCheck, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function confidenceLabel(score: number) {
@@ -35,7 +35,9 @@ export function RevenueHero() {
 
   const fc = (latestForecast as any).forecast_confidence as number | undefined;
   const healthAdj = (latestForecast as any).health_adjusted_expected as number | undefined;
+  const stageWeighted = (latestForecast as any).stage_weighted as number | undefined;
   const conf = fc != null && fc > 0 ? confidenceLabel(fc) : null;
+  const lowConfidence = fc != null && fc < 60;
 
   return (
     <Card className="bg-gradient-to-br from-primary/5 via-background to-violet-500/5 border-primary/10">
@@ -43,7 +45,7 @@ export function RevenueHero() {
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
             <p className="text-sm text-muted-foreground mb-1">Revenue Forecast</p>
-            <div className="flex items-baseline gap-3">
+            <div className="flex items-baseline gap-3 flex-wrap">
               <span className="text-4xl font-bold tracking-tight">
                 {formatCurrency(latestForecast.expected_case)}
               </span>
@@ -62,6 +64,12 @@ export function RevenueHero() {
                   {conf.text}
                 </Badge>
               )}
+              {lowConfidence && (
+                <Badge variant="outline" className="text-xs gap-1 text-destructive border-destructive/30">
+                  <AlertTriangle className="h-3 w-3" />
+                  Dados insuficientes
+                </Badge>
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Expected case • {latestForecast.opportunity_count} opportunities
@@ -73,12 +81,22 @@ export function RevenueHero() {
 
           <div className="flex gap-6">
             <div className="text-right">
-              <p className="text-xs text-muted-foreground">Best</p>
-              <p className="text-lg font-semibold text-emerald-600">{formatCurrency(latestForecast.best_case)}</p>
+              <p className="text-xs text-muted-foreground">Stage-Weighted</p>
+              <p className="text-lg font-semibold text-primary">
+                {formatCurrency(stageWeighted ?? 0)}
+              </p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-muted-foreground">Worst</p>
-              <p className="text-lg font-semibold text-destructive">{formatCurrency(latestForecast.worst_case)}</p>
+              <p className="text-xs text-muted-foreground">Risk-Adjusted</p>
+              <p className="text-lg font-semibold text-emerald-600">
+                {formatCurrency(healthAdj ?? 0)}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">Gross</p>
+              <p className="text-lg font-semibold text-muted-foreground">
+                {formatCurrency(latestForecast.best_case)}
+              </p>
             </div>
           </div>
         </div>

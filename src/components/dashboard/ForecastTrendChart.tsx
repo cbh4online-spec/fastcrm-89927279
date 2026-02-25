@@ -24,7 +24,7 @@ function useForecastHistory() {
       if (!currentWorkspace) return [];
       const { data, error } = await supabase
         .from("revenue_forecasts")
-        .select("generated_at, expected_case, best_case, worst_case, health_adjusted_expected")
+        .select("generated_at, expected_case, best_case, worst_case, health_adjusted_expected, stage_weighted")
         .eq("workspace_id", currentWorkspace.id)
         .order("generated_at", { ascending: true })
         .limit(12);
@@ -35,6 +35,7 @@ function useForecastHistory() {
         best: row.best_case,
         worst: row.worst_case,
         riskAdj: row.health_adjusted_expected || null,
+        stageWeighted: row.stage_weighted || null,
       }));
     },
     enabled: !!currentWorkspace,
@@ -60,6 +61,7 @@ export function ForecastTrendChart() {
   }
 
   const hasRiskAdj = chartData.some((d) => d.riskAdj != null && d.riskAdj > 0);
+  const hasStageWeighted = chartData.some((d) => d.stageWeighted != null && d.stageWeighted > 0);
 
   return (
     <Card>
@@ -95,11 +97,14 @@ export function ForecastTrendChart() {
                 }}
                 formatter={(value: number, name: string) => [
                   formatCurrency(value),
-                  name === "expected" ? "Expected" : name === "best" ? "Best Case" : name === "worst" ? "Worst Case" : "Risk-Adjusted",
+                  name === "expected" ? "Expected" : name === "best" ? "Best Case" : name === "worst" ? "Worst Case" : name === "stageWeighted" ? "Stage-Weighted" : "Risk-Adjusted",
                 ]}
               />
               <Area type="monotone" dataKey="worst" stroke="hsl(var(--destructive))" strokeWidth={1} strokeDasharray="4 2" fill="none" />
               <Area type="monotone" dataKey="best" stroke="hsl(142 76% 36%)" strokeWidth={1} fill="url(#gradBest)" />
+              {hasStageWeighted && (
+                <Area type="monotone" dataKey="stageWeighted" stroke="hsl(var(--primary))" strokeWidth={1.5} strokeDasharray="2 2" fill="none" />
+              )}
               <Area type="monotone" dataKey="expected" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#gradExpected)" />
               {hasRiskAdj && (
                 <Area type="monotone" dataKey="riskAdj" stroke="hsl(var(--primary))" strokeWidth={1.5} strokeDasharray="6 3" fill="none" />
@@ -107,11 +112,17 @@ export function ForecastTrendChart() {
             </AreaChart>
           </ResponsiveContainer>
         </div>
-        <div className="flex items-center justify-center gap-4 mt-2">
+        <div className="flex items-center justify-center gap-4 mt-2 flex-wrap">
           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <div className="w-3 h-0.5 rounded bg-primary" />
             Expected
           </div>
+          {hasStageWeighted && (
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <div className="w-3 h-0.5 rounded bg-primary opacity-60" style={{ borderTop: "1px dashed" }} />
+              Stage-Wtd
+            </div>
+          )}
           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <div className="w-3 h-0.5 rounded bg-emerald-600" />
             Best

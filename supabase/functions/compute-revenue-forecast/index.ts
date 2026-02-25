@@ -13,10 +13,22 @@ const CONFIDENCE_WEIGHTS: Record<string, number> = {
   low: 0.15,
 };
 
+const RISK_MULTIPLIERS: Record<string, number> = {
+  HEALTHY: 1.0,
+  WATCH: 0.9,
+  AT_RISK: 0.7,
+};
+
 function daysDiff(dateStr: string | null, fromDate: Date): number {
   if (!dateStr) return Infinity;
   const d = new Date(dateStr);
   return (d.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24);
+}
+
+function formatCurrency(v: number): string {
+  if (v >= 1_000_000) return `€${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `€${(v / 1_000).toFixed(1)}K`;
+  return `€${Math.round(v)}`;
 }
 
 async function computeForecastForWorkspace(
@@ -25,11 +37,11 @@ async function computeForecastForWorkspace(
 ) {
   const now = new Date();
 
-  // Fetch opportunities, deal_scores, AND health cache in parallel
-  const [oppsResult, scoresResult, healthResult] = await Promise.all([
+  // Fetch opportunities, deal_scores, health cache, AND pipeline stages in parallel
+  const [oppsResult, scoresResult, healthResult, stagesResult] = await Promise.all([
     supabase
       .from("opportunities")
-      .select("id, value, expected_close_date, status")
+      .select("id, value, expected_close_date, status, current_stage_id")
       .eq("workspace_id", workspace_id)
       .eq("status", "open"),
     supabase
@@ -40,6 +52,10 @@ async function computeForecastForWorkspace(
       .from("deal_intelligence_cache")
       .select("deal_id, payload")
       .eq("workspace_id", workspace_id),
+    supabase
+      .from("pipeline_stages")
+      .select("id, probability, expected_days")
+      .eq("workspace_id", workspace_id),
   ]);
 
   if (oppsResult.error) throw oppsResult.error;
@@ -48,12 +64,16 @@ async function computeForecastForWorkspace(
   const opportunities = oppsResult.data || [];
   const scores = scoresResult.data || [];
   const healthData = healthResult.data || [];
+  const stages = stagesResult.data || [];
 
   // Build lookup maps
   const scoreMap = new Map<string, { close_score: number; category: string }>();
   scores.forEach((s) => scoreMap.set(s.opportunity_id, s));
 
-  const healthMap = new Map<string, { health_score: number; health_label: string; data_completeness: number }>();
+  const stageMap = new Map<string, { probability: number | null; expected_days: number | null }>();
+  stages.forEach((s: any) => stageMap.set(s.id, { probability: s.probability, expected_days: s.expected_days }));
+
+  const healthMap = new Map<string, { health_score: number; health_label: string; data_completeness: number; last_activity_days: number; has_next_step: boolean }>();
   healthData.forEach((h: any) => {
     try {
       const p = typeof h.payload === "string" ? JSON.parse(h.payload) : h.payload;
@@ -61,6 +81,8 @@ async function computeForecastForWorkspace(
         health_score: p.health_score ?? 50,
         health_label: p.health_label ?? "WATCH",
         data_completeness: p.data_completeness?.percent ?? 50,
+        last_activity_days: p.debug?.last_activity_days ?? 999,
+        has_next_step: p.debug?.has_next_step ?? false,
       });
     } catch { /* skip malformed */ }
   });
@@ -71,6 +93,7 @@ async function computeForecastForWorkspace(
   let best_case = 0;
   let expected_case = 0;
   let worst_case = 0;
+  let stage_weighted_total = 0;
   let health_adjusted_total = 0;
   let total_confidence = 0;
   let scored_count = 0;
@@ -86,21 +109,48 @@ async function computeForecastForWorkspace(
   let healthy_count = 0;
   let watch_count = 0;
   let at_risk_count = 0;
+  let healthy_revenue = 0;
+  let watch_revenue = 0;
+  let at_risk_revenue = 0;
+
+  // Blocker tracking
+  let deals_no_activity = 0;
+  let deals_missing_close_date = 0;
+  let deals_no_next_step = 0;
+  let total_value = 0;
+  let high_value_no_activity = 0;
 
   for (const opp of opportunities) {
     const value = Number(opp.value) || 0;
+    total_value += value;
     const score = scoreMap.get(opp.id);
     const health = healthMap.get(opp.id);
+    const stage = opp.current_stage_id ? stageMap.get(opp.current_stage_id) : null;
+
+    // Stage probability (fallback 0.5)
+    const stageProbability = stage?.probability ?? 0.5;
+
+    // Health label risk multiplier
+    const healthLabel = health?.health_label ?? "WATCH";
+    const riskMultiplier = RISK_MULTIPLIERS[healthLabel] ?? 0.9;
 
     // Track health metrics
     if (health) {
       total_health += health.health_score;
       total_completeness += health.data_completeness;
       health_count++;
-      if (health.health_label === "HEALTHY") healthy_count++;
-      else if (health.health_label === "WATCH") watch_count++;
-      else at_risk_count++;
+      if (healthLabel === "HEALTHY") { healthy_count++; healthy_revenue += value; }
+      else if (healthLabel === "WATCH") { watch_count++; watch_revenue += value; }
+      else { at_risk_count++; at_risk_revenue += value; }
+
+      if (health.last_activity_days > 10) deals_no_activity++;
+      if (!health.has_next_step) deals_no_next_step++;
+    } else {
+      watch_count++;
+      watch_revenue += value;
     }
+
+    if (!opp.expected_close_date) deals_missing_close_date++;
 
     let close_probability: number;
     let category: string;
@@ -130,9 +180,16 @@ async function computeForecastForWorkspace(
 
     const expected_revenue = value * close_probability;
 
-    // Health-adjusted revenue
-    const health_weight = health ? health.health_score / 100 : 0.5;
-    health_adjusted_total += value * close_probability * health_weight;
+    // Stage-weighted: value × stage_probability
+    stage_weighted_total += value * stageProbability;
+
+    // Health-adjusted (V2): value × stage_probability × risk_multiplier
+    health_adjusted_total += value * stageProbability * riskMultiplier;
+
+    // High-value no activity tracking
+    if (health && health.last_activity_days > 10 && value > 0) {
+      high_value_no_activity++;
+    }
 
     // Scenario totals
     if (category === "hot") best_case += value;
@@ -149,8 +206,6 @@ async function computeForecastForWorkspace(
     } else if (daysUntilClose <= 30) {
       forecast_30 += weighted_revenue;
       forecast_90 += weighted_revenue;
-    } else if (daysUntilClose <= 90 || opp.expected_close_date === null) {
-      forecast_90 += weighted_revenue;
     } else {
       forecast_90 += weighted_revenue;
     }
@@ -160,26 +215,52 @@ async function computeForecastForWorkspace(
   const confidence_avg = scored_count > 0 ? total_confidence / scored_count : 0;
   const pipeline_health_avg = health_count > 0 ? Math.round(total_health / health_count * 10) / 10 : 0;
 
-  // Forecast confidence: "Is my forecast realistic?" (0-100)
-  const data_completeness_score = health_count > 0 ? total_completeness / health_count / 100 : 0;
-  const scoring_coverage = opportunities.length > 0 ? scored_count / opportunities.length : 0;
-  const health_distribution_score = health_count > 0
-    ? (healthy_count * 1.0 + watch_count * 0.6 + at_risk_count * 0.2) / health_count
-    : 0;
+  // Confidence Score V2 (spec formula)
+  const totalDeals = opportunities.length || 1;
+  const at_risk_ratio = at_risk_count / totalDeals;
+  const no_activity_ratio = deals_no_activity / totalDeals;
+  const missing_data_ratio = (deals_missing_close_date) / totalDeals;
   const forecast_confidence = Math.round(
-    (data_completeness_score * 0.4 + scoring_coverage * 0.3 + health_distribution_score * 0.3) * 100
+    Math.max(0, Math.min(1, 1 - (at_risk_ratio * 0.4 + no_activity_ratio * 0.3 + missing_data_ratio * 0.3))) * 100
   );
+
+  // Generate blockers (max 5)
+  const blockers: string[] = [];
+  if (high_value_no_activity > 0) {
+    blockers.push(`${high_value_no_activity} deal${high_value_no_activity !== 1 ? "s" : ""} without activity for 10+ days`);
+  }
+  // Check stage bottlenecks from health data
+  const stageBottlenecks: string[] = [];
+  for (const [, stageData] of stageMap) {
+    if (stageData.expected_days && stageData.expected_days > 0) {
+      // We check this at aggregate level via intelligence panel, skip per-stage here
+    }
+  }
+  if (deals_missing_close_date > 0) {
+    blockers.push(`${deals_missing_close_date} deal${deals_missing_close_date !== 1 ? "s" : ""} missing close date`);
+  }
+  if (at_risk_count > 0) {
+    blockers.push(`${at_risk_count} deal${at_risk_count !== 1 ? "s" : ""} at risk`);
+  }
+  if (deals_no_next_step > 0) {
+    blockers.push(`${deals_no_next_step} deal${deals_no_next_step !== 1 ? "s" : ""} without next step`);
+  }
+  if (forecast_confidence < 50) {
+    blockers.push("Low data quality reducing forecast confidence");
+  }
+
+  const r = (v: number) => Math.round(v * 100) / 100;
 
   const { data: inserted, error: insertError } = await supabase
     .from("revenue_forecasts")
     .insert({
       workspace_id,
-      forecast_7: Math.round(forecast_7 * 100) / 100,
-      forecast_30: Math.round(forecast_30 * 100) / 100,
-      forecast_90: Math.round(forecast_90 * 100) / 100,
-      best_case: Math.round(best_case * 100) / 100,
-      expected_case: Math.round(expected_case * 100) / 100,
-      worst_case: Math.round(worst_case * 100) / 100,
+      forecast_7: r(forecast_7),
+      forecast_30: r(forecast_30),
+      forecast_90: r(forecast_90),
+      best_case: r(best_case),
+      expected_case: r(expected_case),
+      worst_case: r(worst_case),
       risk_index: Math.round(risk_index * 1000) / 1000,
       confidence_avg: Math.round(confidence_avg * 10) / 10,
       opportunity_count: opportunities.length,
@@ -187,9 +268,14 @@ async function computeForecastForWorkspace(
       likely_count,
       uncertain_count,
       low_count,
-      health_adjusted_expected: Math.round(health_adjusted_total * 100) / 100,
+      health_adjusted_expected: r(health_adjusted_total),
       pipeline_health_avg,
       forecast_confidence,
+      stage_weighted: r(stage_weighted_total),
+      healthy_revenue: r(healthy_revenue),
+      watch_revenue: r(watch_revenue),
+      at_risk_revenue: r(at_risk_revenue),
+      blockers,
       generated_at: new Date().toISOString(),
     })
     .select()
