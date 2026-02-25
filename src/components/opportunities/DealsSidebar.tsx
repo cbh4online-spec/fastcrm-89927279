@@ -33,6 +33,15 @@ import {
   PanelLeftClose,
   PanelLeft,
   LayoutGrid,
+  Bell,
+  CheckSquare,
+  StickyNote,
+  Mail,
+  Phone,
+  BarChart3,
+  Zap,
+  GitBranch,
+  Workflow,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +73,20 @@ const RECORDS_LINKS = [
   { key: "invoices", icon: FileText, href: "/dashboard/invoices" },
 ];
 
+const NAV_LINKS = [
+  { key: "sidebarNotifications", icon: Bell, href: "/dashboard" },
+  { key: "tasks", icon: CheckSquare, href: "/dashboard" },
+  { key: "sidebarNotes", icon: StickyNote, href: "/dashboard" },
+  { key: "sidebarEmails", icon: Mail, href: "/dashboard" },
+  { key: "sidebarCalls", icon: Phone, href: "/dashboard" },
+  { key: "sidebarReports", icon: BarChart3, href: "/dashboard" },
+];
+
+const AUTOMATION_LINKS = [
+  { key: "sidebarSequences", icon: GitBranch, href: "/dashboard" },
+  { key: "sidebarWorkflows", icon: Workflow, href: "/dashboard" },
+];
+
 export function DealsSidebar({
   activeViewId,
   onSelectView,
@@ -82,6 +105,7 @@ export function DealsSidebar({
   const [favoritesOpen, setFavoritesOpen] = useState(true);
   const [recordsOpen, setRecordsOpen] = useState(true);
   const [listsOpen, setListsOpen] = useState(true);
+  const [automationsOpen, setAutomationsOpen] = useState(false);
 
   const allViews = useMemo(() => views || [], [views]);
   const favorites = useMemo(() => allViews.filter((v) => v.is_favorite), [allViews]);
@@ -163,6 +187,41 @@ export function DealsSidebar({
 
       <ScrollArea className="flex-1">
         <div className="px-1 pb-4 space-y-1">
+          {/* Quick Nav Links */}
+          {NAV_LINKS.map((link) => (
+            <button
+              key={link.key}
+              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-left text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+              onClick={() => navigate(link.href)}
+            >
+              <link.icon className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="truncate">{t(link.key)}</span>
+            </button>
+          ))}
+
+          {/* Automations (collapsible) */}
+          <Collapsible open={automationsOpen} onOpenChange={setAutomationsOpen}>
+            <CollapsibleTrigger className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-left text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors">
+              <Zap className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="truncate flex-1">{t("sidebarAutomations")}</span>
+              {automationsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pl-4 space-y-0.5">
+              {AUTOMATION_LINKS.map((link) => (
+                <button
+                  key={link.key}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-left text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+                  onClick={() => navigate(link.href)}
+                >
+                  <link.icon className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="truncate">{t(link.key)}</span>
+                </button>
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+
+          <div className="h-px bg-border mx-2 my-2" />
+
           {/* Default "All Deals" */}
           <button
             className={cn(

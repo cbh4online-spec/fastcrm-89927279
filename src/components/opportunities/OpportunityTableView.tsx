@@ -328,9 +328,30 @@ export function OpportunityTableView({
           )}
         </TableBody>
       </Table>
-      {/* Footer with row count */}
-      <div className="border-t px-4 py-2 flex items-center justify-between text-xs text-muted-foreground">
-        <span>{opportunities.length} {t('tableRowCount', 'count')}</span>
+      {/* Footer with per-column calculation placeholders */}
+      <div className="border-t">
+        <div className="flex items-center text-xs text-muted-foreground">
+          {/* Checkbox col */}
+          <div className="w-12 px-4 py-2" />
+          {/* First col: count */}
+          <div className="flex-1 px-4 py-2 font-medium">
+            {opportunities.length} {t('tableRowCount', 'count')}
+          </div>
+          {/* Remaining cols: add calculation placeholder */}
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div key={i} className="flex-1 px-4 py-2">
+              <button
+                className="text-muted-foreground/50 hover:text-muted-foreground transition-colors text-[11px]"
+                onClick={() => {}}
+                title={t('addCalculation', '+ Add calculation')}
+              >
+                {t('addCalculation', '+ Add calculation')}
+              </button>
+            </div>
+          ))}
+          {/* Actions col */}
+          <div className="w-10" />
+        </div>
       </div>
     </div>
   );
