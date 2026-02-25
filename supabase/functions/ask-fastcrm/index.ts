@@ -146,6 +146,16 @@ const KEYWORD_MAP: Record<string, string> = {
   "aprovação": "pending_approvals",
   "contacts inactive": "contacts_inactive",
   "contactos inativos": "contacts_inactive",
+  // Automation intent keywords
+  "remind me": "create_automation_rule",
+  "alert me": "create_automation_rule",
+  "auto-assign": "create_automation_rule",
+  "notify me when": "create_automation_rule",
+  "notify me if": "create_automation_rule",
+  "create follow-up when": "create_automation_rule",
+  "create task when": "create_automation_rule",
+  "avisar-me": "create_automation_rule",
+  "lembrar-me": "create_automation_rule",
 };
 
 const EXACT_PHRASES: Record<string, string> = {
@@ -201,6 +211,13 @@ function classifyByKeyword(question: string): KeywordMatch | null {
   if (matches.length === 0) return null;
 
   const uniqueIntents = new Set(matches.map(m => m.intent));
+  
+  // Automation intent always needs LLM extraction — cap confidence at 0.60
+  if (uniqueIntents.has("create_automation_rule")) {
+    const days = daysMatch ? parseInt(daysMatch[1]) : 14;
+    return { intent: "create_automation_rule", days, confidence: 0.60 };
+  }
+
   if (uniqueIntents.size > 1) {
     const first = matches[0];
     const days = daysMatch ? parseInt(daysMatch[1]) : (first.intent === "closing_soon" ? 30 : 14);
@@ -443,6 +460,14 @@ Deno.serve(async (req) => {
 
     const keywordResult = classifyByKeyword(question);
 
+    // --- Automation intent: always route to LLM for structured extraction ---
+    if (keywordResult?.intent === "create_automation_rule") {
+      const automationResponse = await handleAutomationIntent(question, workspaceId, claimsData.claims.sub, serviceClient);
+      return new Response(JSON.stringify(automationResponse), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (keywordResult && keywordResult.confidence >= 0.75) {
       intent = keywordResult.intent;
       days = keywordResult.days;
@@ -657,6 +682,244 @@ Always call the tool. Only use allowed fields, operators, and sort fields.`,
     );
   }
 });
+
+// --- Automation Intent Handler ---
+
+const AUTOMATION_ALLOWED_TRIGGERS = [
+  "opportunity_stage_changed",
+  "lead_no_response",
+  "lead_score_changed",
+  "lead_temperature_changed",
+];
+
+const AUTOMATION_ALLOWED_ACTIONS = [
+  "create_task",
+  "assign_owner",
+  "notify_user",
+  "move_opportunity_stage",
+];
+
+const AUTOMATION_ALLOWED_CONDITION_FIELDS = [
+  "amount", "stage", "health_label", "close_date", "owner_id",
+];
+
+const AUTOMATION_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "extract_automation_rule",
+    description: "Extract a structured automation rule from a natural language request about CRM deals.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Short descriptive name for the rule (max 60 chars)" },
+        trigger: {
+          type: "string",
+          enum: AUTOMATION_ALLOWED_TRIGGERS,
+          description: "The event that triggers this rule. Use 'lead_no_response' for inactivity/no-activity patterns, 'opportunity_stage_changed' for stage transitions.",
+        },
+        trigger_config: {
+          type: "object",
+          properties: {
+            delay_days: { type: "number", description: "Number of days for inactivity triggers" },
+            stage_name: { type: "string", description: "Stage name for stage-change triggers" },
+          },
+        },
+        trigger_label: { type: "string", description: "Human-readable description of the trigger, e.g. 'Deal enters Proposal'" },
+        conditions: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              field_name: { type: "string", enum: AUTOMATION_ALLOWED_CONDITION_FIELDS },
+              operator: { type: "string", enum: ["equals", "not_equals", "greater_than", "less_than", "is_empty"] },
+              value: { type: "string" },
+            },
+            required: ["field_name", "operator", "value"],
+          },
+        },
+        conditions_labels: {
+          type: "array",
+          items: { type: "string" },
+          description: "Human-readable descriptions of each condition",
+        },
+        actions: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              action_type: { type: "string", enum: AUTOMATION_ALLOWED_ACTIONS },
+              config: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  due_in_days: { type: "number" },
+                  priority: { type: "string", enum: ["high", "medium", "low"] },
+                  message: { type: "string" },
+                  stage_name: { type: "string" },
+                },
+              },
+            },
+            required: ["action_type", "config"],
+          },
+        },
+        actions_labels: {
+          type: "array",
+          items: { type: "string" },
+          description: "Human-readable descriptions of each action",
+        },
+      },
+      required: ["name", "trigger", "trigger_label", "actions", "actions_labels"],
+      additionalProperties: false,
+    },
+  },
+};
+
+async function handleAutomationIntent(question: string, workspaceId: string, userId: string, serviceClient: any) {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    return buildResponse("create_automation_rule", "deals",
+      { filters: [], sort: [], limit: 0 }, "llm", 0,
+      { headline: "AI not configured.", items: [], actions: [], did_you_mean: DID_YOU_MEAN_DEFAULTS }
+    );
+  }
+
+  try {
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          {
+            role: "system",
+            content: `You extract automation rules from natural language CRM requests. The user wants to create an automated rule for their CRM deals.
+
+Allowed triggers:
+- opportunity_stage_changed: fires when a deal moves to a specific stage
+- lead_no_response: fires when there's no activity for N days (use trigger_config.delay_days)
+- lead_score_changed: fires when lead score changes
+- lead_temperature_changed: fires when lead temperature changes
+
+Allowed actions:
+- create_task: creates a follow-up task (config: title, due_in_days, priority)
+- assign_owner: assigns deal to a user (config: message describing who)
+- notify_user: sends a notification (config: message)
+- move_opportunity_stage: moves deal to another stage (config: stage_name)
+
+Allowed condition fields: amount, stage, health_label, close_date, owner_id
+Allowed condition operators: equals, not_equals, greater_than, less_than, is_empty
+
+Always call the tool. Generate clear human-readable labels. Keep names short.`,
+          },
+          { role: "user", content: question },
+        ],
+        tools: [AUTOMATION_TOOL],
+        tool_choice: { type: "function", function: { name: "extract_automation_rule" } },
+      }),
+    });
+
+    if (!aiResponse.ok) {
+      console.error("AI gateway error for automation:", aiResponse.status);
+      return buildResponse("create_automation_rule", "deals",
+        { filters: [], sort: [], limit: 0 }, "llm", 0,
+        { headline: "Couldn't understand that automation request.", items: [], actions: [], did_you_mean: ["Remind me if no activity for 7 days", "Create follow-up when deal enters Proposal", "Alert me when deals are at risk"] }
+      );
+    }
+
+    const aiData = await aiResponse.json();
+    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall) {
+      return buildResponse("create_automation_rule", "deals",
+        { filters: [], sort: [], limit: 0 }, "llm", 0,
+        { headline: "Couldn't parse that as an automation rule.", items: [], actions: [], did_you_mean: ["Remind me if no activity for 7 days", "Create follow-up when deal enters Proposal"] }
+      );
+    }
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(toolCall.function.arguments);
+    } catch {
+      return buildResponse("create_automation_rule", "deals",
+        { filters: [], sort: [], limit: 0 }, "llm", 0,
+        { headline: "Couldn't parse automation rule.", items: [], actions: [], did_you_mean: DID_YOU_MEAN_DEFAULTS }
+      );
+    }
+
+    // Guardrails: validate trigger
+    if (!AUTOMATION_ALLOWED_TRIGGERS.includes(parsed.trigger)) {
+      return buildResponse("create_automation_rule", "deals",
+        { filters: [], sort: [], limit: 0 }, "llm", 0.3,
+        { headline: "That trigger type isn't supported yet.", items: [], actions: [], did_you_mean: ["Remind me if no activity for 7 days", "Create follow-up when deal enters Proposal", "Alert me when deals are at risk"] }
+      );
+    }
+
+    // Guardrails: validate actions
+    const validActions = (parsed.actions || []).filter((a: any) => AUTOMATION_ALLOWED_ACTIONS.includes(a.action_type));
+    if (validActions.length === 0) {
+      return buildResponse("create_automation_rule", "deals",
+        { filters: [], sort: [], limit: 0 }, "llm", 0.3,
+        { headline: "That action type isn't supported yet.", items: [], actions: [], did_you_mean: ["Remind me if no activity for 7 days", "Create follow-up when deal enters Proposal"] }
+      );
+    }
+
+    // Guardrails: validate conditions
+    const validConditions = (parsed.conditions || []).filter((c: any) => AUTOMATION_ALLOWED_CONDITION_FIELDS.includes(c.field_name));
+
+    // Build automation_preview response
+    const automationPreview = {
+      name: (parsed.name || "New automation rule").slice(0, 60),
+      trigger: parsed.trigger,
+      trigger_config: parsed.trigger_config || {},
+      trigger_label: parsed.trigger_label || parsed.trigger,
+      conditions: validConditions,
+      conditions_labels: parsed.conditions_labels || validConditions.map((c: any) => `${c.field_name} ${c.operator} ${c.value}`),
+      actions: validActions,
+      actions_labels: parsed.actions_labels || validActions.map((a: any) => a.action_type),
+    };
+
+    // Log (non-blocking)
+    serviceClient
+      .from("ask_fastcrm_query_logs")
+      .insert({
+        workspace_id: workspaceId,
+        user_id: userId,
+        question,
+        intent: "create_automation_rule",
+        items_count: 0,
+        routed_via: "llm",
+        confidence: 0.85,
+      })
+      .then(({ error: logErr }: any) => {
+        if (logErr) console.error("ask-fastcrm automation log error:", logErr);
+      });
+
+    return {
+      version: "1.0",
+      routed_via: "llm",
+      confidence: 0.85,
+      intent: "create_automation_rule",
+      object_type: "deals",
+      query: { filters: [], sort: [], limit: 0 },
+      answer: {
+        headline: "You're creating a new automation rule.",
+        subtext: "Review the details below and confirm.",
+      },
+      actions_available: ["CONFIRM_AUTOMATION", "CANCEL"],
+      items: [],
+      actions: [],
+      automation_preview: automationPreview,
+    };
+  } catch (e) {
+    console.error("Automation intent error:", e);
+    return buildResponse("create_automation_rule", "deals",
+      { filters: [], sort: [], limit: 0 }, "llm", 0,
+      { headline: "Something went wrong creating the rule.", items: [], actions: [], did_you_mean: DID_YOU_MEAN_DEFAULTS }
+    );
+  }
+}
 
 async function executeIntent(
   client: any,

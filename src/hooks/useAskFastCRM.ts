@@ -1,9 +1,11 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 export interface AskResultItem {
   id: string;
@@ -40,6 +42,17 @@ export interface AskStructuredQuery {
   limit: number;
 }
 
+export interface AutomationPreview {
+  name: string;
+  trigger: string;
+  trigger_config?: Record<string, any>;
+  trigger_label: string;
+  conditions: Array<{ field_name: string; operator: string; value: string | null }>;
+  conditions_labels: string[];
+  actions: Array<{ action_type: string; config: Record<string, any> }>;
+  actions_labels: string[];
+}
+
 export interface AskResult {
   version: string;
   routed_via: "deterministic" | "llm";
@@ -57,6 +70,7 @@ export interface AskResult {
   metric?: AskResultMetric;
   suggestion?: AskResultSuggestion;
   did_you_mean?: string[];
+  automation_preview?: AutomationPreview;
   // Backward compat
   header?: string;
 }
@@ -68,9 +82,12 @@ export function useAskFastCRM() {
   const [result, setResult] = useState<AskResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<AskResultAction | null>(null);
+  const [isConfirmingAutomation, setIsConfirmingAutomation] = useState(false);
   const { currentWorkspace } = useWorkspace();
+  const { workspaceClient } = useWorkspaceInstance();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const ask = useCallback(
     async (question: string) => {
@@ -273,6 +290,85 @@ export function useAskFastCRM() {
     [executeActionInternal]
   );
 
+  const confirmAutomation = useCallback(
+    async (preview: AutomationPreview) => {
+      if (!currentWorkspace?.id || !user?.id) return;
+      setIsConfirmingAutomation(true);
+
+      try {
+        // Map trigger_config to the format expected by automation_rules
+        const triggerConfig: Record<string, any> = {};
+        if (preview.trigger === "lead_no_response" && preview.trigger_config?.delay_days) {
+          triggerConfig.no_response_hours = (preview.trigger_config.delay_days as number) * 24;
+        }
+        if (preview.trigger === "opportunity_stage_changed" && preview.trigger_config?.stage_name) {
+          triggerConfig.stage_name = preview.trigger_config.stage_name;
+        }
+
+        // Create rule
+        const { data: rule, error: ruleError } = await workspaceClient
+          .from("automation_rules")
+          .insert({
+            workspace_id: currentWorkspace.id,
+            created_by: user.id,
+            name: preview.name,
+            description: `Created via Ask FastCRM: ${preview.trigger_label}`,
+            trigger: preview.trigger as any,
+            trigger_config: triggerConfig,
+            is_active: true,
+          } as any)
+          .select()
+          .single();
+
+        if (ruleError) throw ruleError;
+
+        // Create conditions
+        if (preview.conditions.length > 0) {
+          const { error: condError } = await workspaceClient
+            .from("automation_conditions")
+            .insert(
+              preview.conditions.map((c, i) => ({
+                rule_id: rule.id,
+                field_name: c.field_name,
+                operator: c.operator as any,
+                value: c.value,
+                position: i,
+              }))
+            );
+          if (condError) throw condError;
+        }
+
+        // Create actions
+        if (preview.actions.length > 0) {
+          const { error: actError } = await workspaceClient
+            .from("automation_actions")
+            .insert(
+              preview.actions.map((a, i) => ({
+                rule_id: rule.id,
+                action_type: a.action_type as any,
+                config: a.config as Record<string, never>,
+                position: i,
+              }))
+            );
+          if (actError) throw actError;
+        }
+
+        queryClient.invalidateQueries({ queryKey: ["automation_rules", currentWorkspace.id] });
+        toast.success("Rule activated — it will run automatically.");
+        setResult(null);
+      } catch (e: any) {
+        toast.error(e?.message || "Failed to create automation rule");
+      } finally {
+        setIsConfirmingAutomation(false);
+      }
+    },
+    [currentWorkspace?.id, user?.id, workspaceClient, queryClient]
+  );
+
+  const cancelAutomation = useCallback(() => {
+    setResult(null);
+  }, []);
+
   return {
     isLoading,
     result,
@@ -283,5 +379,8 @@ export function useAskFastCRM() {
     pendingAction,
     confirmPendingAction,
     cancelPendingAction,
+    confirmAutomation,
+    cancelAutomation,
+    isConfirmingAutomation,
   };
 }
