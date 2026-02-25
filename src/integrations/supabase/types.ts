@@ -17829,6 +17829,78 @@ export type Database = {
           },
         ]
       }
+      meeting_recordings: {
+        Row: {
+          ai_action_items: Json | null
+          ai_sentiment: string | null
+          ai_summary: string | null
+          ai_topics: Json | null
+          created_at: string
+          duration_seconds: number | null
+          file_size_bytes: number | null
+          file_url: string | null
+          id: string
+          meeting_id: string
+          speaker_count: number | null
+          status: string
+          transcription_language: string | null
+          transcription_status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_action_items?: Json | null
+          ai_sentiment?: string | null
+          ai_summary?: string | null
+          ai_topics?: Json | null
+          created_at?: string
+          duration_seconds?: number | null
+          file_size_bytes?: number | null
+          file_url?: string | null
+          id?: string
+          meeting_id: string
+          speaker_count?: number | null
+          status?: string
+          transcription_language?: string | null
+          transcription_status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ai_action_items?: Json | null
+          ai_sentiment?: string | null
+          ai_summary?: string | null
+          ai_topics?: Json | null
+          created_at?: string
+          duration_seconds?: number | null
+          file_size_bytes?: number | null
+          file_url?: string | null
+          id?: string
+          meeting_id?: string
+          speaker_count?: number | null
+          status?: string
+          transcription_language?: string | null
+          transcription_status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_recordings_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_recordings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_reschedule_requests: {
         Row: {
           created_at: string
@@ -18130,6 +18202,110 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_transcript_highlights: {
+        Row: {
+          assignee: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          highlight_type: string
+          id: string
+          recording_id: string
+          segment_id: string | null
+          start_time_ms: number
+          title: string
+        }
+        Insert: {
+          assignee?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          highlight_type: string
+          id?: string
+          recording_id: string
+          segment_id?: string | null
+          start_time_ms: number
+          title: string
+        }
+        Update: {
+          assignee?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          highlight_type?: string
+          id?: string
+          recording_id?: string
+          segment_id?: string | null
+          start_time_ms?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_transcript_highlights_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_recordings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_transcript_highlights_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_transcript_segments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_transcript_segments: {
+        Row: {
+          confidence: number | null
+          content: string
+          created_at: string
+          end_time_ms: number
+          id: string
+          is_key_moment: boolean | null
+          recording_id: string
+          sentiment: string | null
+          speaker_label: string
+          speaker_role: string | null
+          start_time_ms: number
+        }
+        Insert: {
+          confidence?: number | null
+          content: string
+          created_at?: string
+          end_time_ms: number
+          id?: string
+          is_key_moment?: boolean | null
+          recording_id: string
+          sentiment?: string | null
+          speaker_label: string
+          speaker_role?: string | null
+          start_time_ms: number
+        }
+        Update: {
+          confidence?: number | null
+          content?: string
+          created_at?: string
+          end_time_ms?: number
+          id?: string
+          is_key_moment?: boolean | null
+          recording_id?: string
+          sentiment?: string | null
+          speaker_label?: string
+          speaker_role?: string | null
+          start_time_ms?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_transcript_segments_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_recordings"
             referencedColumns: ["id"]
           },
         ]
