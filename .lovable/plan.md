@@ -1,131 +1,133 @@
 
 
-# Fix Build Error + Attio-Style Settings Redesign
+# Email and Calendar Accounts — Attio-Style Personal Settings Section
 
-## 1. Build Error Fix (immediate)
+## Reference Analysis
 
-**File**: `src/components/opportunities/OpportunityTableView.tsx` line 41
+The Attio screenshot shows a **Personal-level** "Email and calendar accounts" section with:
+- Connected accounts list (Google icon, email, "Default" badge, "In Sync" status, 3-dot menu)
+- Two large CTA buttons: "Connect Google Account" and "Connect Microsoft Account"
+- Forwarding address section with a separate email
+- Watermark toggle ("Sent with Attio")
 
-The `Locale` type is used but not imported. Fix: add `import type { Locale } from "date-fns";` or change the type annotation to remove the explicit `Locale` reference.
+## Current State
 
-```typescript
-// Change line 41 from:
-const dateLocales: Record<string, Locale> = { pt, en: enUS, es, fr };
-// To:
-const dateLocales: Record<string, typeof pt> = { pt, en: enUS, es, fr };
-```
+The existing email connection system lives under **Settings > Channels** (workspace-level). It uses IMAP/SMTP with app passwords via `EmailChannelSettings.tsx`, `EmailConnectDialog.tsx`, and `EmailConnectionCard.tsx`. There is no personal-level email/calendar section in the sidebar.
 
----
+## Proposed: Personal Email & Calendar Settings
 
-## 2. Attio-Style Settings Page Redesign
+A new **"Email & Calendar"** section under **Personal** in the settings sidebar, inspired by Attio but enhanced.
 
-Inspired by the Attio screenshot, the current Settings page will be restructured with a cleaner, more organized sidebar with grouped sections (Personal vs Workspace), and a dedicated Profile section matching Attio's layout.
-
-### Current vs Proposed
-
-| Aspect | Current | Proposed (Attio-style) |
-|---|---|---|
-| Sidebar | Flat list of 11 categories | **Grouped sections**: Personal (Profile, Appearance, Notifications) + Workspace (General, Members & Teams, Channels, CRM, etc.) |
-| Profile | Separate `/profile` page with card grid | **Integrated into Settings** as first "Personal" section with inline avatar upload, first/last name fields, email with Edit button, time preferences |
-| Search | Basic text search | Same but with cleaner styling |
-| Section headers | Bold text + description | Light category group labels (like "Personal", "Workspace") |
-| Active state | Primary color background | Subtle left border accent + light background |
-| Navigation items | Icon + label + description | Icon + label only (cleaner), with descriptions as tooltip |
-
-### New Sidebar Structure
+### Layout
 
 ```text
-Personal
-  ├─ Profile           (avatar, name, email, timezone)
-  ├─ Appearance        (theme, language, date format)
-  ├─ Notifications     (email, push, in-app preferences)
-
-Workspace
-  ├─ General           (workspace name, logo, slug)
-  ├─ Members & Teams   (invite, roles, permissions)
-  ├─ Channels          (email, WhatsApp, forms)
-  ├─ CRM & Data        (fields, pipelines, import)
-  ├─ Templates         (messages, proposals)
-  ├─ Automation & AI   (rules, scoring, suggestions)
-
-Advanced
-  ├─ Security          (SSO, audit, 2FA)
-  ├─ Integrations      (API keys, webhooks, Stripe)
-  ├─ Billing           (plan, usage, invoices)
-  ├─ Extensions        (installed, audit log)
-  ├─ Developer         (feature flags, API docs)
+┌──────────────────────────────────────────────────────────────┐
+│  Email & Calendar Accounts                                   │
+│  Manage and sync your email and calendar accounts            │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  Connected accounts                                          │
+│  We take your privacy very seriously. Read our Privacy Policy │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │ 🔴 joao@gmail.com     [Default]     ✅ In Sync   ⋮ │    │
+│  │    Email, Calendar                                    │    │
+│  └──────────────────────────────────────────────────────┘    │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │ 🟣 info@empresa.com                ✅ In Sync   ⋮ │    │
+│  │    Email                                              │    │
+│  └──────────────────────────────────────────────────────┘    │
+│                                                              │
+│  ┌─────────────────────┐  ┌──────────────────────────┐      │
+│  │ G Connect Google    │  │ 🟦 Connect Microsoft    │      │
+│  └─────────────────────┘  └──────────────────────────┘      │
+│  ┌─────────────────────┐  ┌──────────────────────────┐      │
+│  │ 📧 Connect IMAP     │  │ 🟣 Connect Hostinger   │      │
+│  └─────────────────────┘  └──────────────────────────┘      │
+│                                                              │
+│  ─────────────────────────────────────────────────────────── │
+│                                                              │
+│  Email signature                                             │
+│  Configure your default email signature                      │
+│                                                              │
+│  [Rich text signature editor / toggle]                       │
+│                                                              │
+│  ─────────────────────────────────────────────────────────── │
+│                                                              │
+│  FastCRM watermark                                           │
+│  Add "Sent with FastCRM" to the end of         [Toggle]      │
+│  emails sent from this platform                              │
+│                                                              │
+│  ─────────────────────────────────────────────────────────── │
+│                                                              │
+│  Default sending account                                     │
+│  Choose which account is used when composing    [Select ▼]   │
+│  new emails                                                  │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### New Profile Section (Attio-inspired)
+### Enhancements Over Attio
 
-Replaces the current card-based `/profile` page with an inline settings section:
-
-```text
-┌──────────────────────────────────────────────────┐
-│  Profile                                         │
-│  Manage your personal details                    │
-│                                                  │
-│  ℹ️ Changes apply to all your workspaces         │
-│                                                  │
-│  Profile Picture                                 │
-│  [Avatar]  PNGs, JPEGs and GIFs under 10MB       │
-│  [🟢 Upload new image] [🗑️]                      │
-│                                                  │
-│  First Name          Last Name                   │
-│  ┌──────────┐       ┌──────────┐                 │
-│  │ João     │       │ Silva    │                 │
-│  └──────────┘       └──────────┘                 │
-│                                                  │
-│  Primary Email Address                           │
-│  ┌────────────────────────────────┐ [Edit]       │
-│  │ joao@company.com              │               │
-│  └────────────────────────────────┘              │
-│                                                  │
-│  Time preferences                                │
-│  Manage your time preferences                    │
-│                                                  │
-│  Preferred Timezone    Start week on              │
-│  [Europe/Lisbon ▼]    [Monday ▼]                 │
-└──────────────────────────────────────────────────┘
-```
-
-### New Appearance Section
-
-Extracts language/theme/date format from the current scattered locations into one dedicated section:
-
-- Theme toggle (light/dark/system)
-- Language selector (PT/EN/ES/FR)
-- Date format preference
-- Currency preference
+1. **Four connect options** — Google, Microsoft, Hostinger, and Custom IMAP (Attio only has Google + Microsoft)
+2. **Default account selector** — Dropdown to pick which account sends new emails by default
+3. **Email signature** — Inline signature editor (Attio has none in this section)
+4. **FastCRM watermark toggle** — Like Attio's watermark, but for FastCRM branding
+5. **Attio-style connection cards** — Clean inline rows with provider icon, email, badges (Default, In Sync/Error), and 3-dot menu (Set as default, Disconnect, Settings)
+6. **i18n from day one** — All strings translated in PT, EN, ES, FR
+7. **Reuses existing hook** — `useEmailConnections` already provides all the data; the new component just presents it differently
 
 ### File Plan
 
 | File | Action |
 |---|---|
-| `src/components/opportunities/OpportunityTableView.tsx` | **FIX** — Change `Locale` type to `typeof pt` |
-| `src/components/settings/SettingsNavigation.tsx` | **REWRITE** — Grouped sidebar with Personal/Workspace/Advanced sections, cleaner item styling |
-| `src/pages/Settings.tsx` | **EDIT** — Add new categories (profile, appearance, notifications), update routing, merge Profile page content |
-| `src/components/settings/sections/ProfileSettings.tsx` | **NEW** — Attio-style profile editor (avatar, split name fields, email with edit, timezone, week start) |
-| `src/components/settings/sections/AppearanceSettings.tsx` | **NEW** — Theme, language, date format, currency |
-| `src/components/settings/sections/NotificationSettings.tsx` | **NEW** — Email/push/in-app notification preferences |
-| `src/i18n/locales/{pt,en,es,fr}/settings.json` | **EXPAND** — Add ~40 new keys for profile, appearance, notification strings |
-| `src/pages/Profile.tsx` | **EDIT** — Redirect to `/settings/profile` instead of standalone page |
+| `src/components/settings/sections/EmailCalendarSettings.tsx` | **NEW** — Main section component with connected accounts list, connect buttons, signature, watermark toggle, default account selector |
+| `src/components/settings/sections/EmailAccountRow.tsx` | **NEW** — Single connected account row (provider icon, email, Default badge, sync status badge, 3-dot menu with Set Default / Disconnect / Settings) |
+| `src/components/settings/SettingsNavigation.tsx` | **EDIT** — Add `"emailCalendar"` nav item under Personal group (after Profile, before Appearance) with `Mail` icon |
+| `src/pages/Settings.tsx` | **EDIT** — Add `"emailCalendar"` case in `renderContent()` and `categoryMeta`, import new component |
+| `src/i18n/locales/pt/settings.json` | **EDIT** — Add ~25 new keys for email & calendar section |
+| `src/i18n/locales/en/settings.json` | **EDIT** — Same keys in English |
+| `src/i18n/locales/es/settings.json` | **EDIT** — Same keys in Spanish |
+| `src/i18n/locales/fr/settings.json` | **EDIT** — Same keys in French |
+| `src/components/settings/settingsSearchData.ts` | **EDIT** — Add searchable entries for the new section |
 
-### Enhancements Over Attio
+### New i18n Keys (~25)
 
-1. **Unified search** across all sections (Personal + Workspace) — Attio has no cross-section search
-2. **i18n from day one** — All labels translated in 4 languages
-3. **Role-aware visibility** — Workspace sections hidden for viewers, admin sections gated
-4. **Responsive** — Sidebar collapses to sheet on mobile (Attio is desktop-only settings)
-5. **Time preferences** include timezone auto-detect suggestion based on browser
-6. **Profile changes propagate** — Info banner "Changes apply to all your workspaces" like Attio
+```
+emailCalendar_title, emailCalendar_description,
+emailCalendar_connectedAccounts, emailCalendar_privacyNotice,
+emailCalendar_connectGoogle, emailCalendar_connectMicrosoft,
+emailCalendar_connectIMAP, emailCalendar_connectHostinger,
+emailCalendar_default, emailCalendar_inSync, emailCalendar_error,
+emailCalendar_pending, emailCalendar_syncing,
+emailCalendar_setDefault, emailCalendar_disconnect, emailCalendar_settings,
+emailCalendar_emailCalendar, emailCalendar_emailOnly,
+emailCalendar_signature, emailCalendar_signatureDesc,
+emailCalendar_watermark, emailCalendar_watermarkDesc,
+emailCalendar_defaultAccount, emailCalendar_defaultAccountDesc,
+emailCalendar_noAccounts, emailCalendar_noAccountsDesc
+```
 
-### Implementation Order
+### Component Details
 
-1. Fix the `Locale` build error (1 line)
-2. Expand settings.json files with new keys (4 files)
-3. Create ProfileSettings, AppearanceSettings, NotificationSettings components (3 files)
-4. Rewrite SettingsNavigation with grouped sections
-5. Update Settings.tsx with new categories and routing
-6. Update Profile.tsx to redirect
+**EmailAccountRow** — Compact row (not a card) matching Attio's clean style:
+- Left: Provider icon (Google colored G, Microsoft logo, Hostinger purple, IMAP gray) + email address + capabilities ("Email, Calendar" or "Email")
+- Center: `[Default]` badge if is_default
+- Right: Green "In Sync" / Yellow "Syncing" / Red "Error" status + 3-dot dropdown (Set as Default, Open Settings, Disconnect)
+
+**EmailCalendarSettings** — Composed of:
+1. Header with title + description
+2. Privacy notice text
+3. List of `EmailAccountRow` components
+4. Grid of 4 connect buttons (reuses existing `EmailConnectDialog`)
+5. Separator + Email signature section (textarea or rich text)
+6. Separator + Watermark toggle
+7. Separator + Default account select dropdown
+
+### Technical Notes
+
+- The existing `useEmailConnections()` hook already returns all connections for the workspace. No new queries needed.
+- The connect flow reuses the existing `EmailConnectDialog` component.
+- The "Set as Default" action can use `useUpdateEmail` with a new `is_default` field, or simply store the default connection ID in user metadata via `supabase.auth.updateUser()`.
+- No new database tables needed — the `email_connections` table already has all required fields.
+- The "Calendar" connect is future-ready (Google Calendar API integration) — for now the buttons are present but calendar sync shows as "Coming soon".
 
