@@ -543,7 +543,7 @@ export function CompanyDetailWithSidebar() {
         </main>
 
         {/* Right Details Panel */}
-        <EntityDetailsPanel entityType="company" entity={company as any} />
+        <EntityDetailsPanel entityType="company" entity={company as any} onUpdate={(field, value) => handleFieldChange(field as keyof Company, value)} />
       </div>
 
       {/* Dialogs */}
