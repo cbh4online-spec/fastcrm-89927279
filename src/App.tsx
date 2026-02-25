@@ -524,6 +524,7 @@ function CRMRoutes() {
                 <Route path="/agencias" element={<VerticalLandingPage />} />
                 <Route path="/empresas" element={<VerticalLandingPage />} />
                 <Route path="/invite/:token" element={<AcceptWorkspaceInvite />} />
+                <Route path="/marketplace" element={<Navigate to="/dashboard/marketplace" replace />} />
                 <Route path="/:slug" element={<VerticalLandingPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
