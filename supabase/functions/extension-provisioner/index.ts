@@ -9,9 +9,7 @@ const corsHeaders = {
 interface ManifestObjectDef {
   type: string;
   label: string;
-  labelPt: string;
   icon: string;
-  source_table: string;
   color: string;
   description: string;
 }
@@ -177,87 +175,114 @@ Deno.serve(async (req) => {
 
       // --- Provision manifest objects into core_object_types ---
       for (const obj of manifestObjects) {
-        const { data: existingObj } = await serviceClient
+        const { data: existingObj, error: objQueryErr } = await serviceClient
           .from("core_object_types")
           .select("id")
           .eq("workspace_id", workspaceId)
-          .eq("type", obj.type)
+          .eq("slug", obj.type)
           .maybeSingle();
 
+        if (objQueryErr) {
+          console.error(`[provisioner] Error querying core_object_types for slug=${obj.type}:`, objQueryErr);
+          continue;
+        }
+
         if (existingObj) {
-          await serviceClient
+          const { error: objUpdateErr } = await serviceClient
             .from("core_object_types")
             .update({ is_active: true, source_module: module_slug })
             .eq("id", existingObj.id);
+          if (objUpdateErr) console.error(`[provisioner] Error updating core_object_types id=${existingObj.id}:`, objUpdateErr);
         } else {
-          await serviceClient.from("core_object_types").insert({
+          const { error: objInsertErr } = await serviceClient.from("core_object_types").insert({
             workspace_id: workspaceId,
-            type: obj.type,
-            label: obj.label,
-            label_pt: obj.labelPt,
+            slug: obj.type,
+            name: obj.label,
             icon: obj.icon,
-            source_table: obj.source_table,
             color: obj.color,
             description: obj.description,
             source_module: module_slug,
             is_active: true,
           });
+          if (objInsertErr) console.error(`[provisioner] Error inserting core_object_types slug=${obj.type}:`, objInsertErr);
         }
       }
 
       // --- Provision manifest fields into core_object_fields ---
       for (const field of manifestFields) {
-        const { data: objType } = await serviceClient
+        const { data: objType, error: objLookupErr } = await serviceClient
           .from("core_object_types")
           .select("id")
           .eq("workspace_id", workspaceId)
-          .eq("type", field.object_type)
+          .eq("slug", field.object_type)
           .maybeSingle();
 
+        if (objLookupErr) {
+          console.error(`[provisioner] Error looking up object type slug=${field.object_type}:`, objLookupErr);
+          continue;
+        }
+
         if (objType) {
-          const { data: existingField } = await serviceClient
+          const { data: existingField, error: fieldQueryErr } = await serviceClient
             .from("core_object_fields")
             .select("id")
-            .eq("object_type_id", objType.id)
-            .eq("key", field.key)
+            .eq("object_id", objType.id)
+            .eq("slug", field.key)
             .maybeSingle();
 
+          if (fieldQueryErr) {
+            console.error(`[provisioner] Error querying core_object_fields slug=${field.key}:`, fieldQueryErr);
+            continue;
+          }
+
           if (!existingField) {
-            await serviceClient.from("core_object_fields").insert({
-              object_type_id: objType.id,
-              key: field.key,
-              type: field.type,
-              label: field.label,
+            const { error: fieldInsertErr } = await serviceClient.from("core_object_fields").insert({
+              object_id: objType.id,
+              slug: field.key,
+              field_type: field.type,
+              name: field.label,
               workspace_id: workspaceId,
             });
+            if (fieldInsertErr) console.error(`[provisioner] Error inserting core_object_fields slug=${field.key}:`, fieldInsertErr);
           }
         }
       }
 
       // --- Provision manifest views into core_object_views ---
       for (const view of manifestViews) {
-        const { data: objType } = await serviceClient
+        const { data: objType, error: objLookupErr } = await serviceClient
           .from("core_object_types")
           .select("id")
           .eq("workspace_id", workspaceId)
-          .eq("type", view.object_type)
+          .eq("slug", view.object_type)
           .maybeSingle();
 
+        if (objLookupErr) {
+          console.error(`[provisioner] Error looking up object type for view slug=${view.object_type}:`, objLookupErr);
+          continue;
+        }
+
         if (objType) {
-          const { data: existingView } = await serviceClient
+          const { data: existingView, error: viewQueryErr } = await serviceClient
             .from("core_object_views")
             .select("id")
-            .eq("object_type_id", objType.id)
+            .eq("object_id", objType.id)
             .eq("name", view.name)
             .maybeSingle();
 
+          if (viewQueryErr) {
+            console.error(`[provisioner] Error querying core_object_views name=${view.name}:`, viewQueryErr);
+            continue;
+          }
+
           if (!existingView) {
-            await serviceClient.from("core_object_views").insert({
-              object_type_id: objType.id,
+            const { error: viewInsertErr } = await serviceClient.from("core_object_views").insert({
+              object_id: objType.id,
               name: view.name,
-              filter: view.filter,
+              filters: view.filter,
               workspace_id: workspaceId,
             });
+            if (viewInsertErr) console.error(`[provisioner] Error inserting core_object_views name=${view.name}:`, viewInsertErr);
           }
         }
       }
@@ -294,13 +319,14 @@ Deno.serve(async (req) => {
 
       // --- Soft-disable extension objects (preserve data) ---
       if (manifestObjects.length > 0) {
-        const objectTypes = manifestObjects.map((o) => o.type);
-        await serviceClient
+        const objectSlugs = manifestObjects.map((o) => o.type);
+        const { error: disableErr } = await serviceClient
           .from("core_object_types")
           .update({ is_active: false })
           .eq("workspace_id", workspaceId)
           .eq("source_module", module_slug)
-          .in("type", objectTypes);
+          .in("slug", objectSlugs);
+        if (disableErr) console.error(`[provisioner] Error disabling objects:`, disableErr);
       }
 
       // --- Audit log ---
