@@ -1,195 +1,162 @@
 
 
-# Fase 2.1 — Health Engine V2 (Revenue-Grade)
+# Fase 2.2 — Forecast Engine V2 (Risk-Adjusted Revenue Projection)
 
-## Current State Analysis
+## Current State
 
-### What Exists
-- **`deal-intelligence` edge function** (513 lines): Scores deals 0-100 with penalties for activity recency, next steps, stage stagnation, data completeness. Has momentum bonus (+5). Single deal + batch mode. Cache via `deal_intelligence_cache` with 30min TTL and trigger-based invalidation (activities, tasks, opportunities).
-- **`intelligence-panel` edge function** (387 lines): Duplicates the `scoreDeal` function. Aggregates health distribution, top risks, recommended actions, stage benchmarks.
-- **`pipeline_stages.expected_days`**: Already exists (default 14). Used by `deal-intelligence` for stage velocity.
-- **`deal_intelligence_cache`**: Table with workspace_id, deal_id, payload (jsonb), computed_at, expires_at, invalidated_at. Triggers invalidate on activity/task/opportunity changes.
-- **Automation triggers**: `AutomationTrigger` type has ~45 triggers but NO health-related triggers (no `health_label_changed`, `health_score_below_threshold`).
-- **`useDealsWithHealth` hook**: Merges opportunities with bulk health scores for list filtering.
+### What Already Exists
+- **`compute-revenue-forecast` edge function**: Already computes gross, expected, worst, best case, and `health_adjusted_expected` using health scores from `deal_intelligence_cache`. Already calculates `forecast_confidence` (0-100).
+- **`pipeline_stages.probability`**: Column already exists in the database (nullable, numeric). NOT used by the current forecast engine.
+- **`revenue_forecasts` table**: Has `health_adjusted_expected`, `pipeline_health_avg`, `forecast_confidence` columns (added in Fase 2).
+- **Dashboard**: `RevenueHero`, `ForecastTrendChart`, `ForecastConfidenceCard` already show confidence, risk-adjusted line, and data quality breakdown.
+- **Ask FastCRM**: Has `forecast_summary` and `forecast_risk` intents, but `queryForecast` reads from old `payload` column format and doesn't show stage-weighted or blockers.
+- **Automation triggers**: Has health-based triggers but NO forecast-specific triggers.
 
-### What's Missing for V2
-1. **No `pipeline_stage_benchmarks` table** — stage velocity uses `pipeline_stages.expected_days` only, no `risk_multiplier` or `warning_multiplier`
-2. **No value sensitivity** — high-value deals penalized same as low-value
-3. **Penalty thresholds not configurable** — hardcoded in `scoreDeal`
-4. **No health history** — can't track score deterioration over time
-5. **No automation triggers for health** — can't trigger on `health_label_changed` or `health_score_dropped`
-6. **Duplicated `scoreDeal`** — exists in both `deal-intelligence` AND `intelligence-panel`
-7. **No confidence metric** on health score itself (data quality signal)
-8. **30-day activity penalty gap** — jumps from -40 (>14d) to nothing for >30d (spec says -60)
+### What's Missing
+1. **No stage-weighted forecast** — `pipeline_stages.probability` exists but is never used in computation
+2. **No risk multiplier by health label** — current formula uses `health_score/100` linearly, not the tiered 0.7/0.9/1.0 approach
+3. **No forecast blockers** — no structured list of what's hurting the forecast
+4. **No `stage_weighted` field** in `revenue_forecasts` — only gross/expected/worst/best/health_adjusted
+5. **No deal breakdown by health label** in stored forecast (healthy_revenue / watch_revenue / at_risk_revenue)
+6. **Ask `queryForecast`** reads old `payload` format, doesn't show stage-weighted, blockers, or confidence
+7. **No forecast automation triggers** — no `forecast_confidence_below_threshold` or `forecast_drop_percentage`
+8. **`RevenueHero` doesn't show stage-weighted** — only shows expected and risk-adjusted
 
 ## Plan
 
-### 1. Database: `pipeline_stage_benchmarks` table + Health History
+### 1. DB Migration: Add stage_weighted + blockers + deal_breakdown to `revenue_forecasts`
 
-**New table: `pipeline_stage_benchmarks`**
+Add columns:
+- `stage_weighted` (numeric, default 0) — stage probability-weighted total
+- `healthy_revenue` (numeric, default 0)
+- `watch_revenue` (numeric, default 0)
+- `at_risk_revenue` (numeric, default 0)
+- `blockers` (jsonb, default '[]') — array of blocker strings
+
+### 2. Upgrade `compute-revenue-forecast` Edge Function
+
+Key changes:
+
+**Stage probability weighting**: Fetch `pipeline_stages` with `probability` for the workspace. For each deal, lookup its stage probability (fallback 0.5 if null). Compute: `stage_weighted_value = value × stage_probability`.
+
+**Risk multiplier by health label** (replaces linear health_score/100):
 ```
-pipeline_id    uuid NOT NULL
-stage_id       uuid NOT NULL (FK → pipeline_stages)
-expected_days  integer NOT NULL DEFAULT 14
-warning_multiplier numeric DEFAULT 1.0
-risk_multiplier    numeric DEFAULT 1.5
-PRIMARY KEY (pipeline_id, stage_id)
+AT_RISK → 0.7
+WATCH  → 0.9
+HEALTHY → 1.0
 ```
-This allows per-pipeline, per-stage velocity tuning. The edge function will prefer this table over `pipeline_stages.expected_days` when present.
+`risk_adjusted = value × stage_probability × risk_multiplier`
 
-**New table: `health_score_history`**
+**Confidence score V2** (spec formula):
 ```
-id             uuid PK
-workspace_id   uuid NOT NULL
-deal_id        uuid NOT NULL
-health_score   integer NOT NULL
-health_label   text NOT NULL
-top_reason     text
-recorded_at    timestamptz DEFAULT now()
+confidence = 1 - (at_risk_ratio × 0.4 + no_activity_ratio × 0.3 + missing_data_ratio × 0.3)
 ```
-Index on `(workspace_id, deal_id, recorded_at DESC)`. RLS: service role only. Populated by the edge function on each fresh computation. Enables "worsening score" detection for proactive suggestions and automation triggers.
+Clamp 0-1, store as 0-100.
 
-**New table: `health_engine_config`**
-```
-id                     uuid PK
-workspace_id           uuid NOT NULL UNIQUE
-label_thresholds       jsonb DEFAULT '{"healthy": 80, "watch": 50}'
-value_sensitivity_threshold numeric DEFAULT 50000
-value_sensitivity_multiplier numeric DEFAULT 1.2
-```
-Global configuration per workspace for label cutoffs and value sensitivity.
+**Blockers generation**: Produce up to 5 strings describing what's hurting the forecast:
+- "X high-value deals have no activity"
+- "Stage Y exceeding benchmark by Z%"
+- "X deals missing close date"
+- "X deals at risk"
+- "X deals without next step"
 
-### 2. Edge Function: Upgrade `deal-intelligence` scoring engine
+**Deal breakdown by health label**: Sum revenue per HEALTHY/WATCH/AT_RISK into `healthy_revenue`, `watch_revenue`, `at_risk_revenue`.
 
-Refactor `scoreDeal` to V2 with these changes:
+Store all new fields in `revenue_forecasts` insert.
 
-**Activity penalties (aligned to spec)**:
-- >30 days: -60 (HIGH)
-- >14 days: -40 (HIGH)  
-- >7 days: -25 (HIGH)
+### 3. Update Frontend Types & Hook
 
-**Stage velocity (pipeline-aware)**:
-- Fetch `pipeline_stage_benchmarks` for the deal's pipeline
-- Fallback to `pipeline_stages.expected_days` if no benchmark row
-- `stage_days > expected × risk_multiplier` → -20 (HIGH)
-- `stage_days > expected × warning_multiplier` → -10 (MEDIUM)
+**`useRevenueForecast`**: Add `stage_weighted`, `healthy_revenue`, `watch_revenue`, `at_risk_revenue`, `blockers` to `RevenueForecast` interface.
 
-**Value sensitivity**:
-- If deal value > `health_engine_config.value_sensitivity_threshold`, multiply all penalties by `value_sensitivity_multiplier` (default 1.2)
+### 4. Upgrade `RevenueHero`
 
-**Configurable labels**:
-- Read `health_engine_config.label_thresholds` for the workspace
-- Fallback to HEALTHY ≥ 80, WATCH ≥ 50, AT_RISK < 50
+Show 3 values in the right section instead of 2:
+- **Stage-Weighted** (new, primary emphasis)
+- **Risk-Adjusted** (existing, from `health_adjusted_expected`)
+- **Gross** (was "Best Case")
 
-**Confidence output**:
-- Add `confidence` field (0-1) = data_completeness / 100 × (has recent activity ? 1 : 0.7) × (has tasks ? 1 : 0.8)
+Add a warning badge when `forecast_confidence < 60`.
 
-**Health history recording**:
-- On each fresh computation, INSERT into `health_score_history`
-- Detect label changes by comparing to last recorded entry → add `label_changed` flag to output
+### 5. Upgrade `ForecastConfidenceCard`
 
-**Deduplicate scoreDeal**:
-- Remove the duplicated `scoreDeal` from `intelligence-panel/index.ts`
-- Have `intelligence-panel` call `deal-intelligence` in batch mode instead of re-implementing scoring
+Add **Blockers section**: Display the blockers array from `latestForecast.blockers` as a list of short warning items. Each blocker shows with a dot severity indicator.
 
-### 3. Automation Triggers: Health-based
+Add **Deal breakdown bar**: Horizontal stacked bar showing healthy/watch/at_risk revenue proportions.
 
-**Add 3 new trigger types** to `AutomationTrigger`:
-- `health_label_changed` — fires when label transitions (e.g., WATCH → AT_RISK)
-- `health_score_below_threshold` — fires when score drops below configured value
-- `health_score_dropped` — fires when score drops by X points from previous
+### 6. Upgrade Ask FastCRM `queryForecast`
 
-**Implementation**: The `deal-intelligence` function, after computing and detecting a label change (via `health_score_history`), will insert a record into `automation_trigger_events` (or call the automation execution engine directly). The existing automation execution engine picks it up.
+Rewrite to read the new columns directly instead of parsing old `payload` format:
+- Show: gross, stage-weighted, risk-adjusted, confidence
+- Show blockers as items
+- Add "Is my forecast realistic?" answer based on confidence
 
-**UI**: Add the 3 new triggers to the automation builder's trigger dropdown for opportunity-type automations.
+### 7. Add Forecast Automation Triggers
 
-### 4. Lists Integration Enhancement
+Add 2 new triggers to `AutomationTrigger` type:
+- `forecast_confidence_below_threshold`
+- `forecast_drop_percentage`
 
-The `useDealsWithHealth` hook already works. Enhance it to also expose:
-- `stage_days` (from intelligence payload debug)
-- `last_activity_days` (from intelligence payload debug)
+Add to all trigger registries (AutomationRuleBuilder, VisualAutomationBuilder, AutomationRulesList, AutomationTestRunner, automationPlainLanguage).
 
-These become filterable virtual fields in opportunity list views.
+### 8. Upgrade Proactive Suggestions
 
-### 5. Ask Integration
-
-Already integrated — `ask-fastcrm` supports `health_score` and `health_label` as queryable fields. No changes needed.
-
-### 6. UI: Health Engine Config page
-
-**New component: `src/components/settings/HealthEngineSettings.tsx`**
-
-Simple settings card under pipeline settings:
-- Label thresholds (HEALTHY/WATCH cutoff sliders)
-- Value sensitivity threshold (input)
-- Value sensitivity multiplier (input)
-- Per-stage benchmark table (inline edit expected_days, warning_multiplier, risk_multiplier)
-
-Accessible from pipeline settings page.
+Add to `useProactiveAskSuggestions`:
+- **Forecast confidence low**: When `forecast_confidence < 50` → "Your forecast confidence is low — review data quality"
+- Replace existing forecast drift signal with blocker-aware version
 
 ## File Summary
 
 | File | Action | Description |
 |---|---|---|
-| **DB Migration** | **NEW** | Create `pipeline_stage_benchmarks`, `health_score_history`, `health_engine_config` tables |
-| `supabase/functions/deal-intelligence/index.ts` | **EDIT** | V2 scoring: 3-tier activity, pipeline benchmarks, value sensitivity, configurable labels, confidence, history recording, label change detection |
-| `supabase/functions/intelligence-panel/index.ts` | **EDIT** | Remove duplicated `scoreDeal`, call `deal-intelligence` batch mode instead |
-| `src/hooks/useAutomations.ts` | **EDIT** | Add 3 health trigger types to `AutomationTrigger` |
-| `src/hooks/useDealsWithHealth.ts` | **EDIT** | Expose `stage_days`, `last_activity_days` from cached payloads |
-| `src/types/dealIntelligence.ts` | **EDIT** | Add `confidence`, `label_changed`, `stage_days` to payload types |
-| `src/components/settings/HealthEngineSettings.tsx` | **NEW** | Config UI for thresholds, value sensitivity, stage benchmarks |
-| `src/pages/PipelineSettingsPage.tsx` (or equivalent) | **EDIT** | Add link/tab to Health Engine settings |
+| **DB Migration** | **NEW** | Add `stage_weighted`, `healthy_revenue`, `watch_revenue`, `at_risk_revenue`, `blockers` to `revenue_forecasts` |
+| `supabase/functions/compute-revenue-forecast/index.ts` | **EDIT** | Stage probability weighting, risk multiplier by label, confidence V2 formula, blockers generation, deal breakdown |
+| `src/hooks/useRevenueForecast.ts` | **EDIT** | Add new fields to `RevenueForecast` interface |
+| `src/components/dashboard/RevenueHero.tsx` | **EDIT** | Show stage-weighted + risk-adjusted + gross, confidence warning |
+| `src/components/dashboard/ForecastConfidenceCard.tsx` | **EDIT** | Add blockers list, deal breakdown bar |
+| `src/components/dashboard/ForecastTrendChart.tsx` | **EDIT** | Add stage-weighted line to chart |
+| `supabase/functions/ask-fastcrm/index.ts` | **EDIT** | Rewrite `queryForecast` to use new columns |
+| `src/hooks/useAutomations.ts` | **EDIT** | Add 2 forecast triggers |
+| `src/hooks/useProactiveAskSuggestions.ts` | **EDIT** | Add forecast confidence low signal |
+| `src/lib/automationPlainLanguage.ts` | **EDIT** | Add 2 forecast trigger labels |
+| `src/components/automations/AutomationRuleBuilder.tsx` | **EDIT** | Add 2 forecast trigger options |
+| `src/components/automations/VisualAutomationBuilder.tsx` | **EDIT** | Add 2 forecast trigger options |
+| `src/components/automations/AutomationRulesList.tsx` | **EDIT** | Add 2 trigger labels + colors |
+| `src/components/automations/AutomationTestRunner.tsx` | **EDIT** | Add 2 trigger descriptions |
 
 ## Technical Details
 
-### V2 Score Formula
+### Risk-Adjusted Formula (V2)
 ```text
-base = 100
+For each deal:
+  stage_prob = pipeline_stages.probability ?? 0.5
+  risk_mult  = AT_RISK ? 0.7 : WATCH ? 0.9 : 1.0
+  
+  stage_weighted_value = value × stage_prob
+  risk_adjusted_value  = value × stage_prob × risk_mult
 
-// Activity (mutually exclusive, worst wins)
-if last_activity_days > 30: penalty += 60
-elif last_activity_days > 14: penalty += 40
-elif last_activity_days > 7:  penalty += 25
-
-// Next step
-if no_pending_tasks: penalty += 20
-elif next_due > 7 days: penalty += 10
-
-// Stage velocity (pipeline-aware)
-benchmark = pipeline_stage_benchmarks[pipeline_id, stage_id] 
-         ?? pipeline_stages.expected_days ?? 14
-if stage_days > benchmark.expected × risk_multiplier: penalty += 20
-elif stage_days > benchmark.expected × warning_multiplier: penalty += 10
-
-// Data completeness
-if !amount: penalty += 10
-if !close_date: penalty += 10
-if !contact: penalty += 5
-
-// Value sensitivity
-if value > config.value_sensitivity_threshold:
-  penalty = penalty × config.value_sensitivity_multiplier
-
-// Momentum bonus
-if activities_last_7d >= 2: bonus = 5
-
-score = clamp(0, 100, base - penalty + bonus)
+Totals:
+  gross           = sum(value)
+  stage_weighted  = sum(stage_weighted_value)
+  risk_adjusted   = sum(risk_adjusted_value)
 ```
 
-### Label Change Detection
+### Confidence Score V2
 ```text
-1. Compute new score
-2. SELECT health_label FROM health_score_history 
-   WHERE deal_id = X ORDER BY recorded_at DESC LIMIT 1
-3. If previous_label != new_label → label_changed = true
-4. INSERT new entry into health_score_history
-5. If label_changed → queue automation trigger
+at_risk_ratio     = at_risk_count / total_deals
+no_activity_ratio = deals_no_activity_10d / total_deals
+missing_data_ratio = (missing_value + missing_close_date) / (total_deals * 2)
+
+confidence = clamp(0, 1, 1 - (at_risk_ratio × 0.4 + no_activity_ratio × 0.3 + missing_data_ratio × 0.3))
+Stored as integer 0-100.
 ```
 
-### Intelligence Panel Deduplication
+### Blockers (max 5)
 ```text
-Current: intelligence-panel has its own scoreDeal (duplicated)
-After: intelligence-panel calls deal-intelligence batch endpoint internally
-       via service-to-service HTTP call using SUPABASE_URL + service role key
+Generated in priority order:
+1. "X high-value deals without activity" (value > avg && no activity > 10d)
+2. "Stage 'Y' exceeding benchmark by Z%" (avg_days > expected × 1.4)
+3. "X deals missing close date"
+4. "X deals at risk" (AT_RISK label)
+5. "X deals without next step" (no pending tasks)
 ```
 
