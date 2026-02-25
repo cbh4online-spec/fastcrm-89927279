@@ -63,6 +63,11 @@ export interface Lead {
   // Enrichment
   company_name: string | null;
   website: string | null;
+
+  // Scores
+  icp_fit_score: number | null;
+  engagement_score: number | null;
+  pare_score: number | null;
 }
 
 export interface CreateLeadInput {

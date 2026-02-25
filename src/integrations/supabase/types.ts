@@ -16679,6 +16679,7 @@ export type Database = {
           created_by: string | null
           email: string | null
           email_verified: boolean | null
+          engagement_score: number | null
           enrichment_queued_at: string | null
           estimated_value: number | null
           external_email: string | null
@@ -16691,6 +16692,7 @@ export type Database = {
           ghl_contact_id: string | null
           ghl_synced_at: string | null
           google_place_id: string | null
+          icp_fit_score: number | null
           id: string
           inferred_profession: string | null
           inferred_specialty: string | null
@@ -16716,6 +16718,7 @@ export type Database = {
           longitude: number | null
           name: string
           notes: string | null
+          pare_score: number | null
           parish: string | null
           phone: string | null
           photos: string[] | null
@@ -16762,6 +16765,7 @@ export type Database = {
           created_by?: string | null
           email?: string | null
           email_verified?: boolean | null
+          engagement_score?: number | null
           enrichment_queued_at?: string | null
           estimated_value?: number | null
           external_email?: string | null
@@ -16774,6 +16778,7 @@ export type Database = {
           ghl_contact_id?: string | null
           ghl_synced_at?: string | null
           google_place_id?: string | null
+          icp_fit_score?: number | null
           id?: string
           inferred_profession?: string | null
           inferred_specialty?: string | null
@@ -16799,6 +16804,7 @@ export type Database = {
           longitude?: number | null
           name: string
           notes?: string | null
+          pare_score?: number | null
           parish?: string | null
           phone?: string | null
           photos?: string[] | null
@@ -16845,6 +16851,7 @@ export type Database = {
           created_by?: string | null
           email?: string | null
           email_verified?: boolean | null
+          engagement_score?: number | null
           enrichment_queued_at?: string | null
           estimated_value?: number | null
           external_email?: string | null
@@ -16857,6 +16864,7 @@ export type Database = {
           ghl_contact_id?: string | null
           ghl_synced_at?: string | null
           google_place_id?: string | null
+          icp_fit_score?: number | null
           id?: string
           inferred_profession?: string | null
           inferred_specialty?: string | null
@@ -16882,6 +16890,7 @@ export type Database = {
           longitude?: number | null
           name?: string
           notes?: string | null
+          pare_score?: number | null
           parish?: string | null
           phone?: string | null
           photos?: string[] | null
@@ -16912,6 +16921,54 @@ export type Database = {
           },
           {
             foreignKeyName: "leads_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads_audit_log: {
+        Row: {
+          changed_at: string | null
+          changed_by: string | null
+          field_name: string
+          id: string
+          lead_id: string | null
+          new_value: Json | null
+          old_value: Json | null
+          workspace_id: string | null
+        }
+        Insert: {
+          changed_at?: string | null
+          changed_by?: string | null
+          field_name: string
+          id?: string
+          lead_id?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          workspace_id?: string | null
+        }
+        Update: {
+          changed_at?: string | null
+          changed_by?: string | null
+          field_name?: string
+          id?: string
+          lead_id?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_audit_log_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_audit_log_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
