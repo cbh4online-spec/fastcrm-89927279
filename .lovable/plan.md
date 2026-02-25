@@ -1,95 +1,78 @@
 
 
-# Collapsible Sidebar with Icon-Only Mini Mode
+# Custom Objects in Sidebar — Attio-Style Dynamic Navigation
 
-## Overview
+## Context
 
-Add a collapse/expand toggle to the sidebar. When collapsed, the sidebar shrinks to a narrow strip (~56px) showing only icons with tooltips on hover. Persisted in localStorage.
+Attio treats all data as "objects" — standard ones (People, Companies, Deals) and custom ones (Partnership, Invoice, Project, etc.) — and all appear as first-class items in the sidebar under a "Records" section. Your project already has all the backend infrastructure for this:
 
-## Current State
+- `custom_objects` table (name, slug, icon, color, is_active)
+- `core_object_fields` for attribute definitions
+- `object_records` for the actual data
+- `object_relationships` for associations
+- `useCustomObjects` hook that queries active custom objects
+- Routes at `/objects`, `/objects/:type`, `/objects/:type/:id`
 
-- Sidebar is fixed at `w-64` (256px), always expanded on desktop (`lg:translate-x-0`)
-- `DashboardLayout` hard-codes `lg:pl-64` for the main content offset
-- Mobile uses a slide-in overlay pattern (unchanged by this feature)
-- WorkspaceSwitcher shows logo + name + role + chevron
+What's missing is the sidebar integration — custom objects don't appear in the navigation.
 
-## Design
+## What Changes
+
+The sidebar will dynamically load active custom objects from the database and render them as navigation items below the static CRM section, with a subtle "Records" label and separator. Each custom object gets its own icon (from the DB) and links to `/objects/{slug}`.
 
 ```text
-EXPANDED (w-64)              COLLAPSED (w-14)
-┌────────────────────┐       ┌──────┐
-│ WS Logo  Name   ▾  │       │ Logo │
-│────────────────────│       │──────│
-│ 🔍 Quick Actions ⌘K│       │  🔍  │
-│────────────────────│       │──────│
-│ FAVORITOS           │       │  ★   │
-│  ★ Leads            │       │  ★   │
-│────────────────────│       │──────│
-│ ⌂ Dashboard     ☆  │       │  ⌂   │
-│ ✦ Ask FastCRM   ☆  │       │  ✦   │
-│ ── ── ── ── ── ──  │       │ ───  │
-│ 👤 Leads        ☆  │       │  👤  │
-│ ...                 │       │ ...  │
-│                     │       │      │
-│ [«] Collapse        │       │ [»]  │
-└────────────────────┘       └──────┘
+┌─────────────────────────┐
+│ ...                     │
+│─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│
+│ 👤 Leads                │
+│ 📇 Contactos            │
+│ 🏢 Empresas             │
+│ 🎯 Oportunidades        │
+│ ☑ Tarefas               │
+│─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│
+│ RECORDS                 │  ← New dynamic section
+│ 🤝 Parcerias            │  ← From custom_objects
+│ 📄 Faturas              │
+│ 📦 Projetos             │
+│─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│
+│ 📦 Produtos             │
+│ ...                     │
+└─────────────────────────┘
 ```
 
-- A toggle button at the bottom of the sidebar: "Collapse" with `PanelLeftClose` icon when expanded, just `PanelLeftOpen` icon when collapsed
-- All nav items show only their icon (centered) when collapsed, with a `Tooltip` on hover showing the name
-- WorkspaceSwitcher shows only the logo when collapsed
-- Quick Actions shows only the search icon when collapsed
-- Favorites section shows only icons when collapsed
-- Star pin buttons hidden when collapsed
-- Separators still render as thin lines
+When no custom objects exist, the "Records" section is hidden entirely.
 
-## State Management
+## Technical Plan
 
-- New state: `collapsed: boolean`, persisted in `localStorage` key `sidebar-collapsed`
-- Passed from `DashboardLayout` (or managed inside `SidebarV1` itself with a hook)
-- `DashboardLayout` reads the collapsed state to set `lg:pl-64` vs `lg:pl-14`
-- On mobile, sidebar always renders expanded (collapse is desktop-only)
+### 1. Update `SidebarV1.tsx`
 
-## Implementation Plan
+- Import `useCustomObjects` hook and `getIconByName` utility
+- After the static `NAV_V1_ITEMS` navigation loop, insert a dynamic "Records" section:
+  - A `Separator` followed by a small "Records" label (hidden when collapsed)
+  - For each active custom object: render a nav link to `/objects/{slug}` with the object's icon (resolved via `getIconByName`) and name
+  - Support collapsed mode (icon-only + tooltip) and expanded mode (icon + name + star for favorites)
+  - Items are pinable to favorites using the same `toggleFavorite` mechanism (using the `/objects/{slug}` href)
 
-### 1. Create `useSidebarCollapse` hook
+### 2. Update `nav.v1.ts` — Add type to `NavV1Item`
 
-**New file: `src/hooks/useSidebarCollapse.ts`**
+- Add an optional `dynamic?: boolean` flag so dynamic items can be differentiated if needed
+- No changes to the static items array itself
 
-Simple localStorage-backed boolean toggle:
-- `collapsed: boolean`
-- `toggleCollapse(): void`
-- Storage key: `sidebar-collapsed`
+### 3. Update `useSidebarFavorites.ts`
 
-### 2. Update `SidebarV1.tsx`
-
-- Import `useSidebarCollapse`, `Tooltip`/`TooltipTrigger`/`TooltipContent`, `PanelLeftClose`/`PanelLeftOpen` icons
-- Read `collapsed` state from the hook
-- Change aside width: `collapsed ? "w-14" : "w-64"` (with `transition-all duration-200`)
-- **Header**: When collapsed, hide workspace name/role, show only the logo (centered)
-- **Quick Actions**: When collapsed, show only the Search icon (centered), no text/kbd
-- **Favorites section**: When collapsed, hide the "Favoritos" label and star buttons, show only icons with tooltips
-- **Nav items**: When collapsed, hide `<span>` text and star buttons, center the icon, wrap in `Tooltip`
-- **Separators**: Still render (just shorter)
-- **Collapse toggle**: Add a button at the bottom of the sidebar — full row when expanded ("Recolher" + icon), just icon when collapsed
-- On mobile (`open` prop overlay mode): always render expanded regardless of `collapsed` state
-
-### 3. Update `DashboardLayout.tsx`
-
-- Import `useSidebarCollapse`
-- Replace hard-coded `lg:pl-64` with `collapsed ? "lg:pl-14" : "lg:pl-64"` (with `transition-all duration-200`)
-
-### 4. Update `WorkspaceSwitcher.tsx`
-
-- Accept an optional `collapsed?: boolean` prop
-- When collapsed, render only the workspace logo (no dropdown trigger text, just the logo as the button)
+- No changes needed — it already works with any `href` string, so `/objects/partnerships` will work automatically
 
 ## Files to Create / Edit
 
 | File | Change |
 |---|---|
-| `src/hooks/useSidebarCollapse.ts` | **NEW** — localStorage-backed collapsed state hook |
-| `src/components/layout/SidebarV1.tsx` | Add collapse logic, icon-only mode, tooltips, toggle button |
-| `src/components/layout/DashboardLayout.tsx` | Dynamic `pl-64` / `pl-14` based on collapsed state |
-| `src/components/layout/WorkspaceSwitcher.tsx` | Accept `collapsed` prop, show logo-only when collapsed |
+| `src/components/layout/SidebarV1.tsx` | Add dynamic "Records" section after static nav, using `useCustomObjects` |
+| `src/config/nav.v1.ts` | Minor: add optional `dynamic` flag to `NavV1Item` interface |
+
+## Edge Cases
+
+- **No custom objects**: Section hidden entirely (no label, no separator)
+- **Loading state**: Custom objects query loading — section not shown until loaded
+- **Icon resolution**: Uses `getIconByName(obj.icon)` which falls back to a default icon
+- **Collapsed mode**: Shows only icons with tooltips, same as static items
+- **Favorites**: Custom object links can be pinned to favorites just like any other page
 
