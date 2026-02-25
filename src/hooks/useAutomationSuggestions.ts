@@ -23,6 +23,7 @@ export interface AutomationSuggestion {
   confidence: number;
   explanation: string;
   pattern_data: Record<string, unknown> | null;
+  detected_pattern_type: string | null;
   status: "pending" | "accepted" | "dismissed" | "expired";
   created_at: string;
   reviewed_at: string | null;
@@ -30,22 +31,28 @@ export interface AutomationSuggestion {
   created_automation_id: string | null;
 }
 
-export function useAutomationSuggestions() {
+export function useAutomationSuggestions(limit?: number) {
   const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
 
   return useQuery({
-    queryKey: ["automation_suggestions", currentWorkspace?.id],
+    queryKey: ["automation_suggestions", currentWorkspace?.id, limit],
     queryFn: async (): Promise<AutomationSuggestion[]> => {
       if (!currentWorkspace?.id) return [];
 
-      const { data, error } = await workspaceClient
+      let query = workspaceClient
         .from("automation_suggestions")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
         .eq("status", "pending")
         .gte("confidence", 0.7)
         .order("confidence", { ascending: false });
+
+      if (limit) {
+        query = query.limit(limit);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return (data || []) as unknown as AutomationSuggestion[];

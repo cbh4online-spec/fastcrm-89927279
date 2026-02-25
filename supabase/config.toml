@@ -361,3 +361,6 @@ verify_jwt = false
 [functions.extension-provisioner]
 verify_jwt = false
 
+[functions.automation-intelligence]
+verify_jwt = false
+
