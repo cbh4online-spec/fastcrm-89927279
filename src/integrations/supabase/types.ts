@@ -30937,6 +30937,59 @@ export type Database = {
           },
         ]
       }
+      workspace_call_intelligence_config: {
+        Row: {
+          ai_summary_enabled: boolean
+          auto_record_mode: string
+          consent_notification: boolean
+          created_at: string
+          crm_auto_link: boolean
+          default_insights_template: string | null
+          id: string
+          retention_days: number
+          transcription_enabled: boolean
+          transcription_language: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_summary_enabled?: boolean
+          auto_record_mode?: string
+          consent_notification?: boolean
+          created_at?: string
+          crm_auto_link?: boolean
+          default_insights_template?: string | null
+          id?: string
+          retention_days?: number
+          transcription_enabled?: boolean
+          transcription_language?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ai_summary_enabled?: boolean
+          auto_record_mode?: string
+          consent_notification?: boolean
+          created_at?: string
+          crm_auto_link?: boolean
+          default_insights_template?: string | null
+          id?: string
+          retention_days?: number
+          transcription_enabled?: boolean
+          transcription_language?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_call_intelligence_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_credit_balances: {
         Row: {
           created_at: string

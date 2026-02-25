@@ -13,6 +13,7 @@ import { CrmDataSettings } from "@/components/settings/sections/CrmDataSettings"
 import { TemplatesSettings } from "@/components/settings/sections/TemplatesSettings";
 import { AutomationAISettings } from "@/components/settings/sections/AutomationAISettings";
 import { EmailCalendarSettings } from "@/components/settings/sections/EmailCalendarSettings";
+import { CallIntelligenceSettings } from "@/components/settings/sections/CallIntelligenceSettings";
 import { ExperienceSettings } from "@/components/settings/sections/ExperienceSettings";
 import { SecuritySettings } from "@/components/settings/sections/SecuritySettings";
 import { IntegrationsSettings } from "@/components/settings/sections/IntegrationsSettings";
@@ -34,6 +35,7 @@ export default function Settings() {
     notifications: { titleKey: "notifications_title", descKey: "notifications_description" },
     workspace: { titleKey: "workspace", descKey: "workspace" },
     channels: { titleKey: "nav_channels", descKey: "nav_channels" },
+    callIntelligence: { titleKey: "callIntel_title", descKey: "callIntel_description" },
     crm: { titleKey: "nav_crmData", descKey: "nav_crmData" },
     templates: { titleKey: "nav_templates", descKey: "nav_templates" },
     automation: { titleKey: "nav_automationAI", descKey: "nav_automationAI" },
@@ -94,6 +96,8 @@ export default function Settings() {
         return <WorkspaceSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
       case "channels":
         return <ChannelsSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
+      case "callIntelligence":
+        return <CallIntelligenceSettings />;
       case "crm":
         return <CrmDataSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
       case "templates":
