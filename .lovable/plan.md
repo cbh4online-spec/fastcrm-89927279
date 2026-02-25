@@ -1,54 +1,65 @@
 
 
-# Add Color to EntityDetailsPanel
+# Add Charts to Reports Overview Page
 
 ## Problem
 
-The sidebar "Detalhes" panel is entirely monochrome — all icons use `text-muted-foreground`, tags use plain `secondary` badges, and there is no visual distinction between field types. Comparing with the Attio reference, icons should use semantic/brand colors, and tags should have colored variants.
+The `/dashboard/reports` page (ReportsOverview) only shows KPI number cards, text-based AI insights, and navigation links. There are no visual charts or graphs, making the overview feel incomplete compared to the sub-pages (e.g., ReportsSales) which have full Recharts visualizations.
+
+## Solution
+
+Add 3 summary charts to `ReportsOverview.tsx` using data already fetched by the existing hooks (`useSalesPerformance`, `useRevenueMetrics`). These charts provide a quick visual snapshot without requiring users to navigate into sub-pages.
+
+### Charts to Add
+
+1. **Revenue Trend (Line Chart)** — Monthly won revenue over the last 12 months, using `useSalesPerformance().wonRevenueByMonth`. A simple area/line chart showing the revenue trajectory.
+
+2. **Pipeline by Stage (Horizontal Bar Chart)** — Current active deals grouped by pipeline stage, using `useSalesPerformance().dealForecast`. Shows total value and weighted value per stage.
+
+3. **Lead Sources (Donut/Pie Chart)** — Breakdown of lead sources, using `useSalesPerformance().sourceBreakdown`. A PieChart showing where leads come from.
+
+### Layout
+
+```text
+┌──────────────────────────────────────────────────┐
+│  KPI Strip (6 cards) — already exists            │
+├──────────────────────────────────────────────────┤
+│  Revenue Trend (line)  │  Pipeline by Stage (bar)│
+├────────────────────────┼─────────────────────────┤
+│  Lead Sources (pie)    │  AI Insights (existing) │
+├────────────────────────┼─────────────────────────┤
+│  Scenarios (existing)  │  Quick Links (existing) │
+└────────────────────────┴─────────────────────────┘
+```
 
 ## Changes
 
-### `src/components/entity/EntityDetailsPanel.tsx`
+### `src/pages/ReportsOverview.tsx`
 
-**1. Colored icons per field type** — Instead of all icons being `text-muted-foreground`, apply semantic colors:
+- Import `useSalesPerformance` hook (already exists, provides all needed data)
+- Import Recharts components: `LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend`
+- Add 3 new `<Card>` sections with charts between the KPI strip and the existing insights section:
+  1. **Revenue Trend Card** — `<LineChart>` with `wonRevenueByMonth` data, area fill gradient, formatted Y-axis with `€` currency
+  2. **Pipeline by Stage Card** — `<BarChart layout="vertical">` with `dealForecast` data showing `total_value` and `weighted_value` bars side by side, colored by stage
+  3. **Lead Sources Card** — `<PieChart>` with `sourceBreakdown` data, using a predefined color palette, with labels showing percentage
+- Rearrange the existing content into a better grid layout that accommodates the new charts
+- Add loading skeletons for the chart cards
+- Handle empty state (no data) with a centered message
 
-| Icon | Color Class |
-|------|------------|
-| Mail | `text-blue-500` |
-| Phone | `text-green-500` |
-| Globe | `text-purple-500` |
-| Linkedin | `text-[#0A66C2]` (LinkedIn brand) |
-| Facebook | `text-[#1877F2]` (Facebook brand) |
-| Instagram | `text-[#E4405F]` (Instagram brand) |
-| Twitter | `text-foreground` (X brand) |
-| Building2 | `text-slate-500` |
-| Briefcase | `text-amber-500` |
-| MapPin | `text-red-500` |
-| TrendingUp | `text-emerald-500` |
-| Users | `text-indigo-500` |
-| DollarSign | `text-green-600` |
-| Tag | `text-orange-500` |
-| Calendar | `text-sky-500` |
+### No new files needed
 
-Implementation: Add an `iconClassName` prop to `EditableFieldRow` and pass the color class for each field. The icon will use this class instead of the default `text-muted-foreground`.
+All data hooks already exist. All chart components use Recharts (already installed). Only `ReportsOverview.tsx` needs modification.
 
-**2. Colored tags** — Replace the plain `Badge variant="secondary"` in `TagList` with a deterministic color system: hash the tag string to pick from a palette of soft colors (similar to the Attio Categories badges).
+### Color Palette for Pie Chart
 
-Color palette for tags:
-- `bg-blue-100 text-blue-700 border-blue-200`
-- `bg-green-100 text-green-700 border-green-200`
-- `bg-amber-100 text-amber-700 border-amber-200`
-- `bg-purple-100 text-purple-700 border-purple-200`
-- `bg-red-100 text-red-700 border-red-200`
-- `bg-teal-100 text-teal-700 border-teal-200`
-- `bg-pink-100 text-pink-700 border-pink-200`
-- `bg-indigo-100 text-indigo-700 border-indigo-200`
-
-**3. Section header icons** — Add subtle colored icons to `CollapsibleSection` titles for visual hierarchy (optional, lightweight enhancement).
-
-### Files Modified
-
-| File | Change |
-|------|--------|
-| `src/components/entity/EntityDetailsPanel.tsx` | Add `iconClassName` prop to `EditableFieldRow`, apply colored classes to all icon instances, update `TagList` with deterministic color mapping |
+```typescript
+const CHART_COLORS = [
+  "hsl(217, 91%, 60%)",  // blue
+  "hsl(142, 76%, 36%)",  // green
+  "hsl(38, 92%, 50%)",   // amber
+  "hsl(280, 67%, 55%)",  // purple
+  "hsl(0, 84%, 60%)",    // red
+  "hsl(190, 80%, 45%)",  // teal
+];
+```
 
