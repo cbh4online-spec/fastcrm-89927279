@@ -34,6 +34,8 @@ const PLAN_LIMITS: Record<string, {
   ai_insights: boolean;
   automation_custom_fields: boolean;
   max_automations: number;
+  multi_conditions: boolean;
+  multi_actions: boolean;
   monthly_ai_calls: number;
   templates: boolean;
   white_label: boolean;
@@ -52,7 +54,9 @@ const PLAN_LIMITS: Record<string, {
     ai_suggestions: false,
     ai_insights: false,
     automation_custom_fields: false,
-    max_automations: 3,
+    max_automations: 5,
+    multi_conditions: false,
+    multi_actions: false,
     monthly_ai_calls: 0,
     templates: false,
     white_label: false,
@@ -72,6 +76,8 @@ const PLAN_LIMITS: Record<string, {
     ai_insights: true,
     automation_custom_fields: true,
     max_automations: 50,
+    multi_conditions: true,
+    multi_actions: false,
     monthly_ai_calls: 500,
     templates: false,
     white_label: false,
@@ -91,6 +97,8 @@ const PLAN_LIMITS: Record<string, {
     ai_insights: true,
     automation_custom_fields: true,
     max_automations: -1,
+    multi_conditions: true,
+    multi_actions: true,
     monthly_ai_calls: 5000,
     templates: true,
     white_label: true,

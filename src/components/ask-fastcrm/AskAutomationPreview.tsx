@@ -13,6 +13,8 @@ interface Props {
   onConfirm: (preview: AutomationPreview) => void;
   onCancel: () => void;
   isConfirming?: boolean;
+  automationCount?: number;
+  maxAutomations?: number;
 }
 
 const OBJECT_TYPE_CONFIG = {
@@ -21,7 +23,7 @@ const OBJECT_TYPE_CONFIG = {
   invoice: { label: "Invoice", icon: Receipt, color: "text-amber-600 bg-amber-500/10 border-amber-500/30" },
 };
 
-export function AskAutomationPreview({ preview, onConfirm, onCancel, isConfirming }: Props) {
+export function AskAutomationPreview({ preview, onConfirm, onCancel, isConfirming, automationCount, maxAutomations }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedPreview, setEditedPreview] = useState<AutomationPreview>(preview);
 
@@ -265,6 +267,17 @@ export function AskAutomationPreview({ preview, onConfirm, onCancel, isConfirmin
         </div>
       </div>
 
+      {/* Quota indicator */}
+      {maxAutomations !== undefined && maxAutomations !== -1 && automationCount !== undefined && (
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span>{automationCount} of {maxAutomations} automations used</span>
+          <span>·</span>
+          <button onClick={() => window.open("/dashboard/settings/billing", "_self")} className="text-primary hover:underline">
+            Upgrade for unlimited
+          </button>
+        </div>
+      )}
+
       {/* Action buttons */}
       <div className="flex items-center gap-2">
         {isEditing ? (
@@ -278,9 +291,16 @@ export function AskAutomationPreview({ preview, onConfirm, onCancel, isConfirmin
             Edit
           </Button>
         )}
-        <Button size="sm" onClick={handleConfirm} disabled={isConfirming} className="gap-1.5">
+        <Button
+          size="sm"
+          onClick={handleConfirm}
+          disabled={isConfirming || (maxAutomations !== undefined && maxAutomations !== -1 && automationCount !== undefined && automationCount >= maxAutomations)}
+          className="gap-1.5"
+        >
           <Zap className="h-3.5 w-3.5" />
-          {isConfirming ? "Activating…" : "Confirm & Activate"}
+          {maxAutomations !== undefined && maxAutomations !== -1 && automationCount !== undefined && automationCount >= maxAutomations
+            ? "Limit reached — Upgrade"
+            : isConfirming ? "Activating…" : "Confirm & Activate"}
         </Button>
         <Button size="sm" variant="ghost" onClick={onCancel} disabled={isConfirming} className="gap-1.5">
           <X className="h-3.5 w-3.5" />

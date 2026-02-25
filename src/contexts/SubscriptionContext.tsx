@@ -17,6 +17,8 @@ export interface PlanLimits {
   ai_insights: boolean;
   automation_custom_fields: boolean;
   max_automations: number;
+  multi_conditions: boolean;
+  multi_actions: boolean;
   monthly_ai_calls: number;
   templates: boolean;
   white_label: boolean;
@@ -55,7 +57,9 @@ const STARTER_LIMITS: PlanLimits = {
   ai_suggestions: false,
   ai_insights: false,
   automation_custom_fields: false,
-  max_automations: 3,
+  max_automations: 5,
+  multi_conditions: false,
+  multi_actions: false,
   monthly_ai_calls: 0,
   templates: false,
   white_label: false,
@@ -82,7 +86,9 @@ export const PLAN_INFO: Record<SubscriptionPlan, {
       "CRM core (Objects + Inbox)",
       "Basic health score",
       "1 pipeline",
-      "3 automations",
+      "Up to 5 automations",
+      "1 condition per rule",
+      "1 action per rule",
     ],
   },
   growth: {
@@ -92,6 +98,8 @@ export const PLAN_INFO: Record<SubscriptionPlan, {
     features: [
       "Up to 10 users",
       "Multi-pipeline",
+      "Up to 50 automations",
+      "Multiple conditions (AND)",
       "Stage benchmarks",
       "Advanced automation templates",
       "Marketplace active",
@@ -105,8 +113,9 @@ export const PLAN_INFO: Record<SubscriptionPlan, {
     description: "For scaling companies",
     features: [
       "Unlimited users",
+      "Unlimited automations",
+      "Multiple actions per rule",
       "Advanced Intelligence",
-      "Advanced automations",
       "API access",
       "Advanced roles",
       "Priority support",
@@ -127,6 +136,8 @@ const FEATURE_REQUIRED_PLAN: Record<keyof PlanLimits, SubscriptionPlan> = {
   ai_insights: "growth",
   automation_custom_fields: "growth",
   max_automations: "growth",
+  multi_conditions: "growth",
+  multi_actions: "scale",
   monthly_ai_calls: "growth",
   templates: "scale",
   white_label: "scale",

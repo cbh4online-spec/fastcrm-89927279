@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -87,6 +88,7 @@ export function useAskFastCRM() {
   const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
   const { user } = useAuth();
+  const { limits, plan } = useSubscription();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -297,6 +299,35 @@ export function useAskFastCRM() {
       setIsConfirmingAutomation(true);
 
       try {
+        // --- Quota enforcement ---
+        const maxAutomations = limits.max_automations;
+        if (maxAutomations !== -1) {
+          const { count } = await workspaceClient
+            .from("automation_rules")
+            .select("*", { count: "exact", head: true })
+            .eq("workspace_id", currentWorkspace.id)
+            .eq("is_active", true);
+
+          if (count !== null && count >= maxAutomations) {
+            toast.error(`You've reached the limit of ${maxAutomations} automations on the ${plan.charAt(0).toUpperCase() + plan.slice(1)} plan. Upgrade for more.`);
+            setIsConfirmingAutomation(false);
+            return;
+          }
+        }
+
+        // --- Multi-condition gating ---
+        if (preview.conditions.length > 1 && !limits.multi_conditions) {
+          toast.error("Multiple conditions require the Growth plan or higher.");
+          setIsConfirmingAutomation(false);
+          return;
+        }
+
+        // --- Multi-action gating ---
+        if (preview.actions.length > 1 && !limits.multi_actions) {
+          toast.error("Multiple actions require the Scale plan.");
+          setIsConfirmingAutomation(false);
+          return;
+        }
         // Map trigger_config to the format expected by automation_rules
         const triggerConfig: Record<string, any> = {};
         if (preview.trigger === "lead_no_response" && preview.trigger_config?.delay_days) {
@@ -377,7 +408,7 @@ export function useAskFastCRM() {
         setIsConfirmingAutomation(false);
       }
     },
-    [currentWorkspace?.id, user?.id, workspaceClient, queryClient]
+    [currentWorkspace?.id, user?.id, workspaceClient, queryClient, limits, plan]
   );
 
   const cancelAutomation = useCallback(() => {
