@@ -5,3 +5,6 @@ export * from './EntityContextSidebar';
 export * from './EntityAISuggestionsPanel';
 export * from './EntityEmptyState';
 export * from './EntityOverviewSection';
+export * from './EntityHorizontalTabs';
+export * from './EntityDetailsPanel';
+export * from './EntityHighlightsGrid';

@@ -36,7 +36,9 @@ import { generateIndustrySummary } from "@/utils/industrySummary";
 import { useGenerateFieldSuggestions } from "@/hooks/useFieldSuggestions";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
-import { EntitySidebarMenu } from "@/components/entity/EntitySidebarMenu";
+import { EntityHorizontalTabs } from "@/components/entity/EntityHorizontalTabs";
+import { EntityDetailsPanel } from "@/components/entity/EntityDetailsPanel";
+import { EntityHighlightsGrid } from "@/components/entity/EntityHighlightsGrid";
 import { MenuSection } from "@/types/entity";
 import { InsightsSidebar } from "@/components/insights";
 import { CompanyContacts } from "./CompanyContacts";
@@ -516,24 +518,32 @@ export function CompanyDetailWithSidebar() {
         </div>
       </div>
 
-      {/* Main Content - 3 Column Layout */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Menu */}
-        <EntitySidebarMenu
-          entityType="company"
-          activeSection={activeSection}
-          onSectionChange={setActiveSection}
-          counts={counts}
-        />
+      {/* Horizontal Tabs */}
+      <EntityHorizontalTabs
+        entityType="company"
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+        counts={counts}
+      />
 
+      {/* Main Content - 2 Column Layout */}
+      <div className="flex-1 flex overflow-hidden">
         {/* Center Content */}
         <main className="flex-1 overflow-auto">
           <ScrollArea className="h-full">
             <div className="p-6 max-w-4xl">
+              {activeSection === 'overview' && (
+                <div className="mb-6">
+                  <EntityHighlightsGrid entityType="company" entity={company as any} />
+                </div>
+              )}
               {renderSectionContent()}
             </div>
           </ScrollArea>
         </main>
+
+        {/* Right Details Panel */}
+        <EntityDetailsPanel entityType="company" entity={company as any} />
       </div>
 
       {/* Dialogs */}
