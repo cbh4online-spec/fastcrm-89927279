@@ -53,9 +53,10 @@ const AUTOCOMPLETE_MAP: Record<string, string> = {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialQuery?: string;
 }
 
-export function AskFastCRMDialog({ open, onOpenChange }: Props) {
+export function AskFastCRMDialog({ open, onOpenChange, initialQuery }: Props) {
   const [input, setInput] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const { isLoading, result, ask, clear, executeAction, pendingAction, confirmPendingAction, cancelPendingAction, confirmAutomation, cancelAutomation, isConfirmingAutomation } = useAskFastCRM();
@@ -96,15 +97,20 @@ export function AskFastCRMDialog({ open, onOpenChange }: Props) {
     return () => window.removeEventListener("keydown", handler);
   }, [open, onOpenChange]);
 
-  // Focus input when dialog opens
+  // Focus input when dialog opens; auto-submit if initialQuery provided
   useEffect(() => {
     if (open) {
       clear();
-      setInput("");
       setSelectedIndex(-1);
-      setTimeout(() => inputRef.current?.focus(), 100);
+      if (initialQuery) {
+        setInput(initialQuery);
+        setTimeout(() => ask(initialQuery), 150);
+      } else {
+        setInput("");
+        setTimeout(() => inputRef.current?.focus(), 100);
+      }
     }
-  }, [open, clear]);
+  }, [open, clear, initialQuery, ask]);
 
   const handleSubmit = useCallback(() => {
     if (!input.trim() || isLoading) return;
