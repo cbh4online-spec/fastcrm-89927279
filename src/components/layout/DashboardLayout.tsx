@@ -9,6 +9,7 @@ import { WorkspaceStatusGuard } from "@/components/workspace/WorkspaceStatusGuar
 import { Loader2 } from "lucide-react";
 import { MQPCFloatingButton } from "@/components/mqpc/MQPCFloatingButton";
 import { useFeatureFlag } from "@/hooks/useFeatureFlags";
+import { useSidebarCollapse } from "@/hooks/useSidebarCollapse";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -20,6 +21,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { enabled: shellV2 } = useFeatureFlag("ui.shell_v2_enabled");
+  const { collapsed } = useSidebarCollapse();
   const showFAB = location.pathname.includes("store-products") || location.pathname.includes("products");
 
   if (authLoading || workspaceLoading) {
@@ -47,7 +49,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         ) : (
           <SidebarV1 open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         )}
-        <div className="flex-1 flex flex-col min-h-screen lg:pl-64">
+        <div className={`flex-1 flex flex-col min-h-screen transition-all duration-200 ${collapsed ? "lg:pl-14" : "lg:pl-64"}`}>
           <TopBar onMenuClick={() => setSidebarOpen(true)} />
           <main className="flex-1 animate-fade-in">
             {children}
