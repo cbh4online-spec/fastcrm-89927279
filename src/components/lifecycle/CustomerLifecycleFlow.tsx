@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from "react";
+import { useMemo } from "react";
 import {
   ReactFlow,
   Background,
@@ -10,16 +10,16 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { LifecycleStageNode } from "./LifecycleStageNode";
-import { LIFECYCLE_STAGES, type LifecycleStageCounts } from "@/hooks/useCustomerLifecycle";
+import { LIFECYCLE_STAGES, type LifecycleStageCounts, type LifecycleMetrics } from "@/hooks/useCustomerLifecycle";
 
 const nodeTypes = { lifecycleStage: LifecycleStageNode };
 
 interface CustomerLifecycleFlowProps {
   data: LifecycleStageCounts[];
+  metrics?: LifecycleMetrics;
 }
 
-export function CustomerLifecycleFlow({ data }: CustomerLifecycleFlowProps) {
-  // Only the main flow stages (no churned)
+export function CustomerLifecycleFlow({ data, metrics }: CustomerLifecycleFlowProps) {
   const mainStages = LIFECYCLE_STAGES.filter(s => s.stage !== 'churned');
 
   const initialNodes: Node[] = useMemo(() => {
@@ -32,31 +32,38 @@ export function CustomerLifecycleFlow({ data }: CustomerLifecycleFlowProps) {
         count: data.find(d => d.stage === s.stage)?.count || 0,
         icon: s.icon,
         color: s.color,
+        avgDays: metrics?.avgDaysPerStage?.[s.stage] ?? null,
         isFirst: i === 0,
         isLast: i === mainStages.length - 1,
       },
       draggable: false,
     }));
-  }, [data]);
+  }, [data, metrics]);
 
   const initialEdges: Edge[] = useMemo(() => {
-    return mainStages.slice(0, -1).map((s, i) => ({
-      id: `${s.stage}-${mainStages[i + 1].stage}`,
-      source: s.stage,
-      target: mainStages[i + 1].stage,
-      animated: true,
-      style: { stroke: 'hsl(var(--muted-foreground))', strokeWidth: 2 },
-    }));
-  }, []);
+    return mainStages.slice(0, -1).map((s, i) => {
+      const key = `${s.stage}_to_${mainStages[i + 1].stage}`;
+      const rate = metrics?.conversionRates?.[key];
+      return {
+        id: `${s.stage}-${mainStages[i + 1].stage}`,
+        source: s.stage,
+        target: mainStages[i + 1].stage,
+        animated: true,
+        style: { stroke: 'hsl(var(--muted-foreground))', strokeWidth: 2 },
+        label: rate != null ? `${rate}%` : undefined,
+        labelStyle: { fill: 'hsl(var(--muted-foreground))', fontSize: 11, fontWeight: 600 },
+        labelBgStyle: { fill: 'hsl(var(--card))', fillOpacity: 0.9 },
+        labelBgPadding: [6, 3] as [number, number],
+        labelBgBorderRadius: 4,
+      };
+    });
+  }, [metrics]);
 
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);
 
-  // Prospect/Customer divider annotation
   const prospectLabel = useMemo(() => {
-    // Prospect = visitor, lead, prospect | Customer = sales, onboarding, customer
-    const prospectWidth = 3 * 220; // first 3 stages
-    const customerStart = 3 * 220;
+    const prospectWidth = 3 * 220;
     const customerWidth = 3 * 220;
 
     return (
