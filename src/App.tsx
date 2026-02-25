@@ -17,6 +17,7 @@ import ObjectsHomePage from "./pages/ObjectsHomePage";
 import ObjectListPage from "./pages/ObjectListPage";
 import ObjectDetailPage from "./pages/ObjectDetailPage";
 import DataModelPage from "./pages/DataModelPage";
+import VisualDataModelPage from "./pages/VisualDataModelPage";
 import IntelligencePage from "./pages/IntelligencePage";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -382,6 +383,7 @@ function CRMRoutes() {
                 {/* Settings at clean URL */}
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/settings/data-model" element={<DataModelPage />} />
+                <Route path="/platform/data" element={<VisualDataModelPage />} />
                 <Route path="/settings/:section" element={<Settings />} />
                 <Route path="/dashboard/leads" element={<Leads />} />
                 <Route path="/dashboard/leads/:id" element={<LeadDetail />} />
