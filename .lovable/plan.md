@@ -1,114 +1,46 @@
 
 
-# Ask FastCRM — Embedded Inline (Attio-style)
+# Fix: Ask FastCRM Page Not Opening
 
-## What the User Wants
+## Root Cause Analysis
 
-Replace the popup dialog (`AskFastCRMDialog`) with an embedded, full-page conversational interface — like Attio's "Ask Attio" where the AI chat lives as a first-class page within the app layout, not a modal overlay.
+After thorough investigation, all the routing and components are correctly wired:
+- Route `/dashboard/ask` exists at line 374 of `App.tsx`
+- `AskPage.tsx` renders `AskFastCRMInline` inside `DashboardLayout`
+- TopBar ⌘K and Ask button both call `navigate("/dashboard/ask")`
+- `AskFastCRMInline` component compiles and has all imports
 
-## Current State
+The console logs reveal the page IS rendering (`AskPage` appears in the component tree), but then the URL changes back to `/dashboard`. This indicates a **runtime error inside the component tree** that causes React to unmount and fall back.
 
-| Component | Type |
-|---|---|
-| `AskFastCRMDialog` | Popup dialog (⌘K) — **to be replaced** |
-| `AskFastCRMInline` | Embedded in Intelligence → Assist tab — **already inline** |
-| TopBar button | Opens popup dialog — **needs redirect** |
+The most likely culprit: `useWorkspaceInstance()` hook is used by `useAskFastCRM()` which is called inside `AskFastCRMInline`. If the `workspaceClient` or workspace instance hasn't resolved yet when the Ask page mounts, the hook could throw, causing React's error boundary to catch it and redirect.
 
-## Plan
+## Fix Plan
 
-### 1. New Page: `/dashboard/ask`
+### 1. Add error boundary protection to AskPage
 
-**New file: `src/pages/AskPage.tsx`**
+**Edit: `src/pages/AskPage.tsx`**
 
-A dedicated full-page Ask experience wrapped in `DashboardLayout`. Layout inspired by Attio:
+Wrap the `AskFastCRMInline` in an `ErrorBoundary` component to catch runtime crashes and display a fallback instead of silently redirecting. Also add a guard for workspace loading state.
 
-```text
-┌──────────────────────────────────────────────┐
-│  Sidebar  │  Ask FastCRM                     │
-│           │                                  │
-│  Home     │  ┌────────────────────────────┐  │
-│  Objects  │  │  Empty state / results     │  │
-│  Inbox    │  │  (reuses AskFastCRMInline  │  │
-│  Ask  ←── │  │   with full-height layout) │  │
-│  ...      │  │                            │  │
-│           │  │                            │  │
-│           │  └────────────────────────────┘  │
-│           │  ┌────────────────────────────┐  │
-│           │  │  Input + Send              │  │
-│           │  └────────────────────────────┘  │
-└──────────────────────────────────────────────┘
-```
-
-- Full viewport height (`h-[calc(100vh-5rem)]`)
-- Chat-style layout: results scroll area + fixed input at bottom
-- Reuses `AskFastCRMInline` internally but with a wider, more spacious layout
-- Supports `?q=` query param for pre-filled queries (from proactive nudges)
-
-### 2. Add "Ask" to Sidebar Navigation
-
-**Edit: `src/config/nav.v2.ts`**
-
-Add a new nav item between Inbox and Automations:
-
-```typescript
-{ name: "Ask", href: "/dashboard/ask", icon: Sparkles }
-```
-
-This gives Ask first-class presence in the sidebar, like Attio.
-
-### 3. Change TopBar Button + ⌘K to Navigate
-
-**Edit: `src/components/layout/TopBar.tsx`**
-
-- Remove `AskFastCRMDialog` import and rendering
-- Remove `askOpen` state
-- Change the Sparkles button `onClick` to `navigate("/dashboard/ask")`
-- Change ⌘K handler to `navigate("/dashboard/ask")` instead of toggling dialog
-
-### 4. Update Dashboard Nudge to Navigate
-
-**Edit: `src/pages/Dashboard.tsx`**
-
-- Remove `AskFastCRMDialog` from Dashboard
-- Remove `askDialogOpen` / `askPrefilledQuery` state
-- Change `AskProactiveNudge` `onAskQuery` to navigate to `/dashboard/ask?q={query}` instead of opening dialog
-
-### 5. Add Route
-
-**Edit: `src/App.tsx`**
-
-Add route:
-```typescript
-<Route path="/dashboard/ask" element={<AskPage />} />
-```
-
-### 6. Update AskFastCRMInline for Full-Page Mode
+### 2. Guard AskFastCRMInline against missing workspace
 
 **Edit: `src/components/ask-fastcrm/AskFastCRMInline.tsx`**
 
-- Accept optional `initialQuery?: string` prop
-- When provided, auto-submit on mount (same pattern as the old dialog)
-- Adjust height to `h-[calc(100vh-5rem)]` for full-page usage
-- Add autocomplete suggestions (port from the dialog's `AUTOCOMPLETE_MAP`)
-- Add recent queries section (port from dialog)
+Add a null guard at the top of the component: if `useWorkspace().currentWorkspace` is null, show a loading skeleton instead of calling `useAskFastCRM()` which depends on the workspace being available.
 
-## Files to Create / Edit
+### 3. Add Ask to SidebarV1 navigation
+
+Since the user is using SidebarV1 (shell v2 feature flag is not enabled), the "Ask" item is only in `nav.v2.ts`. Need to also add it to the V1 sidebar config so users can see and click it.
+
+**Edit: `src/components/layout/SidebarV1.tsx`** (or its nav config)
+
+Add an "Ask" nav item with the Sparkles icon pointing to `/dashboard/ask`.
+
+## Files to Edit
 
 | File | Change |
 |---|---|
-| `src/pages/AskPage.tsx` | **NEW** — Full-page Ask wrapper with query param support |
-| `src/config/nav.v2.ts` | Add "Ask" nav item with Sparkles icon |
-| `src/components/layout/TopBar.tsx` | Navigate to `/dashboard/ask` instead of opening dialog; remove dialog |
-| `src/pages/Dashboard.tsx` | Navigate to `/dashboard/ask?q=...` instead of opening dialog; remove dialog |
-| `src/components/ask-fastcrm/AskFastCRMInline.tsx` | Add `initialQuery` prop, autocomplete, recent queries |
-| `src/App.tsx` | Add `/dashboard/ask` route |
-
-## What Gets Removed
-
-- `AskFastCRMDialog` stops being rendered from TopBar and Dashboard (file stays for backward compat but is no longer the primary interface)
-- No more modal overlay for Ask
-
-## Result
-
-Ask FastCRM becomes a first-class, embedded page in the app — personal, conversational, always accessible from the sidebar, exactly like Attio's approach.
+| `src/pages/AskPage.tsx` | Add workspace loading guard and error boundary |
+| `src/components/ask-fastcrm/AskFastCRMInline.tsx` | Guard against null workspace before calling hooks |
+| `src/components/layout/SidebarV1.tsx` | Add "Ask" nav item for V1 sidebar users |
 
