@@ -1,71 +1,71 @@
 
 
-# Plan: Create /compare/* High-Intent Pages (Phase 2 - Task t2-4)
+# Plan: Seed Glossary Terms (Phase 2 - Task t2-3)
 
 ## Context
 
-The `ComparePage` component, `ComparisonTable`, routing (`/compare/:slug`), hooks, and `seo_comparisons` table all exist but the table has **zero records**. The comparison page renders a feature table, conclusion, keyword generator widget, FAQs, and sticky CTA -- all driven by data.
+The glossary pages (list at `/glossary` + detail at `/glossary/:slug`) are fully implemented in code with alphabet navigation, definition cards, content sections, examples, and related terms. However, the `seo_entities` table has **zero glossary records**, so both pages render empty.
 
-The `seo_comparisons` table references `entity_a_id` and `entity_b_id` from `seo_entities`, but the current `useSEOComparison` hook only does `select('*')` -- it does **not** join the referenced entities. This means `comparison.entity_a` and `comparison.entity_b` are always undefined, and column headers fall back to "Opção A" / "Opção B".
+## Approach
 
-## Comparison Pages to Create
+Insert **25 core CRM/SEO/Marketing glossary terms** as published `seo_entities` records with `entity_type = 'glossary'`. These cover the essential terms users search for when learning about CRM, sales, and digital marketing.
 
-| # | Slug | Title | Competitor |
-|---|------|-------|------------|
-| 1 | `fastcrm-vs-semrush` | FastCRM vs Semrush | Semrush |
-| 2 | `fastcrm-vs-ahrefs` | FastCRM vs Ahrefs | Ahrefs |
-| 3 | `fastcrm-vs-ubersuggest` | FastCRM vs Ubersuggest | Ubersuggest |
-| 4 | `fastcrm-vs-google-keyword-planner` | FastCRM vs Google Keyword Planner | Google Keyword Planner |
-| 5 | `fastcrm-vs-moz` | FastCRM vs Moz | Moz |
+## Glossary Terms
 
-Each comparison will include:
-- Title, meta_description
-- Introduction text
-- 6-8 comparison criteria with winner per row
-- Conclusion with overall winner
-- 3-4 FAQs
-- Schema markup (JSON-LD)
-- Status: `published`, winner: `a` (FastCRM)
+| # | Slug | Title |
+|---|------|-------|
+| 1 | `crm` | CRM (Customer Relationship Management) |
+| 2 | `lead` | Lead |
+| 3 | `funil-de-vendas` | Funil de Vendas |
+| 4 | `pipeline` | Pipeline |
+| 5 | `roi` | ROI (Retorno sobre Investimento) |
+| 6 | `cac` | CAC (Custo de Aquisição de Cliente) |
+| 7 | `ltv` | LTV (Lifetime Value) |
+| 8 | `churn` | Churn Rate |
+| 9 | `seo` | SEO (Search Engine Optimization) |
+| 10 | `keyword-research` | Keyword Research |
+| 11 | `long-tail-keywords` | Long-Tail Keywords |
+| 12 | `taxa-de-conversao` | Taxa de Conversão |
+| 13 | `inbound-marketing` | Inbound Marketing |
+| 14 | `outbound-marketing` | Outbound Marketing |
+| 15 | `lead-scoring` | Lead Scoring |
+| 16 | `automacao-de-marketing` | Automação de Marketing |
+| 17 | `kpi` | KPI (Key Performance Indicator) |
+| 18 | `bounce-rate` | Bounce Rate |
+| 19 | `ctr` | CTR (Click-Through Rate) |
+| 20 | `serp` | SERP (Search Engine Results Page) |
+| 21 | `backlink` | Backlink |
+| 22 | `domain-authority` | Domain Authority |
+| 23 | `landing-page` | Landing Page |
+| 24 | `call-to-action` | Call to Action (CTA) |
+| 25 | `persona` | Persona (Buyer Persona) |
+
+Each term will include:
+- Title, h1, meta_description, tldr (definition)
+- 2-3 content sections (explanation, importance, how to use)
+- 1-2 practical examples
+- A CTA pointing to `/tools/keyword-ideas`
+- Status: `published`, language: `pt`, intent: `informational`
 
 ## Implementation Steps
 
-### 1. Create Tool Entities — DATABASE INSERT
+### 1. Database Migration — INSERT
 
-Insert 6 `seo_entities` records with `entity_type = 'tool'`:
-- **FastCRM Keyword Generator** (entity A for all comparisons)
-- **Semrush**, **Ahrefs**, **Ubersuggest**, **Google Keyword Planner**, **Moz** (entity B)
+Single SQL migration inserting 25 glossary records into `seo_entities` with `workspace_id = NULL`, `entity_type = 'glossary'`, and rich JSONB content.
 
-These are minimal records (title, slug, meta_description, status = published) to serve as foreign key references and provide display names in the comparison table headers.
+### 2. Update Roadmap — EDIT `src/modules/growth-seo/config/seoRoadmap.ts`
 
-### 2. Fix useSEOComparison Hook — EDIT `src/modules/growth-seo/hooks/useSEOEntity.ts`
+Change task `t2-3` status from `'todo'` to `'done'`.
 
-Update the query to fetch entity_a and entity_b data alongside the comparison. Since Supabase JS client doesn't support joining arbitrary foreign keys easily with `select('*, entity_a:seo_entities!entity_a_id(*)')`, we'll do a secondary fetch: after getting the comparison, fetch entity_a and entity_b by their IDs and merge them into the result.
+## No New Files or Dependencies
 
-### 3. Insert 5 Comparisons — DATABASE INSERT
-
-Insert 5 records into `seo_comparisons` with:
-- `entity_a_id` = FastCRM tool entity ID
-- `entity_b_id` = respective competitor entity ID
-- Rich JSONB `content` with introduction, criteria array, conclusion, and FAQs
-- `winner = 'a'`, `status = 'published'`
-
-### 4. Add Compare List Page — NEW FILE `src/modules/growth-seo/pages/CompareListPage.tsx`
-
-A list page at `/compare` showing all published comparisons. Uses `useSEOComparisonsList` hook (already exists). Shows cards with title, meta_description, and link to `/compare/:slug`.
-
-### 5. Register Route — EDIT `src/App.tsx`
-
-Add route for `/compare` list page.
-
-### 6. Update Roadmap — EDIT `src/modules/growth-seo/config/seoRoadmap.ts`
-
-Mark task `t2-4` as `done`.
+All changes use existing infrastructure. The `GlossaryListPage` groups by letter automatically, and `GlossaryTermPage` renders definitions, content sections, examples, CTAs, and related terms from the database record.
 
 ## Technical Notes
 
-- Comparisons use `workspace_id = NULL` for public access via RLS
-- The `entity_a_id` / `entity_b_id` foreign keys reference `seo_entities` so we need the tool records to exist first
-- The existing `ComparisonTable` component handles rendering criteria rows with winner indicators
-- The `ComparisonConclusion` component shows the winner name from entity titles
-- All comparison content is in Portuguese
+- Records use `workspace_id = NULL` for public RLS access
+- The `tldr` field serves as the definition shown in the prominent definition card
+- The alphabet navigation in the list page will auto-populate based on the first letter of each term
+- Related terms are fetched automatically by the `RelatedContent` component
+- View counts start at 0 and increment on page visit
 
