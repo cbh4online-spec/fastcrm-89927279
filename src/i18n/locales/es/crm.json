@@ -440,6 +440,8 @@
   "opportunityWon": "¡Oportunidad marcada como ganada! 🎉",
   "opportunityLost": "Oportunidad marcada como perdida",
   "errorUpdatingOpportunity": "Error al actualizar oportunidad",
+  "opportunityDeleted": "Oportunidad eliminada",
+  "errorDeletingOpportunity": "Error al eliminar oportunidad",
   "createInvoiceTitle": "¿Crear Factura?",
   "createInvoiceDesc": "La oportunidad \"{{title}}\" fue marcada como ganada!",
   "createInvoiceValue": "Valor:",

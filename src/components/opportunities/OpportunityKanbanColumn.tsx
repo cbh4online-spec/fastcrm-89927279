@@ -39,6 +39,8 @@ interface OpportunityKanbanColumnProps {
   onMoveOpportunity: (oppId: string, stageId: string, probability: number) => void;
   onOpportunityClick?: (opportunity: Opportunity) => void;
   onCreateOpportunity?: (stageId: string) => void;
+  onEditOpportunity?: (opportunity: Opportunity) => void;
+  onDeleteOpportunity?: (opportunity: Opportunity) => void;
   draggedId: string | null;
   onDragStart: (oppId: string) => void;
   onDragEnd: () => void;
@@ -54,6 +56,8 @@ export function OpportunityKanbanColumn({
   onMoveOpportunity,
   onOpportunityClick,
   onCreateOpportunity,
+  onEditOpportunity,
+  onDeleteOpportunity,
   draggedId,
   onDragStart,
   onDragEnd,
@@ -242,6 +246,8 @@ export function OpportunityKanbanColumn({
                   opportunity={opp}
                   isDragging={draggedId === opp.id}
                   onClick={onOpportunityClick ? () => onOpportunityClick(opp) : undefined}
+                  onEdit={onEditOpportunity}
+                  onDelete={onDeleteOpportunity}
                   dealScore={scoresMap?.get(opp.id)}
                   healthIntelligence={healthMap?.get(opp.id)}
                   stages={allStages}

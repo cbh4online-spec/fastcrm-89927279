@@ -440,6 +440,8 @@
   "opportunityWon": "Opportunity marked as won! 🎉",
   "opportunityLost": "Opportunity marked as lost",
   "errorUpdatingOpportunity": "Error updating opportunity",
+  "opportunityDeleted": "Opportunity deleted",
+  "errorDeletingOpportunity": "Error deleting opportunity",
   "createInvoiceTitle": "Create Invoice?",
   "createInvoiceDesc": "The opportunity \"{{title}}\" was marked as won!",
   "createInvoiceValue": "Value:",

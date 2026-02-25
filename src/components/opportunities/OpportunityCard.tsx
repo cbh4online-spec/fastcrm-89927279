@@ -1,6 +1,25 @@
+import { useState } from "react";
 import { Opportunity, PipelineStage, OPPORTUNITY_SOURCES } from "@/types/opportunity";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Building2,
   User,
@@ -8,6 +27,9 @@ import {
   FileText,
   Mail,
   MessageSquare,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -22,6 +44,8 @@ interface OpportunityCardProps {
   opportunity: Opportunity;
   isDragging?: boolean;
   onClick?: () => void;
+  onEdit?: (opp: Opportunity) => void;
+  onDelete?: (opp: Opportunity) => void;
   dealScore?: DealScore;
   healthIntelligence?: CompactDealIntelligence;
   stages?: PipelineStage[];
@@ -58,8 +82,12 @@ export function OpportunityCard({
   opportunity,
   isDragging,
   onClick,
+  onEdit,
+  onDelete,
 }: OpportunityCardProps) {
   const { t } = useTranslation("crm");
+  const { t: tCommon } = useTranslation("common");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const contactName = opportunity.contact?.name || opportunity.lead?.name;
   const companyName = opportunity.company?.name || opportunity.contact?.company;
@@ -91,9 +119,40 @@ export function OpportunityCard({
         )}
         onClick={onClick}
       >
-        <CardContent className="p-3 space-y-3">
+        <CardContent className="p-3 space-y-3 relative">
+          {/* Actions menu */}
+          {(onEdit || onDelete) && (
+            <div className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-opacity z-10">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 bg-background/80 hover:bg-muted shadow-sm">
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  {onEdit && (
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(opportunity); }}>
+                      <Pencil className="w-4 h-4 mr-2" />
+                      {tCommon("edit")}
+                    </DropdownMenuItem>
+                  )}
+                  {onEdit && onDelete && <DropdownMenuSeparator />}
+                  {onDelete && (
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      {tCommon("delete")}
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
+
           {/* Title */}
-          <h4 className="font-medium text-foreground text-sm leading-tight truncate">
+          <h4 className="font-medium text-foreground text-sm leading-tight truncate pr-6">
             {opportunity.title}
           </h4>
 
@@ -193,6 +252,27 @@ export function OpportunityCard({
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tCommon("confirmDeleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {tCommon("confirmDeleteDescription")} "{opportunity.title}"
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => onDelete?.(opportunity)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {tCommon("delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }
