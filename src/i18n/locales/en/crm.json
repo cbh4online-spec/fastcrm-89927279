@@ -653,6 +653,9 @@
   "sidebarEditView": "Edit view",
   "sidebarSetDefault": "Set as default",
   "sidebarDuplicate": "Duplicate",
+  "sidebarRenameView": "Rename",
+  "sidebarAddToFavorites": "Add to favorites",
+  "sidebarRemoveFavorite": "Remove from favorites",
   "sidebarNoLists": "No lists yet",
 
   "filterPillAdd": "Add filter",

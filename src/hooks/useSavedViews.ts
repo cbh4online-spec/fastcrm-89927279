@@ -138,3 +138,40 @@ export function useUpdateSavedView() {
     onError: () => toast.error("Failed to update view"),
   });
 }
+
+export function useDuplicateSavedView() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+
+  return useMutation({
+    mutationFn: async (input: { view: SavedView }) => {
+      if (!currentWorkspace) throw new Error("No workspace");
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+      const { view } = input;
+      const { data, error } = await (supabase
+        .from("crm_saved_views")
+        .insert({
+          workspace_id: currentWorkspace.id,
+          name: `${view.name} (copy)`,
+          entity_type: view.entity_type as any,
+          filters: view.filters || null,
+          sort_config: view.sort_config || null,
+          visible_columns: view.visible_columns || null,
+          view_mode: (view.view_mode || "table") as any,
+          icon: view.icon || null,
+          is_default: false,
+          is_favorite: false,
+          user_id: userId,
+        } as any) as any)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as SavedView;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["saved-views", currentWorkspace?.id, vars.view.entity_type] });
+      toast.success("View duplicated");
+    },
+    onError: () => toast.error("Failed to duplicate view"),
+  });
+}

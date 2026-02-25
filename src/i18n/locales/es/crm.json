@@ -687,6 +687,9 @@
   "sidebarEditView": "Editar vista",
   "sidebarSetDefault": "Establecer como predeterminada",
   "sidebarDuplicate": "Duplicar",
+  "sidebarRenameView": "Renombrar",
+  "sidebarAddToFavorites": "Añadir a favoritos",
+  "sidebarRemoveFavorite": "Quitar de favoritos",
   "sidebarNoLists": "Sin listas aún",
 
   "filterPillAdd": "Añadir filtro",
