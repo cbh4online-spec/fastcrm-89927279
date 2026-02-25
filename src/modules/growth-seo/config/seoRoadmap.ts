@@ -80,7 +80,7 @@ export const seoRoadmap: RoadmapPhase[] = [
         name: 'SEO Programático',
         tasks: [
           { id: 't2-1', title: '+300-1000 páginas long-tail keywords', priority: 'high', status: 'todo', dueDay: 45 },
-          { id: 't2-2', title: 'Páginas de categorias', priority: 'high', status: 'todo', dueDay: 40 },
+          { id: 't2-2', title: 'Páginas de categorias', priority: 'high', status: 'done', dueDay: 40 },
           { id: 't2-3', title: 'Glossary completo', priority: 'medium', status: 'done', dueDay: 50 },
           { id: 't2-4', title: 'Criar /compare/* (alta intenção)', priority: 'high', status: 'done', dueDay: 55 },
         ],

@@ -17,8 +17,10 @@ const footerLinks = {
   categorias: [
     { label: 'CRM', href: '/categories/crm' },
     { label: 'Vendas', href: '/categories/vendas' },
-    { label: 'Marketing', href: '/categories/marketing' },
+    { label: 'Marketing Digital', href: '/categories/marketing-digital' },
     { label: 'Automação', href: '/categories/automacao' },
+    { label: 'SEO', href: '/categories/seo' },
+    { label: 'E-commerce', href: '/categories/ecommerce' },
   ],
   empresa: [
     { label: 'Sobre Nós', href: '/about' },
