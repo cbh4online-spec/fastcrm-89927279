@@ -4,10 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Plus } from "lucide-react";
+import { ArrowRight, Plus, Wand2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { CreateObjectWizard } from "@/components/objects/CreateObjectWizard";
+import { toast } from "sonner";
 import { useExtensionManifests } from "@/hooks/useExtensionManifests";
 import { getIconByName } from "@/lib/icons";
 import type { ExtensionObjectDef } from "@/types/extensionManifest";
@@ -66,6 +69,7 @@ export default function ObjectsHomePage() {
   const { data: counts } = useObjectCounts();
   const { extensionObjects } = useExtensionManifests();
   const { data: extCounts } = useExtensionObjectCounts(extensionObjects);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const entries = Object.values(OBJECT_REGISTRY);
 
@@ -80,10 +84,9 @@ export default function ObjectsHomePage() {
                 Gerencie seus contatos, empresas, negócios e objetos customizados.
               </p>
             </div>
-            <Button variant="outline" size="sm" disabled className="gap-1.5">
-              <Plus className="h-4 w-4" />
-              Custom Object
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Em breve</Badge>
+            <Button size="sm" className="gap-1.5" onClick={() => setWizardOpen(true)}>
+              <Wand2 className="h-4 w-4" />
+              Create Object
             </Button>
           </div>
 
@@ -156,6 +159,14 @@ export default function ObjectsHomePage() {
           </div>
         </div>
       </ScrollArea>
+
+      <CreateObjectWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        onComplete={(name, fields) => {
+          toast.success(`Object "${name}" created with ${fields.length} fields`);
+        }}
+      />
     </DashboardLayout>
   );
 }

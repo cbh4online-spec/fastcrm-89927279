@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { DealScore, getCategoryColors, getCategoryLabel } from "@/hooks/useDealScores";
+import { DealScore, getCategoryColors } from "@/hooks/useDealScores";
 import { DealHealthBadge } from "@/components/intelligence/DealHealthBadge";
 import type { CompactDealIntelligence } from "@/types/dealIntelligence";
 
@@ -61,7 +61,7 @@ export function OpportunityCard({ opportunity, isDragging, onClick, dealScore, h
   const cardContent = (
     <Card
       className={cn(
-        "cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md transition-all",
+        "cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md transition-all group/card",
         isDragging && "opacity-50 rotate-2 shadow-lg",
         onClick && "cursor-pointer",
         dealScore?.urgency === "critical" && "border-red-300/60"
@@ -77,65 +77,61 @@ export function OpportunityCard({ opportunity, isDragging, onClick, dealScore, h
             {opportunity.title}
           </h4>
 
-          {/* Company inline */}
-          {companyName && (
-            <div className="hidden sm:flex items-center gap-1 text-[10px] text-muted-foreground flex-shrink-0">
-              <Building2 className="w-2.5 h-2.5" />
-              <span className="truncate max-w-[60px]">{companyName}</span>
-            </div>
-          )}
-
           {/* Value */}
           <div className="flex items-center gap-0.5 text-xs font-semibold text-primary flex-shrink-0">
             <DollarSign className="w-3 h-3" />
             {formatCurrency(Number(opportunity.value), opportunity.currency)}
           </div>
 
-          {/* Deal Score Badge */}
-          {dealScore ? (
-            <Badge
-              variant="outline"
-              className={cn("text-[10px] px-1.5 py-0 h-4 flex-shrink-0 font-semibold", getCategoryColors(dealScore.category))}
-            >
-              {Math.round(dealScore.close_score)} {getCategoryLabel(dealScore.category)}
-            </Badge>
-          ) : (
-            /* Fallback: probability */
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 flex-shrink-0">
-              {opportunity.probability}%
-            </Badge>
-          )}
-
-          {/* Deal Health Badge */}
+          {/* Deal Health Badge — always visible */}
           <DealHealthBadge intelligence={healthIntelligence} />
 
-          {/* Temperature Badge (ai_temperature) */}
-          {opportunity.ai_temperature && (
-            <Badge 
-              variant="outline" 
-              className={cn("text-[10px] px-1.5 py-0 h-4 flex-shrink-0", getTemperatureColor(opportunity.ai_temperature))}
-            >
-              {getTemperatureLabel(opportunity.ai_temperature)}
-            </Badge>
-          )}
+          {/* Details visible on hover */}
+          <div className="hidden group-hover/card:flex items-center gap-1.5 flex-shrink-0">
+            {/* Company inline */}
+            {companyName && (
+              <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                <Building2 className="w-2.5 h-2.5" />
+                <span className="truncate max-w-[60px]">{companyName}</span>
+              </div>
+            )}
 
-          {/* Critical urgency icon */}
-          {dealScore?.urgency === "critical" && (
-            <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
-          )}
+            {/* Deal Score Badge */}
+            {dealScore && (
+              <Badge
+                variant="outline"
+                className={cn("text-[10px] px-1.5 py-0 h-4 font-semibold", getCategoryColors(dealScore.category))}
+              >
+                {Math.round(dealScore.close_score)}
+              </Badge>
+            )}
 
-          {/* Hot icon */}
-          {dealScore?.urgency === "high" && (
-            <Zap className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-          )}
+            {/* Temperature Badge */}
+            {opportunity.ai_temperature && (
+              <Badge 
+                variant="outline" 
+                className={cn("text-[10px] px-1.5 py-0 h-4", getTemperatureColor(opportunity.ai_temperature))}
+              >
+                {getTemperatureLabel(opportunity.ai_temperature)}
+              </Badge>
+            )}
 
-          {/* Close Date */}
-          {opportunity.expected_close_date && (
-            <div className="hidden md:flex items-center gap-0.5 text-[10px] text-muted-foreground flex-shrink-0">
-              <Calendar className="w-2.5 h-2.5" />
-              <span>{format(new Date(opportunity.expected_close_date), "d MMM", { locale: pt })}</span>
-            </div>
-          )}
+            {/* Critical/Hot icons */}
+            {dealScore?.urgency === "critical" && (
+              <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+            )}
+            {dealScore?.urgency === "high" && (
+              <Zap className="w-3.5 h-3.5 text-amber-500" />
+            )}
+
+            {/* Close Date */}
+            {opportunity.expected_close_date && (
+              <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                <Calendar className="w-2.5 h-2.5" />
+                <span>{format(new Date(opportunity.expected_close_date), "d MMM", { locale: pt })}</span>
+              </div>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

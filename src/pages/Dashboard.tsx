@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 import { RevenueHero } from "@/components/dashboard/RevenueHero";
+import { ForecastTrendChart } from "@/components/dashboard/ForecastTrendChart";
 import { PipelineHealthCard } from "@/components/dashboard/PipelineHealthCard";
 import { DealsAtRiskList } from "@/components/dashboard/DealsAtRiskList";
 import { AIActionSuggestions } from "@/components/dashboard/AIActionSuggestions";
@@ -122,6 +123,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-12 gap-4 lg:gap-6">
             {/* Left */}
             <div className="col-span-12 lg:col-span-8 space-y-4">
+              <ForecastTrendChart />
               <DealsAtRiskList />
               <AIActionSuggestions />
             </div>
