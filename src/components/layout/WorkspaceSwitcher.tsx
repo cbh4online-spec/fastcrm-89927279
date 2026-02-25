@@ -24,7 +24,11 @@ import { ChevronDown, Plus, Check, Loader2, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
 
-export function WorkspaceSwitcher() {
+interface WorkspaceSwitcherProps {
+  collapsed?: boolean;
+}
+
+export function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps) {
   const { 
     currentWorkspace, 
     setCurrentWorkspace, 
@@ -94,11 +98,11 @@ export function WorkspaceSwitcher() {
     <>
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="w-full justify-between h-auto py-2 px-3 hover:bg-muted"
-          >
-            <div className="flex items-center gap-3 min-w-0">
+          {collapsed ? (
+            <Button
+              variant="ghost"
+              className="w-full justify-center h-auto py-2 px-0 hover:bg-muted"
+            >
               {currentWorkspace?.isAgencyManaged ? (
                 <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0">
                   <Shield className="w-4 h-4 text-amber-500" />
@@ -111,24 +115,44 @@ export function WorkspaceSwitcher() {
                   variant="sidebar"
                 />
               )}
-              <div className="text-left min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-sidebar-foreground truncate">
-                    {currentWorkspace?.name || "Select workspace"}
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              className="w-full justify-between h-auto py-2 px-3 hover:bg-muted"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                {currentWorkspace?.isAgencyManaged ? (
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                    <Shield className="w-4 h-4 text-amber-500" />
+                  </div>
+                ) : (
+                  <WorkspaceLogo
+                    logoUrl={currentWorkspace?.logo_url}
+                    workspaceName={currentWorkspace?.name}
+                    size="md"
+                    variant="sidebar"
+                  />
+                )}
+                <div className="text-left min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-sidebar-foreground truncate">
+                      {currentWorkspace?.name || "Select workspace"}
+                    </p>
+                    {currentWorkspace?.isAgencyManaged && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/10 text-amber-600 border-amber-500/30">
+                        Gestão
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-sidebar-foreground/60 capitalize">
+                    {currentWorkspace?.isAgencyManaged ? "Modo agência" : currentWorkspace?.role || "No role"}
                   </p>
-                  {currentWorkspace?.isAgencyManaged && (
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/10 text-amber-600 border-amber-500/30">
-                      Gestão
-                    </Badge>
-                  )}
                 </div>
-                <p className="text-xs text-sidebar-foreground/60 capitalize">
-                  {currentWorkspace?.isAgencyManaged ? "Modo agência" : currentWorkspace?.role || "No role"}
-                </p>
               </div>
-            </div>
-            <ChevronDown className="w-4 h-4 text-sidebar-foreground/60 flex-shrink-0" />
-          </Button>
+              <ChevronDown className="w-4 h-4 text-sidebar-foreground/60 flex-shrink-0" />
+            </Button>
+          )}
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-72" align="start">
           {/* Own Workspaces */}
