@@ -1,193 +1,120 @@
 
 
-# Ask FastCRM — Natural Language Automation Rules (Ask → Automate)
+# Ask FastCRM — Multi-Object Automation Builder (Deals + Contacts + Invoices)
 
 ## Current State
 
-The system already has:
-- **Ask FastCRM edge function** with hybrid deterministic + LLM routing, strict JSON contract, whitelists, confidence scoring
-- **`automation_rules` table** with conditions, actions, logs — full CRUD via `useAutomations.ts` (`useCreateAutomationRule`)
-- **Automation triggers** as a Postgres enum including `opportunity_stage_changed`, `lead_no_response`, `conversation_no_reply`, etc.
-- **Automation action types** as enum: `create_task`, `assign_owner`, `notify_user`, `move_opportunity_stage`, `send_message`, etc.
-- **AskFastCRMResultPanel** with items, actions, confirmation overlay, "Did you mean?" chips
-- **AskFastCRMDialog** with autocomplete, keyboard nav, suggestion chips
+- **Automation intent** exists for deals only, routing to LLM extraction via `handleAutomationIntent()`
+- **Allowed triggers**: `opportunity_stage_changed`, `lead_no_response`, `lead_score_changed`, `lead_temperature_changed`
+- **Allowed actions**: `create_task`, `assign_owner`, `notify_user`, `move_opportunity_stage`
+- **DB `automation_trigger` enum** has many triggers but NO invoice-specific ones (no `invoice_created`, `invoice_overdue`, `due_date_approaching`, `invoice_status_changed`)
+- **DB `automation_action_type` enum** has no `mark_as_at_risk` or `send_overdue_alert`
+- **`AutomationPreview` interface** has no `object_type` field
+- **Extension check**: `useWorkspaceModules` provides `installedModuleIds` — Finance Pack = module slug `invoices`
+- **Contact triggers available in DB**: `contact_created`, `contact_updated`, `contact_score_changed`, `contact_temperature_changed` — but NOT `contact_no_activity` or `contact_last_reply_days`
 
-## Architecture Overview
+## Database Migration Required
 
-```text
-User types: "Remind me if no activity for 7 days"
-       │
-       ▼
-┌─────────────────────────┐
-│  Ask FastCRM Edge Func  │
-│  ┌───────────────────┐  │
-│  │ Intent Router     │  │ ← detects "create_automation_rule" intent
-│  │ (deterministic +  │  │
-│  │  LLM fallback)    │  │
-│  └───────┬───────────┘  │
-│          ▼              │
-│  ┌───────────────────┐  │
-│  │ Automation Rule   │  │ ← extracts trigger, conditions, actions
-│  │ Extractor (LLM)   │  │   returns structured JSON
-│  └───────┬───────────┘  │
-│          ▼              │
-│  ┌───────────────────┐  │
-│  │ Validate against  │  │ ← whitelist triggers, actions, fields
-│  │ guardrails        │  │
-│  └───────────────────┘  │
-└──────────┬──────────────┘
-           ▼
-┌────────────────────────────┐
-│  Frontend: Preview Panel   │
-│  When → If → Then          │  ← user reviews, edits params
-│  [Edit] [Confirm] [Cancel] │
-└──────────┬─────────────────┘
-           ▼ (on confirm)
-┌──────────────────────────┐
-│  useCreateAutomationRule │  ← saves to automation_rules + conditions + actions
-│  (existing hook)         │
-└──────────────────────────┘
+Add to the `automation_trigger` enum:
+```sql
+ALTER TYPE automation_trigger ADD VALUE IF NOT EXISTS 'invoice_created';
+ALTER TYPE automation_trigger ADD VALUE IF NOT EXISTS 'invoice_overdue';
+ALTER TYPE automation_trigger ADD VALUE IF NOT EXISTS 'invoice_status_changed';
+ALTER TYPE automation_trigger ADD VALUE IF NOT EXISTS 'due_date_approaching';
+ALTER TYPE automation_trigger ADD VALUE IF NOT EXISTS 'contact_no_activity';
 ```
+
+Add to the `automation_action_type` enum:
+```sql
+ALTER TYPE automation_action_type ADD VALUE IF NOT EXISTS 'mark_as_at_risk';
+ALTER TYPE automation_action_type ADD VALUE IF NOT EXISTS 'send_overdue_alert';
+```
+
+No new tables needed — existing `automation_rules`, `automation_conditions`, `automation_actions` handle all object types via trigger type differentiation.
+
+---
 
 ## Implementation Plan
 
-### 1. Edge Function — New Intent: `create_automation_rule`
+### 1. Edge Function — Multi-Object Automation (`supabase/functions/ask-fastcrm/index.ts`)
 
-**File: `supabase/functions/ask-fastcrm/index.ts`**
+**1A. Per-object whitelists**
 
-**1A. Add automation keywords to deterministic router**
-
-Add entries to `KEYWORD_MAP` and `EXACT_PHRASES`:
-```
-"remind me" → create_automation_rule
-"alert me" → create_automation_rule
-"auto-assign" → create_automation_rule
-"notify me when" → create_automation_rule
-"create follow-up when" → create_automation_rule
-"create task when" → create_automation_rule
-```
-
-Confidence: These always route to LLM (confidence set to 0.60) because we need structured extraction, not just classification.
-
-**1B. Add second LLM tool: `extract_automation_rule`**
-
-When intent is `create_automation_rule`, call the LLM with a specialized tool that extracts:
+Replace flat `AUTOMATION_ALLOWED_TRIGGERS` with a per-object structure:
 
 ```typescript
-const AUTOMATION_TOOL = {
-  type: "function",
-  function: {
-    name: "extract_automation_rule",
-    description: "Extract a structured automation rule from a natural language request.",
-    parameters: {
-      type: "object",
-      properties: {
-        name: { type: "string", description: "Short name for the rule" },
-        trigger: {
-          type: "string",
-          enum: ["opportunity_stage_changed", "lead_no_response", "conversation_no_reply", "lead_score_changed", "lead_temperature_changed"]
-        },
-        trigger_config: {
-          type: "object",
-          properties: {
-            delay_days: { type: "number" },
-            stage_name: { type: "string" },
-          }
-        },
-        conditions: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              field_name: { type: "string", enum: ["amount", "stage", "health_label", "close_date", "owner_id"] },
-              operator: { type: "string", enum: ["equals", "not_equals", "greater_than", "less_than", "is_empty"] },
-              value: { type: "string" }
-            }
-          }
-        },
-        actions: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              action_type: { type: "string", enum: ["create_task", "assign_owner", "notify_user", "move_opportunity_stage", "send_message"] },
-              config: {
-                type: "object",
-                properties: {
-                  title: { type: "string" },
-                  due_in_days: { type: "number" },
-                  priority: { type: "string", enum: ["high", "medium", "low"] },
-                  message: { type: "string" },
-                  stage_name: { type: "string" },
-                }
-              }
-            }
-          }
-        }
-      },
-      required: ["name", "trigger", "actions"]
-    }
-  }
+const AUTOMATION_OBJECT_CONFIG = {
+  deal: {
+    triggers: ["opportunity_stage_changed", "lead_no_response", "lead_score_changed", "lead_temperature_changed"],
+    actions: ["create_task", "assign_owner", "notify_user", "move_opportunity_stage"],
+    condition_fields: ["amount", "stage", "health_label", "close_date", "owner_id"],
+  },
+  contact: {
+    triggers: ["contact_created", "contact_updated", "contact_no_activity", "contact_score_changed"],
+    actions: ["create_task", "assign_owner", "notify_user"],
+    condition_fields: ["name", "email", "owner_id"],
+  },
+  invoice: {
+    triggers: ["invoice_created", "invoice_overdue", "due_date_approaching", "invoice_status_changed"],
+    actions: ["create_task", "notify_user", "mark_as_at_risk", "send_overdue_alert"],
+    condition_fields: ["amount", "status", "days_overdue", "due_date"],
+    requires_extension: "invoices",
+  },
 };
 ```
 
-**1C. Guardrails for automation extraction**
+**1B. Object type detection from natural language**
 
-Whitelist of allowed triggers (v1 — deals only):
-- `opportunity_stage_changed`
-- `lead_no_response` (for "no activity" patterns)
-- `lead_score_changed`
-- `lead_temperature_changed`
+Add object-type keywords to the deterministic classifier — before routing to LLM:
+- "invoice", "fatura", "overdue", "due date" → `object_type: "invoice"`
+- "contact", "contacto", "replied", "reply" → `object_type: "contact"`
+- Default: `object_type: "deal"`
 
-Whitelist of allowed actions (v1):
-- `create_task`
-- `assign_owner`
-- `notify_user`
-- `move_opportunity_stage`
+**1C. Extension gate for invoices**
 
-Validate extracted rule against whitelists. If invalid, return `did_you_mean` suggestions.
-
-**1D. Response format for automation intent**
-
-Return a new response shape with `intent: "create_automation_rule"` and an `automation_preview` field:
-
-```typescript
-{
-  version: "1.0",
-  routed_via: "llm",
-  confidence: 0.85,
-  intent: "create_automation_rule",
-  object_type: "deals",
-  query: { filters: [], sort: [], limit: 0 },
-  answer: {
-    headline: "You're creating a new automation rule.",
-    subtext: "Review the details below and confirm."
-  },
-  actions_available: ["CONFIRM_AUTOMATION", "CANCEL"],
-  items: [],
-  actions: [],
-  automation_preview: {
-    name: "Follow up on Proposal deals",
-    trigger: "opportunity_stage_changed",
-    trigger_config: { stage_name: "Proposal" },
-    trigger_label: "Deal enters \"Proposal\"",
-    conditions: [{ field_name: "amount", operator: "greater_than", value: "20000" }],
-    conditions_labels: ["Amount > €20,000"],
-    actions: [{ action_type: "create_task", config: { title: "Follow up on proposal", due_in_days: 3, priority: "high" } }],
-    actions_labels: ["Create task \"Follow up on proposal\" in 3 days"]
-  }
-}
+When `object_type === "invoice"`, check if the `invoices` module is installed for the workspace by querying `workspace_modules`. If not installed, return a response with:
+```
+headline: "Invoice automations require the Finance Pack."
+subtext: "Activate it in Marketplace to unlock invoice rules."
+did_you_mean: ["Remind me if a deal has no activity for 7 days", ...]
 ```
 
-### 2. Frontend — Types Update
+**1D. Update `AUTOMATION_TOOL` LLM definition**
 
-**File: `src/hooks/useAskFastCRM.ts`**
+- Add `object_type` as a required field with enum `["deal", "contact", "invoice"]`
+- Expand trigger enum to include all per-object triggers
+- Expand action enum to include `mark_as_at_risk`, `send_overdue_alert`
+- Expand condition field enum to include contact/invoice fields
+- Update system prompt to describe all three object types and their allowed triggers/actions
 
-**2A. Add `AutomationPreview` interface**
+**1E. Update `handleAutomationIntent()`**
+
+- Accept detected `object_type` as parameter
+- After LLM extraction, validate trigger/actions/conditions against the per-object config
+- Cross-object validation: if LLM returns a trigger from one object with actions from another, reject
+- Include `object_type` in the response `automation_preview`
+- Update headline: `"You're creating a new automation for {Object}s."`
+
+**1F. Add automation keywords**
+
+Add to `KEYWORD_MAP`:
+```
+"invoice overdue" → create_automation_rule
+"overdue alert" → create_automation_rule  
+"due date approaching" → create_automation_rule
+"contact created" → create_automation_rule
+"contact no reply" → create_automation_rule
+"new contact" → create_automation_rule
+```
+
+### 2. Frontend Types (`src/hooks/useAskFastCRM.ts`)
+
+**2A. Add `object_type` to `AutomationPreview`**
 
 ```typescript
 export interface AutomationPreview {
   name: string;
+  object_type: "deal" | "contact" | "invoice";  // NEW
   trigger: string;
   trigger_config?: Record<string, any>;
   trigger_label: string;
@@ -198,77 +125,50 @@ export interface AutomationPreview {
 }
 ```
 
-**2B. Add `automation_preview` to `AskResult`**
+**2B. Update `confirmAutomation`**
 
-Add optional `automation_preview?: AutomationPreview` to the `AskResult` interface.
+- Add mapping for new triggers (`contact_created`, `contact_no_activity`, `invoice_overdue`, etc.)
+- Add mapping for new action types (`mark_as_at_risk`, `send_overdue_alert`)
+- Handle `trigger_config` for invoice-specific params like `days_before_due`
 
-**2C. Add `confirmAutomation` action**
+### 3. UI — Multi-Object Preview (`src/components/ask-fastcrm/AskAutomationPreview.tsx`)
 
-New function in `useAskFastCRM` that calls `useCreateAutomationRule` to save the automation from the preview. Maps `automation_preview` fields to the existing `CreateRuleInput` format.
+**3A. Object-type indicator in header**
 
-### 3. Frontend — Automation Preview Panel
-
-**New file: `src/components/ask-fastcrm/AskAutomationPreview.tsx`**
-
-A dedicated component rendered when `result.automation_preview` is present:
-
-```text
-┌─────────────────────────────────────┐
-│  ⚡ You're creating a new rule      │
-│                                     │
-│  When:                              │
-│  ┌─ Deal enters "Proposal" ───────┐ │
-│  └────────────────────────────────┘ │
-│                                     │
-│  If:                                │
-│  ┌─ Amount > €20,000 ────────────┐  │
-│  └────────────────────────────────┘ │
-│                                     │
-│  Then:                              │
-│  ┌─ Create task "Follow up" in 3d ┐ │
-│  └────────────────────────────────┘ │
-│                                     │
-│  [Edit] [Confirm & Activate] [Cancel]│
-└─────────────────────────────────────┘
+Show object type badge in the preview header:
+```
+⚡ Follow up on Proposal deals     [Deal]
+   New automation rule
 ```
 
-- Each section (When/If/Then) uses the `_labels` arrays for human-readable text
-- "Edit" opens inline parameter editing (simple inputs for days, amount, priority, stage name)
-- "Confirm & Activate" calls `confirmAutomation` → saves rule → shows toast "Rule activated"
-- "Cancel" clears the result
+**3B. Edit mode for new trigger types**
 
-### 4. Integrate into ResultPanel and Dialog
+Add edit fields for:
+- `contact_no_activity` → delay_days input
+- `invoice_overdue` → days_overdue input  
+- `due_date_approaching` → days_before input
+- `invoice_status_changed` → status select
 
-**File: `src/components/ask-fastcrm/AskFastCRMResultPanel.tsx`**
+**3C. Edit mode for new action types**
 
-- When `result.intent === "create_automation_rule"` and `result.automation_preview` exists, render `<AskAutomationPreview>` instead of the items list
-- The headline and subtext still render normally above the preview
+Add edit fields for:
+- `mark_as_at_risk` → no config needed (simple flag)
+- `send_overdue_alert` → message template input
 
-**File: `src/components/ask-fastcrm/AskFastCRMDialog.tsx`**
+### 4. Autocomplete (`src/components/ask-fastcrm/AskFastCRMDialog.tsx`)
 
-- Pass `onConfirmAutomation` and `onCancelAutomation` handlers through to ResultPanel
-- On successful automation creation, show toast and optionally close dialog
-
-**File: `src/components/ask-fastcrm/AskFastCRMInline.tsx`**
-
-- Same integration — the preview renders inline when automation intent is detected
-
-### 5. Autocomplete for Automation Phrases
-
-**File: `src/components/ask-fastcrm/AskFastCRMDialog.tsx`**
-
-Add automation suggestions to `AUTOCOMPLETE_MAP`:
+Add multi-object suggestions:
 ```typescript
-"remind": "Remind me if no activity for 7 days",
-"alert": "Alert me when deals are at risk",
-"auto-assign": "Auto-assign high value deals",
-"follow-up": "Create follow-up when deal enters Proposal",
-"notify": "Notify me if close date is in 3 days",
+"invoice": "Alert me when invoice is overdue",
+"overdue": "Alert me when invoice is overdue",
+"contact reply": "Notify me if contact hasn't replied in 14 days",
+"new contact": "Create task when new contact is created",
+"due date": "Notify me 3 days before invoice due date",
 ```
 
-### 6. No Database Changes Needed
+### 5. AskFastCRMInline — No changes needed
 
-The existing `automation_rules`, `automation_conditions`, and `automation_actions` tables have everything needed. The `useCreateAutomationRule` hook handles the full insert flow. No migration required.
+The inline component already passes through all automation handlers from the Dialog.
 
 ---
 
@@ -276,10 +176,17 @@ The existing `automation_rules`, `automation_conditions`, and `automation_action
 
 | File | Change |
 |---|---|
-| `supabase/functions/ask-fastcrm/index.ts` | Add `create_automation_rule` intent detection, `extract_automation_rule` LLM tool, guardrails, `automation_preview` in response |
-| `src/hooks/useAskFastCRM.ts` | Add `AutomationPreview` interface, `automation_preview` to `AskResult`, `confirmAutomation` function |
-| `src/components/ask-fastcrm/AskAutomationPreview.tsx` | **NEW** — When/If/Then preview panel with edit + confirm + cancel |
-| `src/components/ask-fastcrm/AskFastCRMResultPanel.tsx` | Render `AskAutomationPreview` when automation intent detected |
-| `src/components/ask-fastcrm/AskFastCRMDialog.tsx` | Add automation autocomplete entries, pass confirm/cancel handlers |
-| `src/components/ask-fastcrm/AskFastCRMInline.tsx` | Pass confirm/cancel handlers for automation preview |
+| **Database migration** | Add 5 trigger values + 2 action type values to enums |
+| `supabase/functions/ask-fastcrm/index.ts` | Per-object config, object detection, extension gate, expanded LLM tool, updated handler |
+| `src/hooks/useAskFastCRM.ts` | Add `object_type` to `AutomationPreview`, update `confirmAutomation` mappings |
+| `src/components/ask-fastcrm/AskAutomationPreview.tsx` | Object badge, edit fields for new trigger/action types |
+| `src/components/ask-fastcrm/AskFastCRMDialog.tsx` | Add multi-object autocomplete entries |
+
+## Guardrails Summary
+
+- No cross-object rules (trigger from deal + action from invoice = rejected)
+- Invoice automations gated by Finance Pack installation check
+- Single trigger, single action per rule (v1)
+- All triggers/actions/fields validated against per-object whitelist
+- LLM output validated server-side before returning preview
 
