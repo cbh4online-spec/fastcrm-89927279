@@ -52,6 +52,7 @@ import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { toast } from "sonner";
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { useBulkDealIntelligenceAPI } from "@/hooks/useDealIntelligenceAPI";
+import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 // Design System imports
 import { PageLoading, EmptyState } from "@/components/design-system";
 
@@ -84,6 +85,16 @@ export function OpportunitiesModule() {
   const { trackLeadMovedPipeline } = useCRMAnalytics();
   const { scoresMap } = useDealScores();
   const { scoresMap: healthMap } = useBulkDealIntelligenceAPI(opportunities);
+  const { data: members } = useWorkspaceMembers();
+
+  // Build owner profiles map from workspace members
+  const membersMap = useMemo(() => {
+    const map = new Map<string, typeof members extends (infer T)[] ? NonNullable<(T & { profile?: any })["profile"]> : never>();
+    members?.forEach((m) => {
+      if (m.profile) map.set(m.user_id, m.profile);
+    });
+    return map;
+  }, [members]);
 
   // Filter by search + hotDeals
   const filteredOpportunities = useMemo(() => {
@@ -327,7 +338,7 @@ export function OpportunitiesModule() {
       ) : viewMode === "kanban" ? (
         <ScrollArea className="flex-1 -mx-6 px-6">
           <div className="flex gap-4 pb-4">
-            {stages.map((stage) => (
+             {stages.map((stage) => (
               <OpportunityKanbanColumn
                 key={stage.id}
                 stage={{
@@ -348,6 +359,8 @@ export function OpportunitiesModule() {
                 onDragEnd={() => setDraggedId(null)}
                 scoresMap={scoresMap}
                 healthMap={healthMap}
+                allStages={stages as any}
+                membersMap={membersMap as any}
               />
             ))}
           </div>
