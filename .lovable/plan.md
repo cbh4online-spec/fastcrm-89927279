@@ -1,120 +1,85 @@
 
 
-# Passo 1 — Custom Objects como First-Class Entities
+# Passo 2 — Object Builder (Estilo Attio)
 
-## Diagnóstico
+## Overview
 
-Existe um problema fundamental: **duas tabelas paralelas** para o mesmo conceito.
+Create a dedicated full-page Data Model builder at `/settings/data-model` where users can manage all custom objects, their fields, and relationships in a clean, non-technical UI. Also wire RelationshipsPanel into Company detail pages so cross-object relationships are visible everywhere.
 
-- `CreateObjectWizard` escreve para `core_object_types` + `core_object_fields`
-- A sidebar lê de `custom_objects` (via `useCustomObjects`)
-- `AttioObjectListView` usa `useObjectRecords` que lê `object_records` (FK para `custom_objects.id`)
-- `core_object_fields` tem `object_id` que referencia `custom_objects.id`
+## Current State
 
-O wizard cria em `core_object_types` mas **nunca cria o registo em `custom_objects`**, logo os objetos criados pelo wizard não aparecem na sidebar nem têm list view funcional.
+- `CreateObjectWizard` exists as a dialog (dual-write to `core_object_types` + `custom_objects`)
+- `ObjectFieldBuilder` exists but is basic (card-based add form, missing currency/multi-select types)
+- `RelationshipsPanel` exists but only used in `CustomObjectDetailPage` — not in Company/Contact detail pages
+- `InlineFieldEditor` handles text, number, email, date, url, boolean, select
+- No dedicated data model page exists
+- Field types missing: `currency`, `multi_select`
+- No relationship schema builder (relationships are only created at record level)
 
-## Plano de Implementação
+## Plan
 
-### 1. Corrigir CreateObjectWizard — dual write
+### 1. New Page: `src/pages/DataModelPage.tsx`
 
-Atualizar `CreateObjectWizard` para:
-- Inserir em `core_object_types` (mantém)
-- **Também inserir em `custom_objects`** com o `type_id` a apontar para o `core_object_types.id`
-- Inserir campos em `core_object_fields` com `object_id` = `custom_objects.id` (em vez de `object_type_id`)
-- Adicionar icon picker (grid de ícones lucide pré-definidos)
-- Adicionar color picker (paleta pré-definida)
-- Após criação, **navegar para `/objects/{slug}`** em vez de fechar o dialog
-- Invalidar queries de `custom-objects` para que a sidebar atualize imediatamente
+Full-page at `/settings/data-model`. Three-panel layout:
 
-### 2. Criar Record Detail Page para Custom Objects
+- **Left sidebar (250px)**: List of all objects (core + custom), each showing icon, name, field count. Click to select. "Create Object" button at bottom.
+- **Main area**: When an object is selected, shows 3 tabs:
+  - **Fields**: Upgraded `ObjectFieldBuilder` with inline add row, drag handles, field type icons
+  - **Relationships**: New section showing which objects this one connects to, with ability to create relationship definitions (e.g. "Project → Company")
+  - **Settings**: Rename, icon/color picker, description, archive/delete (danger zone)
 
-**Novo ficheiro: `src/pages/CustomObjectDetailPage.tsx`**
+Design: Clean, minimal. No wizard dialogs. Everything inline. Similar to Attio's Settings > Objects page.
 
-Layout duas colunas (60/40):
-- **Esquerda**: Campos editáveis inline (usando `InlineFieldEditor` já criado), organizados por secção
-- **Direita**: Painel de relacionamentos, metadados (criado em, atualizado em)
-- Header: Ícone do objeto + nome do registo (campo "name" ou primeiro campo texto) + breadcrumb (Objects > Partnerships > Nome)
-- Botões: Editar, Eliminar
+### 2. Upgrade Field Types
 
-**Atualizar: `src/pages/ObjectDetailPage.tsx`**
-- Se o `type` não está no `OBJECT_REGISTRY`, procurar em `useCustomObjects` por slug
-- Se encontrar, renderizar `CustomObjectDetailPage` com o `objectId` e `recordId`
+Add to `ObjectFieldBuilder` and `InlineFieldEditor`:
+- `currency` — number input with currency formatting (stores as number, displays with €/$ prefix)
+- `multi_select` — multi-select checkboxes (stores as string array in options)
 
-### 3. Criar hooks de Relationships
+Update `FIELD_TYPES` in both `ObjectFieldBuilder` and `CreateObjectWizard` to include all types.
 
-**Novo ficheiro: `src/hooks/useObjectRelationships.ts`**
+### 3. New Component: `src/components/objects/RelationshipSchemaBuilder.tsx`
 
-```text
-useObjectRelationships(recordId, objectId)
-  → SELECT * FROM object_relationships 
-    WHERE (source_record_id = recordId) OR (target_record_id = recordId)
-  → Joins com custom_objects para resolver nomes
-  → Joins com object_records para resolver display name
+Shows and manages relationship definitions between object types (not individual records). This is the "schema" level:
+- Lists existing relationship patterns: "Project → Company (related_to)"
+- "Add relationship" inline: Select target object type → relationship type
+- When a relationship definition exists, the `AddRelationshipForm` in `RelationshipsPanel` will pre-filter to only show relevant object types
 
-useCreateRelationship()
-  → INSERT com source_object_id, source_record_id, target_object_id, target_record_id, relationship_type
+For now, this is a UI convenience layer — relationships are still stored per-record in `object_relationships`. The schema builder just shows which object pairs have been connected and makes it easy to create new connections.
 
-useDeleteRelationship()
-  → DELETE por id
-```
+### 4. Wire RelationshipsPanel into Company Detail
 
-### 4. Criar RelationshipsPanel
+Add `RelationshipsPanel` to `CompanyDetailWithSidebar.tsx` so that when a custom object record (e.g. a "Project") is related to a company, it shows up in the company's sidebar.
 
-**Novo ficheiro: `src/components/objects/RelationshipsPanel.tsx`**
+Challenge: Companies are core objects stored in the `companies` table, not in `custom_objects`. The `RelationshipsPanel` currently uses `objectId` which references `custom_objects.id`. For core objects, we need to either:
+- Create a synthetic `custom_objects` entry for core objects (Companies, Contacts, Deals), or
+- Make `RelationshipsPanel` work with a `entityType` + `entityId` pattern
 
-- Mostra lista de registos relacionados agrupados por tipo de objeto
-- Cada item: ícone + nome do registo + badge do tipo de relação + botão unlink
-- Botão "Adicionar relação" → popover com:
-  - Step 1: Selecionar tipo de objeto (dropdown de todos os custom objects)
-  - Step 2: Pesquisar registos nesse tipo
-  - Step 3: Tipo de relação (related_to, parent_of, child_of)
+Best approach: Create `custom_objects` entries for core objects if they don't exist (seeded via the wizard or a migration), so the relationship system works uniformly. OR simpler: make the RelationshipsPanel accept an optional `entityType` prop and query relationships by record ID only (which already works since `object_relationships` stores record IDs).
 
-### 5. Integrar Saved Views na list view
+The current `useObjectRelationships(recordId)` already queries by `source_record_id` or `target_record_id` — it will work with company IDs if relationships are created pointing to them. The only issue is that `objectId` is required for `AddRelationshipForm`. We'll make `objectId` optional and handle core entities gracefully.
 
-**Atualizar: `src/components/objects/AttioObjectListView.tsx`**
+### 5. Route Registration
 
-- Adicionar `ObjectViewsManager` (já existe) como barra de views abaixo do header
-- Quando uma view é selecionada, filtrar colunas visíveis e aplicar sort/filter config
-- Botão "Criar view" inline
+Add `/settings/data-model` to `App.tsx`.
 
-### 6. Melhorar sidebar — core objects + custom objects unificados
+## File Changes
 
-**Atualizar: `src/components/layout/SidebarV1.tsx`**
+| File | Action | Description |
+|---|---|---|
+| `src/pages/DataModelPage.tsx` | **NEW** | Full-page data model builder with object list sidebar + fields/relationships/settings tabs |
+| `src/components/objects/RelationshipSchemaBuilder.tsx` | **NEW** | Object-level relationship viewer/creator |
+| `src/components/objects/ObjectFieldBuilder.tsx` | **EDIT** | Add currency + multi_select types, field type icons, inline add row |
+| `src/components/objects/CreateObjectWizard.tsx` | **EDIT** | Add currency + multi_select to field type options, add description field |
+| `src/components/objects/InlineFieldEditor.tsx` | **EDIT** | Handle currency (number with formatting) and multi_select (checkbox list) |
+| `src/components/objects/RelationshipsPanel.tsx` | **EDIT** | Make objectId optional for core entities |
+| `src/components/companies/CompanyDetailWithSidebar.tsx` | **EDIT** | Add RelationshipsPanel to sidebar |
+| `src/App.tsx` | **EDIT** | Add DataModelPage route at `/settings/data-model` |
 
-Atualmente core objects (Contacts, Companies, etc.) estão hardcoded no `NAV_V1_ITEMS` e custom objects aparecem numa secção "Records" separada. Para tornar custom objects first-class:
+## Criteria Verification
 
-- Remover a secção "Records" separada
-- Inserir custom objects **inline** na secção CRM, logo após os items core
-- Mesma aparência visual, sem distinção
-
-### 7. Soft delete em vez de hard delete
-
-**Atualizar: `src/hooks/useCustomObjects.ts`**
-
-- `useDeleteObjectRecord` → em vez de `DELETE`, fazer `UPDATE` com `is_active = false` (se coluna existir no `object_records`) ou manter delete mas adicionar confirmação
-- `useDeleteCustomObject` → UPDATE `is_active = false` em vez de DELETE
-
-## Ficheiros
-
-| Ficheiro | Ação |
-|---|---|
-| `src/components/objects/CreateObjectWizard.tsx` | **EDIT** — Dual write (core_object_types + custom_objects), icon/color picker, navegar após criação |
-| `src/pages/CustomObjectDetailPage.tsx` | **NEW** — Detail page com inline editing + relationships |
-| `src/pages/ObjectDetailPage.tsx` | **EDIT** — Fallback para custom objects |
-| `src/hooks/useObjectRelationships.ts` | **NEW** — CRUD para object_relationships |
-| `src/components/objects/RelationshipsPanel.tsx` | **NEW** — UI de relações no detail sidebar |
-| `src/components/objects/AttioObjectListView.tsx` | **EDIT** — Integrar saved views |
-| `src/components/layout/SidebarV1.tsx` | **EDIT** — Custom objects inline na nav |
-| `src/hooks/useCustomObjects.ts` | **EDIT** — Soft delete |
-| `src/App.tsx` | **EDIT** — Rota para detail de custom objects |
-
-## Critérios de Done
-
-Ao criar um objeto "Partnership":
-1. Aparece automaticamente na sidebar (mesma secção que Contacts/Empresas)
-2. Clicar leva a `/objects/partnership` com Attio-style list view
-3. Pode criar registos com campos definidos
-4. Pode criar/mudar views com colunas visíveis
-5. Pode relacionar um registo com uma Company (via RelationshipsPanel)
-6. Pode eliminar (soft delete) registos e o próprio objeto
+1. **Create object "Project"** — via DataModelPage sidebar "Create Object" → name, icon, description inline
+2. **Add field "Budget"** — click Project in sidebar → Fields tab → add Budget as `currency` type
+3. **Relate with Company** — Relationships tab → add "Company" as related object. Then at record level, use RelationshipsPanel to link specific records
+4. **See relationship in Company UI** — CompanyDetailWithSidebar shows RelationshipsPanel with linked Project records
 
