@@ -1,183 +1,288 @@
 
 
-# Deals Sidebar Navigation -- Attio-Style Views, Favorites & Lists
+# AI-Powered Meeting Transcript Viewer
 
-## Screenshot Analysis
+## Overview
 
-The Attio screenshot shows a **left sidebar** alongside the Deals Kanban with structured navigation:
+Build a full-stack meeting transcript viewer that stores call recordings metadata and AI-generated transcriptions, then presents them in a rich, interactive UI with timestamped segments, speaker identification, key moment highlights, and AI summaries. This leverages the existing Call Intelligence settings infrastructure and the Meetings module.
 
-1. **Views dropdown** at the top ("Deals overview") with a searchable list of saved views:
-   - Deals overview, Marisa's Active Pipeline, New inbound leads, Workspace signups, All Deals, Cassandra's Pipeline, Enterprise Deal Board, US team performance, Marisa: inbound leads
-2. **Favorites** section with starred/pinned views
-3. **Records** section linking to entity types (Companies, People, Deals, Users, Workspaces, Invoices, Partners)
-4. **Lists** section with smart lists (Inbound Leads, Product Launch Campaign, Event Invitees, Customer Success, Onboarding Pipeline, PQL)
-5. **"+ Create new view"** button
-6. **"+ Add calculation"** footer per Kanban column
+## Architecture
 
-## Current State
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  Database                                                       │
+│  ┌─────────────────────┐  ┌──────────────────────────────────┐  │
+│  │ meeting_recordings   │  │ meeting_transcript_segments      │  │
+│  │ (1 per meeting)      │──│ (N per recording)                │  │
+│  └─────────────────────┘  └──────────────────────────────────┘  │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ meeting_transcript_highlights (key moments per recording) │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
 
-- `crm_saved_views` table already exists with `entity_type`, `filters`, `sort_config`, `visible_columns`, `view_mode`, `is_default`
-- `useSavedViews` hook exists for CRUD operations
-- `SavedViewsDropdown` component exists but is a simple dropdown, not a sidebar
-- `SmartListsPanel` exists for filter-based lists
-- `usePipelines` hook already supports multiple pipelines
-- The Opportunities page has no sidebar -- it's a full-width Kanban/table view
-
-## Improvements Over Attio
-
-1. **Favorite views** -- add `is_favorite` column to `crm_saved_views` for pinning views
-2. **View icons** -- each view gets a color dot or emoji, not just text
-3. **Quick pipeline switcher** -- switch between multiple pipelines directly from sidebar
-4. **Smart lists with live counts** -- show deal count badges next to each list
-5. **Collapsible sections** -- each section (Views, Favorites, Records, Lists) is collapsible
-6. **Drag-to-reorder** favorites
-7. **"View settings"** button in header for column visibility, sort defaults
-
-## Database Changes
-
-Add `is_favorite` and `position` columns to `crm_saved_views`:
-
-```sql
-ALTER TABLE public.crm_saved_views
-  ADD COLUMN IF NOT EXISTS is_favorite BOOLEAN NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS position INTEGER DEFAULT 0;
+┌──────────────────┐     ┌──────────────────────┐
+│ Edge Function    │     │ Frontend Component   │
+│ ai-transcript-   │◄────│ TranscriptViewer.tsx  │
+│ analyze          │     │ + hook                │
+└──────────────────┘     └──────────────────────┘
 ```
 
-No new tables needed -- we leverage the existing `crm_saved_views` and `pipelines` tables.
+## Database Tables
+
+### 1. `meeting_recordings`
+
+One row per recording, linked to a meeting.
+
+```sql
+CREATE TABLE public.meeting_recordings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  meeting_id UUID NOT NULL REFERENCES public.meetings(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'pending',  -- pending, processing, completed, failed
+  duration_seconds INTEGER,
+  file_url TEXT,
+  file_size_bytes BIGINT,
+  transcription_status TEXT NOT NULL DEFAULT 'pending', -- pending, processing, completed, failed
+  transcription_language TEXT DEFAULT 'pt',
+  ai_summary TEXT,
+  ai_action_items JSONB DEFAULT '[]',
+  ai_topics JSONB DEFAULT '[]',
+  ai_sentiment TEXT,  -- positive, neutral, negative, mixed
+  speaker_count INTEGER,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+### 2. `meeting_transcript_segments`
+
+Individual timestamped segments with speaker identification.
+
+```sql
+CREATE TABLE public.meeting_transcript_segments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recording_id UUID NOT NULL REFERENCES public.meeting_recordings(id) ON DELETE CASCADE,
+  speaker_label TEXT NOT NULL,        -- 'Speaker 1', 'João Silva', etc.
+  speaker_role TEXT,                  -- 'host', 'client', 'attendee'
+  start_time_ms INTEGER NOT NULL,     -- milliseconds from start
+  end_time_ms INTEGER NOT NULL,
+  content TEXT NOT NULL,
+  confidence NUMERIC(4,3),            -- 0.000–1.000
+  is_key_moment BOOLEAN DEFAULT false,
+  sentiment TEXT,                     -- positive, neutral, negative
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+### 3. `meeting_transcript_highlights`
+
+AI-detected key moments (decisions, action items, questions, objections).
+
+```sql
+CREATE TABLE public.meeting_transcript_highlights (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recording_id UUID NOT NULL REFERENCES public.meeting_recordings(id) ON DELETE CASCADE,
+  segment_id UUID REFERENCES public.meeting_transcript_segments(id) ON DELETE SET NULL,
+  highlight_type TEXT NOT NULL,       -- decision, action_item, question, objection, insight, commitment
+  title TEXT NOT NULL,
+  description TEXT,
+  start_time_ms INTEGER NOT NULL,
+  assignee TEXT,                      -- for action items
+  due_date DATE,                      -- for action items
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+RLS policies on all three tables: workspace members can read/write their own workspace data.
+
+Enable realtime on `meeting_recordings` for live status updates during processing.
 
 ## Visual Design
 
 ```text
-┌──────────────────────┬──────────────────────────────────────────────┐
-│  Deals               │  ● Contacted 7  ● Prospecting 19  ...      │
-│                      │                                              │
-│  🔍 Search views...  │  ┌──────────┐ ┌──────────┐ ┌──────────┐    │
-│                      │  │ Card     │ │ Card     │ │ Card     │    │
-│  VIEWS               │  │ ...      │ │ ...      │ │ ...      │    │
-│  📊 Deals overview   │  │          │ │          │ │          │    │
-│  📋 Active Pipeline  │  └──────────┘ └──────────┘ └──────────┘    │
-│  📥 Inbound leads    │                                              │
-│  👥 All Deals        │                                              │
-│  + Create new view   │                                              │
-│                      │                                              │
-│  FAVORITES           │                                              │
-│  ⭐ Enterprise Board │                                              │
-│  ⭐ Top Performers   │                                              │
-│                      │                                              │
-│  RECORDS             │                                              │
-│  🏢 Companies        │                                              │
-│  👤 People           │                                              │
-│  💰 Deals            │                                              │
-│  📄 Invoices         │                                              │
-│                      │                                              │
-│  LISTS               │                                              │
-│  🟢 Inbound Leads  5 │                                              │
-│  🔵 Product Launch 12│                                              │
-│  🟡 Customer Success │                                              │
-│  ⋯ All lists         │                                              │
-│                      │                                              │
-└──────────────────────┴──────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│  📹 Meeting Recording: "Q1 Review with Client"                     │
+│  Duration: 45:23  •  3 speakers  •  Sentiment: Positive            │
+│                                                                     │
+│  ┌─ AI Summary ─────────────────────────────────────────────────┐   │
+│  │ The team reviewed Q1 performance, agreed on pricing changes, │   │
+│  │ and scheduled a follow-up for next week.                      │   │
+│  └───────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌─ Key Moments ────────────────────────────────────────────────┐   │
+│  │ 🔵 03:22  Decision: Approve new pricing tier                 │   │
+│  │ 🟡 12:45  Action Item: Send updated proposal (→ João)        │   │
+│  │ 🔴 28:10  Objection: Concerns about delivery timeline        │   │
+│  │ 🟢 35:00  Commitment: Follow-up meeting next Tuesday         │   │
+│  └───────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌─ Topics ─────┐  ┌─ Action Items ──────────────────────────┐     │
+│  │ Pricing       │  │ ☐ Send updated proposal    → João  📅  │     │
+│  │ Timeline      │  │ ☐ Review contract terms    → Maria 📅  │     │
+│  │ Deliverables  │  │ ☐ Schedule follow-up       → Ana   📅  │     │
+│  └───────────────┘  └────────────────────────────────────────┘     │
+│                                                                     │
+│  ── Transcript ──────────────────────────────── 🔍 Search ──────   │
+│  │ [Filter: All ▾]  [Speaker: All ▾]  [Show key moments only ☐] │  │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │ 00:00  👤 João Silva (Host)                                  │   │
+│  │        Bom dia a todos, vamos começar com a revisão do Q1.   │   │
+│  │                                                               │   │
+│  │ 00:15  👤 Maria Santos (Client)                    ⭐ KEY    │   │
+│  │        Obrigada João. Quero começar pelo tema do pricing.    │   │
+│  │                                                               │   │
+│  │ 03:22  👤 João Silva (Host)                   🔵 DECISION   │   │
+│  │        Então ficamos com o novo tier aprovado.                │   │
+│  │        ────────────────────────────────                      │   │
+│  │        ✅ Decision: Approve new pricing tier                 │   │
+│  │        ────────────────────────────────                      │   │
+│  │                                                               │   │
+│  │ 12:45  👤 Maria Santos (Client)              🟡 ACTION      │   │
+│  │        Precisamos da proposta atualizada esta semana.        │   │
+│  │        ────────────────────────────────                      │   │
+│  │        📋 Action: Send updated proposal → João, Fri          │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
 ```
+
+## Edge Function: `ai-transcript-analyze`
+
+Accepts a recording ID, fetches its transcript segments, calls Lovable AI (`google/gemini-3-flash-preview`) to:
+
+1. Generate a summary
+2. Extract action items with assignees
+3. Identify topics
+4. Detect key moments (decisions, objections, commitments)
+5. Analyze overall sentiment
+
+Returns structured data via tool calling and updates the `meeting_recordings` and `meeting_transcript_highlights` tables.
 
 ## File Plan
 
 | File | Action | Description |
 |---|---|---|
-| **Database migration** | **NEW** | Add `is_favorite`, `position` columns to `crm_saved_views` |
-| `src/components/opportunities/DealsSidebar.tsx` | **NEW** | Full sidebar component with Views, Favorites, Records, Lists sections |
-| `src/components/opportunities/CreateViewDialog.tsx` | **NEW** | Dialog to create a new saved view with name, filters, view mode |
-| `src/hooks/useSavedViews.ts` | **EDIT** | Add `toggleFavorite` mutation, update types for `is_favorite` |
-| `src/components/opportunities/OpportunitiesModule.tsx` | **EDIT** | Wrap in sidebar + content layout, apply selected view filters |
-| `src/i18n/locales/pt/crm.json` | **EDIT** | Add ~20 new keys |
-| `src/i18n/locales/en/crm.json` | **EDIT** | Same |
-| `src/i18n/locales/es/crm.json` | **EDIT** | Same |
-| `src/i18n/locales/fr/crm.json` | **EDIT** | Same |
+| **Database migration** | **NEW** | Create 3 tables + RLS + realtime |
+| `supabase/functions/ai-transcript-analyze/index.ts` | **NEW** | AI analysis edge function using Lovable AI |
+| `src/hooks/useMeetingTranscript.ts` | **NEW** | Hook to fetch recording, segments, highlights; trigger AI analysis |
+| `src/components/meetings/TranscriptViewer.tsx` | **NEW** | Main transcript viewer component |
+| `src/components/meetings/TranscriptSegment.tsx` | **NEW** | Individual segment row with speaker, timestamp, badges |
+| `src/components/meetings/TranscriptSummaryPanel.tsx` | **NEW** | AI summary, topics, action items, key moments panels |
+| `src/components/meetings/TranscriptKeyMoments.tsx` | **NEW** | Clickable key moments timeline |
+| `src/pages/MeetingTranscriptPage.tsx` | **NEW** | Route page wrapping TranscriptViewer |
+| `src/App.tsx` | **EDIT** | Add route `/meetings/:meetingId/transcript` |
+| `src/components/meetings/MeetingCard.tsx` | **EDIT** | Add "View Transcript" button when recording exists |
+| `src/i18n/locales/pt/meetings.json` | **NEW** | ~40 transcript-related keys |
+| `src/i18n/locales/en/meetings.json` | **NEW** | Same |
+| `src/i18n/locales/es/meetings.json` | **NEW** | Same |
+| `src/i18n/locales/fr/meetings.json` | **NEW** | Same |
 
-## New i18n Keys (~20)
+## i18n Keys (~40)
 
 ```
-sidebarViews, sidebarFavorites, sidebarRecords, sidebarLists,
-sidebarCreateView, sidebarAllLists, sidebarSearchViews,
-sidebarDealsOverview, sidebarAllDeals, sidebarNoFavorites,
-sidebarToggleFavorite, sidebarViewSettings,
-sidebarCompanies, sidebarPeople, sidebarDeals, sidebarInvoices,
-sidebarDeleteView, sidebarEditView, sidebarSetDefault
+transcript_title, transcript_duration, transcript_speakers,
+transcript_sentiment, transcript_sentimentPositive, transcript_sentimentNegative,
+transcript_sentimentNeutral, transcript_sentimentMixed,
+transcript_aiSummary, transcript_keyMoments, transcript_topics,
+transcript_actionItems, transcript_search, transcript_filterAll,
+transcript_filterSpeaker, transcript_showKeyOnly,
+transcript_decision, transcript_actionItem, transcript_question,
+transcript_objection, transcript_insight, transcript_commitment,
+transcript_processing, transcript_completed, transcript_failed,
+transcript_pending, transcript_analyze, transcript_reanalyze,
+transcript_noTranscript, transcript_noSegments,
+transcript_assignee, transcript_dueDate, transcript_confidence,
+transcript_host, transcript_client, transcript_attendee,
+transcript_exportPdf, transcript_copyText, transcript_backToMeeting,
+transcript_statusLabel, transcript_keyMoment
 ```
 
-## DealsSidebar Component Details
-
-A collapsible sidebar (~240px wide) with four sections using `Collapsible` from Radix:
-
-1. **Search bar** at top -- filters the views list
-2. **Views section** -- lists all saved views for `entity_type = "opportunities"`, clickable to apply filters/sort. Active view highlighted. "+ Create new view" button at bottom.
-3. **Favorites section** -- views where `is_favorite = true`. Star icon to toggle. Empty state: "No favorites yet".
-4. **Records section** -- static navigation links to `/dashboard/companies`, `/dashboard/contacts`, `/objects/deals`, `/dashboard/invoices`. Uses `useNavigate`.
-5. **Lists section** -- saved views that have filter conditions (smart lists). Shows live count badge based on filtering against current opportunities. "All lists" link at bottom.
-
-Each view item shows:
-- Color dot (derived from view name hash)
-- View name (truncated)
-- Three-dot menu on hover: Edit, Favorite, Delete, Set as default
-
-## Hook Changes (`useSavedViews.ts`)
-
-Add `useToggleFavorite` mutation:
+## Hook: `useMeetingTranscript`
 
 ```typescript
-export function useToggleFavorite() {
-  return useMutation({
-    mutationFn: async ({ id, is_favorite }: { id: string; is_favorite: boolean }) => {
-      await supabase.from("crm_saved_views").update({ is_favorite }).eq("id", id);
-    },
-    onSuccess: () => queryClient.invalidateQueries(...)
-  });
+interface UseMeetingTranscriptReturn {
+  recording: MeetingRecording | null;
+  segments: TranscriptSegment[];
+  highlights: TranscriptHighlight[];
+  isLoading: boolean;
+  analyzeTranscript: () => Promise<void>;
+  isAnalyzing: boolean;
 }
 ```
 
-Update `SavedView` interface to include `is_favorite` and `position`.
+- Fetches recording by `meeting_id`
+- Fetches segments ordered by `start_time_ms`
+- Fetches highlights ordered by `start_time_ms`
+- `analyzeTranscript` invokes the edge function
+- Subscribes to realtime on `meeting_recordings` for live status updates during processing
 
-## OpportunitiesModule Layout Change
+## TranscriptViewer Component Structure
 
-Current: full-width content.
-New: `flex` row with sidebar + content:
-
-```tsx
-<div className="flex h-full">
-  <DealsSidebar
-    activeViewId={activeViewId}
-    onSelectView={handleSelectView}
-    onCreateView={() => setShowCreateView(true)}
-  />
-  <div className="flex-1 min-w-0 space-y-6">
-    {/* existing content */}
-  </div>
-</div>
+```text
+TranscriptViewer
+├── Header (back button, title, duration, speakers, sentiment badge)
+├── TranscriptSummaryPanel (collapsible)
+│   ├── AI Summary text
+│   ├── Topics as badges
+│   └── Action Items checklist
+├── TranscriptKeyMoments (horizontal scrollable timeline)
+│   └── Clickable moment cards that scroll to segment
+├── Toolbar (search, speaker filter, key moments toggle)
+└── Segments list (virtualized scroll)
+    └── TranscriptSegment × N
+        ├── Timestamp (clickable)
+        ├── Speaker avatar + name + role badge
+        ├── Content text
+        ├── Key moment inline card (if applicable)
+        └── Sentiment indicator (subtle)
 ```
 
-The sidebar is collapsible via a toggle button (hidden on mobile by default).
+## Speaker Colors
 
-## Active View Application
+Deterministic colors per speaker for visual differentiation:
 
-When a view is selected:
-1. Its `filters` are applied to the opportunities query
-2. Its `sort_config` is applied to sorting
-3. Its `view_mode` switches between kanban/list
-4. The header updates to show the view name instead of generic "Opportunities"
+```typescript
+const speakerColors = [
+  "bg-blue-100 text-blue-700 border-blue-200",
+  "bg-purple-100 text-purple-700 border-purple-200",
+  "bg-green-100 text-green-700 border-green-200",
+  "bg-amber-100 text-amber-700 border-amber-200",
+  "bg-pink-100 text-pink-700 border-pink-200",
+  "bg-cyan-100 text-cyan-700 border-cyan-200",
+];
+```
+
+## Highlight Type Icons & Colors
+
+```typescript
+const highlightConfig = {
+  decision:   { icon: CheckCircle2, color: "blue",   label: "Decisão" },
+  action_item:{ icon: ListTodo,     color: "amber",  label: "Ação" },
+  question:   { icon: HelpCircle,   color: "purple", label: "Pergunta" },
+  objection:  { icon: AlertTriangle,color: "red",    label: "Objeção" },
+  insight:    { icon: Lightbulb,    color: "green",  label: "Insight" },
+  commitment: { icon: Handshake,    color: "emerald",label: "Compromisso" },
+};
+```
 
 ## Implementation Order
 
-1. Database migration (add columns)
-2. Update `useSavedViews` hook with favorite toggle + updated types
-3. Add i18n keys to all 4 locales
-4. Create `DealsSidebar.tsx` component
-5. Create `CreateViewDialog.tsx`
-6. Update `OpportunitiesModule.tsx` with sidebar layout and view application logic
+1. Database migration (3 tables + RLS + realtime)
+2. Edge function `ai-transcript-analyze`
+3. Create hook `useMeetingTranscript`
+4. Add i18n keys to all 4 locales
+5. Build sub-components: `TranscriptSegment`, `TranscriptSummaryPanel`, `TranscriptKeyMoments`
+6. Build main `TranscriptViewer` component
+7. Create `MeetingTranscriptPage` and add route
+8. Add "View Transcript" link to `MeetingCard`
 
 ## Technical Notes
 
-- No new tables needed -- leverages existing `crm_saved_views`
-- Sidebar is responsive: hidden on mobile, toggleable on desktop
-- The Records section uses static links, no additional data fetching
-- Smart lists count is computed client-side from already-fetched opportunities
-- View color dots use a simple hash function on the view name for deterministic colors
+- No recording/upload infrastructure is built here -- only the transcript viewing and AI analysis layer. Recording upload can be added later.
+- The AI edge function uses `google/gemini-3-flash-preview` via Lovable AI with tool calling for structured output.
+- Segments list uses `ScrollArea` for performance; virtualization can be added later for very long transcripts.
+- Key moments in the timeline are clickable and scroll to the corresponding segment using `scrollIntoView`.
+- The "Analyze" button is available when `transcription_status` is `completed` but `ai_summary` is null.
+- Realtime subscription updates the recording status badge live during AI processing.
 
