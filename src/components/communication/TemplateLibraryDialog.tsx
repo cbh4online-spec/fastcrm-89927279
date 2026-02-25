@@ -3,10 +3,11 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, X, Eye } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Search, X, Eye, Type, List, Hash, Calendar, ChevronDown, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getIconByName } from '@/lib/icons';
-import { LIBRARY_CATEGORIES, LIBRARY_TEMPLATES, type LibraryTemplate, type LibraryCategory } from './templateLibraryData';
+import { LIBRARY_CATEGORIES, LIBRARY_TEMPLATES, CATEGORY_LABELS, type LibraryTemplate, type LibraryCategory, type LibraryTemplateField } from './templateLibraryData';
 import { TemplateLibraryCard } from './TemplateLibraryCard';
 
 interface TemplateLibraryDialogProps {
@@ -14,6 +15,14 @@ interface TemplateLibraryDialogProps {
   onOpenChange: (open: boolean) => void;
   onSelectTemplate: (template: LibraryTemplate) => void;
 }
+
+const FIELD_TYPE_ICON: Record<LibraryTemplateField['type'], React.ElementType> = {
+  Text: Type,
+  List: List,
+  Number: Hash,
+  Date: Calendar,
+  Select: ChevronDown,
+};
 
 export function TemplateLibraryDialog({ open, onOpenChange, onSelectTemplate }: TemplateLibraryDialogProps) {
   const [search, setSearch] = useState('');
@@ -49,88 +58,170 @@ export function TemplateLibraryDialog({ open, onOpenChange, onSelectTemplate }: 
     }
   };
 
+  const categoryMeta = selectedTemplate
+    ? LIBRARY_CATEGORIES.find((c) => c.id === selectedTemplate.category)
+    : null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl h-[80vh] p-0 gap-0 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-lg font-semibold">Biblioteca de Templates</h2>
+          {showPreview && selectedTemplate ? (
+            <div className="flex items-center gap-1.5 text-sm">
+              <button
+                onClick={() => setShowPreview(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Templates
+              </button>
+              <span className="text-muted-foreground">›</span>
+              <span className="font-semibold">{selectedTemplate.name}</span>
+            </div>
+          ) : (
+            <h2 className="text-lg font-semibold">Biblioteca de Templates</h2>
+          )}
           <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
             <X className="h-4 w-4" />
           </Button>
         </div>
 
         <div className="flex flex-1 min-h-0">
-          {/* Left sidebar */}
-          <div className="w-[200px] border-r flex flex-col py-4 shrink-0">
-            <div className="px-4 mb-3">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Casos de Uso
-              </span>
+          {/* Left sidebar — hidden in preview */}
+          {!(showPreview && selectedTemplate) && (
+            <div className="w-[200px] border-r flex flex-col py-4 shrink-0">
+              <div className="px-4 mb-3">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Casos de Uso
+                </span>
+              </div>
+              <button
+                onClick={() => setActiveCategory('all')}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2 text-sm transition-colors',
+                  activeCategory === 'all'
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'text-muted-foreground hover:bg-accent'
+                )}
+              >
+                Todos
+              </button>
+              {LIBRARY_CATEGORIES.map((cat) => {
+                const Icon = getIconByName(cat.icon);
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveCategory(cat.id)}
+                    className={cn(
+                      'flex items-center gap-2 px-4 py-2 text-sm transition-colors',
+                      activeCategory === cat.id
+                        ? 'bg-primary/10 text-primary font-medium'
+                        : 'text-muted-foreground hover:bg-accent'
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {cat.label}
+                  </button>
+                );
+              })}
             </div>
-            <button
-              onClick={() => setActiveCategory('all')}
-              className={cn(
-                'flex items-center gap-2 px-4 py-2 text-sm transition-colors',
-                activeCategory === 'all'
-                  ? 'bg-primary/10 text-primary font-medium'
-                  : 'text-muted-foreground hover:bg-accent'
-              )}
-            >
-              Todos
-            </button>
-            {LIBRARY_CATEGORIES.map((cat) => {
-              const Icon = getIconByName(cat.icon);
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={cn(
-                    'flex items-center gap-2 px-4 py-2 text-sm transition-colors',
-                    activeCategory === cat.id
-                      ? 'bg-primary/10 text-primary font-medium'
-                      : 'text-muted-foreground hover:bg-accent'
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {cat.label}
-                </button>
-              );
-            })}
-          </div>
+          )}
 
           {/* Main area */}
           <div className="flex-1 flex flex-col min-w-0">
-            {/* Search bar */}
-            <div className="px-6 py-3 border-b">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Pesquisar templates, tópicos, objetivos..."
-                  className="pl-9"
-                />
+            {/* Search bar — hidden in preview */}
+            {!(showPreview && selectedTemplate) && (
+              <div className="px-6 py-3 border-b">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Pesquisar templates, tópicos, objetivos..."
+                    className="pl-9"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Template list or preview */}
+            {/* Template list or Attio-style preview */}
             {showPreview && selectedTemplate ? (
-              <div className="flex-1 flex flex-col p-6 overflow-auto">
-                <Button variant="ghost" size="sm" className="self-start mb-4" onClick={() => setShowPreview(false)}>
-                  ← Voltar à lista
-                </Button>
-                <h3 className="text-lg font-semibold mb-1">{selectedTemplate.name}</h3>
-                <p className="text-sm text-muted-foreground mb-4">{selectedTemplate.description}</p>
-                {selectedTemplate.subject && (
-                  <div className="mb-3">
-                    <span className="text-xs text-muted-foreground">Assunto:</span>
-                    <p className="text-sm font-medium">{selectedTemplate.subject}</p>
+              <div className="flex-1 flex min-h-0">
+                {/* Left: Section cards */}
+                <ScrollArea className="flex-1">
+                  <div className="p-6 space-y-4">
+                    {selectedTemplate.fields.map((field, idx) => {
+                      const FieldIcon = FIELD_TYPE_ICON[field.type];
+                      return (
+                        <div
+                          key={idx}
+                          className="rounded-lg border bg-card p-5 space-y-3"
+                        >
+                          <h4 className="font-semibold text-sm">{field.name}</h4>
+                          {field.description && (
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              {field.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 pt-1">
+                            <span className="text-[11px] text-muted-foreground font-medium">Formato</span>
+                            <Badge variant="secondary" className="gap-1.5 text-[11px] font-normal">
+                              <FieldIcon className="h-3 w-3" />
+                              {field.type}
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-                <div className="rounded-lg border p-4 bg-muted/30">
-                  <span className="text-xs text-muted-foreground block mb-2">Corpo:</span>
-                  <pre className="whitespace-pre-wrap text-sm font-sans">{selectedTemplate.body}</pre>
+                </ScrollArea>
+
+                {/* Right: Sidebar summary */}
+                <div className="w-[280px] border-l shrink-0 flex flex-col">
+                  <ScrollArea className="flex-1">
+                    <div className="p-5 space-y-5">
+                      {/* Category badge */}
+                      {categoryMeta && (
+                        <Badge className={cn('text-white text-[11px]', categoryMeta.color)}>
+                          {categoryMeta.label}
+                        </Badge>
+                      )}
+
+                      {/* Template name & description */}
+                      <div>
+                        <h3 className="font-semibold text-base mb-1">{selectedTemplate.name}</h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {selectedTemplate.description}
+                        </p>
+                      </div>
+
+                      {/* Sections list */}
+                      <div>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Secções
+                        </span>
+                        <div className="mt-2 space-y-1.5">
+                          {selectedTemplate.fields.map((field, idx) => {
+                            const FieldIcon = FIELD_TYPE_ICON[field.type];
+                            return (
+                              <div key={idx} className="flex items-center gap-2 text-sm">
+                                <FieldIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <span>{field.name}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </ScrollArea>
+
+                  {/* Use button */}
+                  <div className="p-4 border-t">
+                    <Button className="w-full gap-2" onClick={handleUse}>
+                      Usar este template
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -157,19 +248,17 @@ export function TemplateLibraryDialog({ open, onOpenChange, onSelectTemplate }: 
           </div>
         </div>
 
-        {/* Footer */}
-        {selectedTemplate && (
+        {/* Footer — only in list mode */}
+        {selectedTemplate && !showPreview && (
           <div className="flex items-center justify-between px-6 py-3 border-t bg-muted/30">
             <span className="text-sm text-muted-foreground">
               Selecionado: <strong>{selectedTemplate.name}</strong>
             </span>
             <div className="flex gap-2">
-              {!showPreview && (
-                <Button variant="outline" size="sm" onClick={() => setShowPreview(true)}>
-                  <Eye className="h-4 w-4 mr-1.5" />
-                  Pré-visualizar
-                </Button>
-              )}
+              <Button variant="outline" size="sm" onClick={() => setShowPreview(true)}>
+                <Eye className="h-4 w-4 mr-1.5" />
+                Pré-visualizar
+              </Button>
               <Button size="sm" onClick={handleUse}>
                 Usar template
               </Button>
