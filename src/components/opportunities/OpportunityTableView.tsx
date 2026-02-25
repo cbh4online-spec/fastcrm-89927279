@@ -328,6 +328,10 @@ export function OpportunityTableView({
           )}
         </TableBody>
       </Table>
+      {/* Footer with row count */}
+      <div className="border-t px-4 py-2 flex items-center justify-between text-xs text-muted-foreground">
+        <span>{opportunities.length} {t('tableRowCount', 'count')}</span>
+      </div>
     </div>
   );
 }

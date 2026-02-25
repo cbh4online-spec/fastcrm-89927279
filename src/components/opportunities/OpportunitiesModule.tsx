@@ -8,7 +8,7 @@ import {
 } from "@/hooks/useOpportunitiesEnhanced";
 import { usePipelineStages } from "@/hooks/usePipelineStages";
 import { useDealScores } from "@/hooks/useDealScores";
-import { SavedView, useSavedViews } from "@/hooks/useSavedViews";
+import { SavedView, useSavedViews, useUpdateSavedView, useDeleteSavedView } from "@/hooks/useSavedViews";
 import { applyFilters, FilterCondition } from "@/hooks/useFilterEngine";
 import { Opportunity } from "@/types/opportunity";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,9 @@ import { PipelineSettingsDialog } from "@/components/crm/PipelineSettingsDialog"
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { DealsSidebar } from "./DealsSidebar";
 import { CreateViewDialog } from "./CreateViewDialog";
+import { ActiveFilterPills } from "./ActiveFilterPills";
+import { ViewSettingsDropdown } from "./ViewSettingsDropdown";
+import { DealsImportExportMenu } from "./DealsImportExportMenu";
 import { toast } from "sonner";
 import { LayoutGroup } from "framer-motion";
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
@@ -95,6 +98,21 @@ export function OpportunitiesModule() {
   const { scoresMap: healthMap } = useBulkDealIntelligenceAPI(opportunities);
   const { data: members } = useWorkspaceMembers();
   const { data: savedViews } = useSavedViews("opportunities");
+  const updateView = useUpdateSavedView();
+  const deleteViewMut = useDeleteSavedView();
+
+  // Get active view object
+  const activeView = useMemo(() => {
+    if (!activeViewId || !savedViews) return null;
+    return savedViews.find((v) => v.id === activeViewId) || null;
+  }, [activeViewId, savedViews]);
+
+  // Active view filter conditions
+  const activeViewConditions = useMemo(() => {
+    if (!activeView) return [];
+    const f = activeView.filters as any;
+    return (f?.conditions as FilterCondition[]) || [];
+  }, [activeView]);
 
   // Build owner profiles map from workspace members
   const membersMap = useMemo(() => {
@@ -267,6 +285,15 @@ export function OpportunitiesModule() {
           <p className="text-muted-foreground">{t('opportunitiesDesc')}</p>
         </div>
         <div className="flex items-center gap-2">
+          <ViewSettingsDropdown
+            activeView={activeView}
+            onRename={(id, name) => updateView.mutate({ id, entity_type: "opportunities", updates: { name } })}
+            onDelete={(id) => {
+              deleteViewMut.mutate({ id, entity_type: "opportunities" });
+              if (activeViewId === id) setActiveViewId(null);
+            }}
+          />
+          <DealsImportExportMenu opportunities={filteredOpportunities} />
           <Button variant="outline" size="sm" onClick={() => setIsSettingsDialogOpen(true)}>
             <Settings className="w-4 h-4 mr-2" />
             {t('pipelineSettings')}
@@ -359,6 +386,30 @@ export function OpportunitiesModule() {
           </TabsList>
         </Tabs>
       </div>
+
+      {/* Active filter pills + Sorted by indicator */}
+      {(activeViewConditions.length > 0 || sortByScore) && (
+        <div className="flex items-center gap-3 flex-wrap flex-shrink-0">
+          {activeViewConditions.length > 0 && (
+            <ActiveFilterPills
+              conditions={activeViewConditions}
+              onRemove={(idx) => {
+                if (!activeView) return;
+                const newConditions = [...activeViewConditions];
+                newConditions.splice(idx, 1);
+                const newFilters = { ...(activeView.filters || {}), conditions: newConditions };
+                updateView.mutate({ id: activeView.id, entity_type: "opportunities", updates: { filters: newFilters } });
+              }}
+            />
+          )}
+          {sortByScore && (
+            <Badge variant="outline" className="text-xs gap-1">
+              <ArrowUpDown className="w-3 h-3" />
+              {t('sortedBy', 'Sorted by')} Score
+            </Badge>
+          )}
+        </div>
+      )}
 
 
       {/* Main Content */}

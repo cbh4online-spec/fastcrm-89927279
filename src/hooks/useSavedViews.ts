@@ -17,6 +17,7 @@ export interface SavedView {
   position: number;
   user_id: string | null;
   created_at: string;
+  icon: string | null;
 }
 
 export function useSavedViews(entityType: string) {
@@ -115,5 +116,25 @@ export function useToggleFavorite() {
       queryClient.invalidateQueries({ queryKey: ["saved-views", currentWorkspace?.id, vars.entity_type] });
     },
     onError: () => toast.error("Failed to update favorite"),
+  });
+}
+
+export function useUpdateSavedView() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+
+  return useMutation({
+    mutationFn: async (input: { id: string; entity_type: string; updates: Partial<Pick<SavedView, "name" | "icon" | "filters" | "sort_config" | "visible_columns">> }) => {
+      const { error } = await (supabase
+        .from("crm_saved_views")
+        .update(input.updates as any) as any)
+        .eq("id", input.id);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["saved-views", currentWorkspace?.id, vars.entity_type] });
+      toast.success("View updated");
+    },
+    onError: () => toast.error("Failed to update view"),
   });
 }
