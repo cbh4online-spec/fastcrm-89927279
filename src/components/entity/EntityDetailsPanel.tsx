@@ -34,11 +34,12 @@ function CollapsibleSection({ title, children, defaultOpen = true }: { title: st
 }
 
 function EditableFieldRow({ 
-  label, value, icon: Icon, isLink, linkType, fieldKey, onUpdate 
+  label, value, icon: Icon, iconClassName, isLink, linkType, fieldKey, onUpdate 
 }: { 
   label: string; 
   value: string | number | null | undefined; 
   icon?: React.ElementType; 
+  iconClassName?: string;
   isLink?: boolean; 
   linkType?: string;
   fieldKey?: string;
@@ -83,7 +84,7 @@ function EditableFieldRow({
   if (editing) {
     return (
       <div className="flex items-start gap-2 text-sm">
-        {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground mt-2 shrink-0" />}
+        {Icon && <Icon className={cn("h-3.5 w-3.5 mt-2 shrink-0", iconClassName || "text-muted-foreground")} />}
         <span className="text-muted-foreground shrink-0 min-w-[80px] mt-1.5">{label}</span>
         <Input
           ref={inputRef}
@@ -121,7 +122,7 @@ function EditableFieldRow({
       )}
       onClick={canEdit ? () => setEditing(true) : undefined}
     >
-      {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />}
+      {Icon && <Icon className={cn("h-3.5 w-3.5 mt-0.5 shrink-0", iconClassName || "text-muted-foreground")} />}
       <span className="text-muted-foreground shrink-0 min-w-[80px]">{label}</span>
       <div className="flex-1 text-right truncate flex items-center justify-end gap-1">
         {renderValue()}
@@ -133,12 +134,32 @@ function EditableFieldRow({
   );
 }
 
+const TAG_COLORS = [
+  'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800',
+  'bg-green-100 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800',
+  'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800',
+  'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800',
+  'bg-red-100 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800',
+  'bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-950 dark:text-teal-300 dark:border-teal-800',
+  'bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-950 dark:text-pink-300 dark:border-pink-800',
+  'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-950 dark:text-indigo-300 dark:border-indigo-800',
+];
+
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
 function TagList({ tags }: { tags: string[] }) {
   if (!tags.length) return <span className="text-sm text-muted-foreground">—</span>;
   return (
     <div className="flex flex-wrap gap-1">
       {tags.map(tag => (
-        <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+        <Badge key={tag} variant="outline" className={cn("text-xs border", TAG_COLORS[hashString(tag) % TAG_COLORS.length])}>{tag}</Badge>
       ))}
     </div>
   );
@@ -165,11 +186,11 @@ function CompanyDetails({ entity, onUpdate }: { entity: CompanyEntity; onUpdate?
   return (
     <div>
       <CollapsibleSection title="Dados da Empresa">
-        <EditableFieldRow label="Domínio" value={e.domain || e.website} icon={Globe} isLink linkType="url" fieldKey="website" onUpdate={onUpdate} />
-        <EditableFieldRow label="Email" value={entity.email} icon={Mail} isLink linkType="email" fieldKey="email" onUpdate={onUpdate} />
-        <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
-        <EditableFieldRow label="Indústria" value={entity.industry} icon={Briefcase} fieldKey="industry" onUpdate={onUpdate} />
-        <EditableFieldRow label="Dimensão" value={entity.size} icon={Users} fieldKey="size" onUpdate={onUpdate} />
+        <EditableFieldRow label="Domínio" value={e.domain || e.website} icon={Globe} iconClassName="text-purple-500" isLink linkType="url" fieldKey="website" onUpdate={onUpdate} />
+        <EditableFieldRow label="Email" value={entity.email} icon={Mail} iconClassName="text-blue-500" isLink linkType="email" fieldKey="email" onUpdate={onUpdate} />
+        <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} iconClassName="text-green-500" isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
+        <EditableFieldRow label="Indústria" value={entity.industry} icon={Briefcase} iconClassName="text-amber-500" fieldKey="industry" onUpdate={onUpdate} />
+        <EditableFieldRow label="Dimensão" value={entity.size} icon={Users} iconClassName="text-indigo-500" fieldKey="size" onUpdate={onUpdate} />
         {entity.tags && entity.tags.length > 0 && (
           <div className="pt-1">
             <span className="text-sm text-muted-foreground">Tags</span>
@@ -179,23 +200,23 @@ function CompanyDetails({ entity, onUpdate }: { entity: CompanyEntity; onUpdate?
       </CollapsibleSection>
 
       <CollapsibleSection title="Dados Financeiros" defaultOpen={false}>
-        <EditableFieldRow label="Receita" value={entity.annual_revenue ? `€${entity.annual_revenue.toLocaleString()}` : null} icon={DollarSign} fieldKey="annual_revenue" onUpdate={onUpdate} />
-        <EditableFieldRow label="Funcionários" value={entity.employee_count} icon={Users} fieldKey="employee_count" onUpdate={onUpdate} />
+        <EditableFieldRow label="Receita" value={entity.annual_revenue ? `€${entity.annual_revenue.toLocaleString()}` : null} icon={DollarSign} iconClassName="text-green-600" fieldKey="annual_revenue" onUpdate={onUpdate} />
+        <EditableFieldRow label="Funcionários" value={entity.employee_count} icon={Users} iconClassName="text-indigo-500" fieldKey="employee_count" onUpdate={onUpdate} />
         <EditableFieldRow label="NIF" value={e.tax_id} fieldKey="tax_id" onUpdate={onUpdate} />
         <EditableFieldRow label="CAE" value={e.cae_description} fieldKey="cae_description" onUpdate={onUpdate} />
       </CollapsibleSection>
 
       <CollapsibleSection title="Localização" defaultOpen={false}>
-        <EditableFieldRow label="Morada" value={entity.address} icon={MapPin} fieldKey="address" onUpdate={onUpdate} />
+        <EditableFieldRow label="Morada" value={entity.address} icon={MapPin} iconClassName="text-red-500" fieldKey="address" onUpdate={onUpdate} />
         <EditableFieldRow label="Cidade" value={e.city} fieldKey="city" onUpdate={onUpdate} />
         <EditableFieldRow label="País" value={e.country} fieldKey="country" onUpdate={onUpdate} />
       </CollapsibleSection>
 
       <CollapsibleSection title="Redes Sociais" defaultOpen={false}>
-        <EditableFieldRow label="LinkedIn" value={e.linkedin_url} icon={Linkedin} isLink linkType="url" fieldKey="linkedin_url" onUpdate={onUpdate} />
-        <EditableFieldRow label="Facebook" value={e.facebook_url} icon={Facebook} isLink linkType="url" fieldKey="facebook_url" onUpdate={onUpdate} />
-        <EditableFieldRow label="Instagram" value={e.instagram_url} icon={Instagram} isLink linkType="url" fieldKey="instagram_url" onUpdate={onUpdate} />
-        <EditableFieldRow label="Twitter" value={e.twitter_url} icon={Twitter} isLink linkType="url" fieldKey="twitter_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="LinkedIn" value={e.linkedin_url} icon={Linkedin} iconClassName="text-[#0A66C2]" isLink linkType="url" fieldKey="linkedin_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Facebook" value={e.facebook_url} icon={Facebook} iconClassName="text-[#1877F2]" isLink linkType="url" fieldKey="facebook_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Instagram" value={e.instagram_url} icon={Instagram} iconClassName="text-[#E4405F]" isLink linkType="url" fieldKey="instagram_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Twitter" value={e.twitter_url} icon={Twitter} iconClassName="text-foreground" isLink linkType="url" fieldKey="twitter_url" onUpdate={onUpdate} />
       </CollapsibleSection>
     </div>
   );
@@ -206,10 +227,10 @@ function ContactDetails({ entity, onUpdate }: { entity: ContactEntity; onUpdate?
   return (
     <div>
       <CollapsibleSection title="Dados do Contacto">
-        <EditableFieldRow label="Email" value={entity.email} icon={Mail} isLink linkType="email" fieldKey="email" onUpdate={onUpdate} />
-        <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
-        <EditableFieldRow label="Empresa" value={entity.company} icon={Building2} fieldKey="company" onUpdate={onUpdate} />
-        <EditableFieldRow label="Cargo" value={entity.job_title} icon={Briefcase} fieldKey="job_title" onUpdate={onUpdate} />
+        <EditableFieldRow label="Email" value={entity.email} icon={Mail} iconClassName="text-blue-500" isLink linkType="email" fieldKey="email" onUpdate={onUpdate} />
+        <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} iconClassName="text-green-500" isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
+        <EditableFieldRow label="Empresa" value={entity.company} icon={Building2} iconClassName="text-slate-500" fieldKey="company" onUpdate={onUpdate} />
+        <EditableFieldRow label="Cargo" value={entity.job_title} icon={Briefcase} iconClassName="text-amber-500" fieldKey="job_title" onUpdate={onUpdate} />
         <EditableFieldRow label="NIF" value={e.tax_id} fieldKey="tax_id" onUpdate={onUpdate} />
         {entity.tags && entity.tags.length > 0 && (
           <div className="pt-1">
@@ -220,16 +241,16 @@ function ContactDetails({ entity, onUpdate }: { entity: ContactEntity; onUpdate?
       </CollapsibleSection>
 
       <CollapsibleSection title="Morada" defaultOpen={false}>
-        <EditableFieldRow label="Morada" value={e.address} icon={MapPin} fieldKey="address" onUpdate={onUpdate} />
+        <EditableFieldRow label="Morada" value={e.address} icon={MapPin} iconClassName="text-red-500" fieldKey="address" onUpdate={onUpdate} />
         <EditableFieldRow label="Cidade" value={e.city} fieldKey="city" onUpdate={onUpdate} />
         <EditableFieldRow label="Cód. Postal" value={e.postal_code} fieldKey="postal_code" onUpdate={onUpdate} />
         <EditableFieldRow label="País" value={e.country} fieldKey="country" onUpdate={onUpdate} />
       </CollapsibleSection>
 
       <CollapsibleSection title="Redes Sociais" defaultOpen={false}>
-        <EditableFieldRow label="LinkedIn" value={e.linkedin_url} icon={Linkedin} isLink linkType="url" fieldKey="linkedin_url" onUpdate={onUpdate} />
-        <EditableFieldRow label="Facebook" value={e.facebook_url} icon={Facebook} isLink linkType="url" fieldKey="facebook_url" onUpdate={onUpdate} />
-        <EditableFieldRow label="Instagram" value={e.instagram_url} icon={Instagram} isLink linkType="url" fieldKey="instagram_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="LinkedIn" value={e.linkedin_url} icon={Linkedin} iconClassName="text-[#0A66C2]" isLink linkType="url" fieldKey="linkedin_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Facebook" value={e.facebook_url} icon={Facebook} iconClassName="text-[#1877F2]" isLink linkType="url" fieldKey="facebook_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Instagram" value={e.instagram_url} icon={Instagram} iconClassName="text-[#E4405F]" isLink linkType="url" fieldKey="instagram_url" onUpdate={onUpdate} />
       </CollapsibleSection>
     </div>
   );
@@ -240,10 +261,10 @@ function LeadDetails({ entity, onUpdate }: { entity: LeadEntity; onUpdate?: (fie
   return (
     <div>
       <CollapsibleSection title="Dados do Lead">
-        <EditableFieldRow label="Email" value={entity.email} icon={Mail} isLink linkType="email" fieldKey="email" onUpdate={onUpdate} />
-        <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
-        <EditableFieldRow label="Fonte" value={entity.source} icon={TrendingUp} fieldKey="source" onUpdate={onUpdate} />
-        <EditableFieldRow label="Empresa" value={entity.company} icon={Building2} fieldKey="company" onUpdate={onUpdate} />
+        <EditableFieldRow label="Email" value={entity.email} icon={Mail} iconClassName="text-blue-500" isLink linkType="email" fieldKey="email" onUpdate={onUpdate} />
+        <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} iconClassName="text-green-500" isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
+        <EditableFieldRow label="Fonte" value={entity.source} icon={TrendingUp} iconClassName="text-emerald-500" fieldKey="source" onUpdate={onUpdate} />
+        <EditableFieldRow label="Empresa" value={entity.company} icon={Building2} iconClassName="text-slate-500" fieldKey="company" onUpdate={onUpdate} />
         {entity.tags && entity.tags.length > 0 && (
           <div className="pt-1">
             <span className="text-sm text-muted-foreground">Tags</span>
@@ -253,10 +274,10 @@ function LeadDetails({ entity, onUpdate }: { entity: LeadEntity; onUpdate?: (fie
       </CollapsibleSection>
 
       <CollapsibleSection title="Redes Sociais" defaultOpen={false}>
-        <EditableFieldRow label="LinkedIn" value={e.linkedin_url} icon={Linkedin} isLink linkType="url" fieldKey="linkedin_url" onUpdate={onUpdate} />
-        <EditableFieldRow label="Instagram" value={e.instagram_url} icon={Instagram} isLink linkType="url" fieldKey="instagram_url" onUpdate={onUpdate} />
-        <EditableFieldRow label="Facebook" value={e.facebook_url} icon={Facebook} isLink linkType="url" fieldKey="facebook_url" onUpdate={onUpdate} />
-        <EditableFieldRow label="Twitter/X" value={e.twitter_url} icon={Twitter} isLink linkType="url" fieldKey="twitter_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="LinkedIn" value={e.linkedin_url} icon={Linkedin} iconClassName="text-[#0A66C2]" isLink linkType="url" fieldKey="linkedin_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Instagram" value={e.instagram_url} icon={Instagram} iconClassName="text-[#E4405F]" isLink linkType="url" fieldKey="instagram_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Facebook" value={e.facebook_url} icon={Facebook} iconClassName="text-[#1877F2]" isLink linkType="url" fieldKey="facebook_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Twitter/X" value={e.twitter_url} icon={Twitter} iconClassName="text-foreground" isLink linkType="url" fieldKey="twitter_url" onUpdate={onUpdate} />
       </CollapsibleSection>
     </div>
   );
