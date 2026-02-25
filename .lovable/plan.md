@@ -1,58 +1,71 @@
 
 
-# Plan: Seed Core CRM Templates (Phase 1 - Task t1-7)
+# Plan: Create /compare/* High-Intent Pages (Phase 2 - Task t2-4)
 
 ## Context
 
-The template pages (list + detail) are fully implemented in code, but the `seo_entities` table has **zero template records**. The pages render empty because there's no published content with `entity_type = 'template'`.
+The `ComparePage` component, `ComparisonTable`, routing (`/compare/:slug`), hooks, and `seo_comparisons` table all exist but the table has **zero records**. The comparison page renders a feature table, conclusion, keyword generator widget, FAQs, and sticky CTA -- all driven by data.
 
-## Approach
+The `seo_comparisons` table references `entity_a_id` and `entity_b_id` from `seo_entities`, but the current `useSEOComparison` hook only does `select('*')` -- it does **not** join the referenced entities. This means `comparison.entity_a` and `comparison.entity_b` are always undefined, and column headers fall back to "Opção A" / "Opção B".
 
-Create a database migration that inserts **10 core CRM templates** as published `seo_entities` records. These are the essential templates for a CRM keyword tool — covering the most common use cases users search for.
+## Comparison Pages to Create
 
-## Template Content Plan
+| # | Slug | Title | Competitor |
+|---|------|-------|------------|
+| 1 | `fastcrm-vs-semrush` | FastCRM vs Semrush | Semrush |
+| 2 | `fastcrm-vs-ahrefs` | FastCRM vs Ahrefs | Ahrefs |
+| 3 | `fastcrm-vs-ubersuggest` | FastCRM vs Ubersuggest | Ubersuggest |
+| 4 | `fastcrm-vs-google-keyword-planner` | FastCRM vs Google Keyword Planner | Google Keyword Planner |
+| 5 | `fastcrm-vs-moz` | FastCRM vs Moz | Moz |
 
-| # | Slug | Title | Intent |
-|---|------|-------|--------|
-| 1 | `ecommerce-keywords` | Keywords para E-commerce | commercial |
-| 2 | `saas-keywords` | Keywords para SaaS | commercial |
-| 3 | `local-business-keywords` | Keywords para Negócios Locais | commercial |
-| 4 | `blog-content-keywords` | Keywords para Blog e Conteúdo | informational |
-| 5 | `b2b-sales-keywords` | Keywords para Vendas B2B | transactional |
-| 6 | `real-estate-keywords` | Keywords para Imobiliário | commercial |
-| 7 | `health-wellness-keywords` | Keywords para Saúde e Bem-Estar | informational |
-| 8 | `restaurant-food-keywords` | Keywords para Restaurantes | commercial |
-| 9 | `education-courses-keywords` | Keywords para Educação e Cursos | informational |
-| 10 | `freelancer-agency-keywords` | Keywords para Freelancers e Agências | commercial |
-
-Each template will include:
-- Title, meta_description, h1, tldr
-- 2-3 content sections (what it does, best practices, when to use)
+Each comparison will include:
+- Title, meta_description
+- Introduction text
+- 6-8 comparison criteria with winner per row
+- Conclusion with overall winner
 - 3-4 FAQs
-- 2-3 examples/use cases
-- A CTA pointing to `/tools/keyword-ideas`
-- `toolConfig` with a relevant placeholder seed keyword
-- Schema markup (JSON-LD SoftwareApplication)
-- Status: `published`, language: `pt`
+- Schema markup (JSON-LD)
+- Status: `published`, winner: `a` (FastCRM)
 
-## Implementation
+## Implementation Steps
 
-### 1. Database Migration — NEW
+### 1. Create Tool Entities — DATABASE INSERT
 
-Single SQL migration inserting 10 template records into `seo_entities`. No schema changes needed — the table already exists with the correct structure. Each record uses `workspace_id = NULL` (public/global templates), `status = 'published'`, and `priority = 0.8`.
+Insert 6 `seo_entities` records with `entity_type = 'tool'`:
+- **FastCRM Keyword Generator** (entity A for all comparisons)
+- **Semrush**, **Ahrefs**, **Ubersuggest**, **Google Keyword Planner**, **Moz** (entity B)
 
-### 2. Update Roadmap Config — EDIT `src/modules/growth-seo/config/seoRoadmap.ts`
+These are minimal records (title, slug, meta_description, status = published) to serve as foreign key references and provide display names in the comparison table headers.
 
-Change task `t1-7` status from `'todo'` to `'done'`.
+### 2. Fix useSEOComparison Hook — EDIT `src/modules/growth-seo/hooks/useSEOEntity.ts`
 
-## No New Dependencies or Files
+Update the query to fetch entity_a and entity_b data alongside the comparison. Since Supabase JS client doesn't support joining arbitrary foreign keys easily with `select('*, entity_a:seo_entities!entity_a_id(*)')`, we'll do a secondary fetch: after getting the comparison, fetch entity_a and entity_b by their IDs and merge them into the result.
 
-All changes use existing infrastructure. The template detail page already handles rendering content sections, FAQs, examples, tool widget, and CTAs dynamically from the database record.
+### 3. Insert 5 Comparisons — DATABASE INSERT
+
+Insert 5 records into `seo_comparisons` with:
+- `entity_a_id` = FastCRM tool entity ID
+- `entity_b_id` = respective competitor entity ID
+- Rich JSONB `content` with introduction, criteria array, conclusion, and FAQs
+- `winner = 'a'`, `status = 'published'`
+
+### 4. Add Compare List Page — NEW FILE `src/modules/growth-seo/pages/CompareListPage.tsx`
+
+A list page at `/compare` showing all published comparisons. Uses `useSEOComparisonsList` hook (already exists). Shows cards with title, meta_description, and link to `/compare/:slug`.
+
+### 5. Register Route — EDIT `src/App.tsx`
+
+Add route for `/compare` list page.
+
+### 6. Update Roadmap — EDIT `src/modules/growth-seo/config/seoRoadmap.ts`
+
+Mark task `t2-4` as `done`.
 
 ## Technical Notes
 
-- Templates are inserted with `workspace_id = NULL` so they're accessible via the public RLS policy (`status = 'published'`)
-- The `content` column is JSONB and follows the `SEOContent` interface structure
-- The `toolConfig.placeholder` field pre-fills the keyword generator widget on each template page
-- View counts start at 0 and increment automatically when pages are visited
+- Comparisons use `workspace_id = NULL` for public access via RLS
+- The `entity_a_id` / `entity_b_id` foreign keys reference `seo_entities` so we need the tool records to exist first
+- The existing `ComparisonTable` component handles rendering criteria rows with winner indicators
+- The `ComparisonConclusion` component shows the winner name from entity titles
+- All comparison content is in Portuguese
 
