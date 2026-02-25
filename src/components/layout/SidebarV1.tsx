@@ -3,8 +3,9 @@ import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { NAV_V1_ITEMS } from "@/config/nav.v1";
-import { X, Command, Search } from "lucide-react";
+import { X, Command, Search, Star } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useSidebarFavorites } from "@/hooks/useSidebarFavorites";
 
 interface SidebarV1Props {
   open: boolean;
@@ -14,6 +15,7 @@ interface SidebarV1Props {
 export function SidebarV1({ open, onClose }: SidebarV1Props) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { favorites, toggleFavorite, isFavorite } = useSidebarFavorites();
 
   const isActive = (href: string, end?: boolean) => {
     const basePath = href.split("?")[0];
@@ -22,6 +24,8 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
     }
     return location.pathname === basePath || location.pathname.startsWith(basePath + "/");
   };
+
+  const favoriteItems = NAV_V1_ITEMS.filter((item) => favorites.includes(item.href));
 
   return (
     <>
@@ -69,29 +73,78 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
             </button>
           </div>
 
+          {/* Favoritos */}
+          {favoriteItems.length > 0 && (
+            <div className="px-3 pt-3 pb-1 border-b border-border">
+              <span className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Favoritos
+              </span>
+              <div className="mt-1.5 space-y-0.5">
+                {favoriteItems.map((item) => {
+                  const active = isActive(item.href, item.end);
+                  return (
+                    <div key={item.href} className="group flex items-center">
+                      <Link
+                        to={item.href}
+                        onClick={onClose}
+                        className={cn(
+                          "flex-1 flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                          active
+                            ? "bg-muted text-foreground"
+                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                        )}
+                      >
+                        <item.icon className={cn("w-4 h-4", active ? "text-foreground" : "text-muted-foreground")} />
+                        <span className="flex-1">{item.name}</span>
+                        <button
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.href); }}
+                          className="p-0.5 rounded hover:bg-muted transition-colors"
+                        >
+                          <Star className="w-3.5 h-3.5 fill-foreground text-foreground" />
+                        </button>
+                      </Link>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Navigation — flat list with subtle separators */}
           <nav className="flex-1 px-3 py-2 overflow-y-auto">
             <div className="space-y-0.5">
               {NAV_V1_ITEMS.map((item) => {
                 const active = isActive(item.href, item.end);
+                const pinned = isFavorite(item.href);
                 return (
                   <div key={item.href}>
                     {item.separator && (
                       <Separator className="my-2" />
                     )}
-                    <Link
-                      to={item.href}
-                      onClick={onClose}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                        active
-                          ? "bg-muted text-foreground"
-                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                      )}
-                    >
-                      <item.icon className={cn("w-4 h-4", active ? "text-foreground" : "text-muted-foreground")} />
-                      <span>{item.name}</span>
-                    </Link>
+                    <div className="group flex items-center">
+                      <Link
+                        to={item.href}
+                        onClick={onClose}
+                        className={cn(
+                          "flex-1 flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                          active
+                            ? "bg-muted text-foreground"
+                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                        )}
+                      >
+                        <item.icon className={cn("w-4 h-4", active ? "text-foreground" : "text-muted-foreground")} />
+                        <span className="flex-1">{item.name}</span>
+                        <button
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.href); }}
+                          className={cn(
+                            "p-0.5 rounded hover:bg-muted transition-all",
+                            pinned ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                          )}
+                        >
+                          <Star className={cn("w-3.5 h-3.5", pinned ? "fill-foreground text-foreground" : "text-muted-foreground")} />
+                        </button>
+                      </Link>
+                    </div>
                   </div>
                 );
               })}
