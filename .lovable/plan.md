@@ -1,102 +1,64 @@
 
 
-# Fix: Language Selector Changes Flag But UI Doesn't Translate
+# Batch 3 — Dashboard i18n Migration
 
-## Problem
+## Scope
 
-The i18n infrastructure is correctly set up (i18next, LanguageDetector, 48 JSON translation files across 4 languages). The `LanguageSelector` component correctly calls `i18n.changeLanguage()` and the flag updates. However, **only 7 out of ~548 files** actually use `useTranslation()` with `t()` calls. The remaining files have hardcoded Portuguese or English strings, so changing the language has no visible effect.
+Migrate all 10 dashboard components + the Dashboard page to use `t()` calls. The translation JSON files already have many keys but need ~80 new keys for strings discovered in the components.
 
-## Root Cause
+## Components to Edit (10 files)
 
-The migration from hardcoded strings to `t('namespace:key')` was never completed. The infrastructure was built but the actual string replacement across components was not done.
+| File | Hardcoded Strings |
+|---|---|
+| `Dashboard.tsx` | "Home", "Build your CRM...", "New", "New Lead", "New Opportunity", etc. |
+| `RevenueHero.tsx` | "Revenue Forecast", "Alta/Média/Baixa confiança", "Dados insuficientes", "Expected case", "Stage-Weighted", "Risk-Adjusted", "Gross" |
+| `PipelineHealthCard.tsx` | "Pipeline Health", "Healthy/Watch/At Risk", "Data Quality", "Completeness", "Missing value", "Momentum", "Active (7d)", "Stale" |
+| `ForecastConfidenceCard.tsx` | "Is My Forecast Realistic?", confidence messages, "Revenue by Health", "Forecast Blockers", "deals without value/close date", "Slow Stages" |
+| `DealsAtRiskList.tsx` | "Deals at Risk", "No deals at risk right now" |
+| `AIActionSuggestions.tsx` | "Revenue Brain" |
+| `PLGSignalsFeed.tsx` | "Product Signals", "Live", "signups/activated/qualified/pipeline", "Sem sinais de produto", "Ver todos os sinais" |
+| `PipelineComparisonCard.tsx` | "Pipeline Health", "active", "View full comparison" |
+| `WelcomeOverlay.tsx` | All segment titles/tips/actions in Portuguese, "Bundle ativo" |
+| `ForecastTrendChart.tsx` | "Forecast Trend", chart legend labels, hardcoded `pt` locale |
+| `DashboardKPICards.tsx` | "Leads", "Oportunidades Ativas", "Propostas Enviadas/Pendentes", "Previsão de Receita", all tooltips |
+| `DashboardQuickNav.tsx` | "Navegação Rápida", "CRM", "Leads", "Oportunidades", "Propostas", "Definições", etc. |
+| `DashboardSmartAlerts.tsx` | "Alertas Inteligentes", "Tudo em dia!", "Nenhum alerta que exija ação", "crítico(s)", hardcoded `pt` locale |
+| `DashboardNextActions.tsx` | "Próximas Ações", "Tarefas mais importantes para hoje", "Tudo em dia!", "Atrasado", "Hoje", type labels, hardcoded `pt` locale |
+| `DashboardPipelineSnapshot.tsx` | "Pipeline", "Valor total:", "parado(s)", "Sem oportunidades", "Ver pipeline completo", tooltip strings |
+| `DashboardAutomationSuggestions.tsx` | "Automation Suggestions", "new", "View all suggestions" |
 
-## Plan
+## Translation File Updates
 
-Given the massive scope (~548 files), this will be done in priority order, starting with the most visible components.
+Add ~80 new keys to all 4 dashboard.json files covering:
+- Revenue hero labels (confidence levels, case labels)
+- Pipeline health labels (distribution, quality, momentum)
+- Forecast confidence labels (messages, blockers, breakdown)
+- KPI card labels and tooltips
+- Quick nav labels
+- Smart alerts labels
+- Next actions labels (task types, overdue)
+- Pipeline snapshot labels
+- Welcome overlay segment content
+- PLG signals labels
+- Chart legend labels
 
-### Batch 1 — Layout and Navigation (highest visibility)
+## Pattern
 
-These are always visible on screen regardless of which page the user is on.
-
-**Files to edit:**
-- `src/components/layout/TopBar.tsx` — Replace "Perfil", "Definições", "Terminar sessão", "Gestão SaaS", "Ask FastCRM about your revenue" with `t()` calls
-- `src/config/nav.v2.ts` — Keep static English keys (already matched to nav.json keys), but update `Sidebar.tsx` to translate them dynamically
-- `src/components/layout/Sidebar.tsx` — Already uses `t()` for nav items (done)
-- `src/components/layout/HelpSupportDropdown.tsx` — Already uses `t()` (done)
-
-### Batch 2 — Contact Detail Page (user's current page)
-
-The user is currently viewing a contact detail page. This is a high-priority page with ~589 lines.
-
-**Files to edit:**
-- `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` — Replace all hardcoded section titles, button labels, dialog strings
-- `src/components/contacts/eni/ENIContactTypes.ts` — Translate `ENTITY_TYPE_LABELS`
-- `src/components/contacts/eni/sections/IdentificationSection.tsx` — Field labels
-- `src/components/contacts/eni/sections/AddressSection.tsx` — Field labels
-- `src/components/contacts/eni/sections/ProfessionalProfileSection.tsx` — Field labels
-- `src/components/contacts/eni/sections/CommercialProfileSection.tsx` — Field labels
-- `src/components/contacts/eni/sections/FinancialSection.tsx` — Field labels
-- `src/components/contacts/eni/sections/NotesSection.tsx` — Labels
-- `src/components/contacts/eni/sections/AIInsightsSection.tsx` — Labels
-- `src/components/contacts/eni/sections/DocumentsSection.tsx` — Labels
-
-### Batch 3 — Dashboard Components
-
-- `src/components/dashboard/RevenueHero.tsx`
-- `src/components/dashboard/ForecastConfidenceCard.tsx`
-- `src/components/dashboard/PipelineHealthCard.tsx`
-- `src/components/dashboard/DealsAtRiskList.tsx`
-- `src/components/dashboard/AIActionSuggestions.tsx`
-- `src/components/dashboard/PLGSignalsFeed.tsx`
-- `src/components/dashboard/PipelineComparisonCard.tsx`
-- `src/components/dashboard/WelcomeOverlay.tsx`
-
-### Batch 4 — CRM Pages (Leads, Companies, Opportunities)
-
-- Lead list page and create/edit dialogs
-- Company list page and detail page
-- Opportunity/Deal pages and Kanban board
-- All shared filter components, table headers
-
-### Batch 5 — Settings, Inbox, Automations, Intelligence, Invoices, Products, Auth
-
-Remaining pages using their respective namespace translations.
-
-### Translation File Updates
-
-The existing JSON files already contain many keys but will need additional keys as we discover hardcoded strings during migration. Each namespace file will be expanded for all 4 languages (PT, EN, ES, FR).
-
-### Pattern Applied to Each File
-
+Each component gets:
 ```typescript
-// Before
-<Button>Guardar</Button>
-<span>Cancelar</span>
-<h1>Contactos</h1>
-
-// After
 import { useTranslation } from 'react-i18next';
-const { t } = useTranslation('crm');
-const { t: tc } = useTranslation('common');
-
-<Button>{tc('save')}</Button>
-<span>{tc('cancel')}</span>
-<h1>{t('contacts')}</h1>
+const { t } = useTranslation('dashboard');
 ```
 
-### Implementation Strategy
+Date-fns locale switches from hardcoded `pt` to dynamic:
+```typescript
+import { pt, enUS, es, fr } from 'date-fns/locale';
+const dateLocales = { pt, en: enUS, es, fr };
+const locale = dateLocales[i18n.language] || pt;
+```
 
-Due to the massive number of files, implementation will proceed across multiple messages:
-1. **This message**: Batches 1-2 (TopBar + Contact Detail page sections) — immediate visible impact
-2. **Next messages**: Batches 3-5 progressively
+## Implementation Order
 
-### Estimated File Count Per Batch
-
-| Batch | Files | Priority |
-|---|---|---|
-| 1 — Layout | 2 files | Critical (always visible) |
-| 2 — Contact Detail | ~12 files | Critical (user's current page) |
-| 3 — Dashboard | ~8 files | High |
-| 4 — CRM Pages | ~30 files | High |
-| 5 — Rest | ~100+ files | Medium |
+1. Expand all 4 dashboard.json files with new keys
+2. Edit all 16 component files in parallel
 
