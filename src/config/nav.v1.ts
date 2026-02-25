@@ -14,6 +14,7 @@ import {
   Brain,
   FileText,
   Settings,
+  Sparkles,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -28,6 +29,7 @@ export interface NavV1Item {
 export const NAV_V1_ITEMS: NavV1Item[] = [
   // Dashboard
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Geral", end: true },
+  { name: "Ask FastCRM", href: "/dashboard/ask", icon: Sparkles, group: "Geral" },
 
   // CRM
   { name: "Leads", href: "/dashboard/leads", icon: Users, group: "CRM" },
