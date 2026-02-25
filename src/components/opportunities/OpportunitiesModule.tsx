@@ -53,6 +53,7 @@ import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { DealsSidebar } from "./DealsSidebar";
 import { CreateViewDialog } from "./CreateViewDialog";
 import { toast } from "sonner";
+import { LayoutGroup } from "framer-motion";
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { useBulkDealIntelligenceAPI } from "@/hooks/useDealIntelligenceAPI";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
@@ -359,6 +360,7 @@ export function OpportunitiesModule() {
         />
       ) : viewMode === "kanban" ? (
         <ScrollArea className="flex-1 -mx-6 px-6">
+          <LayoutGroup>
           <div className="flex gap-4 pb-4">
              {stages.map((stage) => (
               <OpportunityKanbanColumn
@@ -386,6 +388,7 @@ export function OpportunitiesModule() {
               />
             ))}
           </div>
+          </LayoutGroup>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
       ) : (
