@@ -99,7 +99,8 @@ export function ConvertLeadDialog({ lead, trigger }: ConvertLeadDialogProps) {
           facebook_url: lead.facebook_url || undefined,
           instagram_url: lead.instagram_url || undefined,
           twitter_url: lead.twitter_url || undefined,
-        });
+          lifecycle_stage: 'lead',
+        } as any);
         newEntityId = result.id;
       } else {
         // Create company with lead data
