@@ -72,6 +72,10 @@ import { CommercialHistorySection } from "@/components/companies/sections/Commer
 import { EntityProposalsSection } from "@/components/proposals/EntityProposalsSection";
 import { EntitySchedulingSection } from "@/components/scheduling/EntitySchedulingSection";
 import { RelationshipsPanel } from "@/components/objects/RelationshipsPanel";
+import { CompanyScoresCard } from "./sections/CompanyScoresCard";
+import { CompanyLifecycleSection } from "./sections/CompanyLifecycleSection";
+import { CompanyFirmographicsSection } from "./sections/CompanyFirmographicsSection";
+import { CompanyAuditSection } from "./sections/CompanyAuditSection";
 
 function getTimeAgo(date: Date): string {
   const now = new Date();
@@ -196,6 +200,13 @@ export function CompanyDetailWithSidebar() {
       case 'overview':
         return (
           <div className="space-y-6">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <CompanyScoresCard company={company} editable />
+              <CompanyLifecycleSection
+                status={(company as any).company_status || 'prospect'}
+                onStatusChange={(s) => handleFieldChange('company_status' as keyof Company, s)}
+              />
+            </div>
             <InsightsSidebar entityType="company" entityId={id || ''} />
             <div className="grid gap-6 lg:grid-cols-2">
               <IdentificationSection 
@@ -273,6 +284,7 @@ export function CompanyDetailWithSidebar() {
                 }}
               />
             )}
+            <CompanyFirmographicsSection company={company} onFieldChange={handleFieldChange} />
             <AddressSection company={company} onFieldChange={handleFieldChange} />
             <SocialMediaSection company={company} onFieldChange={handleFieldChange} />
             <TagsSection company={company} onFieldChange={handleFieldChange} />
@@ -348,6 +360,8 @@ export function CompanyDetailWithSidebar() {
             entityPhone={company.phone}
           />
         );
+      case 'audit':
+        return <CompanyAuditSection companyId={id!} />;
       default:
         return (
           <div className="text-center py-12 text-muted-foreground">
@@ -484,16 +498,16 @@ export function CompanyDetailWithSidebar() {
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Eliminar Empresa</AlertDialogTitle>
+                  <AlertDialogTitle>Arquivar Empresa</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Tem a certeza que deseja eliminar esta empresa? Esta ação não pode ser revertida.
+                    Tem a certeza que deseja arquivar esta empresa? Pode restaurá-la mais tarde.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Eliminar
+                    Arquivar
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
