@@ -16,12 +16,12 @@ function DataModelNodeComponent({ data }: NodeProps) {
   const Icon = getIconByName(nodeData.icon);
 
   return (
-    <div className="relative w-[200px] rounded-xl border bg-card shadow-md px-4 py-3 transition-shadow hover:shadow-lg"
+    <div className="relative w-[200px] rounded-xl border bg-card shadow-sm px-4 py-3 transition-all duration-150 hover:shadow-md hover:scale-[1.02]"
       style={{ borderColor: nodeData.color || 'hsl(var(--border))' }}>
-      <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
-      <Handle type="target" position={Position.Left} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
-      <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
-      <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-muted-foreground/40 !border-none" />
+      <Handle type="target" position={Position.Top} className="!w-1.5 !h-1.5 !bg-muted-foreground/20 !border-none" />
+      <Handle type="target" position={Position.Left} className="!w-1.5 !h-1.5 !bg-muted-foreground/20 !border-none" />
+      <Handle type="source" position={Position.Bottom} className="!w-1.5 !h-1.5 !bg-muted-foreground/20 !border-none" />
+      <Handle type="source" position={Position.Right} className="!w-1.5 !h-1.5 !bg-muted-foreground/20 !border-none" />
 
       <div className="flex items-center gap-2.5">
         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted/60" style={{ color: nodeData.color }}>

@@ -43,7 +43,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <WorkspaceStatusGuard>
-      <div className="min-h-screen flex bg-gradient-to-br from-background via-background to-muted/20">
+      <div className="min-h-screen flex bg-background">
         {shellV2 ? (
           <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         ) : (

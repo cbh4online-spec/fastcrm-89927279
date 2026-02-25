@@ -85,7 +85,7 @@ export function Toolbar({
   return (
     <div className={cn(
       "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between",
-      "p-3 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 shadow-sm",
+      "p-3 rounded-lg bg-muted/30 border border-border/30",
       className
     )}>
       {/* Left side */}
@@ -103,9 +103,7 @@ export function Toolbar({
             <SlidersHorizontal className="h-4 w-4" />
             Filtros
             {filtersActive && (
-              <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary-foreground/20 text-[10px]">
-                ✓
-              </span>
+              <span className="ml-1 flex h-2 w-2 rounded-full bg-primary-foreground/60" />
             )}
           </Button>
         )}

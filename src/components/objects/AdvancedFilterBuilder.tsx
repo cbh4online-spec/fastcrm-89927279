@@ -50,10 +50,6 @@ export function AdvancedFilterBuilder({ fields, conditions, onChange, className 
 
   return (
     <div className={cn("space-y-2", className)}>
-      <div className="flex items-center gap-2 mb-1">
-        <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Filtros (AND)</span>
-      </div>
       {conditions.map((condition, index) => {
         const field = fields.find((f) => f.slug === condition.field);
         const fieldType = field?.field_type || "text";
@@ -61,50 +57,38 @@ export function AdvancedFilterBuilder({ fields, conditions, onChange, className 
         const needsValue = operatorNeedsValue(condition.operator);
 
         return (
-          <div key={index} className="flex items-center gap-2 flex-wrap">
+          <div key={index} className="flex items-center gap-2 flex-wrap animate-fade-in">
             {index > 0 && (
               <span className="text-xs text-muted-foreground font-medium w-6 text-center">E</span>
             )}
 
-            {/* Field selector */}
             <Select value={condition.field} onValueChange={(v) => handleFieldChange(index, v)}>
               <SelectTrigger className="h-7 w-[160px] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-popover">
                 {fields.map((f) => (
-                  <SelectItem key={f.slug} value={f.slug} className="text-xs">
-                    {f.name}
-                  </SelectItem>
+                  <SelectItem key={f.slug} value={f.slug} className="text-xs">{f.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            {/* Operator selector */}
             <Select value={condition.operator} onValueChange={(v) => updateCondition(index, { operator: v, value: "" })}>
               <SelectTrigger className="h-7 w-[150px] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-popover">
                 {operators.map((op) => (
-                  <SelectItem key={op.value} value={op.value} className="text-xs">
-                    {op.label}
-                  </SelectItem>
+                  <SelectItem key={op.value} value={op.value} className="text-xs">{op.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            {/* Value input */}
             {needsValue && (
-              <FilterValueInput
-                fieldType={fieldType}
-                field={field}
-                value={condition.value}
-                onChange={(v) => updateCondition(index, { value: v })}
-              />
+              <FilterValueInput fieldType={fieldType} field={field} value={condition.value} onChange={(v) => updateCondition(index, { value: v })} />
             )}
 
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => removeCondition(index)}>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeCondition(index)}>
               <X className="h-3 w-3" />
             </Button>
           </div>
@@ -149,9 +133,7 @@ function FilterValueInput({
           </SelectTrigger>
           <SelectContent className="bg-popover">
             {selectOptions.map((opt) => (
-              <SelectItem key={opt} value={opt} className="text-xs">
-                {opt}
-              </SelectItem>
+              <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -161,34 +143,17 @@ function FilterValueInput({
 
   if (fieldType === "number" || fieldType === "currency") {
     return (
-      <Input
-        type="number"
-        value={String(value ?? "")}
-        onChange={(e) => onChange(e.target.value ? Number(e.target.value) : "")}
-        className="h-7 w-[120px] text-xs"
-        placeholder="Valor"
-      />
+      <Input type="number" value={String(value ?? "")} onChange={(e) => onChange(e.target.value ? Number(e.target.value) : "")} className="h-7 w-[120px] text-xs" placeholder="Valor" />
     );
   }
 
   if (fieldType === "date") {
     return (
-      <Input
-        type="date"
-        value={String(value ?? "")}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-7 w-[150px] text-xs"
-      />
+      <Input type="date" value={String(value ?? "")} onChange={(e) => onChange(e.target.value)} className="h-7 w-[150px] text-xs" />
     );
   }
 
   return (
-    <Input
-      type="text"
-      value={String(value ?? "")}
-      onChange={(e) => onChange(e.target.value)}
-      className="h-7 w-[160px] text-xs"
-      placeholder="Valor"
-    />
+    <Input type="text" value={String(value ?? "")} onChange={(e) => onChange(e.target.value)} className="h-7 w-[160px] text-xs" placeholder="Valor" />
   );
 }
