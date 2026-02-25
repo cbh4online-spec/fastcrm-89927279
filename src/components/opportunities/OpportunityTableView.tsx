@@ -22,7 +22,9 @@ import {
   Sparkles,
   AlertTriangle,
   ArrowUpDown,
+  Plus,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -182,6 +184,17 @@ export function OpportunityTableView({
             </TableHead>
             <TableHead>{t('oppTableStatus')}</TableHead>
             <TableHead className="w-10"></TableHead>
+            <TableHead className="w-32">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs font-medium text-muted-foreground gap-1"
+                onClick={() => toast(t("addColumn", "+ Add column") + " — " + t("smartListsWIP", "Coming soon"))}
+              >
+                <Plus className="w-3 h-3" />
+                {t("addColumn", "+ Add column")}
+              </Button>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

@@ -53,6 +53,7 @@ import { PipelineSettingsDialog } from "@/components/crm/PipelineSettingsDialog"
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { DealsSidebar } from "./DealsSidebar";
 import { DealViewSelectorDropdown } from "./DealViewSelectorDropdown";
+import { CommandPalette } from "./CommandPalette";
 import { CreateViewDialog } from "./CreateViewDialog";
 import { ActiveFilterPills } from "./ActiveFilterPills";
 import { ViewSettingsDropdown } from "./ViewSettingsDropdown";
@@ -87,6 +88,7 @@ export function OpportunitiesModule() {
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showCreateViewDialog, setShowCreateViewDialog] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   const { data: opportunities, isLoading: oppLoading } = useOpportunitiesEnhanced({
     status: statusFilter !== "all" ? statusFilter : undefined,
@@ -277,6 +279,13 @@ export function OpportunitiesModule() {
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
         opportunities={opportunities}
+        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+      />
+      <CommandPalette
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+        onSelectView={handleSelectView}
+        onCreateDeal={() => setIsCreateDialogOpen(true)}
       />
       <div className="flex-1 min-w-0 space-y-6 h-full flex flex-col p-6 overflow-auto">
       {/* Header */}
@@ -394,24 +403,19 @@ export function OpportunitiesModule() {
       {/* Active filter pills + Sorted by indicator */}
       {(activeViewConditions.length > 0 || sortByScore) && (
         <div className="flex items-center gap-3 flex-wrap flex-shrink-0">
-          {activeViewConditions.length > 0 && (
-            <ActiveFilterPills
-              conditions={activeViewConditions}
-              onRemove={(idx) => {
-                if (!activeView) return;
-                const newConditions = [...activeViewConditions];
-                newConditions.splice(idx, 1);
-                const newFilters = { ...(activeView.filters || {}), conditions: newConditions };
-                updateView.mutate({ id: activeView.id, entity_type: "opportunities", updates: { filters: newFilters } });
-              }}
-            />
-          )}
-          {sortByScore && (
-            <Badge variant="outline" className="text-xs gap-1">
-              <ArrowUpDown className="w-3 h-3" />
-              {t('sortedBy', 'Sorted by')} Score
-            </Badge>
-          )}
+          <ActiveFilterPills
+            conditions={activeViewConditions}
+            onRemove={(idx) => {
+              if (!activeView) return;
+              const newConditions = [...activeViewConditions];
+              newConditions.splice(idx, 1);
+              const newFilters = { ...(activeView.filters || {}), conditions: newConditions };
+              updateView.mutate({ id: activeView.id, entity_type: "opportunities", updates: { filters: newFilters } });
+            }}
+            sortField={sortByScore ? "Score" : undefined}
+            sortDir={sortByScore ? "desc" : undefined}
+            onClearSort={() => setSortByScore(false)}
+          />
         </div>
       )}
 
