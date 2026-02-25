@@ -20049,6 +20049,47 @@ export type Database = {
           },
         ]
       }
+      opportunity_layout_preferences: {
+        Row: {
+          created_at: string | null
+          highlights_order: string[] | null
+          id: string
+          sidebar_order: string[] | null
+          updated_at: string | null
+          user_id: string
+          visible_highlights: string[] | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          highlights_order?: string[] | null
+          id?: string
+          sidebar_order?: string[] | null
+          updated_at?: string | null
+          user_id: string
+          visible_highlights?: string[] | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          highlights_order?: string[] | null
+          id?: string
+          sidebar_order?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+          visible_highlights?: string[] | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_layout_preferences_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_audit_log: {
         Row: {
           action: string

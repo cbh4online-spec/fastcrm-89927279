@@ -37,6 +37,8 @@ import { useOpportunityComments } from "@/hooks/useOpportunityComments";
 import { OpportunityAIInsightsSection } from "./OpportunityAIInsightsSection";
 import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
 import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
+import { OpportunityLayoutConfigDialog } from "./detail/OpportunityLayoutConfigDialog";
+import { useOpportunityLayoutPreferences, getVisibleHighlights, getSidebarOrder, DEFAULT_HIGHLIGHTS, DEFAULT_SIDEBAR_ORDER } from "@/hooks/useOpportunityLayoutPreferences";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -51,6 +53,12 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
   const [activeTab, setActiveTab] = useState("overview");
   const [isFavorite, setIsFavorite] = useState(false);
   const [additionalTabs, setAdditionalTabs] = useState<string[]>([]);
+  const [layoutConfigOpen, setLayoutConfigOpen] = useState(false);
+
+  const { data: layoutPrefs } = useOpportunityLayoutPreferences();
+  const visibleHighlights = getVisibleHighlights(layoutPrefs);
+  const highlightsOrder = layoutPrefs?.highlights_order ?? DEFAULT_HIGHLIGHTS;
+  const sidebarOrder = getSidebarOrder(layoutPrefs);
 
   const ADD_TAB_OPTIONS = [
     { id: "people", label: t("oppDetail_associatedPeopleTab"), icon: Users, dot: "bg-emerald-500", isDefault: true },
@@ -297,6 +305,9 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
               <OpportunityHighlightsCards
                 opportunity={opportunity}
                 stages={stages}
+                visibleHighlights={visibleHighlights}
+                highlightsOrder={highlightsOrder}
+                onOpenConfig={() => setLayoutConfigOpen(true)}
               />
               <OpportunityStagesStepper
                 stages={stages}
@@ -383,8 +394,17 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
           isLoadingContacts={isLoadingContacts}
           isLoadingCompanies={isLoadingCompanies}
           onUpdate={handleUpdate}
+          sidebarOrder={sidebarOrder}
         />
       </div>
+
+      <OpportunityLayoutConfigDialog
+        open={layoutConfigOpen}
+        onOpenChange={setLayoutConfigOpen}
+        currentHighlights={visibleHighlights}
+        currentHighlightsOrder={highlightsOrder}
+        currentSidebarOrder={sidebarOrder}
+      />
     </div>
   );
 }
