@@ -18,10 +18,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { SavedView } from "@/hooks/useSavedViews";
+import { EmojiIconPicker } from "./EmojiIconPicker";
 
 interface ViewSettingsDropdownProps {
   activeView: SavedView | null;
-  onRename?: (id: string, newName: string) => void;
+  onRename?: (id: string, newName: string, icon?: string | null) => void;
   onDuplicate?: (view: SavedView) => void;
   onSetDefault?: (id: string) => void;
   onDelete?: (id: string) => void;
@@ -37,17 +38,19 @@ export function ViewSettingsDropdown({
   const { t } = useTranslation("crm");
   const [renameOpen, setRenameOpen] = useState(false);
   const [newName, setNewName] = useState("");
+  const [newIcon, setNewIcon] = useState<string | null>(null);
 
   if (!activeView) return null;
 
   const handleRenameOpen = () => {
     setNewName(activeView.name);
+    setNewIcon(activeView.icon);
     setRenameOpen(true);
   };
 
   const handleRenameSubmit = () => {
     if (newName.trim() && onRename) {
-      onRename(activeView.id, newName.trim());
+      onRename(activeView.id, newName.trim(), newIcon);
     }
     setRenameOpen(false);
   };
@@ -96,12 +99,19 @@ export function ViewSettingsDropdown({
           <DialogHeader>
             <DialogTitle>{t("viewSettingsRename", "Rename")}</DialogTitle>
           </DialogHeader>
-          <Input
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleRenameSubmit()}
-            autoFocus
-          />
+          <div className="flex gap-2 items-center">
+            <EmojiIconPicker
+              currentIcon={newIcon}
+              viewName={activeView.name}
+              onSelect={setNewIcon}
+            />
+            <Input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleRenameSubmit()}
+              autoFocus
+            />
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenameOpen(false)}>
               {t("cancel", "Cancel")}
