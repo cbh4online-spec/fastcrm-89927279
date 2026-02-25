@@ -20,7 +20,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CreateTaskFromIntelligence } from "./CreateTaskFromIntelligence";
+import { ScoreBreakdownChart } from "./ScoreBreakdownChart";
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
+import { useDealScore } from "@/hooks/useDealScores";
 import type { DealIntelligencePayload, APIHealthLabel, APIRiskSeverity } from "@/types/dealIntelligence";
 
 interface DealIntelligencePanelProps {
@@ -51,6 +53,7 @@ const insightBorderColors: Record<string, string> = {
 
 export function DealIntelligencePanel({ intelligence, dealId, isLoading }: DealIntelligencePanelProps) {
   const { trackIntelligencePanelOpened, trackNBAClicked } = useCRMAnalytics();
+  const { data: dealScore } = useDealScore(dealId);
   const [isOpen, setIsOpen] = useState(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored !== null ? stored === "true" : true;
@@ -263,6 +266,11 @@ export function DealIntelligencePanel({ intelligence, dealId, isLoading }: DealI
                   </div>
                 ))}
               </div>
+            )}
+
+            {/* Score Breakdown */}
+            {dealScore?.score_breakdown && (
+              <ScoreBreakdownChart breakdown={dealScore.score_breakdown} />
             )}
 
             {/* Data Completeness */}
