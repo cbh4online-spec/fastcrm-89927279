@@ -1,114 +1,183 @@
 
 
-# Deal Forecast Chart -- Sales Performance Dashboard
+# Call Intelligence Settings Page
 
 ## Overview
 
-Add a new chart component that visualizes projected revenue per pipeline stage, based on each stage's probability. For each stage, it shows the **total value** of deals in that stage and the **probability-weighted value** (value x stage probability), giving a clear picture of expected revenue contribution by stage.
+Create a dedicated "Call Intelligence" settings page inspired by the Attio screenshot, with significant improvements. This will be a new settings category in the workspace navigation that manages call recording preferences, AI-powered transcription/summarization, and insights templates -- going well beyond Attio's basic auto-record toggle.
 
-## Data Approach
+## Reference Analysis (Attio Screenshot)
 
-The `useSalesPerformance` hook already fetches both `opportunities` (with `value`, `stage_id`, `status`) and `pipeline_stages` (with `name`, `position`, `probability`, `color`). A new `dealForecast` dataset will be computed by grouping active opportunities by stage and calculating:
+The screenshot shows:
+- A "Call intelligence" nav item under Personal settings
+- Auto-record meetings with radio card selection (External meetings / None)
+- Default insights template dropdown
 
-- **Total value** -- sum of all deal values in that stage
-- **Weighted value** -- total value x stage probability (e.g., a stage with 60% probability and EUR10K total = EUR6K weighted)
-- **Deal count** per stage
+## Improvements Over Attio
 
-```typescript
-export interface DealForecastStage {
-  stage_name: string;
-  stage_color: string;
-  position: number;
-  total_value: number;
-  weighted_value: number;
-  probability: number;
-  deal_count: number;
-}
+1. **Auto-record mode**: 3 options instead of 2 (All meetings, External only, None)
+2. **AI Transcription settings**: Language selection, auto-transcription toggle
+3. **AI Summary**: Toggle to auto-generate meeting summaries with model selection
+4. **Recording consent**: Toggle to notify participants about recording
+5. **CRM auto-linking**: Auto-associate recordings with deals/contacts
+6. **Insights templates**: Manage templates (not just select from dropdown)
+7. **Storage & retention**: Configure how long recordings are kept
+
+## Database Changes
+
+New table `workspace_call_intelligence_config` (1 row per workspace):
+
+```sql
+CREATE TABLE public.workspace_call_intelligence_config (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  auto_record_mode TEXT NOT NULL DEFAULT 'none',        -- 'all', 'external', 'none'
+  transcription_enabled BOOLEAN NOT NULL DEFAULT true,
+  transcription_language TEXT NOT NULL DEFAULT 'pt',     -- ISO 639-1
+  ai_summary_enabled BOOLEAN NOT NULL DEFAULT true,
+  consent_notification BOOLEAN NOT NULL DEFAULT true,
+  crm_auto_link BOOLEAN NOT NULL DEFAULT true,
+  retention_days INTEGER NOT NULL DEFAULT 90,
+  default_insights_template TEXT DEFAULT NULL,           -- template name/id
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT workspace_call_intel_unique UNIQUE (workspace_id)
+);
+
+ALTER TABLE public.workspace_call_intelligence_config ENABLE ROW LEVEL SECURITY;
+
+-- RLS: workspace members can read/write their own config
+CREATE POLICY "workspace_members_call_intel" ON public.workspace_call_intelligence_config
+  FOR ALL USING (
+    workspace_id IN (
+      SELECT workspace_id FROM public.workspace_members
+      WHERE user_id = auth.uid()
+    )
+  );
 ```
 
 ## Visual Design
 
-A horizontal grouped bar chart (using Recharts `BarChart`) showing two bars per stage:
-- **Full bar** (lighter) -- total pipeline value in that stage
-- **Weighted bar** (solid) -- probability-adjusted value
-
 ```text
-┌──────────────────────────────────────────────────┐
-│  Deal Forecast by Stage                          │
-│  Projected revenue based on pipeline probability │
-│                                                  │
-│  Qualification  ████████████  (20%)   €12K → €2.4K
-│  Discovery      ██████████████ (40%)  €14K → €5.6K
-│  Proposal       ████████████████ (60%) €16K → €9.6K
-│  Negotiation    ██████████ (80%)       €10K → €8K
-│  Closing        ████ (90%)             €4K → €3.6K
-│                                                  │
-│  Total Weighted: €29.2K                          │
-│  ▨ Total Value   ■ Weighted Value                │
-└──────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  Call Intelligence                                          │
+│  Manage your call recording and AI analysis settings        │
+│                                                             │
+│  ┌─ Auto-record meetings ──────────────────────────────┐    │
+│  │  Manage which meetings should be automatically       │    │
+│  │  recorded.                                           │    │
+│  │                                                      │    │
+│  │  ◉ [👥] External meetings        [Recommended]      │    │
+│  │         Only meetings with external participants     │    │
+│  │                                                      │    │
+│  │  ○ [📹] All meetings                                │    │
+│  │         Every meeting will be recorded               │    │
+│  │                                                      │    │
+│  │  ○ [⊘] None                                         │    │
+│  │         No meetings will be recorded                 │    │
+│  └──────────────────────────────────────────────────────┘    │
+│                                                             │
+│  ┌─ AI Transcription & Summary ────────────────────────┐    │
+│  │                                                      │    │
+│  │  Auto-transcription          [═══════○] ON           │    │
+│  │  Transcription language      [Português ▾]           │    │
+│  │                                                      │    │
+│  │  AI Meeting Summary          [═══════○] ON           │    │
+│  │  Automatically generate summaries with key topics    │    │
+│  │  and action items after each call.                   │    │
+│  └──────────────────────────────────────────────────────┘    │
+│                                                             │
+│  ┌─ Privacy & CRM ─────────────────────────────────────┐    │
+│  │                                                      │    │
+│  │  Consent notification        [═══════○] ON           │    │
+│  │  Notify participants that the call is being recorded │    │
+│  │                                                      │    │
+│  │  Auto-link to CRM            [═══════○] ON           │    │
+│  │  Associate recordings with contacts and deals        │    │
+│  │                                                      │    │
+│  │  Recording retention         [90 days ▾]             │    │
+│  └──────────────────────────────────────────────────────┘    │
+│                                                             │
+│  ┌─ Default insights template ─────────────────────────┐    │
+│  │  The selected template will be automatically         │    │
+│  │  applied to your meetings.                           │    │
+│  │                                                      │    │
+│  │  Template:                   [None ▾]                │    │
+│  └──────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## File Plan
 
-| File | Action |
-|---|---|
-| `src/components/reports/sales/DealForecastChart.tsx` | **NEW** -- Bar chart component with total vs weighted bars per stage |
-| `src/hooks/useSalesPerformance.ts` | **EDIT** -- Add `dealForecast` computation from existing data, add to return |
-| `src/pages/ReportsSales.tsx` | **EDIT** -- Import and render between Stage Duration Heatmap and Velocity row |
-| `src/i18n/locales/en/reports.json` | **EDIT** -- Add ~6 keys |
-| `src/i18n/locales/pt/reports.json` | **EDIT** -- Same |
-| `src/i18n/locales/es/reports.json` | **EDIT** -- Same |
-| `src/i18n/locales/fr/reports.json` | **EDIT** -- Same |
+| File | Action | Description |
+|---|---|---|
+| **Database migration** | **NEW** | Create `workspace_call_intelligence_config` table with RLS |
+| `src/hooks/useCallIntelligenceConfig.ts` | **NEW** | Hook to read/upsert call intelligence settings |
+| `src/components/settings/sections/CallIntelligenceSettings.tsx` | **NEW** | Full settings UI with radio cards, toggles, selects |
+| `src/components/settings/SettingsNavigation.tsx` | **EDIT** | Add `callIntelligence` category to workspace group |
+| `src/pages/Settings.tsx` | **EDIT** | Add `callIntelligence` case to render + categoryMeta |
+| `src/components/settings/settingsSearchData.ts` | **EDIT** | Add search entries for call intelligence |
+| `src/i18n/locales/pt/settings.json` | **EDIT** | Add ~25 new keys |
+| `src/i18n/locales/en/settings.json` | **EDIT** | Same |
+| `src/i18n/locales/es/settings.json` | **EDIT** | Same |
+| `src/i18n/locales/fr/settings.json` | **EDIT** | Same |
 
-## New i18n Keys (~6)
+## New i18n Keys (~25)
 
 ```
-deal_forecast_chart, deal_forecast_subtitle,
-deal_forecast_total, deal_forecast_weighted,
-deal_forecast_probability, deal_forecast_total_weighted
+nav_callIntelligence,
+callIntel_title, callIntel_description,
+callIntel_autoRecord, callIntel_autoRecordDesc,
+callIntel_external, callIntel_externalDesc, callIntel_recommended,
+callIntel_allMeetings, callIntel_allMeetingsDesc,
+callIntel_none, callIntel_noneDesc,
+callIntel_transcription, callIntel_transcriptionToggle, callIntel_transcriptionLang,
+callIntel_aiSummary, callIntel_aiSummaryToggle, callIntel_aiSummaryDesc,
+callIntel_privacy, callIntel_consent, callIntel_consentDesc,
+callIntel_crmAutoLink, callIntel_crmAutoLinkDesc,
+callIntel_retention, callIntel_retentionDays,
+callIntel_insightsTemplate, callIntel_insightsTemplateDesc,
+callIntel_saved
 ```
 
-## Hook Changes
-
-In `useSalesPerformance.ts`, after the stage duration calculation, add:
+## Hook Details (`useCallIntelligenceConfig.ts`)
 
 ```typescript
-const dealForecast: DealForecastStage[] = allStages.map((stage) => {
-  const stageOpps = activeOpps.filter(o => o.stage_id === stage.id);
-  const totalValue = stageOpps.reduce((s, o) => s + (o.value || 0), 0);
-  const prob = (stage.probability || 0) / 100;
-  return {
-    stage_name: stage.name,
-    stage_color: stage.color || "hsl(var(--primary))",
-    position: stage.position,
-    total_value: totalValue,
-    weighted_value: totalValue * prob,
-    probability: stage.probability || 0,
-    deal_count: stageOpps.length,
-  };
-}).filter(s => s.deal_count > 0).sort((a, b) => a.position - b.position);
+interface CallIntelligenceConfig {
+  auto_record_mode: 'all' | 'external' | 'none';
+  transcription_enabled: boolean;
+  transcription_language: string;
+  ai_summary_enabled: boolean;
+  consent_notification: boolean;
+  crm_auto_link: boolean;
+  retention_days: number;
+  default_insights_template: string | null;
+}
 ```
 
-## Component Details
+- Uses `useQuery` to fetch from `workspace_call_intelligence_config`
+- Uses `useMutation` with upsert pattern (check if row exists, insert or update)
+- Returns `{ config, isLoading, updateConfig }`
 
-- Uses `BarChart` with `layout="vertical"` from Recharts (consistent with existing charts)
-- Two bars: lighter opacity for total value, solid primary for weighted
-- Y-axis shows stage names, X-axis shows currency values
-- Tooltip shows stage name, probability %, total value, weighted value, deal count
-- Footer shows total weighted pipeline sum
-- Loading skeleton and empty state
-- Fully i18n via `useTranslation("reports")`
+## Component Details (`CallIntelligenceSettings.tsx`)
 
-## Dashboard Placement
+- **Auto-record section**: 3 radio cards styled like the Attio screenshot (border highlight on selected, recommended badge on external)
+- **AI section**: Two switch toggles with descriptions, a language `<Select>` dropdown (PT, EN, ES, FR, DE, IT)
+- **Privacy & CRM section**: Two switch toggles, a retention days `<Select>` (30, 60, 90, 180, 365)
+- **Insights template section**: A `<Select>` with "None" default
+- Each section auto-saves on change via `updateConfig.mutate()`
+- Uses `useTranslation("settings")` throughout
+- Loading state with Skeleton components
 
-Between the Stage Duration Heatmap and the Velocity/Performers grid:
+## Navigation Changes
 
-```tsx
-<StageDurationHeatmap data={data?.stageDuration} isLoading={isLoading} />
-<DealForecastChart data={data?.dealForecast} isLoading={isLoading} />
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-  <SalesVelocityCard ... />
-  <TopPerformersCard ... />
-</div>
-```
+Add `callIntelligence` to the workspace group in `SettingsNavigation.tsx` after `channels`, using `Phone` icon from lucide-react (matching Attio's "Call intelligence" placement).
+
+## Implementation Order
+
+1. Database migration (create table + RLS)
+2. Create hook
+3. Add i18n keys (all 4 locales)
+4. Create settings component
+5. Wire into Settings page + navigation + search data
 
