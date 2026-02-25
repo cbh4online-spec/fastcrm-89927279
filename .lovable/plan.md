@@ -1,105 +1,61 @@
 
 
-# Plan: Template Library Modal (Attio-style)
+# Plan: Drag-and-Drop Reordering for Saved Views
 
-## What We're Building
+## Overview
 
-A full-screen modal template library matching the Attio/Basepoint pattern shown in the screenshot. This will be a reusable dialog that can be opened from the existing Communication Templates page (and other surfaces) to browse, search, and apply pre-built templates organized by use case categories.
+Add drag-and-drop reordering to the Views section in the DealsSidebar. Users will be able to grab a view item and drag it to reorder within the list. The new position is persisted to the database via the existing `position` column on `crm_saved_views`.
 
-## Key UI Elements (from screenshot)
+## Current State
 
-- **Left sidebar**: "USE CASES" vertical nav with category icons (General, Sales, Success, Product, Marketing, Recruiting, Fundraising, Investing)
-- **Search bar**: "Search for templates, topics, goals..." at the top
-- **Template cards**: Horizontal list items showing:
-  - Left: Field preview chips (e.g. "Budget > Text", "Authority > List")
-  - Center: Template name, description, category badge
-  - Right: Section count (e.g. "4 Sections")
-- **Preview button**: "Preview template" sticky at bottom-right
-- **Close button**: X in top-right corner
-
-## Architecture
-
-### New Components
-
-1. **`src/components/communication/TemplateLibraryDialog.tsx`** — Main modal dialog
-   - Left sidebar with category list + icons
-   - Search input at top
-   - Scrollable template card list
-   - Preview panel/button
-   - Props: `open`, `onOpenChange`, `onSelectTemplate`
-
-2. **`src/components/communication/TemplateLibraryCard.tsx`** — Individual template row card
-   - Field preview chips on the left
-   - Title + description + category badge in center
-   - Section/field count on right
-   - Hover state with selection
-
-3. **`src/components/communication/templateLibraryData.ts`** — Static pre-built template definitions
-   - ~15-20 pre-built templates organized by use case
-   - Categories: Geral, Vendas, Sucesso, Produto, Marketing, Recrutamento, Captação, Investimento
-   - Each template has: name, description, category, fields/sections, body content
-
-### Integration Points
-
-- Add "Biblioteca" button to existing `TemplatesListPage.tsx` header actions
-- When a template is selected from the library, it pre-fills the `TemplateFormDialog` for creation
-- Reuses existing `CommunicationTemplate` type and `useCreateCommunicationTemplate` hook
-
-## Use Case Categories (adapted for CRM context)
-
-| Category | Icon | Templates |
-|----------|------|-----------|
-| Geral | LayoutGrid | Boas-vindas, Agradecimento, Confirmação |
-| Vendas | TrendingUp | BANT, Cold Outreach, Follow-Up, Proposta |
-| Sucesso | Heart | Onboarding, Check-in, Satisfação, Renovação |
-| Produto | Package | Lançamento, Demo, Feature Update |
-| Marketing | Megaphone | Newsletter, Promoção, Evento, Reativação |
-| Recrutamento | Users | Entrevista, Candidato, Oferta |
-
-## Pre-built Templates (examples)
-
-Each template includes:
-- **Name** and **description** 
-- **Category** badge (colored)
-- **Fields/sections** with type indicators (Text, List, etc.)
-- **Channel** (email/whatsapp)
-- **Structure** (AIDA, PAS, etc.)
-- **Body** content with variables
-
-Example:
-```text
-BANT Qualification
-├── Budget      > Text
-├── Authority   > Text  
-├── Need        > List
-└── Timeline    > Text
-Category: Sales | 4 Sections
-```
+- `SavedView` already has a `position: number` field
+- The query in `useSavedViews` currently orders by `name` — needs to change to `position`
+- No drag-and-drop library is installed, but we can implement lightweight HTML5 drag-and-drop without adding a dependency
 
 ## Implementation Steps
 
-### Step 1: Create template library data file
-`src/components/communication/templateLibraryData.ts` with ~18 pre-built templates, each with name, description, category, sections (field previews), channel, tone, structure, and body content.
+### 1. Update query ordering — `src/hooks/useSavedViews.ts`
 
-### Step 2: Create TemplateLibraryCard component
-Horizontal card matching the screenshot layout: field chips on left, title+description+badge in center, section count on right.
+Change `.order("name")` to `.order("position").order("name")` so views respect their saved position.
 
-### Step 3: Create TemplateLibraryDialog component
-Full modal with:
-- Left sidebar (240px) with category list and active state
-- Top search bar
-- Scrollable card list
-- Bottom "Preview template" button that shows a preview of selected template
-- "Use template" action that passes data to `TemplateFormDialog`
+### 2. Add `useReorderSavedViews` mutation — `src/hooks/useSavedViews.ts`
 
-### Step 4: Integrate into TemplatesListPage
-Add a "Biblioteca" button to the page header that opens the dialog. On template selection, open `TemplateFormDialog` pre-filled with the template data.
+New mutation that accepts an array of `{ id, position }` pairs and batch-updates them. Uses a simple loop of individual updates (Supabase doesn't support batch upsert on partial fields elegantly).
+
+```typescript
+export function useReorderSavedViews() {
+  // mutationFn: receives { entity_type, items: { id, position }[] }
+  // Updates each view's position in sequence
+  // Invalidates saved-views query on success
+}
+```
+
+### 3. Add drag-and-drop to Views list — `src/components/opportunities/DealsSidebar.tsx`
+
+- Add local `orderedViews` state derived from `filteredViews`
+- Add `draggedIndex` / `dragOverIndex` state tracking
+- On each `ViewItem`, add `draggable`, `onDragStart`, `onDragOver`, `onDragEnd`, `onDrop` handlers
+- Show a visual drop indicator (blue line) between items during drag
+- Add a subtle drag handle (grip dots icon) on hover, left of the view dot/icon
+- On drop, recompute positions and call `useReorderSavedViews`
+
+### 4. Update `ViewItem` component — `src/components/opportunities/DealsSidebar.tsx`
+
+- Accept new props: `isDragging`, `isDragOver`, `dragHandleProps`
+- Add `GripVertical` icon (from lucide) as drag handle, visible on hover
+- Apply opacity/border styling when dragging or being dragged over
+
+## Visual Behavior
+
+- Drag handle (⠿) appears on hover, left side of item
+- Dragged item becomes semi-transparent (opacity-50)
+- Drop target shows a 2px blue line above it
+- On release, list reorders smoothly and positions persist
 
 ## Technical Notes
 
-- The dialog uses `@radix-ui/react-dialog` (already installed) with `max-w-5xl` for the wide layout
-- Categories filter client-side from the static data array
-- Search filters by name, description, and field names
-- No database changes needed — this is a static library of starter templates
-- When "Use template" is clicked, the template body/structure is passed to the existing create flow
+- Uses native HTML5 Drag and Drop API — no new dependencies needed
+- Position values are set as 0, 1, 2, ... based on final order
+- The `GripVertical` icon is already available in lucide-react
+- Drag is only enabled in the Views section (not Favorites or Lists — those derive from the same data)
 
