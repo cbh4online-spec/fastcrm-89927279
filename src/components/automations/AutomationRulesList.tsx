@@ -85,6 +85,9 @@ const triggerLabels: Record<AutomationTrigger, string> = {
   store_repurchase: "Recompra",
   store_first_purchase: "1ª Compra",
   store_order_status_changed: "Estado Encomenda",
+  health_label_changed: "Saúde Deal Alterada",
+  health_score_below_threshold: "Score Abaixo Limite",
+  health_score_dropped: "Score Caiu",
 };
 
 const triggerColors: Record<AutomationTrigger, string> = {
@@ -125,6 +128,9 @@ const triggerColors: Record<AutomationTrigger, string> = {
   store_repurchase: "bg-teal-600",
   store_first_purchase: "bg-emerald-600",
   store_order_status_changed: "bg-cyan-600",
+  health_label_changed: "bg-red-500",
+  health_score_below_threshold: "bg-red-400",
+  health_score_dropped: "bg-orange-500",
 };
 
 

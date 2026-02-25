@@ -5,6 +5,7 @@ import { CustomFieldsManager } from "@/components/custom-fields/CustomFieldsMana
 import { FormLayoutEditor } from "@/components/custom-fields/FormLayoutEditor";
 import { IndustryLabelsSettings } from "../IndustryLabelsSettings";
 import { ActivityProfileSettings } from "../ActivityProfileSettings";
+import { HealthEngineSettings } from "../HealthEngineSettings";
 import { AIPipelineGenerator } from "@/components/pipelines/AIPipelineGenerator";
 import {
   Users,
@@ -22,6 +23,7 @@ import {
   Edit2,
   LayoutList,
   Sparkles,
+  HeartPulse,
 } from "lucide-react";
 import {
   Dialog,
@@ -641,6 +643,17 @@ export function CrmDataSettings({ searchQuery = "", matchedSections }: CrmDataSe
           icon={<Briefcase className="h-5 w-5" />}
         >
           <ActivityProfileSettings />
+        </SettingsSection>
+      )}
+
+      {/* Health Engine Config */}
+      {shouldShow("crm-pipeline") && (
+        <SettingsSection
+          title="Health Engine"
+          description="Configurar scoring de saúde e sensibilidade por valor dos negócios"
+          icon={<HeartPulse className="h-5 w-5" />}
+        >
+          <HealthEngineSettings />
         </SettingsSection>
       )}
 

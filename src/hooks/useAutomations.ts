@@ -42,7 +42,10 @@ export type AutomationTrigger =
   | "store_cart_abandoned"
   | "store_repurchase"
   | "store_first_purchase"
-  | "store_order_status_changed";
+  | "store_order_status_changed"
+  | "health_label_changed"
+  | "health_score_below_threshold"
+  | "health_score_dropped";
 
 export type AutomationActionType =
   | "create_task"
@@ -221,9 +224,9 @@ export function useCreateAutomationRule() {
           created_by: user.id,
           name: input.name,
           description: input.description || null,
-          trigger: input.trigger,
+          trigger: input.trigger as any,
           is_active: input.is_active ?? true,
-        })
+        } as any)
         .select()
         .single();
 
@@ -285,7 +288,7 @@ export function useUpdateAutomationRule() {
       if (Object.keys(updates).length > 0) {
         const { error: ruleError } = await workspaceClient
           .from("automation_rules")
-          .update(updates)
+          .update(updates as any)
           .eq("id", id);
         if (ruleError) throw ruleError;
       }

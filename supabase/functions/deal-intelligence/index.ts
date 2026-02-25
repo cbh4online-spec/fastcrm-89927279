@@ -17,16 +17,35 @@ interface RiskDriver {
   penalty: number;
 }
 
-function scoreDeal(
+interface StageBenchmark {
+  expected_days: number;
+  warning_multiplier: number;
+  risk_multiplier: number;
+}
+
+interface HealthConfig {
+  label_thresholds: { healthy: number; watch: number };
+  value_sensitivity_threshold: number;
+  value_sensitivity_multiplier: number;
+}
+
+const DEFAULT_CONFIG: HealthConfig = {
+  label_thresholds: { healthy: 80, watch: 50 },
+  value_sensitivity_threshold: 50000,
+  value_sensitivity_multiplier: 1.2,
+};
+
+function scoreDealV2(
   opp: any,
   activities: any[],
   tasks: any[],
-  expectedDays = 14
+  benchmark: StageBenchmark,
+  config: HealthConfig
 ) {
   const now = new Date();
   const risks: RiskDriver[] = [];
 
-  // Activity recency
+  // --- Activity recency (3-tier) ---
   const lastActivityDate = opp.last_activity_at
     ? new Date(opp.last_activity_at)
     : activities.length > 0
@@ -37,18 +56,21 @@ function scoreDeal(
     ? differenceInDays(now, lastActivityDate)
     : Infinity;
 
-  if (daysSinceActivity > 14) {
+  if (daysSinceActivity > 30) {
+    risks.push({ reason: `No activity in ${daysSinceActivity} days`, severity: "HIGH", penalty: 60 });
+  } else if (daysSinceActivity > 14) {
     risks.push({ reason: `No activity in ${daysSinceActivity} days`, severity: "HIGH", penalty: 40 });
   } else if (daysSinceActivity > 7) {
     risks.push({ reason: `No activity in ${daysSinceActivity} days`, severity: "HIGH", penalty: 25 });
   }
 
-  // Next step / tasks
+  // --- Next step / tasks ---
   const pendingTasks = tasks.filter((t: any) => t.status === "pending");
   const futureTasks = pendingTasks.filter(
     (t: any) => t.due_at && new Date(t.due_at) > now
   );
   const hasNextStep = pendingTasks.length > 0;
+  const hasTasks = tasks.length > 0;
 
   if (pendingTasks.length === 0) {
     risks.push({ reason: "No next step scheduled", severity: "HIGH", penalty: 20 });
@@ -60,17 +82,18 @@ function scoreDeal(
     }
   }
 
-  // Stage stagnation — benchmark-aware
+  // --- Stage velocity (pipeline-aware with multipliers) ---
   const daysInStage = differenceInDays(now, new Date(opp.updated_at));
   const stageName = opp.stage_name || "current";
+  const expectedDays = benchmark.expected_days;
 
-  if (daysInStage > expectedDays * 2) {
+  if (daysInStage > expectedDays * benchmark.risk_multiplier) {
     risks.push({ reason: `Stuck in stage '${stageName}' for ${daysInStage} days`, severity: "HIGH", penalty: 20 });
-  } else if (daysInStage > expectedDays) {
+  } else if (daysInStage > expectedDays * benchmark.warning_multiplier) {
     risks.push({ reason: `In stage '${stageName}' for ${daysInStage} days`, severity: "MEDIUM", penalty: 10 });
   }
 
-  // Data completeness
+  // --- Data completeness ---
   const missingFields: string[] = [];
   if (!opp.value || Number(opp.value) === 0) {
     missingFields.push("amount");
@@ -89,21 +112,35 @@ function scoreDeal(
   const filledCount = totalCheckedFields - missingFields.length;
   const completenessPercent = Math.round((filledCount / totalCheckedFields) * 100);
 
-  // Deal momentum: +5 if ≥2 activities in last 7 days
+  // --- Momentum bonus ---
   const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
   const recentActivityCount = activities.filter(
     (a) => new Date(a.created_at) >= sevenDaysAgo
   ).length;
   const momentumBonus = recentActivityCount >= 2 ? 5 : 0;
+  const hasRecentActivity = recentActivityCount > 0;
 
-  // Score
-  const totalPenalty = risks.reduce((sum, r) => sum + r.penalty, 0);
+  // --- Value sensitivity ---
+  let totalPenalty = risks.reduce((sum, r) => sum + r.penalty, 0);
+  const dealValue = Number(opp.value) || 0;
+  if (dealValue > config.value_sensitivity_threshold) {
+    totalPenalty = Math.round(totalPenalty * config.value_sensitivity_multiplier);
+  }
+
+  // --- Score & label (configurable thresholds) ---
   const healthScore = Math.max(0, Math.min(100, 100 - totalPenalty + momentumBonus));
-  const healthLabel = healthScore >= 80 ? "HEALTHY" : healthScore >= 50 ? "WATCH" : "AT_RISK";
+  const { healthy, watch } = config.label_thresholds;
+  const healthLabel = healthScore >= healthy ? "HEALTHY" : healthScore >= watch ? "WATCH" : "AT_RISK";
 
   const sortedRisks = [...risks].sort((a, b) => b.penalty - a.penalty).slice(0, 3);
 
-  // NBA
+  // --- Confidence metric ---
+  const dataFactor = completenessPercent / 100;
+  const activityFactor = hasRecentActivity ? 1 : 0.7;
+  const taskFactor = hasTasks ? 1 : 0.8;
+  const confidence = Math.round(dataFactor * activityFactor * taskFactor * 100) / 100;
+
+  // --- NBA ---
   let nba: any;
   if (daysSinceActivity > 7) {
     nba = {
@@ -139,18 +176,22 @@ function scoreDeal(
 
   return {
     deal_id: opp.id,
+    deal_title: opp.title || opp.name || "Untitled",
     health_score: healthScore,
     health_label: healthLabel,
     risk_drivers: sortedRisks.map((r) => ({ reason: r.reason, severity: r.severity })),
     next_best_action: nba,
     data_completeness: { percent: completenessPercent, missing_fields: missingFields },
+    confidence,
     debug: {
       last_activity_days: daysSinceActivity === Infinity ? null : daysSinceActivity,
       has_next_step: hasNextStep,
       stage_days: daysInStage,
       momentum_bonus: momentumBonus,
+      value_sensitivity_applied: dealValue > config.value_sensitivity_threshold,
     },
     top_reason: sortedRisks.length > 0 ? sortedRisks[0].reason : null,
+    has_recent_activity: hasRecentActivity,
   };
 }
 
@@ -230,16 +271,52 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const force = body.force === true;
 
-    // Fetch stage benchmarks for the workspace
-    const { data: stagesData } = await serviceClient
-      .from("pipeline_stages")
-      .select("id, expected_days")
-      .eq("workspace_id", workspaceId);
+    // --- Fetch workspace config ---
+    const [configRes, benchmarksRes, stagesRes] = await Promise.all([
+      serviceClient
+        .from("health_engine_config")
+        .select("*")
+        .eq("workspace_id", workspaceId)
+        .maybeSingle(),
+      serviceClient
+        .from("pipeline_stage_benchmarks")
+        .select("*")
+        .eq("workspace_id", workspaceId),
+      serviceClient
+        .from("pipeline_stages")
+        .select("id, name, expected_days, pipeline_id")
+        .eq("workspace_id", workspaceId),
+    ]);
 
-    const stageExpectedDays = new Map<string, number>();
-    (stagesData || []).forEach((s: any) => stageExpectedDays.set(s.id, s.expected_days ?? 14));
+    const config: HealthConfig = configRes.data
+      ? {
+          label_thresholds: configRes.data.label_thresholds as any || DEFAULT_CONFIG.label_thresholds,
+          value_sensitivity_threshold: Number(configRes.data.value_sensitivity_threshold) || DEFAULT_CONFIG.value_sensitivity_threshold,
+          value_sensitivity_multiplier: Number(configRes.data.value_sensitivity_multiplier) || DEFAULT_CONFIG.value_sensitivity_multiplier,
+        }
+      : DEFAULT_CONFIG;
 
-    // ---------- helpers ----------
+    // Build benchmark map: stage_id → StageBenchmark
+    const benchmarkMap = new Map<string, StageBenchmark>();
+    (stagesRes.data || []).forEach((s: any) => {
+      benchmarkMap.set(s.id, {
+        expected_days: s.expected_days ?? 14,
+        warning_multiplier: 1.0,
+        risk_multiplier: 1.5,
+      });
+    });
+    // Override with pipeline_stage_benchmarks if present
+    (benchmarksRes.data || []).forEach((b: any) => {
+      benchmarkMap.set(b.stage_id, {
+        expected_days: b.expected_days ?? 14,
+        warning_multiplier: Number(b.warning_multiplier) || 1.0,
+        risk_multiplier: Number(b.risk_multiplier) || 1.5,
+      });
+    });
+
+    const defaultBenchmark: StageBenchmark = { expected_days: 14, warning_multiplier: 1.0, risk_multiplier: 1.5 };
+
+    // --- Cache helpers ---
     async function cacheGet(ids: string[]) {
       if (force || ids.length === 0) return new Map<string, any>();
       const { data } = await serviceClient
@@ -269,6 +346,46 @@ Deno.serve(async (req) => {
         .upsert(rows, { onConflict: "workspace_id,deal_id" });
     }
 
+    // --- Health history recording + label change detection ---
+    async function recordHistory(results: any[]) {
+      if (results.length === 0) return;
+
+      // Fetch latest history for these deals
+      const dealIds = results.map((r) => r.deal_id);
+      const { data: historyRows } = await serviceClient
+        .from("health_score_history")
+        .select("deal_id, health_label")
+        .eq("workspace_id", workspaceId)
+        .in("deal_id", dealIds)
+        .order("recorded_at", { ascending: false });
+
+      // Get the most recent label per deal
+      const lastLabelMap = new Map<string, string>();
+      (historyRows || []).forEach((h: any) => {
+        if (!lastLabelMap.has(h.deal_id)) {
+          lastLabelMap.set(h.deal_id, h.health_label);
+        }
+      });
+
+      const historyInserts = results.map((r) => ({
+        workspace_id: workspaceId,
+        deal_id: r.deal_id,
+        health_score: r.health_score,
+        health_label: r.health_label,
+        previous_label: lastLabelMap.get(r.deal_id) || null,
+        top_reason: r.top_reason,
+      }));
+
+      await serviceClient.from("health_score_history").insert(historyInserts);
+
+      // Detect label changes and add to results
+      results.forEach((r) => {
+        const prev = lastLabelMap.get(r.deal_id);
+        r.label_changed = prev ? prev !== r.health_label : false;
+        r.previous_label = prev || null;
+      });
+    }
+
     // ---------- Single deal mode ----------
     if (body.deal_id) {
       const dealId = body.deal_id;
@@ -283,7 +400,7 @@ Deno.serve(async (req) => {
       const [oppRes, actRes, taskRes] = await Promise.all([
         serviceClient
           .from("opportunities")
-          .select("*, stage:pipeline_stages(name, expected_days)")
+          .select("*, stage:pipeline_stages(name, expected_days, pipeline_id)")
           .eq("id", dealId)
           .eq("workspace_id", workspaceId)
           .single(),
@@ -311,16 +428,15 @@ Deno.serve(async (req) => {
         });
       }
 
-      const stageExpDays = oppRes.data.stage?.expected_days ?? stageExpectedDays.get(oppRes.data.stage_id) ?? 14;
+      const bm = benchmarkMap.get(oppRes.data.stage_id) || defaultBenchmark;
       const opp = { ...oppRes.data, stage_name: oppRes.data.stage?.name };
       const activities = actRes.data || [];
-      const result = scoreDeal(opp, activities, taskRes.data || [], stageExpDays);
+      const result = scoreDealV2(opp, activities, taskRes.data || [], bm, config);
 
       // Historical insights
       const daysInStage = result.debug.stage_days;
       const historicalInsights: Array<{ text: string; severity: string }> = [];
 
-      // Compute avg stage days from historical data
       let avgStageDays: number | null = null;
       try {
         const { data: stageActivities } = await serviceClient
@@ -332,14 +448,12 @@ Deno.serve(async (req) => {
           .limit(500);
 
         if (stageActivities && stageActivities.length >= 3) {
-          // Group by entity_id to get transitions
           const dealTimes = new Map<string, Date[]>();
           stageActivities.forEach((a: any) => {
             const list = dealTimes.get(a.entity_id) || [];
             list.push(new Date(a.created_at));
             dealTimes.set(a.entity_id, list);
           });
-          // Average gap between transitions
           let totalDays = 0;
           let count = 0;
           dealTimes.forEach((dates) => {
@@ -355,7 +469,7 @@ Deno.serve(async (req) => {
         }
       } catch { /* ignore */ }
 
-      const refDays = avgStageDays ?? stageExpDays;
+      const refDays = avgStageDays ?? bm.expected_days;
       if (daysInStage > refDays) {
         const severity = daysInStage > refDays * 1.5 ? "MEDIUM" : "LOW";
         historicalInsights.push({
@@ -364,7 +478,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Avg cycle length for won deals
       try {
         const { data: wonDeals } = await serviceClient
           .from("opportunities")
@@ -390,7 +503,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Automation suggestions
       const daysSinceAct = result.debug.last_activity_days ?? Infinity;
       const automationSuggestions = buildAutomationSuggestions(
         opp, result.debug.has_next_step, daysSinceAct, result.health_score, daysInStage
@@ -399,7 +511,7 @@ Deno.serve(async (req) => {
       const fullResult = {
         ...result,
         benchmarks: {
-          expected_stage_days: stageExpDays,
+          expected_stage_days: bm.expected_days,
           avg_stage_days: avgStageDays,
           deal_stage_days: daysInStage,
         },
@@ -407,6 +519,8 @@ Deno.serve(async (req) => {
         automation_suggestions: automationSuggestions,
       };
 
+      // Record history + detect label change
+      await recordHistory([fullResult]);
       cacheSet([fullResult]);
 
       return new Response(JSON.stringify(fullResult), {
@@ -432,7 +546,7 @@ Deno.serve(async (req) => {
         const [oppsRes, actsRes, tasksRes] = await Promise.all([
           serviceClient
             .from("opportunities")
-            .select("*, stage:pipeline_stages(name, expected_days)")
+            .select("*, stage:pipeline_stages(name, expected_days, pipeline_id)")
             .in("id", missIds)
             .eq("workspace_id", workspaceId),
           serviceClient
@@ -467,17 +581,22 @@ Deno.serve(async (req) => {
 
         const toCache: any[] = [];
         (oppsRes.data || []).forEach((opp: any) => {
-          const expDays = opp.stage?.expected_days ?? stageExpectedDays.get(opp.stage_id) ?? 14;
+          const bm = benchmarkMap.get(opp.stage_id) || defaultBenchmark;
           const o = { ...opp, stage_name: opp.stage?.name };
-          const result = scoreDeal(o, actsByDeal.get(opp.id) || [], tasksByDeal.get(opp.id) || [], expDays);
+          const result = scoreDealV2(o, actsByDeal.get(opp.id) || [], tasksByDeal.get(opp.id) || [], bm, config);
           freshItems[opp.id] = {
             health_score: result.health_score,
             health_label: result.health_label,
             top_reason: result.top_reason,
+            confidence: result.confidence,
+            stage_days: result.debug.stage_days,
+            last_activity_days: result.debug.last_activity_days,
           };
           toCache.push(result);
         });
 
+        // Record history for fresh computations
+        await recordHistory(toCache);
         cacheSet(toCache);
       }
 
@@ -489,6 +608,9 @@ Deno.serve(async (req) => {
             health_score: c.health_score,
             health_label: c.health_label,
             top_reason: c.top_reason,
+            confidence: c.confidence,
+            stage_days: c.debug?.stage_days ?? null,
+            last_activity_days: c.debug?.last_activity_days ?? null,
           };
         } else if (freshItems[id]) {
           items[id] = freshItems[id];

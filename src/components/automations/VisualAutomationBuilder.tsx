@@ -109,6 +109,10 @@ const triggerOptions: { value: AutomationTrigger; label: string; humanLabel: str
   // Form triggers
   { value: "form_submitted", label: "Formulário Submetido", humanLabel: "When a form is submitted", entity: "form", requiresConfig: true },
   { value: "scheduled_time", label: "Data/Hora Agendada", humanLabel: "At scheduled time", entity: "scheduled", requiresConfig: true },
+  // Health triggers
+  { value: "health_label_changed", label: "Saúde Deal Alterada", humanLabel: "When deal health label changes", entity: "opportunity" },
+  { value: "health_score_below_threshold", label: "Score Abaixo Limite", humanLabel: "When health score drops below threshold", entity: "opportunity", requiresConfig: true },
+  { value: "health_score_dropped", label: "Score Caiu", humanLabel: "When health score drops significantly", entity: "opportunity", requiresConfig: true },
 ];
 
 // Action options with human-readable labels

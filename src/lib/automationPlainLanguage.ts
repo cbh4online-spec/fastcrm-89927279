@@ -39,6 +39,9 @@ const triggerDescriptions: Record<AutomationTrigger, string> = {
   store_repurchase: "Quando um cliente faz uma recompra",
   store_first_purchase: "Quando um cliente faz a primeira compra",
   store_order_status_changed: "Quando o estado de uma encomenda muda",
+  health_label_changed: "Quando o estado de saúde de um deal muda",
+  health_score_below_threshold: "Quando o score de saúde cai abaixo do limite",
+  health_score_dropped: "Quando o score de saúde diminui significativamente",
 };
 
 /**
