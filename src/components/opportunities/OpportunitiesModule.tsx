@@ -51,7 +51,7 @@ import { OpportunityTableView } from "./OpportunityTableView";
 import { CreateOpportunityEnhancedDialog } from "./CreateOpportunityEnhancedDialog";
 import { PipelineSettingsDialog } from "@/components/crm/PipelineSettingsDialog";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
-import { DealsSidebar } from "./DealsSidebar";
+
 import { DealViewSelectorDropdown } from "./DealViewSelectorDropdown";
 import { CommandPalette } from "./CommandPalette";
 import { CreateViewDialog } from "./CreateViewDialog";
@@ -86,7 +86,7 @@ export function OpportunitiesModule() {
   const [sortByScore, setSortByScore] = useState(false);
   const [hotDealsOnly, setHotDealsOnly] = useState(false);
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  
   const [showCreateViewDialog, setShowCreateViewDialog] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
@@ -271,16 +271,7 @@ export function OpportunitiesModule() {
   }
 
   return (
-    <div className="flex h-full">
-      <DealsSidebar
-        activeViewId={activeViewId}
-        onSelectView={handleSelectView}
-        onCreateView={() => setShowCreateViewDialog(true)}
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
-        opportunities={opportunities}
-        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
-      />
+    <div className="h-full">
       <CommandPalette
         open={commandPaletteOpen}
         onOpenChange={setCommandPaletteOpen}
