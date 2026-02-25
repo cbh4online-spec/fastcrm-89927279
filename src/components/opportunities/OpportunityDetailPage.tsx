@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Sparkles, Building2, Users, Phone, Plus, CreditCard, LayoutGrid, UserCheck, Handshake } from "lucide-react";
+import { X, Sparkles, Building2, Users, Phone, Plus, CreditCard, LayoutGrid, UserCheck, Handshake, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -32,6 +32,8 @@ import { OpportunityNotesTab } from "./detail/OpportunityNotesTab";
 import { OpportunityTasksTab } from "./detail/OpportunityTasksTab";
 import { OpportunityAssociatedTab } from "./detail/OpportunityAssociatedTab";
 import { OpportunityCallsTab } from "./detail/OpportunityCallsTab";
+import { OpportunityCommentsTab } from "./detail/OpportunityCommentsTab";
+import { useOpportunityComments } from "@/hooks/useOpportunityComments";
 import { OpportunityAIInsightsSection } from "./OpportunityAIInsightsSection";
 import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
 import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
@@ -75,6 +77,7 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
   const { data: dealTasks = [] } = useTasks({ related_type: "opportunity", related_id: opportunityId });
   const updateOpportunity = useUpdateOpportunityEnhanced();
   const { data: intelligence, isLoading: intelligenceLoading } = useDealIntelligenceAPI(opportunityId);
+  const { data: commentsData = [] } = useOpportunityComments(opportunityId);
   
   const { data: leadsData = [], isLoading: isLoadingLeads } = useLeads();
   const { contacts: contactsData = [], isLoading: isLoadingContacts } = useContacts();
@@ -159,6 +162,7 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
     workspace: "bg-cyan-500",
     keycontact: "bg-teal-500",
     partner: "bg-indigo-500",
+    comments: "bg-violet-500",
   };
 
   const tabDot = (key: string) => (
@@ -239,6 +243,12 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
                 {tabDot("insights")}
                 <Sparkles className="h-3 w-3" />
                 {t("oppDetailTabInsights")}
+              </TabsTrigger>
+              <TabsTrigger value="comments" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+                {tabDot("comments")}
+                <MessageSquare className="h-3 w-3" />
+                {t("oppDetail_commentsTab")}
+                {tabBadge(commentsData.filter(c => !c.parent_id).length)}
               </TabsTrigger>
               {/* Dynamic tabs */}
               {additionalTabs.map(tabId => {
@@ -333,6 +343,10 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
                 <OpportunityAIInsightsSection opportunityId={opportunity.id} onActionClick={(actionType) => { toast.info(t("oppDetailAction", { action: actionType })); }} />
                 <EntityMemoryPanel entityId={opportunity.id} entityType="opportunity" entityName={opportunity.title} />
               </div>
+            </TabsContent>
+
+            <TabsContent value="comments" className="mt-4">
+              <OpportunityCommentsTab opportunityId={opportunity.id} />
             </TabsContent>
 
             {/* Dynamic tab contents */}
