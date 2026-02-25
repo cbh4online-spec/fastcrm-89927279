@@ -6380,6 +6380,7 @@ export type Database = {
           structure_families: string[] | null
           structure_type: string | null
           subject: string | null
+          tags: string[] | null
           tone: string | null
           updated_at: string | null
           usage_count: number | null
@@ -6412,6 +6413,7 @@ export type Database = {
           structure_families?: string[] | null
           structure_type?: string | null
           subject?: string | null
+          tags?: string[] | null
           tone?: string | null
           updated_at?: string | null
           usage_count?: number | null
@@ -6444,6 +6446,7 @@ export type Database = {
           structure_families?: string[] | null
           structure_type?: string | null
           subject?: string | null
+          tags?: string[] | null
           tone?: string | null
           updated_at?: string | null
           usage_count?: number | null
@@ -10887,6 +10890,173 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "email_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_sequence_enrollments: {
+        Row: {
+          completed_at: string | null
+          contact_id: string
+          current_step: number | null
+          enrolled_at: string | null
+          enrolled_by: string
+          exit_reason: string | null
+          id: string
+          next_send_at: string | null
+          sequence_id: string
+          status: string | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          contact_id: string
+          current_step?: number | null
+          enrolled_at?: string | null
+          enrolled_by: string
+          exit_reason?: string | null
+          id?: string
+          next_send_at?: string | null
+          sequence_id: string
+          status?: string | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          contact_id?: string
+          current_step?: number | null
+          enrolled_at?: string | null
+          enrolled_by?: string
+          exit_reason?: string | null
+          id?: string
+          next_send_at?: string | null
+          sequence_id?: string
+          status?: string | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_sequence_enrollments_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "email_sequences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_sequence_enrollments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_sequence_steps: {
+        Row: {
+          body: string | null
+          channel: string | null
+          created_at: string | null
+          delay_days: number | null
+          delay_hours: number | null
+          id: string
+          is_active: boolean | null
+          sequence_id: string
+          step_order: number
+          subject: string | null
+          template_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          body?: string | null
+          channel?: string | null
+          created_at?: string | null
+          delay_days?: number | null
+          delay_hours?: number | null
+          id?: string
+          is_active?: boolean | null
+          sequence_id: string
+          step_order: number
+          subject?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          body?: string | null
+          channel?: string | null
+          created_at?: string | null
+          delay_days?: number | null
+          delay_hours?: number | null
+          id?: string
+          is_active?: boolean | null
+          sequence_id?: string
+          step_order?: number
+          subject?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_sequence_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "email_sequences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_sequence_steps_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "communication_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_sequences: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          description: string | null
+          exit_conditions: Json | null
+          id: string
+          is_active: boolean | null
+          name: string
+          tags: string[] | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          exit_conditions?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          tags?: string[] | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          exit_conditions?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          tags?: string[] | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_sequences_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -29271,6 +29441,45 @@ export type Database = {
           },
           {
             foreignKeyName: "template_activity_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_favorites: {
+        Row: {
+          created_at: string | null
+          id: string
+          template_id: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          template_id: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          template_id?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_favorites_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "communication_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_favorites_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

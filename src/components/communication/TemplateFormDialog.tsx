@@ -77,6 +77,7 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
     structureFamilies: ['AIDA'] as string[],
     brandConstraints: {} as Record<string, unknown>,
     maxLengthByChannel: { whatsapp: 350, email: 1600, sms: 160, inbox: 800 } as Record<string, number>,
+    tags: [] as string[],
   });
 
   useEffect(() => {
@@ -99,6 +100,7 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
         structureFamilies: template.structureFamilies || ['AIDA'],
         brandConstraints: template.brandConstraints || {},
         maxLengthByChannel: template.maxLengthByChannel || { whatsapp: 350, email: 1600, sms: 160, inbox: 800 },
+        tags: template.tags || [],
       });
     } else {
       setFormData({
@@ -119,6 +121,7 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
         structureFamilies: ['AIDA'],
         brandConstraints: {},
         maxLengthByChannel: { whatsapp: 350, email: 1600, sms: 160, inbox: 800 },
+        tags: [],
       });
     }
   }, [template, open]);
@@ -387,6 +390,26 @@ export function TemplateFormDialog({ open, onOpenChange, template, onClose }: Te
                 {templateErrors.length > 0 && (
                   <div className="text-xs text-destructive space-y-1">
                     {templateErrors.map((err, i) => <div key={i}>⚠ {err}</div>)}
+                  </div>
+                )}
+              </div>
+
+              {/* Tags */}
+              <div className="space-y-2">
+                <Label>Tags</Label>
+                <Input
+                  value={(formData.tags || []).join(', ')}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) 
+                  }))}
+                  placeholder="vendas, follow-up, onboarding (separadas por vírgula)"
+                />
+                {formData.tags?.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {formData.tags.map(tag => (
+                      <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                    ))}
                   </div>
                 )}
               </div>
