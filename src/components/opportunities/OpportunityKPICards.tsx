@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useOpportunityKPIs } from "@/hooks/useOpportunitiesEnhanced";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 
 export function OpportunityKPICards() {
+  const { t } = useTranslation('crm');
   const { data: kpis, isLoading } = useOpportunityKPIs();
 
   const formatCurrency = (value: number) => {
@@ -26,66 +28,66 @@ export function OpportunityKPICards() {
 
   const cards = [
     {
-      title: "Valor em Pipeline",
+      title: t('oppKpiPipelineValue'),
       value: formatCurrency(kpis?.totalValue || 0),
       icon: DollarSign,
-      description: "Total de oportunidades abertas",
+      description: t('oppKpiPipelineValueDesc'),
       color: "text-blue-600",
       bgColor: "bg-blue-50",
     },
     {
-      title: "Valor Ponderado",
+      title: t('oppKpiWeightedValue'),
       value: formatCurrency(kpis?.weightedValue || 0),
       icon: Target,
-      description: "Baseado na probabilidade",
+      description: t('oppKpiWeightedValueDesc'),
       color: "text-purple-600",
       bgColor: "bg-purple-50",
     },
     {
-      title: "Oportunidades Abertas",
+      title: t('oppKpiOpenOpps'),
       value: kpis?.totalOpen?.toString() || "0",
       icon: TrendingUp,
-      description: "Em progresso",
+      description: t('oppKpiOpenOppsDesc'),
       color: "text-amber-600",
       bgColor: "bg-amber-50",
     },
     {
-      title: "Taxa de Conversão",
+      title: t('oppKpiConversionRate'),
       value: `${(kpis?.conversionRate || 0).toFixed(1)}%`,
       icon: Percent,
-      description: "Ganhas / (Ganhas + Perdidas)",
+      description: t('oppKpiConversionRateDesc'),
       color: "text-green-600",
       bgColor: "bg-green-50",
     },
     {
-      title: "Ganhas",
+      title: t('oppKpiWon'),
       value: kpis?.totalWon?.toString() || "0",
       icon: CheckCircle2,
-      description: "Oportunidades ganhas",
+      description: t('oppKpiWonDesc'),
       color: "text-emerald-600",
       bgColor: "bg-emerald-50",
     },
     {
-      title: "Perdidas",
+      title: t('oppKpiLost'),
       value: kpis?.totalLost?.toString() || "0",
       icon: XCircle,
-      description: "Oportunidades perdidas",
+      description: t('oppKpiLostDesc'),
       color: "text-red-600",
       bgColor: "bg-red-50",
     },
     {
-      title: "Valor Médio",
+      title: t('oppKpiAvgDealSize'),
       value: formatCurrency(kpis?.avgDealSize || 0),
       icon: BarChart3,
-      description: "Por negócio ganho",
+      description: t('oppKpiAvgDealSizeDesc'),
       color: "text-indigo-600",
       bgColor: "bg-indigo-50",
     },
     {
-      title: "Tempo Médio de Fecho",
+      title: t('oppKpiAvgCloseTime'),
       value: `${Math.round(kpis?.avgCloseTime || 0)}d`,
       icon: Clock,
-      description: "Dias até fechar",
+      description: t('oppKpiAvgCloseTimeDesc'),
       color: "text-cyan-600",
       bgColor: "bg-cyan-50",
     },

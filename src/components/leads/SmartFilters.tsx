@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { SmartFilterType, SmartLeadsFilters, LeadTemperature, LeadStatus } from "@/hooks/useSmartLeads";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,18 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 import { 
   Search, 
-  Filter, 
   Flame, 
   Clock, 
   TrendingUp, 
@@ -37,16 +28,18 @@ interface SmartFiltersProps {
   onToggleAdvanced: () => void;
 }
 
-const smartFilters: Array<{ key: SmartFilterType; label: string; icon: React.ReactNode }> = [
-  { key: "hot", label: "Leads Quentes", icon: <Flame className="w-3 h-3" /> },
-  { key: "no_response", label: "Sem Resposta", icon: <Clock className="w-3 h-3" /> },
-  { key: "high_intent", label: "Alta Intenção", icon: <TrendingUp className="w-3 h-3" /> },
-  { key: "automation_active", label: "Com Automação", icon: <Zap className="w-3 h-3" /> },
-  { key: "today", label: "Hoje", icon: <Calendar className="w-3 h-3" /> },
-  { key: "this_week", label: "Esta Semana", icon: <Calendar className="w-3 h-3" /> },
-];
-
 export function SmartFilters({ filters, onFiltersChange, showAdvanced, onToggleAdvanced }: SmartFiltersProps) {
+  const { t } = useTranslation('crm');
+
+  const smartFilters: Array<{ key: SmartFilterType; label: string; icon: React.ReactNode }> = [
+    { key: "hot", label: t('smartFilterHotLeads'), icon: <Flame className="w-3 h-3" /> },
+    { key: "no_response", label: t('smartFilterNoResponse'), icon: <Clock className="w-3 h-3" /> },
+    { key: "high_intent", label: t('smartFilterHighIntent'), icon: <TrendingUp className="w-3 h-3" /> },
+    { key: "automation_active", label: t('smartFilterAutomation'), icon: <Zap className="w-3 h-3" /> },
+    { key: "today", label: t('smartFilterToday'), icon: <Calendar className="w-3 h-3" /> },
+    { key: "this_week", label: t('smartFilterThisWeek'), icon: <Calendar className="w-3 h-3" /> },
+  ];
+
   const activeFiltersCount = [
     filters.status && filters.status !== "all",
     filters.temperature && filters.temperature !== "all",
@@ -72,7 +65,7 @@ export function SmartFilters({ filters, onFiltersChange, showAdvanced, onToggleA
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Pesquisar leads..."
+            placeholder={t('searchLeads')}
             value={filters.search || ""}
             onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
             className="pl-9"
@@ -85,13 +78,13 @@ export function SmartFilters({ filters, onFiltersChange, showAdvanced, onToggleA
           onValueChange={(value) => onFiltersChange({ ...filters, status: value as LeadStatus | "all" })}
         >
           <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Status" />
+            <SelectValue placeholder={t('col_status')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos Status</SelectItem>
-            <SelectItem value="new">Novo</SelectItem>
-            <SelectItem value="in_progress">Em contacto</SelectItem>
-            <SelectItem value="completed">Qualificado</SelectItem>
+            <SelectItem value="all">{t('allStatus')}</SelectItem>
+            <SelectItem value="new">{t('statusNew')}</SelectItem>
+            <SelectItem value="in_progress">{t('statusInProgress')}</SelectItem>
+            <SelectItem value="completed">{t('statusQualified')}</SelectItem>
           </SelectContent>
         </Select>
 
@@ -101,13 +94,13 @@ export function SmartFilters({ filters, onFiltersChange, showAdvanced, onToggleA
           onValueChange={(value) => onFiltersChange({ ...filters, temperature: value as LeadTemperature | "all" })}
         >
           <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Temperatura" />
+            <SelectValue placeholder={t('col_temperature')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            <SelectItem value="hot">🔥 Quente</SelectItem>
-            <SelectItem value="warm">🟡 Morno</SelectItem>
-            <SelectItem value="cold">❄️ Frio</SelectItem>
+            <SelectItem value="all">{t('allTemperatures')}</SelectItem>
+            <SelectItem value="hot">🔥 {t('temperatureHot')}</SelectItem>
+            <SelectItem value="warm">🟡 {t('temperatureWarm')}</SelectItem>
+            <SelectItem value="cold">❄️ {t('temperatureCold')}</SelectItem>
           </SelectContent>
         </Select>
 
@@ -117,14 +110,14 @@ export function SmartFilters({ filters, onFiltersChange, showAdvanced, onToggleA
           onValueChange={(value) => onFiltersChange({ ...filters, source: value })}
         >
           <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Canal" />
+            <SelectValue placeholder={t('col_source')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos Canais</SelectItem>
-            <SelectItem value="email">Email</SelectItem>
-            <SelectItem value="whatsapp">WhatsApp</SelectItem>
-            <SelectItem value="instagram">Instagram</SelectItem>
-            <SelectItem value="form">Formulário</SelectItem>
+            <SelectItem value="all">{t('allChannels')}</SelectItem>
+            <SelectItem value="email">{t('channelEmail')}</SelectItem>
+            <SelectItem value="whatsapp">{t('channelWhatsapp')}</SelectItem>
+            <SelectItem value="instagram">{t('channelInstagram')}</SelectItem>
+            <SelectItem value="form">{t('channelForm')}</SelectItem>
           </SelectContent>
         </Select>
 
@@ -136,7 +129,7 @@ export function SmartFilters({ filters, onFiltersChange, showAdvanced, onToggleA
           className="gap-2"
         >
           <SlidersHorizontal className="w-4 h-4" />
-          Colunas Avançadas
+          {t('advancedColumns')}
         </Button>
 
         {/* Clear filters */}
@@ -148,14 +141,14 @@ export function SmartFilters({ filters, onFiltersChange, showAdvanced, onToggleA
             className="gap-1 text-muted-foreground"
           >
             <X className="w-3 h-3" />
-            Limpar ({activeFiltersCount})
+            {t('clearFilters', { count: activeFiltersCount })}
           </Button>
         )}
       </div>
 
       {/* Smart filters row */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-muted-foreground mr-1">Filtros rápidos:</span>
+        <span className="text-xs text-muted-foreground mr-1">{t('smartFiltersLabel')}</span>
         {smartFilters.map((sf) => (
           <Button
             key={sf.key}
