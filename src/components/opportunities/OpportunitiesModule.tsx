@@ -52,6 +52,7 @@ import { CreateOpportunityEnhancedDialog } from "./CreateOpportunityEnhancedDial
 import { PipelineSettingsDialog } from "@/components/crm/PipelineSettingsDialog";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { DealsSidebar } from "./DealsSidebar";
+import { DealViewSelectorDropdown } from "./DealViewSelectorDropdown";
 import { CreateViewDialog } from "./CreateViewDialog";
 import { ActiveFilterPills } from "./ActiveFilterPills";
 import { ViewSettingsDropdown } from "./ViewSettingsDropdown";
@@ -280,9 +281,12 @@ export function OpportunitiesModule() {
       <div className="flex-1 min-w-0 space-y-6 h-full flex flex-col p-6 overflow-auto">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between flex-shrink-0">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">{t('opportunitiesTitle')}</h1>
-          <p className="text-muted-foreground">{t('opportunitiesDesc')}</p>
+        <div className="flex items-center gap-2">
+          <DealViewSelectorDropdown
+            activeViewId={activeViewId}
+            onSelectView={handleSelectView}
+            onCreateView={() => setShowCreateViewDialog(true)}
+          />
         </div>
         <div className="flex items-center gap-2">
           <ViewSettingsDropdown
@@ -298,7 +302,7 @@ export function OpportunitiesModule() {
             <Settings className="w-4 h-4 mr-2" />
             {t('pipelineSettings')}
           </Button>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <Button onClick={() => setIsCreateDialogOpen(true)} className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
             <Plus className="w-4 h-4 mr-2" />
             {t('newOpportunity')}
           </Button>

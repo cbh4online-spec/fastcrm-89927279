@@ -641,5 +641,13 @@
   "exportExcel": "Exportar Excel",
   "tableRowCount": "registos",
   "addColumn": "+ Adicionar coluna",
-  "addCalculation": "+ Adicionar cálculo"
+  "addCalculation": "+ Adicionar cálculo",
+  "sidebarNotifications": "Notificações",
+  "sidebarNotes": "Notas",
+  "sidebarEmails": "Emails",
+  "sidebarCalls": "Chamadas",
+  "sidebarReports": "Relatórios",
+  "sidebarAutomations": "Automações",
+  "sidebarSequences": "Sequências",
+  "sidebarWorkflows": "Workflows"
 }
