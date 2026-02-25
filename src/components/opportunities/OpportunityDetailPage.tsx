@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { X, Sparkles, Building2, Users, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { 
   useOpportunityDetail, 
   useUpdateOpportunityEnhanced,
@@ -23,6 +24,8 @@ import { OpportunityHeaderActions } from "./detail/OpportunityHeaderActions";
 import { OpportunityDetailSidebar } from "./detail/OpportunityDetailSidebar";
 import { OpportunityNotesTab } from "./detail/OpportunityNotesTab";
 import { OpportunityTasksTab } from "./detail/OpportunityTasksTab";
+import { OpportunityAssociatedTab } from "./detail/OpportunityAssociatedTab";
+import { OpportunityCallsTab } from "./detail/OpportunityCallsTab";
 import { OpportunityAIInsightsSection } from "./OpportunityAIInsightsSection";
 import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
 import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
@@ -37,6 +40,7 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
   const { t } = useTranslation("crm");
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const { data: opportunity, isLoading } = useOpportunityDetail(opportunityId);
   const { data: stages = [] } = usePipelineStagesEnhanced();
@@ -83,8 +87,14 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
   const pendingTasksCount = dealTasks.filter(t => t.status === "pending").length;
   const notesCount = opportunity?.notes ? opportunity.notes.split("\n---\n").filter(Boolean).length : 0;
 
-  // Find stage info
   const currentStage = stages.find(s => s.id === opportunity?.stage_id);
+
+  // Associated entities
+  const associatedCompanies = opportunity?.company ? [{ id: opportunity.company.id, name: opportunity.company.name, website: opportunity.company.website }] : [];
+  const associatedPeople = [
+    ...(opportunity?.contact ? [{ id: opportunity.contact.id, name: opportunity.contact.name, email: opportunity.contact.email, phone: opportunity.contact.phone, company: opportunity.contact.company }] : []),
+    ...(opportunity?.lead ? [{ id: opportunity.lead.id, name: opportunity.lead.name, email: opportunity.lead.email, phone: opportunity.lead.phone }] : []),
+  ];
 
   if (isLoading) {
     return (
@@ -105,29 +115,37 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
     );
   }
 
+  const tabBadge = (count: number) => (
+    <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full ml-1">{count}</span>
+  );
+
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-3">
+    <div className="space-y-0">
+      {/* Top bar: Close + Nav */}
+      <div className="flex items-center justify-between border-b pb-2 mb-3">
+        <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/dashboard/opportunities")}>
-            <ArrowLeft className="h-4 w-4" />
+            <X className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-lg md:text-xl font-bold leading-tight">{opportunity.title}</h1>
-            {currentStage && (
-              <OpportunityRecordNav
-                opportunityId={opportunity.id}
-                stageId={opportunity.stage_id}
-                stageName={currentStage.name}
-              />
-            )}
-          </div>
+          {currentStage && (
+            <OpportunityRecordNav
+              opportunityId={opportunity.id}
+              stageId={opportunity.stage_id}
+              stageName={currentStage.name}
+            />
+          )}
         </div>
+      </div>
+
+      {/* Title + Actions */}
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+        <h1 className="text-lg md:text-xl font-bold leading-tight">{opportunity.title}</h1>
         <div className="flex items-center gap-1">
           <OpportunityHeaderActions
             opportunityId={opportunity.id}
             title={opportunity.title}
+            isFavorite={isFavorite}
+            onToggleFavorite={() => setIsFavorite(!isFavorite)}
           />
         </div>
       </div>
@@ -137,23 +155,35 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
         {/* Main Content */}
         <div className="flex-1 min-w-0 space-y-4">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full md:w-auto bg-transparent border-b rounded-none h-10 p-0">
-              <TabsTrigger value="overview" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
+            <TabsList className="w-full md:w-auto bg-transparent border-b rounded-none h-10 p-0 flex-wrap">
+              <TabsTrigger value="overview" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary text-xs">
                 {t("oppDetailTabOverview")}
               </TabsTrigger>
-              <TabsTrigger value="activity" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
+              <TabsTrigger value="activity" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary text-xs">
                 {t("activities")}
               </TabsTrigger>
-              <TabsTrigger value="notes" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1.5">
+              <TabsTrigger value="notes" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
                 {t("oppDetailTabNotes")}
-                {notesCount > 0 && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full">{notesCount}</span>}
+                {tabBadge(notesCount)}
               </TabsTrigger>
-              <TabsTrigger value="tasks" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1.5">
+              <TabsTrigger value="company" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+                {t("oppDetail_associatedCompanyTab")}
+                {tabBadge(associatedCompanies.length)}
+              </TabsTrigger>
+              <TabsTrigger value="people" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+                {t("oppDetail_associatedPeopleTab")}
+                {tabBadge(associatedPeople.length)}
+              </TabsTrigger>
+              <TabsTrigger value="tasks" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
                 {t("oppDetailTabTasks")}
-                {pendingTasksCount > 0 && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full">{pendingTasksCount}</span>}
+                {tabBadge(pendingTasksCount)}
               </TabsTrigger>
-              <TabsTrigger value="insights" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1.5">
-                <Sparkles className="h-3.5 w-3.5" />
+              <TabsTrigger value="calls" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+                {t("oppDetail_callsTab")}
+                {tabBadge(0)}
+              </TabsTrigger>
+              <TabsTrigger value="insights" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+                <Sparkles className="h-3 w-3" />
                 {t("oppDetailTabInsights")}
               </TabsTrigger>
             </TabsList>
@@ -186,8 +216,20 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
               <OpportunityNotesTab opportunity={opportunity} onUpdate={handleUpdate} />
             </TabsContent>
 
+            <TabsContent value="company" className="mt-4">
+              <OpportunityAssociatedTab type="company" entities={associatedCompanies} />
+            </TabsContent>
+
+            <TabsContent value="people" className="mt-4">
+              <OpportunityAssociatedTab type="people" entities={associatedPeople} />
+            </TabsContent>
+
             <TabsContent value="tasks" className="mt-4">
               <OpportunityTasksTab opportunityId={opportunity.id} />
+            </TabsContent>
+
+            <TabsContent value="calls" className="mt-4">
+              <OpportunityCallsTab opportunityId={opportunity.id} />
             </TabsContent>
 
             <TabsContent value="insights" className="mt-4">

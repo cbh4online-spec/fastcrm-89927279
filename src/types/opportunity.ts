@@ -91,6 +91,7 @@ export interface Opportunity {
   commission_percentage: number | null;
   commission_amount: number | null;
   commission_notes: string | null;
+  priority_level: string | null;
 }
 
 export interface CreateOpportunityInput {
@@ -115,6 +116,7 @@ export interface UpdateOpportunityInput extends Partial<Omit<CreateOpportunityIn
   commission_percentage?: number;
   commission_amount?: number;
   commission_notes?: string;
+  priority_level?: string;
 }
 
 // KPI Types

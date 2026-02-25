@@ -18,17 +18,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreHorizontal, Copy, Link, Trash2, Star } from "lucide-react";
+import { MoreHorizontal, Copy, Link, Trash2, Star, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
 
 interface OpportunityHeaderActionsProps {
   opportunityId: string;
   title: string;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
   onDelete?: () => Promise<void>;
 }
 
-export function OpportunityHeaderActions({ opportunityId, title, onDelete }: OpportunityHeaderActionsProps) {
+export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onToggleFavorite, onDelete }: OpportunityHeaderActionsProps) {
   const { t } = useTranslation("crm");
   const navigate = useNavigate();
   const [showDelete, setShowDelete] = useState(false);
@@ -50,8 +53,28 @@ export function OpportunityHeaderActions({ opportunityId, title, onDelete }: Opp
     }
   };
 
+  const handleComposeEmail = () => {
+    window.open(`mailto:?subject=${encodeURIComponent(title)}`, "_blank");
+  };
+
   return (
     <>
+      <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={handleComposeEmail}>
+        <Mail className="w-3.5 h-3.5" />
+        {t("oppDetail_composeEmail")}
+      </Button>
+
+      {onToggleFavorite && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={onToggleFavorite}
+        >
+          <Star className={cn("h-4 w-4", isFavorite && "fill-yellow-400 text-yellow-400")} />
+        </Button>
+      )}
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="h-8 w-8">

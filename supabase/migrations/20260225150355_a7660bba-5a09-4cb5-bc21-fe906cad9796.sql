@@ -1,0 +1,1 @@
+ALTER TABLE public.opportunities ADD COLUMN IF NOT EXISTS priority_level TEXT DEFAULT NULL;
