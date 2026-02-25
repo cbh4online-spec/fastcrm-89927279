@@ -1,53 +1,117 @@
 
 
-# Reorganize Reports Overview Cards Layout
+# Redesign Opportunities Board — Attio-Style Cards
 
-## Problem
+## What Changes
 
-The current layout has an awkward 3-column grid at the bottom where:
-- The Pie Chart sits alone in 1 column (too narrow)
-- AI Insights + Scenarios span 2 columns
-- Quick Links + Metrics Governance float in a third column below
+The current Kanban board has heavy column headers (probability bars, weighted values, avg days, score summaries) and cards with progress dots, health badges, and score indicators. The Attio reference shows a much cleaner, field-labeled card layout with a minimal column header and a sum footer.
 
-This creates unbalanced visual weight, with the pie chart cramped and the quick links pushed far down.
-
-## New Layout
+## Visual Comparison
 
 ```text
-┌──────────────────────────────────────────────────┐
-│  KPI Strip (6 cards)                             │
-├─────────────────────────┬────────────────────────┤
-│  Revenue Trend (line)   │  Pipeline by Stage     │
-├─────────────────────────┼────────────────────────┤
-│  Lead Sources (pie)     │  Cenários "E se..."    │
-├─────────────────────────┴────────────────────────┤
-│  AI Insights (full width, horizontal cards)      │
-├──────────┬──────────┬──────────┬─────────────────┤
-│  Quick Link 1  │  QL 2  │  QL 3  │  QL 4        │
-├──────────┴──────────┴──────────┴─────────────────┤
-│  Métricas Governadas (full width banner)         │
-└──────────────────────────────────────────────────┘
+CURRENT                              TARGET (Attio)
+┌─────────────────────┐              ┌─────────────────────┐
+│ ● Lead  [3]         │              │ ● Lead  1           │
+│ Probabilidade  10%  │              │                     │
+│ ████░░░░░░░░░░░░░░░ │              └─────────────────────┘
+│ ┌─────────┬────────┐│              ┌─────────────────────┐
+│ │ Total   │ Pond.  ││              │ Cosme <> New Bus.   │
+│ │ 5K €    │ 500 €  ││              │                     │
+│ └─────────┴────────┘│              │ Deal value          │
+│ ⏱ Avg 12d  Score 46 │              │ Set Deal value...   │
+├─────────────────────┤              │                     │
+│ ┌───────────────┐   │              │ Associated company  │
+│ │ Title    [🔥] │   │              │ 🏢 Cosme            │
+│ │ 🏢 Company    │   │              │                     │
+│ │ ████████████░░│   │              │ Associated people   │
+│ │ 💲 5.000 € [46│   │              │ 👤 Lisa Cosme       │
+│ │ 👤 Contact    │   │              │                     │
+│ │ 🌐 Website    │   │              │ Deal type           │
+│ │ Avatar  1Jan  │   │              │ [Website form]      │
+│ └───────────────┘   │              │                     │
+│ ┌──────────────┐    │              │ Priority Level      │
+│ │ + Calculation │    │              │ High Priority       │
+│ └──────────────┘    │              │                     │
+└─────────────────────┘              │ 📋1 📧1 💬  ⏱10d   │
+                                     └─────────────────────┘
+                                     €0.00 sum
 ```
 
-## Changes to `src/pages/ReportsOverview.tsx`
+## Changes
 
-### Row 1: Charts (unchanged)
-- Revenue Trend + Pipeline by Stage in `grid-cols-2` — stays the same.
+### 1. `src/components/opportunities/OpportunityKanbanColumn.tsx` — Simplify Column
 
-### Row 2: Pie + Scenarios (new 2-col grid)
-- Move the Lead Sources pie chart and Cenários card into a `grid-cols-2` row, giving the pie chart proper space.
+**Remove:**
+- Probability bar section (lines 168-179)
+- Stats grid with Total/Weighted values (lines 181-196)
+- Avg days + score bar (lines 198-211)
+- Calculator dropdown footer (lines 267-294)
+- All associated state/logic (`activeCalc`, `CalcType`, `getCalcValue`, `getCalcLabel`, `getProbabilityColor`)
 
-### Row 3: AI Insights (full width)
-- AI Insights becomes a full-width card with insight cards displayed in a responsive grid (`grid-cols-1 md:grid-cols-2 lg:grid-cols-3`) instead of stacked vertically.
+**Keep:**
+- Colored dot + stage name + count in header
+- "+" button to add deal
+- Drag & drop handlers
+- Card list with AnimatePresence
 
-### Row 4: Quick Links (horizontal grid)
-- Convert the Quick Links from a vertical list into a `grid-cols-2 lg:grid-cols-4` card grid, each link being its own small card with icon, title, and subtitle.
+**Add:**
+- Simple currency sum footer at the bottom (just `€X sum` text, like the Attio screenshot)
 
-### Row 5: Metrics Governance (full width banner)
-- Stays as a full-width info banner at the bottom.
+### 2. `src/components/opportunities/OpportunityCard.tsx` — Attio-Style Labeled Fields
 
-### Summary
-- Remove the awkward 3-column grid (lines 326-521)
-- Replace with 4 cleaner sections: pie+scenarios row, insights row, quick links grid, governance banner
-- No new components or data — just restructuring the existing cards
+**Remove:**
+- Stage progress dots (Row 3)
+- Deal score badge next to value
+- Temperature badge in header
+- Health badge in header
+- Urgency icons (AlertTriangle, Zap)
+- Source badge with Globe icon
+- Owner avatar + close date footer
+
+**Restructure card to labeled field pairs:**
+
+```text
+┌──────────────────────────┐
+│ Title                    │
+│                          │
+│ Deal value               │  ← label in muted text
+│ €12,500.00               │  ← value in foreground
+│                          │
+│ Associated company       │
+│ 🏢 CompanyName           │
+│                          │
+│ Associated people        │
+│ 👤 ContactName           │
+│                          │
+│ Deal type                │
+│ [Source Badge]            │  ← colored badge
+│                          │
+│ Priority Level           │
+│ High Priority            │  ← colored text (red/amber/green)
+│                          │
+│ 📋 📧 💬     ⏱ 10d       │  ← activity icons + age
+└──────────────────────────┘
+```
+
+Each field becomes a `<div>` with:
+- A small label (`text-[11px] text-muted-foreground`)
+- A value line below with icon + text
+
+**Priority Level colors:**
+- `critical` / `high` → `text-red-500`
+- `medium` → `text-amber-500`  
+- `low` → `text-green-500`
+
+**Activity icons footer:** Show placeholder icons for notes, emails, comments (static for now) + deal age in days with clock icon, matching the Attio style.
+
+### 3. `src/components/opportunities/OpportunitiesModule.tsx` — Column Footer Sum
+
+Add a sticky sum row below the ScrollArea that shows the total value per column, matching the `€X.XX sum` pattern at the bottom of each column in the screenshot.
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/components/opportunities/OpportunityKanbanColumn.tsx` | Simplify header (remove probability/stats/calculator), add simple sum footer |
+| `src/components/opportunities/OpportunityCard.tsx` | Restructure to labeled field pairs (Attio style), remove progress dots/scores/health badges |
 
