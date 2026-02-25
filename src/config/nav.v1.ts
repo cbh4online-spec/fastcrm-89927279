@@ -24,36 +24,37 @@ export interface NavV1Item {
   icon: LucideIcon;
   group: string;
   end?: boolean;
+  separator?: boolean; // show a thin line before this item
 }
 
 export const NAV_V1_ITEMS: NavV1Item[] = [
-  // Dashboard
+  // Geral
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Geral", end: true },
   { name: "Ask FastCRM", href: "/dashboard/ask", icon: Sparkles, group: "Geral" },
 
   // CRM
-  { name: "Leads", href: "/dashboard/leads", icon: Users, group: "CRM" },
+  { name: "Leads", href: "/dashboard/leads", icon: Users, group: "CRM", separator: true },
   { name: "Contactos", href: "/dashboard/contacts", icon: Contact, group: "CRM" },
   { name: "Empresas", href: "/dashboard/companies", icon: Building2, group: "CRM" },
   { name: "Oportunidades", href: "/dashboard/opportunities", icon: Target, group: "CRM" },
   { name: "Tarefas", href: "/dashboard/tasks", icon: CheckSquare, group: "CRM" },
 
   // Loja
-  { name: "Produtos", href: "/dashboard/store-products", icon: Package, group: "Loja" },
+  { name: "Produtos", href: "/dashboard/store-products", icon: Package, group: "Loja", separator: true },
   { name: "Encomendas", href: "/dashboard/store-orders", icon: ShoppingBag, group: "Loja" },
   { name: "Categorias", href: "/dashboard/store-categories", icon: FolderOpen, group: "Loja" },
 
   // Marketing
-  { name: "Marketing", href: "/dashboard/marketing", icon: Megaphone, group: "Marketing" },
+  { name: "Marketing", href: "/dashboard/marketing", icon: Megaphone, group: "Marketing", separator: true },
   { name: "SEO", href: "/dashboard/seo", icon: Search, group: "Marketing" },
 
   // Ferramentas
-  { name: "Automações", href: "/dashboard/automations", icon: Zap, group: "Ferramentas" },
+  { name: "Automações", href: "/dashboard/automations", icon: Zap, group: "Ferramentas", separator: true },
   { name: "Assistentes IA", href: "/dashboard/ai-assistants", icon: Brain, group: "Ferramentas" },
   { name: "Form Studio", href: "/dashboard/form-studio", icon: FileText, group: "Ferramentas" },
 
   // Settings
-  { name: "Definições", href: "/settings", icon: Settings, group: "Definições" },
+  { name: "Definições", href: "/settings", icon: Settings, group: "Definições", separator: true },
 ];
 
 export function getNavV1Groups(): { group: string; items: NavV1Item[] }[] {

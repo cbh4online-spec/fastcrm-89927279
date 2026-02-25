@@ -96,7 +96,7 @@ export function WorkspaceSwitcher() {
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="w-full justify-between h-auto py-2 px-3 bg-sidebar-accent hover:bg-sidebar-accent/80"
+            className="w-full justify-between h-auto py-2 px-3 hover:bg-muted"
           >
             <div className="flex items-center gap-3 min-w-0">
               {currentWorkspace?.isAgencyManaged ? (
