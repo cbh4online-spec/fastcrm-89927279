@@ -38,7 +38,7 @@ const SIDEBAR_SECTIONS_META = [
 ];
 
 function DraggableItem({
-  id, icon: Icon, label, checked, onCheckedChange, onDragStart, onDragOver, onDrop, isDragOver,
+  id, icon: Icon, label, checked, onCheckedChange, onDragStart, onDragOver, onDrop, isDragOver, isGrabbed, onKeyDown,
 }: {
   id: string; icon: any; label: string; checked: boolean;
   onCheckedChange: (checked: boolean) => void;
@@ -46,20 +46,28 @@ function DraggableItem({
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   isDragOver: boolean;
+  isGrabbed: boolean;
+  onKeyDown: (e: React.KeyboardEvent) => void;
 }) {
   return (
     <div
       draggable
+      tabIndex={0}
+      role="listitem"
+      aria-grabbed={isGrabbed}
+      aria-label={`${label} — press Enter or Space to grab, then arrow keys to reorder`}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDrop={onDrop}
+      onKeyDown={onKeyDown}
       className={cn(
-        "flex items-center gap-3 px-3 py-2 rounded-md border border-border/50 bg-card cursor-grab active:cursor-grabbing transition-all",
-        isDragOver && "border-primary/50 bg-primary/5"
+        "flex items-center gap-3 px-3 py-2 rounded-md border border-border/50 bg-card cursor-grab active:cursor-grabbing transition-all focus:outline-none focus:ring-2 focus:ring-ring",
+        isDragOver && "border-primary/50 bg-primary/5",
+        isGrabbed && "ring-2 ring-primary shadow-md bg-primary/5"
       )}
     >
       <GripVertical className="w-3.5 h-3.5 text-muted-foreground/50" />
-      <Checkbox checked={checked} onCheckedChange={onCheckedChange} />
+      <Checkbox checked={checked} onCheckedChange={onCheckedChange} tabIndex={-1} />
       <Icon className="w-4 h-4 text-muted-foreground" />
       <span className="text-sm">{label}</span>
     </div>
@@ -77,6 +85,8 @@ export function OpportunityLayoutConfigDialog({
   const [sidebarOrder, setSidebarOrder] = useState<string[]>(currentSidebarOrder);
   const [dragItem, setDragItem] = useState<string | null>(null);
   const [dragOverItem, setDragOverItem] = useState<string | null>(null);
+  const [grabbedItem, setGrabbedItem] = useState<string | null>(null);
+  const [liveText, setLiveText] = useState("");
 
   const handleDragStart = (id: string) => (e: React.DragEvent) => {
     setDragItem(id);
@@ -105,8 +115,49 @@ export function OpportunityLayoutConfigDialog({
     };
   }, [dragItem]);
 
+  const makeKeyDownHandler = useCallback((list: string[], setList: (l: string[]) => void, metaList: typeof HIGHLIGHT_CARDS_META) => {
+    return (itemId: string) => (e: React.KeyboardEvent) => {
+      const idx = list.indexOf(itemId);
+      if (idx === -1) return;
+      const meta = metaList.find(m => m.id === itemId);
+      const label = meta ? t(meta.labelKey) : itemId;
+
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        if (grabbedItem === itemId) {
+          setGrabbedItem(null);
+          setLiveText(`Dropped ${label} at position ${idx + 1} of ${list.length}`);
+        } else {
+          setGrabbedItem(itemId);
+          setLiveText(`Grabbed ${label}, position ${idx + 1} of ${list.length}`);
+        }
+      } else if (e.key === "Escape" && grabbedItem === itemId) {
+        e.preventDefault();
+        setGrabbedItem(null);
+        setLiveText("Reorder cancelled");
+      } else if ((e.key === "ArrowUp" || e.key === "ArrowDown") && grabbedItem === itemId) {
+        e.preventDefault();
+        const dir = e.key === "ArrowUp" ? -1 : 1;
+        const newIdx = idx + dir;
+        if (newIdx < 0 || newIdx >= list.length) return;
+        const newList = [...list];
+        [newList[idx], newList[newIdx]] = [newList[newIdx], newList[idx]];
+        setList(newList);
+        setLiveText(`Moved ${label} to position ${newIdx + 1} of ${list.length}`);
+        // Re-focus the moved item after state update
+        requestAnimationFrame(() => {
+          const el = document.querySelector(`[data-layout-item="${itemId}"]`) as HTMLElement;
+          el?.focus();
+        });
+      }
+    };
+  }, [grabbedItem, t]);
+
   const highlightsDnd = handleReorder(highlightsOrder, setHighlightsOrder);
   const sidebarDnd = handleReorder(sidebarOrder, setSidebarOrder);
+
+  const highlightsKeyDown = makeKeyDownHandler(highlightsOrder, setHighlightsOrder, HIGHLIGHT_CARDS_META);
+  const sidebarKeyDown = makeKeyDownHandler(sidebarOrder, setSidebarOrder, SIDEBAR_SECTIONS_META);
 
   const toggleHighlight = (id: string, checked: boolean) => {
     setVisibleHighlights(prev => checked ? [...prev, id] : prev.filter(h => h !== id));
@@ -135,52 +186,63 @@ export function OpportunityLayoutConfigDialog({
           <DialogDescription className="text-xs text-muted-foreground">{t("oppLayout_dragToReorder")}</DialogDescription>
         </DialogHeader>
 
+        {/* Screen reader live region */}
+        <div aria-live="assertive" className="sr-only">{liveText}</div>
+
         <Tabs defaultValue="highlights" className="w-full">
           <TabsList className="w-full">
             <TabsTrigger value="highlights" className="flex-1 text-xs">{t("oppLayout_highlights")}</TabsTrigger>
             <TabsTrigger value="sidebar" className="flex-1 text-xs">{t("oppLayout_sidebar")}</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="highlights" className="space-y-2 mt-3 max-h-[300px] overflow-y-auto">
-            {highlightsOrder.map(id => {
-              const meta = HIGHLIGHT_CARDS_META.find(m => m.id === id);
-              if (!meta) return null;
-              return (
-                <DraggableItem
-                  key={id}
-                  id={id}
-                  icon={meta.icon}
-                  label={t(meta.labelKey)}
-                  checked={visibleHighlights.includes(id)}
-                  onCheckedChange={(checked) => toggleHighlight(id, !!checked)}
-                  onDragStart={handleDragStart(id)}
-                  onDragOver={highlightsDnd.onDragOver(id)}
-                  onDrop={highlightsDnd.onDrop(id)}
-                  isDragOver={dragOverItem === id}
-                />
-              );
-            })}
+          <TabsContent value="highlights" className="mt-3 max-h-[300px] overflow-y-auto">
+            <div role="list" aria-label={t("oppLayout_highlights")} className="space-y-2">
+              {highlightsOrder.map(id => {
+                const meta = HIGHLIGHT_CARDS_META.find(m => m.id === id);
+                if (!meta) return null;
+                return (
+                  <DraggableItem
+                    key={id}
+                    id={id}
+                    icon={meta.icon}
+                    label={t(meta.labelKey)}
+                    checked={visibleHighlights.includes(id)}
+                    onCheckedChange={(checked) => toggleHighlight(id, !!checked)}
+                    onDragStart={handleDragStart(id)}
+                    onDragOver={highlightsDnd.onDragOver(id)}
+                    onDrop={highlightsDnd.onDrop(id)}
+                    isDragOver={dragOverItem === id}
+                    isGrabbed={grabbedItem === id}
+                    onKeyDown={highlightsKeyDown(id)}
+                  />
+                );
+              })}
+            </div>
           </TabsContent>
 
-          <TabsContent value="sidebar" className="space-y-2 mt-3 max-h-[300px] overflow-y-auto">
-            {sidebarOrder.map(id => {
-              const meta = SIDEBAR_SECTIONS_META.find(m => m.id === id);
-              if (!meta) return null;
-              return (
-                <DraggableItem
-                  key={id}
-                  id={id}
-                  icon={meta.icon}
-                  label={t(meta.labelKey)}
-                  checked={true}
-                  onCheckedChange={() => {}}
-                  onDragStart={handleDragStart(id)}
-                  onDragOver={sidebarDnd.onDragOver(id)}
-                  onDrop={sidebarDnd.onDrop(id)}
-                  isDragOver={dragOverItem === id}
-                />
-              );
-            })}
+          <TabsContent value="sidebar" className="mt-3 max-h-[300px] overflow-y-auto">
+            <div role="list" aria-label={t("oppLayout_sidebar")} className="space-y-2">
+              {sidebarOrder.map(id => {
+                const meta = SIDEBAR_SECTIONS_META.find(m => m.id === id);
+                if (!meta) return null;
+                return (
+                  <DraggableItem
+                    key={id}
+                    id={id}
+                    icon={meta.icon}
+                    label={t(meta.labelKey)}
+                    checked={true}
+                    onCheckedChange={() => {}}
+                    onDragStart={handleDragStart(id)}
+                    onDragOver={sidebarDnd.onDragOver(id)}
+                    onDrop={sidebarDnd.onDrop(id)}
+                    isDragOver={dragOverItem === id}
+                    isGrabbed={grabbedItem === id}
+                    onKeyDown={sidebarKeyDown(id)}
+                  />
+                );
+              })}
+            </div>
           </TabsContent>
         </Tabs>
 

@@ -39,7 +39,16 @@ interface OpportunityDetailSidebarProps {
   sidebarOrder?: string[];
 }
 
-function SidebarSection({ title, icon, defaultOpen = true, children, draggable: isDraggable, onDragStart, onDragOver, onDrop, isDragOver }: {
+const SIDEBAR_SECTION_LABELS: Record<string, string> = {
+  communication: 'oppDetail_communication',
+  dealInfo: 'oppDetail_dealInfo',
+  associations: 'oppDetail_associations',
+  companyInfo: 'oppDetail_companyInfo',
+  lists: 'oppDetail_listsSection',
+  intelligence: 'oppLayout_intelligence',
+};
+
+function SidebarSection({ title, icon, defaultOpen = true, children, draggable: isDraggable, onDragStart, onDragOver, onDrop, isDragOver, isGrabbed, onKeyDown, sectionId }: {
   title: string;
   icon: React.ReactNode;
   defaultOpen?: boolean;
@@ -49,6 +58,9 @@ function SidebarSection({ title, icon, defaultOpen = true, children, draggable: 
   onDragOver?: (e: React.DragEvent) => void;
   onDrop?: (e: React.DragEvent) => void;
   isDragOver?: boolean;
+  isGrabbed?: boolean;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
+  sectionId?: string;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -57,7 +69,17 @@ function SidebarSection({ title, icon, defaultOpen = true, children, draggable: 
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDrop={onDrop}
-      className={cn(isDragOver && "border-t-2 border-primary/50")}
+      tabIndex={isDraggable ? 0 : undefined}
+      role={isDraggable ? "listitem" : undefined}
+      aria-grabbed={isDraggable ? isGrabbed : undefined}
+      aria-label={isDraggable ? `${title} — press Enter or Space to grab, then arrow keys to reorder` : undefined}
+      onKeyDown={onKeyDown}
+      data-sidebar-section={sectionId}
+      className={cn(
+        isDragOver && "border-t-2 border-primary/50",
+        isDraggable && "focus:outline-none focus:ring-2 focus:ring-ring rounded-md",
+        isGrabbed && "ring-2 ring-primary shadow-md bg-primary/5"
+      )}
     >
       <Collapsible open={open} onOpenChange={setOpen}>
         <CollapsibleTrigger asChild>
@@ -90,6 +112,8 @@ export function OpportunityDetailSidebar({
   const sidebarOrder = sidebarOrderProp ?? DEFAULT_SIDEBAR_ORDER;
   const [dragItem, setDragItem] = useState<string | null>(null);
   const [dragOverItem, setDragOverItem] = useState<string | null>(null);
+  const [grabbedSection, setGrabbedSection] = useState<string | null>(null);
+  const [liveText, setLiveText] = useState("");
 
   const handleDragStart = (id: string) => (e: React.DragEvent) => {
     setDragItem(id);
@@ -114,6 +138,41 @@ export function OpportunityDetailSidebar({
     setDragOverItem(null);
     updatePrefs.mutate({ sidebar_order: newOrder });
   };
+
+  const handleSectionKeyDown = useCallback((sectionId: string) => (e: React.KeyboardEvent) => {
+    const idx = sidebarOrder.indexOf(sectionId);
+    if (idx === -1) return;
+    const labelKey = SIDEBAR_SECTION_LABELS[sectionId];
+    const label = labelKey ? t(labelKey) : sectionId;
+
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (grabbedSection === sectionId) {
+        setGrabbedSection(null);
+        setLiveText(`Dropped ${label} at position ${idx + 1} of ${sidebarOrder.length}`);
+      } else {
+        setGrabbedSection(sectionId);
+        setLiveText(`Grabbed ${label}, position ${idx + 1} of ${sidebarOrder.length}`);
+      }
+    } else if (e.key === "Escape" && grabbedSection === sectionId) {
+      e.preventDefault();
+      setGrabbedSection(null);
+      setLiveText("Reorder cancelled");
+    } else if ((e.key === "ArrowUp" || e.key === "ArrowDown") && grabbedSection === sectionId) {
+      e.preventDefault();
+      const dir = e.key === "ArrowUp" ? -1 : 1;
+      const newIdx = idx + dir;
+      if (newIdx < 0 || newIdx >= sidebarOrder.length) return;
+      const newOrder = [...sidebarOrder];
+      [newOrder[idx], newOrder[newIdx]] = [newOrder[newIdx], newOrder[idx]];
+      updatePrefs.mutate({ sidebar_order: newOrder });
+      setLiveText(`Moved ${label} to position ${newIdx + 1} of ${sidebarOrder.length}`);
+      requestAnimationFrame(() => {
+        const el = document.querySelector(`[data-sidebar-section="${sectionId}"]`) as HTMLElement;
+        el?.focus();
+      });
+    }
+  }, [grabbedSection, sidebarOrder, t, updatePrefs]);
 
   const handleFieldChange = async (field: string, value: unknown) => {
     try {
@@ -151,6 +210,7 @@ export function OpportunityDetailSidebar({
     communication: () => (
       <SidebarSection
         key="communication"
+        sectionId="communication"
         title={t("oppDetail_communication")}
         icon={<MessageSquare className="w-3.5 h-3.5" />}
         draggable
@@ -158,6 +218,8 @@ export function OpportunityDetailSidebar({
         onDragOver={handleDragOver('communication')}
         onDrop={handleDrop('communication')}
         isDragOver={dragOverItem === 'communication'}
+        isGrabbed={grabbedSection === 'communication'}
+        onKeyDown={handleSectionKeyDown('communication')}
       >
         <OpportunityCommunicationSection opportunityId={opportunity.id} />
       </SidebarSection>
@@ -165,6 +227,7 @@ export function OpportunityDetailSidebar({
     dealInfo: () => (
       <SidebarSection
         key="dealInfo"
+        sectionId="dealInfo"
         title={t("oppDetail_dealInfo")}
         icon={<Briefcase className="w-3.5 h-3.5" />}
         draggable
@@ -172,6 +235,8 @@ export function OpportunityDetailSidebar({
         onDragOver={handleDragOver('dealInfo')}
         onDrop={handleDrop('dealInfo')}
         isDragOver={dragOverItem === 'dealInfo'}
+        isGrabbed={grabbedSection === 'dealInfo'}
+        onKeyDown={handleSectionKeyDown('dealInfo')}
       >
         <div className="space-y-0 divide-y divide-border/30">
           <InlineEditableField label={t("dealName")} fieldId="title" fieldType="text" value={opportunity.title} onChange={(v) => handleFieldChange("title", v)} required />
@@ -195,6 +260,7 @@ export function OpportunityDetailSidebar({
     associations: () => (
       <SidebarSection
         key="associations"
+        sectionId="associations"
         title={t("oppDetail_associations")}
         icon={<UserCheck className="w-3.5 h-3.5" />}
         draggable
@@ -202,6 +268,8 @@ export function OpportunityDetailSidebar({
         onDragOver={handleDragOver('associations')}
         onDrop={handleDrop('associations')}
         isDragOver={dragOverItem === 'associations'}
+        isGrabbed={grabbedSection === 'associations'}
+        onKeyDown={handleSectionKeyDown('associations')}
       >
         <OpportunityAssociationsSection
           opportunity={opportunity} leads={leads} contacts={contacts} companies={companies}
@@ -214,6 +282,7 @@ export function OpportunityDetailSidebar({
       return (
         <SidebarSection
           key="companyInfo"
+          sectionId="companyInfo"
           title={t("oppDetail_companyInfo")}
           icon={<Building2 className="w-3.5 h-3.5" />}
           defaultOpen={false}
@@ -222,6 +291,8 @@ export function OpportunityDetailSidebar({
           onDragOver={handleDragOver('companyInfo')}
           onDrop={handleDrop('companyInfo')}
           isDragOver={dragOverItem === 'companyInfo'}
+          isGrabbed={grabbedSection === 'companyInfo'}
+          onKeyDown={handleSectionKeyDown('companyInfo')}
         >
           <div className="space-y-1">
             <div className="flex items-center gap-1 py-2 text-sm hover:bg-muted/50 rounded px-1.5 cursor-pointer">
@@ -256,6 +327,7 @@ export function OpportunityDetailSidebar({
     lists: () => (
       <SidebarSection
         key="lists"
+        sectionId="lists"
         title={t("oppDetail_listsSection")}
         icon={<ListChecks className="w-3.5 h-3.5" />}
         defaultOpen={false}
@@ -264,6 +336,8 @@ export function OpportunityDetailSidebar({
         onDragOver={handleDragOver('lists')}
         onDrop={handleDrop('lists')}
         isDragOver={dragOverItem === 'lists'}
+        isGrabbed={grabbedSection === 'lists'}
+        onKeyDown={handleSectionKeyDown('lists')}
       >
         <div className="text-center py-4">
           <p className="text-xs text-muted-foreground mb-2">{t("oppDetail_noLists")}</p>
@@ -277,6 +351,7 @@ export function OpportunityDetailSidebar({
     intelligence: () => (
       <SidebarSection
         key="intelligence"
+        sectionId="intelligence"
         title="Intelligence"
         icon={<Brain className="w-3.5 h-3.5" />}
         defaultOpen={false}
@@ -285,6 +360,8 @@ export function OpportunityDetailSidebar({
         onDragOver={handleDragOver('intelligence')}
         onDrop={handleDrop('intelligence')}
         isDragOver={dragOverItem === 'intelligence'}
+        isGrabbed={grabbedSection === 'intelligence'}
+        onKeyDown={handleSectionKeyDown('intelligence')}
       >
         <DealIntelligencePanel intelligence={intelligence} dealId={opportunity.id} isLoading={intelligenceLoading} />
       </SidebarSection>
@@ -293,6 +370,8 @@ export function OpportunityDetailSidebar({
 
   return (
     <div className="w-full lg:w-80 lg:flex-shrink-0">
+      {/* Screen reader live region */}
+      <div aria-live="assertive" className="sr-only">{liveText}</div>
       <div className="lg:sticky lg:top-4 space-y-1 border rounded-xl bg-card">
         <Tabs defaultValue="details" className="w-full">
           <TabsList className="w-full rounded-t-xl rounded-b-none border-b h-10 bg-transparent p-0">
@@ -305,7 +384,9 @@ export function OpportunityDetailSidebar({
           </TabsList>
 
           <TabsContent value="details" className="mt-0 divide-y divide-border/50">
-            {sidebarOrder.map(id => sectionRenderers[id]?.())}
+            <div role="list" aria-label="Sidebar sections">
+              {sidebarOrder.map(id => sectionRenderers[id]?.())}
+            </div>
 
             {/* Add Section */}
             <div className="px-3 py-3 border-t border-border/50">
