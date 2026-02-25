@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { useCustomObjects } from "@/hooks/useCustomObjects";
 import { useObjectRelationships, useCreateRelationship } from "@/hooks/useObjectRelationships";
 import { useObjectRecords } from "@/hooks/useCustomObjects";
@@ -33,12 +34,10 @@ export function RelationshipSchemaBuilder({ objectId, objectName }: Props) {
   const [targetObjectId, setTargetObjectId] = useState("");
   const [relationType, setRelationType] = useState("related_to");
 
-  // Query existing relationship patterns for this object
   const { data: schemas = [], isLoading } = useQuery({
     queryKey: ["relationship-schemas", currentWorkspace?.id, objectId],
     queryFn: async () => {
       if (!currentWorkspace) return [];
-      // Get all relationships where this object is source or target
       const { data, error } = await (supabase
         .from("object_relationships")
         .select("source_object_id, target_object_id, relationship_type") as any)
@@ -48,7 +47,6 @@ export function RelationshipSchemaBuilder({ objectId, objectName }: Props) {
       if (error) throw error;
       if (!data || data.length === 0) return [];
 
-      // Group by target object + type
       const map = new Map<string, { targetId: string; type: string; count: number }>();
       for (const r of data as any[]) {
         const isSource = r.source_object_id === objectId;
@@ -62,7 +60,6 @@ export function RelationshipSchemaBuilder({ objectId, objectName }: Props) {
         }
       }
 
-      // Resolve object names
       const targetIds = [...new Set([...map.values()].map((v) => v.targetId))];
       const { data: objs } = await (supabase
         .from("custom_objects")
@@ -116,7 +113,7 @@ export function RelationshipSchemaBuilder({ objectId, objectName }: Props) {
         </div>
       ) : schemas.length === 0 && !showAdd ? (
         <div className="text-center py-8 text-muted-foreground">
-          <Link2 className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
+          <Link2 className="h-6 w-6 mx-auto mb-2 text-muted-foreground/30" />
           <p className="text-sm">Nenhuma relação definida ainda.</p>
           <p className="text-xs mt-1">Adicione relações para conectar este objeto com outros.</p>
         </div>
@@ -125,7 +122,7 @@ export function RelationshipSchemaBuilder({ objectId, objectName }: Props) {
           {schemas.map((schema, i) => {
             const IconComp = getIconByName(schema.targetObjectIcon);
             return (
-              <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-card">
+              <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-lg border border-border/30 hover:bg-muted/20 transition-colors duration-150">
                 <span className="text-sm font-medium">{objectName}</span>
                 <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
                 <IconComp className="h-4 w-4" style={{ color: schema.targetObjectColor }} />
@@ -143,7 +140,7 @@ export function RelationshipSchemaBuilder({ objectId, objectName }: Props) {
       )}
 
       {showAdd && (
-        <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
+        <div className="p-3 rounded-lg border border-border/30 bg-muted/20 space-y-3 animate-fade-in">
           <div>
             <Label className="text-xs">Objeto Alvo</Label>
             <Select value={targetObjectId} onValueChange={setTargetObjectId}>
@@ -180,7 +177,6 @@ export function RelationshipSchemaBuilder({ objectId, objectName }: Props) {
           </div>
           <p className="text-[11px] text-muted-foreground">
             Isto permite que registos de "{objectName}" sejam ligados a registos do objeto selecionado.
-            As relações são criadas ao nível de cada registo individual.
           </p>
           <div className="flex gap-2">
             <Button size="sm" className="text-xs" disabled={!targetObjectId} onClick={() => {
@@ -199,6 +195,3 @@ export function RelationshipSchemaBuilder({ objectId, objectName }: Props) {
     </div>
   );
 }
-
-// Need toast import
-import { toast } from "sonner";

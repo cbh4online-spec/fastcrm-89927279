@@ -120,8 +120,6 @@ export function TopBar({ onMenuClick }: TopBarProps) {
         <HelpSupportDropdown />
 
         <NotificationBell />
-        
-        
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

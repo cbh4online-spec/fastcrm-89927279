@@ -95,11 +95,12 @@ export default function DataModelPage() {
       <div className="h-[calc(100vh-4rem)] flex">
         {/* Left Sidebar — Object List */}
         <div className="w-64 border-r bg-muted/20 flex flex-col">
-          <div className="p-4 border-b">
+          <div className="p-4 pb-3 border-b">
             <h2 className="text-sm font-semibold flex items-center gap-2">
               <Database className="h-4 w-4 text-muted-foreground" />
               Modelo de Dados
             </h2>
+            <p className="text-[11px] text-muted-foreground mt-1">Objetos personalizados</p>
           </div>
 
           <ScrollArea className="flex-1">
@@ -116,10 +117,10 @@ export default function DataModelPage() {
                       key={obj.id}
                       onClick={() => setSelectedId(obj.id)}
                       className={cn(
-                        "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left transition-colors text-sm",
+                        "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left transition-all duration-150 text-sm",
                         selectedId === obj.id
                           ? "bg-primary/10 text-primary font-medium"
-                          : "hover:bg-muted/50 text-foreground"
+                          : "hover:bg-muted/50 hover:translate-x-0.5 text-foreground"
                       )}
                     >
                       <IconComp className="h-4 w-4 shrink-0" style={{ color: obj.color }} />

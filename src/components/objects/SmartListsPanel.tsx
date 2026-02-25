@@ -5,8 +5,7 @@ import { SaveAsListDialog } from "@/components/objects/SaveAsListDialog";
 import { FilterCondition, FilterableField, applyFilters } from "@/hooks/useFilterEngine";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Filter, Plus, Trash2, Eye, Save, ListTodo } from "lucide-react";
-import { Loader2 } from "lucide-react";
+import { Filter, Trash2, Save, Loader2 } from "lucide-react";
 
 interface Props {
   entityType: string;
@@ -58,69 +57,59 @@ export function SmartListsPanel({ entityType, fields, records, onFilteredRecords
   return (
     <div className={className}>
       <div className="space-y-4">
-        {/* Saved lists */}
-        <div>
-          <h3 className="text-sm font-semibold mb-3">Listas Guardadas</h3>
-          {isLoading ? (
-            <div className="flex justify-center py-4">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : lists.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nenhuma lista inteligente criada. Adicione filtros abaixo e guarde como lista.
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-2 mb-4">
-              {lists.map((list) => {
-                const filterCount = ((list.filters as any)?.conditions || []).length;
-                return (
-                  <div key={list.id} className="flex items-center gap-1">
-                    <Button
-                      size="sm"
-                      variant={activeListId === list.id ? "default" : "outline"}
-                      onClick={() => handleSelectList(list)}
-                      className="gap-1.5"
-                    >
-                      <Filter className="h-3.5 w-3.5" />
-                      {list.name}
-                      <Badge variant="secondary" className="h-4 px-1 text-[10px] ml-0.5">{filterCount}</Badge>
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                      onClick={() => handleDeleteList(list)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        {/* Saved lists as pills */}
+        {isLoading ? (
+          <div className="flex justify-center py-4">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : lists.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {lists.map((list) => {
+              const filterCount = ((list.filters as any)?.conditions || []).length;
+              return (
+                <div key={list.id} className="flex items-center group">
+                  <Button
+                    size="sm"
+                    variant={activeListId === list.id ? "default" : "outline"}
+                    onClick={() => handleSelectList(list)}
+                    className="gap-1.5 text-xs"
+                  >
+                    <Filter className="h-3 w-3" />
+                    {list.name}
+                    <Badge variant="secondary" className="h-4 px-1 text-[10px] ml-0.5">{filterCount}</Badge>
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 ml-0.5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity duration-150"
+                    onClick={() => handleDeleteList(list)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Filter builder */}
-        <div>
-          <h3 className="text-sm font-semibold mb-3">Construir Filtro</h3>
-          <AdvancedFilterBuilder
-            fields={fields}
-            conditions={conditions}
-            onChange={(c) => { setConditions(c); setActiveListId(null); }}
-          />
-        </div>
+        <AdvancedFilterBuilder
+          fields={fields}
+          conditions={conditions}
+          onChange={(c) => { setConditions(c); setActiveListId(null); }}
+        />
 
-        {/* Results summary + save */}
+        {/* Results summary */}
         {conditions.length > 0 && (
-          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
-            <span className="text-sm">
-              <strong>{filteredRecords.length}</strong> registo(s) correspondem aos filtros
+          <div className="flex items-center gap-3 py-2 px-3 rounded-lg bg-muted/30 border border-border/30 text-sm">
+            <span>
+              <strong>{filteredRecords.length}</strong> registo(s)
             </span>
-            <Button size="sm" variant="outline" className="gap-1.5 ml-auto" onClick={() => setShowSaveDialog(true)}>
-              <Save className="h-3.5 w-3.5" />
-              Guardar como Lista
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs ml-auto" onClick={() => setShowSaveDialog(true)}>
+              <Save className="h-3 w-3" />
+              Guardar
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setConditions([])}>
+            <Button size="sm" variant="ghost" className="text-xs" onClick={() => setConditions([])}>
               Limpar
             </Button>
           </div>

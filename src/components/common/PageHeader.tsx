@@ -45,16 +45,13 @@ export function PageHeader({
       {/* Title Row */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold text-foreground">
             {title}
           </h1>
           {typeof count === "number" && (
-            <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-              <span className="text-sm font-medium text-muted-foreground">
-                {count.toLocaleString("pt-PT")} {count === 1 ? "registo" : "registos"}
-              </span>
-            </div>
+            <span className="text-sm font-medium text-muted-foreground">
+              {count.toLocaleString("pt-PT")} {count === 1 ? "registo" : "registos"}
+            </span>
           )}
         </div>
         

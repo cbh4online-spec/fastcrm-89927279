@@ -22,7 +22,6 @@ export default function VisualDataModelPage() {
   const { data: customObjects = [], isLoading: objLoading } = useCustomObjects();
   const { currentWorkspace } = useWorkspace();
 
-  // Query distinct relationship pairs with count
   const { data: relPairs = [], isLoading: relLoading } = useQuery({
     queryKey: ["data-model-edges", currentWorkspace?.id],
     queryFn: async () => {
@@ -32,7 +31,6 @@ export default function VisualDataModelPage() {
         .select("source_object_id, target_object_id") as any)
         .eq("workspace_id", currentWorkspace.id);
       if (error) throw error;
-      // Group by pair
       const map = new Map<string, number>();
       for (const r of (data || [])) {
         const key = [r.source_object_id, r.target_object_id].sort().join("__");
@@ -49,7 +47,6 @@ export default function VisualDataModelPage() {
   const { nodes, edges } = useMemo(() => {
     const allObjects: { id: string; label: string; icon: string; color: string; fieldCount: number; isCore: boolean }[] = [];
 
-    // Core objects
     Object.values(OBJECT_REGISTRY).forEach((entry) => {
       allObjects.push({
         id: `core:${entry.slug}`,
@@ -63,7 +60,6 @@ export default function VisualDataModelPage() {
       });
     });
 
-    // Custom objects
     customObjects.forEach((obj) => {
       allObjects.push({
         id: obj.id,
@@ -105,7 +101,7 @@ export default function VisualDataModelPage() {
         label: `${p.count} registos`,
         style: { stroke: "hsl(var(--muted-foreground))", strokeWidth: 1.5, strokeDasharray: "6 3" },
         labelStyle: { fontSize: 11, fill: "hsl(var(--muted-foreground))" },
-        labelBgStyle: { fill: "hsl(var(--card))", fillOpacity: 0.9 },
+        labelBgStyle: { fill: "hsl(var(--background))", fillOpacity: 0.9 },
       }));
 
     return { nodes, edges };
@@ -115,16 +111,16 @@ export default function VisualDataModelPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-[calc(100vh-4rem)]">
+      <div className="flex flex-col h-[calc(100vh-4rem)] animate-fade-in">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-card">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border/30">
           <div>
-            <h1 className="text-xl font-bold text-foreground">Modelo de Dados</h1>
+            <h1 className="text-xl font-semibold text-foreground">Modelo de Dados</h1>
             <p className="text-sm text-muted-foreground">Visão geral dos objetos e relações</p>
           </div>
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm" className="text-xs" asChild>
             <Link to="/settings/data-model">
-              <Settings className="h-4 w-4 mr-1.5" />
+              <Settings className="h-3.5 w-3.5 mr-1.5" />
               Editar modelo
             </Link>
           </Button>
@@ -134,7 +130,7 @@ export default function VisualDataModelPage() {
         <div className="flex-1 relative">
           {loading ? (
             <div className="absolute inset-0 flex items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : (
             <ReactFlow

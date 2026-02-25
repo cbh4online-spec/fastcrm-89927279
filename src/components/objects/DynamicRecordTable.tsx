@@ -46,7 +46,6 @@ export function DynamicRecordTable({ fields, records, visibleFields, onDeleteRec
     onSelectionChange(n);
   };
 
-  // Empty state
   if (records.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -59,21 +58,20 @@ export function DynamicRecordTable({ fields, records, visibleFields, onDeleteRec
     );
   }
 
-  // Fallback columns when no fields defined
   if (displayFields.length === 0) {
     return (
-      <div className="rounded-lg border border-border/40 bg-card overflow-hidden">
+      <div className="rounded-lg border border-border/30 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10">
-            <tr className="border-b border-border/40 bg-muted/30">
+            <tr className="border-b border-border/30 bg-muted/20">
               {selectable && (
                 <th className="w-10 px-3 py-2.5 text-left">
                   <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />
                 </th>
               )}
-              <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Nome</th>
-              <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Notas</th>
-              <th className="w-12 px-3 py-2.5" />
+              <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">Nome</th>
+              <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground">Notas</th>
+              <th className="w-10 px-3 py-2.5" />
             </tr>
           </thead>
           <tbody>
@@ -81,7 +79,7 @@ export function DynamicRecordTable({ fields, records, visibleFields, onDeleteRec
               <tr
                 key={record.id}
                 className={cn(
-                  "border-b border-border/20 last:border-0 hover:bg-muted/30 transition-colors",
+                  "border-b border-border/20 last:border-0 hover:bg-muted/20 transition-colors duration-150 group",
                   onRecordClick && "cursor-pointer"
                 )}
                 onClick={() => onRecordClick?.(record)}
@@ -100,7 +98,7 @@ export function DynamicRecordTable({ fields, records, visibleFields, onDeleteRec
                   </span>
                 </td>
                 <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDeleteRecord(record.id)}>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity duration-150" onClick={() => onDeleteRecord(record.id)}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </td>
@@ -134,10 +132,10 @@ export function DynamicRecordTable({ fields, records, visibleFields, onDeleteRec
   };
 
   return (
-    <div className="rounded-lg border border-border/40 bg-card overflow-x-auto">
+    <div className="rounded-lg border border-border/30 overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="sticky top-0 z-10">
-          <tr className="border-b border-border/40 bg-muted/30">
+          <tr className="border-b border-border/30 bg-muted/20">
             {selectable && (
               <th className="w-10 px-3 py-2.5 text-left">
                 <Checkbox
@@ -148,11 +146,11 @@ export function DynamicRecordTable({ fields, records, visibleFields, onDeleteRec
               </th>
             )}
             {displayFields.map((f) => (
-              <th key={f.id} className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+              <th key={f.id} className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                 {f.name}
               </th>
             ))}
-            <th className="w-12 px-3 py-2.5" />
+            <th className="w-10 px-3 py-2.5" />
           </tr>
         </thead>
         <tbody>
@@ -160,7 +158,7 @@ export function DynamicRecordTable({ fields, records, visibleFields, onDeleteRec
             <tr
               key={record.id}
               className={cn(
-                "border-b border-border/20 last:border-0 hover:bg-muted/30 transition-colors",
+                "border-b border-border/20 last:border-0 hover:bg-muted/20 transition-colors duration-150 group",
                 onRecordClick && "cursor-pointer",
                 selectable && selectedIds!.has(record.id) && "bg-primary/5"
               )}
@@ -177,7 +175,7 @@ export function DynamicRecordTable({ fields, records, visibleFields, onDeleteRec
                 </td>
               ))}
               <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
-                <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDeleteRecord(record.id)}>
+                <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity duration-150" onClick={() => onDeleteRecord(record.id)}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </td>

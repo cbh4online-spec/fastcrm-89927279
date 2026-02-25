@@ -100,11 +100,11 @@ export function RelationshipsPanel({ recordId, objectId, entityType }: Props) {
                         {getRecordDisplayName(linkedData)}
                       </button>
                       <Badge variant="secondary" className="text-[10px] shrink-0">
-                        {rel.relationship_type}
+                        {rel.relationship_type === "related_to" ? "Relacionado" : rel.relationship_type === "parent_of" ? "Pai de" : rel.relationship_type === "child_of" ? "Filho de" : rel.relationship_type}
                       </Badge>
                       <button
                         onClick={() => deleteRelationship.mutate({ id: rel.id, recordId })}
-                        className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-destructive/10 transition-all"
+                        className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-destructive/10 transition-opacity duration-150"
                       >
                         <Unlink className="h-3 w-3 text-muted-foreground hover:text-destructive" />
                       </button>
