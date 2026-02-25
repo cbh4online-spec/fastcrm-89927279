@@ -1,169 +1,141 @@
 
 
-# Ask FastCRM — 3-Sprint Implementation Plan
+# Ask FastCRM — Hybrid Architecture (Deterministic + Fallback LLM)
 
 ## Current State
 
-**Already built (7 intents):** `deals_at_risk`, `deals_inactive`, `closing_soon`, `forecast_summary`, `pipeline_summary`, `contacts_inactive`, `stage_bottleneck`
+The edge function already has:
+- 12 intents implemented with full query handlers
+- Keyword fast-path (`KEYWORD_MAP`) that skips LLM for known patterns
+- LLM fallback via Lovable AI (`gemini-2.5-flash-lite`) with tool-calling
+- All action types (`bulk_task`, `bulk_move_stage`, `bulk_assign_owner`, `create_saved_view`, `navigate`, `automation`)
+- Query logging to `ask_fastcrm_query_logs`
+- Frontend: Dialog (⌘J), Inline panel, ResultPanel with suggestions
 
-**Already built (frontend):** `AskFastCRMDialog` (⌘J), `AskFastCRMInline` (Intelligence tab), `AskFastCRMResultPanel`, TopBar integration, query logging table
+## What's Missing for Hybrid Architecture
 
-**Already built (actions):** `bulk_task` creation, `navigate`, `automation`
-
----
-
-## SPRINT 1 — Ask → Structured Queries
-
-### 1A. Add 4 missing intents to edge function
-
-Update `supabase/functions/ask-fastcrm/index.ts`:
-
-| New Intent | Query Logic | Data Source |
-|---|---|---|
-| `deals_no_next_step` | Open opportunities where `ai_next_action IS NULL` AND no pending tasks | `opportunities` LEFT JOIN `tasks` WHERE `status = 'pending'` AND `related_type = 'opportunity'` |
-| `deals_stuck_in_stage` | Open deals where `updated_at` is older than the stage's `expected_days` | `opportunities` JOIN `pipeline_stages` — compare `differenceInDays(now, opp.updated_at)` > `stage.expected_days` |
-| `high_value_deals` | Top 10 open deals ordered by `value DESC` | `opportunities` WHERE `status = 'open'` ORDER BY `value DESC` LIMIT 10 |
-| `overdue_invoices` | Check if invoicing extension is active via `workspace_modules`, then query invoice-related data | Guard with workspace_modules check; return "Extension not active" if missing |
-
-**Note:** `pending_approvals` depends on a B2B approval workflow that doesn't exist in the schema yet. We'll add it as a stub intent that returns "Coming soon" — no fake data.
-
-Update the `INTENT_TOOLS` enum to include all 11 intents. Update the system prompt to describe them. Add 4 new handler functions + the stub.
-
-### 1B. Add "Save as view" chip to suggested queries
-
-Update `AskFastCRMInline.tsx` and `AskFastCRMDialog.tsx` `SUGGESTED_CHIPS` arrays to include 2 new chips: `"No next step"` and `"High value deals"`.
-
-### 1C. Intent classifier — add regex fast-path
-
-Before calling the LLM, add a simple keyword map in the edge function to short-circuit known patterns:
-
-```typescript
-const KEYWORD_MAP: Record<string, string> = {
-  "at risk": "deals_at_risk",
-  "inactive": "deals_inactive",
-  "no activity": "deals_inactive",
-  "closing": "closing_soon",
-  "this month": "closing_soon",
-  "forecast": "forecast_summary",
-  "pipeline": "pipeline_summary",
-  "bottleneck": "stage_bottleneck",
-  "stuck": "deals_stuck_in_stage",
-  "no next step": "deals_no_next_step",
-  "high value": "high_value_deals",
-  "overdue": "overdue_invoices",
-  "approval": "pending_approvals",
-};
-```
-
-If a keyword matches, skip the LLM call entirely — instant response. Fall through to LLM only for ambiguous queries.
-
----
-
-## SPRINT 2 — Ask → Act
-
-### 2A. New action types in hook
-
-Add 3 new action types to `useAskFastCRM.ts`:
-
-| Action Type | Behavior |
+| Gap | Description |
 |---|---|
-| `bulk_move_stage` | `supabase.from("opportunities").update({ stage_id }).in("id", deal_ids)` |
-| `bulk_assign_owner` | `supabase.from("opportunities").update({ owner_id }).in("id", deal_ids)` |
-| `create_saved_view` | Insert into `core_object_views` with filter config matching the current result set |
-
-### 2B. Edge function — richer action payloads
-
-Update each intent handler to include the new action buttons where relevant:
-
-- `deals_at_risk` → add `[Create follow-ups, Save as view]`
-- `deals_inactive` → add `[Create follow-ups, Save as view, Move stage]`
-- `deals_stuck_in_stage` → add `[Move stage, Create follow-ups, Create automation]`
-- `high_value_deals` → add `[Save as view, Assign owner]`
-
-### 2C. Bulk action execution in hook
-
-Extend `executeAction` switch statement:
-
-```typescript
-case "bulk_move_stage": {
-  const { deal_ids, target_stage_id } = action.payload;
-  await supabase.from("opportunities")
-    .update({ stage_id: target_stage_id })
-    .in("id", deal_ids);
-  toast.success(`${deal_ids.length} deals moved.`);
-  break;
-}
-case "bulk_assign_owner": {
-  const { deal_ids, owner_id } = action.payload;
-  await supabase.from("opportunities")
-    .update({ owner_id })
-    .in("id", deal_ids);
-  toast.success(`${deal_ids.length} deals reassigned.`);
-  break;
-}
-case "create_saved_view": {
-  await supabase.from("core_object_views").insert({
-    workspace_id: currentWorkspace.id,
-    object_type_id: action.payload.object_type_id,
-    name: action.payload.view_name,
-    filters: action.payload.filters,
-    columns: action.payload.columns,
-  });
-  toast.success("View saved.");
-  break;
-}
-```
+| **No confidence score** | Keyword classifier returns intent but no confidence (0–1) |
+| **No `routed_via`** | Telemetry doesn't track whether deterministic or LLM resolved the query |
+| **No structured query JSON** | Response doesn't include the canonical `{ intent, object_type, filters, sort, limit }` schema |
+| **No field/operator whitelist** | LLM can theoretically return anything — no guardrails |
+| **No "Did you mean?"** | When LLM fails or confidence is low, no fallback suggestions |
+| **No bulk confirmation** | Actions affecting >10 items execute immediately without preview |
+| **Log table missing columns** | `ask_fastcrm_query_logs` lacks `routed_via` and `confidence` columns |
 
 ---
 
-## SPRINT 3 — Intelligence Upgrade + Premium Feel
+## Implementation Plan
 
-### 3A. Health Score integration
+### 1. Database Migration
 
-Update intent handlers to join `deal_scores` for real health scores instead of relying only on `deal_intelligence_cache` labels. Sort results by health score ascending (worst first).
+Add `routed_via` and `confidence` columns to `ask_fastcrm_query_logs`:
 
-### 3B. Auto-suggestions
+```sql
+ALTER TABLE public.ask_fastcrm_query_logs
+  ADD COLUMN IF NOT EXISTS routed_via text DEFAULT 'deterministic',
+  ADD COLUMN IF NOT EXISTS confidence numeric(3,2) DEFAULT 1.0;
+```
 
-After returning a result with items, the edge function appends a `suggestion` field:
+### 2. Edge Function — Confidence Scoring + Structured Query JSON
+
+**2A. Keyword classifier with confidence**
+
+Replace `classifyByKeyword` to return a confidence score based on match quality:
+- Exact phrase match → 0.95
+- Partial keyword match → 0.80
+- Multiple keyword matches (ambiguous) → 0.50
+
+If confidence ≥ 0.75 → use deterministic path. Otherwise → LLM fallback.
+
+**2B. Structured query JSON in response**
+
+Every response now includes a `query` field alongside the existing `header`, `items`, `actions`:
 
 ```typescript
-suggestion?: {
-  text: string;  // "You have 4 deals with no activity in 14 days. Want me to create follow-ups?"
-  action: AskResultAction;
+{
+  header: "3 deals at risk.",
+  query: {
+    intent: "deals_at_risk",
+    object_type: "deals",
+    filters: [{ field: "health_label", op: "=", value: "AT_RISK" }],
+    sort: [{ field: "health_score", dir: "asc" }],
+    limit: 25
+  },
+  routed_via: "deterministic",
+  confidence: 0.95,
+  items: [...],
+  actions: [...],
+  metric: {...},
+  suggestion: {...}
 }
 ```
 
-The `AskFastCRMResultPanel` renders this as a highlighted prompt below the items.
+**2C. Field & operator whitelist for LLM fallback**
 
-### 3C. Recent queries
+Define allowed fields per object type and allowed operators. If LLM returns fields/operators outside the whitelist, reject and return "Did you mean?" suggestions.
 
-Add a `useRecentAskQueries` hook that reads the last 5 entries from `ask_fastcrm_query_logs` for the current user. Show them as "Recent" chips above "Suggested" in the dialog when input is empty.
+```typescript
+const ALLOWED_FIELDS = {
+  deals: ["value", "stage_id", "owner_id", "last_activity_at", "expected_close_date", "health_label", "ai_next_action", "status", "updated_at"],
+  contacts: ["name", "email", "updated_at", "company_id"],
+  companies: ["name", "updated_at"],
+};
+const ALLOWED_OPS = ["=", ">", "<", ">=", "<=", "in", "contains", "is_null", "date_range"];
+```
 
-### 3D. UX polish
+**2D. LLM structured output via tool-calling**
 
-- Micro-animations: `framer-motion` fade + slide on result appearance (already partially in place with `animate-in`)
-- Loading skeleton instead of spinner
-- Keyboard navigation: arrow keys to move through items, Enter to open
+Update the LLM tool definition to return the full structured query schema (not just intent + days). Add `object_type`, `filters`, `sort`, `limit` to the tool parameters. Validate the response against the whitelist.
+
+**2E. "Did you mean?" fallback**
+
+When LLM returns invalid JSON or confidence < 0.5, return:
+```typescript
+{
+  header: "I'm not sure what you mean.",
+  items: [],
+  actions: [],
+  did_you_mean: ["Deals at risk", "No activity", "Closing this month", "Pipeline summary"]
+}
+```
+
+**2F. Telemetry — log `routed_via` and `confidence`**
+
+Update the non-blocking log insert to include the new fields.
+
+### 3. Frontend — Confirmation for Bulk Actions
+
+**3A. Update `AskResult` interface**
+
+Add `query`, `routed_via`, `confidence`, and `did_you_mean` to the response type.
+
+**3B. "Did you mean?" rendering**
+
+When `result.did_you_mean` is present, render suggestion chips in the result panel that re-trigger the query.
+
+**3C. Bulk action confirmation**
+
+In `useAskFastCRM.executeAction`, when `deal_ids.length > 10`, show a confirmation dialog before executing. Add a `needsConfirmation` check that returns early and sets a pending action state, which the UI renders as a confirmation prompt.
+
+**3D. Update `AskFastCRMResultPanel`**
+
+- Show `routed_via` badge (subtle, for power users — optional debug info)
+- Render `did_you_mean` chips
+- Show confirmation overlay for bulk actions
 
 ---
 
 ## Files to Edit
 
-| File | Sprint | Change |
-|---|---|---|
-| `supabase/functions/ask-fastcrm/index.ts` | 1, 2, 3 | Add 4 intents, keyword fast-path, richer actions, suggestion field |
-| `src/hooks/useAskFastCRM.ts` | 2 | Add `bulk_move_stage`, `bulk_assign_owner`, `create_saved_view` action types |
-| `src/components/ask-fastcrm/AskFastCRMDialog.tsx` | 1, 3 | Update chips, add recent queries |
-| `src/components/ask-fastcrm/AskFastCRMInline.tsx` | 1 | Update chips |
-| `src/components/ask-fastcrm/AskFastCRMResultPanel.tsx` | 2, 3 | Add new action icons, suggestion rendering, loading skeleton |
+| File | Change |
+|---|---|
+| `supabase/functions/ask-fastcrm/index.ts` | Confidence scoring, structured query JSON, field whitelist, LLM tool schema update, "Did you mean?", routed_via logging |
+| `src/hooks/useAskFastCRM.ts` | Add `query`, `routed_via`, `confidence`, `did_you_mean` to types; add bulk confirmation logic |
+| `src/components/ask-fastcrm/AskFastCRMResultPanel.tsx` | Render "Did you mean?" chips and bulk confirmation prompt |
 
-## Files to Create
+## Migration
 
-| File | Sprint | Purpose |
-|---|---|---|
-| `src/hooks/useRecentAskQueries.ts` | 3 | Fetch last 5 queries from `ask_fastcrm_query_logs` |
-
-## No database migration needed
-
-All tables already exist. The `opportunities` table has `ai_next_action`, `last_activity_at`, `owner_id`, `stage_id`, `value`. The `tasks` table has `related_type`/`related_id`. The `core_object_views` table exists for saved views. The `ask_fastcrm_query_logs` table exists for recent queries.
+One migration adding `routed_via` and `confidence` columns to `ask_fastcrm_query_logs`.
 
