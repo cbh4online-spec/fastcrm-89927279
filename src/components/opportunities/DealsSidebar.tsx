@@ -51,6 +51,7 @@ import {
   GripVertical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EmojiIconPicker } from "./EmojiIconPicker";
 
 const VIEW_DOT_COLORS = [
   "bg-blue-500", "bg-green-500", "bg-purple-500", "bg-amber-500",
@@ -344,7 +345,7 @@ export function DealsSidebar({
                   onToggleFavorite={() =>
                     toggleFavorite.mutate({ id: view.id, entity_type: "opportunities", is_favorite: !view.is_favorite })
                   }
-                  onRename={(newName) => updateView.mutate({ id: view.id, entity_type: "opportunities", updates: { name: newName } })}
+                  onRename={(newName, icon) => updateView.mutate({ id: view.id, entity_type: "opportunities", updates: { name: newName, ...(icon !== undefined ? { icon } : {}) } })}
                   onDuplicate={() => duplicateView.mutate({ view })}
                   isDragging={draggedId === view.id}
                   isDragOver={dragOverId === view.id}
@@ -385,7 +386,7 @@ export function DealsSidebar({
                   onToggleFavorite={() =>
                     toggleFavorite.mutate({ id: view.id, entity_type: "opportunities", is_favorite: false })
                   }
-                  onRename={(newName) => updateView.mutate({ id: view.id, entity_type: "opportunities", updates: { name: newName } })}
+                  onRename={(newName, icon) => updateView.mutate({ id: view.id, entity_type: "opportunities", updates: { name: newName, ...(icon !== undefined ? { icon } : {}) } })}
                   onDuplicate={() => duplicateView.mutate({ view })}
                   showStar
                   />
@@ -504,7 +505,7 @@ function ViewItem({
   onClick: () => void;
   onDelete: () => void;
   onToggleFavorite: () => void;
-  onRename: (newName: string) => void;
+  onRename: (newName: string, icon?: string | null) => void;
   onDuplicate: () => void;
   showStar?: boolean;
   isDragging?: boolean;
@@ -518,10 +519,11 @@ function ViewItem({
   const { t } = useTranslation("crm");
   const [renameOpen, setRenameOpen] = useState(false);
   const [newName, setNewName] = useState(view.name);
+  const [newIcon, setNewIcon] = useState<string | null>(view.icon);
 
   const handleRenameSubmit = () => {
-    if (newName.trim() && newName.trim() !== view.name) {
-      onRename(newName.trim());
+    if (newName.trim() && (newName.trim() !== view.name || newIcon !== view.icon)) {
+      onRename(newName.trim(), newIcon);
     }
     setRenameOpen(false);
   };
@@ -583,7 +585,7 @@ function ViewItem({
               <Star className={cn("h-3.5 w-3.5 mr-2", view.is_favorite && "text-amber-500 fill-amber-500")} />
               {view.is_favorite ? t("sidebarRemoveFavorite") : t("sidebarAddToFavorites")}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setNewName(view.name); setRenameOpen(true); }}>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setNewName(view.name); setNewIcon(view.icon); setRenameOpen(true); }}>
               <Pencil className="h-3.5 w-3.5 mr-2" />
               {t("sidebarRenameView")}
             </DropdownMenuItem>
@@ -605,7 +607,12 @@ function ViewItem({
       {/* Rename Dialog */}
       {renameOpen && (
         <div className="px-3 py-1">
-          <div className="flex gap-1">
+          <div className="flex gap-1 items-center">
+            <EmojiIconPicker
+              currentIcon={newIcon}
+              viewName={view.name}
+              onSelect={setNewIcon}
+            />
             <Input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
