@@ -1,51 +1,58 @@
 
 
-# Plan: Keyboard Accessibility for Drag-and-Drop Reordering
+# Plan: Seed Core CRM Templates (Phase 1 - Task t1-7)
 
-## Overview
+## Context
 
-Add keyboard accessibility to the drag-and-drop reordering in the Layout Config Dialog and the Sidebar, supporting Enter/Space to grab/release items, arrow keys to move, and a live region for screen reader announcements.
+The template pages (list + detail) are fully implemented in code, but the `seo_entities` table has **zero template records**. The pages render empty because there's no published content with `entity_type = 'template'`.
 
-## Files to Edit
+## Approach
 
-### 1. `src/components/opportunities/detail/OpportunityLayoutConfigDialog.tsx` — EDIT
+Create a database migration that inserts **10 core CRM templates** as published `seo_entities` records. These are the essential templates for a CRM keyword tool — covering the most common use cases users search for.
 
-**DraggableItem component changes:**
-- Add `tabIndex={0}`, `role="listitem"`, `aria-grabbed`, `aria-label` attributes
-- Add `isGrabbed` and `onKeyDown` props
-- Add focus ring styles and grabbed visual state (ring-2 ring-primary shadow-md)
-- Set checkbox `tabIndex={-1}` so tab goes to the row, not the checkbox independently
+## Template Content Plan
 
-**Dialog component changes:**
-- Add `grabbedItem` state (string | null) to track keyboard-grabbed item
-- Add `liveText` state (string) for screen reader announcements
-- Add a visually hidden `<div aria-live="assertive">` live region that reads `liveText`
-- Add `handleKeyDown(listId, list, setList)` function:
-  - **Enter/Space**: Toggle grabbed state. Announce "Grabbed [name], position X of Y" or "Dropped [name] at position X of Y"
-  - **ArrowUp/ArrowDown**: When grabbed, swap item with neighbor, update list state, announce "Moved [name] to position X of Y"
-  - **Escape**: Cancel grab, announce "Reorder cancelled"
-- Pass `isGrabbed` and `onKeyDown` to each `DraggableItem`
-- Wrap item lists in `<div role="list" aria-label="...">`
+| # | Slug | Title | Intent |
+|---|------|-------|--------|
+| 1 | `ecommerce-keywords` | Keywords para E-commerce | commercial |
+| 2 | `saas-keywords` | Keywords para SaaS | commercial |
+| 3 | `local-business-keywords` | Keywords para Negócios Locais | commercial |
+| 4 | `blog-content-keywords` | Keywords para Blog e Conteúdo | informational |
+| 5 | `b2b-sales-keywords` | Keywords para Vendas B2B | transactional |
+| 6 | `real-estate-keywords` | Keywords para Imobiliário | commercial |
+| 7 | `health-wellness-keywords` | Keywords para Saúde e Bem-Estar | informational |
+| 8 | `restaurant-food-keywords` | Keywords para Restaurantes | commercial |
+| 9 | `education-courses-keywords` | Keywords para Educação e Cursos | informational |
+| 10 | `freelancer-agency-keywords` | Keywords para Freelancers e Agências | commercial |
 
-### 2. `src/components/opportunities/detail/OpportunityDetailSidebar.tsx` — EDIT
+Each template will include:
+- Title, meta_description, h1, tldr
+- 2-3 content sections (what it does, best practices, when to use)
+- 3-4 FAQs
+- 2-3 examples/use cases
+- A CTA pointing to `/tools/keyword-ideas`
+- `toolConfig` with a relevant placeholder seed keyword
+- Schema markup (JSON-LD SoftwareApplication)
+- Status: `published`, language: `pt`
 
-**SidebarSection component changes:**
-- Add `tabIndex`, `role="listitem"`, `aria-grabbed`, `aria-label`, `onKeyDown` props
-- Add focus ring and grabbed visual styles
+## Implementation
 
-**OpportunityDetailSidebar component changes:**
-- Add `grabbedSection` state and `liveText` state
-- Add a visually hidden live region `<div aria-live="assertive">`
-- Add `handleSidebarKeyDown(sectionId)` function with same Enter/Space/Arrow/Escape logic
-- On arrow key move: reorder `sidebarOrder` locally and call `updatePrefs.mutate({ sidebar_order: newOrder })`
-- Pass keyboard props to each SidebarSection
-- Wrap sections container in `<div role="list" aria-label="Sidebar sections">`
+### 1. Database Migration — NEW
 
-## No New Files or Dependencies
+Single SQL migration inserting 10 template records into `seo_entities`. No schema changes needed — the table already exists with the correct structure. Each record uses `workspace_id = NULL` (public/global templates), `status = 'published'`, and `priority = 0.8`.
 
-All changes are within existing components using native keyboard events and ARIA attributes.
+### 2. Update Roadmap Config — EDIT `src/modules/growth-seo/config/seoRoadmap.ts`
 
-## i18n
+Change task `t1-7` status from `'todo'` to `'done'`.
 
-No new translation keys needed — announcements use programmatic strings with item labels and positions that are already translated.
+## No New Dependencies or Files
+
+All changes use existing infrastructure. The template detail page already handles rendering content sections, FAQs, examples, tool widget, and CTAs dynamically from the database record.
+
+## Technical Notes
+
+- Templates are inserted with `workspace_id = NULL` so they're accessible via the public RLS policy (`status = 'published'`)
+- The `content` column is JSONB and follows the `SEOContent` interface structure
+- The `toolConfig.placeholder` field pre-fills the keyword generator widget on each template page
+- View counts start at 0 and increment automatically when pages are visited
 
