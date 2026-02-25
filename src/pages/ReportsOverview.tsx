@@ -19,7 +19,8 @@ import {
   Lightbulb,
   BarChart3,
   PieChart,
-  Activity
+  Activity,
+  LayoutDashboard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
@@ -311,6 +312,23 @@ export default function ReportsOverview() {
                   className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
                 >
                   <Users className="w-5 h-5 text-orange-500" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Retenção & Churn</p>
+                    <p className="text-xs text-muted-foreground">Clientes em risco</p>
+                  </div>
+                  <ArrowUpRight className="w-4 h-4 text-muted-foreground" />
+                </Link>
+                <Separator />
+                <Link 
+                  to="/dashboard/reports/dashboards"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+                >
+                  <LayoutDashboard className="w-5 h-5 text-purple-500" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Dashboards</p>
+                    <p className="text-xs text-muted-foreground">Relatórios personalizados</p>
+                  </div>
+                  <ArrowUpRight className="w-4 h-4 text-muted-foreground" />
                   <div className="flex-1">
                     <p className="text-sm font-medium">Retenção & Churn</p>
                     <p className="text-xs text-muted-foreground">Clientes em risco</p>

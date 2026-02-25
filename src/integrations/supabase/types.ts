@@ -24516,6 +24516,106 @@ export type Database = {
           },
         ]
       }
+      report_dashboards: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_dashboards_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_widgets: {
+        Row: {
+          chart_type: string
+          created_at: string | null
+          created_by: string
+          dashboard_id: string
+          dataset: string
+          filters: Json | null
+          group_by: string
+          id: string
+          layout_order: number | null
+          layout_size: string | null
+          metric: string
+          title: string
+          updated_at: string | null
+          value_field: string | null
+        }
+        Insert: {
+          chart_type?: string
+          created_at?: string | null
+          created_by: string
+          dashboard_id: string
+          dataset?: string
+          filters?: Json | null
+          group_by?: string
+          id?: string
+          layout_order?: number | null
+          layout_size?: string | null
+          metric?: string
+          title: string
+          updated_at?: string | null
+          value_field?: string | null
+        }
+        Update: {
+          chart_type?: string
+          created_at?: string | null
+          created_by?: string
+          dashboard_id?: string
+          dataset?: string
+          filters?: Json | null
+          group_by?: string
+          id?: string
+          layout_order?: number | null
+          layout_size?: string | null
+          metric?: string
+          title?: string
+          updated_at?: string | null
+          value_field?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_widgets_dashboard_id_fkey"
+            columns: ["dashboard_id"]
+            isOneToOne: false
+            referencedRelation: "report_dashboards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       response_validations: {
         Row: {
           action_taken: string
