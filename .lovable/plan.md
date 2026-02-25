@@ -1,91 +1,100 @@
 
 
-# Métricas de Tempo Médio e Taxa de Conversão entre Fases
+# Transições Automáticas de Lifecycle Stage Baseadas em Eventos
 
 ## Contexto
 
-A página de Ciclo de Vida já tem KPIs básicos (total, conversão lead→cliente, prospects activos, clientes) e o diagrama ReactFlow. Falta:
-1. **Tempo médio em cada fase** — quanto tempo os contactos ficam em cada estágio
-2. **Taxa de conversão entre fases adjacentes** — % de contactos que passam de uma fase para a seguinte
+O sistema já tem:
+- Coluna `lifecycle_stage` na tabela `contacts` (visitor/lead/prospect/sales/onboarding/customer/churned)
+- Coluna `lead_status` (new/contacted/qualified/unqualified/customer/churned)
+- Coluna `client_status` (ativo/inativo/etc.)
+- Trigger de auditoria `trg_contact_audit` que regista alterações de campos
+- `ConvertLeadDialog` que cria contactos a partir de leads (mas não define lifecycle_stage)
+- `contact_audit_log` para tracking de alterações
 
-## Abordagem para Dados
+Não existe nenhuma lógica automática para transicionar o `lifecycle_stage` quando eventos ocorrem.
 
-A tabela `contact_audit_log` já regista alterações de campos com `field_name`, `old_value`, `new_value` e `changed_at`. Quando o `lifecycle_stage` é alterado, existe um registo com `field_name = 'lifecycle_stage'`. Isto permite calcular:
-- **Tempo médio por fase**: diferença entre `changed_at` de entrada e saída de cada stage
-- **Conversão entre fases**: contagem de transições stage A → stage B vs total que estiveram em A
+## Solução
 
-Como os cálculos envolvem agregação complexa sobre audit logs, vamos criar uma **função SQL** no banco de dados para eficiência, e um novo hook para a consumir.
+Criar um **trigger PostgreSQL** que automaticamente transiciona o `lifecycle_stage` baseado em alterações de campos existentes, sem necessidade de lógica frontend.
 
-## Alterações
+### Regras de Transição
 
-### 1. Migração SQL — Função `get_lifecycle_metrics`
+| Evento | De | Para |
+|--------|----|----|
+| `lead_status` muda para `contacted` ou `qualified` | visitor | lead |
+| `lead_status` muda para `qualified` | lead | prospect |
+| `lead_status` muda para `customer` | qualquer (visitor/lead/prospect) | sales |
+| `client_status` muda para `ativo` | qualquer (visitor/lead/prospect/sales) | onboarding |
+| `client_status` é `ativo` há mais de 30 dias (ou `client_since` existe) | onboarding | customer |
+| `client_status` muda para `inativo` ou `churned` | customer | churned |
+| Contacto criado via conversão de lead (`ConvertLeadDialog`) | — (default visitor) | lead |
 
-Criar uma função PostgreSQL que:
-- Consulta `contact_audit_log` onde `field_name = 'lifecycle_stage'`
-- Calcula tempo médio em cada fase (diferença entre timestamps de entrada e saída)
-- Calcula taxa de conversão entre fases adjacentes (quantos passaram de A→B / quantos estiveram em A)
-- Retorna JSON com `avg_days_per_stage` e `conversion_rates`
+A lógica é: transições só avançam (nunca retrocedem automaticamente), excepto para `churned`.
+
+### Alterações
+
+#### 1. Migração SQL — Trigger `fn_lifecycle_auto_transition`
+
+Criar um trigger `BEFORE UPDATE` na tabela `contacts` que:
+- Verifica se `lead_status` ou `client_status` mudaram
+- Aplica as regras de transição acima
+- Só avança o lifecycle (nunca retrocede), excepto para churned
+- Executa **antes** do trigger de auditoria para que a mudança de `lifecycle_stage` seja registada no audit log
 
 ```sql
-CREATE OR REPLACE FUNCTION get_lifecycle_metrics(p_workspace_id uuid)
-RETURNS jsonb AS $$
-  -- Aggregates audit log transitions to compute avg time per stage
-  -- and stage-to-stage conversion rates
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+CREATE OR REPLACE FUNCTION public.fn_lifecycle_auto_transition()
+RETURNS TRIGGER AS $$
+DECLARE
+  stage_order int;
+  new_stage text;
+  current_order int;
+BEGIN
+  -- Só processar se lead_status ou client_status mudaram
+  IF OLD.lead_status IS NOT DISTINCT FROM NEW.lead_status
+     AND OLD.client_status IS NOT DISTINCT FROM NEW.client_status THEN
+    RETURN NEW;
+  END IF;
+  
+  -- Mapa de ordem para evitar retrocesso
+  -- visitor=0, lead=1, prospect=2, sales=3, onboarding=4, customer=5, churned=-1
+  
+  -- Regras de transição...
+  -- Actualizar NEW.lifecycle_stage se aplicável
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 ```
 
-### 2. `src/hooks/useCustomerLifecycle.ts` — Novo hook `useLifecycleMetrics`
+#### 2. Migração SQL — Trigger `BEFORE INSERT` para novos contactos
 
-- Chama `supabase.rpc('get_lifecycle_metrics', { p_workspace_id })` 
-- Retorna `{ avgDaysPerStage: Record<stage, number>, conversionRates: Record<string, number> }`
-- Query key: `["lifecycle-metrics", workspaceId]`
+Quando um contacto é criado com `lead_status != 'new'`, definir lifecycle_stage adequado (ex: se `lead_status = 'qualified'`, definir como `prospect`).
 
-### 3. `src/components/lifecycle/LifecycleStageNode.tsx` — Mostrar tempo médio
+#### 3. `src/components/crm/ConvertLeadDialog.tsx`
 
-- Adicionar prop `avgDays` ao nó
-- Mostrar abaixo da contagem: ex. "~12d avg" em texto pequeno
-- Se não houver dados, mostrar "—"
+Actualizar `createContact.mutateAsync` para incluir `lifecycle_stage: 'lead'` nos dados de criação, garantindo que contactos criados a partir de leads começam no estágio correcto.
 
-### 4. `src/components/lifecycle/CustomerLifecycleFlow.tsx` — Labels de conversão nas edges
+#### 4. `src/hooks/useCustomerLifecycle.ts`
 
-- Passar `conversionRates` para os edge labels
-- Cada edge entre fases mostra a % de conversão (ex. "72%") como `label` na `Edge`
-- Passar `avgDaysPerStage` para os nodes via `data`
+Adicionar a coluna `lifecycle_stage` ao array de colunas auditadas no trigger existente (se não estiver já), para que transições automáticas sejam registadas no `contact_audit_log`.
 
-### 5. `src/components/lifecycle/LifecycleKPIs.tsx` — Novos KPIs
+#### 5. `src/components/lifecycle/CustomerLifecycleFlow.tsx` (melhoria menor)
 
-- Adicionar KPI "Tempo Médio Visitor → Customer" (soma dos tempos médios)
-- Adicionar KPI "Taxa Média de Progressão" (média das taxas de conversão entre fases)
-
-### 6. `src/components/lifecycle/LifecycleConversionTable.tsx` — Nova tabela (opcional)
-
-Tabela abaixo do diagrama mostrando:
-
-```text
-| Fase           | Contactos | Tempo Médio | Conversão → Próxima |
-|----------------|-----------|-------------|---------------------|
-| Visitante      | 120       | 5.2 dias    | 68%                 |
-| Lead           | 82        | 8.1 dias    | 45%                 |
-| Prospect       | 37        | 12.3 dias   | 62%                 |
-| Vendas         | 23        | 6.7 dias    | 78%                 |
-| Onboarding     | 18        | 3.4 dias    | 94%                 |
-| Customer       | 17        | —           | —                   |
-```
-
-### 7. `src/pages/CustomerLifecyclePage.tsx`
-
-- Consumir `useLifecycleMetrics` e passar dados ao flow e KPIs
-- Adicionar `LifecycleConversionTable` abaixo do diagrama
+Adicionar tooltip nos nós indicando que transições automáticas estão activas.
 
 ## Ficheiros
 
 | Ficheiro | Acção |
 |----------|-------|
-| Migração SQL | Criar função `get_lifecycle_metrics` |
-| `src/hooks/useCustomerLifecycle.ts` | Adicionar `useLifecycleMetrics` |
-| `src/components/lifecycle/LifecycleStageNode.tsx` | Mostrar tempo médio no nó |
-| `src/components/lifecycle/CustomerLifecycleFlow.tsx` | Labels de conversão nas edges + avgDays nos nodes |
-| `src/components/lifecycle/LifecycleKPIs.tsx` | 2 novos KPIs |
-| `src/components/lifecycle/LifecycleConversionTable.tsx` | Nova tabela de métricas |
-| `src/pages/CustomerLifecyclePage.tsx` | Integrar novos dados |
+| Migração SQL | Criar trigger `fn_lifecycle_auto_transition` + adicionar `lifecycle_stage` ao audit |
+| `src/components/crm/ConvertLeadDialog.tsx` | Passar `lifecycle_stage: 'lead'` na criação |
+
+## Detalhe Técnico
+
+O trigger tem prioridade de execução definida pelo nome (ordem alfabética em PostgreSQL para triggers `BEFORE UPDATE`). O trigger `fn_lifecycle_auto_transition` será nomeado `trg_contact_lifecycle` que executa antes de `trg_contact_audit`, garantindo que a transição automática é auditada.
+
+Ordem numérica para stages (para evitar retrocesso):
+- `visitor` = 0, `lead` = 1, `prospect` = 2, `sales` = 3, `onboarding` = 4, `customer` = 5
+- `churned` é especial: pode ser aplicado a qualquer estágio
 
