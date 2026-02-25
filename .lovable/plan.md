@@ -1,64 +1,101 @@
 
 
-# Batch 3 — Dashboard i18n Migration
+# Sales Performance Dashboard — Attio-Level Reporting
 
-## Scope
+## Current State
 
-Migrate all 10 dashboard components + the Dashboard page to use `t()` calls. The translation JSON files already have many keys but need ~80 new keys for strings discovered in the components.
+The existing `ReportsSales.tsx` is basic: 4 KPI cards, a horizontal pipeline bar chart, a pie chart for status distribution, proposal metrics, and ticket size. No time-series analysis, no conversion funnels, no source attribution, no quarter-over-quarter comparison.
 
-## Components to Edit (10 files)
+## Proposed: Full Sales Performance Dashboard
 
-| File | Hardcoded Strings |
+Inspired by the Attio screenshot but enhanced with features unique to FastCRM's intelligence engine.
+
+### Layout (6 sections)
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  Sales Performance                    [Period ▼] [↻] [+ Report] │
+├─────────────────────────────────────────────────────────────┤
+│ KPI Strip: 6 cards with sparklines & trends                 │
+│ Pipeline Value | Won Revenue | Win Rate | Avg Cycle |       │
+│ Proposals Conv | MQL→SQL Rate                               │
+├──────────────────────┬──────────────────────┬───────────────┤
+│ Weekly Lead Flow     │ Won Revenue by Month │ ARR Trend     │
+│ by Source (stacked)  │ (bar chart)          │ (area chart)  │
+├──────────────────────┴──────────────────────┴───────────────┤
+│ Pipeline Conversion Funnel — This Quarter vs Last Quarter   │
+│ Stage1 100% → Stage2 45% → Stage3 28% → Closed-Won 18%     │
+├──────────────────────────────┬──────────────────────────────┤
+│ Sales Velocity Matrix        │ Top Performers / Owners      │
+│ (deals × value × win rate    │ (leaderboard with bars)      │
+│  / cycle time)               │                              │
+├──────────────────────────────┴──────────────────────────────┤
+│ Deal Source Analysis (pie) │ Stage Duration Heatmap         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Data Sources (all from existing tables — no new DB tables needed)
+
+| Chart | Source Table | Query |
+|---|---|---|
+| KPI strip | `opportunities`, `leads`, `proposals` | Aggregations with period filter |
+| Weekly Lead Flow by Source | `leads` grouped by `created_at` week + `source` | Weekly buckets, last 12 weeks |
+| Won Revenue by Month | `opportunities` where `status = 'closed_won'` grouped by month | Last 12 months |
+| ARR/Revenue Trend | `revenue_forecasts` snapshots or `invoices` paid | Monthly totals |
+| Pipeline Conversion Funnel | `opportunities` + `pipeline_stages` | Count deals that reached each stage, calculate pass-through rates |
+| Quarter comparison | Same as funnel but filtered by current vs previous quarter |
+| Sales Velocity | `opportunities` — formula: (deals × avg_value × win_rate) / avg_cycle_days |
+| Top Performers | `opportunities` grouped by `assigned_to` with profile join |
+| Source Analysis | `leads` grouped by `source` |
+| Stage Duration | `opportunity_activities` or stage timestamps |
+
+### New Hook: `useSalesPerformance`
+
+Single hook that fetches all metrics in parallel using `Promise.all`:
+- `fetchKPIs()` — 6 headline numbers with trend vs previous period
+- `fetchLeadFlow()` — weekly lead counts by source (last 12 weeks)
+- `fetchWonRevenue()` — monthly won revenue (last 12 months)
+- `fetchARRTrend()` — monthly cumulative or snapshot revenue
+- `fetchConversionFunnel(quarter)` — stage-by-stage conversion rates
+- `fetchSalesVelocity()` — velocity formula components
+- `fetchTopPerformers()` — ranked owners by won value
+- `fetchSourceBreakdown()` — leads by source
+
+### Components (modular, each in own file)
+
+| Component | Description |
 |---|---|
-| `Dashboard.tsx` | "Home", "Build your CRM...", "New", "New Lead", "New Opportunity", etc. |
-| `RevenueHero.tsx` | "Revenue Forecast", "Alta/Média/Baixa confiança", "Dados insuficientes", "Expected case", "Stage-Weighted", "Risk-Adjusted", "Gross" |
-| `PipelineHealthCard.tsx` | "Pipeline Health", "Healthy/Watch/At Risk", "Data Quality", "Completeness", "Missing value", "Momentum", "Active (7d)", "Stale" |
-| `ForecastConfidenceCard.tsx` | "Is My Forecast Realistic?", confidence messages, "Revenue by Health", "Forecast Blockers", "deals without value/close date", "Slow Stages" |
-| `DealsAtRiskList.tsx` | "Deals at Risk", "No deals at risk right now" |
-| `AIActionSuggestions.tsx` | "Revenue Brain" |
-| `PLGSignalsFeed.tsx` | "Product Signals", "Live", "signups/activated/qualified/pipeline", "Sem sinais de produto", "Ver todos os sinais" |
-| `PipelineComparisonCard.tsx` | "Pipeline Health", "active", "View full comparison" |
-| `WelcomeOverlay.tsx` | All segment titles/tips/actions in Portuguese, "Bundle ativo" |
-| `ForecastTrendChart.tsx` | "Forecast Trend", chart legend labels, hardcoded `pt` locale |
-| `DashboardKPICards.tsx` | "Leads", "Oportunidades Ativas", "Propostas Enviadas/Pendentes", "Previsão de Receita", all tooltips |
-| `DashboardQuickNav.tsx` | "Navegação Rápida", "CRM", "Leads", "Oportunidades", "Propostas", "Definições", etc. |
-| `DashboardSmartAlerts.tsx` | "Alertas Inteligentes", "Tudo em dia!", "Nenhum alerta que exija ação", "crítico(s)", hardcoded `pt` locale |
-| `DashboardNextActions.tsx` | "Próximas Ações", "Tarefas mais importantes para hoje", "Tudo em dia!", "Atrasado", "Hoje", type labels, hardcoded `pt` locale |
-| `DashboardPipelineSnapshot.tsx` | "Pipeline", "Valor total:", "parado(s)", "Sem oportunidades", "Ver pipeline completo", tooltip strings |
-| `DashboardAutomationSuggestions.tsx` | "Automation Suggestions", "new", "View all suggestions" |
+| `SalesKPIStrip` | 6 KPI cards in a row with trend badges and sparklines |
+| `LeadFlowChart` | Stacked bar chart — weekly MQL/lead flow by source (like Attio) |
+| `WonRevenueChart` | Bar chart — closed-won value per month |
+| `ARRTrendChart` | Area chart — cumulative revenue trend |
+| `ConversionFunnel` | Horizontal funnel with percentage badges between stages + quarter comparison |
+| `SalesVelocityCard` | Card showing velocity formula breakdown |
+| `TopPerformersCard` | Leaderboard with avatar, name, won value, deal count |
+| `SourceAnalysisChart` | Donut chart with source distribution |
 
-## Translation File Updates
+### File Plan
 
-Add ~80 new keys to all 4 dashboard.json files covering:
-- Revenue hero labels (confidence levels, case labels)
-- Pipeline health labels (distribution, quality, momentum)
-- Forecast confidence labels (messages, blockers, breakdown)
-- KPI card labels and tooltips
-- Quick nav labels
-- Smart alerts labels
-- Next actions labels (task types, overdue)
-- Pipeline snapshot labels
-- Welcome overlay segment content
-- PLG signals labels
-- Chart legend labels
+| File | Action |
+|---|---|
+| `src/hooks/useSalesPerformance.ts` | **NEW** — All data fetching for the sales dashboard |
+| `src/components/reports/sales/SalesKPIStrip.tsx` | **NEW** — 6 KPI cards |
+| `src/components/reports/sales/LeadFlowChart.tsx` | **NEW** — Stacked bar (weekly leads by source) |
+| `src/components/reports/sales/WonRevenueChart.tsx` | **NEW** — Monthly won revenue bars |
+| `src/components/reports/sales/ARRTrendChart.tsx` | **NEW** — Cumulative revenue area chart |
+| `src/components/reports/sales/ConversionFunnel.tsx` | **NEW** — Stage conversion with quarter comparison |
+| `src/components/reports/sales/SalesVelocityCard.tsx` | **NEW** — Velocity metric breakdown |
+| `src/components/reports/sales/TopPerformersCard.tsx` | **NEW** — Owner leaderboard |
+| `src/components/reports/sales/SourceAnalysisChart.tsx` | **NEW** — Donut by source |
+| `src/pages/ReportsSales.tsx` | **REWRITE** — Compose all components into full dashboard |
+| `src/i18n/locales/{pt,en,es,fr}/reports.json` | **NEW** — Translation keys for all labels |
 
-## Pattern
+### Enhancements Over Attio
 
-Each component gets:
-```typescript
-import { useTranslation } from 'react-i18next';
-const { t } = useTranslation('dashboard');
-```
-
-Date-fns locale switches from hardcoded `pt` to dynamic:
-```typescript
-import { pt, enUS, es, fr } from 'date-fns/locale';
-const dateLocales = { pt, en: enUS, es, fr };
-const locale = dateLocales[i18n.language] || pt;
-```
-
-## Implementation Order
-
-1. Expand all 4 dashboard.json files with new keys
-2. Edit all 16 component files in parallel
+1. **Sales Velocity formula** — Attio shows raw charts, we show the actual velocity metric with breakdown
+2. **Health-aware conversion** — Funnel stages show health distribution (healthy/watch/at-risk deals at each stage)
+3. **AI Insights strip** — Reuse existing `useReportAIInsights` to show contextual insights below the funnel
+4. **Period comparison** — Not just "this quarter vs last" but configurable: week, month, quarter, year
+5. **i18n ready** — All strings translated from day one
+6. **Real data** — All queries hit existing tables (opportunities, leads, proposals, pipeline_stages, invoices)
 
