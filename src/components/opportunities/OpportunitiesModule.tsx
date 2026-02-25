@@ -6,6 +6,7 @@ import {
   useMoveOpportunityEnhanced,
   useCloseOpportunity 
 } from "@/hooks/useOpportunitiesEnhanced";
+import { useDeleteOpportunity } from "@/hooks/useOpportunities";
 import { usePipelineStages } from "@/hooks/usePipelineStages";
 import { useDealScores } from "@/hooks/useDealScores";
 import { SavedView, useSavedViews, useUpdateSavedView, useDeleteSavedView } from "@/hooks/useSavedViews";
@@ -96,6 +97,7 @@ export function OpportunitiesModule() {
   const { data: stages, isLoading: stagesLoading } = usePipelineStages();
   const moveOpportunity = useMoveOpportunityEnhanced();
   const closeOpportunity = useCloseOpportunity();
+  const deleteOpportunity = useDeleteOpportunity();
   const { trackLeadMovedPipeline } = useCRMAnalytics();
   const { scoresMap } = useDealScores();
   const { scoresMap: healthMap } = useBulkDealIntelligenceAPI(opportunities);
@@ -254,6 +256,15 @@ export function OpportunitiesModule() {
       setSelectedIds([]);
     } else {
       setSelectedIds(filteredOpportunities.map((o) => o.id));
+    }
+  };
+
+  const handleDeleteOpportunity = async (opp: Opportunity) => {
+    try {
+      await deleteOpportunity.mutateAsync(opp.id);
+      toast.success(t('opportunityDeleted'));
+    } catch {
+      toast.error(t('errorDeletingOpportunity'));
     }
   };
 
@@ -442,6 +453,8 @@ export function OpportunitiesModule() {
                 onMoveOpportunity={handleMoveOpportunity}
                 onOpportunityClick={(opp) => navigate(`/dashboard/opportunities/${opp.id}`)}
                 onCreateOpportunity={() => setIsCreateDialogOpen(true)}
+                onEditOpportunity={(opp) => navigate(`/dashboard/opportunities/${opp.id}`)}
+                onDeleteOpportunity={handleDeleteOpportunity}
                 draggedId={draggedId}
                 onDragStart={setDraggedId}
                 onDragEnd={() => setDraggedId(null)}
