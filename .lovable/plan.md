@@ -1,95 +1,91 @@
 
 
-# Customer Lifecycle — Diagrama Visual + Campo lifecycle_stage
+# Métricas de Tempo Médio e Taxa de Conversão entre Fases
 
 ## Contexto
 
-A imagem de referência mostra o ciclo de vida do cliente ao estilo Attio: Website Visitors → (Signups / Lead Forms / Chats) → Sales → Onboarding → Customer Success, com divisão visual entre "Prospect" e "Customer".
+A página de Ciclo de Vida já tem KPIs básicos (total, conversão lead→cliente, prospects activos, clientes) e o diagrama ReactFlow. Falta:
+1. **Tempo médio em cada fase** — quanto tempo os contactos ficam em cada estágio
+2. **Taxa de conversão entre fases adjacentes** — % de contactos que passam de uma fase para a seguinte
 
-O projecto já tem:
-- `@xyflow/react` instalado e usado em FlowBuilder e DataModel
-- Tabela `contacts` com `lead_status` e `client_status` mas sem `lifecycle_stage`
-- Tabela `leads` com `status`
-- Tipos em `src/types/customerJourney.ts` com stages (novo, em_onboarding, etc.)
+## Abordagem para Dados
+
+A tabela `contact_audit_log` já regista alterações de campos com `field_name`, `old_value`, `new_value` e `changed_at`. Quando o `lifecycle_stage` é alterado, existe um registo com `field_name = 'lifecycle_stage'`. Isto permite calcular:
+- **Tempo médio por fase**: diferença entre `changed_at` de entrada e saída de cada stage
+- **Conversão entre fases**: contagem de transições stage A → stage B vs total que estiveram em A
+
+Como os cálculos envolvem agregação complexa sobre audit logs, vamos criar uma **função SQL** no banco de dados para eficiência, e um novo hook para a consumir.
 
 ## Alterações
 
-### 1. Migração de Base de Dados
+### 1. Migração SQL — Função `get_lifecycle_metrics`
 
-Adicionar coluna `lifecycle_stage` à tabela `contacts`:
+Criar uma função PostgreSQL que:
+- Consulta `contact_audit_log` onde `field_name = 'lifecycle_stage'`
+- Calcula tempo médio em cada fase (diferença entre timestamps de entrada e saída)
+- Calcula taxa de conversão entre fases adjacentes (quantos passaram de A→B / quantos estiveram em A)
+- Retorna JSON com `avg_days_per_stage` e `conversion_rates`
 
 ```sql
-ALTER TABLE public.contacts 
-ADD COLUMN lifecycle_stage text NOT NULL DEFAULT 'visitor';
-
--- Index para queries de contagem por stage
-CREATE INDEX idx_contacts_lifecycle_stage 
-ON public.contacts(workspace_id, lifecycle_stage);
+CREATE OR REPLACE FUNCTION get_lifecycle_metrics(p_workspace_id uuid)
+RETURNS jsonb AS $$
+  -- Aggregates audit log transitions to compute avg time per stage
+  -- and stage-to-stage conversion rates
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
-Valores válidos: `visitor`, `lead`, `prospect`, `sales`, `onboarding`, `customer`, `churned`.
+### 2. `src/hooks/useCustomerLifecycle.ts` — Novo hook `useLifecycleMetrics`
 
-### 2. Nova Página — `/dashboard/lifecycle`
+- Chama `supabase.rpc('get_lifecycle_metrics', { p_workspace_id })` 
+- Retorna `{ avgDaysPerStage: Record<stage, number>, conversionRates: Record<string, number> }`
+- Query key: `["lifecycle-metrics", workspaceId]`
 
-Criar `src/pages/CustomerLifecyclePage.tsx` com `DashboardLayout`.
+### 3. `src/components/lifecycle/LifecycleStageNode.tsx` — Mostrar tempo médio
 
-### 3. Componente Visual — `CustomerLifecycleFlow.tsx`
+- Adicionar prop `avgDays` ao nó
+- Mostrar abaixo da contagem: ex. "~12d avg" em texto pequeno
+- Se não houver dados, mostrar "—"
 
-Usar `@xyflow/react` (ReactFlow) para renderizar o diagrama:
+### 4. `src/components/lifecycle/CustomerLifecycleFlow.tsx` — Labels de conversão nas edges
+
+- Passar `conversionRates` para os edge labels
+- Cada edge entre fases mostra a % de conversão (ex. "72%") como `label` na `Edge`
+- Passar `avgDaysPerStage` para os nodes via `data`
+
+### 5. `src/components/lifecycle/LifecycleKPIs.tsx` — Novos KPIs
+
+- Adicionar KPI "Tempo Médio Visitor → Customer" (soma dos tempos médios)
+- Adicionar KPI "Taxa Média de Progressão" (média das taxas de conversão entre fases)
+
+### 6. `src/components/lifecycle/LifecycleConversionTable.tsx` — Nova tabela (opcional)
+
+Tabela abaixo do diagrama mostrando:
 
 ```text
-┌──────────────┐     ┌──────────────────┐     ┌────────┐     ┌────────────┐     ┌──────────────────┐
-│   Visitantes │ ──► │  Leads           │ ──► │ Vendas │ ──► │ Onboarding │ ──► │ Customer Success │
-│   (website)  │     │  (form/chat/...) │     │        │     │            │     │                  │
-│     ###      │     │       ###        │     │  ###   │     │    ###     │     │       ###        │
-└──────────────┘     └──────────────────┘     └────────┘     └────────────┘     └──────────────────┘
-                     ◄── Prospect ──────────── ┆ ─────────── Customer ─────────────────────────────►
+| Fase           | Contactos | Tempo Médio | Conversão → Próxima |
+|----------------|-----------|-------------|---------------------|
+| Visitante      | 120       | 5.2 dias    | 68%                 |
+| Lead           | 82        | 8.1 dias    | 45%                 |
+| Prospect       | 37        | 12.3 dias   | 62%                 |
+| Vendas         | 23        | 6.7 dias    | 78%                 |
+| Onboarding     | 18        | 3.4 dias    | 94%                 |
+| Customer       | 17        | —           | —                   |
 ```
 
-- Cada nó mostra o **nome do estágio** e a **contagem de contactos** nesse stage
-- Divisão visual (linha pontilhada) entre Prospect e Customer
-- Nós customizados com cores e ícones
-- Dados reais via query `contacts` agrupados por `lifecycle_stage`
+### 7. `src/pages/CustomerLifecyclePage.tsx`
 
-### 4. Hook — `useCustomerLifecycle.ts`
-
-```typescript
-// Conta contactos por lifecycle_stage no workspace actual
-// Retorna: { stage: string, count: number }[]
-// + funções para actualizar o stage de um contacto
-```
-
-### 5. Painel de KPIs no topo
-
-- Total de contactos
-- Taxa de conversão Lead → Customer
-- Contactos em cada fase
-- Tempo médio por fase (futuro)
-
-### 6. Navegação
-
-Adicionar ao sidebar (`nav.v1.ts`) no grupo CRM:
-
-```typescript
-{ name: "Ciclo de Vida", href: "/dashboard/lifecycle", icon: GitBranch, group: "CRM" }
-```
-
-Adicionar rota no `App.tsx`.
-
-### 7. Edição de Lifecycle Stage
-
-No detalhe do contacto, permitir alterar o `lifecycle_stage` via select dropdown. O diagrama actualiza-se automaticamente via react-query.
+- Consumir `useLifecycleMetrics` e passar dados ao flow e KPIs
+- Adicionar `LifecycleConversionTable` abaixo do diagrama
 
 ## Ficheiros
 
 | Ficheiro | Acção |
 |----------|-------|
-| Migração SQL | Adicionar coluna `lifecycle_stage` a `contacts` |
-| `src/pages/CustomerLifecyclePage.tsx` | Nova página |
-| `src/components/lifecycle/CustomerLifecycleFlow.tsx` | Diagrama ReactFlow |
-| `src/components/lifecycle/LifecycleStageNode.tsx` | Nó customizado |
-| `src/components/lifecycle/LifecycleKPIs.tsx` | KPIs no topo |
-| `src/hooks/useCustomerLifecycle.ts` | Hook de dados |
-| `src/config/nav.v1.ts` | Adicionar item "Ciclo de Vida" |
-| `src/App.tsx` | Adicionar rota `/dashboard/lifecycle` |
+| Migração SQL | Criar função `get_lifecycle_metrics` |
+| `src/hooks/useCustomerLifecycle.ts` | Adicionar `useLifecycleMetrics` |
+| `src/components/lifecycle/LifecycleStageNode.tsx` | Mostrar tempo médio no nó |
+| `src/components/lifecycle/CustomerLifecycleFlow.tsx` | Labels de conversão nas edges + avgDays nos nodes |
+| `src/components/lifecycle/LifecycleKPIs.tsx` | 2 novos KPIs |
+| `src/components/lifecycle/LifecycleConversionTable.tsx` | Nova tabela de métricas |
+| `src/pages/CustomerLifecyclePage.tsx` | Integrar novos dados |
 
