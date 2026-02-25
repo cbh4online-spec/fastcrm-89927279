@@ -576,7 +576,7 @@ export function ENIContactDetailWithSidebar() {
         </main>
 
         {/* Right Details Panel */}
-        <EntityDetailsPanel entityType="contact" entity={contact as any} />
+        <EntityDetailsPanel entityType="contact" entity={contact as any} onUpdate={(field, value) => handleFieldChange(field as keyof ENIContact, value)} />
       </div>
 
       {/* Invoice Dialog */}

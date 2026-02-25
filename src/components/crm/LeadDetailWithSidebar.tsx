@@ -487,7 +487,7 @@ export function LeadDetailWithSidebar() {
         </main>
 
         {/* Right Details Panel */}
-        <EntityDetailsPanel entityType="lead" entity={lead as any} />
+        <EntityDetailsPanel entityType="lead" entity={lead as any} onUpdate={(field, value) => handleFieldChange(field as keyof Lead, value)} />
       </div>
     </div>
   );

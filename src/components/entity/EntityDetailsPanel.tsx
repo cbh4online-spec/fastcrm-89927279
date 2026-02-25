@@ -1,18 +1,15 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { ChevronRight, Mail, Phone, Globe, MapPin, Linkedin, Facebook, Twitter, Instagram, Building2, Briefcase, Tag, Calendar, Users, TrendingUp, DollarSign } from 'lucide-react';
+import { ChevronRight, Mail, Phone, Globe, MapPin, Linkedin, Facebook, Twitter, Instagram, Building2, Briefcase, Tag, Calendar, Users, TrendingUp, DollarSign, Pencil } from 'lucide-react';
 import { EntityType, Entity, CompanyEntity, ContactEntity, LeadEntity } from '@/types/entity';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-
-interface DetailsSectionConfig {
-  title: string;
-  fields: { label: string; value: string | number | null | undefined; icon?: React.ElementType; isLink?: boolean; linkType?: 'url' | 'email' | 'phone' }[];
-}
+import { Input } from '@/components/ui/input';
 
 interface EntityDetailsPanelProps {
   entityType: EntityType;
   entity: Entity;
+  onUpdate?: (field: string, value: unknown) => void;
 }
 
 function CollapsibleSection({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
@@ -36,9 +33,71 @@ function CollapsibleSection({ title, children, defaultOpen = true }: { title: st
   );
 }
 
-function FieldRow({ label, value, icon: Icon, isLink, linkType }: { label: string; value: string | number | null | undefined; icon?: React.ElementType; isLink?: boolean; linkType?: string }) {
-  const displayValue = value ?? '—';
-  
+function EditableFieldRow({ 
+  label, value, icon: Icon, isLink, linkType, fieldKey, onUpdate 
+}: { 
+  label: string; 
+  value: string | number | null | undefined; 
+  icon?: React.ElementType; 
+  isLink?: boolean; 
+  linkType?: string;
+  fieldKey?: string;
+  onUpdate?: (field: string, value: unknown) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(value ?? ''));
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setDraft(String(value ?? ''));
+  }, [value]);
+
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editing]);
+
+  const commit = () => {
+    setEditing(false);
+    if (onUpdate && fieldKey && draft !== String(value ?? '')) {
+      onUpdate(fieldKey, draft || null);
+    }
+  };
+
+  const cancel = () => {
+    setEditing(false);
+    setDraft(String(value ?? ''));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(); }
+    if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+  };
+
+  const canEdit = !!onUpdate && !!fieldKey;
+
+  const inputType = linkType === 'email' ? 'email' : linkType === 'url' ? 'url' : linkType === 'phone' ? 'tel' : 'text';
+
+  if (editing) {
+    return (
+      <div className="flex items-start gap-2 text-sm">
+        {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground mt-2 shrink-0" />}
+        <span className="text-muted-foreground shrink-0 min-w-[80px] mt-1.5">{label}</span>
+        <Input
+          ref={inputRef}
+          type={inputType}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={handleKeyDown}
+          className="h-7 text-xs flex-1"
+        />
+      </div>
+    );
+  }
+
   const renderValue = () => {
     if (!value) return <span className="text-muted-foreground">—</span>;
     if (isLink && linkType === 'url') {
@@ -51,15 +110,24 @@ function FieldRow({ label, value, icon: Icon, isLink, linkType }: { label: strin
     if (isLink && linkType === 'phone') {
       return <a href={`tel:${value}`} className="text-primary hover:underline">{String(value)}</a>;
     }
-    return <span className="text-foreground truncate">{String(displayValue)}</span>;
+    return <span className="text-foreground truncate">{String(value)}</span>;
   };
 
   return (
-    <div className="flex items-start gap-2 text-sm">
+    <div 
+      className={cn(
+        "flex items-start gap-2 text-sm group",
+        canEdit && "cursor-pointer rounded-md -mx-1 px-1 py-0.5 hover:bg-muted/50 transition-colors"
+      )}
+      onClick={canEdit ? () => setEditing(true) : undefined}
+    >
       {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />}
       <span className="text-muted-foreground shrink-0 min-w-[80px]">{label}</span>
-      <div className="flex-1 text-right truncate">
+      <div className="flex-1 text-right truncate flex items-center justify-end gap-1">
         {renderValue()}
+        {canEdit && (
+          <Pencil className="h-3 w-3 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+        )}
       </div>
     </div>
   );
@@ -76,33 +144,32 @@ function TagList({ tags }: { tags: string[] }) {
   );
 }
 
-export function EntityDetailsPanel({ entityType, entity }: EntityDetailsPanelProps) {
+export function EntityDetailsPanel({ entityType, entity, onUpdate }: EntityDetailsPanelProps) {
   return (
     <div className="w-80 border-l bg-muted/20 flex-shrink-0 overflow-hidden flex flex-col">
-      {/* Panel tab header */}
       <div className="border-b px-4 py-2.5 flex items-center gap-4">
         <span className="text-sm font-medium text-foreground">Detalhes</span>
       </div>
 
       <ScrollArea className="flex-1">
-        {entityType === 'company' && <CompanyDetails entity={entity as CompanyEntity} />}
-        {entityType === 'contact' && <ContactDetails entity={entity as ContactEntity} />}
-        {entityType === 'lead' && <LeadDetails entity={entity as LeadEntity} />}
+        {entityType === 'company' && <CompanyDetails entity={entity as CompanyEntity} onUpdate={onUpdate} />}
+        {entityType === 'contact' && <ContactDetails entity={entity as ContactEntity} onUpdate={onUpdate} />}
+        {entityType === 'lead' && <LeadDetails entity={entity as LeadEntity} onUpdate={onUpdate} />}
       </ScrollArea>
     </div>
   );
 }
 
-function CompanyDetails({ entity }: { entity: CompanyEntity }) {
+function CompanyDetails({ entity, onUpdate }: { entity: CompanyEntity; onUpdate?: (field: string, value: unknown) => void }) {
   const e = entity as any;
   return (
     <div>
       <CollapsibleSection title="Dados da Empresa">
-        <FieldRow label="Domínio" value={e.domain || e.website} icon={Globe} isLink linkType="url" />
-        <FieldRow label="Email" value={entity.email} icon={Mail} isLink linkType="email" />
-        <FieldRow label="Telefone" value={entity.phone} icon={Phone} isLink linkType="phone" />
-        <FieldRow label="Indústria" value={entity.industry} icon={Briefcase} />
-        <FieldRow label="Dimensão" value={entity.size} icon={Users} />
+        <EditableFieldRow label="Domínio" value={e.domain || e.website} icon={Globe} isLink linkType="url" fieldKey="website" onUpdate={onUpdate} />
+        <EditableFieldRow label="Email" value={entity.email} icon={Mail} isLink linkType="email" fieldKey="email" onUpdate={onUpdate} />
+        <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
+        <EditableFieldRow label="Indústria" value={entity.industry} icon={Briefcase} fieldKey="industry" onUpdate={onUpdate} />
+        <EditableFieldRow label="Dimensão" value={entity.size} icon={Users} fieldKey="size" onUpdate={onUpdate} />
         {entity.tags && entity.tags.length > 0 && (
           <div className="pt-1">
             <span className="text-sm text-muted-foreground">Tags</span>
@@ -112,38 +179,38 @@ function CompanyDetails({ entity }: { entity: CompanyEntity }) {
       </CollapsibleSection>
 
       <CollapsibleSection title="Dados Financeiros" defaultOpen={false}>
-        <FieldRow label="Receita" value={entity.annual_revenue ? `€${entity.annual_revenue.toLocaleString()}` : null} icon={DollarSign} />
-        <FieldRow label="Funcionários" value={entity.employee_count} icon={Users} />
-        <FieldRow label="NIF" value={e.tax_id} />
-        <FieldRow label="CAE" value={e.cae_description} />
+        <EditableFieldRow label="Receita" value={entity.annual_revenue ? `€${entity.annual_revenue.toLocaleString()}` : null} icon={DollarSign} fieldKey="annual_revenue" onUpdate={onUpdate} />
+        <EditableFieldRow label="Funcionários" value={entity.employee_count} icon={Users} fieldKey="employee_count" onUpdate={onUpdate} />
+        <EditableFieldRow label="NIF" value={e.tax_id} fieldKey="tax_id" onUpdate={onUpdate} />
+        <EditableFieldRow label="CAE" value={e.cae_description} fieldKey="cae_description" onUpdate={onUpdate} />
       </CollapsibleSection>
 
       <CollapsibleSection title="Localização" defaultOpen={false}>
-        <FieldRow label="Morada" value={entity.address} icon={MapPin} />
-        <FieldRow label="Cidade" value={e.city} />
-        <FieldRow label="País" value={e.country} />
+        <EditableFieldRow label="Morada" value={entity.address} icon={MapPin} fieldKey="address" onUpdate={onUpdate} />
+        <EditableFieldRow label="Cidade" value={e.city} fieldKey="city" onUpdate={onUpdate} />
+        <EditableFieldRow label="País" value={e.country} fieldKey="country" onUpdate={onUpdate} />
       </CollapsibleSection>
 
       <CollapsibleSection title="Redes Sociais" defaultOpen={false}>
-        <FieldRow label="LinkedIn" value={e.linkedin_url} icon={Linkedin} isLink linkType="url" />
-        <FieldRow label="Facebook" value={e.facebook_url} icon={Facebook} isLink linkType="url" />
-        <FieldRow label="Instagram" value={e.instagram_url} icon={Instagram} isLink linkType="url" />
-        <FieldRow label="Twitter" value={e.twitter_url} icon={Twitter} isLink linkType="url" />
+        <EditableFieldRow label="LinkedIn" value={e.linkedin_url} icon={Linkedin} isLink linkType="url" fieldKey="linkedin_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Facebook" value={e.facebook_url} icon={Facebook} isLink linkType="url" fieldKey="facebook_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Instagram" value={e.instagram_url} icon={Instagram} isLink linkType="url" fieldKey="instagram_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Twitter" value={e.twitter_url} icon={Twitter} isLink linkType="url" fieldKey="twitter_url" onUpdate={onUpdate} />
       </CollapsibleSection>
     </div>
   );
 }
 
-function ContactDetails({ entity }: { entity: ContactEntity }) {
+function ContactDetails({ entity, onUpdate }: { entity: ContactEntity; onUpdate?: (field: string, value: unknown) => void }) {
   const e = entity as any;
   return (
     <div>
       <CollapsibleSection title="Dados do Contacto">
-        <FieldRow label="Email" value={entity.email} icon={Mail} isLink linkType="email" />
-        <FieldRow label="Telefone" value={entity.phone} icon={Phone} isLink linkType="phone" />
-        <FieldRow label="Empresa" value={entity.company} icon={Building2} />
-        <FieldRow label="Cargo" value={entity.job_title} icon={Briefcase} />
-        <FieldRow label="NIF" value={e.tax_id} />
+        <EditableFieldRow label="Email" value={entity.email} icon={Mail} isLink linkType="email" fieldKey="email" onUpdate={onUpdate} />
+        <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
+        <EditableFieldRow label="Empresa" value={entity.company} icon={Building2} fieldKey="company" onUpdate={onUpdate} />
+        <EditableFieldRow label="Cargo" value={entity.job_title} icon={Briefcase} fieldKey="job_title" onUpdate={onUpdate} />
+        <EditableFieldRow label="NIF" value={e.tax_id} fieldKey="tax_id" onUpdate={onUpdate} />
         {entity.tags && entity.tags.length > 0 && (
           <div className="pt-1">
             <span className="text-sm text-muted-foreground">Tags</span>
@@ -153,30 +220,30 @@ function ContactDetails({ entity }: { entity: ContactEntity }) {
       </CollapsibleSection>
 
       <CollapsibleSection title="Morada" defaultOpen={false}>
-        <FieldRow label="Morada" value={e.address} icon={MapPin} />
-        <FieldRow label="Cidade" value={e.city} />
-        <FieldRow label="Cód. Postal" value={e.postal_code} />
-        <FieldRow label="País" value={e.country} />
+        <EditableFieldRow label="Morada" value={e.address} icon={MapPin} fieldKey="address" onUpdate={onUpdate} />
+        <EditableFieldRow label="Cidade" value={e.city} fieldKey="city" onUpdate={onUpdate} />
+        <EditableFieldRow label="Cód. Postal" value={e.postal_code} fieldKey="postal_code" onUpdate={onUpdate} />
+        <EditableFieldRow label="País" value={e.country} fieldKey="country" onUpdate={onUpdate} />
       </CollapsibleSection>
 
       <CollapsibleSection title="Redes Sociais" defaultOpen={false}>
-        <FieldRow label="LinkedIn" value={e.linkedin_url} icon={Linkedin} isLink linkType="url" />
-        <FieldRow label="Facebook" value={e.facebook_url} icon={Facebook} isLink linkType="url" />
-        <FieldRow label="Instagram" value={e.instagram_url} icon={Instagram} isLink linkType="url" />
+        <EditableFieldRow label="LinkedIn" value={e.linkedin_url} icon={Linkedin} isLink linkType="url" fieldKey="linkedin_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Facebook" value={e.facebook_url} icon={Facebook} isLink linkType="url" fieldKey="facebook_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Instagram" value={e.instagram_url} icon={Instagram} isLink linkType="url" fieldKey="instagram_url" onUpdate={onUpdate} />
       </CollapsibleSection>
     </div>
   );
 }
 
-function LeadDetails({ entity }: { entity: LeadEntity }) {
+function LeadDetails({ entity, onUpdate }: { entity: LeadEntity; onUpdate?: (field: string, value: unknown) => void }) {
   const e = entity as any;
   return (
     <div>
       <CollapsibleSection title="Dados do Lead">
-        <FieldRow label="Email" value={entity.email} icon={Mail} isLink linkType="email" />
-        <FieldRow label="Telefone" value={entity.phone} icon={Phone} isLink linkType="phone" />
-        <FieldRow label="Fonte" value={entity.source} icon={TrendingUp} />
-        <FieldRow label="Empresa" value={entity.company} icon={Building2} />
+        <EditableFieldRow label="Email" value={entity.email} icon={Mail} isLink linkType="email" fieldKey="email" onUpdate={onUpdate} />
+        <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
+        <EditableFieldRow label="Fonte" value={entity.source} icon={TrendingUp} fieldKey="source" onUpdate={onUpdate} />
+        <EditableFieldRow label="Empresa" value={entity.company} icon={Building2} fieldKey="company" onUpdate={onUpdate} />
         {entity.tags && entity.tags.length > 0 && (
           <div className="pt-1">
             <span className="text-sm text-muted-foreground">Tags</span>
@@ -186,8 +253,8 @@ function LeadDetails({ entity }: { entity: LeadEntity }) {
       </CollapsibleSection>
 
       <CollapsibleSection title="Redes Sociais" defaultOpen={false}>
-        <FieldRow label="LinkedIn" value={e.linkedin_url} icon={Linkedin} isLink linkType="url" />
-        <FieldRow label="Instagram" value={e.instagram_url} icon={Instagram} isLink linkType="url" />
+        <EditableFieldRow label="LinkedIn" value={e.linkedin_url} icon={Linkedin} isLink linkType="url" fieldKey="linkedin_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Instagram" value={e.instagram_url} icon={Instagram} isLink linkType="url" fieldKey="instagram_url" onUpdate={onUpdate} />
       </CollapsibleSection>
     </div>
   );
