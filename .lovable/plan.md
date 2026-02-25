@@ -1,91 +1,247 @@
 
 
-# Plan: Add Slide-in Template Preview Panel
+# Plan: FastCRM — Biblioteca de Templates Partilhados & Sequências de Email
 
-## Overview
+This is a large product initiative split into two phases. Phase 1 enhances the existing template system with collaboration features. Phase 2 introduces the email sequences module.
 
-Add a preview panel that slides in from the right side of the template list when a user hovers over or clicks a template card. The panel shows the full body content with template variables (`{{variable}}`) visually highlighted as colored badges.
+---
 
-## Current Behavior
+## Current State
 
-- Clicking a card selects it (highlight + footer bar appears)
-- "Pré-visualizar" button in footer navigates to the full Attio-style detail view
-- No hover preview exists
+**What already exists:**
+- `communication_templates` table with full CRUD, usage tracking, performance analytics
+- Template library with 24+ pre-built templates (static data in `templateLibraryData.ts`)
+- Template creation/editing dialog with variables, dynamic conditions, structure types
+- Send email from template dialog
+- Performance tab with multi-armed bandit learning
+- Template preview panel (Attio-style)
 
-## New Behavior
+**What's missing:**
+- No tags on templates (DB column doesn't exist)
+- No favorites system
+- No author name display (only `created_by` UUID stored)
+- No sequences/automation steps module
+- No rich text editor (currently plain textarea)
 
-- **Hover or click** a template card: a ~340px panel slides in from the right edge of the list area, showing:
-  - Template name + category badge
-  - Subject line (if present) with variable highlights
-  - Full body text with `{{variable}}` tokens rendered as inline colored badges
-  - Section count + field list summary
-  - "Usar template" quick-action button
-- Panel animates in using `animate-slide-in-right` (already defined in tailwind config)
-- Clicking a different card updates the panel content
-- The existing "Pré-visualizar" button in the footer still navigates to the full Attio-style detail view
+---
 
-## Implementation
+## Phase 1: Enhanced Shared Template Library
 
-### 1. Variable highlighting utility
+### 1.1 Database Migrations
 
-Create a small helper function `highlightVariables(text: string): React.ReactNode[]` that splits body/subject text on `{{...}}` patterns and returns an array of text spans and Badge elements for each variable.
-
-### 2. New component: `TemplatePreviewPanel.tsx`
-
-A right-side panel component receiving a `LibraryTemplate` prop:
-
-```text
-┌──────────────────────────┐
-│ Template Name            │
-│ [Category Badge]         │
-├──────────────────────────┤
-│ Assunto:                 │
-│ Text with {{var}} badges │
-├──────────────────────────┤
-│ Corpo:                   │
-│                          │
-│ Full body text with      │
-│ {{primeiro_nome}} shown  │
-│ as highlighted badges    │
-│                          │
-├──────────────────────────┤
-│ 4 Secções                │
-│ Tt Situação              │
-│ ≡ Problema               │
-│ ...                      │
-├──────────────────────────┤
-│ [Usar template →]        │
-└──────────────────────────┘
+**Add tags column to `communication_templates`:**
+```sql
+ALTER TABLE public.communication_templates 
+ADD COLUMN tags text[] DEFAULT '{}';
 ```
 
-Props: `template: LibraryTemplate`, `onUse: () => void`
+**Create `template_favorites` table:**
+```sql
+CREATE TABLE public.template_favorites (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  template_id uuid NOT NULL REFERENCES public.communication_templates(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE (template_id, user_id)
+);
 
-### 3. Update `TemplateLibraryDialog.tsx` — list mode layout
+ALTER TABLE public.template_favorites ENABLE ROW LEVEL SECURITY;
 
-In the list mode (non-Attio-preview), split the main area into two parts:
-- **Left (flex-1)**: The existing ScrollArea with template cards (unchanged)
-- **Right (w-[340px], conditional)**: The `TemplatePreviewPanel`, shown when `selectedTemplate` is set and `showPreview` is false
+CREATE POLICY "Users can manage own favorites"
+ON public.template_favorites FOR ALL TO authenticated
+USING (
+  user_id = auth.uid() 
+  AND workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid())
+)
+WITH CHECK (
+  user_id = auth.uid()
+  AND workspace_id IN (SELECT workspace_id FROM workspace_members WHERE user_id = auth.uid())
+);
+```
 
-The panel uses `animate-slide-in-right` for entry. When `selectedTemplate` changes, the panel content updates. When deselected, the panel slides out.
+**Create `email_sequences` table:**
+```sql
+CREATE TABLE public.email_sequences (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  description text,
+  is_active boolean DEFAULT false,
+  exit_conditions jsonb DEFAULT '[]',
+  tags text[] DEFAULT '{}',
+  created_by uuid NOT NULL REFERENCES auth.users(id),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
 
-### 4. Update `TemplateLibraryCard.tsx` — add hover callback
+CREATE TABLE public.email_sequence_steps (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  sequence_id uuid NOT NULL REFERENCES public.email_sequences(id) ON DELETE CASCADE,
+  step_order integer NOT NULL,
+  template_id uuid REFERENCES public.communication_templates(id) ON DELETE SET NULL,
+  subject text,
+  body text,
+  delay_days integer DEFAULT 1,
+  delay_hours integer DEFAULT 0,
+  channel text DEFAULT 'email',
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE (sequence_id, step_order)
+);
 
-Add an optional `onHover` prop so hovering a card can also trigger selection (with a small debounce to avoid flicker). The click behavior remains the same (select + show panel).
+CREATE TABLE public.email_sequence_enrollments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  sequence_id uuid NOT NULL REFERENCES public.email_sequences(id) ON DELETE CASCADE,
+  contact_id uuid NOT NULL,
+  current_step integer DEFAULT 1,
+  status text DEFAULT 'active' CHECK (status IN ('active', 'paused', 'completed', 'exited')),
+  exit_reason text,
+  enrolled_by uuid NOT NULL REFERENCES auth.users(id),
+  enrolled_at timestamptz DEFAULT now(),
+  completed_at timestamptz,
+  next_send_at timestamptz,
+  updated_at timestamptz DEFAULT now()
+);
+```
 
-## Files Changed
+With appropriate RLS policies for workspace-scoped access on all three tables.
+
+### 1.2 Template Enhancements — UI Changes
+
+**Tags system** — `TemplateFormDialog.tsx`:
+- Add multi-tag input field (comma-separated or chip input)
+- Store as `text[]` in DB
+
+**Tags display** — `TemplatesListPage.tsx`:
+- Show tag badges on template cards
+- Add "Tags" filter group in `FilterSidebar`
+- Global search already searches name + body; extend to tags
+
+**Author filter** — `TemplatesListPage.tsx`:
+- Join `profiles` table to get author name
+- Add "Autor" filter group in sidebar
+- Display author name on cards
+
+**Favorites** — New hook `useTemplateFavorites.ts`:
+- `useTemplateFavorites()` — fetch user's favorites
+- `useToggleFavorite()` — add/remove
+- Star icon on template cards
+- "Favoritos" filter in sidebar
+
+**Updated hook** — `useCommunicationTemplates.ts`:
+- Add `tags` field to mapping
+- Support `tags` in create/update mutations
+
+### 1.3 Files Changed (Phase 1)
 
 | File | Change |
 |------|--------|
-| `src/components/communication/TemplatePreviewPanel.tsx` | NEW — Slide-in panel with variable highlighting |
-| `src/components/communication/TemplateLibraryDialog.tsx` | Add right panel in list mode layout |
-| `src/components/communication/TemplateLibraryCard.tsx` | Add optional `onHover` prop |
+| DB Migration | Add `tags` column, create `template_favorites`, `email_sequences`, `email_sequence_steps`, `email_sequence_enrollments` tables |
+| `src/hooks/useCommunicationTemplates.ts` | Add `tags` to mapping and mutations |
+| `src/hooks/useTemplateFavorites.ts` | NEW — CRUD for favorites |
+| `src/types/communicationTemplate.ts` | Add `tags: string[]` to `CommunicationTemplate` |
+| `src/components/communication/TemplateFormDialog.tsx` | Add tags input field |
+| `src/components/communication/TemplatesListPage.tsx` | Add tags display, author name, favorites star, new filter groups |
+
+---
+
+## Phase 2: Email Sequences Module
+
+### 2.1 New Pages & Components
+
+**Route:** `/dashboard/sequences`
+
+**Page:** `src/pages/Sequences.tsx`
+- List of sequences with name, step count, active enrollments, status
+- Create/edit sequence dialog
+
+**Components:**
+```text
+src/components/sequences/
+├── SequencesListPage.tsx      — Main list with filters
+├── SequenceFormDialog.tsx     — Create/edit sequence metadata
+├── SequenceStepsEditor.tsx    — Vertical list of steps with add/reorder
+├── SequenceStepCard.tsx       — Individual step: template picker + delay config
+├── SequenceEnrollDialog.tsx   — Enroll contacts into sequence
+└── SequenceDetailPage.tsx     — View sequence with enrollments
+```
+
+### 2.2 Sequence Steps Editor
+
+Simple vertical list (not drag-and-drop in V1):
+```text
+┌─────────────────────────────────────────┐
+│ Step 1 — Email                          │
+│ Template: [Cold Outreach ▼]             │
+│ ou Escrever novo                        │
+│ Delay: [Imediato]                       │
+├─────────────────────────────────────────┤
+│       ↓  esperar 2 dias                 │
+├─────────────────────────────────────────┤
+│ Step 2 — Email                          │
+│ Template: [Follow-Up ▼]                 │
+│ Delay: [2 dias ▼]                       │
+├─────────────────────────────────────────┤
+│       ↓  esperar 3 dias                 │
+├─────────────────────────────────────────┤
+│ Step 3 — Email                          │
+│ Template: [Proposta ▼]                  │
+│ Delay: [3 dias ▼]                       │
+├─────────────────────────────────────────┤
+│ [+ Adicionar Etapa]                     │
+└─────────────────────────────────────────┘
+
+Exit conditions:
+☑ Parar se responder
+☑ Parar se reunião marcada
+☐ Parar se deal criado
+```
+
+### 2.3 Hooks
+
+| Hook | Purpose |
+|------|---------|
+| `useEmailSequences.ts` | CRUD for sequences |
+| `useSequenceSteps.ts` | CRUD for steps within a sequence |
+| `useSequenceEnrollments.ts` | Manage enrollments, status updates |
+
+### 2.4 Integration Points
+
+- **Contact Detail Page**: "Adicionar a Sequência" button
+- **Templates List**: Usage indicator showing "Usado em X sequências"
+- **Sequences tab** in `TemplatesListPage.tsx` (new tab alongside Biblioteca, Performance, Treino)
+
+### 2.5 Files Changed (Phase 2)
+
+| File | Change |
+|------|--------|
+| `src/pages/Sequences.tsx` | NEW — Page wrapper |
+| `src/components/sequences/*` | NEW — 6 components |
+| `src/hooks/useEmailSequences.ts` | NEW — Sequences CRUD |
+| `src/hooks/useSequenceSteps.ts` | NEW — Steps CRUD |
+| `src/hooks/useSequenceEnrollments.ts` | NEW — Enrollments management |
+| `src/App.tsx` | Add route `/dashboard/sequences` |
+| `src/components/communication/TemplatesListPage.tsx` | Add "Sequências" tab |
+
+---
+
+## Implementation Order
+
+1. **Database migrations** — All tables at once (templates tags + favorites + sequences)
+2. **Phase 1 UI** — Tags, favorites, author filter on existing templates page
+3. **Phase 2 hooks** — Sequences CRUD hooks
+4. **Phase 2 UI** — Sequences list page + step editor + enrollment
 
 ## Technical Notes
 
-- Variable highlighting: regex split on `{{(\w+)}}`, render matches as `<Badge variant="secondary" className="font-mono text-xs">variable</Badge>`
-- Uses existing `animate-slide-in-right` animation from tailwind config
-- No new dependencies needed
-- The panel is inside the dialog, so no z-index conflicts
-- Body text rendered with `whitespace-pre-wrap` to preserve line breaks
-- Structure labels (`**Bold**`) stripped using existing `stripStructureLabels` utility before display
+- Tags use `text[]` PostgreSQL array (same pattern as `companies.tags`)
+- Favorites use a junction table with unique constraint (no duplicates)
+- Sequence steps reference templates optionally — users can write inline content
+- Exit conditions stored as JSONB array: `[{"type": "reply"}, {"type": "meeting_booked"}]`
+- No rich text editor in V1 — keep existing textarea with variable insertion
+- RLS on all new tables scoped to workspace membership
+- Sequences are manual enrollment only in V1 (no automatic triggers)
 
