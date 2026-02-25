@@ -8,6 +8,7 @@ import {
   useReportAIInsights, 
   useScenarioAnalysis 
 } from "@/hooks/useForecastsReports";
+import { useSalesPerformance } from "@/hooks/useSalesPerformance";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -18,12 +19,27 @@ import {
   ArrowUpRight,
   Lightbulb,
   BarChart3,
-  PieChart,
+  PieChart as PieChartIcon,
   Activity,
-  LayoutDashboard
+  LayoutDashboard,
+  Trophy,
+  Globe
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
+import {
+  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from "recharts";
+
+const CHART_COLORS = [
+  "hsl(217, 91%, 60%)",
+  "hsl(142, 76%, 36%)",
+  "hsl(38, 92%, 50%)",
+  "hsl(280, 67%, 55%)",
+  "hsl(0, 84%, 60%)",
+  "hsl(190, 80%, 45%)",
+];
 
 function formatCurrency(value: number): string {
   if (value >= 1000000) return `€${(value / 1000000).toFixed(1)}M`;
@@ -137,6 +153,7 @@ function InsightCard({ insight }: { insight: any }) {
 
 export default function ReportsOverview() {
   const { data: kpis, isLoading } = useExecutiveKPIs();
+  const { data: salesData, isLoading: salesLoading } = useSalesPerformance();
   const insights = useReportAIInsights(kpis);
   const scenarios = useScenarioAnalysis(kpis);
 
@@ -205,7 +222,155 @@ export default function ReportsOverview() {
           )}
         </div>
 
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Revenue Trend */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Trophy className="h-4 w-4 text-amber-500" />
+                Receita Ganha por Mês
+              </CardTitle>
+              <CardDescription>Últimos 12 meses</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {salesLoading ? (
+                <Skeleton className="h-[260px]" />
+              ) : !salesData?.wonRevenueByMonth?.length ? (
+                <div className="flex items-center justify-center h-[260px] text-muted-foreground text-sm">
+                  Sem dados de receita
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart data={salesData.wonRevenueByMonth}>
+                    <defs>
+                      <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                    <YAxis tickFormatter={(v: number) => formatCurrency(v)} tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                    <Tooltip
+                      formatter={(value: number) => [formatCurrency(value), "Receita"]}
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="hsl(217, 91%, 60%)"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                      fill="url(#revenueGrad)"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Pipeline by Stage */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                Pipeline por Etapa
+              </CardTitle>
+              <CardDescription>Valor total vs ponderado</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {salesLoading ? (
+                <Skeleton className="h-[260px]" />
+              ) : !salesData?.dealForecast?.length ? (
+                <div className="flex items-center justify-center h-[260px] text-muted-foreground text-sm">
+                  Sem deals ativos
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={Math.max(200, salesData.dealForecast.length * 50 + 40)}>
+                  <BarChart data={salesData.dealForecast} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
+                    <XAxis type="number" tickFormatter={(v: number) => formatCurrency(v)} tick={{ fontSize: 11 }} />
+                    <YAxis type="category" dataKey="stage_name" width={100} tick={{ fontSize: 11 }} />
+                    <Tooltip
+                      formatter={(value: number, name: string) => [
+                        formatCurrency(value),
+                        name === "total_value" ? "Total" : "Ponderado"
+                      ]}
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Bar dataKey="total_value" name="total_value" radius={[0, 4, 4, 0]} barSize={14}>
+                      {salesData.dealForecast.map((entry, i) => (
+                        <Cell key={i} fill={entry.stage_color} fillOpacity={0.25} />
+                      ))}
+                    </Bar>
+                    <Bar dataKey="weighted_value" name="weighted_value" radius={[0, 4, 4, 0]} barSize={14}>
+                      {salesData.dealForecast.map((entry, i) => (
+                        <Cell key={i} fill={entry.stage_color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Lead Sources Pie */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Globe className="h-4 w-4 text-primary" />
+                Fontes de Leads
+              </CardTitle>
+              <CardDescription>Distribuição por origem</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {salesLoading ? (
+                <Skeleton className="h-[260px]" />
+              ) : !salesData?.sourceBreakdown?.length ? (
+                <div className="flex items-center justify-center h-[260px] text-muted-foreground text-sm">
+                  Sem leads
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <PieChart>
+                    <Pie
+                      data={salesData.sourceBreakdown}
+                      dataKey="count"
+                      nameKey="source"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={90}
+                      paddingAngle={2}
+                      label={({ source, percentage }) => `${source} ${percentage}%`}
+                    >
+                      {salesData.sourceBreakdown.map((_, i) => (
+                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+
           {/* AI Insights */}
           <div className="lg:col-span-2 space-y-4">
             <Card>
@@ -241,7 +406,7 @@ export default function ReportsOverview() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <PieChart className="w-4 h-4 text-primary" />
+                  <PieChartIcon className="w-4 h-4 text-primary" />
                   Cenários "E se..."
                 </CardTitle>
                 <CardDescription>
