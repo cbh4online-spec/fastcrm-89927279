@@ -1,116 +1,169 @@
 
 
-# Plano: Refinamentos Finais Estilo Attio -- Quick Actions, Records Expandidos, Invite Members
+# Plano: Deal Detail Page Estilo Attio -- Layout Completo com Melhorias
 
-## Análise do Screenshot vs Estado Atual
+## Referência Visual (Screenshot)
 
-O screenshot mostra refinamentos que ainda faltam na implementação atual:
+O screenshot mostra a página de detalhe de um Deal no Attio/Basepoint com:
 
-1. **"Quick actions" com atalho ⌘K** no topo da sidebar -- botão com indicadores de keyboard shortcut (⌘K, /)
-2. **Records expandidos** -- além de Companies, People (Contacts), Deals e Invoices, faltam: **Users**, **Workspaces**, **Partners**
-3. **"Invite team members"** no fundo da sidebar -- link fixo no bottom
-4. **"+ Add column"** como último header da tabela -- botão visível no header, não apenas no footer
-5. **Filter pills com dot colorido** nos valores (ex: "Subscription Status is `●` Active") -- refinamento visual
-6. **"Sorted by X"** como pill na barra de filtros, com ícone de sort, em vez de badge separada
+1. **Header com título "metainnovations.net <> New Business"** + estrela de favorito + botão "Compose email"
+2. **Barra superior com "X" (fechar) + navegação entre registos** ("1 of 5 in Deal stage → Lead")
+3. **Tabs horizontais** no conteúdo principal: Overview, Activity, Notes (0), Associated company (1), Associated People (1), Tasks (0), Calls (0), Workspace (0) -- cada tab com badge de contagem
+4. **Secção "Highlights"** com 3 cards: Deal stage (Lead, com barra de progresso), Deal owner (avatar), Associated company (avatar)
+5. **Secção "Deal value"** abaixo dos highlights com "No Deal value"
+6. **Secção "Activity >"** com timeline compacta mostrando quem mudou atributos e quando
+7. **Sidebar direita** com tabs Details/Comments e secções colapsáveis:
+   - **Communication**: associação + "When" + "About 2 years ago"
+   - **Deal Info**: Deal name, Associated company, Deal value, Priority Level, Deal stage (com dot colorido), Projected Close Date + "Show all values"
+   - **Company Info**: Domains (link), Categories, ICP
+   - **Lists**: "This record has not..." + "Add to list"
 
-## Componentes a Editar
+## Estado Atual vs Melhorias Necessárias
 
-### 1. `DealsSidebar.tsx` -- EDIT
-- Adicionar botão **"Quick actions"** no topo com indicadores de shortcut `⌘K` e `/`
-- Expandir `RECORDS_LINKS` com **Users** (`Users` icon → `/dashboard`), **Workspaces** (`Building` → `/dashboard`), **Partners** (`Handshake` → `/dashboard`)
-- Adicionar **"Invite team members"** como link fixo no bottom da sidebar (fora do ScrollArea), com ícone `UserPlus`
-- O "Quick actions" abre um Command Palette (cmdk dialog) -- implementação básica com pesquisa de vistas e navegação
+| Funcionalidade | Estado Atual | Melhoria |
+|---|---|---|
+| Header com close (X) + nav | Botão back + nav básica | Close (X) + nav com setas + breadcrumb "Deal stage → Lead" |
+| Favoritar deal | Não existe | Estrela de favorito no header |
+| "Compose email" botão | Não existe | Botão no header para compor email |
+| Tabs com contagens | Contagens parciais | Todas as tabs com badges de contagem |
+| Tabs adicionais | Overview, Activity, Notes, Tasks, Insights | Adicionar: Associated Company, Associated People, Calls, Workspace |
+| Highlights estilo Attio | Cards com ícones | Cards mais limpos com barra de progresso no stage + avatares |
+| "Show all values" link | Todos os campos visíveis | Campos colapsáveis com "Show all values >" |
+| "Add to list" na sidebar | Não existe | Secção "Lists" com opção de adicionar a smart lists |
+| Activity timeline compacta | Timeline com cards pesados | Timeline inline sem cards, estilo "user changed X attributes" |
+| Priority Level field | Não existe | Campo editável na sidebar |
 
-### 2. `OpportunityTableView.tsx` -- EDIT
-- Adicionar **"+ Add column"** como último `TableHead` no header (botão ghost com tooltip "Em breve")
-- Ajustar footer para alinhar melhor com as colunas reais da tabela
+## Componentes a Criar/Editar
 
-### 3. `ActiveFilterPills.tsx` -- EDIT
-- Adicionar suporte para **dot colorido** antes dos valores de filtro (quando o campo é "status", "stage", etc.)
-- Aceitar prop `sortField` e `sortDir` para renderizar "Sorted by X" como pill integrada (em vez de badge separada no `OpportunitiesModule`)
+### 1. `OpportunityDetailPage.tsx` -- **EDIT (major)**
+- Substituir header com botão back por header Attio-style:
+  - Botão "X" para fechar (navega para lista)
+  - Setas ← → para navegação entre registos (reutilizar `OpportunityRecordNav`)
+  - Breadcrumb "1 of 5 in Deal stage → Lead"
+  - Título com estrela de favorito
+  - Botões de ação à direita: "Compose email", ícones de ação, menu "..."
+- Expandir tabs para incluir: Associated Company, Associated People, Calls
+- Adicionar badge de contagem em todas as tabs
 
-### 4. `OpportunitiesModule.tsx` -- EDIT
-- Mover o indicador "Sorted by" para dentro do `ActiveFilterPills` como props
-- Remover o Badge separado de sorted by
+### 2. `OpportunityHighlightsCards.tsx` -- **EDIT**
+- Redesign para layout 3-colunas sem borda (mais limpo, estilo Attio)
+- Deal stage com barra de progresso colorida
+- Deal owner com avatar grande
+- Associated company com avatar/logo
+- Abaixo: linha separada "Deal value" com texto cinza se vazio
 
-### 5. `CommandPalette.tsx` -- NEW (opcional, pode ser simplificado)
-- Dialog com `Command` (cmdk) que abre com `⌘K`
-- Pesquisa rápida de vistas, navegação para páginas (Companies, Contacts, etc.)
-- Ações rápidas: "Create Deal", "Create Contact", etc.
+### 3. `OpportunityDetailSidebar.tsx` -- **EDIT**
+- Adicionar "Show all values >" link colapsável em cada secção
+- Adicionar campo **Priority Level** (select: Low, Medium, High, Critical)
+- Adicionar campo **Projected Close Date** 
+- Adicionar secção **"Lists"** no fundo com "Add to list" para smart lists
+- Melhorar labels com ícones inline (estilo Attio)
+
+### 4. `OpportunityActivityTimeline.tsx` -- **EDIT**
+- Simplificar para timeline compacta sem Card wrapper
+- Cada entry: avatar + "User changed X attributes" + timestamp
+- Link "View all >" no fundo
+
+### 5. `OpportunityHeaderActions.tsx` -- **EDIT**
+- Adicionar botão "Compose email" (abre mailto ou modal futuro)
+- Adicionar botão estrela favoritar
+- Adicionar ícones de ação rápida (link, expand, etc.)
+
+### 6. `OpportunityAssociatedTab.tsx` -- **NEW**
+- Tab genérica para "Associated Company" e "Associated People"
+- Mostra entidades associadas com links, avatares e opção de adicionar novas
+
+### 7. `OpportunityCallsTab.tsx` -- **NEW**
+- Tab para chamadas associadas ao deal
+- Lista de chamadas com data, duração, participantes
+- Botão "+ Log a call"
 
 ## Ficheiros
 
 | Ficheiro | Ação | Descrição |
 |---|---|---|
-| `src/components/opportunities/DealsSidebar.tsx` | **EDIT** | Quick actions, Records expandidos, Invite team members |
-| `src/components/opportunities/OpportunityTableView.tsx` | **EDIT** | "+ Add column" no header |
-| `src/components/opportunities/ActiveFilterPills.tsx` | **EDIT** | Dot colorido + "Sorted by" integrado |
-| `src/components/opportunities/OpportunitiesModule.tsx` | **EDIT** | Mover sorted by para ActiveFilterPills |
-| `src/components/opportunities/CommandPalette.tsx` | **NEW** | Command palette com ⌘K |
-| `src/i18n/locales/*/crm.json` | **EDIT** | ~6 novas keys |
+| `src/components/opportunities/OpportunityDetailPage.tsx` | **EDIT** | Header Attio-style, tabs expandidas com contagens |
+| `src/components/opportunities/detail/OpportunityHighlightsCards.tsx` | **EDIT** | Layout 3 colunas + Deal value separado |
+| `src/components/opportunities/detail/OpportunityDetailSidebar.tsx` | **EDIT** | Show all values, Priority, Lists section |
+| `src/components/opportunities/detail/OpportunityActivityTimeline.tsx` | **EDIT** | Timeline compacta sem Card wrapper |
+| `src/components/opportunities/detail/OpportunityHeaderActions.tsx` | **EDIT** | Compose email, favorito, ações rápidas |
+| `src/components/opportunities/detail/OpportunityAssociatedTab.tsx` | **NEW** | Tab de entidades associadas |
+| `src/components/opportunities/detail/OpportunityCallsTab.tsx` | **NEW** | Tab de chamadas |
+| `src/i18n/locales/*/crm.json` | **EDIT** | ~15 novas keys |
 
 ## Detalhes Técnicos
 
-### Quick Actions + Command Palette
+### Header Layout
 ```text
-┌─────────────────────────────────┐
-│ 🔍 Search or type a command...  │
-├─────────────────────────────────┤
-│ NAVIGATION                      │
-│   Companies                     │
-│   Contacts                      │
-│   Deals                         │
-│   Invoices                      │
-├─────────────────────────────────┤
-│ ACTIONS                         │
-│   + Create Deal                 │
-│   + Create Contact              │
-│   + Create Company              │
-├─────────────────────────────────┤
-│ VIEWS                           │
-│   🎯 Inbound Leads              │
-│   🎊 Product Launch Campaign    │
-└─────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│ [X]  [←] [→]   1 of 5 in Deal stage → Lead                       │
+├────────────────────────────────────────────────────────────────────┤
+│ 📧 metainnovations.net <> New Business ☆    [Compose email] [⋯]  │
+├────────────────────────────────────────────────────────────────────┤
+│ Overview │ Activity │ Notes 0 │ Assoc. Company 1 │ People 1 │ ... │
+└────────────────────────────────────────────────────────────────────┘
 ```
-- Abre com `⌘K` ou clique no botão
-- Usa `CommandDialog` do cmdk (já instalado)
-- Registra `useEffect` com event listener de keyboard
 
-### Records Expandidos
-Adicionar ao array `RECORDS_LINKS`:
-- `{ key: "sidebarUsers", icon: Users, href: "/dashboard" }`
-- `{ key: "sidebarWorkspaces", icon: Building, href: "/dashboard" }`
-- `{ key: "sidebarPartners", icon: Handshake, href: "/dashboard" }`
+### Highlights Cards (sem borda, inline)
+```text
+┌──────────────┬──────────────┬──────────────────┐
+│ Deal stage   │ Deal owner   │ Associated       │
+│ Lead         │ 🟢 Zev L.   │ 🔵 MetalInnov.  │
+│ ████░░░░░░░  │              │                  │
+├──────────────┴──────────────┴──────────────────┤
+│ Deal value   │ (vazio)      │                  │
+│ No Deal value│              │                  │
+└──────────────┴──────────────┴──────────────────┘
+```
 
-### Sidebar Bottom
-Abaixo do `ScrollArea`, um div fixo com:
+### Sidebar "Show all values"
+- Cada secção (Deal Info, Company Info) mostra 4-5 campos por defeito
+- Link "Show all values >" expande para mostrar todos os campos
+- State local com `useState` por secção
+
+### Secção "Lists" na Sidebar
 ```text
 ┌─────────────────────────────┐
-│ 👤 Invite team members      │
+│ ∨ Lists                     │
+│   This record has not been  │
+│   added to any lists        │
+│   [+ Add to list]           │
 └─────────────────────────────┘
 ```
+- Dropdown para selecionar smart lists existentes (do `useSavedViews`)
+- Associação guardada localmente (futura persistência em DB)
 
-### Filter Pills Melhorados
-- Quando o valor do filtro é um status/stage, mostrar um dot colorido antes do texto
-- Aceitar `sortField?: string` e `sortDir?: "asc" | "desc"` como props
-- Renderizar "Sorted by {field}" como primeiro pill (com ícone ArrowUpDown e botão X para limpar)
+### Priority Level Field
+- Novo campo `priority_level` no tipo `Opportunity`
+- Se não existir na DB, usar campo virtual (localStorage) ou adicionar via migration
+- Select options: Low, Medium, High, Critical
 
-### "+ Add column" no Header
-- Último `TableHead` com botão ghost `+ Add column`
-- `onClick` mostra toast "Em breve" ou tooltip
+## Migração de Base de Dados
 
-## i18n Keys Novas (~6)
+```sql
+ALTER TABLE public.opportunities
+ADD COLUMN IF NOT EXISTS priority_level TEXT DEFAULT NULL;
 ```
-quickActions, inviteTeamMembers, sidebarUsers,
-sidebarWorkspaces, sidebarPartners, commandPaletteSearch
+
+## i18n Keys Novas (~15)
+```
+oppDetail_composeEmail, oppDetail_favorite, oppDetail_unfavorite,
+oppDetail_associatedCompany, oppDetail_associatedPeople,
+oppDetail_calls, oppDetail_workspace, oppDetail_showAllValues,
+oppDetail_hideValues, oppDetail_priorityLevel, oppDetail_projectedClose,
+oppDetail_lists, oppDetail_addToList, oppDetail_noLists,
+oppDetail_changedAttributes, oppDetail_viewAll
 ```
 
 ## Ordem de Implementação
 
-1. `CommandPalette.tsx` -- novo componente
-2. `DealsSidebar.tsx` -- quick actions, records expandidos, invite link
-3. `ActiveFilterPills.tsx` -- dots coloridos + sorted by integrado
-4. `OpportunityTableView.tsx` -- "+ Add column" no header
-5. `OpportunitiesModule.tsx` -- integrar sorted by nas pills
-6. i18n keys
+1. Migração DB -- campo `priority_level`
+2. `OpportunityHeaderActions.tsx` -- compose email, favorito, ações
+3. `OpportunityDetailPage.tsx` -- header Attio, tabs expandidas
+4. `OpportunityHighlightsCards.tsx` -- redesign 3 colunas
+5. `OpportunityDetailSidebar.tsx` -- show all values, priority, lists
+6. `OpportunityActivityTimeline.tsx` -- timeline compacta
+7. `OpportunityAssociatedTab.tsx` -- nova tab
+8. `OpportunityCallsTab.tsx` -- nova tab
+9. i18n keys
 
