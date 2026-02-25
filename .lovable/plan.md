@@ -1,46 +1,36 @@
 
 
-# Fix: System Not Updating After Module Installation
+# Fix: Installed Modules Not Appearing in V1 Sidebar
 
-## Root Cause
+## Problem
 
-The `extension-provisioner` edge function has **column name mismatches** with the actual database schema. When a module is installed, the `workspace_modules` row is created (module appears as "installed"), but all subsequent provisioning steps (objects, fields, views) fail silently because the SQL references non-existent columns.
+The V1 sidebar (`SidebarV1.tsx`) only renders static items from `nav.v1.ts` plus custom objects from `useCustomObjects`. It has **no integration with the extension registry** -- unlike the V2 sidebar (`Sidebar.tsx`), which calls `getExtensionObjectTabs(installedModuleIds)` to dynamically add installed module links.
 
-**Postgres logs confirm:** `column core_object_types.type does not exist`
-
-### Column Mismatches Found
-
-| Table | Provisioner Uses | Actual Column |
-|-------|-----------------|---------------|
-| `core_object_types` | `type` | `slug` |
-| `core_object_types` | `label` | `name` |
-| `core_object_types` | `label_pt` | *(doesn't exist)* |
-| `core_object_types` | `source_table` | *(doesn't exist)* |
-| `core_object_fields` | `object_type_id` | `object_id` |
-| `core_object_fields` | `key` | `slug` |
-| `core_object_fields` | `type` | `field_type` |
-| `core_object_fields` | `label` | `name` |
-| `core_object_views` | `object_type_id` | `object_id` |
-| `core_object_views` | `filter` | `filters` |
+Since the workspace uses V1 (no `ui.shell_v2_enabled` flag), installed modules like Proposals, Invoices, Student Journey, etc. never appear in the menu.
 
 ## Fix
 
-### 1. Update `extension-provisioner` edge function
+Add the same extension-based dynamic nav items to `SidebarV1.tsx`:
 
-Correct all column references to match the actual database schema:
-
-- **core_object_types**: Use `slug` instead of `type`, `name` instead of `label`, remove `label_pt` and `source_table`
-- **core_object_fields**: Use `object_id` instead of `object_type_id`, `slug` instead of `key`, `field_type` instead of `type`, `name` instead of `label`
-- **core_object_views**: Use `object_id` instead of `object_type_id`, `filters` instead of `filter`
-- Add proper error logging for each provisioning step so failures are visible
-
-### 2. Update manifest interfaces
-
-Align the `ManifestObjectDef`, `ManifestFieldDef`, and `ManifestViewDef` interfaces to reflect usable fields.
+1. Import `useWorkspaceModules` and `getExtensionObjectTabs` from the extension registry
+2. Compute `extensionNavItems` from installed module IDs (same logic as V2 sidebar)
+3. Render an "Extensoes" section at the bottom of the nav list with the extension items
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `supabase/functions/extension-provisioner/index.ts` | Fix all column name references to match actual DB schema; add error logging per step |
+| `src/components/layout/SidebarV1.tsx` | Import `useWorkspaceModules` + `getExtensionObjectTabs`; compute extension nav items; render them in an "Extensoes" section after the main nav items |
+
+## Technical Detail
+
+The V2 sidebar already does this correctly (lines 54-56 of `Sidebar.tsx`):
+
+```typescript
+const extensionNavItems = useMemo(() => {
+  return getExtensionObjectTabs(installedModuleIds).filter((tab) => tab.route);
+}, [installedModuleIds]);
+```
+
+The same pattern will be replicated in `SidebarV1.tsx`, rendering extension items with a `Puzzle` icon separator label and supporting both collapsed and expanded states.
 
