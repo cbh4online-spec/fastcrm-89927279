@@ -11,7 +11,23 @@ function differenceInDays(a: Date, b: Date): number {
   return Math.floor((a.getTime() - b.getTime()) / 86400000);
 }
 
-// --- Sprint 1C: Keyword fast-path ---
+// --- Hybrid Architecture: Guardrails ---
+const ALLOWED_FIELDS: Record<string, string[]> = {
+  deals: ["value", "stage_id", "owner_id", "last_activity_at", "expected_close_date", "health_label", "ai_next_action", "status", "updated_at"],
+  contacts: ["name", "email", "updated_at", "company_id"],
+  companies: ["name", "updated_at"],
+};
+const ALLOWED_OPS = ["=", ">", "<", ">=", "<=", "in", "contains", "is_null", "date_range"];
+
+const DID_YOU_MEAN_DEFAULTS = ["Deals at risk", "No activity", "Closing this month", "Pipeline summary", "High value deals", "No next step"];
+
+// --- Keyword fast-path with confidence scoring ---
+interface KeywordMatch {
+  intent: string;
+  days: number;
+  confidence: number;
+}
+
 const KEYWORD_MAP: Record<string, string> = {
   "at risk": "deals_at_risk",
   "em risco": "deals_at_risk",
@@ -40,18 +56,111 @@ const KEYWORD_MAP: Record<string, string> = {
   "contactos inativos": "contacts_inactive",
 };
 
-function classifyByKeyword(question: string): { intent: string; days: number } | null {
-  const lower = question.toLowerCase();
-  for (const [keyword, intent] of Object.entries(KEYWORD_MAP)) {
-    if (lower.includes(keyword)) {
-      const daysMatch = lower.match(/(\d+)\s*d(?:ays|ias)?/);
+// Exact phrase patterns for highest confidence
+const EXACT_PHRASES: Record<string, string> = {
+  "deals at risk": "deals_at_risk",
+  "deals em risco": "deals_at_risk",
+  "no activity": "deals_inactive",
+  "sem atividade": "deals_inactive",
+  "closing this month": "closing_soon",
+  "a fechar este mês": "closing_soon",
+  "pipeline summary": "pipeline_summary",
+  "resumo pipeline": "pipeline_summary",
+  "forecast": "forecast_summary",
+  "stage bottleneck": "stage_bottleneck",
+  "gargalo de estágio": "stage_bottleneck",
+  "no next step": "deals_no_next_step",
+  "sem próximo passo": "deals_no_next_step",
+  "high value deals": "high_value_deals",
+  "deals alto valor": "high_value_deals",
+  "overdue invoices": "overdue_invoices",
+  "faturas vencidas": "overdue_invoices",
+  "deals stuck": "deals_stuck_in_stage",
+  "deals stuck in stage": "deals_stuck_in_stage",
+  "inactive contacts": "contacts_inactive",
+  "contactos inativos": "contacts_inactive",
+};
+
+function classifyByKeyword(question: string): KeywordMatch | null {
+  const lower = question.toLowerCase().trim();
+  const daysMatch = lower.match(/(\d+)\s*d(?:ays|ias)?/);
+
+  // 1. Check exact phrases first → 0.95
+  for (const [phrase, intent] of Object.entries(EXACT_PHRASES)) {
+    if (lower === phrase || lower === phrase + "?" || lower === phrase + ".") {
       const days = daysMatch ? parseInt(daysMatch[1]) : (intent === "closing_soon" ? 30 : 14);
-      return { intent, days };
+      return { intent, days, confidence: 0.95 };
     }
   }
-  return null;
+
+  // 2. Check keyword partial matches
+  const matches: { intent: string; keyword: string }[] = [];
+  for (const [keyword, intent] of Object.entries(KEYWORD_MAP)) {
+    if (lower.includes(keyword)) {
+      matches.push({ intent, keyword });
+    }
+  }
+
+  if (matches.length === 0) return null;
+
+  // Multiple different intents matched → ambiguous → 0.50
+  const uniqueIntents = new Set(matches.map(m => m.intent));
+  if (uniqueIntents.size > 1) {
+    // Return first match but low confidence
+    const first = matches[0];
+    const days = daysMatch ? parseInt(daysMatch[1]) : (first.intent === "closing_soon" ? 30 : 14);
+    return { intent: first.intent, days, confidence: 0.50 };
+  }
+
+  // Single intent matched via keyword → 0.80
+  const match = matches[0];
+  const days = daysMatch ? parseInt(daysMatch[1]) : (match.intent === "closing_soon" ? 30 : 14);
+  return { intent: match.intent, days, confidence: 0.80 };
 }
 
+// --- Structured query builder ---
+interface StructuredQuery {
+  intent: string;
+  object_type: "deals" | "contacts" | "companies";
+  filters: { field: string; op: string; value: any }[];
+  sort: { field: string; dir: "asc" | "desc" }[];
+  limit: number;
+}
+
+function buildStructuredQuery(intent: string, days: number): StructuredQuery {
+  const base: StructuredQuery = { intent, object_type: "deals", filters: [], sort: [], limit: 25 };
+
+  switch (intent) {
+    case "deals_at_risk":
+      return { ...base, filters: [{ field: "health_label", op: "=", value: "AT_RISK" }], sort: [{ field: "health_score", dir: "asc" }] };
+    case "deals_inactive":
+      return { ...base, filters: [{ field: "last_activity_days", op: ">", value: days }], sort: [{ field: "last_activity_at", dir: "asc" }] };
+    case "closing_soon":
+      return { ...base, filters: [{ field: "expected_close_date", op: "date_range", value: { within_days: days } }], sort: [{ field: "expected_close_date", dir: "asc" }] };
+    case "forecast_summary":
+      return { ...base, filters: [], sort: [] };
+    case "pipeline_summary":
+      return { ...base, filters: [{ field: "status", op: "=", value: "open" }], sort: [{ field: "stage_id", dir: "asc" }] };
+    case "contacts_inactive":
+      return { ...base, object_type: "contacts", filters: [{ field: "updated_at", op: "<", value: `${days}_days_ago` }], sort: [{ field: "updated_at", dir: "asc" }] };
+    case "stage_bottleneck":
+      return { ...base, filters: [{ field: "status", op: "=", value: "open" }], sort: [{ field: "updated_at", dir: "asc" }] };
+    case "deals_no_next_step":
+      return { ...base, filters: [{ field: "ai_next_action", op: "is_null", value: true }], sort: [{ field: "value", dir: "desc" }] };
+    case "deals_stuck_in_stage":
+      return { ...base, filters: [{ field: "status", op: "=", value: "open" }], sort: [{ field: "updated_at", dir: "asc" }] };
+    case "high_value_deals":
+      return { ...base, filters: [{ field: "status", op: "=", value: "open" }], sort: [{ field: "value", dir: "desc" }], limit: 10 };
+    case "overdue_invoices":
+      return { ...base, filters: [{ field: "status", op: "=", value: "overdue" }], sort: [{ field: "due_date", dir: "asc" }] };
+    case "pending_approvals":
+      return { ...base, filters: [], sort: [] };
+    default:
+      return base;
+  }
+}
+
+// --- LLM tool definition with structured query output ---
 const INTENT_TOOLS = [
   {
     type: "function" as const,
@@ -85,6 +194,24 @@ const INTENT_TOOLS = [
             description:
               "Number of days parameter if applicable (e.g. inactive days, closing window). Default 14 for inactive, 30 for closing.",
           },
+          object_type: {
+            type: "string",
+            enum: ["deals", "contacts", "companies"],
+            description: "The primary object type being queried. Default 'deals'.",
+          },
+          filters: {
+            type: "array",
+            description: "Optional structured filters.",
+            items: {
+              type: "object",
+              properties: {
+                field: { type: "string" },
+                op: { type: "string", enum: ALLOWED_OPS },
+                value: {},
+              },
+              required: ["field", "op", "value"],
+            },
+          },
         },
         required: ["intent"],
         additionalProperties: false,
@@ -93,6 +220,19 @@ const INTENT_TOOLS = [
   },
 ];
 
+// --- Validate LLM output against whitelist ---
+function validateLLMFilters(
+  filters: { field: string; op: string; value: any }[] | undefined,
+  objectType: string
+): boolean {
+  if (!filters || filters.length === 0) return true;
+  const allowedFields = ALLOWED_FIELDS[objectType] || [];
+  return filters.every(
+    (f) => allowedFields.includes(f.field) && ALLOWED_OPS.includes(f.op)
+  );
+}
+
+// --- Main handler ---
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -147,16 +287,22 @@ Deno.serve(async (req) => {
 
     const serviceClient = createClient(supabaseUrl, serviceKey);
 
-    // --- Sprint 1C: Try keyword fast-path first ---
+    // --- Hybrid: Try deterministic first, fallback to LLM ---
     let intent: string;
     let days: number;
+    let confidence: number;
+    let routedVia: "deterministic" | "llm";
 
     const keywordResult = classifyByKeyword(question);
-    if (keywordResult) {
+
+    if (keywordResult && keywordResult.confidence >= 0.75) {
+      // Deterministic path
       intent = keywordResult.intent;
       days = keywordResult.days;
+      confidence = keywordResult.confidence;
+      routedVia = "deterministic";
     } else {
-      // --- Fallback: Intent Classification via Lovable AI ---
+      // LLM fallback
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (!LOVABLE_API_KEY) {
         return new Response(
@@ -195,7 +341,14 @@ Deno.serve(async (req) => {
 - overdue_invoices: invoices past due date
 - pending_approvals: items waiting for approval
 
-Extract the intent and optional days parameter. Always call the tool.`,
+Allowed fields per object_type:
+- deals: ${ALLOWED_FIELDS.deals.join(", ")}
+- contacts: ${ALLOWED_FIELDS.contacts.join(", ")}
+- companies: ${ALLOWED_FIELDS.companies.join(", ")}
+
+Allowed operators: ${ALLOWED_OPS.join(", ")}
+
+Extract the intent and optional days parameter. Always call the tool. Only use allowed fields and operators.`,
               },
               { role: "user", content: question },
             ],
@@ -224,9 +377,17 @@ Extract the intent and optional days parameter. Always call the tool.`,
             { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
+        // Return "Did you mean?" instead of hard error
         return new Response(
-          JSON.stringify({ error: "AI classification failed" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            header: "I couldn't process that question.",
+            items: [],
+            actions: [],
+            did_you_mean: DID_YOU_MEAN_DEFAULTS,
+            routed_via: "llm",
+            confidence: 0,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -234,18 +395,70 @@ Extract the intent and optional days parameter. Always call the tool.`,
       const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
       if (!toolCall) {
         return new Response(
-          JSON.stringify({ error: "Could not classify question" }),
-          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            header: "I'm not sure what you mean.",
+            items: [],
+            actions: [],
+            did_you_mean: DID_YOU_MEAN_DEFAULTS,
+            routed_via: "llm",
+            confidence: 0,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      const parsed = JSON.parse(toolCall.function.arguments);
+      let parsed: any;
+      try {
+        parsed = JSON.parse(toolCall.function.arguments);
+      } catch {
+        return new Response(
+          JSON.stringify({
+            header: "I'm not sure what you mean.",
+            items: [],
+            actions: [],
+            did_you_mean: DID_YOU_MEAN_DEFAULTS,
+            routed_via: "llm",
+            confidence: 0,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Validate LLM filters against whitelist
+      const objectType = parsed.object_type || "deals";
+      if (!validateLLMFilters(parsed.filters, objectType)) {
+        return new Response(
+          JSON.stringify({
+            header: "I couldn't build a valid query for that.",
+            items: [],
+            actions: [],
+            did_you_mean: DID_YOU_MEAN_DEFAULTS,
+            routed_via: "llm",
+            confidence: 0,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       intent = parsed.intent;
       days = parsed.days ?? (intent === "closing_soon" ? 30 : 14);
+      confidence = 0.70; // LLM-routed gets baseline confidence
+      routedVia = "llm";
     }
+
+    // --- Build structured query ---
+    const query = buildStructuredQuery(intent, days);
 
     // --- Execute query based on intent ---
     const result = await executeIntent(serviceClient, workspaceId, intent, days);
+
+    // --- Enrich response with hybrid metadata ---
+    const enrichedResult = {
+      ...result,
+      query,
+      routed_via: routedVia,
+      confidence,
+    };
 
     // --- Log query (non-blocking) ---
     serviceClient
@@ -256,12 +469,14 @@ Extract the intent and optional days parameter. Always call the tool.`,
         question,
         intent,
         items_count: result.items?.length ?? 0,
+        routed_via: routedVia,
+        confidence,
       })
       .then(({ error: logErr }: any) => {
         if (logErr) console.error("ask-fastcrm log error:", logErr);
       });
 
-    return new Response(JSON.stringify(result), {
+    return new Response(JSON.stringify(enrichedResult), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
@@ -319,6 +534,7 @@ async function executeIntent(
         header: "I couldn't understand that question.",
         items: [],
         actions: [],
+        did_you_mean: DID_YOU_MEAN_DEFAULTS,
       };
   }
 }
@@ -326,7 +542,6 @@ async function executeIntent(
 // ---- Intent Handlers ----
 
 async function queryDealsAtRisk(client: any, workspaceId: string) {
-  // Get cached intelligence data
   const { data: cache } = await client
     .from("deal_intelligence_cache")
     .select("deal_id, payload")
@@ -340,7 +555,6 @@ async function queryDealsAtRisk(client: any, workspaceId: string) {
 
   const dealIds = atRisk.map((r: any) => r.deal_id);
 
-  // Sprint 3A: Join deal_scores for real health scores
   const [{ data: deals }, { data: scores }] = await Promise.all([
     dealIds.length
       ? client.from("opportunities").select("id, title, value").in("id", dealIds).eq("workspace_id", workspaceId)
@@ -373,7 +587,6 @@ async function queryDealsAtRisk(client: any, workspaceId: string) {
     .slice(0, 10)
     .map(({ _score, ...rest }: any) => rest);
 
-  // Sprint 3B: Auto-suggestion
   const suggestion = items.length > 0 ? {
     text: `You have ${items.length} deal${items.length !== 1 ? "s" : ""} at risk. Want me to create follow-up tasks?`,
     action: {
@@ -872,7 +1085,6 @@ async function queryStageBottleneck(client: any, workspaceId: string) {
     )
     .slice(0, 5);
 
-  // Collect all stuck deal IDs for bulk actions
   const stuckDealIds = bottlenecks.flatMap((b) => b.deals.map((d: any) => d.id));
 
   const items = bottlenecks.map((b) => {
@@ -933,8 +1145,6 @@ async function queryStageBottleneck(client: any, workspaceId: string) {
   };
 }
 
-// --- Sprint 1A: New intent handlers ---
-
 async function queryDealsNoNextStep(client: any, workspaceId: string) {
   const { data: opps } = await client
     .from("opportunities")
@@ -954,7 +1164,6 @@ async function queryDealsNoNextStep(client: any, workspaceId: string) {
     };
   }
 
-  // Filter out deals that have pending tasks
   const oppIds = opps.map((o: any) => o.id);
   const { data: tasks } = await client
     .from("tasks")
@@ -1197,7 +1406,6 @@ async function queryHighValueDeals(client: any, workspaceId: string) {
 }
 
 async function queryOverdueInvoices(client: any, workspaceId: string) {
-  // Check if invoicing extension is active
   const { data: modules } = await client
     .from("workspace_modules")
     .select("module_id")
@@ -1225,7 +1433,6 @@ async function queryOverdueInvoices(client: any, workspaceId: string) {
     };
   }
 
-  // Query invoices if the table exists
   try {
     const { data: invoices } = await client
       .from("invoices")

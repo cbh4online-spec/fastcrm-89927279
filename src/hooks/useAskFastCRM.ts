@@ -33,18 +33,33 @@ export interface AskResultSuggestion {
   action: AskResultAction;
 }
 
+export interface AskStructuredQuery {
+  intent: string;
+  object_type: "deals" | "contacts" | "companies";
+  filters: { field: string; op: string; value: any }[];
+  sort: { field: string; dir: "asc" | "desc" }[];
+  limit: number;
+}
+
 export interface AskResult {
   header: string;
   items: AskResultItem[];
   actions: AskResultAction[];
   metric?: AskResultMetric;
   suggestion?: AskResultSuggestion;
+  query?: AskStructuredQuery;
+  routed_via?: "deterministic" | "llm";
+  confidence?: number;
+  did_you_mean?: string[];
 }
+
+const BULK_CONFIRM_THRESHOLD = 10;
 
 export function useAskFastCRM() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AskResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<AskResultAction | null>(null);
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -55,6 +70,7 @@ export function useAskFastCRM() {
       setIsLoading(true);
       setError(null);
       setResult(null);
+      setPendingAction(null);
 
       try {
         const { data, error: fnError } = await supabase.functions.invoke(
@@ -83,11 +99,36 @@ export function useAskFastCRM() {
   const clear = useCallback(() => {
     setResult(null);
     setError(null);
+    setPendingAction(null);
   }, []);
 
-  const executeAction = useCallback(
-    async (action: AskResultAction) => {
+  const confirmPendingAction = useCallback(() => {
+    if (pendingAction) {
+      executeActionInternal(pendingAction, true);
+      setPendingAction(null);
+    }
+  }, [pendingAction]);
+
+  const cancelPendingAction = useCallback(() => {
+    setPendingAction(null);
+  }, []);
+
+  const executeActionInternal = useCallback(
+    async (action: AskResultAction, skipConfirmation = false) => {
       if (!currentWorkspace?.id || !user?.id) return;
+
+      // Bulk confirmation check
+      if (!skipConfirmation) {
+        const dealIds: string[] = action.payload?.deal_ids || [];
+        const needsConfirmation =
+          dealIds.length > BULK_CONFIRM_THRESHOLD &&
+          ["bulk_task", "bulk_move_stage", "bulk_assign_owner"].includes(action.type);
+
+        if (needsConfirmation) {
+          setPendingAction(action);
+          return;
+        }
+      }
 
       switch (action.type) {
         case "navigate": {
@@ -147,7 +188,6 @@ export function useAskFastCRM() {
           }
 
           if (!targetStageId) {
-            // Navigate to pipeline if no target stage specified
             navigate("/dashboard/opportunities");
             toast.info("Select a target stage in the pipeline view.");
             return;
@@ -221,5 +261,20 @@ export function useAskFastCRM() {
     [currentWorkspace?.id, user?.id, navigate]
   );
 
-  return { isLoading, result, error, ask, clear, executeAction };
+  const executeAction = useCallback(
+    (action: AskResultAction) => executeActionInternal(action, false),
+    [executeActionInternal]
+  );
+
+  return {
+    isLoading,
+    result,
+    error,
+    ask,
+    clear,
+    executeAction,
+    pendingAction,
+    confirmPendingAction,
+    cancelPendingAction,
+  };
 }

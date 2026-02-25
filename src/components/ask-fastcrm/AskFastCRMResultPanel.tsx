@@ -1,7 +1,7 @@
-import { AskResult, AskResultAction, AskResultItem, AskResultSuggestion } from "@/hooks/useAskFastCRM";
+import { AskResult, AskResultAction, AskResultItem } from "@/hooks/useAskFastCRM";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Minus, ListTodo, Eye, Zap, Bookmark, ArrowRight, UserPlus, Lightbulb } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, ListTodo, Eye, Zap, Bookmark, ArrowRight, UserPlus, Lightbulb, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -18,9 +18,13 @@ interface Props {
   result: AskResult;
   onAction: (action: AskResultAction) => void;
   onItemClick?: (item: AskResultItem) => void;
+  onDidYouMean?: (text: string) => void;
+  pendingAction?: AskResultAction | null;
+  onConfirmAction?: () => void;
+  onCancelAction?: () => void;
 }
 
-export function AskFastCRMResultPanel({ result, onAction, onItemClick }: Props) {
+export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouMean, pendingAction, onConfirmAction, onCancelAction }: Props) {
   const TrendIcon =
     result.metric?.trend === "up"
       ? TrendingUp
@@ -37,6 +41,64 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick }: Props) 
     >
       {/* Header */}
       <p className="font-semibold text-base text-foreground">{result.header}</p>
+
+      {/* Bulk action confirmation overlay */}
+      {pendingAction && (
+        <motion.div
+          className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/5"
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.2 }}
+        >
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-foreground font-medium">
+                This will affect {pendingAction.payload?.deal_ids?.length || 0} items
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {pendingAction.label} — confirm to proceed.
+              </p>
+              <div className="flex gap-2 mt-2">
+                <Button size="sm" variant="default" onClick={onConfirmAction} className="gap-1.5">
+                  Confirm
+                </Button>
+                <Button size="sm" variant="outline" onClick={onCancelAction}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* "Did you mean?" chips */}
+      {result.did_you_mean && result.did_you_mean.length > 0 && (
+        <motion.div
+          className="space-y-2"
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05, duration: 0.2 }}
+        >
+          <p className="text-xs text-muted-foreground font-medium">Try one of these:</p>
+          <div className="flex flex-wrap gap-2">
+            {result.did_you_mean.map((text) => (
+              <button
+                key={text}
+                onClick={() => onDidYouMean?.(text)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-xs font-medium",
+                  "border border-border/60 bg-muted/30",
+                  "hover:bg-primary/10 hover:border-primary/30 hover:text-primary",
+                  "transition-colors"
+                )}
+              >
+                {text}
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Metric card */}
       {result.metric && (
@@ -107,7 +169,7 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick }: Props) 
         </motion.div>
       )}
 
-      {/* Sprint 3B: Auto-suggestion */}
+      {/* Auto-suggestion */}
       {result.suggestion && (
         <motion.div
           className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20"
