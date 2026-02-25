@@ -1,85 +1,134 @@
 
 
-# Passo 2 — Object Builder (Estilo Attio)
-
-## Overview
-
-Create a dedicated full-page Data Model builder at `/settings/data-model` where users can manage all custom objects, their fields, and relationships in a clean, non-technical UI. Also wire RelationshipsPanel into Company detail pages so cross-object relationships are visible everywhere.
+# Passo 3 — Lists Poderosas (Estilo Attio)
 
 ## Current State
 
-- `CreateObjectWizard` exists as a dialog (dual-write to `core_object_types` + `custom_objects`)
-- `ObjectFieldBuilder` exists but is basic (card-based add form, missing currency/multi-select types)
-- `RelationshipsPanel` exists but only used in `CustomObjectDetailPage` — not in Company/Contact detail pages
-- `InlineFieldEditor` handles text, number, email, date, url, boolean, select
-- No dedicated data model page exists
-- Field types missing: `currency`, `multi_select`
-- No relationship schema builder (relationships are only created at record level)
+- **Two view systems exist in parallel**: `core_object_views` (for custom objects via `ObjectViewsManager`) and `crm_saved_views` (for core entities via `AttioViewSelector` / `useCrmViews`). Neither supports filter conditions — they only store `visible_fields` and basic `sort_config`.
+- **Filtering is hardcoded**: `SmartContactsFilters`, `SmartFilters` (leads) have static dropdowns, not composable filter conditions.
+- **Bulk actions exist** for contacts/opportunities (`BulkActionsBar`) but not for custom objects — the `AttioObjectListView` only has bulk delete.
+- **No "Smart List" concept** — the tabs in SmartContactsTable and SmartCompaniesTable show "Listas Inteligentes" but render an empty placeholder.
+- **`core_object_views.filters`** is a JSON column already — ready to store structured filter conditions. Same for `crm_saved_views.filters`.
+
+## Architecture Decision
+
+Unify the concept: A **List** is a saved view with filter conditions. Lists are dynamic — records matching the filter appear, records that stop matching disappear. No separate table needed; we extend the existing `core_object_views` (for custom objects) and `crm_saved_views` (for core entities) with structured filter JSON.
+
+### Filter Condition Schema
+
+```text
+{
+  "conditions": [
+    { "field": "budget", "operator": "gte", "value": 10000 },
+    { "field": "status", "operator": "eq", "value": "active" },
+    { "field": "created_at", "operator": "gte", "value": "2024-01-01" }
+  ],
+  "logic": "AND"
+}
+```
+
+Supported operators: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, `not_contains`, `is_empty`, `is_not_empty`, `in`, `between`.
+
+Field types determine available operators:
+- **text/email/url**: eq, neq, contains, not_contains, is_empty, is_not_empty
+- **number/currency**: eq, neq, gt, gte, lt, lte, between, is_empty
+- **date**: eq, gt, gte, lt, lte, between, is_empty (+ relative: "last_7_days", "last_14_days", "last_30_days", "today")
+- **boolean**: eq
+- **select/multi_select**: eq, neq, in, is_empty
 
 ## Plan
 
-### 1. New Page: `src/pages/DataModelPage.tsx`
+### 1. New Component: `src/components/objects/AdvancedFilterBuilder.tsx`
 
-Full-page at `/settings/data-model`. Three-panel layout:
+Visual filter builder used in both custom objects and core entity list views.
 
-- **Left sidebar (250px)**: List of all objects (core + custom), each showing icon, name, field count. Click to select. "Create Object" button at bottom.
-- **Main area**: When an object is selected, shows 3 tabs:
-  - **Fields**: Upgraded `ObjectFieldBuilder` with inline add row, drag handles, field type icons
-  - **Relationships**: New section showing which objects this one connects to, with ability to create relationship definitions (e.g. "Project → Company")
-  - **Settings**: Rename, icon/color picker, description, archive/delete (danger zone)
+- Renders a list of filter condition rows
+- Each row: Field selector → Operator selector (dynamic based on field type) → Value input (type-aware: text input, number input, date picker, select dropdown, boolean toggle)
+- "Add condition" button at bottom
+- Logic toggle (AND only for now — simple, clean)
+- Remove condition button per row
+- Compact, inline design — no dialogs, no modals
+- Props: `fields: FilterableField[]`, `conditions: FilterCondition[]`, `onChange: (conditions) => void`
 
-Design: Clean, minimal. No wizard dialogs. Everything inline. Similar to Attio's Settings > Objects page.
+### 2. New Component: `src/components/objects/SaveAsListDialog.tsx`
 
-### 2. Upgrade Field Types
+Dialog to save current filter + sort + columns as a named List.
 
-Add to `ObjectFieldBuilder` and `InlineFieldEditor`:
-- `currency` — number input with currency formatting (stores as number, displays with €/$ prefix)
-- `multi_select` — multi-select checkboxes (stores as string array in options)
+- Input: Name
+- Checkbox: "Definir como vista padrão"
+- Checkbox: "Partilhar com workspace" (sets `user_id = null`)
+- Uses existing `useCreateObjectView` (for custom objects) or `useCreateSavedView` (for core entities)
+- Saves the full filter conditions JSON into the `filters` column
 
-Update `FIELD_TYPES` in both `ObjectFieldBuilder` and `CreateObjectWizard` to include all types.
+### 3. New Hook: `src/hooks/useFilterEngine.ts`
 
-### 3. New Component: `src/components/objects/RelationshipSchemaBuilder.tsx`
+Client-side filter evaluation engine. Takes records + filter conditions → returns matching records.
 
-Shows and manages relationship definitions between object types (not individual records). This is the "schema" level:
-- Lists existing relationship patterns: "Project → Company (related_to)"
-- "Add relationship" inline: Select target object type → relationship type
-- When a relationship definition exists, the `AddRelationshipForm` in `RelationshipsPanel` will pre-filter to only show relevant object types
+```text
+function applyFilters(records, conditions, logic): filteredRecords
+```
 
-For now, this is a UI convenience layer — relationships are still stored per-record in `object_relationships`. The schema builder just shows which object pairs have been connected and makes it easy to create new connections.
+- Handles all operator types
+- Handles relative date operators ("last_14_days" → computes from `now()`)
+- Used in `AttioObjectListView` and can be used in core entity tables
+- Pure function, no side effects — lists are inherently dynamic because filtering happens at render time against current data
 
-### 4. Wire RelationshipsPanel into Company Detail
+### 4. Update: `src/components/objects/AttioObjectListView.tsx`
 
-Add `RelationshipsPanel` to `CompanyDetailWithSidebar.tsx` so that when a custom object record (e.g. a "Project") is related to a company, it shows up in the company's sidebar.
+- Add `AdvancedFilterBuilder` below the sort bar (collapsible)
+- Add "Filter" button that shows/hides the filter builder
+- Apply filter conditions through `useFilterEngine`
+- Add "Guardar como Lista" button when filters are active → opens `SaveAsListDialog`
+- When a view/list with filters is active, show active filter count badge
+- Expand bulk actions: add "Criar Tarefas" button alongside existing delete
 
-Challenge: Companies are core objects stored in the `companies` table, not in `custom_objects`. The `RelationshipsPanel` currently uses `objectId` which references `custom_objects.id`. For core objects, we need to either:
-- Create a synthetic `custom_objects` entry for core objects (Companies, Contacts, Deals), or
-- Make `RelationshipsPanel` work with a `entityType` + `entityId` pattern
+### 5. Update: `src/components/objects/ObjectViewsManager.tsx`
 
-Best approach: Create `custom_objects` entries for core objects if they don't exist (seeded via the wizard or a migration), so the relationship system works uniformly. OR simpler: make the RelationshipsPanel accept an optional `entityType` prop and query relationships by record ID only (which already works since `object_relationships` stores record IDs).
+- When selecting a view that has `filters` JSON, parse and apply the conditions
+- Show filter icon on views that have active filters
+- Views with filters = Lists (visual distinction: filter icon instead of eye icon)
 
-The current `useObjectRelationships(recordId)` already queries by `source_record_id` or `target_record_id` — it will work with company IDs if relationships are created pointing to them. The only issue is that `objectId` is required for `AddRelationshipForm`. We'll make `objectId` optional and handle core entities gracefully.
+### 6. New Component: `src/components/objects/BulkCreateTasksDialog.tsx`
 
-### 5. Route Registration
+Dialog for bulk creating tasks from selected records.
 
-Add `/settings/data-model` to `App.tsx`.
+- Input: Task title template (with `{name}` placeholder)
+- Input: Due date
+- Select: Priority
+- Creates tasks via existing task infrastructure
+- Works with any selected records from any object type
 
-## File Changes
+### 7. Update: `src/hooks/useCoreObjectFields.ts`
+
+- Add `useUpdateObjectView` mutation (missing — needed to update filters on existing views)
+
+### 8. Integrate into Core Entity Tables
+
+- Add `AdvancedFilterBuilder` to `SmartContactsTable` and `SmartCompaniesTable` "Listas Inteligentes" tab
+- Replace the empty placeholder with actual smart list functionality
+- Use `crm_saved_views.filters` to persist filter conditions for core entities
+
+## No Database Changes Required
+
+Both `core_object_views.filters` and `crm_saved_views.filters` are already JSON columns. The filter conditions schema is stored as JSON — no migration needed.
+
+## File Summary
 
 | File | Action | Description |
 |---|---|---|
-| `src/pages/DataModelPage.tsx` | **NEW** | Full-page data model builder with object list sidebar + fields/relationships/settings tabs |
-| `src/components/objects/RelationshipSchemaBuilder.tsx` | **NEW** | Object-level relationship viewer/creator |
-| `src/components/objects/ObjectFieldBuilder.tsx` | **EDIT** | Add currency + multi_select types, field type icons, inline add row |
-| `src/components/objects/CreateObjectWizard.tsx` | **EDIT** | Add currency + multi_select to field type options, add description field |
-| `src/components/objects/InlineFieldEditor.tsx` | **EDIT** | Handle currency (number with formatting) and multi_select (checkbox list) |
-| `src/components/objects/RelationshipsPanel.tsx` | **EDIT** | Make objectId optional for core entities |
-| `src/components/companies/CompanyDetailWithSidebar.tsx` | **EDIT** | Add RelationshipsPanel to sidebar |
-| `src/App.tsx` | **EDIT** | Add DataModelPage route at `/settings/data-model` |
+| `src/components/objects/AdvancedFilterBuilder.tsx` | **NEW** | Visual filter builder with dynamic operators per field type |
+| `src/components/objects/SaveAsListDialog.tsx` | **NEW** | Dialog to save filters as named list/view |
+| `src/hooks/useFilterEngine.ts` | **NEW** | Client-side filter evaluation engine |
+| `src/components/objects/BulkCreateTasksDialog.tsx` | **NEW** | Bulk task creation from selected records |
+| `src/components/objects/AttioObjectListView.tsx` | **EDIT** | Add filter builder, "Save as List", bulk task creation |
+| `src/components/objects/ObjectViewsManager.tsx` | **EDIT** | Parse/apply filter conditions from views, filter icon |
+| `src/hooks/useCoreObjectFields.ts` | **EDIT** | Add `useUpdateObjectView` mutation |
+| `src/components/contacts/SmartContactsTable.tsx` | **EDIT** | Wire smart lists tab with AdvancedFilterBuilder |
+| `src/components/companies/SmartCompaniesTable.tsx` | **EDIT** | Wire smart lists tab with AdvancedFilterBuilder |
 
 ## Criteria Verification
 
-1. **Create object "Project"** — via DataModelPage sidebar "Create Object" → name, icon, description inline
-2. **Add field "Budget"** — click Project in sidebar → Fields tab → add Budget as `currency` type
-3. **Relate with Company** — Relationships tab → add "Company" as related object. Then at record level, use RelationshipsPanel to link specific records
-4. **See relationship in Company UI** — CompanyDetailWithSidebar shows RelationshipsPanel with linked Project records
+1. **Create list "Deals without activity in 14 days"** — Use AdvancedFilterBuilder: field `updated_at`, operator `lte`, value "14 days ago" (relative date). Save as List.
+2. **Dynamic update** — Lists are evaluated at render time against current data. No caching of membership. If a record's `updated_at` changes to today, it leaves the list automatically.
+3. **Bulk create tasks** — Select records in list → "Criar Tarefas" → set title template + due date → tasks created for each selected record.
 
