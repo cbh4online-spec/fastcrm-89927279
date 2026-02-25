@@ -54,6 +54,35 @@ export interface Company {
   average_ticket: number | null;
   last_purchase_date: string | null;
   abc_category: string | null;
+  // New Core Object fields
+  legal_name: string | null;
+  domain: string | null;
+  description: string | null;
+  categories: string[] | null;
+  founded_year: number | null;
+  annual_revenue_range: string | null;
+  funding_amount: number | null;
+  business_model: string | null;
+  country: string | null;
+  timezone: string | null;
+  connection_strength: string | null;
+  icp_fit_score: number;
+  pare_score: number;
+  account_value_estimate: number | null;
+  estimated_ltv: number | null;
+  primary_use_case: string | null;
+  decision_maker_role: string | null;
+  priority_level: string | null;
+  ai_summary: string | null;
+  ai_tags: unknown[] | null;
+  ai_pain_points: Record<string, unknown> | null;
+  ai_opportunities: Record<string, unknown> | null;
+  ai_risk_flags: Record<string, unknown> | null;
+  ai_last_enriched_at: string | null;
+  custom_fields: Record<string, unknown> | null;
+  associated_workspaces: string[] | null;
+  updated_by: string | null;
+  deleted_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -102,6 +131,7 @@ export function useCompanies() {
         .from("companies")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -114,14 +144,20 @@ export function useCompanies() {
     mutationFn: async (data: CreateCompanyData) => {
       if (!currentWorkspace || !user) throw new Error("Not authenticated");
 
+      const domainFromWebsite = data.website
+        ? data.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/.*$/, '').toLowerCase()
+        : null;
+
       const { data: company, error } = await workspaceClient
         .from("companies")
         .insert({
           workspace_id: currentWorkspace.id,
           created_by: user.id,
+          updated_by: user.id,
           name: data.name,
           tax_id: data.tax_id || null,
           website: data.website || null,
+          domain: domainFromWebsite || null,
           industry: data.industry || null,
           size: data.size || null,
           phone: data.phone || null,
@@ -154,7 +190,7 @@ export function useCompanies() {
   const updateCompany = useMutation({
     mutationFn: async ({ id, ...data }: UpdateCompanyData) => {
       // Build update object only with defined fields
-      const updateData: Record<string, unknown> = {};
+      const updateData: Record<string, unknown> = { updated_by: user?.id };
       if (data.name !== undefined) updateData.name = data.name;
       if (data.tax_id !== undefined) updateData.tax_id = data.tax_id;
       if (data.website !== undefined) updateData.website = data.website;
@@ -183,6 +219,11 @@ export function useCompanies() {
       if ((data as any).average_ticket !== undefined) updateData.average_ticket = (data as any).average_ticket;
       if ((data as any).last_purchase_date !== undefined) updateData.last_purchase_date = (data as any).last_purchase_date;
       if ((data as any).abc_category !== undefined) updateData.abc_category = (data as any).abc_category;
+      // New Core Object fields - pass through any extra fields
+      const extraFields = ['legal_name','domain','description','categories','founded_year','annual_revenue_range','funding_amount','business_model','country','timezone','connection_strength','icp_fit_score','pare_score','account_value_estimate','estimated_ltv','primary_use_case','decision_maker_role','priority_level','ai_summary','ai_tags','ai_pain_points','ai_opportunities','ai_risk_flags','custom_fields','company_status'];
+      for (const f of extraFields) {
+        if ((data as any)[f] !== undefined) updateData[f] = (data as any)[f];
+      }
 
       const { data: company, error } = await workspaceClient
         .from("companies")
@@ -207,18 +248,36 @@ export function useCompanies() {
     mutationFn: async (id: string) => {
       const { error } = await workspaceClient
         .from("companies")
-        .delete()
+        .update({ deleted_at: new Date().toISOString(), updated_by: user?.id })
         .eq("id", id);
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["companies", currentWorkspace?.id] });
-      toast.success("Empresa eliminada com sucesso");
+      toast.success("Empresa arquivada com sucesso");
     },
     onError: (error) => {
-      console.error("Error deleting company:", error);
-      toast.error("Erro ao eliminar empresa");
+      console.error("Error archiving company:", error);
+      toast.error("Erro ao arquivar empresa");
+    },
+  });
+
+  const restoreCompany = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await workspaceClient
+        .from("companies")
+        .update({ deleted_at: null, updated_by: user?.id })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["companies", currentWorkspace?.id] });
+      toast.success("Empresa restaurada com sucesso");
+    },
+    onError: () => {
+      toast.error("Erro ao restaurar empresa");
     },
   });
 
@@ -229,6 +288,7 @@ export function useCompanies() {
     createCompany,
     updateCompany,
     deleteCompany,
+    restoreCompany,
   };
 }
 

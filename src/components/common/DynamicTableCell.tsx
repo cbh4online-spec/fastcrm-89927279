@@ -262,6 +262,38 @@ export function DynamicTableCell({ columnId, entity, entityType }: DynamicTableC
       );
     }
 
+    // Company status
+    case "company_status": {
+      const csConfig: Record<string, { label: string; color: string }> = {
+        prospect: { label: "Prospect", color: "bg-blue-500/10 text-blue-600 border-blue-500/30" },
+        customer: { label: "Cliente", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30" },
+        partner: { label: "Parceiro", color: "bg-purple-500/10 text-purple-600 border-purple-500/30" },
+        inactive: { label: "Inativo", color: "bg-slate-500/10 text-slate-600 border-slate-500/30" },
+      };
+      const cs = csConfig[value || "prospect"] || csConfig.prospect;
+      return (
+        <Badge variant="outline" className={cn("text-xs", cs.color)}>
+          {cs.label}
+        </Badge>
+      );
+    }
+
+    // Priority level
+    case "priority_level": {
+      const plConfig: Record<string, { label: string; color: string }> = {
+        low: { label: "Baixa", color: "bg-slate-500/10 text-slate-600 border-slate-500/30" },
+        medium: { label: "Média", color: "bg-blue-500/10 text-blue-600 border-blue-500/30" },
+        high: { label: "Alta", color: "bg-amber-500/10 text-amber-600 border-amber-500/30" },
+        strategic: { label: "Estratégica", color: "bg-purple-500/10 text-purple-600 border-purple-500/30" },
+      };
+      const pl = plConfig[value || "medium"] || plConfig.medium;
+      return (
+        <Badge variant="outline" className={cn("text-xs", pl.color)}>
+          {pl.label}
+        </Badge>
+      );
+    }
+
     // Date columns
     case "created_at":
     case "updated_at":

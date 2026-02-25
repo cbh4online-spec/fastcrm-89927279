@@ -99,7 +99,7 @@ const MENU_SECTIONS: {
   {
     title: 'AUDITORIA',
     items: [
-      { id: 'audit' as MenuSection, label: 'Registo de Alterações', icon: ClipboardList, showFor: ['contact'] },
+      { id: 'audit' as MenuSection, label: 'Registo de Alterações', icon: ClipboardList, showFor: ['contact', 'company'] },
     ],
   },
   {

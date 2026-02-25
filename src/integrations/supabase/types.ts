@@ -6807,59 +6807,83 @@ export type Database = {
       companies: {
         Row: {
           abc_category: string | null
+          account_value_estimate: number | null
           activity_profile_id: string | null
           activity_profile_override: Json | null
           address: string | null
           ai_analyzed_at: string | null
           ai_company_type: string | null
           ai_insight: string | null
+          ai_last_enriched_at: string | null
           ai_next_action: string | null
           ai_next_action_type: string | null
+          ai_opportunities: Json | null
+          ai_pain_points: Json | null
+          ai_risk_flags: Json | null
+          ai_summary: string | null
+          ai_tags: Json | null
           ai_temperature: string | null
           annual_revenue: number | null
+          annual_revenue_range: string | null
           assigned_to: string | null
+          associated_workspaces: string[] | null
           automation_active: boolean | null
           avatar_url: string | null
           average_ticket: number | null
+          business_model: string | null
           business_status: string | null
           cae_codes: string[] | null
           cae_description: string | null
           capital_social: string | null
+          categories: string[] | null
           city: string | null
           client_number: string | null
           company_context: Json | null
           company_score: number | null
           company_status: string | null
+          connection_strength: string | null
           conversion_probability: number | null
+          country: string | null
           county: string | null
           created_at: string
           created_by: string
           credit_active: boolean | null
           credit_limit: number | null
+          custom_fields: Json | null
+          decision_maker_role: string | null
+          deleted_at: string | null
+          description: string | null
+          domain: string | null
           email: string | null
           employee_count: number | null
           entity_type: string | null
+          estimated_ltv: number | null
           estimated_value: number | null
           facebook_url: string | null
           fax: string | null
+          founded_year: number | null
           founding_date: string | null
+          funding_amount: number | null
           google_maps_url: string | null
           google_photo_url: string | null
           google_place_id: string | null
           google_rating: number | null
           google_reviews_count: number | null
+          icp_fit_score: number
           id: string
           industry: string | null
           instagram_url: string | null
           last_contact_at: string | null
           last_purchase_date: string | null
           latitude: number | null
+          legal_name: string | null
           legal_nature: string | null
           linkedin_url: string | null
           longitude: number | null
           name: string
           notes: string | null
           opening_hours: Json | null
+          pare_score: number
           parish: string | null
           payment_conditions: string | null
           phone: string | null
@@ -6867,6 +6891,8 @@ export type Database = {
           preferred_currency: string | null
           preferred_payment_method: string | null
           price_level: string | null
+          primary_use_case: string | null
+          priority_level: string | null
           region: string | null
           sales_2023: number | null
           sales_2024: number | null
@@ -6876,67 +6902,93 @@ export type Database = {
           source: string | null
           tags: string[] | null
           tax_id: string | null
+          timezone: string | null
           total_revenue: number | null
           twitter_url: string | null
           updated_at: string
+          updated_by: string | null
           website: string | null
           workspace_id: string
         }
         Insert: {
           abc_category?: string | null
+          account_value_estimate?: number | null
           activity_profile_id?: string | null
           activity_profile_override?: Json | null
           address?: string | null
           ai_analyzed_at?: string | null
           ai_company_type?: string | null
           ai_insight?: string | null
+          ai_last_enriched_at?: string | null
           ai_next_action?: string | null
           ai_next_action_type?: string | null
+          ai_opportunities?: Json | null
+          ai_pain_points?: Json | null
+          ai_risk_flags?: Json | null
+          ai_summary?: string | null
+          ai_tags?: Json | null
           ai_temperature?: string | null
           annual_revenue?: number | null
+          annual_revenue_range?: string | null
           assigned_to?: string | null
+          associated_workspaces?: string[] | null
           automation_active?: boolean | null
           avatar_url?: string | null
           average_ticket?: number | null
+          business_model?: string | null
           business_status?: string | null
           cae_codes?: string[] | null
           cae_description?: string | null
           capital_social?: string | null
+          categories?: string[] | null
           city?: string | null
           client_number?: string | null
           company_context?: Json | null
           company_score?: number | null
           company_status?: string | null
+          connection_strength?: string | null
           conversion_probability?: number | null
+          country?: string | null
           county?: string | null
           created_at?: string
           created_by: string
           credit_active?: boolean | null
           credit_limit?: number | null
+          custom_fields?: Json | null
+          decision_maker_role?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          domain?: string | null
           email?: string | null
           employee_count?: number | null
           entity_type?: string | null
+          estimated_ltv?: number | null
           estimated_value?: number | null
           facebook_url?: string | null
           fax?: string | null
+          founded_year?: number | null
           founding_date?: string | null
+          funding_amount?: number | null
           google_maps_url?: string | null
           google_photo_url?: string | null
           google_place_id?: string | null
           google_rating?: number | null
           google_reviews_count?: number | null
+          icp_fit_score?: number
           id?: string
           industry?: string | null
           instagram_url?: string | null
           last_contact_at?: string | null
           last_purchase_date?: string | null
           latitude?: number | null
+          legal_name?: string | null
           legal_nature?: string | null
           linkedin_url?: string | null
           longitude?: number | null
           name: string
           notes?: string | null
           opening_hours?: Json | null
+          pare_score?: number
           parish?: string | null
           payment_conditions?: string | null
           phone?: string | null
@@ -6944,6 +6996,8 @@ export type Database = {
           preferred_currency?: string | null
           preferred_payment_method?: string | null
           price_level?: string | null
+          primary_use_case?: string | null
+          priority_level?: string | null
           region?: string | null
           sales_2023?: number | null
           sales_2024?: number | null
@@ -6953,67 +7007,93 @@ export type Database = {
           source?: string | null
           tags?: string[] | null
           tax_id?: string | null
+          timezone?: string | null
           total_revenue?: number | null
           twitter_url?: string | null
           updated_at?: string
+          updated_by?: string | null
           website?: string | null
           workspace_id: string
         }
         Update: {
           abc_category?: string | null
+          account_value_estimate?: number | null
           activity_profile_id?: string | null
           activity_profile_override?: Json | null
           address?: string | null
           ai_analyzed_at?: string | null
           ai_company_type?: string | null
           ai_insight?: string | null
+          ai_last_enriched_at?: string | null
           ai_next_action?: string | null
           ai_next_action_type?: string | null
+          ai_opportunities?: Json | null
+          ai_pain_points?: Json | null
+          ai_risk_flags?: Json | null
+          ai_summary?: string | null
+          ai_tags?: Json | null
           ai_temperature?: string | null
           annual_revenue?: number | null
+          annual_revenue_range?: string | null
           assigned_to?: string | null
+          associated_workspaces?: string[] | null
           automation_active?: boolean | null
           avatar_url?: string | null
           average_ticket?: number | null
+          business_model?: string | null
           business_status?: string | null
           cae_codes?: string[] | null
           cae_description?: string | null
           capital_social?: string | null
+          categories?: string[] | null
           city?: string | null
           client_number?: string | null
           company_context?: Json | null
           company_score?: number | null
           company_status?: string | null
+          connection_strength?: string | null
           conversion_probability?: number | null
+          country?: string | null
           county?: string | null
           created_at?: string
           created_by?: string
           credit_active?: boolean | null
           credit_limit?: number | null
+          custom_fields?: Json | null
+          decision_maker_role?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          domain?: string | null
           email?: string | null
           employee_count?: number | null
           entity_type?: string | null
+          estimated_ltv?: number | null
           estimated_value?: number | null
           facebook_url?: string | null
           fax?: string | null
+          founded_year?: number | null
           founding_date?: string | null
+          funding_amount?: number | null
           google_maps_url?: string | null
           google_photo_url?: string | null
           google_place_id?: string | null
           google_rating?: number | null
           google_reviews_count?: number | null
+          icp_fit_score?: number
           id?: string
           industry?: string | null
           instagram_url?: string | null
           last_contact_at?: string | null
           last_purchase_date?: string | null
           latitude?: number | null
+          legal_name?: string | null
           legal_nature?: string | null
           linkedin_url?: string | null
           longitude?: number | null
           name?: string
           notes?: string | null
           opening_hours?: Json | null
+          pare_score?: number
           parish?: string | null
           payment_conditions?: string | null
           phone?: string | null
@@ -7021,6 +7101,8 @@ export type Database = {
           preferred_currency?: string | null
           preferred_payment_method?: string | null
           price_level?: string | null
+          primary_use_case?: string | null
+          priority_level?: string | null
           region?: string | null
           sales_2023?: number | null
           sales_2024?: number | null
@@ -7030,9 +7112,11 @@ export type Database = {
           source?: string | null
           tags?: string[] | null
           tax_id?: string | null
+          timezone?: string | null
           total_revenue?: number | null
           twitter_url?: string | null
           updated_at?: string
+          updated_by?: string | null
           website?: string | null
           workspace_id?: string
         }
@@ -7049,6 +7133,47 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies_audit_log: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          company_id: string
+          field_name: string
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          company_id: string
+          field_name: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          company_id?: string
+          field_name?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companies_audit_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
