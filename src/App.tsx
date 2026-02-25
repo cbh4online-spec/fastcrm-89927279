@@ -112,6 +112,8 @@ import ReportsRetention from "./pages/ReportsRetention";
 import ReportsKPIs from "./pages/ReportsKPIs";
 import ReportsGrowth from "./pages/ReportsGrowth";
 import ReportsSales from "./pages/ReportsSales";
+import ReportsDashboards from "./pages/ReportsDashboards";
+import ReportDashboardView from "./pages/ReportDashboardView";
 import ReportsGoals from "./pages/ReportsGoals";
 import Marketplace from "./pages/Marketplace";
 import PublicBioPage from "./pages/PublicBioPage";
@@ -437,6 +439,8 @@ function CRMRoutes() {
                 <Route path="/dashboard/reports/growth" element={<ReportsGrowth />} />
                 <Route path="/dashboard/reports/sales" element={<ReportsSales />} />
                 <Route path="/dashboard/reports/goals" element={<ReportsGoals />} />
+                <Route path="/dashboard/reports/dashboards" element={<ReportsDashboards />} />
+                <Route path="/dashboard/reports/dashboards/:id" element={<ReportDashboardView />} />
                 <Route path="/dashboard/marketplace" element={<Marketplace />} />
                 <Route path="/dashboard/admin/marketplace" element={<MarketplaceAdmin />} />
                 <Route path="/dashboard/scheduling" element={<SchedulingPage />} />
