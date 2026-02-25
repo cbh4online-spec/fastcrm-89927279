@@ -22,10 +22,13 @@ interface FieldDef {
 const FIELD_TYPES = [
   { value: "text", label: "Text" },
   { value: "number", label: "Number" },
+  { value: "currency", label: "Currency" },
   { value: "email", label: "Email" },
   { value: "date", label: "Date" },
   { value: "url", label: "URL" },
   { value: "select", label: "Select" },
+  { value: "multi_select", label: "Multi-Select" },
+  { value: "boolean", label: "Yes/No" },
 ];
 
 const TEMPLATES = [

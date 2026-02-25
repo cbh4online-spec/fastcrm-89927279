@@ -22,6 +22,7 @@ import {
   TrendingUp,
   GraduationCap,
   CalendarCheck,
+  Link2,
 } from 'lucide-react';
 import { EntityType, MenuSection } from '@/types/entity';
 import { useWorkspaceLayoutConfig, getVisibleSections } from '@/hooks/useWorkspaceLayoutConfig';
@@ -90,6 +91,7 @@ const MENU_SECTIONS: {
     items: [
       { id: 'details', label: 'Informações', icon: Settings2, showFor: ['lead', 'contact', 'company'] },
       { id: 'custom-fields', label: 'Campos Personalizados', icon: Layers, showFor: ['lead', 'contact', 'company'] },
+      { id: 'relationships', label: 'Relações', icon: Link2, showFor: ['company', 'contact'] },
     ],
   },
   {

@@ -12,8 +12,10 @@ import { Plus, Trash2, Loader2, GripVertical } from "lucide-react";
 const FIELD_TYPES = [
   { value: "text", label: "Texto" },
   { value: "number", label: "Número" },
+  { value: "currency", label: "Moeda" },
   { value: "date", label: "Data" },
   { value: "select", label: "Seleção" },
+  { value: "multi_select", label: "Multi-Seleção" },
   { value: "email", label: "Email" },
   { value: "url", label: "URL" },
   { value: "boolean", label: "Sim/Não" },
@@ -36,7 +38,7 @@ export function ObjectFieldBuilder({ objectId }: Props) {
   const handleAdd = () => {
     if (!newField.name.trim()) return;
     const slug = newField.slug || newField.name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
-    const opts = newField.field_type === "select" && newField.options
+    const opts = (newField.field_type === "select" || newField.field_type === "multi_select") && newField.options
       ? { options: newField.options.split(",").map((o) => o.trim()).filter(Boolean) }
       : undefined;
     createField.mutate(
@@ -74,7 +76,7 @@ export function ObjectFieldBuilder({ objectId }: Props) {
                 </Select>
               </div>
             </div>
-            {newField.field_type === "select" && (
+            {(newField.field_type === "select" || newField.field_type === "multi_select") && (
               <div>
                 <Label>Opções (separadas por vírgula)</Label>
                 <Input value={newField.options} onChange={(e) => setNewField({ ...newField, options: e.target.value })} placeholder="Opção A, Opção B, Opção C" />

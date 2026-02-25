@@ -79,6 +79,7 @@ export type MenuSection =
   | 'credit'
   | 'orders'
   | 'scheduling'
+  | 'relationships'
   | 'student-journey'; // Student Journey module
 
 export interface MenuItemConfig {
