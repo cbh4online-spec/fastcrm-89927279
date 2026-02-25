@@ -1,153 +1,157 @@
 
 
-# Ask FastCRM — Strict Output Contract & Hybrid Finalization
+# Ask FastCRM — Premium UX Upgrade
 
-## Analysis
+## Current State Analysis
 
-The system already has 12 intents, keyword classifier with confidence, LLM fallback with whitelist validation, bulk confirmation, "Did you mean?" chips, and telemetry with `routed_via`/`confidence`. Here are the specific gaps between the current implementation and the requested strict contract:
-
-### Gaps
-
-| Gap | Current | Required |
+| Component | Status | Gap |
 |---|---|---|
-| **No `version` field** | Response has `header`, `items`, `actions` | Must include `"version": "1.0"` |
-| **No `answer` object** | Uses flat `header: string` | Must use `answer: { headline, subtext }` |
-| **No `actions_available` enum** | Actions use lowercase types (`bulk_task`) | Must use uppercase enum (`CREATE_TASKS_BULK`, `SAVE_VIEW`, etc.) |
-| **Wrong whitelist fields** | Uses DB column names (`last_activity_at`, `ai_next_action`) | Must use semantic names (`last_activity_days`, `has_next_step`, `stage`, `stage_days`, `amount`, `close_date`) |
-| **Missing operators** | Missing `!=` and `between` | Add both |
-| **Sort whitelist not enforced** | No validation of sort fields | Must validate against allowed sort fields |
-| **Confidence formula wrong** | Uses fixed 0.95/0.80/0.50 | Must use base 0.5 + 0.2 (keyword) + 0.2 (parameter) |
-| **Intent names mismatch** | `pipeline_summary`, `forecast_summary` | Should also support `pipeline_health_summary`, `forecast_risk` |
-| **No `headline` char limit** | No enforcement | Max 80 chars for headline, 120 for subtext |
-| **LLM model outdated** | Uses `gemini-2.5-flash-lite` | Should use `google/gemini-3-flash-preview` per guidelines |
+| `AskFastCRMDialog` | Uses ⌘J shortcut, Dialog-based overlay | Needs ⌘K (conflicts with GlobalSearch), autocomplete, keyboard nav, premium polish |
+| `AskFastCRMResultPanel` | Has headline/subtext, items, actions, did_you_mean, confirmation | Needs "View all" truncation, stage/company badges on items, max 3 actions + "More" |
+| `GlobalSearch` | Uses ⌘K, CommandDialog-based | Must yield ⌘K to Ask; GlobalSearch moves to ⌘/ or stays as secondary |
+| `TopBar` | Has Ask button with ⌘J badge | Must update shortcut badge to ⌘K |
+| `useRecentAskQueries` | Fetches 5 recent queries | Increase to 8 |
+| Autocomplete | Not implemented | Need inline suggestions while typing |
+| Empty results | Not handled | Need "Nothing found" + threshold chips |
+
+### Shortcut Conflict Resolution
+
+`GlobalSearch` currently owns ⌘K. The plan reassigns ⌘K to Ask FastCRM (the primary command interface) and moves GlobalSearch to ⌘/ (standard search shortcut in many apps). This is a clean separation: ⌘K = intelligence/revenue commands, ⌘/ = entity search.
 
 ---
 
 ## Implementation Plan
 
-### 1. Edge Function — Strict Contract (`supabase/functions/ask-fastcrm/index.ts`)
+### 1. Shortcut Reassignment
 
-**1A. Update response schema**
+**`src/components/layout/GlobalSearch.tsx`**
+- Change keyboard shortcut from ⌘K to ⌘/ (line 71)
+- Update the `<kbd>` badge from `⌘K` to `⌘/` (line 178-179)
 
-Every handler returns the strict contract format:
+**`src/components/ask-fastcrm/AskFastCRMDialog.tsx`**
+- Change shortcut from ⌘J to ⌘K (line 38)
+- Update the `<kbd>` badge from `⌘J` to `⌘K` (line 109)
 
-```typescript
-interface AskResponse {
-  version: "1.0";
-  routed_via: "deterministic" | "llm";
-  confidence: number;
-  intent: string;
-  object_type: "deals" | "contacts" | "companies";
-  query: {
-    filters: { field: string; op: string; value: any }[];
-    sort: { field: string; dir: "asc" | "desc" }[];
-    limit: number;
-  };
-  answer: {
-    headline: string;   // max 80 chars
-    subtext?: string;    // max 120 chars
-  };
-  actions_available: string[];  // enum: CREATE_TASKS_BULK, SAVE_VIEW, etc.
-  items: any[];
-  metric?: any;
-  suggestion?: any;
-  did_you_mean?: string[];
-}
-```
+**`src/components/layout/TopBar.tsx`**
+- Update the Ask button kbd from `⌘J` to `⌘K` (line 72)
 
-A `buildResponse()` helper function wraps every handler result to enforce `version`, truncate `headline`/`subtext`, and normalize the output.
+### 2. Autocomplete Suggestions While Typing
 
-**1B. Update field/operator whitelists**
+**`src/components/ask-fastcrm/AskFastCRMDialog.tsx`**
+
+Add a lightweight autocomplete system using a static map of keyword-to-suggestion:
 
 ```typescript
-const ALLOWED_FIELDS = {
-  deals: ["health_score", "health_label", "last_activity_days", "has_next_step", 
-          "stage", "stage_days", "amount", "close_date", "owner_id", "created_at", "updated_at"],
-  contacts: ["name", "email", "updated_at", "company_id"],
-  companies: ["name", "updated_at"],
+const AUTOCOMPLETE_MAP: Record<string, string> = {
+  "risk": "Which deals are at risk?",
+  "at risk": "Which deals are at risk?",
+  "close": "What will close this month?",
+  "closing": "What will close this month?",
+  "stuck": "Which deals are stuck in stage?",
+  "no act": "Deals with no activity in 14 days",
+  "inactive": "Deals with no activity in 14 days",
+  "next step": "Deals with no next step",
+  "high": "Show highest value deals",
+  "value": "Show highest value deals",
+  "pipeline": "How is my pipeline?",
+  "forecast": "What's blocking my forecast?",
 };
-const ALLOWED_OPS = ["=", "!=", ">", ">=", "<", "<=", "in", "between", "contains"];
-const ALLOWED_SORT_FIELDS = ["health_score", "amount", "close_date", "last_activity_days", "stage_days", "updated_at"];
 ```
 
-Validate sort fields from LLM output against `ALLOWED_SORT_FIELDS`.
+- Use `useDebounce(input, 150)` to debounce the input
+- Match against the map keys; show up to 3 suggestions below the input as clickable rows
+- Clicking a suggestion fills the input and submits immediately
+- Render suggestions only when `input.length >= 2` and no result is showing
+- Suggestions appear with a subtle fade-in animation
 
-**1C. Update confidence scoring formula**
+### 3. Keyboard Navigation (Items + Suggestions)
 
-Replace fixed confidence values with the additive formula:
-- Base: 0.50 if any keyword matches
-- +0.20 if primary keyword found (risk, at risk, forecast, closing, no activity, stuck, high value, no next step, pipeline)
-- +0.20 if parameter present (e.g. "14 days", "this month", explicit stage name)
-- Exact phrase match remains 0.95 (as special case)
+**`src/components/ask-fastcrm/AskFastCRMDialog.tsx`**
 
-**1D. Add `forecast_risk` intent**
+Add `selectedIndex` state and `onKeyDown` handler on the dialog content:
 
-Add as alias/new handler: queries deals where `health_label != HEALTHY` AND `close_date` within forecast period. Map keywords "forecast risk", "blocking forecast", "forecast slipping" to this intent.
+- ↑/↓ arrows navigate through autocomplete suggestions or result items
+- Enter on a suggestion submits it; Enter on a result item opens the deal link
+- Esc closes the dialog (already works via Dialog)
+- Add `aria-activedescendant`, `role="listbox"` on the suggestions/items container
+- Add `role="option"`, `aria-selected` on each item
 
-**1E. Rename `pipeline_summary` → support both `pipeline_summary` and `pipeline_health_summary`**
+### 4. Result Panel Premium Polish
 
-Both keywords route to the same handler. No breaking change.
+**`src/components/ask-fastcrm/AskFastCRMResultPanel.tsx`**
 
-**1F. Update `actions_available` to uppercase enum**
+4A. **Item rows — add stage badge + company**
+- Each item already has `health_label`, `title`, `subtitle`, `value`
+- Add a `stage` field to `AskResultItem` interface (optional string)
+- Render stage as a small neutral badge next to the health badge
+- Subtitle already shows company info from the edge function
 
-Each handler returns `actions_available` as an array of strings: `["CREATE_TASKS_BULK", "SAVE_VIEW", "ASSIGN_OWNER_BULK", "MOVE_STAGE_BULK", "CREATE_AUTOMATION_FROM_TEMPLATE"]` — only the relevant ones per intent. The detailed `actions` array with payloads remains for frontend execution.
+4B. **Truncate items to 10 + "View all" button**
+- Show only the first 10 items from `result.items`
+- If more than 10, show a "View all (N)" button that navigates to the deals list with filters applied
 
-**1G. Update LLM model**
+4C. **Max 3 visible actions + "More" dropdown**
+- Show first 3 actions as buttons
+- If more than 3, wrap remaining in a DropdownMenu with "More..." trigger
 
-Change from `google/gemini-2.5-flash-lite` to `google/gemini-3-flash-preview`.
+4D. **Empty results state**
+- When `result.items.length === 0` and no `did_you_mean` and no `metric`:
+  ```
+  "Nothing found for that query."
+  Try: [No activity 7d] [No activity 14d] [No activity 30d]
+  ```
 
-**1H. Enforce limit bounds**
+4E. **Confirmation modal enhancement**
+- When `pendingAction` is set and items > 10, show a preview of the first 5 item names in the confirmation overlay
 
-Clamp `limit` to min 1, max 100, default 25. Applied both to deterministic and LLM paths.
+### 5. Loading State Polish
 
-### 2. Frontend Types (`src/hooks/useAskFastCRM.ts`)
+**`src/components/ask-fastcrm/AskFastCRMDialog.tsx`**
 
-**2A. Update `AskResult` interface**
+Already uses skeleton loading. Refine:
+- Add staggered fade-in on each skeleton line using framer-motion
+- Remove spinner from header area when loading (keep only skeleton in content)
 
-```typescript
-export interface AskResult {
-  version: string;
-  routed_via: "deterministic" | "llm";
-  confidence: number;
-  intent: string;
-  object_type: "deals" | "contacts" | "companies";
-  query: AskStructuredQuery;
-  answer: {
-    headline: string;
-    subtext?: string;
-  };
-  actions_available: string[];
-  items: AskResultItem[];
-  actions: AskResultAction[];
-  metric?: AskResultMetric;
-  suggestion?: AskResultSuggestion;
-  did_you_mean?: string[];
-}
-```
+### 6. Recent Queries — Increase to 8
 
-Remove the old `header` field from the interface.
+**`src/hooks/useRecentAskQueries.ts`**
+- Change `.limit(5)` to `.limit(12)` (fetch more to account for deduplication)
+- After dedup, slice to 8 results
 
-### 3. Frontend UI (`src/components/ask-fastcrm/AskFastCRMResultPanel.tsx`)
+### 7. ARIA & Accessibility
 
-**3A. Use `answer.headline` instead of `header`**
+**`src/components/ask-fastcrm/AskFastCRMDialog.tsx`**
+- Add `aria-label="Ask FastCRM"` to the input
+- Add `role="listbox"` to the suggestions/items container
+- Add `role="option"` + `aria-selected` to each suggestion/item
+- Focus trap already handled by Dialog component
 
-Replace `result.header` with `result.answer.headline` for the main text. Render `result.answer.subtext` as a secondary line below it.
+### 8. AskFastCRMInline — Sync Changes
 
-**3B. Backward compatibility**
+**`src/components/ask-fastcrm/AskFastCRMInline.tsx`**
+- Update SUGGESTED_CHIPS to match the 6-chip set: `["Deals at risk", "No activity in 14 days", "No next step", "Closing this month", "Stuck in stage", "High value deals"]`
+- Add loading skeleton instead of spinner
 
-Add a fallback: `result.answer?.headline || (result as any).header` so existing cached/in-flight responses don't break.
+### 9. Update AskResultItem Interface
+
+**`src/hooks/useAskFastCRM.ts`**
+- Add `stage?: string` to `AskResultItem`
 
 ---
 
 ## Files to Edit
 
-| File | Change |
+| File | Changes |
 |---|---|
-| `supabase/functions/ask-fastcrm/index.ts` | Strict response contract, updated whitelists, confidence formula, `forecast_risk` intent, LLM model upgrade, `buildResponse()` wrapper |
-| `src/hooks/useAskFastCRM.ts` | Update `AskResult` interface to match strict contract |
-| `src/components/ask-fastcrm/AskFastCRMResultPanel.tsx` | Use `answer.headline`/`subtext` instead of `header` |
+| `src/components/layout/GlobalSearch.tsx` | Change ⌘K → ⌘/, update kbd badge |
+| `src/components/layout/TopBar.tsx` | Update Ask button kbd badge ⌘J → ⌘K |
+| `src/components/ask-fastcrm/AskFastCRMDialog.tsx` | ⌘K shortcut, autocomplete, keyboard nav, refined chips (6), ARIA, skeleton polish |
+| `src/components/ask-fastcrm/AskFastCRMResultPanel.tsx` | Stage badge, 10-item truncation + View all, max 3 actions + More dropdown, empty state, confirmation preview |
+| `src/components/ask-fastcrm/AskFastCRMInline.tsx` | Sync chips, skeleton loading |
+| `src/hooks/useAskFastCRM.ts` | Add `stage` to `AskResultItem` |
+| `src/hooks/useRecentAskQueries.ts` | Increase limit to 8 |
 
 ## No database migration needed
 
-The `routed_via` and `confidence` columns already exist in `ask_fastcrm_query_logs`.
+All data structures already exist. No edge function changes required — this is purely a frontend UX upgrade.
 
