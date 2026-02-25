@@ -1,39 +1,114 @@
 
 
-# Frontend Status: Almost Complete — One Gap to Fix
+# Ask FastCRM — Embedded Inline (Attio-style)
 
-All frontend components for Ask FastCRM (dialog, inline, TopBar button, automation preview, proactive nudge) were already built in previous iterations. They compile and integrate correctly.
+## What the User Wants
 
-## What Already Works
+Replace the popup dialog (`AskFastCRMDialog`) with an embedded, full-page conversational interface — like Attio's "Ask Attio" where the AI chat lives as a first-class page within the app layout, not a modal overlay.
 
-| Component | Status |
+## Current State
+
+| Component | Type |
 |---|---|
-| `AskFastCRMDialog` (⌘K shortcut) | Done — opens from TopBar, has autocomplete, automation preview, quota indicator |
-| `AskFastCRMInline` (Intelligence → Assist tab) | Done — full inline experience with automation confirm/cancel |
-| TopBar Ask button (`<Sparkles>` + ⌘K badge) | Done — triggers dialog |
-| `AskAutomationPreview` (When/If/Then) | Done — edit mode, object badges, quota indicator |
-| `AskFastCRMResultPanel` | Done — renders automation preview when intent detected |
-| `AskProactiveNudge` (Dashboard) | Done — shows stale deals, closing-this-week nudges |
-| Quota enforcement in `confirmAutomation` | Done — checks `max_automations`, `multi_conditions`, `multi_actions` |
+| `AskFastCRMDialog` | Popup dialog (⌘K) — **to be replaced** |
+| `AskFastCRMInline` | Embedded in Intelligence → Assist tab — **already inline** |
+| TopBar button | Opens popup dialog — **needs redirect** |
 
-## One Gap Found
+## Plan
 
-**Prefilled query from proactive nudge is not passed to the dialog.**
+### 1. New Page: `/dashboard/ask`
 
-In `Dashboard.tsx`, `askPrefilledQuery` is set when a nudge is clicked, but the `AskFastCRMDialog` component does not accept or use an `initialQuery` prop. The dialog always opens empty.
+**New file: `src/pages/AskPage.tsx`**
 
-### Fix
+A dedicated full-page Ask experience wrapped in `DashboardLayout`. Layout inspired by Attio:
 
-1. **`AskFastCRMDialog`**: Add optional `initialQuery?: string` prop. When provided and dialog opens, set it as input and auto-submit via `ask()`.
+```text
+┌──────────────────────────────────────────────┐
+│  Sidebar  │  Ask FastCRM                     │
+│           │                                  │
+│  Home     │  ┌────────────────────────────┐  │
+│  Objects  │  │  Empty state / results     │  │
+│  Inbox    │  │  (reuses AskFastCRMInline  │  │
+│  Ask  ←── │  │   with full-height layout) │  │
+│  ...      │  │                            │  │
+│           │  │                            │  │
+│           │  └────────────────────────────┘  │
+│           │  ┌────────────────────────────┐  │
+│           │  │  Input + Send              │  │
+│           │  └────────────────────────────┘  │
+└──────────────────────────────────────────────┘
+```
 
-2. **`Dashboard.tsx`**: Pass `askPrefilledQuery` to `<AskFastCRMDialog initialQuery={askPrefilledQuery} />` and clear it after dialog closes.
+- Full viewport height (`h-[calc(100vh-5rem)]`)
+- Chat-style layout: results scroll area + fixed input at bottom
+- Reuses `AskFastCRMInline` internally but with a wider, more spacious layout
+- Supports `?q=` query param for pre-filled queries (from proactive nudges)
 
-## Files to Edit
+### 2. Add "Ask" to Sidebar Navigation
+
+**Edit: `src/config/nav.v2.ts`**
+
+Add a new nav item between Inbox and Automations:
+
+```typescript
+{ name: "Ask", href: "/dashboard/ask", icon: Sparkles }
+```
+
+This gives Ask first-class presence in the sidebar, like Attio.
+
+### 3. Change TopBar Button + ⌘K to Navigate
+
+**Edit: `src/components/layout/TopBar.tsx`**
+
+- Remove `AskFastCRMDialog` import and rendering
+- Remove `askOpen` state
+- Change the Sparkles button `onClick` to `navigate("/dashboard/ask")`
+- Change ⌘K handler to `navigate("/dashboard/ask")` instead of toggling dialog
+
+### 4. Update Dashboard Nudge to Navigate
+
+**Edit: `src/pages/Dashboard.tsx`**
+
+- Remove `AskFastCRMDialog` from Dashboard
+- Remove `askDialogOpen` / `askPrefilledQuery` state
+- Change `AskProactiveNudge` `onAskQuery` to navigate to `/dashboard/ask?q={query}` instead of opening dialog
+
+### 5. Add Route
+
+**Edit: `src/App.tsx`**
+
+Add route:
+```typescript
+<Route path="/dashboard/ask" element={<AskPage />} />
+```
+
+### 6. Update AskFastCRMInline for Full-Page Mode
+
+**Edit: `src/components/ask-fastcrm/AskFastCRMInline.tsx`**
+
+- Accept optional `initialQuery?: string` prop
+- When provided, auto-submit on mount (same pattern as the old dialog)
+- Adjust height to `h-[calc(100vh-5rem)]` for full-page usage
+- Add autocomplete suggestions (port from the dialog's `AUTOCOMPLETE_MAP`)
+- Add recent queries section (port from dialog)
+
+## Files to Create / Edit
 
 | File | Change |
 |---|---|
-| `src/components/ask-fastcrm/AskFastCRMDialog.tsx` | Add `initialQuery` prop, auto-submit on open when provided |
-| `src/pages/Dashboard.tsx` | Pass `askPrefilledQuery` to dialog, clear on close |
+| `src/pages/AskPage.tsx` | **NEW** — Full-page Ask wrapper with query param support |
+| `src/config/nav.v2.ts` | Add "Ask" nav item with Sparkles icon |
+| `src/components/layout/TopBar.tsx` | Navigate to `/dashboard/ask` instead of opening dialog; remove dialog |
+| `src/pages/Dashboard.tsx` | Navigate to `/dashboard/ask?q=...` instead of opening dialog; remove dialog |
+| `src/components/ask-fastcrm/AskFastCRMInline.tsx` | Add `initialQuery` prop, autocomplete, recent queries |
+| `src/App.tsx` | Add `/dashboard/ask` route |
 
-This is a small fix — everything else is already built and integrated.
+## What Gets Removed
+
+- `AskFastCRMDialog` stops being rendered from TopBar and Dashboard (file stays for backward compat but is no longer the primary interface)
+- No more modal overlay for Ask
+
+## Result
+
+Ask FastCRM becomes a first-class, embedded page in the app — personal, conversational, always accessible from the sidebar, exactly like Attio's approach.
 
