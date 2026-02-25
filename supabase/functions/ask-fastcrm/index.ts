@@ -132,6 +132,16 @@ const KEYWORD_MAP: Record<string, string> = {
   "pipeline": "pipeline_summary",
   "pipeline health": "pipeline_summary",
   "pipeline summary": "pipeline_summary",
+  "which pipeline": "pipeline_comparison",
+  "pipeline comparison": "pipeline_comparison",
+  "riskier pipeline": "pipeline_comparison",
+  "riskiest pipeline": "pipeline_comparison",
+  "pipeline risco": "pipeline_comparison",
+  "comparar pipelines": "pipeline_comparison",
+  "revenue concentrated": "pipeline_comparison",
+  "receita concentrada": "pipeline_comparison",
+  "pipeline slowing": "pipeline_comparison",
+  "pipeline mais lento": "pipeline_comparison",
   "bottleneck": "stage_bottleneck",
   "gargalo": "stage_bottleneck",
   "stuck": "deals_stuck_in_stage",
@@ -179,6 +189,12 @@ const EXACT_PHRASES: Record<string, string> = {
   "pipeline health": "pipeline_summary",
   "pipeline health summary": "pipeline_summary",
   "resumo pipeline": "pipeline_summary",
+  "which pipeline is riskier": "pipeline_comparison",
+  "which pipeline has highest confidence": "pipeline_comparison",
+  "where is revenue concentrated": "pipeline_comparison",
+  "pipeline comparison": "pipeline_comparison",
+  "compare pipelines": "pipeline_comparison",
+  "comparar pipelines": "pipeline_comparison",
   "forecast": "forecast_summary",
   "forecast risk": "forecast_risk",
   "what's blocking my forecast": "forecast_risk",
@@ -270,6 +286,8 @@ function buildStructuredQuery(intent: string, days: number): StructuredQuery {
       return { ...base, filters: [{ field: "health_label", op: "!=", value: "HEALTHY" }, { field: "close_date", op: "between", value: { start: "now", end: "+90d" } }], sort: [{ field: "health_score", dir: "asc" }] };
     case "pipeline_summary":
       return { ...base, filters: [], sort: [{ field: "amount", dir: "desc" }] };
+    case "pipeline_comparison":
+      return { ...base, filters: [], sort: [{ field: "amount", dir: "desc" }] };
     case "contacts_inactive":
       return { ...base, object_type: "contacts", filters: [{ field: "updated_at", op: "<", value: `${days}_days_ago` }], sort: [{ field: "updated_at", dir: "asc" }] };
     case "stage_bottleneck":
@@ -298,13 +316,14 @@ const INTENT_TOOLS = [
         properties: {
           intent: {
             type: "string",
-            enum: [
+           enum: [
               "deals_at_risk",
               "deals_inactive",
               "closing_soon",
               "forecast_summary",
               "forecast_risk",
               "pipeline_summary",
+              "pipeline_comparison",
               "contacts_inactive",
               "stage_bottleneck",
               "deals_no_next_step",
@@ -401,6 +420,7 @@ function getActionsAvailable(intent: string, hasItems: boolean): string[] {
     case "forecast_summary":
     case "forecast_risk":
     case "pipeline_summary":
+    case "pipeline_comparison":
       return [ACTIONS_ENUM.NAVIGATE, ...base];
     default:
       return [ACTIONS_ENUM.NAVIGATE];
@@ -512,7 +532,7 @@ Deno.serve(async (req) => {
                 role: "system",
                 content: `You classify CRM revenue questions into intents. Return ONLY structured output via tool call.
 
-Available intents: deals_at_risk, deals_inactive, closing_soon, forecast_summary, forecast_risk, pipeline_summary, contacts_inactive, stage_bottleneck, deals_no_next_step, deals_stuck_in_stage, high_value_deals, overdue_invoices, pending_approvals
+Available intents: deals_at_risk, deals_inactive, closing_soon, forecast_summary, forecast_risk, pipeline_summary, pipeline_comparison, contacts_inactive, stage_bottleneck, deals_no_next_step, deals_stuck_in_stage, high_value_deals, overdue_invoices, pending_approvals
 
 Intent descriptions:
 - deals_at_risk: deals with low health scores
@@ -521,6 +541,7 @@ Intent descriptions:
 - forecast_summary: revenue forecast overview
 - forecast_risk: deals blocking/slipping forecast (unhealthy + closing soon)
 - pipeline_summary / pipeline_health_summary: pipeline stage distribution and health
+- pipeline_comparison: compare multiple pipelines (risk, health, velocity, revenue concentration)
 - contacts_inactive: contacts without recent activity
 - stage_bottleneck: stages where deals are stuck longer than expected
 - deals_no_next_step: deals without a defined next action
@@ -1072,6 +1093,8 @@ async function executeIntent(
       return await queryForecastRisk(client, workspaceId);
     case "pipeline_summary":
       return await queryPipeline(client, workspaceId);
+    case "pipeline_comparison":
+      return await queryPipelineComparison(client, workspaceId);
     case "contacts_inactive":
       return await queryContactsInactive(client, workspaceId, days);
     case "stage_bottleneck":
@@ -2154,6 +2177,98 @@ async function queryOverdueInvoices(client: any, workspaceId: string) {
       items: [],
       actions: [],
       metric: { label: "Overdue", value: "—", trend: "neutral" },
+    };
+  }
+}
+
+// ---- Pipeline Comparison Handler ----
+async function queryPipelineComparison(client: any, workspaceId: string) {
+  try {
+    const [{ data: pipelines }, { data: stages }, { data: opps }, { data: healthCache }] = await Promise.all([
+      client.from("pipelines").select("id, name").eq("workspace_id", workspaceId),
+      client.from("pipeline_stages").select("id, pipeline_id, expected_days").eq("workspace_id", workspaceId),
+      client.from("opportunities").select("id, stage_id, value, status").eq("workspace_id", workspaceId).in("status", ["open", "active", "in_progress"]),
+      client.from("deal_intelligence_cache").select("deal_id, payload").eq("workspace_id", workspaceId).is("invalidated_at", null).gt("expires_at", new Date().toISOString()),
+    ]);
+
+    const stageMap = new Map<string, { pipeline_id: string; expected_days: number | null }>();
+    for (const s of stages || []) stageMap.set(s.id, { pipeline_id: s.pipeline_id, expected_days: s.expected_days });
+    const healthMap = new Map<string, any>();
+    for (const h of healthCache || []) healthMap.set(h.deal_id, h.payload);
+    const pipelineNames = new Map<string, string>();
+    for (const p of pipelines || []) pipelineNames.set(p.id, p.name);
+
+    const buckets: Record<string, { value: number; healthSum: number; count: number; atRisk: number; velocities: number[] }> = {};
+
+    for (const opp of opps || []) {
+      const si = stageMap.get(opp.stage_id);
+      if (!si || !pipelineNames.has(si.pipeline_id)) continue;
+      const pid = si.pipeline_id;
+      if (!buckets[pid]) buckets[pid] = { value: 0, healthSum: 0, count: 0, atRisk: 0, velocities: [] };
+      const b = buckets[pid];
+      b.count++;
+      b.value += opp.value || 0;
+      const h = healthMap.get(opp.id);
+      if (h) {
+        b.healthSum += h.health_score || 50;
+        if (h.health_label === "AT_RISK") b.atRisk++;
+        const sd = h.debug?.stage_days ?? h.stage_days;
+        if (sd != null && si.expected_days && si.expected_days > 0) b.velocities.push(sd / si.expected_days);
+      } else {
+        b.healthSum += 50;
+      }
+    }
+
+    const totalValue = Object.values(buckets).reduce((s, b) => s + b.value, 0);
+    const items: any[] = [];
+    const insights: string[] = [];
+
+    for (const [pid, b] of Object.entries(buckets)) {
+      if (b.count < 5) continue;
+      const health = Math.round(b.healthSum / b.count);
+      const risk = Math.round((b.atRisk / b.count) * 100);
+      const velocity = b.velocities.length > 0 ? (b.velocities.reduce((a, v) => a + v, 0) / b.velocities.length) : 1;
+      const share = totalValue > 0 ? Math.round((b.value / totalValue) * 100) : 0;
+      const name = pipelineNames.get(pid) || pid;
+
+      items.push({
+        id: pid,
+        label: name,
+        sublabel: `${b.count} deals · €${b.value.toLocaleString()}`,
+        value: health,
+        badge: risk > 30 ? "HIGH RISK" : risk > 15 ? "WATCH" : "HEALTHY",
+        meta: { health, risk_pct: risk, velocity: Math.round(velocity * 100) / 100, revenue_share: share },
+      });
+
+      if (risk > 30) insights.push(`${name} shows high risk (${risk}% at risk).`);
+      if (velocity > 1.2) insights.push(`${name} is ${Math.round((velocity - 1) * 100)}% slower than benchmark.`);
+      if (share > 60) insights.push(`Revenue concentrated: ${share}% in ${name}.`);
+    }
+
+    items.sort((a, b) => b.value - a.value);
+
+    return {
+      headline: items.length > 0
+        ? `Comparing ${items.length} pipeline${items.length !== 1 ? "s" : ""} with ${(opps || []).length} active deals.`
+        : "Not enough data to compare pipelines (need ≥5 deals each).",
+      subtext: insights.length > 0 ? insights[0] : undefined,
+      items: items.slice(0, 10),
+      actions: items.length > 0
+        ? [{ id: "view_revenue", label: "View Revenue Overview", icon: "TrendingUp", type: "navigate", payload: { link: "/dashboard/revenue" } }]
+        : [],
+      metric: {
+        label: "Pipelines Analyzed",
+        value: `${items.length}`,
+        trend: "neutral" as const,
+      },
+    };
+  } catch (err) {
+    console.error("queryPipelineComparison error:", err);
+    return {
+      headline: "Pipeline comparison data is not available yet.",
+      items: [],
+      actions: [],
+      metric: { label: "Pipelines", value: "—", trend: "neutral" as const },
     };
   }
 }
