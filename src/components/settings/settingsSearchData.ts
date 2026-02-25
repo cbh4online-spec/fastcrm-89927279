@@ -36,6 +36,29 @@ export const settingsSearchData: SearchableItem[] = [
     keywords: ["watermark", "marca", "água", "fastcrm", "branding"],
   },
 
+  // Call Intelligence
+  {
+    id: "callintel-autorecord",
+    category: "callIntelligence",
+    sectionTitle: "Auto-record meetings",
+    sectionDescription: "Manage call recording preferences",
+    keywords: ["call", "intelligence", "record", "meeting", "gravação", "chamada", "reunião", "auto-record"],
+  },
+  {
+    id: "callintel-transcription",
+    category: "callIntelligence",
+    sectionTitle: "Transcription & AI Summary",
+    sectionDescription: "AI-powered transcription and summaries",
+    keywords: ["transcription", "transcrição", "summary", "resumo", "ai", "ia", "language"],
+  },
+  {
+    id: "callintel-privacy",
+    category: "callIntelligence",
+    sectionTitle: "Privacy & CRM",
+    sectionDescription: "Consent and CRM auto-linking",
+    keywords: ["privacy", "privacidade", "consent", "consentimento", "crm", "link", "retention", "retenção"],
+  },
+
   // Workspace & Team
   {
     id: "workspace-info",
@@ -426,7 +449,7 @@ export function searchSettings(query: string): {
   if (!normalizedQuery) {
     return {
       matchedItems: settingsSearchData,
-      matchedCategories: new Set(["profile", "emailCalendar", "appearance", "notifications", "workspace", "channels", "crm", "templates", "automation", "experience", "security", "integrations", "billing", "extensions", "flags"] as SettingsCategory[]),
+      matchedCategories: new Set(["profile", "emailCalendar", "appearance", "notifications", "workspace", "channels", "callIntelligence", "crm", "templates", "automation", "experience", "security", "integrations", "billing", "extensions", "flags"] as SettingsCategory[]),
       matchedSections: new Set(settingsSearchData.map(item => item.id)),
     };
   }

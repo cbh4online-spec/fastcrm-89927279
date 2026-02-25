@@ -13,6 +13,7 @@ import {
   FileText,
   Sparkles,
   Shield,
+  Phone,
   Plug,
   CreditCard,
   Puzzle,
@@ -28,6 +29,7 @@ export type SettingsCategory =
   | "notifications"
   | "workspace"
   | "channels"
+  | "callIntelligence"
   | "crm"
   | "templates"
   | "automation"
@@ -65,6 +67,7 @@ const navGroups: NavGroup[] = [
     items: [
       { id: "workspace", labelKey: "nav_general", icon: Building2 },
       { id: "channels", labelKey: "nav_channels", icon: MessageSquare },
+      { id: "callIntelligence", labelKey: "nav_callIntelligence", icon: Phone },
       { id: "crm", labelKey: "nav_crmData", icon: Database },
       { id: "templates", labelKey: "nav_templates", icon: FileText },
       { id: "automation", labelKey: "nav_automationAI", icon: Sparkles, isPremium: true },
