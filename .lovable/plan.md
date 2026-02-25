@@ -1,104 +1,169 @@
 
 
-# Marketplace 2.0 Extension System — Full Stack Implementation
+# Ask FastCRM — 3-Sprint Implementation Plan
 
-## Current State Assessment
+## Current State
 
-The system has solid infrastructure already in place:
-- **Database:** `marketplace_modules` (with `manifest_json`), `workspace_modules`, `workspace_feature_flags`, `extension_audit_logs` all exist
-- **Edge Function:** `extension-provisioner` handles enable/disable with feature flag toggling and audit logging
-- **Frontend:** `useWorkspaceModules`, `useExtensionManifests`, `useFeatureFlags` hooks all functional; `ObjectsHomePage` renders extension objects from manifests; `Marketplace.tsx` has install/uninstall with manifest-driven module cards
+**Already built (7 intents):** `deals_at_risk`, `deals_inactive`, `closing_soon`, `forecast_summary`, `pipeline_summary`, `contacts_inactive`, `stage_bottleneck`
 
-## Gaps Identified
+**Already built (frontend):** `AskFastCRMDialog` (⌘J), `AskFastCRMInline` (Intelligence tab), `AskFastCRMResultPanel`, TopBar integration, query logging table
 
-### A. Database Schema Gaps
-1. **`CreateObjectWizard` is UI-only** — it calls `onComplete` with a toast but never inserts into `core_object_types` or `core_object_fields`. Custom objects created by users are lost on refresh.
-2. **No `extension_installed_objects` tracking** — when the provisioner enables a module with manifest objects, it doesn't record which objects were provisioned (makes cleanup on disable impossible).
-3. **`core_object_types` missing `source_module` column** — no way to distinguish user-created custom objects from extension-provisioned ones.
-
-### B. Provisioner Enhancements
-1. **No manifest-driven provisioning** — the provisioner reads `manifest_json` and extracts `feature_flags`, but ignores `objects`, `fields`, and `views`. When you enable an extension with objects in its manifest, those objects should be auto-created in `core_object_types` and `core_object_fields`.
-2. **No cleanup on disable** — when disabling, the provisioner should mark extension-provisioned objects as inactive (not delete them, to preserve data).
-
-### C. Dynamic UI from Manifests
-1. **Sidebar doesn't show extension items** — installed extensions with routes (from `extensionRegistry.ts`) don't appear in the sidebar. The sidebar only renders hardcoded `NAV_V2_ITEMS`.
-2. **`extensionSettingsPages` from manifests are computed but never rendered** — no component consumes them.
-3. **`CreateObjectWizard` doesn't persist** — needs to actually insert into `core_object_types` and `core_object_fields`.
+**Already built (actions):** `bulk_task` creation, `navigate`, `automation`
 
 ---
 
-## Implementation Plan
+## SPRINT 1 — Ask → Structured Queries
 
-### 1. Database Migration
+### 1A. Add 4 missing intents to edge function
 
-Add `source_module` column to `core_object_types` to track which extension provisioned each object:
+Update `supabase/functions/ask-fastcrm/index.ts`:
 
-```sql
-ALTER TABLE public.core_object_types 
-  ADD COLUMN IF NOT EXISTS source_module text DEFAULT NULL;
+| New Intent | Query Logic | Data Source |
+|---|---|---|
+| `deals_no_next_step` | Open opportunities where `ai_next_action IS NULL` AND no pending tasks | `opportunities` LEFT JOIN `tasks` WHERE `status = 'pending'` AND `related_type = 'opportunity'` |
+| `deals_stuck_in_stage` | Open deals where `updated_at` is older than the stage's `expected_days` | `opportunities` JOIN `pipeline_stages` — compare `differenceInDays(now, opp.updated_at)` > `stage.expected_days` |
+| `high_value_deals` | Top 10 open deals ordered by `value DESC` | `opportunities` WHERE `status = 'open'` ORDER BY `value DESC` LIMIT 10 |
+| `overdue_invoices` | Check if invoicing extension is active via `workspace_modules`, then query invoice-related data | Guard with workspace_modules check; return "Extension not active" if missing |
 
-ALTER TABLE public.core_object_types 
-  ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true;
+**Note:** `pending_approvals` depends on a B2B approval workflow that doesn't exist in the schema yet. We'll add it as a stub intent that returns "Coming soon" — no fake data.
 
-COMMENT ON COLUMN public.core_object_types.source_module IS 
-  'Module slug that provisioned this object type. NULL = user-created.';
+Update the `INTENT_TOOLS` enum to include all 11 intents. Update the system prompt to describe them. Add 4 new handler functions + the stub.
+
+### 1B. Add "Save as view" chip to suggested queries
+
+Update `AskFastCRMInline.tsx` and `AskFastCRMDialog.tsx` `SUGGESTED_CHIPS` arrays to include 2 new chips: `"No next step"` and `"High value deals"`.
+
+### 1C. Intent classifier — add regex fast-path
+
+Before calling the LLM, add a simple keyword map in the edge function to short-circuit known patterns:
+
+```typescript
+const KEYWORD_MAP: Record<string, string> = {
+  "at risk": "deals_at_risk",
+  "inactive": "deals_inactive",
+  "no activity": "deals_inactive",
+  "closing": "closing_soon",
+  "this month": "closing_soon",
+  "forecast": "forecast_summary",
+  "pipeline": "pipeline_summary",
+  "bottleneck": "stage_bottleneck",
+  "stuck": "deals_stuck_in_stage",
+  "no next step": "deals_no_next_step",
+  "high value": "high_value_deals",
+  "overdue": "overdue_invoices",
+  "approval": "pending_approvals",
+};
 ```
 
-### 2. Enhanced Extension Provisioner
-
-Update `supabase/functions/extension-provisioner/index.ts`:
-
-**On enable:**
-- After inserting `workspace_modules` and feature flags (existing logic)
-- Read `manifest.objects[]` and for each, upsert into `core_object_types` with `source_module = module_slug`
-- Read `manifest.fields[]` and for each, upsert into `core_object_fields` linked to the provisioned object type
-- Read `manifest.views[]` and upsert into `core_object_views`
-
-**On disable:**
-- Set `is_active = false` on `core_object_types` WHERE `source_module = module_slug` (don't delete — preserve data)
-- Existing feature flag disable logic stays
-
-### 3. CreateObjectWizard — Persist to Database
-
-Update `src/components/objects/CreateObjectWizard.tsx` to actually insert the custom object into `core_object_types` and its fields into `core_object_fields` using the workspace context.
-
-### 4. Sidebar Dynamic Extension Items
-
-Update `src/components/layout/Sidebar.tsx`:
-- Import `useWorkspaceModules` and the extension registry
-- After rendering `navItems`, render a "Extensions" separator followed by installed extension items that have routes
-- Only show items for modules that are currently installed
-
-### 5. Extension Settings Pages Renderer
-
-Create `src/components/settings/ExtensionSettingsSection.tsx`:
-- Consumes `extensionSettingsPages` from `useExtensionManifests`
-- Renders a list of settings page links within the Settings page
-- Each links to the route defined in the manifest
-
-### 6. ObjectsHomePage — Filter Inactive
-
-Update `src/pages/ObjectsHomePage.tsx` to respect the `is_active` flag on extension objects, hiding disabled extension objects from the grid.
+If a keyword matches, skip the LLM call entirely — instant response. Fall through to LLM only for ambiguous queries.
 
 ---
 
-## Files to Create
+## SPRINT 2 — Ask → Act
 
-| File | Purpose |
+### 2A. New action types in hook
+
+Add 3 new action types to `useAskFastCRM.ts`:
+
+| Action Type | Behavior |
 |---|---|
-| `src/components/settings/ExtensionSettingsSection.tsx` | Render manifest-driven settings pages |
+| `bulk_move_stage` | `supabase.from("opportunities").update({ stage_id }).in("id", deal_ids)` |
+| `bulk_assign_owner` | `supabase.from("opportunities").update({ owner_id }).in("id", deal_ids)` |
+| `create_saved_view` | Insert into `core_object_views` with filter config matching the current result set |
+
+### 2B. Edge function — richer action payloads
+
+Update each intent handler to include the new action buttons where relevant:
+
+- `deals_at_risk` → add `[Create follow-ups, Save as view]`
+- `deals_inactive` → add `[Create follow-ups, Save as view, Move stage]`
+- `deals_stuck_in_stage` → add `[Move stage, Create follow-ups, Create automation]`
+- `high_value_deals` → add `[Save as view, Assign owner]`
+
+### 2C. Bulk action execution in hook
+
+Extend `executeAction` switch statement:
+
+```typescript
+case "bulk_move_stage": {
+  const { deal_ids, target_stage_id } = action.payload;
+  await supabase.from("opportunities")
+    .update({ stage_id: target_stage_id })
+    .in("id", deal_ids);
+  toast.success(`${deal_ids.length} deals moved.`);
+  break;
+}
+case "bulk_assign_owner": {
+  const { deal_ids, owner_id } = action.payload;
+  await supabase.from("opportunities")
+    .update({ owner_id })
+    .in("id", deal_ids);
+  toast.success(`${deal_ids.length} deals reassigned.`);
+  break;
+}
+case "create_saved_view": {
+  await supabase.from("core_object_views").insert({
+    workspace_id: currentWorkspace.id,
+    object_type_id: action.payload.object_type_id,
+    name: action.payload.view_name,
+    filters: action.payload.filters,
+    columns: action.payload.columns,
+  });
+  toast.success("View saved.");
+  break;
+}
+```
+
+---
+
+## SPRINT 3 — Intelligence Upgrade + Premium Feel
+
+### 3A. Health Score integration
+
+Update intent handlers to join `deal_scores` for real health scores instead of relying only on `deal_intelligence_cache` labels. Sort results by health score ascending (worst first).
+
+### 3B. Auto-suggestions
+
+After returning a result with items, the edge function appends a `suggestion` field:
+
+```typescript
+suggestion?: {
+  text: string;  // "You have 4 deals with no activity in 14 days. Want me to create follow-ups?"
+  action: AskResultAction;
+}
+```
+
+The `AskFastCRMResultPanel` renders this as a highlighted prompt below the items.
+
+### 3C. Recent queries
+
+Add a `useRecentAskQueries` hook that reads the last 5 entries from `ask_fastcrm_query_logs` for the current user. Show them as "Recent" chips above "Suggested" in the dialog when input is empty.
+
+### 3D. UX polish
+
+- Micro-animations: `framer-motion` fade + slide on result appearance (already partially in place with `animate-in`)
+- Loading skeleton instead of spinner
+- Keyboard navigation: arrow keys to move through items, Enter to open
+
+---
 
 ## Files to Edit
 
-| File | Change |
-|---|---|
-| `supabase/functions/extension-provisioner/index.ts` | Add manifest object/field/view provisioning on enable; soft-disable on disable |
-| `src/components/objects/CreateObjectWizard.tsx` | Persist to `core_object_types` + `core_object_fields` |
-| `src/components/layout/Sidebar.tsx` | Add dynamic extension nav items from registry |
-| `src/pages/ObjectsHomePage.tsx` | Filter inactive extension objects |
-| `src/pages/Settings.tsx` | Include `ExtensionSettingsSection` |
+| File | Sprint | Change |
+|---|---|---|
+| `supabase/functions/ask-fastcrm/index.ts` | 1, 2, 3 | Add 4 intents, keyword fast-path, richer actions, suggestion field |
+| `src/hooks/useAskFastCRM.ts` | 2 | Add `bulk_move_stage`, `bulk_assign_owner`, `create_saved_view` action types |
+| `src/components/ask-fastcrm/AskFastCRMDialog.tsx` | 1, 3 | Update chips, add recent queries |
+| `src/components/ask-fastcrm/AskFastCRMInline.tsx` | 1 | Update chips |
+| `src/components/ask-fastcrm/AskFastCRMResultPanel.tsx` | 2, 3 | Add new action icons, suggestion rendering, loading skeleton |
 
-## Migration
+## Files to Create
 
-One migration adding `source_module` and `is_active` columns to `core_object_types`.
+| File | Sprint | Purpose |
+|---|---|---|
+| `src/hooks/useRecentAskQueries.ts` | 3 | Fetch last 5 queries from `ask_fastcrm_query_logs` |
+
+## No database migration needed
+
+All tables already exist. The `opportunities` table has `ai_next_action`, `last_activity_at`, `owner_id`, `stage_id`, `value`. The `tasks` table has `related_type`/`related_id`. The `core_object_views` table exists for saved views. The `ask_fastcrm_query_logs` table exists for recent queries.
 
