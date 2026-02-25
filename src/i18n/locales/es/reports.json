@@ -38,5 +38,13 @@
   "active_deals": "negocios activos",
   "no_leads": "Sin leads en este período",
   "no_opportunities": "Sin oportunidades",
-  "loading": "Cargando..."
+  "loading": "Cargando...",
+  "stage_duration_heatmap": "Mapa de Duración por Etapa",
+  "stage_duration_subtitle": "Tiempo promedio de los negocios en cada etapa del pipeline",
+  "stage_avg_days": "prom",
+  "stage_deals_count": "negocios",
+  "stage_expected": "Esperado",
+  "stage_under_expected": "Bajo lo esperado",
+  "stage_on_track": "En plazo",
+  "stage_over_expected": "Sobre lo esperado"
 }

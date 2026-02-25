@@ -14,6 +14,7 @@ import { ConversionFunnel } from "@/components/reports/sales/ConversionFunnel";
 import { SalesVelocityCard } from "@/components/reports/sales/SalesVelocityCard";
 import { TopPerformersCard } from "@/components/reports/sales/TopPerformersCard";
 import { SourceAnalysisChart } from "@/components/reports/sales/SourceAnalysisChart";
+import { StageDurationHeatmap } from "@/components/reports/sales/StageDurationHeatmap";
 
 export default function ReportsSales() {
   const { t } = useTranslation("reports");
@@ -63,6 +64,9 @@ export default function ReportsSales() {
 
         {/* Conversion Funnel */}
         <ConversionFunnel data={data?.funnel} isLoading={isLoading} />
+
+        {/* Stage Duration Heatmap */}
+        <StageDurationHeatmap data={data?.stageDuration} isLoading={isLoading} />
 
         {/* Row 3: Velocity + Top Performers */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

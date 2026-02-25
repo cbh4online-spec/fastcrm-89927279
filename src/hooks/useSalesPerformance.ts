@@ -47,6 +47,18 @@ export interface SourceBreakdown {
   percentage: number;
 }
 
+export interface StageDurationData {
+  stage_name: string;
+  stage_color: string;
+  position: number;
+  avg_days: number;
+  min_days: number;
+  max_days: number;
+  deal_count: number;
+  expected_days: number;
+  heat_ratio: number;
+}
+
 export interface SalesVelocity {
   deals: number;
   avgValue: number;
@@ -100,7 +112,7 @@ export function useSalesPerformance() {
           .eq("workspace_id", workspaceId),
         workspaceClient
           .from("pipeline_stages")
-          .select("id, name, color, position, probability")
+          .select("id, name, color, position, probability, expected_days")
           .eq("workspace_id", workspaceId)
           .order("position"),
         workspaceClient
@@ -269,6 +281,28 @@ export function useSalesPerformance() {
         }))
         .sort((a, b) => b.count - a.count);
 
+      // --- Stage Duration Heatmap ---
+      const stageDuration: StageDurationData[] = allStages.map((stage: any) => {
+        const stageOpps = opps.filter((o: any) => o.stage_id === stage.id);
+        const days = stageOpps.map((o: any) => {
+          const end = (o.status === "closed_won" || o.status === "closed_lost") ? new Date(o.updated_at) : now;
+          return Math.max(differenceInDays(end, new Date(o.created_at)), 0);
+        });
+        const avg = days.length > 0 ? days.reduce((a, b) => a + b, 0) / days.length : 0;
+        const expectedDays = stage.expected_days || 7;
+        return {
+          stage_name: stage.name,
+          stage_color: stage.color || "hsl(var(--primary))",
+          position: stage.position,
+          avg_days: avg,
+          min_days: days.length > 0 ? Math.min(...days) : 0,
+          max_days: days.length > 0 ? Math.max(...days) : 0,
+          deal_count: stageOpps.length,
+          expected_days: expectedDays,
+          heat_ratio: expectedDays > 0 ? avg / expectedDays : 0,
+        };
+      }).filter(s => s.deal_count > 0).sort((a, b) => a.position - b.position);
+
       return {
         kpis,
         leadFlow,
@@ -279,6 +313,7 @@ export function useSalesPerformance() {
         velocity,
         topPerformers,
         sourceBreakdown,
+        stageDuration,
         activeDeals: activeOpps.length,
         totalPipeline,
       };
