@@ -1,61 +1,57 @@
 
 
-# Drag-and-Drop Animations with Framer Motion for Kanban Board
+# Enhance DealsSidebar with Attio-style Favorites & Smart Lists
 
 ## Current State
 
-The Kanban board uses native HTML5 drag-and-drop (`draggable`, `onDragStart`, `onDragEnd`, `onDragOver`, `onDrop`) with minimal visual feedback:
-- Cards get `opacity-50 rotate-2 shadow-lg` when dragging
-- Columns get `bg-primary/5 border-primary/50 ring-2` when hovered over during drag
-- No animation on card mount, reorder, or drop
-- Cards are rendered in plain `div` wrappers inside `OpportunityKanbanColumn`
+The `DealsSidebar.tsx` already has the structure (Favorites, Views, Records, Lists sections) but has these gaps vs the Attio reference:
 
-## What We'll Build
+1. **Lists section hidden when empty** -- should always show with a "Create list" button
+2. **No record counts on smart lists** -- `getListCount()` always returns `null`; should compute filtered count using `applyFilters` from the filter engine
+3. **Selecting a smart list doesn't filter the Kanban** -- the sidebar calls `onSelectView(list)` but `OpportunitiesModule` doesn't apply the filter conditions from the view to the opportunity list
+4. **No "Create list" shortcut** in the Lists section
 
-Smooth framer-motion animations for:
-1. **Card mount/layout animation** — cards animate in with stagger and animate position changes via `AnimatePresence` + `layoutId`
-2. **Drag ghost enhancement** — scale + shadow + rotation animation on drag start
-3. **Drop landing animation** — spring animation when card lands in new column
-4. **Column hover pulse** — subtle scale pulse on column when valid drop target
-5. **Card exit animation** — fade-out when card leaves a column during drag
-6. **Empty state transition** — smooth transition when column goes from empty to populated
+## Changes
 
-## Approach
+### 1. `DealsSidebar.tsx` -- EDIT
 
-We keep native HTML5 drag-and-drop for the actual data transfer (it works reliably cross-browser), but wrap cards in `motion.div` with `layout` prop for automatic position animations. The key technique: `layout` prop on `motion.div` makes framer-motion automatically animate position/size changes when the DOM order changes (e.g., card moves between columns via React re-render after drop).
+- **Always show Lists section** (remove the `smartLists.length > 0` conditional)
+- **Compute actual counts** using `applyFilters` from `useFilterEngine` against the `opportunities` prop, mapping each smart list's filter conditions to a count
+- **Add "Create list" button** at the bottom of the Lists section (reuses `onCreateView`)
+- **Show count badges** next to each smart list name (e.g., "Inbound Leads 12")
 
-## File Changes
+### 2. `OpportunitiesModule.tsx` -- EDIT
 
-| File | Action | Description |
-|---|---|---|
-| `src/components/opportunities/OpportunityKanbanColumn.tsx` | **EDIT** | Wrap cards in `motion.div` with `layout`, `initial`, `animate`, `exit` props; add `AnimatePresence`; animate column drop zone |
-| `src/components/opportunities/OpportunityCard.tsx` | **EDIT** | Add `motion.div` wrapper with drag state animations (scale, shadow, rotation transitions) |
-| `src/components/opportunities/OpportunitiesModule.tsx` | **EDIT** | Add `LayoutGroup` wrapper around kanban columns for cross-column layout animations |
+- When `activeViewId` points to a view that has filter conditions, apply those conditions to `filteredOpportunities` using `applyFilters`
+- Import `applyFilters` and `FilterCondition` from `useFilterEngine`
+- In the `filteredOpportunities` memo, after search/hotDeals filters, check if the active view has conditions and apply them
 
 ## Technical Details
 
-### OpportunityCard.tsx
-- Wrap the `Card` in a `motion.div` with `layout` prop and `layoutId={opportunity.id}`
-- On `isDragging`: animate to `scale: 1.05, rotate: 2, boxShadow: "..."` with spring transition
-- On drop: spring back to `scale: 1, rotate: 0`
+**Count computation in DealsSidebar:**
+```typescript
+import { applyFilters, FilterCondition } from "@/hooks/useFilterEngine";
 
-### OpportunityKanbanColumn.tsx
-- Wrap card list in `AnimatePresence mode="popLayout"`
-- Each card wrapper gets `motion.div` with:
-  - `layout` for smooth position transitions
-  - `initial={{ opacity: 0, y: 20 }}` for mount animation
-  - `animate={{ opacity: 1, y: 0 }}` 
-  - `exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}`
-  - `transition={{ type: "spring", stiffness: 500, damping: 35 }}`
-- Column drop zone gets `motion.div` with animated border/background on `isDragOver`
-- Empty state gets `AnimatePresence` for smooth appear/disappear
+const getListCount = (view: SavedView): number | null => {
+  if (!opportunities) return null;
+  const f = view.filters as any;
+  const conditions: FilterCondition[] = f?.conditions || [];
+  if (conditions.length === 0) return null;
+  return applyFilters(opportunities as Record<string, unknown>[], conditions, "AND").length;
+};
+```
 
-### OpportunitiesModule.tsx
-- Wrap the kanban columns `div` with `<LayoutGroup>` from framer-motion so layout animations coordinate across columns
+**Filter application in OpportunitiesModule:**
+In the `filteredOpportunities` memo, add a step that applies the active view's filter conditions when a smart list is selected. This requires passing `views` data (already loaded via `useSavedViews` in the sidebar) or passing the active view's conditions up. The simplest approach: load `useSavedViews("opportunities")` in the module and look up the active view's conditions.
 
-## Implementation Order
+## File Summary
 
-1. Edit `OpportunitiesModule.tsx` — add `LayoutGroup` wrapper
-2. Edit `OpportunityKanbanColumn.tsx` — add `AnimatePresence`, `motion.div` wrappers with layout animations
-3. Edit `OpportunityCard.tsx` — add motion-based drag state animations
+| File | Action | Description |
+|---|---|---|
+| `src/components/opportunities/DealsSidebar.tsx` | **EDIT** | Always show Lists, compute counts with `applyFilters`, add create button |
+| `src/components/opportunities/OpportunitiesModule.tsx` | **EDIT** | Apply smart list filter conditions to opportunity list when active |
+
+## i18n
+
+No new keys needed -- `sidebarLists`, `sidebarCreateView` already exist.
 
