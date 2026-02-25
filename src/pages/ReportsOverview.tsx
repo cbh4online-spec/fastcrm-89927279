@@ -323,7 +323,8 @@ export default function ReportsOverview() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Row 2: Pie + Scenarios */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Lead Sources Pie */}
           <Card>
             <CardHeader className="pb-2">
@@ -371,154 +372,144 @@ export default function ReportsOverview() {
             </CardContent>
           </Card>
 
-          {/* AI Insights */}
-          <div className="lg:col-span-2 space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Lightbulb className="w-4 h-4 text-amber-500" />
-                  Insights da IA
-                </CardTitle>
-                <CardDescription>
-                  Análises baseadas nos seus dados reais
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
+          {/* Scenario Analysis */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <PieChartIcon className="w-4 h-4 text-primary" />
+                Cenários "E se..."
+              </CardTitle>
+              <CardDescription>
+                Projeções baseadas em diferentes ações
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
                 {isLoading ? (
-                  <Skeleton className="h-20" />
-                ) : insights.length > 0 ? (
-                  insights.map(insight => (
-                    <InsightCard key={insight.id} insight={insight} />
-                  ))
-                ) : (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Sem insights disponíveis</p>
-                    <p className="text-xs mt-1">
-                      Os insights melhoram com mais dados de consumo
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Scenario Analysis */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <PieChartIcon className="w-4 h-4 text-primary" />
-                  Cenários "E se..."
-                </CardTitle>
-                <CardDescription>
-                  Projeções baseadas em diferentes ações
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {isLoading ? (
-                    <Skeleton className="h-16" />
-                  ) : scenarios.map((scenario, i) => (
-                    <div 
-                      key={i} 
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                    >
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{scenario.scenario}</p>
-                        <p className="text-xs text-muted-foreground">{scenario.description}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-green-600">
-                          +{formatCurrency(scenario.revenueImpact)}
-                        </p>
-                        <Badge variant="outline" className="text-[10px]">
-                          {scenario.probability}% probabilidade
-                        </Badge>
-                      </div>
+                  <Skeleton className="h-16" />
+                ) : scenarios.map((scenario, i) => (
+                  <div 
+                    key={i} 
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  >
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{scenario.scenario}</p>
+                      <p className="text-xs text-muted-foreground">{scenario.description}</p>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Quick Links */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Relatórios Rápidos</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Link 
-                  to="/dashboard/reports/forecasts"
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
-                >
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Previsões de Receita</p>
-                    <p className="text-xs text-muted-foreground">30, 60 e 90 dias</p>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-green-600">
+                        +{formatCurrency(scenario.revenueImpact)}
+                      </p>
+                      <Badge variant="outline" className="text-[10px]">
+                        {scenario.probability}% probabilidade
+                      </Badge>
+                    </div>
                   </div>
-                  <ArrowUpRight className="w-4 h-4 text-muted-foreground" />
-                </Link>
-                <Separator />
-                <Link 
-                  to="/dashboard/reports/consumption"
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
-                >
-                  <BarChart3 className="w-5 h-5 text-blue-500" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Consumo & Capacidade</p>
-                    <p className="text-xs text-muted-foreground">Sessões e produtos</p>
-                  </div>
-                  <ArrowUpRight className="w-4 h-4 text-muted-foreground" />
-                </Link>
-                <Separator />
-                <Link 
-                  to="/dashboard/reports/retention"
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
-                >
-                  <Users className="w-5 h-5 text-orange-500" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Retenção & Churn</p>
-                    <p className="text-xs text-muted-foreground">Clientes em risco</p>
-                  </div>
-                  <ArrowUpRight className="w-4 h-4 text-muted-foreground" />
-                </Link>
-                <Separator />
-                <Link 
-                  to="/dashboard/reports/dashboards"
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
-                >
-                  <LayoutDashboard className="w-5 h-5 text-purple-500" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Dashboards</p>
-                    <p className="text-xs text-muted-foreground">Relatórios personalizados</p>
-                  </div>
-                  <ArrowUpRight className="w-4 h-4 text-muted-foreground" />
-                </Link>
-              </CardContent>
-            </Card>
-
-            {/* Metrics Governance Info */}
-            <Card className="bg-primary/5 border-primary/20">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Lightbulb className="w-4 h-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Métricas Governadas</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Todos os valores usam definições únicas e consistentes em todo o sistema.
-                    </p>
-                    <p className="text-[10px] text-muted-foreground mt-2 italic">
-                      "Previsões baseadas em consumo real, não suposições."
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Row 3: AI Insights (full width) */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Lightbulb className="w-4 h-4 text-amber-500" />
+              Insights da IA
+            </CardTitle>
+            <CardDescription>
+              Análises baseadas nos seus dados reais
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-20" />
+            ) : insights.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {insights.map(insight => (
+                  <InsightCard key={insight.id} insight={insight} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground">
+                <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Sem insights disponíveis</p>
+                <p className="text-xs mt-1">
+                  Os insights melhoram com mais dados de consumo
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Row 4: Quick Links (horizontal grid) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Link to="/dashboard/reports/forecasts">
+            <Card className="hover:shadow-md transition-all hover:border-primary/30 h-full">
+              <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                </div>
+                <p className="text-sm font-medium">Previsões de Receita</p>
+                <p className="text-xs text-muted-foreground">30, 60 e 90 dias</p>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link to="/dashboard/reports/consumption">
+            <Card className="hover:shadow-md transition-all hover:border-primary/30 h-full">
+              <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                <div className="p-2 rounded-lg bg-blue-500/10">
+                  <BarChart3 className="w-5 h-5 text-blue-500" />
+                </div>
+                <p className="text-sm font-medium">Consumo & Capacidade</p>
+                <p className="text-xs text-muted-foreground">Sessões e produtos</p>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link to="/dashboard/reports/retention">
+            <Card className="hover:shadow-md transition-all hover:border-primary/30 h-full">
+              <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                <div className="p-2 rounded-lg bg-orange-500/10">
+                  <Users className="w-5 h-5 text-orange-500" />
+                </div>
+                <p className="text-sm font-medium">Retenção & Churn</p>
+                <p className="text-xs text-muted-foreground">Clientes em risco</p>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link to="/dashboard/reports/dashboards">
+            <Card className="hover:shadow-md transition-all hover:border-primary/30 h-full">
+              <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                <div className="p-2 rounded-lg bg-purple-500/10">
+                  <LayoutDashboard className="w-5 h-5 text-purple-500" />
+                </div>
+                <p className="text-sm font-medium">Dashboards</p>
+                <p className="text-xs text-muted-foreground">Relatórios personalizados</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+
+        {/* Row 5: Metrics Governance (full width banner) */}
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Lightbulb className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Métricas Governadas</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Todos os valores usam definições únicas e consistentes em todo o sistema.
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-2 italic">
+                  "Previsões baseadas em consumo real, não suposições."
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );
