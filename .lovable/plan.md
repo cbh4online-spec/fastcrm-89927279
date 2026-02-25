@@ -1,73 +1,95 @@
 
 
-# Add Favorites Section to Sidebar
+# Collapsible Sidebar with Icon-Only Mini Mode
 
 ## Overview
 
-Add a "Favoritos" section to the sidebar where users can pin/unpin their most-used navigation pages. Pinned pages appear at the top of the sidebar (between Quick Actions and the main nav list) for fast access. Favorites are persisted per-workspace in localStorage.
+Add a collapse/expand toggle to the sidebar. When collapsed, the sidebar shrinks to a narrow strip (~56px) showing only icons with tooltips on hover. Persisted in localStorage.
 
-## How It Works
+## Current State
 
-- Each nav item gets a pin/unpin action (star icon on hover)
-- Pinned items appear in a collapsible "Favoritos" section above the main navigation
-- Stored in `localStorage` keyed by workspace ID
-- Users can remove favorites by clicking the star again (in either section)
+- Sidebar is fixed at `w-64` (256px), always expanded on desktop (`lg:translate-x-0`)
+- `DashboardLayout` hard-codes `lg:pl-64` for the main content offset
+- Mobile uses a slide-in overlay pattern (unchanged by this feature)
+- WorkspaceSwitcher shows logo + name + role + chevron
 
-## Technical Plan
+## Design
 
-### 1. New Hook: `src/hooks/useSidebarFavorites.ts`
+```text
+EXPANDED (w-64)              COLLAPSED (w-14)
+┌────────────────────┐       ┌──────┐
+│ WS Logo  Name   ▾  │       │ Logo │
+│────────────────────│       │──────│
+│ 🔍 Quick Actions ⌘K│       │  🔍  │
+│────────────────────│       │──────│
+│ FAVORITOS           │       │  ★   │
+│  ★ Leads            │       │  ★   │
+│────────────────────│       │──────│
+│ ⌂ Dashboard     ☆  │       │  ⌂   │
+│ ✦ Ask FastCRM   ☆  │       │  ✦   │
+│ ── ── ── ── ── ──  │       │ ───  │
+│ 👤 Leads        ☆  │       │  👤  │
+│ ...                 │       │ ...  │
+│                     │       │      │
+│ [«] Collapse        │       │ [»]  │
+└────────────────────┘       └──────┘
+```
 
-A custom hook that manages favorites in localStorage per workspace:
+- A toggle button at the bottom of the sidebar: "Collapse" with `PanelLeftClose` icon when expanded, just `PanelLeftOpen` icon when collapsed
+- All nav items show only their icon (centered) when collapsed, with a `Tooltip` on hover showing the name
+- WorkspaceSwitcher shows only the logo when collapsed
+- Quick Actions shows only the search icon when collapsed
+- Favorites section shows only icons when collapsed
+- Star pin buttons hidden when collapsed
+- Separators still render as thin lines
 
-- `favorites: string[]` — array of `href` values
-- `toggleFavorite(href: string)` — add/remove from list
-- `isFavorite(href: string)` — check if pinned
-- Storage key: `sidebar-favorites-{workspaceId}`
-- Max 8 favorites
+## State Management
 
-### 2. Update Sidebar: `src/components/layout/SidebarV1.tsx`
+- New state: `collapsed: boolean`, persisted in `localStorage` key `sidebar-collapsed`
+- Passed from `DashboardLayout` (or managed inside `SidebarV1` itself with a hook)
+- `DashboardLayout` reads the collapsed state to set `lg:pl-64` vs `lg:pl-14`
+- On mobile, sidebar always renders expanded (collapse is desktop-only)
 
-- Import the new hook and `Star` icon from lucide-react
-- Add a "Favoritos" section between Quick Actions and the main nav:
-  - Small label: "Favoritos" in muted text (like Attio's style)
-  - List of pinned nav items (resolved from `NAV_V1_ITEMS` by href)
-  - Each with a filled star icon to unpin
-  - If empty, section is hidden
-  - Separator below the section
-- In the main nav list, add a star icon (outline) on hover for each item to pin it
-- Pinned items still appear in the main list (just also duplicated in Favoritos)
+## Implementation Plan
 
-### 3. No Database Changes
+### 1. Create `useSidebarCollapse` hook
 
-Favorites are lightweight UI preferences — localStorage is sufficient. No backend tables needed.
+**New file: `src/hooks/useSidebarCollapse.ts`**
+
+Simple localStorage-backed boolean toggle:
+- `collapsed: boolean`
+- `toggleCollapse(): void`
+- Storage key: `sidebar-collapsed`
+
+### 2. Update `SidebarV1.tsx`
+
+- Import `useSidebarCollapse`, `Tooltip`/`TooltipTrigger`/`TooltipContent`, `PanelLeftClose`/`PanelLeftOpen` icons
+- Read `collapsed` state from the hook
+- Change aside width: `collapsed ? "w-14" : "w-64"` (with `transition-all duration-200`)
+- **Header**: When collapsed, hide workspace name/role, show only the logo (centered)
+- **Quick Actions**: When collapsed, show only the Search icon (centered), no text/kbd
+- **Favorites section**: When collapsed, hide the "Favoritos" label and star buttons, show only icons with tooltips
+- **Nav items**: When collapsed, hide `<span>` text and star buttons, center the icon, wrap in `Tooltip`
+- **Separators**: Still render (just shorter)
+- **Collapse toggle**: Add a button at the bottom of the sidebar — full row when expanded ("Recolher" + icon), just icon when collapsed
+- On mobile (`open` prop overlay mode): always render expanded regardless of `collapsed` state
+
+### 3. Update `DashboardLayout.tsx`
+
+- Import `useSidebarCollapse`
+- Replace hard-coded `lg:pl-64` with `collapsed ? "lg:pl-14" : "lg:pl-64"` (with `transition-all duration-200`)
+
+### 4. Update `WorkspaceSwitcher.tsx`
+
+- Accept an optional `collapsed?: boolean` prop
+- When collapsed, render only the workspace logo (no dropdown trigger text, just the logo as the button)
 
 ## Files to Create / Edit
 
 | File | Change |
 |---|---|
-| `src/hooks/useSidebarFavorites.ts` | **NEW** — localStorage-backed hook for managing pinned pages |
-| `src/components/layout/SidebarV1.tsx` | Add Favoritos section + pin/unpin star icons on nav items |
-
-## Visual Layout
-
-```text
-┌─────────────────────────┐
-│ Workspace Name       ▾  │
-│─────────────────────────│
-│ 🔍 Quick Actions    ⌘K │
-│─────────────────────────│
-│ FAVORITOS               │
-│  ★ Leads                │
-│  ★ Oportunidades        │
-│─────────────────────────│
-│ ⌂ Dashboard         ☆  │
-│ ✦ Ask FastCRM        ☆  │
-│─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│
-│ 👤 Leads             ★  │
-│ 📇 Contactos         ☆  │
-│ ...                     │
-└─────────────────────────┘
-```
-
-Star icons: ★ = pinned (filled, click to unpin), ☆ = not pinned (outline, appears on hover, click to pin).
+| `src/hooks/useSidebarCollapse.ts` | **NEW** — localStorage-backed collapsed state hook |
+| `src/components/layout/SidebarV1.tsx` | Add collapse logic, icon-only mode, tooltips, toggle button |
+| `src/components/layout/DashboardLayout.tsx` | Dynamic `pl-64` / `pl-14` based on collapsed state |
+| `src/components/layout/WorkspaceSwitcher.tsx` | Accept `collapsed` prop, show logo-only when collapsed |
 
