@@ -1,183 +1,159 @@
 
 
-# Call Intelligence Settings Page
+# Enhanced Deals Kanban -- Attio-Style Rich Cards
 
-## Overview
+## Current State vs Attio Reference
 
-Create a dedicated "Call Intelligence" settings page inspired by the Attio screenshot, with significant improvements. This will be a new settings category in the workspace navigation that manages call recording preferences, AI-powered transcription/summarization, and insights templates -- going well beyond Attio's basic auto-record toggle.
+The current Kanban has **compact single-line cards** showing only title, value, and health badge (details appear on hover). The Attio screenshot shows **rich multi-line cards** with structured fields displayed permanently:
 
-## Reference Analysis (Attio Screenshot)
+```text
+Current card (single line):
+┌──────────────────────────────────┐
+│ ⠿ Deal Title    €5,000  🟢      │
+└──────────────────────────────────┘
 
-The screenshot shows:
-- A "Call intelligence" nav item under Personal settings
-- Auto-record meetings with radio card selection (External meetings / None)
-- Default insights template dropdown
+Attio card (multi-line, what we'll build):
+┌──────────────────────────────────┐
+│ Bitlift <> expansion             │
+│ 🏢 bitlift.io                   │
+│ ●● ─── ─── ─── ───              │
+│ 💰 US$18,950.00                  │
+│ 👤 Marisa McGill                 │
+│ 🟢 Workspace signup              │
+│ 📝 📧 💬  ·  11d                 │
+└──────────────────────────────────┘
+```
 
 ## Improvements Over Attio
 
-1. **Auto-record mode**: 3 options instead of 2 (All meetings, External only, None)
-2. **AI Transcription settings**: Language selection, auto-transcription toggle
-3. **AI Summary**: Toggle to auto-generate meeting summaries with model selection
-4. **Recording consent**: Toggle to notify participants about recording
-5. **CRM auto-linking**: Auto-associate recordings with deals/contacts
-6. **Insights templates**: Manage templates (not just select from dropdown)
-7. **Storage & retention**: Configure how long recordings are kept
-
-## Database Changes
-
-New table `workspace_call_intelligence_config` (1 row per workspace):
-
-```sql
-CREATE TABLE public.workspace_call_intelligence_config (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
-  auto_record_mode TEXT NOT NULL DEFAULT 'none',        -- 'all', 'external', 'none'
-  transcription_enabled BOOLEAN NOT NULL DEFAULT true,
-  transcription_language TEXT NOT NULL DEFAULT 'pt',     -- ISO 639-1
-  ai_summary_enabled BOOLEAN NOT NULL DEFAULT true,
-  consent_notification BOOLEAN NOT NULL DEFAULT true,
-  crm_auto_link BOOLEAN NOT NULL DEFAULT true,
-  retention_days INTEGER NOT NULL DEFAULT 90,
-  default_insights_template TEXT DEFAULT NULL,           -- template name/id
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT workspace_call_intel_unique UNIQUE (workspace_id)
-);
-
-ALTER TABLE public.workspace_call_intelligence_config ENABLE ROW LEVEL SECURITY;
-
--- RLS: workspace members can read/write their own config
-CREATE POLICY "workspace_members_call_intel" ON public.workspace_call_intelligence_config
-  FOR ALL USING (
-    workspace_id IN (
-      SELECT workspace_id FROM public.workspace_members
-      WHERE user_id = auth.uid()
-    )
-  );
-```
-
-## Visual Design
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│  Call Intelligence                                          │
-│  Manage your call recording and AI analysis settings        │
-│                                                             │
-│  ┌─ Auto-record meetings ──────────────────────────────┐    │
-│  │  Manage which meetings should be automatically       │    │
-│  │  recorded.                                           │    │
-│  │                                                      │    │
-│  │  ◉ [👥] External meetings        [Recommended]      │    │
-│  │         Only meetings with external participants     │    │
-│  │                                                      │    │
-│  │  ○ [📹] All meetings                                │    │
-│  │         Every meeting will be recorded               │    │
-│  │                                                      │    │
-│  │  ○ [⊘] None                                         │    │
-│  │         No meetings will be recorded                 │    │
-│  └──────────────────────────────────────────────────────┘    │
-│                                                             │
-│  ┌─ AI Transcription & Summary ────────────────────────┐    │
-│  │                                                      │    │
-│  │  Auto-transcription          [═══════○] ON           │    │
-│  │  Transcription language      [Português ▾]           │    │
-│  │                                                      │    │
-│  │  AI Meeting Summary          [═══════○] ON           │    │
-│  │  Automatically generate summaries with key topics    │    │
-│  │  and action items after each call.                   │    │
-│  └──────────────────────────────────────────────────────┘    │
-│                                                             │
-│  ┌─ Privacy & CRM ─────────────────────────────────────┐    │
-│  │                                                      │    │
-│  │  Consent notification        [═══════○] ON           │    │
-│  │  Notify participants that the call is being recorded │    │
-│  │                                                      │    │
-│  │  Auto-link to CRM            [═══════○] ON           │    │
-│  │  Associate recordings with contacts and deals        │    │
-│  │                                                      │    │
-│  │  Recording retention         [90 days ▾]             │    │
-│  └──────────────────────────────────────────────────────┘    │
-│                                                             │
-│  ┌─ Default insights template ─────────────────────────┐    │
-│  │  The selected template will be automatically         │    │
-│  │  applied to your meetings.                           │    │
-│  │                                                      │    │
-│  │  Template:                   [None ▾]                │    │
-│  └──────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
-```
+1. **Deal health badge** -- keep existing health intelligence indicator (Attio doesn't have this)
+2. **Temperature badge** -- color-coded hot/warm/cold indicator
+3. **Deal score** -- numeric AI score badge visible on card
+4. **Progress dots** -- visual stage progression indicator (inspired by Attio's dot pattern)
+5. **Activity age** -- days since creation, like Attio's "133d" counter
+6. **Quick actions on hover** -- mark won/lost, edit, without opening detail
+7. **Column calculations footer** -- "+ Add calculation" row at bottom of each column (sum, avg, count)
+8. **Owner avatar** -- show deal owner with avatar circle
+9. **Source badge** -- colored source tag (Website, Referral, etc.)
 
 ## File Plan
 
 | File | Action | Description |
 |---|---|---|
-| **Database migration** | **NEW** | Create `workspace_call_intelligence_config` table with RLS |
-| `src/hooks/useCallIntelligenceConfig.ts` | **NEW** | Hook to read/upsert call intelligence settings |
-| `src/components/settings/sections/CallIntelligenceSettings.tsx` | **NEW** | Full settings UI with radio cards, toggles, selects |
-| `src/components/settings/SettingsNavigation.tsx` | **EDIT** | Add `callIntelligence` category to workspace group |
-| `src/pages/Settings.tsx` | **EDIT** | Add `callIntelligence` case to render + categoryMeta |
-| `src/components/settings/settingsSearchData.ts` | **EDIT** | Add search entries for call intelligence |
-| `src/i18n/locales/pt/settings.json` | **EDIT** | Add ~25 new keys |
-| `src/i18n/locales/en/settings.json` | **EDIT** | Same |
-| `src/i18n/locales/es/settings.json` | **EDIT** | Same |
-| `src/i18n/locales/fr/settings.json` | **EDIT** | Same |
+| `src/components/opportunities/OpportunityCard.tsx` | **REWRITE** | Rich multi-line card matching Attio layout with all fields visible |
+| `src/components/opportunities/OpportunityKanbanColumn.tsx` | **EDIT** | Add column footer with calculation row, adjust spacing |
+| `src/components/opportunities/OpportunitiesModule.tsx` | **EDIT** | Pass owner profiles data to cards, add "Sorted by" toolbar like Attio |
+| `src/hooks/useOpportunitiesEnhanced.ts` | **EDIT** | Join owner profile data (name, avatar) into opportunity query |
+| `src/i18n/locales/{pt,en,es,fr}/crm.json` | **EDIT** | Add ~12 new keys for card labels and column footer |
 
-## New i18n Keys (~25)
+## New OpportunityCard Design (153 lines to ~180 lines)
 
-```
-nav_callIntelligence,
-callIntel_title, callIntel_description,
-callIntel_autoRecord, callIntel_autoRecordDesc,
-callIntel_external, callIntel_externalDesc, callIntel_recommended,
-callIntel_allMeetings, callIntel_allMeetingsDesc,
-callIntel_none, callIntel_noneDesc,
-callIntel_transcription, callIntel_transcriptionToggle, callIntel_transcriptionLang,
-callIntel_aiSummary, callIntel_aiSummaryToggle, callIntel_aiSummaryDesc,
-callIntel_privacy, callIntel_consent, callIntel_consentDesc,
-callIntel_crmAutoLink, callIntel_crmAutoLinkDesc,
-callIntel_retention, callIntel_retentionDays,
-callIntel_insightsTemplate, callIntel_insightsTemplateDesc,
-callIntel_saved
+```text
+┌─────────────────────────────────────┐
+│ Bitlift <> expansion          🟢🔥 │  ← title + health + temperature
+│ 🏢 bitlift.io                      │  ← company
+│ ●●●○○○                             │  ← stage progress dots
+│ US$18,950.00                        │  ← value (prominent)
+│ 👤 Marisa McGill                    │  ← contact/lead
+│ 🟣 Workspace signup                 │  ← source badge
+│ 📝 📧 💬    🧑 Owner    · 11d      │  ← activity icons + owner + age
+└─────────────────────────────────────┘
 ```
 
-## Hook Details (`useCallIntelligenceConfig.ts`)
+Key changes to `OpportunityCard.tsx`:
+- Multi-line vertical layout instead of single horizontal row
+- Remove `GripVertical` icon (drag works on full card)
+- Company row with `Building2` icon
+- Stage progress dots: filled circles for stages passed, empty for remaining
+- Value displayed prominently on its own row
+- Contact/lead name with user icon
+- Source as a colored badge
+- Footer row: activity indicators (notes count, email count) + owner avatar + "Xd" age counter
+- Temperature and health badges in top-right corner
+- Deal score badge inline
+
+## Stage Progress Dots
+
+A visual indicator showing how far a deal has progressed through the pipeline:
 
 ```typescript
-interface CallIntelligenceConfig {
-  auto_record_mode: 'all' | 'external' | 'none';
-  transcription_enabled: boolean;
-  transcription_language: string;
-  ai_summary_enabled: boolean;
-  consent_notification: boolean;
-  crm_auto_link: boolean;
-  retention_days: number;
-  default_insights_template: string | null;
-}
+// Given 6 total stages and deal is at stage 3:
+// ●●●○○○
+const totalStages = allStages.length;
+const currentPosition = allStages.findIndex(s => s.id === opportunity.stage_id);
 ```
 
-- Uses `useQuery` to fetch from `workspace_call_intelligence_config`
-- Uses `useMutation` with upsert pattern (check if row exists, insert or update)
-- Returns `{ config, isLoading, updateConfig }`
+This requires passing `stages` array to `OpportunityCard` (currently not passed).
 
-## Component Details (`CallIntelligenceSettings.tsx`)
+## Column Footer -- Calculations
 
-- **Auto-record section**: 3 radio cards styled like the Attio screenshot (border highlight on selected, recommended badge on external)
-- **AI section**: Two switch toggles with descriptions, a language `<Select>` dropdown (PT, EN, ES, FR, DE, IT)
-- **Privacy & CRM section**: Two switch toggles, a retention days `<Select>` (30, 60, 90, 180, 365)
-- **Insights template section**: A `<Select>` with "None" default
-- Each section auto-saves on change via `updateConfig.mutate()`
-- Uses `useTranslation("settings")` throughout
-- Loading state with Skeleton components
+Like Attio's "+ Add calculation" at the bottom of each column:
 
-## Navigation Changes
+```text
+───────────────────
++ Add calculation ▾
+```
 
-Add `callIntelligence` to the workspace group in `SettingsNavigation.tsx` after `channels`, using `Phone` icon from lucide-react (matching Attio's "Call intelligence" placement).
+Clicking opens a dropdown with:
+- **Sum** of deal values (already shown in header, but toggleable here)
+- **Average** deal value
+- **Count** (already shown)
+- **Min / Max** value
+
+This is a presentational enhancement -- no database changes needed.
+
+## Owner Data
+
+Currently `owner_id` exists on opportunities but the owner profile (name, avatar) is not joined in the query. The hook `useOpportunitiesEnhanced` needs to join `profiles` on `owner_id`:
+
+```sql
+SELECT *, profiles!opportunities_owner_id_fkey(name, avatar_url)
+FROM opportunities
+```
+
+This adds owner name and avatar to each card without a separate query.
+
+## New i18n Keys (~12)
+
+```
+kanbanSortedBy, kanbanCreatedAt, kanbanDealValue,
+kanbanSource, kanbanOwner, kanbanDaysAgo,
+kanbanAddCalculation, kanbanCalcSum, kanbanCalcAvg,
+kanbanCalcMin, kanbanCalcMax, kanbanCalcCount,
+kanbanStageProgress
+```
+
+## Source Badge Colors
+
+Map existing `OPPORTUNITY_SOURCES` to color schemes:
+
+```typescript
+const sourceColors: Record<string, string> = {
+  website: "bg-green-100 text-green-700",
+  referral: "bg-purple-100 text-purple-700",
+  email: "bg-blue-100 text-blue-700",
+  social: "bg-pink-100 text-pink-700",
+  phone: "bg-amber-100 text-amber-700",
+  event: "bg-indigo-100 text-indigo-700",
+  advertising: "bg-cyan-100 text-cyan-700",
+  partner: "bg-orange-100 text-orange-700",
+  other: "bg-gray-100 text-gray-700",
+};
+```
 
 ## Implementation Order
 
-1. Database migration (create table + RLS)
-2. Create hook
-3. Add i18n keys (all 4 locales)
-4. Create settings component
-5. Wire into Settings page + navigation + search data
+1. Update `useOpportunitiesEnhanced` to join owner profile data
+2. Add i18n keys to all 4 locales
+3. Rewrite `OpportunityCard.tsx` with rich multi-line layout
+4. Update `OpportunityKanbanColumn.tsx` with calculation footer and pass stages to cards
+5. Update `OpportunitiesModule.tsx` to pass stages array to columns for progress dots
+
+## Technical Notes
+
+- No database migrations needed -- all data already exists
+- The card redesign is purely presentational; drag-and-drop logic stays identical
+- Stage progress dots require passing the full `stages` array through the component tree: `OpportunitiesModule` -> `OpportunityKanbanColumn` -> `OpportunityCard`
+- Column width stays at `w-80` (320px) to accommodate multi-line cards
+- `ScrollArea` inside columns handles overflow for many cards
 
