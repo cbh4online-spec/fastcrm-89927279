@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { applyFilters, FilterCondition } from "@/hooks/useFilterEngine";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useSavedViews, useDeleteSavedView, useToggleFavorite, SavedView } from "@/hooks/useSavedViews";
@@ -98,11 +99,13 @@ export function DealsSidebar({
     return allViews.filter((v) => v.name.toLowerCase().includes(q));
   }, [allViews, searchQuery]);
 
-  const getListCount = (view: SavedView): number | null => {
+  const getListCount = useCallback((view: SavedView): number | null => {
     if (!opportunities) return null;
-    // We'd need the filter engine here, for now show total
-    return null;
-  };
+    const f = view.filters as any;
+    const conditions: FilterCondition[] = f?.conditions || [];
+    if (conditions.length === 0) return null;
+    return applyFilters(opportunities as Record<string, unknown>[], conditions, "AND").length;
+  }, [opportunities]);
 
   if (collapsed) {
     return (
@@ -250,35 +253,47 @@ export function DealsSidebar({
           </Collapsible>
 
           {/* LISTS Section */}
-          {smartLists.length > 0 && (
-            <Collapsible open={listsOpen} onOpenChange={setListsOpen}>
+          <Collapsible open={listsOpen} onOpenChange={setListsOpen}>
               <CollapsibleTrigger className="w-full flex items-center gap-1 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
                 {listsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                 {t("sidebarLists")}
+                {smartLists.length > 0 && (
+                  <Badge variant="secondary" className="ml-auto h-4 px-1 text-[10px]">{smartLists.length}</Badge>
+                )}
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-0.5">
-                {smartLists.map((list) => {
-                  const count = getListCount(list);
-                  return (
-                    <button
-                      key={list.id}
-                      className={cn(
-                        "w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-left transition-colors hover:bg-accent/50",
-                        activeViewId === list.id && "bg-accent text-accent-foreground font-medium"
-                      )}
-                      onClick={() => onSelectView(list)}
-                    >
-                      <div className={cn("w-2 h-2 rounded-full flex-shrink-0", hashColor(list.name))} />
-                      <span className="truncate flex-1">{list.name}</span>
-                      {count !== null && (
-                        <Badge variant="secondary" className="h-4 px-1 text-[10px]">{count}</Badge>
-                      )}
-                    </button>
-                  );
-                })}
+                {smartLists.length === 0 ? (
+                  <p className="px-3 py-2 text-xs text-muted-foreground italic">{t("sidebarNoLists", "No lists yet")}</p>
+                ) : (
+                  smartLists.map((list) => {
+                    const count = getListCount(list);
+                    return (
+                      <button
+                        key={list.id}
+                        className={cn(
+                          "w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-left transition-colors hover:bg-accent/50",
+                          activeViewId === list.id && "bg-accent text-accent-foreground font-medium"
+                        )}
+                        onClick={() => onSelectView(list)}
+                      >
+                        <div className={cn("w-2 h-2 rounded-full flex-shrink-0", hashColor(list.name))} />
+                        <span className="truncate flex-1">{list.name}</span>
+                        {count !== null && (
+                          <Badge variant="secondary" className="h-4 px-1 text-[10px]">{count}</Badge>
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+                <button
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={onCreateView}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  {t("sidebarCreateView")}
+                </button>
               </CollapsibleContent>
             </Collapsible>
-          )}
         </div>
       </ScrollArea>
     </div>

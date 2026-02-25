@@ -8,7 +8,8 @@ import {
 } from "@/hooks/useOpportunitiesEnhanced";
 import { usePipelineStages } from "@/hooks/usePipelineStages";
 import { useDealScores } from "@/hooks/useDealScores";
-import { SavedView } from "@/hooks/useSavedViews";
+import { SavedView, useSavedViews } from "@/hooks/useSavedViews";
+import { applyFilters, FilterCondition } from "@/hooks/useFilterEngine";
 import { Opportunity } from "@/types/opportunity";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -93,6 +94,7 @@ export function OpportunitiesModule() {
   const { scoresMap } = useDealScores();
   const { scoresMap: healthMap } = useBulkDealIntelligenceAPI(opportunities);
   const { data: members } = useWorkspaceMembers();
+  const { data: savedViews } = useSavedViews("opportunities");
 
   // Build owner profiles map from workspace members
   const membersMap = useMemo(() => {
@@ -122,6 +124,18 @@ export function OpportunitiesModule() {
       list = list.filter((opp) => scoresMap.get(opp.id)?.category === "hot");
     }
 
+    // Apply smart list filter conditions
+    if (activeViewId && savedViews) {
+      const activeView = savedViews.find((v) => v.id === activeViewId);
+      if (activeView) {
+        const f = activeView.filters as any;
+        const conditions: FilterCondition[] = f?.conditions || [];
+        if (conditions.length > 0) {
+          list = applyFilters(list as unknown as Record<string, unknown>[], conditions, "AND") as unknown as typeof list;
+        }
+      }
+    }
+
     if (sortByScore) {
       list = [...list].sort((a, b) => {
         const sa = scoresMap.get(a.id)?.close_score ?? -1;
@@ -131,7 +145,7 @@ export function OpportunitiesModule() {
     }
 
     return list;
-  }, [opportunities, searchQuery, hotDealsOnly, sortByScore, scoresMap]);
+  }, [opportunities, searchQuery, hotDealsOnly, sortByScore, scoresMap, activeViewId, savedViews]);
 
   const hotCount = useMemo(
     () => (opportunities || []).filter(o => scoresMap.get(o.id)?.category === "hot").length,
