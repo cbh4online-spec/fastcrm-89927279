@@ -1,11 +1,12 @@
-import { Users, TrendingUp, UserCheck, ArrowRight } from "lucide-react";
-import type { LifecycleStageCounts } from "@/hooks/useCustomerLifecycle";
+import { Users, TrendingUp, UserCheck, ArrowRight, Clock, BarChart3 } from "lucide-react";
+import type { LifecycleStageCounts, LifecycleMetrics } from "@/hooks/useCustomerLifecycle";
 
 interface LifecycleKPIsProps {
   data: LifecycleStageCounts[];
+  metrics?: LifecycleMetrics;
 }
 
-export function LifecycleKPIs({ data }: LifecycleKPIsProps) {
+export function LifecycleKPIs({ data, metrics }: LifecycleKPIsProps) {
   const total = data.reduce((acc, d) => acc + d.count, 0);
   const leads = data.find(d => d.stage === 'lead')?.count || 0;
   const customers = data.find(d => d.stage === 'customer')?.count || 0;
@@ -13,15 +14,30 @@ export function LifecycleKPIs({ data }: LifecycleKPIsProps) {
   const prospects = data.find(d => d.stage === 'prospect')?.count || 0;
   const inSales = data.find(d => d.stage === 'sales')?.count || 0;
 
+  // Total avg time visitor → customer
+  const avgDays = metrics?.avgDaysPerStage || {};
+  const totalAvgDays = ['visitor', 'lead', 'prospect', 'sales', 'onboarding']
+    .reduce((sum, s) => sum + (avgDays[s] || 0), 0);
+  const totalAvgDisplay = totalAvgDays > 0 ? `${totalAvgDays.toFixed(1)}d` : '—';
+
+  // Average progression rate
+  const rates = metrics?.conversionRates || {};
+  const rateValues = Object.values(rates).filter(v => v > 0);
+  const avgRate = rateValues.length > 0
+    ? (rateValues.reduce((a, b) => a + b, 0) / rateValues.length).toFixed(1)
+    : '0';
+
   const kpis = [
     { label: 'Total Contactos', value: total, icon: Users, color: 'text-primary' },
     { label: 'Conversão Lead → Cliente', value: `${conversionRate}%`, icon: TrendingUp, color: 'text-emerald-500' },
     { label: 'Prospects Activos', value: prospects + inSales, icon: ArrowRight, color: 'text-amber-500' },
     { label: 'Clientes', value: customers, icon: UserCheck, color: 'text-green-500' },
+    { label: 'Tempo Médio Total', value: totalAvgDisplay, icon: Clock, color: 'text-blue-500' },
+    { label: 'Taxa Média Progressão', value: `${avgRate}%`, icon: BarChart3, color: 'text-violet-500' },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
       {kpis.map(kpi => (
         <div key={kpi.label} className="bg-card border rounded-lg p-4">
           <div className="flex items-center gap-2 mb-1">

@@ -33735,6 +33735,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_lifecycle_metrics: { Args: { p_workspace_id: string }; Returns: Json }
       get_loyalty_balance: {
         Args: { p_user_id: string; p_workspace_id: string }
         Returns: number

@@ -65,6 +65,34 @@ export function useLifecycleCounts() {
   });
 }
 
+export interface LifecycleMetrics {
+  avgDaysPerStage: Record<string, number>;
+  conversionRates: Record<string, number>;
+}
+
+export function useLifecycleMetrics() {
+  const { currentWorkspace } = useWorkspace();
+
+  return useQuery({
+    queryKey: ["lifecycle-metrics", currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return { avgDaysPerStage: {}, conversionRates: {} } as LifecycleMetrics;
+
+      const { data, error } = await supabase
+        .rpc('get_lifecycle_metrics', { p_workspace_id: currentWorkspace.id } as any);
+
+      if (error) throw error;
+
+      const result = data as any;
+      return {
+        avgDaysPerStage: result?.avg_days_per_stage || {},
+        conversionRates: result?.conversion_rates || {},
+      } as LifecycleMetrics;
+    },
+    enabled: !!currentWorkspace?.id,
+  });
+}
+
 export function useUpdateLifecycleStage() {
   const queryClient = useQueryClient();
 
@@ -78,6 +106,7 @@ export function useUpdateLifecycleStage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lifecycle-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["lifecycle-metrics"] });
     },
   });
 }

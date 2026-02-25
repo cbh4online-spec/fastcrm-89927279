@@ -1,11 +1,13 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { CustomerLifecycleFlow } from "@/components/lifecycle/CustomerLifecycleFlow";
 import { LifecycleKPIs } from "@/components/lifecycle/LifecycleKPIs";
-import { useLifecycleCounts } from "@/hooks/useCustomerLifecycle";
+import { LifecycleConversionTable } from "@/components/lifecycle/LifecycleConversionTable";
+import { useLifecycleCounts, useLifecycleMetrics } from "@/hooks/useCustomerLifecycle";
 import { Loader2, GitBranch } from "lucide-react";
 
 export default function CustomerLifecyclePage() {
   const { data, isLoading } = useLifecycleCounts();
+  const { data: metrics } = useLifecycleMetrics();
 
   return (
     <DashboardLayout>
@@ -26,8 +28,9 @@ export default function CustomerLifecyclePage() {
           </div>
         ) : (
           <>
-            <LifecycleKPIs data={data || []} />
-            <CustomerLifecycleFlow data={data || []} />
+            <LifecycleKPIs data={data || []} metrics={metrics} />
+            <CustomerLifecycleFlow data={data || []} metrics={metrics} />
+            <LifecycleConversionTable data={data || []} metrics={metrics} />
           </>
         )}
       </div>

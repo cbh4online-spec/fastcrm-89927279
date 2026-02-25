@@ -6,12 +6,13 @@ interface LifecycleNodeData {
   count: number;
   icon: string;
   color: string;
+  avgDays?: number | null;
   isFirst?: boolean;
   isLast?: boolean;
 }
 
 function LifecycleStageNodeComponent({ data }: NodeProps) {
-  const { label, count, icon, color, isFirst, isLast } = data as unknown as LifecycleNodeData;
+  const { label, count, icon, color, avgDays, isFirst, isLast } = data as unknown as LifecycleNodeData;
 
   return (
     <div
@@ -26,6 +27,9 @@ function LifecycleStageNodeComponent({ data }: NodeProps) {
         {label}
       </div>
       <div className="text-3xl font-bold text-foreground">{count}</div>
+      <div className="text-[10px] text-muted-foreground mt-1">
+        {avgDays != null ? `~${avgDays}d avg` : '—'}
+      </div>
     </div>
   );
 }
