@@ -3,17 +3,15 @@ import { Opportunity, PipelineStage, OPPORTUNITY_SOURCES } from "@/types/opportu
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, MessageSquare, Briefcase, Building2, Brain, UserCheck } from "lucide-react";
+import { ChevronDown, MessageSquare, Briefcase, Building2, Brain, UserCheck, ListChecks, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 import { OpportunityCommunicationSection } from "./OpportunityCommunicationSection";
 import { OpportunityAssociationsSection } from "../sections/OpportunityAssociationsSection";
-import { OpportunityCommissionSection } from "../sections/OpportunityCommissionSection";
 import { DealIntelligencePanel } from "@/components/intelligence/DealIntelligencePanel";
 import type { DealIntelligencePayload } from "@/types/dealIntelligence";
 import { toast } from "sonner";
-import { formatCurrency } from "@/lib/formatters";
 import { useMemo } from "react";
 
 interface EntityOption {
@@ -78,6 +76,7 @@ export function OpportunityDetailSidebar({
   onUpdate,
 }: OpportunityDetailSidebarProps) {
   const { t } = useTranslation("crm");
+  const [showAllDealInfo, setShowAllDealInfo] = useState(false);
 
   const handleFieldChange = async (field: string, value: unknown) => {
     try {
@@ -109,6 +108,7 @@ export function OpportunityDetailSidebar({
   };
 
   const currencyOptions = ["EUR", "USD", "GBP", "BRL"];
+  const priorityOptions = ["Low", "Medium", "High", "Critical"];
 
   return (
     <div className="w-full lg:w-80 lg:flex-shrink-0">
@@ -148,6 +148,14 @@ export function OpportunityDetailSidebar({
                   onChange={(v) => handleFieldChange("value", v)}
                 />
                 <InlineEditableField
+                  label={t("oppDetail_priorityLevel")}
+                  fieldId="priority_level"
+                  fieldType="select"
+                  value={(opportunity as any).priority_level || ""}
+                  onChange={(v) => handleFieldChange("priority_level", v)}
+                  options={priorityOptions}
+                />
+                <InlineEditableField
                   label={t("stage")}
                   fieldId="stage"
                   fieldType="select"
@@ -156,36 +164,46 @@ export function OpportunityDetailSidebar({
                   options={stageOptions}
                 />
                 <InlineEditableField
-                  label={t("probability")}
-                  fieldId="probability"
-                  fieldType="number"
-                  value={opportunity.probability}
-                  onChange={(v) => handleFieldChange("probability", v)}
-                  placeholder="%"
-                />
-                <InlineEditableField
                   label={t("expectedCloseDate")}
                   fieldId="expected_close_date"
                   fieldType="date"
                   value={opportunity.expected_close_date}
                   onChange={(v) => handleFieldChange("expected_close_date", v)}
                 />
-                <InlineEditableField
-                  label={t("source")}
-                  fieldId="source"
-                  fieldType="select"
-                  value={currentSourceLabel}
-                  onChange={handleSourceChange}
-                  options={sourceOptions}
-                />
-                <InlineEditableField
-                  label="Moeda"
-                  fieldId="currency"
-                  fieldType="select"
-                  value={opportunity.currency || "EUR"}
-                  onChange={(v) => handleFieldChange("currency", v)}
-                  options={currencyOptions}
-                />
+                {showAllDealInfo && (
+                  <>
+                    <InlineEditableField
+                      label={t("probability")}
+                      fieldId="probability"
+                      fieldType="number"
+                      value={opportunity.probability}
+                      onChange={(v) => handleFieldChange("probability", v)}
+                      placeholder="%"
+                    />
+                    <InlineEditableField
+                      label={t("source")}
+                      fieldId="source"
+                      fieldType="select"
+                      value={currentSourceLabel}
+                      onChange={handleSourceChange}
+                      options={sourceOptions}
+                    />
+                    <InlineEditableField
+                      label={t("oppDetail_currency")}
+                      fieldId="currency"
+                      fieldType="select"
+                      value={opportunity.currency || "EUR"}
+                      onChange={(v) => handleFieldChange("currency", v)}
+                      options={currencyOptions}
+                    />
+                  </>
+                )}
+                <button
+                  onClick={() => setShowAllDealInfo(!showAllDealInfo)}
+                  className="w-full text-left text-xs text-primary hover:underline py-2 font-medium"
+                >
+                  {showAllDealInfo ? t("oppDetail_hideValues") : t("oppDetail_showAllValues")}
+                </button>
               </div>
             </SidebarSection>
 
@@ -222,6 +240,17 @@ export function OpportunityDetailSidebar({
                 </div>
               </SidebarSection>
             )}
+
+            {/* Lists */}
+            <SidebarSection title={t("oppDetail_listsSection")} icon={<ListChecks className="w-3.5 h-3.5" />} defaultOpen={false}>
+              <div className="text-center py-4">
+                <p className="text-xs text-muted-foreground mb-2">{t("oppDetail_noLists")}</p>
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => toast.info(t("oppDetail_addToListSoon"))}>
+                  <Plus className="w-3 h-3" />
+                  {t("oppDetail_addToList")}
+                </Button>
+              </div>
+            </SidebarSection>
 
             {/* AI Intelligence */}
             <SidebarSection title="Intelligence" icon={<Brain className="w-3.5 h-3.5" />} defaultOpen={false}>

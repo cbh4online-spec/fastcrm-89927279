@@ -19843,6 +19843,7 @@ export type Database = {
           payment_provider:
             | Database["public"]["Enums"]["payment_provider"]
             | null
+          priority_level: string | null
           probability: number | null
           renewal_date: string | null
           source: string | null
@@ -19889,6 +19890,7 @@ export type Database = {
           payment_provider?:
             | Database["public"]["Enums"]["payment_provider"]
             | null
+          priority_level?: string | null
           probability?: number | null
           renewal_date?: string | null
           source?: string | null
@@ -19935,6 +19937,7 @@ export type Database = {
           payment_provider?:
             | Database["public"]["Enums"]["payment_provider"]
             | null
+          priority_level?: string | null
           probability?: number | null
           renewal_date?: string | null
           source?: string | null
