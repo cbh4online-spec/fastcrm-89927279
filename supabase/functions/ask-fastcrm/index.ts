@@ -11,22 +11,109 @@ function differenceInDays(a: Date, b: Date): number {
   return Math.floor((a.getTime() - b.getTime()) / 86400000);
 }
 
-// --- Hybrid Architecture: Guardrails ---
+// --- Strict Contract Types ---
+interface AskResponse {
+  version: "1.0";
+  routed_via: "deterministic" | "llm";
+  confidence: number;
+  intent: string;
+  object_type: "deals" | "contacts" | "companies";
+  query: {
+    filters: { field: string; op: string; value: any }[];
+    sort: { field: string; dir: "asc" | "desc" }[];
+    limit: number;
+  };
+  answer: {
+    headline: string;
+    subtext?: string;
+  };
+  actions_available: string[];
+  items: any[];
+  actions: any[];
+  metric?: any;
+  suggestion?: any;
+  did_you_mean?: string[];
+}
+
+// --- Guardrails ---
 const ALLOWED_FIELDS: Record<string, string[]> = {
-  deals: ["value", "stage_id", "owner_id", "last_activity_at", "expected_close_date", "health_label", "ai_next_action", "status", "updated_at"],
+  deals: ["health_score", "health_label", "last_activity_days", "has_next_step", "stage", "stage_days", "amount", "close_date", "owner_id", "created_at", "updated_at"],
   contacts: ["name", "email", "updated_at", "company_id"],
   companies: ["name", "updated_at"],
 };
-const ALLOWED_OPS = ["=", ">", "<", ">=", "<=", "in", "contains", "is_null", "date_range"];
+const ALLOWED_OPS = ["=", "!=", ">", ">=", "<", "<=", "in", "between", "contains"];
+const ALLOWED_SORT_FIELDS = ["health_score", "amount", "close_date", "last_activity_days", "stage_days", "updated_at"];
+
+const ACTIONS_ENUM = {
+  CREATE_TASKS_BULK: "CREATE_TASKS_BULK",
+  SAVE_VIEW: "SAVE_VIEW",
+  ASSIGN_OWNER_BULK: "ASSIGN_OWNER_BULK",
+  MOVE_STAGE_BULK: "MOVE_STAGE_BULK",
+  CREATE_AUTOMATION_FROM_TEMPLATE: "CREATE_AUTOMATION_FROM_TEMPLATE",
+  NAVIGATE: "NAVIGATE",
+} as const;
 
 const DID_YOU_MEAN_DEFAULTS = ["Deals at risk", "No activity", "Closing this month", "Pipeline summary", "High value deals", "No next step"];
 
-// --- Keyword fast-path with confidence scoring ---
+// --- buildResponse helper: enforces strict contract ---
+function buildResponse(
+  intent: string,
+  objectType: "deals" | "contacts" | "companies",
+  query: { filters: any[]; sort: any[]; limit: number },
+  routedVia: "deterministic" | "llm",
+  confidence: number,
+  handlerResult: {
+    headline: string;
+    subtext?: string;
+    items?: any[];
+    actions?: any[];
+    actions_available?: string[];
+    metric?: any;
+    suggestion?: any;
+    did_you_mean?: string[];
+  }
+): AskResponse {
+  return {
+    version: "1.0",
+    routed_via: routedVia,
+    confidence: Math.round(confidence * 100) / 100,
+    intent,
+    object_type: objectType,
+    query: {
+      filters: query.filters,
+      sort: query.sort,
+      limit: Math.max(1, Math.min(100, query.limit || 25)),
+    },
+    answer: {
+      headline: (handlerResult.headline || "").slice(0, 80),
+      ...(handlerResult.subtext ? { subtext: handlerResult.subtext.slice(0, 120) } : {}),
+    },
+    actions_available: handlerResult.actions_available || [],
+    items: handlerResult.items || [],
+    actions: handlerResult.actions || [],
+    ...(handlerResult.metric ? { metric: handlerResult.metric } : {}),
+    ...(handlerResult.suggestion ? { suggestion: handlerResult.suggestion } : {}),
+    ...(handlerResult.did_you_mean ? { did_you_mean: handlerResult.did_you_mean } : {}),
+  };
+}
+
+// --- Keyword fast-path with additive confidence scoring ---
 interface KeywordMatch {
   intent: string;
   days: number;
   confidence: number;
 }
+
+const PRIMARY_KEYWORDS = [
+  "risk", "at risk", "em risco",
+  "forecast", "previsão",
+  "closing", "este mês", "this month",
+  "no activity", "sem atividade", "inactive",
+  "stuck", "preso",
+  "high value", "alto valor",
+  "no next step", "sem próximo passo",
+  "pipeline", "bottleneck", "gargalo",
+];
 
 const KEYWORD_MAP: Record<string, string> = {
   "at risk": "deals_at_risk",
@@ -38,8 +125,13 @@ const KEYWORD_MAP: Record<string, string> = {
   "this month": "closing_soon",
   "este mês": "closing_soon",
   "forecast": "forecast_summary",
+  "forecast risk": "forecast_risk",
+  "blocking forecast": "forecast_risk",
+  "forecast slipping": "forecast_risk",
   "previsão": "forecast_summary",
   "pipeline": "pipeline_summary",
+  "pipeline health": "pipeline_summary",
+  "pipeline summary": "pipeline_summary",
   "bottleneck": "stage_bottleneck",
   "gargalo": "stage_bottleneck",
   "stuck": "deals_stuck_in_stage",
@@ -56,7 +148,6 @@ const KEYWORD_MAP: Record<string, string> = {
   "contactos inativos": "contacts_inactive",
 };
 
-// Exact phrase patterns for highest confidence
 const EXACT_PHRASES: Record<string, string> = {
   "deals at risk": "deals_at_risk",
   "deals em risco": "deals_at_risk",
@@ -65,8 +156,13 @@ const EXACT_PHRASES: Record<string, string> = {
   "closing this month": "closing_soon",
   "a fechar este mês": "closing_soon",
   "pipeline summary": "pipeline_summary",
+  "pipeline health": "pipeline_summary",
+  "pipeline health summary": "pipeline_summary",
   "resumo pipeline": "pipeline_summary",
   "forecast": "forecast_summary",
+  "forecast risk": "forecast_risk",
+  "what's blocking my forecast": "forecast_risk",
+  "why is my forecast slipping": "forecast_risk",
   "stage bottleneck": "stage_bottleneck",
   "gargalo de estágio": "stage_bottleneck",
   "no next step": "deals_no_next_step",
@@ -84,8 +180,9 @@ const EXACT_PHRASES: Record<string, string> = {
 function classifyByKeyword(question: string): KeywordMatch | null {
   const lower = question.toLowerCase().trim();
   const daysMatch = lower.match(/(\d+)\s*d(?:ays|ias)?/);
+  const hasParameter = !!(daysMatch || /this month|este mês|next month|próximo mês/.test(lower));
 
-  // 1. Check exact phrases first → 0.95
+  // 1. Exact phrases → 0.95
   for (const [phrase, intent] of Object.entries(EXACT_PHRASES)) {
     if (lower === phrase || lower === phrase + "?" || lower === phrase + ".") {
       const days = daysMatch ? parseInt(daysMatch[1]) : (intent === "closing_soon" ? 30 : 14);
@@ -93,7 +190,7 @@ function classifyByKeyword(question: string): KeywordMatch | null {
     }
   }
 
-  // 2. Check keyword partial matches
+  // 2. Keyword partial matches with additive confidence
   const matches: { intent: string; keyword: string }[] = [];
   for (const [keyword, intent] of Object.entries(KEYWORD_MAP)) {
     if (lower.includes(keyword)) {
@@ -103,19 +200,22 @@ function classifyByKeyword(question: string): KeywordMatch | null {
 
   if (matches.length === 0) return null;
 
-  // Multiple different intents matched → ambiguous → 0.50
   const uniqueIntents = new Set(matches.map(m => m.intent));
   if (uniqueIntents.size > 1) {
-    // Return first match but low confidence
     const first = matches[0];
     const days = daysMatch ? parseInt(daysMatch[1]) : (first.intent === "closing_soon" ? 30 : 14);
     return { intent: first.intent, days, confidence: 0.50 };
   }
 
-  // Single intent matched via keyword → 0.80
+  // Additive: base 0.5 + 0.2 (primary keyword) + 0.2 (parameter)
+  let conf = 0.50;
+  const hasPrimary = PRIMARY_KEYWORDS.some(pk => lower.includes(pk));
+  if (hasPrimary) conf += 0.20;
+  if (hasParameter) conf += 0.20;
+
   const match = matches[0];
   const days = daysMatch ? parseInt(daysMatch[1]) : (match.intent === "closing_soon" ? 30 : 14);
-  return { intent: match.intent, days, confidence: 0.80 };
+  return { intent: match.intent, days, confidence: Math.min(conf, 0.90) };
 }
 
 // --- Structured query builder ---
@@ -134,33 +234,31 @@ function buildStructuredQuery(intent: string, days: number): StructuredQuery {
     case "deals_at_risk":
       return { ...base, filters: [{ field: "health_label", op: "=", value: "AT_RISK" }], sort: [{ field: "health_score", dir: "asc" }] };
     case "deals_inactive":
-      return { ...base, filters: [{ field: "last_activity_days", op: ">", value: days }], sort: [{ field: "last_activity_at", dir: "asc" }] };
+      return { ...base, filters: [{ field: "last_activity_days", op: ">", value: days }], sort: [{ field: "last_activity_days", dir: "desc" }] };
     case "closing_soon":
-      return { ...base, filters: [{ field: "expected_close_date", op: "date_range", value: { within_days: days } }], sort: [{ field: "expected_close_date", dir: "asc" }] };
+      return { ...base, filters: [{ field: "close_date", op: "between", value: { start: "now", end: `+${days}d` } }], sort: [{ field: "close_date", dir: "asc" }] };
     case "forecast_summary":
       return { ...base, filters: [], sort: [] };
+    case "forecast_risk":
+      return { ...base, filters: [{ field: "health_label", op: "!=", value: "HEALTHY" }, { field: "close_date", op: "between", value: { start: "now", end: "+90d" } }], sort: [{ field: "health_score", dir: "asc" }] };
     case "pipeline_summary":
-      return { ...base, filters: [{ field: "status", op: "=", value: "open" }], sort: [{ field: "stage_id", dir: "asc" }] };
+      return { ...base, filters: [], sort: [{ field: "amount", dir: "desc" }] };
     case "contacts_inactive":
       return { ...base, object_type: "contacts", filters: [{ field: "updated_at", op: "<", value: `${days}_days_ago` }], sort: [{ field: "updated_at", dir: "asc" }] };
     case "stage_bottleneck":
-      return { ...base, filters: [{ field: "status", op: "=", value: "open" }], sort: [{ field: "updated_at", dir: "asc" }] };
+      return { ...base, filters: [{ field: "stage_days", op: ">", value: 14 }], sort: [{ field: "stage_days", dir: "desc" }] };
     case "deals_no_next_step":
-      return { ...base, filters: [{ field: "ai_next_action", op: "is_null", value: true }], sort: [{ field: "value", dir: "desc" }] };
+      return { ...base, filters: [{ field: "has_next_step", op: "=", value: false }], sort: [{ field: "amount", dir: "desc" }] };
     case "deals_stuck_in_stage":
-      return { ...base, filters: [{ field: "status", op: "=", value: "open" }], sort: [{ field: "updated_at", dir: "asc" }] };
+      return { ...base, filters: [{ field: "stage_days", op: ">", value: 14 }], sort: [{ field: "stage_days", dir: "desc" }] };
     case "high_value_deals":
-      return { ...base, filters: [{ field: "status", op: "=", value: "open" }], sort: [{ field: "value", dir: "desc" }], limit: 10 };
-    case "overdue_invoices":
-      return { ...base, filters: [{ field: "status", op: "=", value: "overdue" }], sort: [{ field: "due_date", dir: "asc" }] };
-    case "pending_approvals":
-      return { ...base, filters: [], sort: [] };
+      return { ...base, filters: [], sort: [{ field: "amount", dir: "desc" }], limit: 10 };
     default:
       return base;
   }
 }
 
-// --- LLM tool definition with structured query output ---
+// --- LLM tool definition ---
 const INTENT_TOOLS = [
   {
     type: "function" as const,
@@ -178,6 +276,7 @@ const INTENT_TOOLS = [
               "deals_inactive",
               "closing_soon",
               "forecast_summary",
+              "forecast_risk",
               "pipeline_summary",
               "contacts_inactive",
               "stage_bottleneck",
@@ -201,16 +300,32 @@ const INTENT_TOOLS = [
           },
           filters: {
             type: "array",
-            description: "Optional structured filters.",
+            description: "Optional structured filters using allowed fields and operators.",
             items: {
               type: "object",
               properties: {
-                field: { type: "string" },
+                field: { type: "string", enum: ALLOWED_FIELDS.deals },
                 op: { type: "string", enum: ALLOWED_OPS },
                 value: {},
               },
               required: ["field", "op", "value"],
             },
+          },
+          sort: {
+            type: "array",
+            description: "Optional sort configuration.",
+            items: {
+              type: "object",
+              properties: {
+                field: { type: "string", enum: ALLOWED_SORT_FIELDS },
+                dir: { type: "string", enum: ["asc", "desc"] },
+              },
+              required: ["field", "dir"],
+            },
+          },
+          limit: {
+            type: "number",
+            description: "Max items to return. Default 25, max 100.",
           },
         },
         required: ["intent"],
@@ -230,6 +345,39 @@ function validateLLMFilters(
   return filters.every(
     (f) => allowedFields.includes(f.field) && ALLOWED_OPS.includes(f.op)
   );
+}
+
+function validateLLMSort(
+  sort: { field: string; dir: string }[] | undefined
+): boolean {
+  if (!sort || sort.length === 0) return true;
+  return sort.every(
+    (s) => ALLOWED_SORT_FIELDS.includes(s.field) && ["asc", "desc"].includes(s.dir)
+  );
+}
+
+// --- Actions available per intent ---
+function getActionsAvailable(intent: string, hasItems: boolean): string[] {
+  if (!hasItems) return [];
+  const base = [ACTIONS_ENUM.SAVE_VIEW];
+  switch (intent) {
+    case "deals_at_risk":
+    case "deals_inactive":
+    case "deals_no_next_step":
+      return [ACTIONS_ENUM.CREATE_TASKS_BULK, ...base, ACTIONS_ENUM.ASSIGN_OWNER_BULK];
+    case "deals_stuck_in_stage":
+    case "stage_bottleneck":
+      return [ACTIONS_ENUM.MOVE_STAGE_BULK, ACTIONS_ENUM.CREATE_TASKS_BULK, ...base, ACTIONS_ENUM.CREATE_AUTOMATION_FROM_TEMPLATE];
+    case "high_value_deals":
+      return [...base, ACTIONS_ENUM.ASSIGN_OWNER_BULK];
+    case "closing_soon":
+    case "forecast_summary":
+    case "forecast_risk":
+    case "pipeline_summary":
+      return [ACTIONS_ENUM.NAVIGATE, ...base];
+    default:
+      return [ACTIONS_ENUM.NAVIGATE];
+  }
 }
 
 // --- Main handler ---
@@ -296,7 +444,6 @@ Deno.serve(async (req) => {
     const keywordResult = classifyByKeyword(question);
 
     if (keywordResult && keywordResult.confidence >= 0.75) {
-      // Deterministic path
       intent = keywordResult.intent;
       days = keywordResult.days;
       confidence = keywordResult.confidence;
@@ -323,32 +470,38 @@ Deno.serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash-lite",
+            model: "google/gemini-3-flash-preview",
             messages: [
               {
                 role: "system",
-                content: `You classify CRM revenue questions into intents. Available intents:
+                content: `You classify CRM revenue questions into intents. Return ONLY structured output via tool call.
+
+Available intents: deals_at_risk, deals_inactive, closing_soon, forecast_summary, forecast_risk, pipeline_summary, contacts_inactive, stage_bottleneck, deals_no_next_step, deals_stuck_in_stage, high_value_deals, overdue_invoices, pending_approvals
+
+Intent descriptions:
 - deals_at_risk: deals with low health scores
 - deals_inactive: deals with no recent activity (default 14 days)
 - closing_soon: deals expected to close within N days (default 30)
 - forecast_summary: revenue forecast overview
-- pipeline_summary: pipeline stage distribution
+- forecast_risk: deals blocking/slipping forecast (unhealthy + closing soon)
+- pipeline_summary / pipeline_health_summary: pipeline stage distribution and health
 - contacts_inactive: contacts without recent activity
 - stage_bottleneck: stages where deals are stuck longer than expected
-- deals_no_next_step: deals without a defined next action or pending tasks
-- deals_stuck_in_stage: deals that stayed in their current stage longer than expected
+- deals_no_next_step: deals without a defined next action
+- deals_stuck_in_stage: deals staying too long in current stage
 - high_value_deals: top deals by value
 - overdue_invoices: invoices past due date
 - pending_approvals: items waiting for approval
 
-Allowed fields per object_type:
+Allowed filter fields per object_type:
 - deals: ${ALLOWED_FIELDS.deals.join(", ")}
 - contacts: ${ALLOWED_FIELDS.contacts.join(", ")}
 - companies: ${ALLOWED_FIELDS.companies.join(", ")}
 
 Allowed operators: ${ALLOWED_OPS.join(", ")}
+Allowed sort fields: ${ALLOWED_SORT_FIELDS.join(", ")}
 
-Extract the intent and optional days parameter. Always call the tool. Only use allowed fields and operators.`,
+Always call the tool. Only use allowed fields, operators, and sort fields.`,
               },
               { role: "user", content: question },
             ],
@@ -377,16 +530,14 @@ Extract the intent and optional days parameter. Always call the tool. Only use a
             { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-        // Return "Did you mean?" instead of hard error
+        const fallbackQuery = buildStructuredQuery("unknown", 14);
         return new Response(
-          JSON.stringify({
-            header: "I couldn't process that question.",
+          JSON.stringify(buildResponse("unknown", "deals", fallbackQuery, "llm", 0, {
+            headline: "I couldn't process that question.",
             items: [],
             actions: [],
             did_you_mean: DID_YOU_MEAN_DEFAULTS,
-            routed_via: "llm",
-            confidence: 0,
-          }),
+          })),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -394,15 +545,14 @@ Extract the intent and optional days parameter. Always call the tool. Only use a
       const aiData = await aiResponse.json();
       const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
       if (!toolCall) {
+        const fallbackQuery = buildStructuredQuery("unknown", 14);
         return new Response(
-          JSON.stringify({
-            header: "I'm not sure what you mean.",
+          JSON.stringify(buildResponse("unknown", "deals", fallbackQuery, "llm", 0, {
+            headline: "I'm not sure what you mean.",
             items: [],
             actions: [],
             did_you_mean: DID_YOU_MEAN_DEFAULTS,
-            routed_via: "llm",
-            confidence: 0,
-          }),
+          })),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -411,54 +561,69 @@ Extract the intent and optional days parameter. Always call the tool. Only use a
       try {
         parsed = JSON.parse(toolCall.function.arguments);
       } catch {
+        const fallbackQuery = buildStructuredQuery("unknown", 14);
         return new Response(
-          JSON.stringify({
-            header: "I'm not sure what you mean.",
+          JSON.stringify(buildResponse("unknown", "deals", fallbackQuery, "llm", 0, {
+            headline: "I'm not sure what you mean.",
             items: [],
             actions: [],
             did_you_mean: DID_YOU_MEAN_DEFAULTS,
-            routed_via: "llm",
-            confidence: 0,
-          }),
+          })),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      // Validate LLM filters against whitelist
+      // Validate LLM output
       const objectType = parsed.object_type || "deals";
-      if (!validateLLMFilters(parsed.filters, objectType)) {
+      if (!validateLLMFilters(parsed.filters, objectType) || !validateLLMSort(parsed.sort)) {
+        const fallbackQuery = buildStructuredQuery("unknown", 14);
         return new Response(
-          JSON.stringify({
-            header: "I couldn't build a valid query for that.",
+          JSON.stringify(buildResponse("unknown", "deals", fallbackQuery, "llm", 0, {
+            headline: "I couldn't build a valid query for that.",
             items: [],
             actions: [],
             did_you_mean: DID_YOU_MEAN_DEFAULTS,
-            routed_via: "llm",
-            confidence: 0,
-          }),
+          })),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
       intent = parsed.intent;
       days = parsed.days ?? (intent === "closing_soon" ? 30 : 14);
-      confidence = 0.70; // LLM-routed gets baseline confidence
+      confidence = 0.70;
       routedVia = "llm";
     }
 
     // --- Build structured query ---
     const query = buildStructuredQuery(intent, days);
+    // Clamp limit
+    query.limit = Math.max(1, Math.min(100, query.limit));
 
     // --- Execute query based on intent ---
-    const result = await executeIntent(serviceClient, workspaceId, intent, days);
+    const handlerResult = await executeIntent(serviceClient, workspaceId, intent, days);
 
-    // --- Enrich response with hybrid metadata ---
-    const enrichedResult = {
-      ...result,
+    // Derive actions_available
+    const hasItems = (handlerResult.items?.length || 0) > 0;
+    const actionsAvailable = getActionsAvailable(intent, hasItems);
+
+    // --- Build strict response ---
+    const response = buildResponse(
+      intent,
+      query.object_type,
       query,
-      routed_via: routedVia,
+      routedVia,
       confidence,
-    };
+      {
+        headline: handlerResult.headline || handlerResult.header || "",
+        subtext: handlerResult.subtext,
+        items: handlerResult.items,
+        actions: handlerResult.actions,
+        actions_available: actionsAvailable,
+        metric: handlerResult.metric,
+        suggestion: handlerResult.suggestion,
+        did_you_mean: handlerResult.did_you_mean,
+      }
+    );
 
     // --- Log query (non-blocking) ---
     serviceClient
@@ -468,7 +633,7 @@ Extract the intent and optional days parameter. Always call the tool. Only use a
         user_id: claimsData.claims.sub,
         question,
         intent,
-        items_count: result.items?.length ?? 0,
+        items_count: response.items?.length ?? 0,
         routed_via: routedVia,
         confidence,
       })
@@ -476,7 +641,7 @@ Extract the intent and optional days parameter. Always call the tool. Only use a
         if (logErr) console.error("ask-fastcrm log error:", logErr);
       });
 
-    return new Response(JSON.stringify(enrichedResult), {
+    return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
@@ -508,6 +673,8 @@ async function executeIntent(
       return await queryClosingSoon(client, workspaceId, days);
     case "forecast_summary":
       return await queryForecast(client, workspaceId);
+    case "forecast_risk":
+      return await queryForecastRisk(client, workspaceId);
     case "pipeline_summary":
       return await queryPipeline(client, workspaceId);
     case "contacts_inactive":
@@ -524,14 +691,14 @@ async function executeIntent(
       return await queryOverdueInvoices(client, workspaceId);
     case "pending_approvals":
       return {
-        header: "Pending approvals — coming soon.",
+        headline: "Pending approvals — coming soon.",
         items: [],
         actions: [],
         metric: { label: "Approvals", value: "—", trend: "neutral" as const },
       };
     default:
       return {
-        header: "I couldn't understand that question.",
+        headline: "I couldn't understand that question.",
         items: [],
         actions: [],
         did_you_mean: DID_YOU_MEAN_DEFAULTS,
@@ -540,6 +707,7 @@ async function executeIntent(
 }
 
 // ---- Intent Handlers ----
+// Each returns { headline, subtext?, items, actions, metric?, suggestion? }
 
 async function queryDealsAtRisk(client: any, workspaceId: string) {
   const { data: cache } = await client
@@ -603,46 +771,45 @@ async function queryDealsAtRisk(client: any, workspaceId: string) {
   } : undefined;
 
   return {
-    header:
-      items.length > 0
-        ? `${items.length} deal${items.length !== 1 ? "s" : ""} currently at risk.`
-        : "No deals at risk right now.",
+    headline: items.length > 0
+      ? `${items.length} deal${items.length !== 1 ? "s" : ""} currently at risk.`
+      : "No deals at risk right now.",
+    subtext: items.length > 0 ? "Most are missing activity and next steps." : undefined,
     items,
-    actions:
-      items.length > 0
-        ? [
-            {
-              id: "create_tasks_all",
-              label: "Create follow-up tasks",
-              icon: "ListTodo",
-              type: "bulk_task",
-              payload: {
-                deal_ids: items.map((i: any) => i.id),
-                task_title: "Follow up on at-risk deal",
-                priority: "HIGH",
-              },
+    actions: items.length > 0
+      ? [
+          {
+            id: "create_tasks_all",
+            label: "Create follow-up tasks",
+            icon: "ListTodo",
+            type: "bulk_task",
+            payload: {
+              deal_ids: items.map((i: any) => i.id),
+              task_title: "Follow up on at-risk deal",
+              priority: "HIGH",
             },
-            {
-              id: "save_view",
-              label: "Save as view",
-              icon: "Bookmark",
-              type: "create_saved_view",
-              payload: {
-                view_name: "Deals at Risk",
-                object_type_id: "opportunity",
-                filters: { health_label: "AT_RISK" },
-                columns: ["title", "value", "health_label"],
-              },
+          },
+          {
+            id: "save_view",
+            label: "Save as view",
+            icon: "Bookmark",
+            type: "create_saved_view",
+            payload: {
+              view_name: "Deals at Risk",
+              object_type_id: "opportunity",
+              filters: { health_label: "AT_RISK" },
+              columns: ["title", "value", "health_label"],
             },
-            {
-              id: "view_as_list",
-              label: "View in pipeline",
-              icon: "Eye",
-              type: "navigate",
-              payload: { link: "/dashboard/opportunities" },
-            },
-          ]
-        : [],
+          },
+          {
+            id: "view_as_list",
+            label: "View in pipeline",
+            icon: "Eye",
+            type: "navigate",
+            payload: { link: "/dashboard/opportunities" },
+          },
+        ]
+      : [],
     metric: {
       label: "Deals at Risk",
       value: String(items.length),
@@ -668,7 +835,7 @@ async function queryDealsInactive(
     .limit(50);
 
   if (!opps || opps.length === 0) {
-    return { header: "No open deals found.", items: [], actions: [] };
+    return { headline: "No open deals found.", items: [], actions: [] };
   }
 
   const oppIds = opps.map((o: any) => o.id);
@@ -707,7 +874,7 @@ async function queryDealsInactive(
     .slice(0, 10);
 
   const suggestion = inactive.length > 0 ? {
-    text: `You have ${inactive.length} deal${inactive.length !== 1 ? "s" : ""} with no activity in ${days}+ days. Want me to create follow-ups?`,
+    text: `${inactive.length} deal${inactive.length !== 1 ? "s" : ""} with no activity in ${days}+ days.`,
     action: {
       id: "suggest_tasks",
       label: "Create follow-ups",
@@ -722,55 +889,54 @@ async function queryDealsInactive(
   } : undefined;
 
   return {
-    header:
-      inactive.length > 0
-        ? `${inactive.length} deal${inactive.length !== 1 ? "s" : ""} with no activity in ${days}+ days.`
-        : `All deals had activity in the last ${days} days.`,
+    headline: inactive.length > 0
+      ? `${inactive.length} deal${inactive.length !== 1 ? "s" : ""} with no activity in ${days}+ days.`
+      : `All deals had activity in the last ${days} days.`,
+    subtext: inactive.length > 0 ? "These deals may need immediate attention." : undefined,
     items: inactive,
-    actions:
-      inactive.length > 0
-        ? [
-            {
-              id: "create_tasks_all",
-              label: "Create follow-up tasks",
-              icon: "ListTodo",
-              type: "bulk_task",
-              payload: {
-                deal_ids: inactive.map((i) => i.id),
-                task_title: "Re-engage inactive deal",
-                priority: "HIGH",
-              },
+    actions: inactive.length > 0
+      ? [
+          {
+            id: "create_tasks_all",
+            label: "Create follow-up tasks",
+            icon: "ListTodo",
+            type: "bulk_task",
+            payload: {
+              deal_ids: inactive.map((i) => i.id),
+              task_title: "Re-engage inactive deal",
+              priority: "HIGH",
             },
-            {
-              id: "save_view",
-              label: "Save as view",
-              icon: "Bookmark",
-              type: "create_saved_view",
-              payload: {
-                view_name: `Inactive Deals (${days}d+)`,
-                object_type_id: "opportunity",
-                filters: { inactive_days: days },
-                columns: ["title", "value", "updated_at"],
-              },
+          },
+          {
+            id: "save_view",
+            label: "Save as view",
+            icon: "Bookmark",
+            type: "create_saved_view",
+            payload: {
+              view_name: `Inactive Deals (${days}d+)`,
+              object_type_id: "opportunity",
+              filters: { inactive_days: days },
+              columns: ["title", "value", "updated_at"],
             },
-            {
-              id: "move_stage",
-              label: "Move stage",
-              icon: "ArrowRight",
-              type: "bulk_move_stage",
-              payload: {
-                deal_ids: inactive.map((i) => i.id),
-              },
+          },
+          {
+            id: "move_stage",
+            label: "Move stage",
+            icon: "ArrowRight",
+            type: "bulk_move_stage",
+            payload: {
+              deal_ids: inactive.map((i) => i.id),
             },
-            {
-              id: "view_as_list",
-              label: "View deals",
-              icon: "Eye",
-              type: "navigate",
-              payload: { link: "/dashboard/opportunities" },
-            },
-          ]
-        : [],
+          },
+          {
+            id: "view_as_list",
+            label: "View deals",
+            icon: "Eye",
+            type: "navigate",
+            payload: { link: "/dashboard/opportunities" },
+          },
+        ]
+      : [],
     metric: {
       label: "Inactive Deals",
       value: String(inactive.length),
@@ -813,23 +979,22 @@ async function queryClosingSoon(
   const totalValue = items.reduce((s: number, i: any) => s + i.value, 0);
 
   return {
-    header:
-      items.length > 0
-        ? `${items.length} deal${items.length !== 1 ? "s" : ""} expected to close in the next ${days} days.`
-        : `No deals closing in the next ${days} days.`,
+    headline: items.length > 0
+      ? `${items.length} deal${items.length !== 1 ? "s" : ""} closing in the next ${days} days.`
+      : `No deals closing in the next ${days} days.`,
+    subtext: items.length > 0 ? `Total expected: €${totalValue.toLocaleString()}.` : undefined,
     items,
-    actions:
-      items.length > 0
-        ? [
-            {
-              id: "view_as_list",
-              label: "View closing deals",
-              icon: "Eye",
-              type: "navigate",
-              payload: { link: "/dashboard/opportunities" },
-            },
-          ]
-        : [],
+    actions: items.length > 0
+      ? [
+          {
+            id: "view_as_list",
+            label: "View closing deals",
+            icon: "Eye",
+            type: "navigate",
+            payload: { link: "/dashboard/opportunities" },
+          },
+        ]
+      : [],
     metric: {
       label: "Expected Revenue",
       value: `€${totalValue.toLocaleString()}`,
@@ -849,7 +1014,7 @@ async function queryForecast(client: any, workspaceId: string) {
   const forecast = data?.[0];
   if (!forecast) {
     return {
-      header: "No forecast data available yet.",
+      headline: "No forecast data available yet.",
       items: [],
       actions: [
         {
@@ -877,7 +1042,8 @@ async function queryForecast(client: any, workspaceId: string) {
   const riskIndex = horizon30?.risk_index ?? payload?.risk_index ?? 0;
 
   return {
-    header: `30-day forecast: €${Math.round(expected).toLocaleString()} expected.`,
+    headline: `30-day forecast: €${Math.round(expected).toLocaleString()} expected.`,
+    subtext: riskIndex > 0.4 ? "Forecast has elevated risk." : undefined,
     items: [
       {
         id: "best",
@@ -914,6 +1080,112 @@ async function queryForecast(client: any, workspaceId: string) {
       label: "Risk Index",
       value: `${Math.round(riskIndex * 100)}%`,
       trend: riskIndex > 0.4 ? "down" : "up",
+    },
+  };
+}
+
+// NEW: forecast_risk intent
+async function queryForecastRisk(client: any, workspaceId: string) {
+  const now = new Date();
+  const forecastEnd = new Date(now.getTime() + 90 * 86400000).toISOString();
+
+  // Get deals closing in forecast period
+  const { data: opps } = await client
+    .from("opportunities")
+    .select("id, title, value, expected_close_date")
+    .eq("workspace_id", workspaceId)
+    .eq("status", "open")
+    .lte("expected_close_date", forecastEnd)
+    .gte("expected_close_date", now.toISOString())
+    .order("value", { ascending: false })
+    .limit(50);
+
+  if (!opps || opps.length === 0) {
+    return {
+      headline: "No deals in the forecast period.",
+      items: [],
+      actions: [],
+    };
+  }
+
+  const oppIds = opps.map((o: any) => o.id);
+
+  // Get health from intelligence cache
+  const { data: cache } = await client
+    .from("deal_intelligence_cache")
+    .select("deal_id, payload")
+    .eq("workspace_id", workspaceId)
+    .in("deal_id", oppIds)
+    .is("invalidated_at", null)
+    .gt("expires_at", now.toISOString());
+
+  const healthMap = new Map((cache || []).map((c: any) => [c.deal_id, c.payload]));
+
+  const atRiskDeals = opps
+    .filter((o: any) => {
+      const health = healthMap.get(o.id);
+      return health && health.health_label !== "HEALTHY";
+    })
+    .map((o: any) => {
+      const health = healthMap.get(o.id);
+      const daysLeft = differenceInDays(new Date(o.expected_close_date), now);
+      return {
+        id: o.id,
+        title: o.title || "Untitled Deal",
+        subtitle: `${health?.health_label || "WATCH"} · Closes in ${daysLeft}d · ${health?.top_reason || ""}`,
+        value: Number(o.value) || 0,
+        health_label: health?.health_label || "WATCH",
+        link: `/dashboard/opportunities?deal=${o.id}`,
+      };
+    })
+    .slice(0, 10);
+
+  const totalAtRiskValue = atRiskDeals.reduce((s: number, i: any) => s + i.value, 0);
+
+  return {
+    headline: atRiskDeals.length > 0
+      ? `${atRiskDeals.length} deal${atRiskDeals.length !== 1 ? "s" : ""} blocking your forecast.`
+      : "No unhealthy deals in the forecast period.",
+    subtext: atRiskDeals.length > 0 ? `€${totalAtRiskValue.toLocaleString()} at risk value.` : undefined,
+    items: atRiskDeals,
+    actions: atRiskDeals.length > 0
+      ? [
+          {
+            id: "create_tasks_all",
+            label: "Create follow-ups",
+            icon: "ListTodo",
+            type: "bulk_task",
+            payload: {
+              deal_ids: atRiskDeals.map((i) => i.id),
+              task_title: "Address forecast risk",
+              priority: "HIGH",
+            },
+          },
+          {
+            id: "save_view",
+            label: "Save as view",
+            icon: "Bookmark",
+            type: "create_saved_view",
+            payload: {
+              view_name: "Forecast Risk Deals",
+              object_type_id: "opportunity",
+              filters: { health_label_not: "HEALTHY", close_date_within: "90d" },
+              columns: ["title", "value", "health_label", "expected_close_date"],
+            },
+          },
+          {
+            id: "view_as_list",
+            label: "View pipeline",
+            icon: "Eye",
+            type: "navigate",
+            payload: { link: "/dashboard/opportunities" },
+          },
+        ]
+      : [],
+    metric: {
+      label: "At Risk Value",
+      value: `€${totalAtRiskValue.toLocaleString()}`,
+      trend: atRiskDeals.length > 0 ? "down" : "neutral",
     },
   };
 }
@@ -964,7 +1236,8 @@ async function queryPipeline(client: any, workspaceId: string) {
     });
 
   return {
-    header: `${totalDeals} open deal${totalDeals !== 1 ? "s" : ""} worth €${totalValue.toLocaleString()}.`,
+    headline: `${totalDeals} open deal${totalDeals !== 1 ? "s" : ""} worth €${totalValue.toLocaleString()}.`,
+    subtext: items.length > 0 ? `Distributed across ${items.length} stages.` : undefined,
     items,
     actions: [
       {
@@ -1010,23 +1283,21 @@ async function queryContactsInactive(
   });
 
   return {
-    header:
-      items.length > 0
-        ? `${items.length} contact${items.length !== 1 ? "s" : ""} without activity in ${days}+ days.`
-        : `All contacts had updates in the last ${days} days.`,
+    headline: items.length > 0
+      ? `${items.length} contact${items.length !== 1 ? "s" : ""} without activity in ${days}+ days.`
+      : `All contacts had updates in the last ${days} days.`,
     items,
-    actions:
-      items.length > 0
-        ? [
-            {
-              id: "view_as_list",
-              label: "View contacts",
-              icon: "Eye",
-              type: "navigate",
-              payload: { link: "/dashboard/contacts" },
-            },
-          ]
-        : [],
+    actions: items.length > 0
+      ? [
+          {
+            id: "view_as_list",
+            label: "View contacts",
+            icon: "Eye",
+            type: "navigate",
+            payload: { link: "/dashboard/contacts" },
+          },
+        ]
+      : [],
     metric: {
       label: "Inactive Contacts",
       value: String(items.length),
@@ -1049,7 +1320,7 @@ async function queryStageBottleneck(client: any, workspaceId: string) {
     .eq("status", "open");
 
   if (!stages || !opps) {
-    return { header: "No pipeline data available.", items: [], actions: [] };
+    return { headline: "No pipeline data available.", items: [], actions: [] };
   }
 
   const now = new Date();
@@ -1100,43 +1371,42 @@ async function queryStageBottleneck(client: any, workspaceId: string) {
   });
 
   return {
-    header:
-      items.length > 0
-        ? `${items.length} stage${items.length !== 1 ? "s" : ""} with bottlenecks detected.`
-        : "No stage bottlenecks detected.",
+    headline: items.length > 0
+      ? `${items.length} stage${items.length !== 1 ? "s" : ""} with bottlenecks.`
+      : "No stage bottlenecks detected.",
+    subtext: items.length > 0 ? "Deals are staying longer than expected." : undefined,
     items,
-    actions:
-      items.length > 0
-        ? [
-            {
-              id: "move_stage",
-              label: "Move stuck deals",
-              icon: "ArrowRight",
-              type: "bulk_move_stage",
-              payload: { deal_ids: stuckDealIds },
+    actions: items.length > 0
+      ? [
+          {
+            id: "move_stage",
+            label: "Move stuck deals",
+            icon: "ArrowRight",
+            type: "bulk_move_stage",
+            payload: { deal_ids: stuckDealIds },
+          },
+          {
+            id: "create_tasks_all",
+            label: "Create follow-ups",
+            icon: "ListTodo",
+            type: "bulk_task",
+            payload: {
+              deal_ids: stuckDealIds,
+              task_title: "Follow up on stuck deal",
+              priority: "HIGH",
             },
-            {
-              id: "create_tasks_all",
-              label: "Create follow-ups",
-              icon: "ListTodo",
-              type: "bulk_task",
-              payload: {
-                deal_ids: stuckDealIds,
-                task_title: "Follow up on stuck deal",
-                priority: "HIGH",
-              },
+          },
+          {
+            id: "create_automation",
+            label: "Create stale alert rule",
+            icon: "Zap",
+            type: "automation",
+            payload: {
+              link: "/dashboard/automations?create=true&template=opportunity-stale-alert",
             },
-            {
-              id: "create_automation",
-              label: "Create stale alert rule",
-              icon: "Zap",
-              type: "automation",
-              payload: {
-                link: "/dashboard/automations?create=true&template=opportunity-stale-alert",
-              },
-            },
-          ]
-        : [],
+          },
+        ]
+      : [],
     metric: {
       label: "Bottleneck Stages",
       value: String(items.length),
@@ -1157,7 +1427,7 @@ async function queryDealsNoNextStep(client: any, workspaceId: string) {
 
   if (!opps || opps.length === 0) {
     return {
-      header: "All open deals have a next step defined.",
+      headline: "All open deals have a next step defined.",
       items: [],
       actions: [],
       metric: { label: "No Next Step", value: "0", trend: "neutral" },
@@ -1188,7 +1458,7 @@ async function queryDealsNoNextStep(client: any, workspaceId: string) {
   }));
 
   const suggestion = items.length > 0 ? {
-    text: `${items.length} deal${items.length !== 1 ? "s" : ""} have no next step. Want me to create follow-up tasks?`,
+    text: `${items.length} deal${items.length !== 1 ? "s" : ""} have no next step.`,
     action: {
       id: "suggest_tasks",
       label: "Create follow-ups",
@@ -1203,7 +1473,8 @@ async function queryDealsNoNextStep(client: any, workspaceId: string) {
   } : undefined;
 
   return {
-    header: `${items.length} deal${items.length !== 1 ? "s" : ""} without a next step.`,
+    headline: `${items.length} deal${items.length !== 1 ? "s" : ""} without a next step.`,
+    subtext: "These deals need defined next actions.",
     items,
     actions: items.length > 0
       ? [
@@ -1263,7 +1534,7 @@ async function queryDealsStuckInStage(client: any, workspaceId: string) {
   ]);
 
   if (!stages || !opps) {
-    return { header: "No pipeline data available.", items: [], actions: [] };
+    return { headline: "No pipeline data available.", items: [], actions: [] };
   }
 
   const stageMap = new Map(
@@ -1293,43 +1564,42 @@ async function queryDealsStuckInStage(client: any, workspaceId: string) {
     .map(({ _daysOver, ...rest }: any) => rest);
 
   return {
-    header:
-      stuck.length > 0
-        ? `${stuck.length} deal${stuck.length !== 1 ? "s" : ""} stuck in their current stage.`
-        : "No deals stuck beyond expected stage duration.",
+    headline: stuck.length > 0
+      ? `${stuck.length} deal${stuck.length !== 1 ? "s" : ""} stuck in their current stage.`
+      : "No deals stuck beyond expected stage duration.",
+    subtext: stuck.length > 0 ? "Consider advancing or re-engaging these deals." : undefined,
     items: stuck,
-    actions:
-      stuck.length > 0
-        ? [
-            {
-              id: "move_stage",
-              label: "Move stage",
-              icon: "ArrowRight",
-              type: "bulk_move_stage",
-              payload: { deal_ids: stuck.map((s: any) => s.id) },
+    actions: stuck.length > 0
+      ? [
+          {
+            id: "move_stage",
+            label: "Move stage",
+            icon: "ArrowRight",
+            type: "bulk_move_stage",
+            payload: { deal_ids: stuck.map((s: any) => s.id) },
+          },
+          {
+            id: "create_tasks_all",
+            label: "Create follow-ups",
+            icon: "ListTodo",
+            type: "bulk_task",
+            payload: {
+              deal_ids: stuck.map((s: any) => s.id),
+              task_title: "Follow up on stuck deal",
+              priority: "HIGH",
             },
-            {
-              id: "create_tasks_all",
-              label: "Create follow-ups",
-              icon: "ListTodo",
-              type: "bulk_task",
-              payload: {
-                deal_ids: stuck.map((s: any) => s.id),
-                task_title: "Follow up on stuck deal",
-                priority: "HIGH",
-              },
+          },
+          {
+            id: "create_automation",
+            label: "Create automation",
+            icon: "Zap",
+            type: "automation",
+            payload: {
+              link: "/dashboard/automations?create=true&template=opportunity-stale-alert",
             },
-            {
-              id: "create_automation",
-              label: "Create automation",
-              icon: "Zap",
-              type: "automation",
-              payload: {
-                link: "/dashboard/automations?create=true&template=opportunity-stale-alert",
-              },
-            },
-          ]
-        : [],
+          },
+        ]
+      : [],
     metric: {
       label: "Stuck Deals",
       value: String(stuck.length),
@@ -1361,42 +1631,41 @@ async function queryHighValueDeals(client: any, workspaceId: string) {
   const totalValue = items.reduce((s: number, i: any) => s + i.value, 0);
 
   return {
-    header:
-      items.length > 0
-        ? `Top ${items.length} high-value deals worth €${totalValue.toLocaleString()}.`
-        : "No open deals found.",
+    headline: items.length > 0
+      ? `Top ${items.length} deals worth €${totalValue.toLocaleString()}.`
+      : "No open deals found.",
+    subtext: items.length > 0 ? "Your highest-value open opportunities." : undefined,
     items,
-    actions:
-      items.length > 0
-        ? [
-            {
-              id: "save_view",
-              label: "Save as view",
-              icon: "Bookmark",
-              type: "create_saved_view",
-              payload: {
-                view_name: "High Value Deals",
-                object_type_id: "opportunity",
-                filters: { sort: "value_desc", limit: 10 },
-                columns: ["title", "value", "expected_close_date"],
-              },
+    actions: items.length > 0
+      ? [
+          {
+            id: "save_view",
+            label: "Save as view",
+            icon: "Bookmark",
+            type: "create_saved_view",
+            payload: {
+              view_name: "High Value Deals",
+              object_type_id: "opportunity",
+              filters: { sort: "value_desc", limit: 10 },
+              columns: ["title", "value", "expected_close_date"],
             },
-            {
-              id: "assign_owner",
-              label: "Assign owner",
-              icon: "UserPlus",
-              type: "bulk_assign_owner",
-              payload: { deal_ids: items.map((i) => i.id) },
-            },
-            {
-              id: "view_as_list",
-              label: "View deals",
-              icon: "Eye",
-              type: "navigate",
-              payload: { link: "/dashboard/opportunities" },
-            },
-          ]
-        : [],
+          },
+          {
+            id: "assign_owner",
+            label: "Assign owner",
+            icon: "UserPlus",
+            type: "bulk_assign_owner",
+            payload: { deal_ids: items.map((i) => i.id) },
+          },
+          {
+            id: "view_as_list",
+            label: "View deals",
+            icon: "Eye",
+            type: "navigate",
+            payload: { link: "/dashboard/opportunities" },
+          },
+        ]
+      : [],
     metric: {
       label: "Total Value",
       value: `€${totalValue.toLocaleString()}`,
@@ -1418,7 +1687,7 @@ async function queryOverdueInvoices(client: any, workspaceId: string) {
 
   if (!hasInvoicing) {
     return {
-      header: "Invoicing extension is not active.",
+      headline: "Invoicing extension is not active.",
       items: [],
       actions: [
         {
@@ -1457,23 +1726,21 @@ async function queryOverdueInvoices(client: any, workspaceId: string) {
     const totalOverdue = items.reduce((s: number, i: any) => s + i.value, 0);
 
     return {
-      header:
-        items.length > 0
-          ? `${items.length} overdue invoice${items.length !== 1 ? "s" : ""} totaling €${totalOverdue.toLocaleString()}.`
-          : "No overdue invoices.",
+      headline: items.length > 0
+        ? `${items.length} overdue invoice${items.length !== 1 ? "s" : ""} totaling €${totalOverdue.toLocaleString()}.`
+        : "No overdue invoices.",
       items,
-      actions:
-        items.length > 0
-          ? [
-              {
-                id: "view_invoices",
-                label: "View invoices",
-                icon: "Eye",
-                type: "navigate",
-                payload: { link: "/dashboard/invoices" },
-              },
-            ]
-          : [],
+      actions: items.length > 0
+        ? [
+            {
+              id: "view_invoices",
+              label: "View invoices",
+              icon: "Eye",
+              type: "navigate",
+              payload: { link: "/dashboard/invoices" },
+            },
+          ]
+        : [],
       metric: {
         label: "Overdue Amount",
         value: `€${totalOverdue.toLocaleString()}`,
@@ -1482,7 +1749,7 @@ async function queryOverdueInvoices(client: any, workspaceId: string) {
     };
   } catch {
     return {
-      header: "Invoice data is not available yet.",
+      headline: "Invoice data is not available yet.",
       items: [],
       actions: [],
       metric: { label: "Overdue", value: "—", trend: "neutral" },
