@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -7,44 +8,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { 
-  HelpCircle, 
-  BookOpen, 
-  MessageCircle, 
-  Video, 
-  FileText, 
-  ExternalLink,
-  Keyboard,
-  Lightbulb,
-  Bug
+  HelpCircle, BookOpen, MessageCircle, Video, FileText, ExternalLink, Keyboard, Lightbulb, Bug
 } from "lucide-react";
 import { toast } from "sonner";
 
 export function HelpSupportDropdown() {
-  const handleOpenKnowledgeBase = () => {
-    toast.info("Base de conhecimento em desenvolvimento");
-  };
-  
-  const handleOpenSupport = () => {
-    toast.info("Chat de suporte em desenvolvimento");
-  };
-  
-  const handleOpenTutorials = () => {
-    toast.info("Tutoriais em vídeo em desenvolvimento");
-  };
-  
-  const handleOpenDocs = () => {
-    window.open("https://docs.lovable.dev", "_blank");
-  };
-  
-  const handleReportBug = () => {
-    toast.info("Formulário de reporte em desenvolvimento");
-  };
-  
-  const handleShowShortcuts = () => {
-    toast.info("Atalhos de teclado: Ctrl+K para pesquisa global", {
-      duration: 5000
-    });
-  };
+  const { t } = useTranslation("nav");
 
   return (
     <DropdownMenu>
@@ -55,49 +24,40 @@ export function HelpSupportDropdown() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <div className="px-2 py-1.5">
-          <p className="text-sm font-medium">Ajuda & Suporte</p>
-          <p className="text-xs text-muted-foreground">Recursos e assistência</p>
+          <p className="text-sm font-medium">{t("helpSupport")}</p>
+          <p className="text-xs text-muted-foreground">{t("helpResources")}</p>
         </div>
         <DropdownMenuSeparator />
-        
-        <DropdownMenuItem onClick={handleOpenKnowledgeBase}>
+        <DropdownMenuItem onClick={() => toast.info(t("knowledgeBaseWip"))}>
           <BookOpen className="mr-2 h-4 w-4" />
-          Base de Conhecimento
+          {t("knowledgeBase")}
         </DropdownMenuItem>
-        
-        <DropdownMenuItem onClick={handleOpenTutorials}>
+        <DropdownMenuItem onClick={() => toast.info(t("tutorialsWip"))}>
           <Video className="mr-2 h-4 w-4" />
-          Tutoriais em Vídeo
+          {t("videoTutorials")}
         </DropdownMenuItem>
-        
-        <DropdownMenuItem onClick={handleOpenDocs}>
+        <DropdownMenuItem onClick={() => window.open("https://docs.lovable.dev", "_blank")}>
           <FileText className="mr-2 h-4 w-4" />
-          Documentação
+          {t("documentation")}
           <ExternalLink className="ml-auto h-3 w-3 text-muted-foreground" />
         </DropdownMenuItem>
-        
         <DropdownMenuSeparator />
-        
-        <DropdownMenuItem onClick={handleShowShortcuts}>
+        <DropdownMenuItem onClick={() => toast.info(t("shortcutsInfo"), { duration: 5000 })}>
           <Keyboard className="mr-2 h-4 w-4" />
-          Atalhos de Teclado
+          {t("keyboardShortcuts")}
         </DropdownMenuItem>
-        
-        <DropdownMenuItem onClick={() => toast.info("Dicas ativadas!")}>
+        <DropdownMenuItem onClick={() => toast.info(t("tipsEnabled"))}>
           <Lightbulb className="mr-2 h-4 w-4" />
-          Dicas & Truques
+          {t("tipsAndTricks")}
         </DropdownMenuItem>
-        
         <DropdownMenuSeparator />
-        
-        <DropdownMenuItem onClick={handleOpenSupport}>
+        <DropdownMenuItem onClick={() => toast.info(t("supportChatWip"))}>
           <MessageCircle className="mr-2 h-4 w-4" />
-          Chat de Suporte
+          {t("supportChat")}
         </DropdownMenuItem>
-        
-        <DropdownMenuItem onClick={handleReportBug} className="text-amber-600">
+        <DropdownMenuItem onClick={() => toast.info(t("bugReportWip"))} className="text-amber-600">
           <Bug className="mr-2 h-4 w-4" />
-          Reportar Problema
+          {t("reportBug")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

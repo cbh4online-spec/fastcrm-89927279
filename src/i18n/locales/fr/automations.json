@@ -1,0 +1,18 @@
+{
+  "title": "Automatisations",
+  "createRule": "Créer une Règle",
+  "editRule": "Modifier la Règle",
+  "trigger": "Déclencheur",
+  "condition": "Condition",
+  "action": "Action",
+  "active": "Active",
+  "inactive": "Inactive",
+  "noRules": "Aucune règle d'automatisation",
+  "suggestions": "Suggestions",
+  "templates": "Modèles",
+  "testRule": "Tester la Règle",
+  "runHistory": "Historique d'Exécution",
+  "lastRun": "Dernière Exécution",
+  "runsToday": "Exécutions Aujourd'hui",
+  "successRate": "Taux de Réussite"
+}

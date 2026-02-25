@@ -1,0 +1,61 @@
+{
+  "hero": {
+    "badge": "Plateforme d'Intelligence des Revenus",
+    "title1": "Construisez votre CRM.",
+    "title2": "Développez vos revenus.",
+    "subtitle": "Voyez vos revenus avant qu'ils n'arrivent. Health scores, intelligence des affaires et automatisations intelligentes — intégrés dans chaque objet.",
+    "startFree": "Commencer Gratuitement",
+    "seeHow": "Voir comment ça marche"
+  },
+  "problem": {
+    "title": "Ça vous dit quelque chose ?",
+    "subtitle": "La plupart des CRM stockent des contacts. FastCRM vous dit quoi en faire.",
+    "q1": "\"Je ne sais pas quelles affaires vont vraiment se conclure.\"",
+    "q2": "\"Ma prévision est une supposition — pas une stratégie.\"",
+    "q3": "\"Je passe plus de temps à mettre à jour mon CRM qu'à vendre.\"",
+    "q4": "\"J'ai besoin de devis et de facturation, mais je ne veux pas d'un autre outil.\""
+  },
+  "solution": {
+    "title": "Tout ce dont vous avez besoin pour",
+    "titleHighlight": "conclure plus d'affaires.",
+    "subtitle": "Quatre piliers. Une plateforme. Conçue pour les équipes de revenus qui veulent de la structure sans complexité."
+  },
+  "comparison": {
+    "title": "Pourquoi",
+    "titleHighlight": "FastCRM ?",
+    "subtitle": "Intelligence des revenus, pas des devinettes."
+  },
+  "pricing": {
+    "title": "Tarifs simples et transparents.",
+    "subtitle": "Commencez gratuitement. Évoluez au fur et à mesure. Sans surprises.",
+    "startFree": "Commencer Gratuitement",
+    "startFreeUpgrade": "Commencer Gratuitement, Upgrade Plus Tard",
+    "mostPopular": "Le plus populaire",
+    "extendBundles": "Étendre avec des bundles",
+    "extendBundlesSub": "Packs d'extensions préconfigurés. Économisez vs achat individuel."
+  },
+  "fastclub": {
+    "badge": "Private Capital Circle",
+    "title": "Le cercle privé de l'",
+    "titleHighlight": "écosystème FastCRM.",
+    "subtitle": "Un environnement restreint où entrepreneurs, investisseurs et décideurs stratégiques alignent les opportunités avec méthode, contrôle et métriques réelles.",
+    "cta": "Découvrir le Private Capital Circle",
+    "ctaNote": "Accès exclusivement sur invitation ou candidature validée."
+  },
+  "finalCta": {
+    "title": "Voyez vos revenus clairement.",
+    "subtitle": "Commencez gratuitement. Sans carte de crédit. Votre premier insight en moins de 2 minutes.",
+    "cta": "Commencer Gratuitement"
+  },
+  "faq": {
+    "title": "Questions Fréquentes",
+    "subtitle": "Tout ce que vous devez savoir avant de commencer."
+  },
+  "footer": {
+    "tagline": "Plateforme d'Intelligence des Revenus",
+    "privacy": "Confidentialité",
+    "terms": "Conditions",
+    "gdpr": "RGPD",
+    "allRightsReserved": "Tous droits réservés."
+  }
+}

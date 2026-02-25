@@ -1,0 +1,19 @@
+{
+  "title": "Intelligence",
+  "healthScore": "Health Score",
+  "forecast": "Forecast",
+  "forecastConfidence": "Forecast Confidence",
+  "dealHealth": "Deal Health",
+  "stageAnalysis": "Stage Analysis",
+  "benchmarks": "Benchmarks",
+  "atRisk": "At Risk",
+  "healthy": "Healthy",
+  "watch": "Watch",
+  "critical": "Critical",
+  "pipelineHealth": "Pipeline Health",
+  "revenueIntelligence": "Revenue Intelligence",
+  "multiPipeline": "Multi-Pipeline",
+  "comparison": "Comparison",
+  "insights": "Insights",
+  "noInsights": "No insights available"
+}

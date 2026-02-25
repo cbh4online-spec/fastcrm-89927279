@@ -1,0 +1,19 @@
+{
+  "title": "Intelligence",
+  "healthScore": "Score de Santé",
+  "forecast": "Prévision",
+  "forecastConfidence": "Confiance de la Prévision",
+  "dealHealth": "Santé de l'Affaire",
+  "stageAnalysis": "Analyse par Étape",
+  "benchmarks": "Benchmarks",
+  "atRisk": "À Risque",
+  "healthy": "Sain",
+  "watch": "Surveiller",
+  "critical": "Critique",
+  "pipelineHealth": "Santé du Pipeline",
+  "revenueIntelligence": "Intelligence des Revenus",
+  "multiPipeline": "Multi-Pipeline",
+  "comparison": "Comparaison",
+  "insights": "Insights",
+  "noInsights": "Aucun insight disponible"
+}

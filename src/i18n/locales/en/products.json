@@ -1,0 +1,18 @@
+{
+  "title": "Products",
+  "addProduct": "Add Product",
+  "editProduct": "Edit Product",
+  "productName": "Product Name",
+  "category": "Category",
+  "categories": "Categories",
+  "sku": "SKU",
+  "stock": "Stock",
+  "price": "Price",
+  "cost": "Cost",
+  "margin": "Margin",
+  "active": "Active",
+  "inactive": "Inactive",
+  "noProducts": "No products",
+  "variants": "Variants",
+  "images": "Images"
+}
