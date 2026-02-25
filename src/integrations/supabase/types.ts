@@ -2158,6 +2158,7 @@ export type Database = {
           created_at: string
           created_automation_id: string | null
           description: string
+          detected_pattern_type: string | null
           explanation: string
           id: string
           pattern_data: Json | null
@@ -2176,6 +2177,7 @@ export type Database = {
           created_at?: string
           created_automation_id?: string | null
           description: string
+          detected_pattern_type?: string | null
           explanation: string
           id?: string
           pattern_data?: Json | null
@@ -2194,6 +2196,7 @@ export type Database = {
           created_at?: string
           created_automation_id?: string | null
           description?: string
+          detected_pattern_type?: string | null
           explanation?: string
           id?: string
           pattern_data?: Json | null
