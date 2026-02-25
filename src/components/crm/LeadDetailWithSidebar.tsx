@@ -64,6 +64,9 @@ import { ProposalsSection } from "@/components/leads/sections/ProposalsSection";
 import { EntityTimelineSection } from "@/components/timeline";
 import { EntitySchedulingSection } from "@/components/scheduling/EntitySchedulingSection";
 import { AIDealInsightPanel } from "@/components/contacts/sections/AIDealInsightPanel";
+import { LeadScoresCard } from "@/components/leads/sections/LeadScoresCard";
+import { LeadLifecycleSection } from "@/components/leads/sections/LeadLifecycleSection";
+import { LeadAuditSection } from "@/components/leads/sections/LeadAuditSection";
 
 const statusColors: Record<string, string> = {
   new: "bg-blue-500/20 text-blue-600 border-blue-500/30",
@@ -179,6 +182,13 @@ export function LeadDetailWithSidebar() {
       case 'overview':
         return (
           <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <LeadScoresCard lead={lead} />
+              <LeadLifecycleSection 
+                lead={lead} 
+                onStatusChange={(status) => handleFieldChange('status', status)} 
+              />
+            </div>
             <InsightsSidebar entityType="lead" entityId={id || ''} />
             {entityContext && (
               <ProductSuggestionsCard 
@@ -313,6 +323,10 @@ export function LeadDetailWithSidebar() {
             entityEmail={lead.email}
             entityPhone={lead.phone}
           />
+        );
+      case 'audit':
+        return (
+          <LeadAuditSection leadId={id!} />
         );
       default:
         return (
