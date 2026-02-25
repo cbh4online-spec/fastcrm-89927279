@@ -16,6 +16,7 @@ import { pt } from "date-fns/locale";
 import { DealScore, getCategoryColors } from "@/hooks/useDealScores";
 import { DealHealthBadge } from "@/components/intelligence/DealHealthBadge";
 import type { CompactDealIntelligence } from "@/types/dealIntelligence";
+import { useTranslation } from "react-i18next";
 
 
 interface OpportunityCardProps {
@@ -28,6 +29,8 @@ interface OpportunityCardProps {
 
 
 export function OpportunityCard({ opportunity, isDragging, onClick, dealScore, healthIntelligence }: OpportunityCardProps) {
+  const { t } = useTranslation("crm");
+
   const getTemperatureColor = (temp: string | null) => {
     switch (temp) {
       case "hot": return "bg-red-100 text-red-700 border-red-200";
@@ -39,9 +42,9 @@ export function OpportunityCard({ opportunity, isDragging, onClick, dealScore, h
 
   const getTemperatureLabel = (temp: string | null) => {
     switch (temp) {
-      case "hot": return "Quente";
-      case "warm": return "Morno";
-      case "cold": return "Frio";
+      case "hot": return t("temperatureHot");
+      case "warm": return t("temperatureWarm");
+      case "cold": return t("temperatureCold");
       default: return null;
     }
   };
@@ -143,7 +146,7 @@ export function OpportunityCard({ opportunity, isDragging, onClick, dealScore, h
       <Tooltip>
         <TooltipTrigger asChild>{cardContent}</TooltipTrigger>
         <TooltipContent side="bottom" className="max-w-xs text-xs">
-          <span className="font-medium">Próxima Ação:</span> {dealScore.next_action}
+          <span className="font-medium">{t("kanbanNextAction")}</span> {dealScore.next_action}
         </TooltipContent>
       </Tooltip>
     );

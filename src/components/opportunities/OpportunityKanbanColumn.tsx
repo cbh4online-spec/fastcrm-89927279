@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { differenceInDays } from "date-fns";
 import { DealScore, getCategoryColors } from "@/hooks/useDealScores";
 import type { CompactDealIntelligence } from "@/types/dealIntelligence";
+import { useTranslation } from "react-i18next";
 
 
 interface OpportunityKanbanColumnProps {
@@ -45,7 +46,7 @@ export function OpportunityKanbanColumn({
   scoresMap,
   healthMap,
 }: OpportunityKanbanColumnProps) {
-
+  const { t } = useTranslation("crm");
   const [isDragOver, setIsDragOver] = useState(false);
 
   const stats = useMemo(() => {
@@ -53,14 +54,12 @@ export function OpportunityKanbanColumn({
     const probability = stage.probability || 50;
     const weightedValue = totalValue * (probability / 100);
     
-    // Calculate average days in stage
     const avgDays = opportunities.length > 0
       ? opportunities.reduce((sum, opp) => {
           return sum + differenceInDays(new Date(), new Date(opp.created_at));
         }, 0) / opportunities.length
       : 0;
 
-    // Calculate average deal score
     const oppsWithScore = scoresMap
       ? opportunities.filter(o => scoresMap.has(o.id))
       : [];
@@ -73,39 +72,20 @@ export function OpportunityKanbanColumn({
 
 
   const formatCurrency = (value: number): string => {
-    if (value >= 1_000_000) {
-      return `${(value / 1_000_000).toFixed(1)}M €`;
-    }
-    if (value >= 1_000) {
-      return `${(value / 1_000).toFixed(0)}K €`;
-    }
-    return new Intl.NumberFormat("pt-PT", {
-      style: "currency",
-      currency: "EUR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
+    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M €`;
+    if (value >= 1_000) return `${(value / 1_000).toFixed(0)}K €`;
+    return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragOver(false);
-  };
-
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragOver(true); };
+  const handleDragLeave = () => { setIsDragOver(false); };
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
     const oppId = e.dataTransfer.getData("text/plain");
-    if (oppId) {
-      onMoveOpportunity(oppId, stage.id, stats.probability);
-    }
+    if (oppId) onMoveOpportunity(oppId, stage.id, stats.probability);
   };
 
-  // Get color for probability bar
   const getProbabilityColor = (probability: number): string => {
     if (probability >= 75) return "bg-green-500";
     if (probability >= 50) return "bg-amber-500";
@@ -130,28 +110,18 @@ export function OpportunityKanbanColumn({
           <div className="flex items-center gap-2 min-w-0">
             <div
               className="w-3 h-3 rounded-full flex-shrink-0 ring-2 ring-offset-1 ring-offset-background"
-              style={{ 
-                backgroundColor: stage.color,
-                boxShadow: `0 0 8px ${stage.color}40`
-              }}
+              style={{ backgroundColor: stage.color, boxShadow: `0 0 8px ${stage.color}40` }}
             />
             <h3 className="font-medium text-foreground truncate">{stage.name}</h3>
-            <Badge variant="secondary" className="text-xs font-semibold">
-              {opportunities.length}
-            </Badge>
+            <Badge variant="secondary" className="text-xs font-semibold">{opportunities.length}</Badge>
           </div>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 hover:bg-primary/10"
-                onClick={() => onCreateOpportunity?.(stage.id)}
-              >
+              <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-primary/10" onClick={() => onCreateOpportunity?.(stage.id)}>
                 <Plus className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Adicionar oportunidade</TooltipContent>
+            <TooltipContent>{t("kanbanAddOpportunity")}</TooltipContent>
           </Tooltip>
         </div>
 
@@ -160,18 +130,12 @@ export function OpportunityKanbanColumn({
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground flex items-center gap-1">
               <Target className="w-3 h-3" />
-              Probabilidade
+              {t("probability")}
             </span>
             <span className="font-medium text-foreground">{stats.probability}%</span>
           </div>
           <div className="relative h-2 rounded-full bg-muted overflow-hidden">
-            <div 
-              className={cn(
-                "absolute inset-y-0 left-0 rounded-full transition-all",
-                getProbabilityColor(stats.probability)
-              )}
-              style={{ width: `${stats.probability}%` }}
-            />
+            <div className={cn("absolute inset-y-0 left-0 rounded-full transition-all", getProbabilityColor(stats.probability))} style={{ width: `${stats.probability}%` }} />
           </div>
         </div>
 
@@ -180,35 +144,30 @@ export function OpportunityKanbanColumn({
           <div className="bg-background/50 rounded-md p-2">
             <div className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5">
               <DollarSign className="w-3 h-3" />
-              Valor Total
+              {t("kanbanTotalValue")}
             </div>
-            <p className="font-semibold text-foreground text-sm">
-              {formatCurrency(stats.totalValue)}
-            </p>
+            <p className="font-semibold text-foreground text-sm">{formatCurrency(stats.totalValue)}</p>
           </div>
           <div className="bg-background/50 rounded-md p-2">
             <div className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5">
               <TrendingUp className="w-3 h-3" />
-              Ponderado
+              {t("kanbanWeighted")}
             </div>
-            <p className="font-semibold text-foreground text-sm">
-              {formatCurrency(stats.weightedValue)}
-            </p>
+            <p className="font-semibold text-foreground text-sm">{formatCurrency(stats.weightedValue)}</p>
           </div>
         </div>
-
 
         {/* Row 4: Average Days + Avg Score */}
         {opportunities.length > 0 && (
           <div className="flex items-center justify-between gap-1.5 text-xs text-muted-foreground bg-background/30 rounded-md py-1.5 px-2">
             <div className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              <span>Média: <strong className="text-foreground">{Math.round(stats.avgDays)} dias</strong></span>
+              <span>{t("kanbanAvgDays", { days: Math.round(stats.avgDays) })}</span>
             </div>
             {stats.avgScore !== null && (
               <div className="flex items-center gap-1">
                 <TrendingUp className="w-3 h-3" />
-                <span>Score: <strong className="text-foreground">{Math.round(stats.avgScore)}</strong></span>
+                <span>{t("kanbanScore")} <strong className="text-foreground">{Math.round(stats.avgScore)}</strong></span>
               </div>
             )}
           </div>
@@ -222,10 +181,7 @@ export function OpportunityKanbanColumn({
             <div
               key={opp.id}
               draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData("text/plain", opp.id);
-                onDragStart(opp.id);
-              }}
+              onDragStart={(e) => { e.dataTransfer.setData("text/plain", opp.id); onDragStart(opp.id); }}
               onDragEnd={onDragEnd}
             >
               <OpportunityCard
@@ -244,17 +200,10 @@ export function OpportunityKanbanColumn({
               <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
                 <ArrowRight className="w-5 h-5 text-muted-foreground" />
               </div>
-              <p className="text-sm text-muted-foreground mb-3">
-                Arraste oportunidades para aqui
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() => onCreateOpportunity?.(stage.id)}
-              >
+              <p className="text-sm text-muted-foreground mb-3">{t("kanbanDragHere")}</p>
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => onCreateOpportunity?.(stage.id)}>
                 <Plus className="w-4 h-4" />
-                Novo Negócio
+                {t("kanbanNewDeal")}
               </Button>
             </div>
           )}

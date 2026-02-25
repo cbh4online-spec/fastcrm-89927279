@@ -523,5 +523,39 @@
   "smartListFieldEmployees": "Employees",
   "smartListFieldCreatedAt": "Created at",
 
-  "importExport": "Import/Export"
+  "importExport": "Import/Export",
+
+  "kanbanAddOpportunity": "Add opportunity",
+  "kanbanTotalValue": "Total Value",
+  "kanbanWeighted": "Weighted",
+  "kanbanAvgDays": "Avg: {{days}} days",
+  "kanbanScore": "Score:",
+  "kanbanDragHere": "Drag opportunities here",
+  "kanbanNewDeal": "New Deal",
+  "kanbanNextAction": "Next Action:",
+
+  "oppDetailTitle": "Opportunity Details",
+  "oppDetailNotFound": "Opportunity not found",
+  "oppDetailBackToList": "Back to opportunities",
+  "oppDetailTabOverview": "Overview",
+  "oppDetailTabInsights": "AI Insights",
+  "oppDetailTabTasks": "Tasks",
+  "oppDetailTabNotes": "Notes",
+  "oppDetailAdvancedTo": "Advanced to: {{stage}}",
+  "oppDetailAdvanceError": "Error advancing stage",
+  "oppDetailTasksComingSoon": "Task management coming soon...",
+  "oppDetailNotesComingSoon": "Notes coming soon...",
+  "oppDetailActivity": "Activity",
+  "oppDetailAction": "Action: {{action}}",
+
+  "companyTypeProspect": "Prospect",
+  "companyTypeClient": "Client",
+  "companyTypePartner": "Partner",
+  "companyTypeCompetitor": "Competitor",
+  "companyTypeVendor": "Vendor",
+  "companyTypeUnknown": "Unknown",
+  "actionScheduleMeeting": "Schedule meeting",
+  "actionResearch": "Research",
+  "insightQuickSummary": "Quick summary to decide:",
+  "tempAutoClassification": "Automatic classification based on intent"
 }

@@ -523,5 +523,39 @@
   "smartListFieldEmployees": "Funcionários",
   "smartListFieldCreatedAt": "Criado em",
 
-  "importExport": "Import/Export"
+  "importExport": "Import/Export",
+
+  "kanbanAddOpportunity": "Adicionar oportunidade",
+  "kanbanTotalValue": "Valor Total",
+  "kanbanWeighted": "Ponderado",
+  "kanbanAvgDays": "Média: {{days}} dias",
+  "kanbanScore": "Score:",
+  "kanbanDragHere": "Arraste oportunidades para aqui",
+  "kanbanNewDeal": "Novo Negócio",
+  "kanbanNextAction": "Próxima Ação:",
+
+  "oppDetailTitle": "Detalhes da Oportunidade",
+  "oppDetailNotFound": "Oportunidade não encontrada",
+  "oppDetailBackToList": "Voltar às oportunidades",
+  "oppDetailTabOverview": "Visão Geral",
+  "oppDetailTabInsights": "Insights IA",
+  "oppDetailTabTasks": "Tarefas",
+  "oppDetailTabNotes": "Notas",
+  "oppDetailAdvancedTo": "Avançado para: {{stage}}",
+  "oppDetailAdvanceError": "Erro ao avançar estágio",
+  "oppDetailTasksComingSoon": "Gestão de tarefas em breve...",
+  "oppDetailNotesComingSoon": "Notas em breve...",
+  "oppDetailActivity": "Atividade",
+  "oppDetailAction": "Ação: {{action}}",
+
+  "companyTypeProspect": "Prospect",
+  "companyTypeClient": "Cliente",
+  "companyTypePartner": "Parceiro",
+  "companyTypeCompetitor": "Concorrente",
+  "companyTypeVendor": "Fornecedor",
+  "companyTypeUnknown": "Desconhecido",
+  "actionScheduleMeeting": "Agendar reunião",
+  "actionResearch": "Pesquisar",
+  "insightQuickSummary": "Resumo rápido para decidir:",
+  "tempAutoClassification": "Classificação automática baseada na intenção"
 }
