@@ -1,215 +1,120 @@
 
 
-# FastCRM 2.0 — Attio-Level Product Foundation
+# Passo 1 — Custom Objects como First-Class Entities
 
-## Vision
+## Diagnóstico
 
-Transform the existing infrastructure into a polished, Attio-class experience. The database layer is already solid (custom_objects, core_object_fields, core_object_views, object_records, object_relationships). What's missing is the UI quality and UX coherence to make objects truly first-class citizens.
+Existe um problema fundamental: **duas tabelas paralelas** para o mesmo conceito.
 
-This plan covers 6 workstreams, ordered by dependency and impact.
+- `CreateObjectWizard` escreve para `core_object_types` + `core_object_fields`
+- A sidebar lê de `custom_objects` (via `useCustomObjects`)
+- `AttioObjectListView` usa `useObjectRecords` que lê `object_records` (FK para `custom_objects.id`)
+- `core_object_fields` tem `object_id` que referencia `custom_objects.id`
 
----
+O wizard cria em `core_object_types` mas **nunca cria o registo em `custom_objects`**, logo os objetos criados pelo wizard não aparecem na sidebar nem têm list view funcional.
 
-## Current State Assessment
+## Plano de Implementação
 
-**What exists:**
-- `custom_objects`, `core_object_types`, `core_object_fields`, `core_object_views`, `object_records`, `object_relationships` tables
-- Hooks: `useCustomObjects`, `useCoreObjectFields`, `useCreateObjectField`, etc.
-- Basic `CreateObjectWizard` (2-step dialog, templates, persists to `core_object_types`)
-- `DynamicRecordTable` and `DynamicRecordForm` (functional but rough)
-- `ObjectListPage` routes with slug-based dispatch (`/objects/:type`)
-- Custom objects appear in sidebar under "Records" section
-- `AttioContactsTable` with Attio-style filter bar, view selector, clean table
+### 1. Corrigir CreateObjectWizard — dual write
 
-**What's lacking:**
-- Object Builder is a minimal dialog, not a proper settings experience
-- Custom object list pages use the basic `CustomObjectsManager` (card grid + inline records), not the Attio-style table
-- No relationship management UI (table exists, no hooks or components)
-- `ObjectsHomePage` is a simple card grid, not a proper hub
-- Detail pages for custom objects don't exist (only core entities have detail views)
-- No inline editing on record tables
-- Lists feel static — no live record counts, no column customization for custom objects
+Atualizar `CreateObjectWizard` para:
+- Inserir em `core_object_types` (mantém)
+- **Também inserir em `custom_objects`** com o `type_id` a apontar para o `core_object_types.id`
+- Inserir campos em `core_object_fields` com `object_id` = `custom_objects.id` (em vez de `object_type_id`)
+- Adicionar icon picker (grid de ícones lucide pré-definidos)
+- Adicionar color picker (paleta pré-definida)
+- Após criação, **navegar para `/objects/{slug}`** em vez de fechar o dialog
+- Invalidar queries de `custom-objects` para que a sidebar atualize imediatamente
 
----
+### 2. Criar Record Detail Page para Custom Objects
 
-## Workstream 1: Object Builder Redesign
+**Novo ficheiro: `src/pages/CustomObjectDetailPage.tsx`**
 
-Replace the basic `CreateObjectWizard` dialog with a full-page Object Builder at `/settings/objects` or accessible from `/objects`.
+Layout duas colunas (60/40):
+- **Esquerda**: Campos editáveis inline (usando `InlineFieldEditor` já criado), organizados por secção
+- **Direita**: Painel de relacionamentos, metadados (criado em, atualizado em)
+- Header: Ícone do objeto + nome do registo (campo "name" ou primeiro campo texto) + breadcrumb (Objects > Partnerships > Nome)
+- Botões: Editar, Eliminar
 
-### Changes:
+**Atualizar: `src/pages/ObjectDetailPage.tsx`**
+- Se o `type` não está no `OBJECT_REGISTRY`, procurar em `useCustomObjects` por slug
+- Se encontrar, renderizar `CustomObjectDetailPage` com o `objectId` e `recordId`
 
-**New: `src/pages/ObjectBuilderPage.tsx`**
-- Full page at `/objects/settings/:objectId`
-- Three-tab layout: **Fields**, **Views**, **Settings**
-- Fields tab: Drag-sortable field list with inline type/required editing, field type icons, "Add field" inline row (not dialog)
-- Views tab: Upgraded `ObjectViewsManager` with column checkboxes and drag-order
-- Settings tab: Rename, change icon/color, danger zone (archive/delete)
-- Breadcrumb: Objects > [Object Name] > Settings
+### 3. Criar hooks de Relationships
 
-**Upgrade: `src/components/objects/ObjectFieldBuilder.tsx`**
-- Replace card-based add form with inline row pattern (click "+" row at bottom, type name, select type, press Enter)
-- Add field type icons (text=Type, number=#, date=Calendar, etc.)
-- Add drag handle that actually reorders (update sort_order via mutation)
-- Inline toggle for required (no dialog)
+**Novo ficheiro: `src/hooks/useObjectRelationships.ts`**
 
-**Upgrade: `src/components/objects/CreateObjectWizard.tsx`**
-- Polish: Add icon picker (grid of lucide icons), color picker (preset palette)
-- Add "relation" field type to templates
-- After creation, navigate to the object's list page instead of just closing
+```text
+useObjectRelationships(recordId, objectId)
+  → SELECT * FROM object_relationships 
+    WHERE (source_record_id = recordId) OR (target_record_id = recordId)
+  → Joins com custom_objects para resolver nomes
+  → Joins com object_records para resolver display name
 
-### Route:
-- Add `/objects/settings/:objectId` to App.tsx
+useCreateRelationship()
+  → INSERT com source_object_id, source_record_id, target_object_id, target_record_id, relationship_type
 
----
+useDeleteRelationship()
+  → DELETE por id
+```
 
-## Workstream 2: Attio-Style List View for Custom Objects
+### 4. Criar RelationshipsPanel
 
-Custom objects currently use `CustomObjectsManager` which shows records inline under a card. Replace with the same `AttioContactsTable` quality.
+**Novo ficheiro: `src/components/objects/RelationshipsPanel.tsx`**
 
-### Changes:
+- Mostra lista de registos relacionados agrupados por tipo de objeto
+- Cada item: ícone + nome do registo + badge do tipo de relação + botão unlink
+- Botão "Adicionar relação" → popover com:
+  - Step 1: Selecionar tipo de objeto (dropdown de todos os custom objects)
+  - Step 2: Pesquisar registos nesse tipo
+  - Step 3: Tipo de relação (related_to, parent_of, child_of)
 
-**New: `src/components/objects/AttioObjectListView.tsx`**
-- Generic list component that works for any custom object
-- Props: `objectId`, `objectSlug`, `objectName`
-- Uses `useObjectRecords(objectId)` for data, `useCoreObjectFields(objectId)` for columns
-- Same layout as `AttioContactsTable`: header with title + count, view bar, filter bar, clean table
-- Dynamic columns generated from `core_object_fields`
-- Renders cells using upgraded `DynamicRecordTable` cell logic
-- Inline "New record" row at top (click → slide-down form)
-- Row click → navigate to `/objects/:type/:recordId`
-- Checkbox multi-select + bulk delete bar
-- Sort by any field, search across all text fields
+### 5. Integrar Saved Views na list view
 
-**Update: `src/pages/ObjectListPage.tsx`**
-- For core objects (contacts, companies, deals): keep existing specialized components
-- For custom objects (not in `OBJECT_REGISTRY`): render `AttioObjectListView` instead of redirecting to `/objects`
-- Lookup custom object by slug from `useCustomObjects` to get `objectId`
+**Atualizar: `src/components/objects/AttioObjectListView.tsx`**
 
-**Update: Routes in `App.tsx`**
-- `/objects/:type` already works — just need `ObjectListPage` to handle custom types
+- Adicionar `ObjectViewsManager` (já existe) como barra de views abaixo do header
+- Quando uma view é selecionada, filtrar colunas visíveis e aplicar sort/filter config
+- Botão "Criar view" inline
 
----
+### 6. Melhorar sidebar — core objects + custom objects unificados
 
-## Workstream 3: Record Detail Page for Custom Objects
+**Atualizar: `src/components/layout/SidebarV1.tsx`**
 
-Custom object records have no detail view. Add one.
+Atualmente core objects (Contacts, Companies, etc.) estão hardcoded no `NAV_V1_ITEMS` e custom objects aparecem numa secção "Records" separada. Para tornar custom objects first-class:
 
-### Changes:
+- Remover a secção "Records" separada
+- Inserir custom objects **inline** na secção CRM, logo após os items core
+- Mesma aparência visual, sem distinção
 
-**New: `src/pages/CustomObjectDetailPage.tsx`**
-- Route: `/objects/:type/:id` (already exists, but `ObjectDetailPage` only handles core types)
-- Two-column layout (Attio-style):
-  - **Left (60%)**: Editable fields rendered from `core_object_fields`, activity timeline
-  - **Right (40%)**: Relationships panel, metadata (created, updated), quick actions
-- Header: Object icon + record title (first text field or "name" field) + breadcrumb
-- Inline editing: Click any field value to edit in-place, auto-save on blur
-- Activity timeline using existing `UnifiedTimeline`
+### 7. Soft delete em vez de hard delete
 
-**Update: `src/pages/ObjectDetailPage.tsx`**
-- Add fallback: if `type` is not in `OBJECT_REGISTRY`, look it up in `useCustomObjects` and render `CustomObjectDetailPage`
+**Atualizar: `src/hooks/useCustomObjects.ts`**
 
----
+- `useDeleteObjectRecord` → em vez de `DELETE`, fazer `UPDATE` com `is_active = false` (se coluna existir no `object_records`) ou manter delete mas adicionar confirmação
+- `useDeleteCustomObject` → UPDATE `is_active = false` em vez de DELETE
 
-## Workstream 4: Relationship Management UX
+## Ficheiros
 
-The `object_relationships` table exists but has zero UI.
+| Ficheiro | Ação |
+|---|---|
+| `src/components/objects/CreateObjectWizard.tsx` | **EDIT** — Dual write (core_object_types + custom_objects), icon/color picker, navegar após criação |
+| `src/pages/CustomObjectDetailPage.tsx` | **NEW** — Detail page com inline editing + relationships |
+| `src/pages/ObjectDetailPage.tsx` | **EDIT** — Fallback para custom objects |
+| `src/hooks/useObjectRelationships.ts` | **NEW** — CRUD para object_relationships |
+| `src/components/objects/RelationshipsPanel.tsx` | **NEW** — UI de relações no detail sidebar |
+| `src/components/objects/AttioObjectListView.tsx` | **EDIT** — Integrar saved views |
+| `src/components/layout/SidebarV1.tsx` | **EDIT** — Custom objects inline na nav |
+| `src/hooks/useCustomObjects.ts` | **EDIT** — Soft delete |
+| `src/App.tsx` | **EDIT** — Rota para detail de custom objects |
 
-### Changes:
+## Critérios de Done
 
-**New: `src/hooks/useObjectRelationships.ts`**
-- `useObjectRelationships(recordId)` — fetch all relationships where source or target matches
-- `useCreateRelationship()` — create a new link between two records
-- `useDeleteRelationship()` — remove a link
-- Joins to resolve object names and record display names
-
-**New: `src/components/objects/RelationshipsPanel.tsx`**
-- Used in custom object detail pages (right sidebar)
-- Shows grouped list of related records by object type
-- Each item: icon + record name + relationship type badge + unlink button
-- "Add relationship" button → popover: select target object type → search records → link
-- Compact, Attio-style with subtle borders and minimal chrome
-
-**New: `src/components/objects/AddRelationshipPopover.tsx`**
-- Step 1: Select object type (dropdown of all custom objects + core objects)
-- Step 2: Search records within that type
-- Step 3: Select relationship type (default: "related_to", options: "parent_of", "child_of", "related_to")
-- Creates the relationship via mutation
-
----
-
-## Workstream 5: Objects Home Page Upgrade
-
-Replace the basic card grid with a proper hub.
-
-### Changes:
-
-**Upgrade: `src/pages/ObjectsHomePage.tsx`**
-- **Section 1: Standard Objects** — Contacts, Companies, Deals as horizontal cards with live counts (keep existing)
-- **Section 2: Custom Objects** — Same card style but with "Edit" gear icon overlay → links to Object Builder
-- **Empty state**: When no custom objects, show a beautiful CTA: "Create your first custom object" with illustration
-- Add "Create Object" button that opens the upgraded wizard
-- Each card shows: icon, name, record count, last updated, field count badge
-- Remove the extension objects section (simplify for now)
-
----
-
-## Workstream 6: Design System Polish
-
-Ensure all object-related UI matches the Attio-level quality bar.
-
-### Changes:
-
-**Upgrade: `src/components/objects/DynamicRecordTable.tsx`**
-- Match `AttioContactsTable` styling: sticky header, `bg-muted/30`, uppercase tracking-wider column labels
-- Add checkbox column for multi-select
-- Add row hover with subtle background
-- Add empty state with illustration
-- Column widths: auto-size based on field type
-
-**Upgrade: `src/components/objects/DynamicRecordForm.tsx`**
-- Side-panel or slide-down pattern instead of inline card
-- Better field spacing, labels above inputs (not inline)
-- Auto-focus first field
-- Submit on Cmd+Enter
-
-**New: `src/components/objects/InlineFieldEditor.tsx`**
-- Click-to-edit component for detail pages
-- Shows value as text, click → transforms to input
-- Auto-save on blur or Enter
-- Type-specific: text input, number input, date picker, select dropdown, boolean toggle
-
----
-
-## File Summary
-
-| File | Action | Description |
-|---|---|---|
-| `src/pages/ObjectBuilderPage.tsx` | **NEW** | Full-page object settings (fields, views, settings tabs) |
-| `src/components/objects/AttioObjectListView.tsx` | **NEW** | Generic Attio-style list for any custom object |
-| `src/pages/CustomObjectDetailPage.tsx` | **NEW** | Record detail with inline editing + relationships |
-| `src/hooks/useObjectRelationships.ts` | **NEW** | CRUD hooks for object_relationships table |
-| `src/components/objects/RelationshipsPanel.tsx` | **NEW** | Relationship list + add/remove in detail sidebar |
-| `src/components/objects/AddRelationshipPopover.tsx` | **NEW** | Search + link records across object types |
-| `src/components/objects/InlineFieldEditor.tsx` | **NEW** | Click-to-edit field component |
-| `src/pages/ObjectListPage.tsx` | **EDIT** | Handle custom objects with AttioObjectListView |
-| `src/pages/ObjectDetailPage.tsx` | **EDIT** | Fallback to CustomObjectDetailPage for non-core types |
-| `src/pages/ObjectsHomePage.tsx` | **EDIT** | Polish cards, add field counts, edit links |
-| `src/components/objects/CreateObjectWizard.tsx` | **EDIT** | Add icon/color pickers, post-create navigation |
-| `src/components/objects/ObjectFieldBuilder.tsx` | **EDIT** | Inline add row, field type icons, drag reorder |
-| `src/components/objects/DynamicRecordTable.tsx` | **EDIT** | Attio-style table with checkboxes, sticky headers |
-| `src/components/objects/DynamicRecordForm.tsx` | **EDIT** | Better layout, Cmd+Enter submit |
-| `src/App.tsx` | **EDIT** | Add ObjectBuilderPage route |
-
----
-
-## Implementation Order
-
-1. **Workstream 6** (Design polish) — Foundation styling changes
-2. **Workstream 2** (Attio list view for custom objects) — Most visible impact
-3. **Workstream 3** (Record detail page) — Enables record navigation
-4. **Workstream 1** (Object Builder) — Settings/admin quality
-5. **Workstream 4** (Relationships) — Advanced data model UX
-6. **Workstream 5** (Objects Home upgrade) — Final hub polish
-
-Due to the scope, implementation will be done in 2-3 batches to keep changes reviewable.
+Ao criar um objeto "Partnership":
+1. Aparece automaticamente na sidebar (mesma secção que Contacts/Empresas)
+2. Clicar leva a `/objects/partnership` com Attio-style list view
+3. Pode criar registos com campos definidos
+4. Pode criar/mudar views com colunas visíveis
+5. Pode relacionar um registo com uma Company (via RelationshipsPanel)
+6. Pode eliminar (soft delete) registos e o próprio objeto
 
