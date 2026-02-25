@@ -5,28 +5,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  DollarSign,
-  Plus,
-  Clock,
-  TrendingUp,
-  Target,
-  ArrowRight,
-  Calculator,
-} from "lucide-react";
+import { Plus, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { differenceInDays } from "date-fns";
-import { DealScore, getCategoryColors } from "@/hooks/useDealScores";
+import { DealScore } from "@/hooks/useDealScores";
 import type { CompactDealIntelligence } from "@/types/dealIntelligence";
 import { useTranslation } from "react-i18next";
 import type { WorkspaceMember } from "@/hooks/useWorkspaceMembers";
+import { formatCurrency } from "@/lib/formatters";
 
 interface OpportunityKanbanColumnProps {
   stage: PipelineStage;
@@ -42,8 +28,6 @@ interface OpportunityKanbanColumnProps {
   allStages?: PipelineStage[];
   membersMap?: Map<string, WorkspaceMember["profile"]>;
 }
-
-type CalcType = "sum" | "avg" | "min" | "max" | "count";
 
 export function OpportunityKanbanColumn({
   stage,
@@ -61,37 +45,11 @@ export function OpportunityKanbanColumn({
 }: OpportunityKanbanColumnProps) {
   const { t } = useTranslation("crm");
   const [isDragOver, setIsDragOver] = useState(false);
-  const [activeCalc, setActiveCalc] = useState<CalcType | null>(null);
 
-  const stats = useMemo(() => {
-    const values = opportunities.map((o) => Number(o.value || 0));
-    const totalValue = values.reduce((s, v) => s + v, 0);
-    const probability = stage.probability || 50;
-    const weightedValue = totalValue * (probability / 100);
-
-    const avgDays =
-      opportunities.length > 0
-        ? opportunities.reduce((sum, opp) => sum + differenceInDays(new Date(), new Date(opp.created_at)), 0) / opportunities.length
-        : 0;
-
-    const oppsWithScore = scoresMap ? opportunities.filter((o) => scoresMap.has(o.id)) : [];
-    const avgScore =
-      oppsWithScore.length > 0
-        ? oppsWithScore.reduce((sum, o) => sum + scoresMap!.get(o.id)!.close_score, 0) / oppsWithScore.length
-        : null;
-
-    const avg = values.length > 0 ? totalValue / values.length : 0;
-    const min = values.length > 0 ? Math.min(...values) : 0;
-    const max = values.length > 0 ? Math.max(...values) : 0;
-
-    return { totalValue, weightedValue, avgDays, probability, avgScore, avg, min, max, count: opportunities.length };
-  }, [opportunities, stage.probability, scoresMap]);
-
-  const formatCurrency = (value: number): string => {
-    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M €`;
-    if (value >= 1_000) return `${(value / 1_000).toFixed(0)}K €`;
-    return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
-  };
+  const totalValue = useMemo(
+    () => opportunities.reduce((s, o) => s + Number(o.value || 0), 0),
+    [opportunities]
+  );
 
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragOver(true); };
   const handleDragLeave = () => { setIsDragOver(false); };
@@ -99,34 +57,7 @@ export function OpportunityKanbanColumn({
     e.preventDefault();
     setIsDragOver(false);
     const oppId = e.dataTransfer.getData("text/plain");
-    if (oppId) onMoveOpportunity(oppId, stage.id, stats.probability);
-  };
-
-  const getProbabilityColor = (probability: number): string => {
-    if (probability >= 75) return "bg-green-500";
-    if (probability >= 50) return "bg-amber-500";
-    if (probability >= 25) return "bg-orange-500";
-    return "bg-red-500";
-  };
-
-  const getCalcValue = (type: CalcType): string => {
-    switch (type) {
-      case "sum": return formatCurrency(stats.totalValue);
-      case "avg": return formatCurrency(stats.avg);
-      case "min": return formatCurrency(stats.min);
-      case "max": return formatCurrency(stats.max);
-      case "count": return String(stats.count);
-    }
-  };
-
-  const getCalcLabel = (type: CalcType): string => {
-    switch (type) {
-      case "sum": return t("kanbanCalcSum");
-      case "avg": return t("kanbanCalcAvg");
-      case "min": return t("kanbanCalcMin");
-      case "max": return t("kanbanCalcMax");
-      case "count": return t("kanbanCalcCount");
-    }
+    if (oppId) onMoveOpportunity(oppId, stage.id, stage.probability || 50);
   };
 
   return (
@@ -144,16 +75,16 @@ export function OpportunityKanbanColumn({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {/* Column Header */}
-      <div className="p-3 border-b border-border space-y-3">
+      {/* Column Header — minimal */}
+      <div className="p-3 border-b border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <div
-              className="w-3 h-3 rounded-full flex-shrink-0 ring-2 ring-offset-1 ring-offset-background"
-              style={{ backgroundColor: stage.color, boxShadow: `0 0 8px ${stage.color}40` }}
+              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+              style={{ backgroundColor: stage.color }}
             />
-            <h3 className="font-medium text-foreground truncate">{stage.name}</h3>
-            <Badge variant="secondary" className="text-xs font-semibold">{opportunities.length}</Badge>
+            <h3 className="font-medium text-foreground text-sm truncate">{stage.name}</h3>
+            <span className="text-xs text-muted-foreground">{opportunities.length}</span>
           </div>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -164,51 +95,6 @@ export function OpportunityKanbanColumn({
             <TooltipContent>{t("kanbanAddOpportunity")}</TooltipContent>
           </Tooltip>
         </div>
-
-        <div className="space-y-1">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground flex items-center gap-1">
-              <Target className="w-3 h-3" />
-              {t("probability")}
-            </span>
-            <span className="font-medium text-foreground">{stats.probability}%</span>
-          </div>
-          <div className="relative h-2 rounded-full bg-muted overflow-hidden">
-            <div className={cn("absolute inset-y-0 left-0 rounded-full transition-all", getProbabilityColor(stats.probability))} style={{ width: `${stats.probability}%` }} />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-background/50 rounded-md p-2">
-            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5">
-              <DollarSign className="w-3 h-3" />
-              {t("kanbanTotalValue")}
-            </div>
-            <p className="font-semibold text-foreground text-sm">{formatCurrency(stats.totalValue)}</p>
-          </div>
-          <div className="bg-background/50 rounded-md p-2">
-            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5">
-              <TrendingUp className="w-3 h-3" />
-              {t("kanbanWeighted")}
-            </div>
-            <p className="font-semibold text-foreground text-sm">{formatCurrency(stats.weightedValue)}</p>
-          </div>
-        </div>
-
-        {opportunities.length > 0 && (
-          <div className="flex items-center justify-between gap-1.5 text-xs text-muted-foreground bg-background/30 rounded-md py-1.5 px-2">
-            <div className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              <span>{t("kanbanAvgDays", { days: Math.round(stats.avgDays) })}</span>
-            </div>
-            {stats.avgScore !== null && (
-              <div className="flex items-center gap-1">
-                <TrendingUp className="w-3 h-3" />
-                <span>{t("kanbanScore")} <strong className="text-foreground">{Math.round(stats.avgScore)}</strong></span>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Column Content */}
@@ -264,33 +150,11 @@ export function OpportunityKanbanColumn({
         </div>
       </ScrollArea>
 
-      {/* Column Footer — Calculation */}
-      <div className="border-t border-border p-2">
-        {activeCalc ? (
-          <div className="flex items-center justify-between text-xs px-1">
-            <span className="text-muted-foreground font-medium">{getCalcLabel(activeCalc)}</span>
-            <span className="font-semibold text-foreground">{getCalcValue(activeCalc)}</span>
-          </div>
-        ) : null}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-full h-7 text-xs text-muted-foreground hover:text-foreground gap-1.5">
-              <Calculator className="w-3 h-3" />
-              {t("kanbanAddCalculation")}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            {(["sum", "avg", "count", "min", "max"] as CalcType[]).map((type) => (
-              <DropdownMenuItem
-                key={type}
-                onClick={() => setActiveCalc(activeCalc === type ? null : type)}
-                className={cn(activeCalc === type && "bg-accent")}
-              >
-                {getCalcLabel(type)}: {getCalcValue(type)}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+      {/* Column Footer — Simple Sum */}
+      <div className="border-t border-border px-3 py-2">
+        <span className="text-xs text-muted-foreground">
+          {formatCurrency(totalValue)} sum
+        </span>
       </div>
     </motion.div>
   );
