@@ -1,9 +1,9 @@
-import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, Sparkles, Target, Upload, ArrowRight } from "lucide-react";
+import { X, Sparkles, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 interface WelcomeOverlayProps {
   segment: string | null;
@@ -11,36 +11,37 @@ interface WelcomeOverlayProps {
   onDismiss: () => void;
 }
 
-const SEGMENT_INSIGHTS: Record<string, { title: string; tip: string; action: string; actionRoute: string }> = {
+const SEGMENT_KEYS: Record<string, { titleKey: string; tipKey: string; actionKey: string; actionRoute: string }> = {
   startup_saas: {
-    title: "O teu CRM SaaS está pronto!",
-    tip: "Começa por criar o teu primeiro deal para ver o pipeline em ação.",
-    action: "Criar primeiro deal",
+    titleKey: "welcomeStartupTitle",
+    tipKey: "welcomeStartupTip",
+    actionKey: "welcomeStartupAction",
     actionRoute: "/dashboard",
   },
   smb_traditional: {
-    title: "O teu CRM está configurado!",
-    tip: "Importa os teus contactos existentes para começar a gerir o pipeline.",
-    action: "Importar contactos",
+    titleKey: "welcomeSMBTitle",
+    tipKey: "welcomeSMBTip",
+    actionKey: "welcomeSMBAction",
     actionRoute: "/contacts",
   },
   b2b_complex: {
-    title: "Pipeline B2B ativo!",
-    tip: "Começa por adicionar as empresas-alvo para construir o teu pipeline B2B.",
-    action: "Adicionar empresa",
+    titleKey: "welcomeB2BTitle",
+    tipKey: "welcomeB2BTip",
+    actionKey: "welcomeB2BAction",
     actionRoute: "/companies",
   },
   generic: {
-    title: "Tudo pronto!",
-    tip: "Explora o dashboard e começa a adicionar leads ao teu pipeline.",
-    action: "Explorar",
+    titleKey: "welcomeGenericTitle",
+    tipKey: "welcomeGenericTip",
+    actionKey: "welcomeGenericAction",
     actionRoute: "/dashboard",
   },
 };
 
 export function WelcomeOverlay({ segment, bundleActivated, onDismiss }: WelcomeOverlayProps) {
+  const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
-  const insight = SEGMENT_INSIGHTS[segment || "generic"] || SEGMENT_INSIGHTS.generic;
+  const segmentConfig = SEGMENT_KEYS[segment || "generic"] || SEGMENT_KEYS.generic;
 
   return (
     <AnimatePresence>
@@ -56,8 +57,8 @@ export function WelcomeOverlay({ segment, bundleActivated, onDismiss }: WelcomeO
               <Sparkles className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-semibold text-foreground">{insight.title}</h3>
-              <p className="text-sm text-muted-foreground">{insight.tip}</p>
+              <h3 className="font-semibold text-foreground">{t(segmentConfig.titleKey)}</h3>
+              <p className="text-sm text-muted-foreground">{t(segmentConfig.tipKey)}</p>
             </div>
           </div>
           <button onClick={onDismiss} className="text-muted-foreground hover:text-foreground">
@@ -70,18 +71,18 @@ export function WelcomeOverlay({ segment, bundleActivated, onDismiss }: WelcomeO
             size="sm"
             onClick={() => {
               onDismiss();
-              navigate(insight.actionRoute);
+              navigate(segmentConfig.actionRoute);
             }}
             className="gap-1.5"
           >
-            {insight.action}
+            {t(segmentConfig.actionKey)}
             <ArrowRight className="w-3.5 h-3.5" />
           </Button>
 
           {bundleActivated && (
             <Badge variant="secondary" className="gap-1">
               <Sparkles className="w-3 h-3" />
-              Bundle ativo
+              {t('activeBundle')}
             </Badge>
           )}
         </div>

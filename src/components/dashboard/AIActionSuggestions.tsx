@@ -3,11 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, ArrowRight, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 const priorityDot = (p: string) =>
   p === "HIGH" ? "bg-destructive" : p === "MEDIUM" ? "bg-yellow-500" : "bg-muted-foreground";
 
 export function AIActionSuggestions() {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading } = useIntelligencePanel();
   const navigate = useNavigate();
 
@@ -30,7 +32,7 @@ export function AIActionSuggestions() {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
-          Revenue Brain
+          {t('revenueBrain')}
         </CardTitle>
       </CardHeader>
       <CardContent>

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, ArrowRight, Loader2 } from "lucide-react";
 import { useMultiPipelineIntelligence } from "@/hooks/useMultiPipelineIntelligence";
+import { useTranslation } from "react-i18next";
 
 function healthColor(score: number): string {
   if (score >= 70) return "bg-emerald-500";
@@ -12,6 +13,7 @@ function healthColor(score: number): string {
 }
 
 export function PipelineComparisonCard() {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading } = useMultiPipelineIntelligence();
   const navigate = useNavigate();
 
@@ -33,10 +35,10 @@ export function PipelineComparisonCard() {
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            Pipeline Health
+            {t('pipelineHealth')}
           </CardTitle>
           <Badge variant="outline" className="text-[10px]">
-            {data.pipelines.length} active
+            {data.pipelines.length} {t('active')}
           </Badge>
         </div>
       </CardHeader>
@@ -66,7 +68,7 @@ export function PipelineComparisonCard() {
           className="w-full text-xs text-muted-foreground hover:text-foreground mt-1"
           onClick={() => navigate("/dashboard/revenue")}
         >
-          View full comparison
+          {t('viewFullComparison')}
           <ArrowRight className="h-3 w-3 ml-1" />
         </Button>
       </CardContent>

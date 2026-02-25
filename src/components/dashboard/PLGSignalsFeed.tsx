@@ -26,7 +26,7 @@ const ROUTING_LABELS: Record<string, string> = {
 const dateLocales: Record<string, DateLocale> = { pt, en: enUS, es, fr };
 
 export function PLGSignalsFeed() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation('dashboard');
   const { data: signals, isLoading } = useProductSignals(10);
   const { data: funnel } = useSignalFunnel();
   const navigate = useNavigate();
@@ -37,7 +37,7 @@ export function PLGSignalsFeed() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Zap className="h-4 w-4 text-primary" /> Product Signals
+            <Zap className="h-4 w-4 text-primary" /> {t('productSignals')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -59,36 +59,32 @@ export function PLGSignalsFeed() {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
             <Zap className="h-4 w-4 text-primary" />
-            Product Signals
+            {t('productSignals')}
           </CardTitle>
           <Badge variant="outline" className="gap-1 text-xs font-normal">
             <Radio className="h-3 w-3 text-emerald-500 animate-pulse" />
-            Live
+            {t('live')}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Funnel */}
         {funnel && (funnel.signups > 0 || funnel.activated > 0) && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded-lg p-3">
-            <span className="font-medium text-foreground">{funnel.signups}</span> signups
+            <span className="font-medium text-foreground">{funnel.signups}</span> {t('signups')}
             <ArrowRight className="h-3 w-3" />
-            <span className="font-medium text-foreground">{funnel.activated}</span> activated
+            <span className="font-medium text-foreground">{funnel.activated}</span> {t('activated')}
             <ArrowRight className="h-3 w-3" />
-            <span className="font-medium text-foreground">{funnel.qualified}</span> qualified
+            <span className="font-medium text-foreground">{funnel.qualified}</span> {t('qualified')}
             <ArrowRight className="h-3 w-3" />
-            <span className="font-medium text-foreground">{funnel.pipeline}</span> pipeline
+            <span className="font-medium text-foreground">{funnel.pipeline}</span> {t('pipelineFunnel')}
           </div>
         )}
 
-        {/* Signal feed */}
         {!hasSignals ? (
           <div className="text-center py-8 text-muted-foreground">
             <Zap className="h-8 w-8 mx-auto mb-2 opacity-30" />
-            <p className="text-sm font-medium">Sem sinais de produto</p>
-            <p className="text-xs mt-1">
-              Configure a integração webhook para receber eventos de signup, ativação e upgrade.
-            </p>
+            <p className="text-sm font-medium">{t('noProductSignals')}</p>
+            <p className="text-xs mt-1">{t('configureWebhook')}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -140,7 +136,7 @@ export function PLGSignalsFeed() {
             className="w-full text-xs text-muted-foreground"
             onClick={() => navigate("/dashboard/plg-signals")}
           >
-            Ver todos os sinais →
+            {t('viewAllSignals')}
           </Button>
         )}
       </CardContent>

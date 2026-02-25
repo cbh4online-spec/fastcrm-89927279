@@ -7,19 +7,10 @@ import { Button } from "@/components/ui/button";
 import { WelcomeOverlay } from "@/components/dashboard/WelcomeOverlay";
 import { Badge } from "@/components/ui/badge";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Plus,
-  Target,
-  Briefcase,
-  Building2,
-  Contact,
-  CheckSquare,
-} from "lucide-react";
+import { Plus, Target, Briefcase, Building2, Contact, CheckSquare } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { RevenueHero } from "@/components/dashboard/RevenueHero";
 import { ForecastTrendChart } from "@/components/dashboard/ForecastTrendChart";
@@ -31,7 +22,6 @@ import { DashboardAutomationSuggestions } from "@/components/dashboard/Dashboard
 import { PipelineComparisonCard } from "@/components/dashboard/PipelineComparisonCard";
 import { PLGSignalsFeed } from "@/components/dashboard/PLGSignalsFeed";
 
-// Dialog components for creating entities
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
 import { CreateOpportunityDialog } from "@/components/crm/CreateOpportunityDialog";
 import { CreateContactDialog } from "@/components/contacts/CreateContactDialog";
@@ -40,6 +30,7 @@ import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { useCreateTask } from "@/hooks/useTasks";
 
 export default function Dashboard() {
+  const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const createTask = useCreateTask();
@@ -50,7 +41,6 @@ export default function Dashboard() {
   const [createCompanyOpen, setCreateCompanyOpen] = useState(false);
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
 
-  // Post-onboarding welcome state
   const isOnboardingComplete = searchParams.get("onboarding") === "complete";
   const onboardingSegment = searchParams.get("segment");
   const onboardingBundle = searchParams.get("bundle");
@@ -71,74 +61,56 @@ export default function Dashboard() {
     <DashboardLayout>
       <ScrollArea className="h-[calc(100vh-5rem)]">
         <div className="p-4 md:p-6 space-y-6">
-          {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold">Home</h1>
-                <Badge variant="outline" className="text-xs font-normal">
-                  FastCRM 2.0
-                </Badge>
+                <h1 className="text-2xl font-bold">{t('home')}</h1>
+                <Badge variant="outline" className="text-xs font-normal">FastCRM 2.0</Badge>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Build your CRM. Grow your revenue.
-              </p>
+              <p className="text-sm text-muted-foreground">{t('buildCRM')}</p>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" className="gap-1.5 bg-primary shadow-lg shadow-primary/25">
                   <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">New</span>
+                  <span className="hidden sm:inline">{t('new')}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem onClick={() => setCreateLeadOpen(true)}>
-                  <Target className="h-4 w-4 mr-2" /> New Lead
+                  <Target className="h-4 w-4 mr-2" /> {t('newLead')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setCreateOpportunityOpen(true)}>
-                  <Briefcase className="h-4 w-4 mr-2" /> New Opportunity
+                  <Briefcase className="h-4 w-4 mr-2" /> {t('newOpportunity')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setCreateContactOpen(true)}>
-                  <Contact className="h-4 w-4 mr-2" /> New Contact
+                  <Contact className="h-4 w-4 mr-2" /> {t('newContact')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setCreateCompanyOpen(true)}>
-                  <Building2 className="h-4 w-4 mr-2" /> New Company
+                  <Building2 className="h-4 w-4 mr-2" /> {t('newCompany')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setCreateTaskOpen(true)}>
-                  <CheckSquare className="h-4 w-4 mr-2" /> New Task
+                  <CheckSquare className="h-4 w-4 mr-2" /> {t('newTask')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
 
-          {/* Welcome overlay */}
           {showWelcome && (
-            <WelcomeOverlay
-              segment={onboardingSegment}
-              bundleActivated={onboardingBundle}
-              onDismiss={() => setShowWelcome(false)}
-            />
+            <WelcomeOverlay segment={onboardingSegment} bundleActivated={onboardingBundle} onDismiss={() => setShowWelcome(false)} />
           )}
 
-          {/* Proactive Ask Nudge */}
-          <AskProactiveNudge onAskQuery={(q) => {
-            navigate(`/dashboard/ask?q=${encodeURIComponent(q)}`);
-          }} />
+          <AskProactiveNudge onAskQuery={(q) => navigate(`/dashboard/ask?q=${encodeURIComponent(q)}`)} />
 
-          {/* Revenue Hero */}
           <RevenueHero />
 
-          {/* Grid */}
           <div className="grid grid-cols-12 gap-4 lg:gap-6">
-            {/* Left */}
             <div className="col-span-12 lg:col-span-8 space-y-4">
               <ForecastTrendChart />
               <DealsAtRiskList />
               <AIActionSuggestions />
               <DashboardAutomationSuggestions />
             </div>
-
-            {/* Right */}
             <div className="col-span-12 lg:col-span-4 space-y-4">
               <PipelineHealthCard />
               <PLGSignalsFeed />
@@ -149,7 +121,6 @@ export default function Dashboard() {
         </div>
       </ScrollArea>
 
-      {/* Dialogs */}
       <CreateLeadDialog open={createLeadOpen} onOpenChange={setCreateLeadOpen} />
       <CreateOpportunityDialog open={createOpportunityOpen} onOpenChange={setCreateOpportunityOpen} />
       <CreateContactDialog open={createContactOpen} onOpenChange={setCreateContactOpen} />
@@ -159,11 +130,7 @@ export default function Dashboard() {
         onOpenChange={setCreateTaskOpen}
         entityName="Dashboard"
         onCreateTask={(task) => {
-          createTask.mutate({
-            title: task.title,
-            due_at: task.due_at,
-            assigned_to: task.assigned_to,
-          });
+          createTask.mutate({ title: task.title, due_at: task.due_at, assigned_to: task.assigned_to });
           setCreateTaskOpen(false);
         }}
       />

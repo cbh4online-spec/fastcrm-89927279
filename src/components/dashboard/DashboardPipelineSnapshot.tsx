@@ -7,49 +7,30 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { AlertTriangle, ArrowRight, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 interface PipelineStage {
-  id: string;
-  name: string;
-  color: string;
-  count: number;
-  value: number;
-  isStalled: boolean;
-  stalledCount?: number;
+  id: string; name: string; color: string; count: number; value: number; isStalled: boolean; stalledCount?: number;
 }
 
 interface DashboardPipelineSnapshotProps {
-  stages: PipelineStage[];
-  totalValue: number;
-  isLoading: boolean;
+  stages: PipelineStage[]; totalValue: number; isLoading: boolean;
 }
 
 function formatCurrency(value: number): string {
-  if (value >= 1000000) {
-    return `€${(value / 1000000).toFixed(1)}M`;
-  }
-  if (value >= 1000) {
-    return `€${(value / 1000).toFixed(1)}K`;
-  }
+  if (value >= 1000000) return `€${(value / 1000000).toFixed(1)}M`;
+  if (value >= 1000) return `€${(value / 1000).toFixed(1)}K`;
   return `€${value.toFixed(0)}`;
 }
 
-function StageBar({ 
-  stage, 
-  maxValue,
-  onClick 
-}: { 
-  stage: PipelineStage; 
-  maxValue: number;
-  onClick: () => void;
-}) {
+function StageBar({ stage, maxValue, onClick, t }: { stage: PipelineStage; maxValue: number; onClick: () => void; t: (key: string, opts?: any) => string }) {
   const percentage = maxValue > 0 ? (stage.value / maxValue) * 100 : 0;
-  
+
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <button 
+          <button
             onClick={onClick}
             className={cn(
               "w-full p-3 rounded-lg border text-left transition-all hover:shadow-sm",
@@ -58,38 +39,18 @@ function StageBar({
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <div 
-                  className="w-2.5 h-2.5 rounded-full" 
-                  style={{ backgroundColor: stage.color }}
-                />
+                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: stage.color }} />
                 <span className="text-sm font-medium truncate">{stage.name}</span>
-                {stage.isStalled && (
-                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-                )}
+                {stage.isStalled && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
               </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">
-                  {stage.count}
-                </Badge>
-              </div>
+              <Badge variant="secondary" className="text-xs">{stage.count}</Badge>
             </div>
-            
             <div className="space-y-1.5">
-              <Progress 
-                value={percentage} 
-                className="h-1.5"
-                style={{ 
-                  backgroundColor: `${stage.color}20`,
-                }}
-              />
+              <Progress value={percentage} className="h-1.5" style={{ backgroundColor: `${stage.color}20` }} />
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">
-                  {formatCurrency(stage.value)}
-                </span>
+                <span className="text-muted-foreground">{formatCurrency(stage.value)}</span>
                 {stage.isStalled && stage.stalledCount && (
-                  <span className="text-amber-600">
-                    {stage.stalledCount} parado{stage.stalledCount > 1 ? 's' : ''}
-                  </span>
+                  <span className="text-amber-600">{t('stalledCount', { count: stage.stalledCount })}</span>
                 )}
               </div>
             </div>
@@ -98,12 +59,10 @@ function StageBar({
         <TooltipContent side="right">
           <div className="text-xs">
             <p className="font-medium">{stage.name}</p>
-            <p>{stage.count} oportunidade{stage.count !== 1 ? 's' : ''}</p>
-            <p>Valor: {formatCurrency(stage.value)}</p>
+            <p>{t('opportunityCount', { count: stage.count })}</p>
+            <p>{t('valueLabel', { value: formatCurrency(stage.value) })}</p>
             {stage.isStalled && (
-              <p className="text-amber-500 mt-1">
-                ⚠️ {stage.stalledCount} sem movimento há +7 dias
-              </p>
+              <p className="text-amber-500 mt-1">{t('noMovement7d', { count: stage.stalledCount })}</p>
             )}
           </div>
         </TooltipContent>
@@ -112,11 +71,8 @@ function StageBar({
   );
 }
 
-export function DashboardPipelineSnapshot({ 
-  stages, 
-  totalValue,
-  isLoading 
-}: DashboardPipelineSnapshotProps) {
+export function DashboardPipelineSnapshot({ stages, totalValue, isLoading }: DashboardPipelineSnapshotProps) {
+  const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
   const maxValue = Math.max(...stages.map(s => s.value), 1);
   const stalledStages = stages.filter(s => s.isStalled);
@@ -125,12 +81,10 @@ export function DashboardPipelineSnapshot({
     return (
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Pipeline</CardTitle>
+          <CardTitle className="text-base">{t('pipeline')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-16 w-full" />
-          ))}
+          {[1, 2, 3, 4].map((i) => (<Skeleton key={i} className="h-16 w-full" />))}
         </CardContent>
       </Card>
     );
@@ -143,16 +97,16 @@ export function DashboardPipelineSnapshot({
           <div>
             <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              Pipeline
+              {t('pipeline')}
             </CardTitle>
             <CardDescription className="text-xs">
-              Valor total: {formatCurrency(totalValue)}
+              {t('totalValue', { value: formatCurrency(totalValue) })}
             </CardDescription>
           </div>
           {stalledStages.length > 0 && (
             <Badge variant="outline" className="text-amber-600 border-amber-300">
               <AlertTriangle className="h-3 w-3 mr-1" />
-              {stalledStages.length} etapa{stalledStages.length > 1 ? 's' : ''} parada{stalledStages.length > 1 ? 's' : ''}
+              {t('stalledStages', { count: stalledStages.length })}
             </Badge>
           )}
         </div>
@@ -161,26 +115,16 @@ export function DashboardPipelineSnapshot({
         {stages.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm font-medium">Sem oportunidades</p>
-            <p className="text-xs mt-1">Crie a primeira oportunidade para ver o pipeline.</p>
+            <p className="text-sm font-medium">{t('noOpportunities')}</p>
+            <p className="text-xs mt-1">{t('createFirstOpportunity')}</p>
           </div>
         ) : (
           <div className="space-y-2">
             {stages.map((stage) => (
-              <StageBar
-                key={stage.id}
-                stage={stage}
-                maxValue={maxValue}
-                onClick={() => navigate(`/dashboard/opportunities?stage=${stage.id}`)}
-              />
+              <StageBar key={stage.id} stage={stage} maxValue={maxValue} onClick={() => navigate(`/dashboard/opportunities?stage=${stage.id}`)} t={t} />
             ))}
-            
-            <Button 
-              variant="ghost" 
-              className="w-full mt-2 text-xs"
-              onClick={() => navigate("/dashboard/opportunities")}
-            >
-              Ver pipeline completo
+            <Button variant="ghost" className="w-full mt-2 text-xs" onClick={() => navigate("/dashboard/opportunities")}>
+              {t('viewFullPipeline')}
               <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
           </div>
