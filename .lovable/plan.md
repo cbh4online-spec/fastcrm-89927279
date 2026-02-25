@@ -1,48 +1,37 @@
 
 
-# Remover o Segundo Menu (DealsSidebar) Duplicado
+# Remover Estágio "Implementação"
 
 ## Problema
-
-A página de Oportunidades tem **dois menus laterais lado a lado**:
-
-1. **Sidebar principal** (SidebarV1) — com Dashboard, Leads, Contactos, Empresas, Oportunidades, Tarefas, Marketing, etc.
-2. **DealsSidebar** — dentro do módulo de Oportunidades, com Quick Actions, Notificações, Tarefas, Notas, Emails, Chamadas, Relatórios, Automações, Empresas, Contactos, Negócios, etc.
-
-O DealsSidebar replica grande parte da navegação que já existe no sidebar principal, criando confusão visual e desperdício de espaço.
-
-## Solução
-
-Remover o `DealsSidebar` por completo e mover a funcionalidade útil (seletor de vistas e Command Palette) para o header do módulo, que já existe.
-
-```text
-ANTES                                   DEPOIS
-┌────────┬─────────┬──────────────┐     ┌────────┬──────────────────────┐
-│Main    │Deals    │              │     │Main    │                      │
-│Sidebar │Sidebar  │  Kanban      │     │Sidebar │  Header + Views      │
-│        │(duplica)│              │     │        │  Kanban              │
-│        │         │              │     │        │                      │
-└────────┴─────────┴──────────────┘     └────────┴──────────────────────┘
-```
+O pipeline tem 7 estágios mas o "Implementação" não é necessário. Todos os estágios "Implementação" em todos os workspaces têm 0 oportunidades — é seguro removê-los.
 
 ## Alterações
 
-### 1. `src/components/opportunities/OpportunitiesModule.tsx`
+### Base de dados (via edge function temporária)
 
-- **Remover** o componente `<DealsSidebar>` e todo o estado associado (`sidebarCollapsed`, `setSidebarCollapsed`)
-- **Remover** imports de `DealsSidebar`
-- O `DealViewSelectorDropdown` já está no header — mantém-se como está
-- O `CommandPalette` já está no módulo — mantém-se, mas o trigger passa a ser apenas via ⌘K (já funciona)
-- O layout muda de `flex h-full` com sidebar + conteúdo para apenas o conteúdo direto
+1. **DELETE** todos os registos de `pipeline_stages` onde `name = 'Implementação'` (9 registos, 0 oportunidades)
+2. **UPDATE** `pipeline_stages` onde `name = 'Perdido'` → `position = 5` (era 6)
 
-### 2. Ficheiros não alterados
+### Pipeline Final (6 estágios)
 
-- `DealsSidebar.tsx` — pode ficar no projeto (dead code) ou ser removido. Não causa impacto.
-- Nenhuma outra alteração necessária.
+```text
+Pos 0: Lead               (#3B82F6)
+Pos 1: Qualificação        (#8B5CF6)
+Pos 2: Proposta            (#F59E0B)
+Pos 3: Negociação          (#06B6D4)
+Pos 4: Fechado/Ganho       (#22C55E)
+Pos 5: Perdido             (#EF4444)
+```
 
-### Resumo
+### Implementação
 
-| Ficheiro | Ação |
-|----------|------|
-| `OpportunitiesModule.tsx` | Remover DealsSidebar, simplificar layout |
+Criar uma edge function temporária `cleanup-stages` que executa o DELETE + UPDATE, invocá-la, e depois removê-la.
+
+Sem alterações de código frontend — o Kanban renderiza dinamicamente com base nos estágios da base de dados.
+
+| Acção | Detalhe |
+|-------|---------|
+| Criar `supabase/functions/cleanup-stages/index.ts` | Edge function que apaga "Implementação" e ajusta posição de "Perdido" |
+| Deploy + invocar | Executar a limpeza |
+| Apagar a edge function | Remover após uso |
 
