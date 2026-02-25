@@ -74,6 +74,7 @@ export function useSmartContacts(filters?: SmartContactsFilters) {
           companies:company_id (id, name)
         `)
         .eq("workspace_id", currentWorkspace.id)
+        .is("deleted_at", null)
         .order("contact_score", { ascending: false });
 
       if (filters?.temperature && filters.temperature !== "all") {
@@ -154,7 +155,8 @@ export function useContactsKPIs() {
       const { data: contacts } = await workspaceClient
         .from("contacts")
         .select("*")
-        .eq("workspace_id", currentWorkspace.id);
+        .eq("workspace_id", currentWorkspace.id)
+        .is("deleted_at", null);
 
       const totalContacts = contacts?.length || 0;
       const hotContacts = contacts?.filter(c => c.ai_temperature === "hot").length || 0;

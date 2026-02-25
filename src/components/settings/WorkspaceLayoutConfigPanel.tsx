@@ -34,6 +34,7 @@ const SECTION_LABELS: Record<MenuSection, string> = {
   'scheduling': 'Agendamentos',
   'student-journey': 'Student Journey',
   'relationships': 'Relações',
+  'audit': 'Registo de Alterações',
 };
 
 const ENTITY_LABELS: Record<EntityType, string> = {

@@ -160,6 +160,12 @@ const SECTION_CONFIG: Record<MenuSection, {
     suggestion: 'Cria um perfil para acompanhar a jornada educacional.',
     actionLabel: 'Criar Perfil',
   },
+  'audit': {
+    icon: History,
+    title: 'Sem alterações registadas',
+    description: 'O registo de alterações aparecerá quando campos forem editados.',
+    suggestion: 'Edite campos do contacto para ver o histórico aqui.',
+  },
 };
 
 export function EntityEmptyState({

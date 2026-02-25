@@ -7629,6 +7629,54 @@ export type Database = {
           },
         ]
       }
+      contact_audit_log: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          contact_id: string
+          field_name: string
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          contact_id: string
+          field_name: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          contact_id?: string
+          field_name?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_audit_log_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_audit_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_documents: {
         Row: {
           contact_id: string
@@ -7906,8 +7954,14 @@ export type Database = {
           ai_analyzed_at: string | null
           ai_contact_type: string | null
           ai_insight: string | null
+          ai_last_enriched_at: string | null
           ai_next_action: string | null
           ai_next_action_type: string | null
+          ai_pain_points: Json
+          ai_recommendations: Json
+          ai_risk_flags: Json
+          ai_summary: string | null
+          ai_tags: Json
           ai_temperature: string | null
           assigned_to: string | null
           automation_active: boolean | null
@@ -7926,6 +7980,8 @@ export type Database = {
           commercial_name: string | null
           company: string | null
           company_id: string | null
+          consent_record: Json
+          contact_preferences: Json
           contact_score: number | null
           conversion_probability: number | null
           country: string | null
@@ -7933,27 +7989,41 @@ export type Database = {
           created_by: string
           credit_active: boolean | null
           credit_limit: number | null
+          custom_fields: Json
+          deleted_at: string | null
           email: string | null
+          emails: Json
+          engagement_score: number
           entity_type: string | null
           estimated_value: number | null
           facebook_url: string | null
+          first_name: string | null
           fiscal_regime: string | null
           ghl_contact_id: string | null
           ghl_synced_at: string | null
           has_whatsapp: boolean | null
+          icp_fit_score: number
           id: string
           instagram_url: string | null
           is_fiscal_address: boolean | null
           is_primary_contact: boolean | null
           job_title: string | null
+          last_call_at: string | null
           last_contact_at: string | null
+          last_email_at: string | null
+          last_name: string | null
           last_purchase_date: string | null
           lead_source: string | null
+          lead_status: string
           linkedin_url: string | null
+          marketing_opt_in: boolean
           name: string
+          next_followup_at: string | null
           notes: string | null
+          pare_score: number
           payment_conditions: string | null
           phone: string | null
+          phones: Json
           postal_code: string | null
           preferred_currency: string | null
           preferred_payment_method: string | null
@@ -7962,12 +8032,15 @@ export type Database = {
           sales_2024: number | null
           sales_2025: number | null
           sales_2026: number | null
+          segments: Json
           source: string | null
           tags: string[] | null
           tax_id: string | null
+          timezone: string | null
           total_revenue: number | null
           twitter_url: string | null
           updated_at: string
+          updated_by: string | null
           whatsapp_number: string | null
           workspace_id: string
         }
@@ -7980,8 +8053,14 @@ export type Database = {
           ai_analyzed_at?: string | null
           ai_contact_type?: string | null
           ai_insight?: string | null
+          ai_last_enriched_at?: string | null
           ai_next_action?: string | null
           ai_next_action_type?: string | null
+          ai_pain_points?: Json
+          ai_recommendations?: Json
+          ai_risk_flags?: Json
+          ai_summary?: string | null
+          ai_tags?: Json
           ai_temperature?: string | null
           assigned_to?: string | null
           automation_active?: boolean | null
@@ -8000,6 +8079,8 @@ export type Database = {
           commercial_name?: string | null
           company?: string | null
           company_id?: string | null
+          consent_record?: Json
+          contact_preferences?: Json
           contact_score?: number | null
           conversion_probability?: number | null
           country?: string | null
@@ -8007,27 +8088,41 @@ export type Database = {
           created_by: string
           credit_active?: boolean | null
           credit_limit?: number | null
+          custom_fields?: Json
+          deleted_at?: string | null
           email?: string | null
+          emails?: Json
+          engagement_score?: number
           entity_type?: string | null
           estimated_value?: number | null
           facebook_url?: string | null
+          first_name?: string | null
           fiscal_regime?: string | null
           ghl_contact_id?: string | null
           ghl_synced_at?: string | null
           has_whatsapp?: boolean | null
+          icp_fit_score?: number
           id?: string
           instagram_url?: string | null
           is_fiscal_address?: boolean | null
           is_primary_contact?: boolean | null
           job_title?: string | null
+          last_call_at?: string | null
           last_contact_at?: string | null
+          last_email_at?: string | null
+          last_name?: string | null
           last_purchase_date?: string | null
           lead_source?: string | null
+          lead_status?: string
           linkedin_url?: string | null
+          marketing_opt_in?: boolean
           name: string
+          next_followup_at?: string | null
           notes?: string | null
+          pare_score?: number
           payment_conditions?: string | null
           phone?: string | null
+          phones?: Json
           postal_code?: string | null
           preferred_currency?: string | null
           preferred_payment_method?: string | null
@@ -8036,12 +8131,15 @@ export type Database = {
           sales_2024?: number | null
           sales_2025?: number | null
           sales_2026?: number | null
+          segments?: Json
           source?: string | null
           tags?: string[] | null
           tax_id?: string | null
+          timezone?: string | null
           total_revenue?: number | null
           twitter_url?: string | null
           updated_at?: string
+          updated_by?: string | null
           whatsapp_number?: string | null
           workspace_id: string
         }
@@ -8054,8 +8152,14 @@ export type Database = {
           ai_analyzed_at?: string | null
           ai_contact_type?: string | null
           ai_insight?: string | null
+          ai_last_enriched_at?: string | null
           ai_next_action?: string | null
           ai_next_action_type?: string | null
+          ai_pain_points?: Json
+          ai_recommendations?: Json
+          ai_risk_flags?: Json
+          ai_summary?: string | null
+          ai_tags?: Json
           ai_temperature?: string | null
           assigned_to?: string | null
           automation_active?: boolean | null
@@ -8074,6 +8178,8 @@ export type Database = {
           commercial_name?: string | null
           company?: string | null
           company_id?: string | null
+          consent_record?: Json
+          contact_preferences?: Json
           contact_score?: number | null
           conversion_probability?: number | null
           country?: string | null
@@ -8081,27 +8187,41 @@ export type Database = {
           created_by?: string
           credit_active?: boolean | null
           credit_limit?: number | null
+          custom_fields?: Json
+          deleted_at?: string | null
           email?: string | null
+          emails?: Json
+          engagement_score?: number
           entity_type?: string | null
           estimated_value?: number | null
           facebook_url?: string | null
+          first_name?: string | null
           fiscal_regime?: string | null
           ghl_contact_id?: string | null
           ghl_synced_at?: string | null
           has_whatsapp?: boolean | null
+          icp_fit_score?: number
           id?: string
           instagram_url?: string | null
           is_fiscal_address?: boolean | null
           is_primary_contact?: boolean | null
           job_title?: string | null
+          last_call_at?: string | null
           last_contact_at?: string | null
+          last_email_at?: string | null
+          last_name?: string | null
           last_purchase_date?: string | null
           lead_source?: string | null
+          lead_status?: string
           linkedin_url?: string | null
+          marketing_opt_in?: boolean
           name?: string
+          next_followup_at?: string | null
           notes?: string | null
+          pare_score?: number
           payment_conditions?: string | null
           phone?: string | null
+          phones?: Json
           postal_code?: string | null
           preferred_currency?: string | null
           preferred_payment_method?: string | null
@@ -8110,12 +8230,15 @@ export type Database = {
           sales_2024?: number | null
           sales_2025?: number | null
           sales_2026?: number | null
+          segments?: Json
           source?: string | null
           tags?: string[] | null
           tax_id?: string | null
+          timezone?: string | null
           total_revenue?: number | null
           twitter_url?: string | null
           updated_at?: string
+          updated_by?: string | null
           whatsapp_number?: string | null
           workspace_id?: string
         }
