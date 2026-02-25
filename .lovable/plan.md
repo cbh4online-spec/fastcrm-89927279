@@ -1,50 +1,43 @@
 
 
-# Plan: Seed Category Pages (Phase 2 - Task t2-2)
+# Plan: Add Rename & Duplicate to View Context Menus (like Attio)
 
 ## Context
 
-The category pages (`/categories` list + `/categories/:slug` detail) are fully built with hero sections, keyword grids, generator widgets, benefits lists, FAQs, and sidebar CTAs. However, `seo_entities` has **zero category records**, so both pages render empty. The footer already links to 6 categories: CRM, Vendas, Marketing, Automação, Leads, Analytics.
+The screenshot shows Attio's deals view with a context menu containing 4 actions: **Add to favorites**, **Rename**, **Duplicate**, and **Delete**. Our current `ViewItem` in `DealsSidebar.tsx` only has 2: Favorito and Eliminar. The `DealViewSelectorDropdown.tsx` only has Delete.
 
-## Categories to Create
-
-| # | Slug | Title |
-|---|------|-------|
-| 1 | `crm` | CRM |
-| 2 | `vendas` | Vendas |
-| 3 | `marketing-digital` | Marketing Digital |
-| 4 | `automacao` | Automação |
-| 5 | `leads` | Gestão de Leads |
-| 6 | `analytics` | Analytics e Métricas |
-| 7 | `ecommerce` | E-commerce |
-| 8 | `seo` | SEO |
-| 9 | `email-marketing` | Email Marketing |
-| 10 | `redes-sociais` | Redes Sociais |
-
-Each category will include:
-- Title, h1, meta_description, tldr
-- 2-3 content sections (overview, use cases, tips)
-- 3-4 FAQs
-- CTA pointing to `/tools/keyword-ideas`
-- Status: `published`, language: `pt`, intent: `commercial`
+The `useUpdateSavedView` hook already exists for renaming. We need to add a duplicate mutation and wire up both Rename and Duplicate into the context menus.
 
 ## Implementation Steps
 
-### 1. Database Migration — INSERT
+### 1. Add `useDuplicateSavedView` hook — EDIT `src/hooks/useSavedViews.ts`
 
-Single SQL migration inserting 10 category records into `seo_entities` with `workspace_id = NULL`, `entity_type = 'category'`, and rich JSONB content.
+Add a new mutation that reads the view by ID, then inserts a copy with `name + " (copy)"` and resets `is_default`/`is_favorite`.
 
-### 2. Update Footer Links — EDIT `SEOFooter.tsx`
+### 2. Update `ViewItem` context menu — EDIT `src/components/opportunities/DealsSidebar.tsx`
 
-Update the footer category links to match the actual seeded slugs (e.g., `marketing-digital` instead of `marketing`).
+Add "Rename" and "Duplicate" menu items between "Favorito" and "Eliminar":
+- **Add to favorites** (existing, with star icon)
+- **Rename** — opens an inline edit or prompt to rename (using `useUpdateSavedView`)
+- **Duplicate** — calls `useDuplicateSavedView`
+- **Delete** — existing destructive action
 
-### 3. Update Roadmap — EDIT `seoRoadmap.ts`
+Add a rename dialog/inline state to `ViewItem` for editing the name.
 
-Mark task `t2-2` as `done`.
+Pass new callbacks (`onRename`, `onDuplicate`) into `ViewItem`.
+
+### 3. Update `DealViewSelectorDropdown` context menu — EDIT `src/components/opportunities/DealViewSelectorDropdown.tsx`
+
+Add the same 3 actions (Favorite, Rename, Duplicate) above Delete in each view's dropdown. Currently it only shows Delete.
+
+### 4. Add i18n keys — EDIT locale files (en, es, fr, pt)
+
+Add keys for `sidebarRenameView`, `sidebarDuplicateView`, `sidebarAddToFavorites`, `sidebarRemoveFavorite` to `crm.json` locale files.
 
 ## Technical Notes
 
-- The `CategoryDetailPage` uses `useRelatedEntities('keyword', slug, 8)` to show related keywords — these will populate as keyword entities sharing the slug/category are added
-- The `EntityGrid` component in the list page renders cards with title and description automatically
-- Categories use `workspace_id = NULL` for public RLS access
+- `useUpdateSavedView` already supports partial updates including `name` — rename just calls it with `{ name: newName }`
+- Duplicate creates a new record server-side — no need for client-side ID generation
+- The rename UX will use a small Dialog with a single input field (matching the existing `CreateViewDialog` pattern)
+- All 4 context menu items will have icons: Star, Edit (Pencil), Copy, Trash2
 
