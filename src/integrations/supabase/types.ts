@@ -1835,6 +1835,39 @@ export type Database = {
           },
         ]
       }
+      ask_fastcrm_query_logs: {
+        Row: {
+          action_executed: string | null
+          created_at: string | null
+          id: string
+          intent: string | null
+          items_count: number | null
+          question: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          action_executed?: string | null
+          created_at?: string | null
+          id?: string
+          intent?: string | null
+          items_count?: number | null
+          question: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          action_executed?: string | null
+          created_at?: string | null
+          id?: string
+          intent?: string | null
+          items_count?: number | null
+          question?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       automation_actions: {
         Row: {
           action_type: Database["public"]["Enums"]["automation_action_type"]

@@ -203,6 +203,20 @@ Extract the intent and optional days parameter. Always call the tool.`,
       days
     );
 
+    // --- Step 3: Log query (non-blocking) ---
+    serviceClient
+      .from("ask_fastcrm_query_logs")
+      .insert({
+        workspace_id: workspaceId,
+        user_id: claimsData.claims.sub,
+        question,
+        intent,
+        items_count: result.items?.length ?? 0,
+      })
+      .then(({ error: logErr }: any) => {
+        if (logErr) console.error("ask-fastcrm log error:", logErr);
+      });
+
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
