@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FileText } from "lucide-react";
 import { ENIContact } from "../ENIContactTypes";
 import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
+import { useTranslation } from "react-i18next";
 
 interface NotesSectionProps {
   contact: ENIContact;
@@ -12,6 +13,8 @@ export function NotesSection({
   contact, 
   onFieldChange,
 }: NotesSectionProps) {
+  const { t } = useTranslation('crm');
+
   return (
     <Card className="border-border/50 bg-gradient-to-br from-card to-card/80 shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
@@ -19,9 +22,9 @@ export function NotesSection({
           <div className="p-1.5 rounded-md bg-slate-500/10">
             <FileText className="h-4 w-4 text-slate-500" />
           </div>
-          Notas & Observações
+          {t('notesObservations')}
         </CardTitle>
-        <CardDescription>Notas internas e contexto do cliente.</CardDescription>
+        <CardDescription>{t('notesDesc')}</CardDescription>
       </CardHeader>
       <CardContent>
         <InlineEditableField
@@ -30,7 +33,7 @@ export function NotesSection({
           fieldType="textarea"
           value={contact.notes || ''}
           onChange={(value) => onFieldChange('notes', value)}
-          placeholder="Adicione notas, contexto ou observações importantes sobre este cliente..."
+          placeholder={t('notesPlaceholder')}
         />
       </CardContent>
     </Card>

@@ -11,6 +11,7 @@ import { FileText, Upload, Trash2, Download, Plus, File, Calendar } from "lucide
 import { useContactDocuments } from "../useContactData";
 import { DOCUMENT_TYPES, ContactDocument } from "../ENIContactTypes";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface DocumentsSectionProps {
   contactId: string;
@@ -30,13 +31,14 @@ export function DocumentsSection({ contactId }: DocumentsSectionProps) {
   const [notes, setNotes] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation('crm');
+  const { t: tc } = useTranslation('common');
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
       if (!documentType) {
-        // Auto-detect type based on extension
         const ext = file.name.split(".").pop()?.toLowerCase();
         if (ext === "pdf") setDocumentType("Contrato");
       }
@@ -69,27 +71,27 @@ export function DocumentsSection({ contactId }: DocumentsSectionProps) {
           <div>
             <CardTitle className="text-base flex items-center gap-2">
               <FileText className="h-4 w-4 text-primary" />
-              Documentos
+              {t('documents')}
             </CardTitle>
-            <CardDescription>Contratos, acordos e comprovativos.</CardDescription>
+            <CardDescription>{t('documentsDesc')}</CardDescription>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" className="gap-2">
                 <Plus className="h-4 w-4" />
-                Adicionar
+                {tc('add')}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Adicionar Documento</DialogTitle>
+                <DialogTitle>{t('addDocument')}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>Tipo de Documento *</Label>
+                  <Label>{t('documentType')} *</Label>
                   <Select value={documentType} onValueChange={setDocumentType}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo" />
+                      <SelectValue placeholder={t('selectType')} />
                     </SelectTrigger>
                     <SelectContent>
                       {DOCUMENT_TYPES.map((type) => (
@@ -100,7 +102,7 @@ export function DocumentsSection({ contactId }: DocumentsSectionProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Ficheiro *</Label>
+                  <Label>{tc('file')} *</Label>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -114,7 +116,7 @@ export function DocumentsSection({ contactId }: DocumentsSectionProps) {
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <Upload className="h-4 w-4" />
-                    {selectedFile ? selectedFile.name : "Selecionar ficheiro"}
+                    {selectedFile ? selectedFile.name : tc('selectFile')}
                   </Button>
                   {selectedFile && (
                     <p className="text-xs text-muted-foreground">
@@ -124,23 +126,23 @@ export function DocumentsSection({ contactId }: DocumentsSectionProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Observações</Label>
+                  <Label>{tc('observations')}</Label>
                   <Input
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Notas sobre o documento..."
+                    placeholder={t('notesAboutDoc')}
                   />
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancelar
+                  {tc('cancel')}
                 </Button>
                 <Button 
                   onClick={handleUpload}
                   disabled={!selectedFile || !documentType || uploadDocument.isPending}
                 >
-                  {uploadDocument.isPending ? "A carregar..." : "Adicionar"}
+                  {uploadDocument.isPending ? tc('uploading') : tc('add')}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -155,8 +157,8 @@ export function DocumentsSection({ contactId }: DocumentsSectionProps) {
         ) : documents.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <File className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Sem documentos</p>
-            <p className="text-xs">Clique em Adicionar para carregar.</p>
+            <p className="text-sm">{tc('noDocuments')}</p>
+            <p className="text-xs">{tc('clickToAdd')}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -177,6 +179,8 @@ function DocumentRow({
   document: ContactDocument; 
   onDelete: (id: string) => void;
 }) {
+  const { t: tc } = useTranslation('common');
+
   return (
     <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
       <div className="flex items-center gap-3 min-w-0">
@@ -214,18 +218,18 @@ function DocumentRow({
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Eliminar Documento</AlertDialogTitle>
+              <AlertDialogTitle>{tc('deleteDocument')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Tem a certeza? O ficheiro será eliminado permanentemente.
+                {tc('confirmDeleteDocument')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
               <AlertDialogAction 
                 onClick={() => onDelete(document.id)}
                 className="bg-destructive text-destructive-foreground"
               >
-                Eliminar
+                {tc('delete')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

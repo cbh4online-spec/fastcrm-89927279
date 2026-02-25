@@ -7,6 +7,7 @@ import { InlineEditableField } from "@/components/custom-fields/InlineEditableFi
 import { useContactPermissions } from "../useContactPermissions";
 import { cn } from "@/lib/utils";
 import { usePaymentConditions, usePaymentMethods } from "@/hooks/useProductSettings";
+import { useTranslation } from "react-i18next";
 
 interface FinancialSectionProps {
   contact: ENIContact;
@@ -19,12 +20,12 @@ export function FinancialSection({
 }: FinancialSectionProps) {
   const { canEdit } = useContactPermissions();
   const canEditFinancial = canEdit('financial');
+  const { t } = useTranslation('crm');
+  const { t: tc } = useTranslation('common');
   
-  // Fetch dynamic payment conditions and methods
   const { data: paymentConditionsConfig } = usePaymentConditions();
   const { data: paymentMethodsConfig } = usePaymentMethods();
 
-  // Build dynamic options with fallback to static
   const paymentConditionsOptions = useMemo(() => {
     if (paymentConditionsConfig?.length) {
       return paymentConditionsConfig
@@ -45,7 +46,6 @@ export function FinancialSection({
     return PAYMENT_METHODS;
   }, [paymentMethodsConfig]);
 
-  // If user can't view financial data, show restricted message
   if (!canEditFinancial) {
     return (
       <Card className="border-border/50 bg-gradient-to-br from-card to-card/80 shadow-sm">
@@ -54,13 +54,13 @@ export function FinancialSection({
             <div className="p-1.5 rounded-md bg-purple-500/10">
               <Wallet className="h-4 w-4 text-purple-500" />
             </div>
-            Financeiro & Pagamentos
+            {t('financial')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-3 py-8 justify-center text-muted-foreground">
             <Lock className="h-5 w-5" />
-            <p className="text-sm">Acesso restrito à equipa financeira</p>
+            <p className="text-sm">{tc('restrictedAccess')}</p>
           </div>
         </CardContent>
       </Card>
@@ -75,7 +75,7 @@ export function FinancialSection({
             <div className="p-1.5 rounded-md bg-purple-500/10">
               <Wallet className="h-4 w-4 text-purple-500" />
             </div>
-            Financeiro & Pagamentos
+            {t('financial')}
           </CardTitle>
           {contact.credit_active && (
             <Badge 
@@ -83,16 +83,15 @@ export function FinancialSection({
               className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30"
             >
               <AlertCircle className="h-3 w-3 mr-1" />
-              Crédito Ativo
+              {tc('creditActive')}
             </Badge>
           )}
         </div>
-        <CardDescription>Condições de pagamento e crédito.</CardDescription>
+        <CardDescription>{t('financialDesc')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-0 divide-y divide-border/50">
-        {/* Payment Conditions */}
         <InlineEditableField
-          label="Condições Pagamento"
+          label={t('paymentConditions')}
           fieldId="payment_conditions"
           fieldType="select"
           value={contact.payment_conditions || ''}
@@ -101,9 +100,8 @@ export function FinancialSection({
           icon={<Clock className="h-3.5 w-3.5" />}
         />
 
-        {/* Preferred Payment Method */}
         <InlineEditableField
-          label="Forma de Pagamento"
+          label={t('paymentMethod')}
           fieldId="preferred_payment_method"
           fieldType="select"
           value={contact.preferred_payment_method || ''}
@@ -112,9 +110,8 @@ export function FinancialSection({
           icon={<CreditCard className="h-3.5 w-3.5" />}
         />
 
-        {/* Credit Limit */}
         <InlineEditableField
-          label="Plafond de Crédito"
+          label={t('creditLimit')}
           fieldId="credit_limit"
           fieldType="currency"
           value={contact.credit_limit}
@@ -122,9 +119,8 @@ export function FinancialSection({
           placeholder="0.00"
         />
 
-        {/* Credit Active */}
         <InlineEditableField
-          label="Plafond Ativo"
+          label={t('creditActiveLabel')}
           fieldId="credit_active"
           fieldType="boolean"
           value={contact.credit_active || false}

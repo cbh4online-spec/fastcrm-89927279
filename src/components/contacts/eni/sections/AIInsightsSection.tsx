@@ -14,18 +14,13 @@ import {
 } from "lucide-react";
 import { ENIContact } from "../ENIContactTypes";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface AIInsightsSectionProps {
   contact: ENIContact;
   onGenerateInsights?: () => void;
   isGenerating?: boolean;
 }
-
-const TEMPERATURE_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
-  hot: { label: 'Quente', color: 'text-red-600', bgColor: 'bg-red-100 dark:bg-red-900/30' },
-  warm: { label: 'Morno', color: 'text-amber-600', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
-  cold: { label: 'Frio', color: 'text-blue-600', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
-};
 
 const ACTION_TYPE_ICONS: Record<string, React.ElementType> = {
   follow_up: MessageSquare,
@@ -53,6 +48,14 @@ export function AIInsightsSection({
   onGenerateInsights,
   isGenerating = false
 }: AIInsightsSectionProps) {
+  const { t } = useTranslation('crm');
+
+  const TEMPERATURE_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
+    hot: { label: t('temperatureHot'), color: 'text-red-600', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+    warm: { label: t('temperatureWarm'), color: 'text-amber-600', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
+    cold: { label: t('temperatureCold'), color: 'text-blue-600', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
+  };
+
   const temperature = contact.ai_temperature;
   const tempConfig = temperature ? TEMPERATURE_CONFIG[temperature] : null;
   const ActionIcon = contact.ai_next_action_type 
@@ -68,10 +71,10 @@ export function AIInsightsSection({
           <div>
             <CardTitle className="text-base flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-purple-600" />
-              IA & Insights
+              {t('aiInsights')}
             </CardTitle>
             <CardDescription>
-              Análise automática e sugestões inteligentes.
+              {t('aiInsightsDesc')}
             </CardDescription>
           </div>
           <Button
@@ -86,7 +89,7 @@ export function AIInsightsSection({
             ) : (
               <Sparkles className="h-3.5 w-3.5" />
             )}
-            {isGenerating ? 'A analisar...' : 'Gerar Insights'}
+            {isGenerating ? t('generatingInsights') : t('generateInsights')}
           </Button>
         </div>
       </CardHeader>
@@ -110,7 +113,7 @@ export function AIInsightsSection({
           {contact.conversion_probability && (
             <Badge variant="outline" className="gap-1">
               <TrendingUp className="h-3 w-3" />
-              {Math.round(contact.conversion_probability * 100)}% conversão
+              {Math.round(contact.conversion_probability * 100)}% {t('conversion')}
             </Badge>
           )}
         </div>
@@ -121,7 +124,7 @@ export function AIInsightsSection({
             <div className="flex items-start gap-2">
               <Lightbulb className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-foreground mb-1">Resumo IA</p>
+                <p className="text-sm font-medium text-foreground mb-1">{t('aiSummary')}</p>
                 <p className="text-sm text-muted-foreground">{contact.ai_insight}</p>
               </div>
             </div>
@@ -134,7 +137,7 @@ export function AIInsightsSection({
             <div className="flex items-start gap-2">
               <ActionIcon className="h-4 w-4 text-purple-600 mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-foreground mb-1">Próxima Ação Sugerida</p>
+                <p className="text-sm font-medium text-foreground mb-1">{t('nextSuggestedAction')}</p>
                 <p className="text-sm text-muted-foreground">{contact.ai_next_action}</p>
               </div>
             </div>
@@ -144,7 +147,7 @@ export function AIInsightsSection({
         {/* Contact Type */}
         {contact.ai_contact_type && (
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">Tipo identificado:</span>
+            <span className="text-muted-foreground">{t('identifiedType')}</span>
             <Badge variant="secondary">{contact.ai_contact_type}</Badge>
           </div>
         )}
@@ -153,7 +156,7 @@ export function AIInsightsSection({
         {contact.ai_analyzed_at && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
             <Clock className="h-3 w-3" />
-            Última análise: {getTimeAgo(contact.ai_analyzed_at)}
+            {t('lastAnalysis')} {getTimeAgo(contact.ai_analyzed_at)}
           </div>
         )}
 
@@ -162,7 +165,7 @@ export function AIInsightsSection({
           <div className="text-center py-4">
             <Brain className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
             <p className="text-sm text-muted-foreground">
-              Clique em "Gerar Insights" para obter análise e sugestões IA.
+              {t('clickGenerateInsights')}
             </p>
           </div>
         )}
