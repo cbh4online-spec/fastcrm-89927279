@@ -1,8 +1,12 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SettingsNavigation, SettingsCategory } from "@/components/settings/SettingsNavigation";
+import { ProfileSettings } from "@/components/settings/sections/ProfileSettings";
+import { AppearanceSettings } from "@/components/settings/sections/AppearanceSettings";
+import { NotificationSettings } from "@/components/settings/sections/NotificationSettings";
 import { WorkspaceSettings } from "@/components/settings/sections/WorkspaceSettings";
 import { ChannelsSettings } from "@/components/settings/sections/ChannelsSettings";
 import { CrmDataSettings } from "@/components/settings/sections/CrmDataSettings";
@@ -17,77 +21,42 @@ import { ExtensionAuditLog } from "@/components/settings/ExtensionAuditLog";
 import { ExtensionSettingsSection } from "@/components/settings/ExtensionSettingsSection";
 import { searchSettings } from "@/components/settings/settingsSearchData";
 
-const categoryTitles: Record<SettingsCategory, { title: string; description: string }> = {
-  workspace: {
-    title: "Workspace & Equipa",
-    description: "Gerir utilizadores, permissões e configurações do workspace",
-  },
-  channels: {
-    title: "Canais & Fontes de Leads",
-    description: "Configurar canais de comunicação e fontes de captura",
-  },
-  crm: {
-    title: "CRM & Dados",
-    description: "Personalizar campos, pipelines e gestão de dados",
-  },
-  templates: {
-    title: "Templates",
-    description: "Biblioteca central de mensagens e propostas reutilizáveis",
-  },
-  automation: {
-    title: "Automação & IA",
-    description: "Automatizar processos e configurar inteligência artificial",
-  },
-  experience: {
-    title: "Experiência & Interface",
-    description: "Personalizar dashboards, vistas e layouts",
-  },
-  security: {
-    title: "Segurança & Conformidade",
-    description: "Permissões avançadas, auditoria e proteção de dados",
-  },
-  integrations: {
-    title: "Integrações & API",
-    description: "Conectar ferramentas externas e acesso programático",
-  },
-  billing: {
-    title: "Plano & Faturação",
-    description: "Gerir subscrição, ver utilização e fazer upgrade",
-  },
-  extensions: {
-    title: "Extensões",
-    description: "Ver extensões ativas e histórico de ativação/desativação",
-  },
-  flags: {
-    title: "Feature Flags",
-    description: "Controlar funcionalidades experimentais do workspace",
-  },
-};
-
 export default function Settings() {
+  const { t } = useTranslation("settings");
   const { section } = useParams<{ section?: string }>();
   const navigate = useNavigate();
-  
-  // Map URL sections to valid categories
-  const validCategories: SettingsCategory[] = [
-    "workspace", "channels", "crm", "templates", 
-    "automation", "experience", "security", "integrations", "billing", "extensions", "flags"
-  ];
-  
-  const initialCategory = validCategories.includes(section as SettingsCategory) 
-    ? (section as SettingsCategory) 
-    : "workspace";
-  
+
+  const categoryMeta: Record<SettingsCategory, { titleKey: string; descKey: string }> = {
+    profile: { titleKey: "profile_title", descKey: "profile_description" },
+    appearance: { titleKey: "appearance_title", descKey: "appearance_description" },
+    notifications: { titleKey: "notifications_title", descKey: "notifications_description" },
+    workspace: { titleKey: "workspace", descKey: "workspace" },
+    channels: { titleKey: "nav_channels", descKey: "nav_channels" },
+    crm: { titleKey: "nav_crmData", descKey: "nav_crmData" },
+    templates: { titleKey: "nav_templates", descKey: "nav_templates" },
+    automation: { titleKey: "nav_automationAI", descKey: "nav_automationAI" },
+    experience: { titleKey: "experience", descKey: "experience" },
+    security: { titleKey: "nav_security", descKey: "nav_security" },
+    integrations: { titleKey: "nav_integrations", descKey: "nav_integrations" },
+    billing: { titleKey: "nav_billing", descKey: "nav_billing" },
+    extensions: { titleKey: "nav_extensions", descKey: "nav_extensions" },
+    flags: { titleKey: "nav_developer", descKey: "nav_developer" },
+  };
+
+  const validCategories = Object.keys(categoryMeta) as SettingsCategory[];
+
+  const initialCategory = validCategories.includes(section as SettingsCategory)
+    ? (section as SettingsCategory)
+    : "profile";
+
   const [activeCategory, setActiveCategory] = useState<SettingsCategory>(initialCategory);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Sync URL when category changes
   const handleCategoryChange = (category: SettingsCategory) => {
     setActiveCategory(category);
     navigate(`/settings/${category}`, { replace: true });
   };
 
-  // Sync state when URL changes
   useEffect(() => {
     if (section && validCategories.includes(section as SettingsCategory)) {
       setActiveCategory(section as SettingsCategory);
@@ -98,7 +67,6 @@ export default function Settings() {
     return searchSettings(searchQuery);
   }, [searchQuery]);
 
-  // Auto-switch to first matched category when searching
   useEffect(() => {
     if (searchQuery.trim() && searchResults.matchedCategories.size > 0) {
       if (!searchResults.matchedCategories.has(activeCategory)) {
@@ -108,12 +76,16 @@ export default function Settings() {
     }
   }, [searchQuery, searchResults.matchedCategories, activeCategory]);
 
-  const categoryInfo = categoryTitles[activeCategory];
-
   const renderContent = () => {
     const matchedSections = searchResults.matchedSections;
-    
+
     switch (activeCategory) {
+      case "profile":
+        return <ProfileSettings />;
+      case "appearance":
+        return <AppearanceSettings />;
+      case "notifications":
+        return <NotificationSettings />;
       case "workspace":
         return <WorkspaceSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
       case "channels":
@@ -142,14 +114,15 @@ export default function Settings() {
       case "flags":
         return <FeatureFlagsSettings />;
       default:
-        return <WorkspaceSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
+        return <ProfileSettings />;
     }
   };
+
+  const meta = categoryMeta[activeCategory];
 
   return (
     <DashboardLayout>
       <div className="h-full flex -m-6">
-        {/* Navigation Sidebar */}
         <SettingsNavigation
           activeCategory={activeCategory}
           onCategoryChange={handleCategoryChange}
@@ -159,15 +132,12 @@ export default function Settings() {
           matchCount={searchResults.matchedItems.length}
         />
 
-        {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header */}
           <div className="border-b border-border bg-background px-8 py-6">
-            <h1 className="text-2xl font-bold text-foreground">{categoryInfo.title}</h1>
-            <p className="text-muted-foreground mt-1">{categoryInfo.description}</p>
+            <h1 className="text-2xl font-bold text-foreground">{t(meta.titleKey)}</h1>
+            <p className="text-muted-foreground mt-1">{t(meta.descKey)}</p>
           </div>
 
-          {/* Content */}
           <ScrollArea className="flex-1">
             <div className="p-8 max-w-4xl">
               {renderContent()}

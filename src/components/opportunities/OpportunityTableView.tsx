@@ -38,7 +38,7 @@ import { DealScore, getCategoryColors, getCategoryLabel } from "@/hooks/useDealS
 import type { CompactDealIntelligence } from "@/types/dealIntelligence";
 import { DealHealthBadge } from "@/components/intelligence/DealHealthBadge";
 
-const dateLocales: Record<string, Locale> = { pt, en: enUS, es, fr };
+const dateLocales: Record<string, typeof pt> = { pt, en: enUS, es, fr };
 
 interface OpportunityTableViewProps {
   opportunities: Opportunity[];
