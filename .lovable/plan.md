@@ -1,151 +1,167 @@
 
 
-# Call Recording Storage & CRM Auto-Link
+# Redesign da Página de Detalhe de Oportunidade -- Estilo Attio com Melhorias
 
-## Current State
+## Referência Visual
 
-- `meeting_recordings` table exists with `file_url`, `file_size_bytes`, `status` columns but NO storage bucket for actual audio/video files
-- `meetings` table already has `contact_id`, `company_id`, `opportunity_id` foreign keys -- CRM linking data is available
-- `product-images-presign` edge function provides a proven pattern for signed upload URLs
-- `useMeetingTranscript` hook fetches recording metadata but has no upload capability
-- No `call-recordings` storage bucket exists
+A imagem mostra o layout de detalhe de deal do Attio/Basepoint com:
+- Header com navegação entre registos ("1 of 5 in Deal stage → Lead")
+- Tabs horizontais: Overview, Activity, Notes, Associated company, Associated People, Tasks, Calls, Workspace
+- Secção de **Highlights** com cards inline (Deal stage, Deal owner, Associated company, Deal value)
+- Timeline de **Activity** com avatares e datas
+- **Sidebar direita** com Details e Comments em tabs, contendo secções colapsáveis: Communication, Deal Info (campos editáveis inline), Company Info, Lists
 
-## What We'll Build
+## Estado Atual
 
-1. **Private storage bucket** `call-recordings` for audio/video files (private, workspace-scoped RLS)
-2. **Edge function** `recording-upload` that validates JWT, generates presigned upload URL, creates/updates `meeting_recordings` row, and auto-links CRM entities from the parent meeting
-3. **Frontend hook** `useRecordingUpload` with client-side compression awareness, progress tracking, and CRM association display
-4. **Upload UI component** `RecordingUploadCard` embedded in the transcript viewer page
-5. **CRM linking table** `recording_crm_links` to track which contacts/deals/companies are associated with each recording
+A página `OpportunityDetailPage.tsx` tem:
+- Header simples com botão voltar + título
+- Tabs: Overview, Insights, Tasks (coming soon), Notes (coming soon)
+- Overview: Stepper de estágios → Grid de detalhes estática → Timeline de atividade
+- Sidebar: Intelligence panel, Associações (lead/contacto/empresa), Comissão
+- **Problemas**: detalhes não são editáveis inline na tab overview, sem highlights cards, sem navegação entre deals, sem contagem nas tabs, sem secção de comunicação
 
-## Architecture
+## Melhorias Planeadas (vs Attio)
+
+1. **Record navigation** -- navegar entre oportunidades do mesmo estágio com "X of Y"
+2. **Highlights cards** -- cards visuais de destaque com stage (com cor), owner, empresa, valor
+3. **Tabs com contadores** -- Notes (3), Tasks (5), Associated People (2), Calls (0)
+4. **Sidebar reestruturada** -- tabs Details/Comments, secções colapsáveis com campos editáveis inline
+5. **Communication section** na sidebar -- última comunicação com tempo relativo
+6. **Deal Info section** colapsável -- todos os campos editáveis inline (valor, prioridade, estágio, data fecho, probabilidade)
+7. **Company Info section** colapsável -- domínios, categorias, ICP
+8. **Notes tab funcional** -- lista de notas com criação inline
+9. **Tasks tab funcional** -- lista de tarefas associadas com criação rápida
+10. **Copy URL / Copy ID / Add to favorites** -- dropdown menu no header
+
+## Arquitetura de Componentes
 
 ```text
-┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  Upload UI  │────▶│ recording-upload  │────▶│ call-recordings  │
-│  Component  │     │  Edge Function    │     │  Storage Bucket  │
-└─────────────┘     └──────────────────┘     └─────────────────┘
-                           │
-                    ┌──────┴──────┐
-                    ▼             ▼
-             meeting_recordings   recording_crm_links
-             (file_url, status)   (contact, deal, company)
+OpportunityDetailPage (redesenhado)
+├── Header
+│   ├── Record Navigation ("1 of 5 in Qualificação")
+│   ├── Title + Star (favorite)
+│   └── Actions (Compose email, Configure, ...)
+├── Main Content Area
+│   ├── Tabs (Overview | Activity | Notes | People | Tasks | Calls)
+│   │   
+│   │   Tab: Overview
+│   │   ├── HighlightsCards (stage, owner, company, value)
+│   │   └── ActivityTimeline (existente, melhorado)
+│   │   
+│   │   Tab: Activity (timeline completa)
+│   │   Tab: Notes (CRUD de notas)
+│   │   Tab: Tasks (lista + criação)
+│   │   Tab: Associated People (contactos)
+│   │   Tab: Calls (recordings/transcripts)
+│   │   
+│   └── Sidebar Direita (fixa)
+│       ├── Sub-tabs: Details | Comments
+│       ├── Communication (último contacto)
+│       ├── Deal Info (campos editáveis inline colapsáveis)
+│       ├── Company Info (colapsável)
+│       └── AI Intelligence (colapsável, existente)
 ```
 
-## Database Changes
+## Componentes Novos
 
-### 1. Storage bucket `call-recordings` (private)
+### 1. `OpportunityHighlightsCards.tsx`
+Cards inline horizontais mostrando métricas-chave com cor e ícones:
+- **Deal Stage**: nome + barra de cor do estágio
+- **Deal Owner**: avatar + nome
+- **Associated Company**: logo + nome
+- **Deal Value**: valor formatado com moeda
 
-```sql
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-  'call-recordings', 'call-recordings', false,
-  524288000,  -- 500MB
-  ARRAY['audio/mpeg','audio/wav','audio/webm','audio/ogg','audio/mp4',
-        'video/mp4','video/webm','video/quicktime']
-);
-```
+Cada card é clicável para edição rápida (popover com select/input).
 
-RLS policies scoped to workspace members via path convention `workspaces/{workspace_id}/...`.
+### 2. `OpportunityRecordNav.tsx`
+Navegação entre registos do mesmo estágio:
+- "← 3 of 12 in Qualificação →"
+- Busca oportunidades do mesmo `stage_id`, ordena por `created_at`
+- Botões prev/next navegam entre IDs
 
-### 2. New table `recording_crm_links`
+### 3. `OpportunityDetailSidebar.tsx`
+Sidebar completa estilo Attio com:
+- Tabs internos: Details | Comments
+- **Communication**: última atividade com ícone + tempo relativo ("About 2 months ago")
+- **Deal Info**: campos editáveis inline usando `InlineEditableField` (título, valor, prioridade, estágio, data fecho, probabilidade, moeda)
+- **Company Info**: domínios, categorias -- com "Show all values" expandível
+- **AI Intelligence**: panel existente integrado como secção colapsável
+- Cada secção com `Collapsible` + chevron
 
-Tracks which CRM entities are associated with each recording (auto-populated from meeting, editable by user):
+### 4. `OpportunityNotesTab.tsx`
+Lista de notas com:
+- Criação inline (textarea + guardar)
+- Lista cronológica de notas existentes
+- Edição/eliminação
 
-```sql
-CREATE TABLE public.recording_crm_links (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  recording_id UUID NOT NULL REFERENCES public.meeting_recordings(id) ON DELETE CASCADE,
-  workspace_id UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
-  entity_type TEXT NOT NULL,  -- 'contact', 'company', 'opportunity'
-  entity_id UUID NOT NULL,
-  entity_name TEXT,           -- denormalized for display
-  linked_by TEXT NOT NULL DEFAULT 'auto',  -- 'auto' or 'manual'
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-```
+### 5. `OpportunityTasksTab.tsx`
+Lista de tarefas associadas à oportunidade:
+- Usa hook `useTasks` existente com filtro `related_type: "opportunity"`
+- Criação rápida com título + data
+- Toggle de conclusão
+- Contagem na tab
 
-RLS: workspace members can read/write their workspace data.
+### 6. `OpportunityHeaderActions.tsx`
+Dropdown menu com:
+- Copy page URL
+- Copy record ID
+- Add to favorites (toggle)
+- Delete record
 
-## Edge Function: `recording-upload`
+## Ficheiros
 
-Based on the `product-images-presign` pattern:
-
-1. Validate JWT + workspace membership
-2. Accept `{ meeting_id, filename, content_type, size_bytes }`
-3. Look up the meeting to get `contact_id`, `company_id`, `opportunity_id`
-4. Create or update `meeting_recordings` row with `status: 'uploading'`
-5. Generate presigned upload URL to `call-recordings/workspaces/{wid}/recordings/{recording_id}/{filename}`
-6. Auto-create `recording_crm_links` rows for any linked CRM entities from the meeting
-7. Return `{ recording_id, signed_upload_url, public_url, crm_links }`
-
-## Frontend Components
-
-### `useRecordingUpload` hook
-
-```typescript
-interface UseRecordingUploadReturn {
-  uploadRecording: (meetingId: string, file: File) => Promise<void>;
-  isUploading: boolean;
-  uploadProgress: number;
-  confirmUpload: (recordingId: string) => Promise<void>;
-}
-```
-
-Flow: request presigned URL -> PUT file directly to storage -> confirm upload status -> trigger transcript analysis.
-
-### `RecordingUploadCard` component
-
-Embedded in `TranscriptViewer.tsx` when no recording file exists:
-
-- Drag-and-drop zone for audio/video files
-- File type + size validation (max 500MB)
-- Upload progress bar
-- After upload: shows linked CRM entities (contacts, deals, companies) with badges
-- "Analyze" button to trigger AI transcription
-
-## File Plan
-
-| File | Action | Description |
+| Ficheiro | Ação | Descrição |
 |---|---|---|
-| **Database migration** | **NEW** | Create bucket + `recording_crm_links` table + RLS policies |
-| `supabase/functions/recording-upload/index.ts` | **NEW** | Presigned URL generation + CRM auto-link |
-| `src/hooks/useRecordingUpload.ts` | **NEW** | Upload flow with progress tracking |
-| `src/components/meetings/RecordingUploadCard.tsx` | **NEW** | Drag-and-drop upload UI with CRM link display |
-| `src/components/meetings/RecordingCrmLinks.tsx` | **NEW** | Display linked contacts/deals/companies |
-| `src/components/meetings/TranscriptViewer.tsx` | **EDIT** | Integrate upload card when no file exists |
-| `src/hooks/useMeetingTranscript.ts` | **EDIT** | Add `crmLinks` query for recording |
-| `supabase/config.toml` | **EDIT** | Add `recording-upload` function config |
-| `src/i18n/locales/{en,pt,es,fr}/meetings.json` | **EDIT** | Add ~15 upload + CRM link keys |
+| `src/components/opportunities/detail/OpportunityHighlightsCards.tsx` | **NEW** | Cards de destaque (stage, owner, company, value) |
+| `src/components/opportunities/detail/OpportunityRecordNav.tsx` | **NEW** | Navegação entre registos do mesmo estágio |
+| `src/components/opportunities/detail/OpportunityDetailSidebar.tsx` | **NEW** | Sidebar reestruturada estilo Attio |
+| `src/components/opportunities/detail/OpportunityNotesTab.tsx` | **NEW** | Tab de notas funcional |
+| `src/components/opportunities/detail/OpportunityTasksTab.tsx` | **NEW** | Tab de tarefas funcional |
+| `src/components/opportunities/detail/OpportunityHeaderActions.tsx` | **NEW** | Menu de ações do header |
+| `src/components/opportunities/detail/OpportunityCommunicationSection.tsx` | **NEW** | Secção de comunicação na sidebar |
+| `src/components/opportunities/OpportunityDetailPage.tsx` | **EDIT** | Reestruturar layout completo |
+| `src/i18n/locales/pt/crm.json` | **EDIT** | +20 keys |
+| `src/i18n/locales/en/crm.json` | **EDIT** | +20 keys |
+| `src/i18n/locales/es/crm.json` | **EDIT** | +20 keys |
+| `src/i18n/locales/fr/crm.json` | **EDIT** | +20 keys |
 
-## New i18n Keys (~15)
+## Base de Dados
+
+Sem alterações de schema necessárias. As tabelas `opportunities`, `activities`, `tasks`, e `notes` já existem. Os campos `notes` na opportunity já suportam texto. As tasks já têm `related_type`/`related_id`.
+
+## i18n Keys (~20 novas)
 
 ```
-recording_upload, recording_dropzone, recording_dropzoneHint,
-recording_uploading, recording_uploadSuccess, recording_uploadFailed,
-recording_maxSize, recording_invalidType,
-recording_crmLinks, recording_linkedContact, recording_linkedDeal,
-recording_linkedCompany, recording_autoLinked, recording_manualLink,
-recording_confirmUpload
+oppDetail_highlights, oppDetail_dealStage, oppDetail_dealOwner,
+oppDetail_dealValue, oppDetail_associatedCompany,
+oppDetail_recordNav, oppDetail_ofRecords,
+oppDetail_communication, oppDetail_lastContact,
+oppDetail_dealInfo, oppDetail_companyInfo,
+oppDetail_showAllValues, oppDetail_hideValues,
+oppDetail_copyUrl, oppDetail_copyId, oppDetail_addFavorite,
+oppDetail_removeFavorite, oppDetail_configureLayout,
+oppDetail_comments, oppDetail_details,
+oppDetail_noNotes, oppDetail_addNote
 ```
 
-## Implementation Order
+## Ordem de Implementação
 
-1. Database migration (bucket + table + RLS)
-2. Edge function `recording-upload`
-3. `useRecordingUpload` hook
-4. `RecordingUploadCard` + `RecordingCrmLinks` components
-5. Update `TranscriptViewer` and `useMeetingTranscript`
-6. Add i18n keys
-7. Register function in `config.toml`
+1. `OpportunityHighlightsCards` -- cards visuais de destaque
+2. `OpportunityRecordNav` -- navegação entre registos
+3. `OpportunityDetailSidebar` -- sidebar completa com secções colapsáveis
+4. `OpportunityCommunicationSection` -- última comunicação
+5. `OpportunityNotesTab` -- notas funcionais
+6. `OpportunityTasksTab` -- tarefas funcionais
+7. `OpportunityHeaderActions` -- dropdown de ações
+8. Reestruturar `OpportunityDetailPage` com o novo layout
+9. Adicionar i18n keys
 
-## Technical Notes
+## Notas Técnicas
 
-- Bucket is **private** -- files accessed only via signed URLs (security)
-- Max file size 500MB to accommodate long meeting recordings
-- CRM auto-link reads `contact_id`, `company_id`, `opportunity_id` from the `meetings` table -- no user input needed
-- Users can manually add additional CRM links after upload
-- Upload uses PUT to presigned URL (binary direct), not multipart form
-- After successful upload, `meeting_recordings.status` transitions from `uploading` -> `uploaded`
-- The existing "Analyze with AI" button in TranscriptViewer works after upload completes
+- Os Highlights Cards reutilizam `InlineEditableField` e `InlineEntitySelect` existentes para edição inline via popover
+- A navegação entre registos usa uma query separada para buscar IDs do mesmo estágio, sem carregar dados completos
+- A sidebar usa `Collapsible` do Radix para secções expansíveis, com estado persistido em `localStorage`
+- O tab de Tasks reutiliza o hook `useTasks` existente, filtrando por `related_type: "opportunity"` e `related_id: opportunityId`
+- A secção Communication busca a última atividade do tipo `call`/`email`/`meeting` e mostra tempo relativo com `formatDistanceToNow`
+- O layout muda de `flex-col-reverse lg:flex-row` para `flex lg:flex-row` com sidebar fixa à direita com `sticky top`
 
