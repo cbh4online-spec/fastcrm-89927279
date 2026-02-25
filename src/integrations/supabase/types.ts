@@ -23971,12 +23971,15 @@ export type Database = {
           forecast_30: number
           forecast_7: number
           forecast_90: number
+          forecast_confidence: number | null
           generated_at: string
+          health_adjusted_expected: number | null
           hot_count: number
           id: string
           likely_count: number
           low_count: number
           opportunity_count: number
+          pipeline_health_avg: number | null
           risk_index: number
           uncertain_count: number
           workspace_id: string
@@ -23990,12 +23993,15 @@ export type Database = {
           forecast_30?: number
           forecast_7?: number
           forecast_90?: number
+          forecast_confidence?: number | null
           generated_at?: string
+          health_adjusted_expected?: number | null
           hot_count?: number
           id?: string
           likely_count?: number
           low_count?: number
           opportunity_count?: number
+          pipeline_health_avg?: number | null
           risk_index?: number
           uncertain_count?: number
           workspace_id: string
@@ -24009,12 +24015,15 @@ export type Database = {
           forecast_30?: number
           forecast_7?: number
           forecast_90?: number
+          forecast_confidence?: number | null
           generated_at?: string
+          health_adjusted_expected?: number | null
           hot_count?: number
           id?: string
           likely_count?: number
           low_count?: number
           opportunity_count?: number
+          pipeline_health_avg?: number | null
           risk_index?: number
           uncertain_count?: number
           workspace_id?: string

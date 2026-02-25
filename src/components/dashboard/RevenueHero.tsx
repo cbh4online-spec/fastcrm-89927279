@@ -1,8 +1,14 @@
 import { useRevenueForecast, formatCurrency } from "@/hooks/useRevenueForecast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Loader2 } from "lucide-react";
+import { TrendingUp, TrendingDown, Loader2, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+function confidenceLabel(score: number) {
+  if (score >= 70) return { text: "Alta confiança", color: "text-emerald-600 border-emerald-200" };
+  if (score >= 40) return { text: "Média confiança", color: "text-yellow-600 border-yellow-200" };
+  return { text: "Baixa confiança", color: "text-destructive border-destructive/30" };
+}
 
 export function RevenueHero() {
   const { latestForecast, trend, isLoading } = useRevenueForecast();
@@ -27,6 +33,10 @@ export function RevenueHero() {
     );
   }
 
+  const fc = (latestForecast as any).forecast_confidence as number | undefined;
+  const healthAdj = (latestForecast as any).health_adjusted_expected as number | undefined;
+  const conf = fc != null && fc > 0 ? confidenceLabel(fc) : null;
+
   return (
     <Card className="bg-gradient-to-br from-primary/5 via-background to-violet-500/5 border-primary/10">
       <CardContent className="pt-6">
@@ -46,8 +56,19 @@ export function RevenueHero() {
                   {trend > 0 ? "+" : ""}{trend}%
                 </Badge>
               )}
+              {conf && (
+                <Badge variant="outline" className={cn("text-xs gap-1", conf.color)}>
+                  <ShieldCheck className="h-3 w-3" />
+                  {conf.text}
+                </Badge>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Expected case • {latestForecast.opportunity_count} opportunities</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Expected case • {latestForecast.opportunity_count} opportunities
+              {healthAdj != null && healthAdj > 0 && (
+                <span className="ml-2">• Risk-adjusted: {formatCurrency(healthAdj)}</span>
+              )}
+            </p>
           </div>
 
           <div className="flex gap-6">

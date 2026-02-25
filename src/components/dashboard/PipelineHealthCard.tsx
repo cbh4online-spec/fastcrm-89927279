@@ -1,11 +1,11 @@
-import { useRevenueForecast } from "@/hooks/useRevenueForecast";
+import { useIntelligencePanel } from "@/hooks/useIntelligencePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Activity, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function PipelineHealthCard() {
-  const { latestForecast, isLoading } = useRevenueForecast();
+  const { data, isLoading } = useIntelligencePanel();
 
   if (isLoading) {
     return (
@@ -17,7 +17,7 @@ export function PipelineHealthCard() {
     );
   }
 
-  if (!latestForecast) {
+  if (!data) {
     return (
       <Card>
         <CardContent className="py-6 text-center text-sm text-muted-foreground">
@@ -27,9 +27,11 @@ export function PipelineHealthCard() {
     );
   }
 
-  const healthScore = Math.round(latestForecast.confidence_avg * 100);
-  const healthLabel = healthScore >= 70 ? "Healthy" : healthScore >= 40 ? "At Risk" : "Critical";
-  const healthColor = healthScore >= 70 ? "text-emerald-600" : healthScore >= 40 ? "text-warning" : "text-destructive";
+  const score = Math.round(data.avg_health_score);
+  const label = score >= 70 ? "Healthy" : score >= 40 ? "At Risk" : "Critical";
+  const color = score >= 70 ? "text-emerald-600" : score >= 40 ? "text-yellow-600" : "text-destructive";
+  const dist = data.health_distribution;
+  const momentum = data.portfolio_momentum;
 
   return (
     <Card>
@@ -39,29 +41,61 @@ export function PipelineHealthCard() {
           Pipeline Health
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="flex items-baseline gap-2 mb-3">
-          <span className={cn("text-3xl font-bold", healthColor)}>{healthScore}%</span>
-          <Badge variant={healthScore >= 70 ? "default" : healthScore >= 40 ? "secondary" : "destructive"} className="text-[10px]">
-            {healthLabel}
+      <CardContent className="space-y-4">
+        {/* Score */}
+        <div className="flex items-baseline gap-2">
+          <span className={cn("text-3xl font-bold", color)}>{score}%</span>
+          <Badge variant={score >= 70 ? "default" : score >= 40 ? "secondary" : "destructive"} className="text-[10px]">
+            {label}
           </Badge>
         </div>
 
-        {/* Mini breakdown */}
-        <div className="grid grid-cols-4 gap-2 text-center">
+        {/* Distribution */}
+        <div className="grid grid-cols-3 gap-2 text-center">
           {[
-            { label: "Hot", value: latestForecast.hot_count, color: "bg-emerald-500" },
-            { label: "Likely", value: latestForecast.likely_count, color: "bg-primary" },
-            { label: "Unsure", value: latestForecast.uncertain_count, color: "bg-yellow-500" },
-            { label: "Low", value: latestForecast.low_count, color: "bg-destructive" },
+            { label: "Healthy", value: dist.HEALTHY, dotColor: "bg-emerald-500" },
+            { label: "Watch", value: dist.WATCH, dotColor: "bg-yellow-500" },
+            { label: "At Risk", value: dist.AT_RISK, dotColor: "bg-destructive" },
           ].map((item) => (
             <div key={item.label}>
-              <div className={cn("w-2 h-2 rounded-full mx-auto mb-1", item.color)} />
+              <div className={cn("w-2 h-2 rounded-full mx-auto mb-1", item.dotColor)} />
               <p className="text-sm font-semibold">{item.value}</p>
               <p className="text-[10px] text-muted-foreground">{item.label}</p>
             </div>
           ))}
         </div>
+
+        {/* Data Quality */}
+        <div className="pt-2 border-t border-border/30 space-y-1.5">
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Data Quality</p>
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Completeness</span>
+            <span className="font-medium">{Math.round(data.data_quality.avg_completeness)}%</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Missing value</span>
+            <span className="font-medium">{data.data_quality.deals_missing_value}</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Missing close date</span>
+            <span className="font-medium">{data.data_quality.deals_missing_close_date}</span>
+          </div>
+        </div>
+
+        {/* Momentum */}
+        {momentum && (
+          <div className="pt-2 border-t border-border/30 space-y-1.5">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Momentum</p>
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">Active (7d)</span>
+              <span className="font-medium text-emerald-600">{momentum.deals_with_recent_activity}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">Stale</span>
+              <span className="font-medium text-destructive">{momentum.deals_stale}</span>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
