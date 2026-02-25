@@ -1,129 +1,141 @@
 
 
-# Ask FastCRM — Hybrid Architecture (Deterministic + Fallback LLM)
+# Ask FastCRM — Strict Output Contract & Hybrid Finalization
 
-## Current State
+## Analysis
 
-The edge function already has:
-- 12 intents implemented with full query handlers
-- Keyword fast-path (`KEYWORD_MAP`) that skips LLM for known patterns
-- LLM fallback via Lovable AI (`gemini-2.5-flash-lite`) with tool-calling
-- All action types (`bulk_task`, `bulk_move_stage`, `bulk_assign_owner`, `create_saved_view`, `navigate`, `automation`)
-- Query logging to `ask_fastcrm_query_logs`
-- Frontend: Dialog (⌘J), Inline panel, ResultPanel with suggestions
+The system already has 12 intents, keyword classifier with confidence, LLM fallback with whitelist validation, bulk confirmation, "Did you mean?" chips, and telemetry with `routed_via`/`confidence`. Here are the specific gaps between the current implementation and the requested strict contract:
 
-## What's Missing for Hybrid Architecture
+### Gaps
 
-| Gap | Description |
-|---|---|
-| **No confidence score** | Keyword classifier returns intent but no confidence (0–1) |
-| **No `routed_via`** | Telemetry doesn't track whether deterministic or LLM resolved the query |
-| **No structured query JSON** | Response doesn't include the canonical `{ intent, object_type, filters, sort, limit }` schema |
-| **No field/operator whitelist** | LLM can theoretically return anything — no guardrails |
-| **No "Did you mean?"** | When LLM fails or confidence is low, no fallback suggestions |
-| **No bulk confirmation** | Actions affecting >10 items execute immediately without preview |
-| **Log table missing columns** | `ask_fastcrm_query_logs` lacks `routed_via` and `confidence` columns |
+| Gap | Current | Required |
+|---|---|---|
+| **No `version` field** | Response has `header`, `items`, `actions` | Must include `"version": "1.0"` |
+| **No `answer` object** | Uses flat `header: string` | Must use `answer: { headline, subtext }` |
+| **No `actions_available` enum** | Actions use lowercase types (`bulk_task`) | Must use uppercase enum (`CREATE_TASKS_BULK`, `SAVE_VIEW`, etc.) |
+| **Wrong whitelist fields** | Uses DB column names (`last_activity_at`, `ai_next_action`) | Must use semantic names (`last_activity_days`, `has_next_step`, `stage`, `stage_days`, `amount`, `close_date`) |
+| **Missing operators** | Missing `!=` and `between` | Add both |
+| **Sort whitelist not enforced** | No validation of sort fields | Must validate against allowed sort fields |
+| **Confidence formula wrong** | Uses fixed 0.95/0.80/0.50 | Must use base 0.5 + 0.2 (keyword) + 0.2 (parameter) |
+| **Intent names mismatch** | `pipeline_summary`, `forecast_summary` | Should also support `pipeline_health_summary`, `forecast_risk` |
+| **No `headline` char limit** | No enforcement | Max 80 chars for headline, 120 for subtext |
+| **LLM model outdated** | Uses `gemini-2.5-flash-lite` | Should use `google/gemini-3-flash-preview` per guidelines |
 
 ---
 
 ## Implementation Plan
 
-### 1. Database Migration
+### 1. Edge Function — Strict Contract (`supabase/functions/ask-fastcrm/index.ts`)
 
-Add `routed_via` and `confidence` columns to `ask_fastcrm_query_logs`:
+**1A. Update response schema**
 
-```sql
-ALTER TABLE public.ask_fastcrm_query_logs
-  ADD COLUMN IF NOT EXISTS routed_via text DEFAULT 'deterministic',
-  ADD COLUMN IF NOT EXISTS confidence numeric(3,2) DEFAULT 1.0;
-```
-
-### 2. Edge Function — Confidence Scoring + Structured Query JSON
-
-**2A. Keyword classifier with confidence**
-
-Replace `classifyByKeyword` to return a confidence score based on match quality:
-- Exact phrase match → 0.95
-- Partial keyword match → 0.80
-- Multiple keyword matches (ambiguous) → 0.50
-
-If confidence ≥ 0.75 → use deterministic path. Otherwise → LLM fallback.
-
-**2B. Structured query JSON in response**
-
-Every response now includes a `query` field alongside the existing `header`, `items`, `actions`:
+Every handler returns the strict contract format:
 
 ```typescript
-{
-  header: "3 deals at risk.",
+interface AskResponse {
+  version: "1.0";
+  routed_via: "deterministic" | "llm";
+  confidence: number;
+  intent: string;
+  object_type: "deals" | "contacts" | "companies";
   query: {
-    intent: "deals_at_risk",
-    object_type: "deals",
-    filters: [{ field: "health_label", op: "=", value: "AT_RISK" }],
-    sort: [{ field: "health_score", dir: "asc" }],
-    limit: 25
-  },
-  routed_via: "deterministic",
-  confidence: 0.95,
-  items: [...],
-  actions: [...],
-  metric: {...},
-  suggestion: {...}
+    filters: { field: string; op: string; value: any }[];
+    sort: { field: string; dir: "asc" | "desc" }[];
+    limit: number;
+  };
+  answer: {
+    headline: string;   // max 80 chars
+    subtext?: string;    // max 120 chars
+  };
+  actions_available: string[];  // enum: CREATE_TASKS_BULK, SAVE_VIEW, etc.
+  items: any[];
+  metric?: any;
+  suggestion?: any;
+  did_you_mean?: string[];
 }
 ```
 
-**2C. Field & operator whitelist for LLM fallback**
+A `buildResponse()` helper function wraps every handler result to enforce `version`, truncate `headline`/`subtext`, and normalize the output.
 
-Define allowed fields per object type and allowed operators. If LLM returns fields/operators outside the whitelist, reject and return "Did you mean?" suggestions.
+**1B. Update field/operator whitelists**
 
 ```typescript
 const ALLOWED_FIELDS = {
-  deals: ["value", "stage_id", "owner_id", "last_activity_at", "expected_close_date", "health_label", "ai_next_action", "status", "updated_at"],
+  deals: ["health_score", "health_label", "last_activity_days", "has_next_step", 
+          "stage", "stage_days", "amount", "close_date", "owner_id", "created_at", "updated_at"],
   contacts: ["name", "email", "updated_at", "company_id"],
   companies: ["name", "updated_at"],
 };
-const ALLOWED_OPS = ["=", ">", "<", ">=", "<=", "in", "contains", "is_null", "date_range"];
+const ALLOWED_OPS = ["=", "!=", ">", ">=", "<", "<=", "in", "between", "contains"];
+const ALLOWED_SORT_FIELDS = ["health_score", "amount", "close_date", "last_activity_days", "stage_days", "updated_at"];
 ```
 
-**2D. LLM structured output via tool-calling**
+Validate sort fields from LLM output against `ALLOWED_SORT_FIELDS`.
 
-Update the LLM tool definition to return the full structured query schema (not just intent + days). Add `object_type`, `filters`, `sort`, `limit` to the tool parameters. Validate the response against the whitelist.
+**1C. Update confidence scoring formula**
 
-**2E. "Did you mean?" fallback**
+Replace fixed confidence values with the additive formula:
+- Base: 0.50 if any keyword matches
+- +0.20 if primary keyword found (risk, at risk, forecast, closing, no activity, stuck, high value, no next step, pipeline)
+- +0.20 if parameter present (e.g. "14 days", "this month", explicit stage name)
+- Exact phrase match remains 0.95 (as special case)
 
-When LLM returns invalid JSON or confidence < 0.5, return:
+**1D. Add `forecast_risk` intent**
+
+Add as alias/new handler: queries deals where `health_label != HEALTHY` AND `close_date` within forecast period. Map keywords "forecast risk", "blocking forecast", "forecast slipping" to this intent.
+
+**1E. Rename `pipeline_summary` → support both `pipeline_summary` and `pipeline_health_summary`**
+
+Both keywords route to the same handler. No breaking change.
+
+**1F. Update `actions_available` to uppercase enum**
+
+Each handler returns `actions_available` as an array of strings: `["CREATE_TASKS_BULK", "SAVE_VIEW", "ASSIGN_OWNER_BULK", "MOVE_STAGE_BULK", "CREATE_AUTOMATION_FROM_TEMPLATE"]` — only the relevant ones per intent. The detailed `actions` array with payloads remains for frontend execution.
+
+**1G. Update LLM model**
+
+Change from `google/gemini-2.5-flash-lite` to `google/gemini-3-flash-preview`.
+
+**1H. Enforce limit bounds**
+
+Clamp `limit` to min 1, max 100, default 25. Applied both to deterministic and LLM paths.
+
+### 2. Frontend Types (`src/hooks/useAskFastCRM.ts`)
+
+**2A. Update `AskResult` interface**
+
 ```typescript
-{
-  header: "I'm not sure what you mean.",
-  items: [],
-  actions: [],
-  did_you_mean: ["Deals at risk", "No activity", "Closing this month", "Pipeline summary"]
+export interface AskResult {
+  version: string;
+  routed_via: "deterministic" | "llm";
+  confidence: number;
+  intent: string;
+  object_type: "deals" | "contacts" | "companies";
+  query: AskStructuredQuery;
+  answer: {
+    headline: string;
+    subtext?: string;
+  };
+  actions_available: string[];
+  items: AskResultItem[];
+  actions: AskResultAction[];
+  metric?: AskResultMetric;
+  suggestion?: AskResultSuggestion;
+  did_you_mean?: string[];
 }
 ```
 
-**2F. Telemetry — log `routed_via` and `confidence`**
+Remove the old `header` field from the interface.
 
-Update the non-blocking log insert to include the new fields.
+### 3. Frontend UI (`src/components/ask-fastcrm/AskFastCRMResultPanel.tsx`)
 
-### 3. Frontend — Confirmation for Bulk Actions
+**3A. Use `answer.headline` instead of `header`**
 
-**3A. Update `AskResult` interface**
+Replace `result.header` with `result.answer.headline` for the main text. Render `result.answer.subtext` as a secondary line below it.
 
-Add `query`, `routed_via`, `confidence`, and `did_you_mean` to the response type.
+**3B. Backward compatibility**
 
-**3B. "Did you mean?" rendering**
-
-When `result.did_you_mean` is present, render suggestion chips in the result panel that re-trigger the query.
-
-**3C. Bulk action confirmation**
-
-In `useAskFastCRM.executeAction`, when `deal_ids.length > 10`, show a confirmation dialog before executing. Add a `needsConfirmation` check that returns early and sets a pending action state, which the UI renders as a confirmation prompt.
-
-**3D. Update `AskFastCRMResultPanel`**
-
-- Show `routed_via` badge (subtle, for power users — optional debug info)
-- Render `did_you_mean` chips
-- Show confirmation overlay for bulk actions
+Add a fallback: `result.answer?.headline || (result as any).header` so existing cached/in-flight responses don't break.
 
 ---
 
@@ -131,11 +143,11 @@ In `useAskFastCRM.executeAction`, when `deal_ids.length > 10`, show a confirmati
 
 | File | Change |
 |---|---|
-| `supabase/functions/ask-fastcrm/index.ts` | Confidence scoring, structured query JSON, field whitelist, LLM tool schema update, "Did you mean?", routed_via logging |
-| `src/hooks/useAskFastCRM.ts` | Add `query`, `routed_via`, `confidence`, `did_you_mean` to types; add bulk confirmation logic |
-| `src/components/ask-fastcrm/AskFastCRMResultPanel.tsx` | Render "Did you mean?" chips and bulk confirmation prompt |
+| `supabase/functions/ask-fastcrm/index.ts` | Strict response contract, updated whitelists, confidence formula, `forecast_risk` intent, LLM model upgrade, `buildResponse()` wrapper |
+| `src/hooks/useAskFastCRM.ts` | Update `AskResult` interface to match strict contract |
+| `src/components/ask-fastcrm/AskFastCRMResultPanel.tsx` | Use `answer.headline`/`subtext` instead of `header` |
 
-## Migration
+## No database migration needed
 
-One migration adding `routed_via` and `confidence` columns to `ask_fastcrm_query_logs`.
+The `routed_via` and `confidence` columns already exist in `ask_fastcrm_query_logs`.
 
