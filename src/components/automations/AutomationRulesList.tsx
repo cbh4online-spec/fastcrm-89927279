@@ -88,6 +88,8 @@ const triggerLabels: Record<AutomationTrigger, string> = {
   health_label_changed: "Saúde Deal Alterada",
   health_score_below_threshold: "Score Abaixo Limite",
   health_score_dropped: "Score Caiu",
+  forecast_confidence_below_threshold: "Confiança Forecast Baixa",
+  forecast_drop_percentage: "Forecast Caiu",
 };
 
 const triggerColors: Record<AutomationTrigger, string> = {
@@ -131,6 +133,8 @@ const triggerColors: Record<AutomationTrigger, string> = {
   health_label_changed: "bg-red-500",
   health_score_below_threshold: "bg-red-400",
   health_score_dropped: "bg-orange-500",
+  forecast_confidence_below_threshold: "bg-amber-600",
+  forecast_drop_percentage: "bg-red-600",
 };
 
 

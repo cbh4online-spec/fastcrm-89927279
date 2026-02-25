@@ -1403,7 +1403,7 @@ async function queryForecast(client: any, workspaceId: string) {
     .from("revenue_forecasts")
     .select("*")
     .eq("workspace_id", workspaceId)
-    .order("computed_at", { ascending: false })
+    .order("generated_at", { ascending: false })
     .limit(1);
 
   const forecast = data?.[0];
@@ -1423,44 +1423,50 @@ async function queryForecast(client: any, workspaceId: string) {
     };
   }
 
-  const payload =
-    typeof forecast.payload === "string"
-      ? JSON.parse(forecast.payload)
-      : forecast.payload;
-  const horizon30 =
-    payload?.horizons?.find((h: any) => h.days === 30) ||
-    payload?.horizons?.[1];
+  const gross = forecast.best_case ?? 0;
+  const expected = forecast.expected_case ?? 0;
+  const stageWeighted = forecast.stage_weighted ?? 0;
+  const riskAdjusted = forecast.health_adjusted_expected ?? 0;
+  const confidence = forecast.forecast_confidence ?? 0;
+  const blockers: string[] = forecast.blockers ?? [];
 
-  const expected = horizon30?.expected_case ?? payload?.expected_case ?? 0;
-  const best = horizon30?.best_case ?? payload?.best_case ?? 0;
-  const worst = horizon30?.worst_case ?? payload?.worst_case ?? 0;
-  const riskIndex = horizon30?.risk_index ?? payload?.risk_index ?? 0;
+  const fmt = (v: number) => `€${Math.round(v).toLocaleString()}`;
+
+  const confidenceText = confidence >= 70 ? "high confidence" : confidence >= 40 ? "moderate confidence" : "low confidence";
+  const isRealistic = confidence >= 60;
 
   return {
-    headline: `30-day forecast: €${Math.round(expected).toLocaleString()} expected.`,
-    subtext: riskIndex > 0.4 ? "Forecast has elevated risk." : undefined,
+    headline: `Forecast: ${fmt(riskAdjusted)} risk-adjusted (${confidenceText}).`,
+    subtext: !isRealistic ? "Data quality issues may affect accuracy." : `Stage-weighted: ${fmt(stageWeighted)}`,
     items: [
       {
-        id: "best",
-        title: "Best Case",
-        subtitle: `€${Math.round(best).toLocaleString()}`,
-        value: best,
+        id: "gross",
+        title: "Gross (Pipeline Total)",
+        subtitle: fmt(gross),
+        value: gross,
         link: "/dashboard/opportunities",
       },
       {
-        id: "expected",
-        title: "Expected Case",
-        subtitle: `€${Math.round(expected).toLocaleString()}`,
-        value: expected,
+        id: "stage_weighted",
+        title: "Stage-Weighted",
+        subtitle: fmt(stageWeighted),
+        value: stageWeighted,
         link: "/dashboard/opportunities",
       },
       {
-        id: "worst",
-        title: "Worst Case",
-        subtitle: `€${Math.round(worst).toLocaleString()}`,
-        value: worst,
+        id: "risk_adjusted",
+        title: "Risk-Adjusted",
+        subtitle: fmt(riskAdjusted),
+        value: riskAdjusted,
         link: "/dashboard/opportunities",
       },
+      ...blockers.slice(0, 3).map((b, i) => ({
+        id: `blocker_${i}`,
+        title: "⚠ Blocker",
+        subtitle: b,
+        value: 0,
+        link: "/dashboard/opportunities",
+      })),
     ],
     actions: [
       {
@@ -1472,9 +1478,9 @@ async function queryForecast(client: any, workspaceId: string) {
       },
     ],
     metric: {
-      label: "Risk Index",
-      value: `${Math.round(riskIndex * 100)}%`,
-      trend: riskIndex > 0.4 ? "down" : "up",
+      label: "Confidence",
+      value: `${confidence}%`,
+      trend: confidence >= 60 ? "up" : "down",
     },
   };
 }

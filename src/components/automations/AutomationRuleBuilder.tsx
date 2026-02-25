@@ -104,6 +104,9 @@ const triggerOptions: { value: AutomationTrigger; label: string; entity: string;
   { value: "health_label_changed", label: "Saúde Deal Alterada", entity: "opportunity" },
   { value: "health_score_below_threshold", label: "Score Abaixo Limite", entity: "opportunity", requiresConfig: true },
   { value: "health_score_dropped", label: "Score Caiu", entity: "opportunity", requiresConfig: true },
+  // Forecast triggers
+  { value: "forecast_confidence_below_threshold", label: "Confiança Forecast Baixa", entity: "opportunity", requiresConfig: true },
+  { value: "forecast_drop_percentage", label: "Forecast Caiu", entity: "opportunity", requiresConfig: true },
 ];
 
 // Extended action options grouped by category

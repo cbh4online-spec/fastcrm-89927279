@@ -24094,7 +24094,9 @@ export type Database = {
       }
       revenue_forecasts: {
         Row: {
+          at_risk_revenue: number | null
           best_case: number
+          blockers: Json | null
           confidence_avg: number
           created_at: string
           expected_case: number
@@ -24104,6 +24106,7 @@ export type Database = {
           forecast_confidence: number | null
           generated_at: string
           health_adjusted_expected: number | null
+          healthy_revenue: number | null
           hot_count: number
           id: string
           likely_count: number
@@ -24111,12 +24114,16 @@ export type Database = {
           opportunity_count: number
           pipeline_health_avg: number | null
           risk_index: number
+          stage_weighted: number | null
           uncertain_count: number
+          watch_revenue: number | null
           workspace_id: string
           worst_case: number
         }
         Insert: {
+          at_risk_revenue?: number | null
           best_case?: number
+          blockers?: Json | null
           confidence_avg?: number
           created_at?: string
           expected_case?: number
@@ -24126,6 +24133,7 @@ export type Database = {
           forecast_confidence?: number | null
           generated_at?: string
           health_adjusted_expected?: number | null
+          healthy_revenue?: number | null
           hot_count?: number
           id?: string
           likely_count?: number
@@ -24133,12 +24141,16 @@ export type Database = {
           opportunity_count?: number
           pipeline_health_avg?: number | null
           risk_index?: number
+          stage_weighted?: number | null
           uncertain_count?: number
+          watch_revenue?: number | null
           workspace_id: string
           worst_case?: number
         }
         Update: {
+          at_risk_revenue?: number | null
           best_case?: number
+          blockers?: Json | null
           confidence_avg?: number
           created_at?: string
           expected_case?: number
@@ -24148,6 +24160,7 @@ export type Database = {
           forecast_confidence?: number | null
           generated_at?: string
           health_adjusted_expected?: number | null
+          healthy_revenue?: number | null
           hot_count?: number
           id?: string
           likely_count?: number
@@ -24155,7 +24168,9 @@ export type Database = {
           opportunity_count?: number
           pipeline_health_avg?: number | null
           risk_index?: number
+          stage_weighted?: number | null
           uncertain_count?: number
+          watch_revenue?: number | null
           workspace_id?: string
           worst_case?: number
         }
