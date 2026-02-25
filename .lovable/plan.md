@@ -1,122 +1,113 @@
 
 
-# Melhorias ao Módulo de Deals -- Estilo Attio com Melhorias
+# Plano: Interface Attio/Basepoint -- View Selector + Sidebar Expandida + Table Footer
 
-## Referência Visual
+## Análise do Screenshot
 
-A imagem mostra o Attio/Basepoint com:
-- Sidebar com listas que têm **ícones emoji** (🎯 Inbound Leads, 🎊 Product Launch Campaign, ❤️ Event Invitees, etc.)
-- Link **"All lists"** no fundo da secção Lists
-- Barra de filtros com **pills visuais** ("Deal stage is ● Lead") e badge de contagem no "Advanced filter"
-- **"Sorted by Created at"** indicador
-- **"+ Add column"** no header da tabela
-- **"+ Add calculation"** no footer de cada coluna
-- **Contagem de registos** no rodapé ("5 count")
-- Botão **"View settings"** e **"Import / Export"**
+A imagem mostra o Basepoint com funcionalidades que ainda faltam na implementação atual:
+
+1. **View Selector Dropdown no header** -- dropdown "New Trial Workspaces ▾" com campo de pesquisa e lista de vistas guardadas, separado do sidebar
+2. **Sidebar com navegação expandida** -- secções adicionais: Quick Actions, Notifications, Tasks, Notes, Emails, Calls, Reports, Automations (Sequences, Workflows)
+3. **"+ Add calculation" no footer da tabela** -- placeholder por coluna no rodapé (não apenas contagem total)
+4. **"+ New [Entity]" botão prominente** no canto superior direito com cor de destaque
 
 ## Estado Atual vs Melhorias
 
 | Funcionalidade | Estado Atual | Melhoria |
 |---|---|---|
-| Lists com ícones | Apenas dot de cor | Emoji customizável por lista |
-| All lists link | Não existe | Link "All lists" no fundo |
-| Filter pills | Dropdown de status simples | Pills visuais com condições ativas |
-| Row count | Não existe | Footer com "X count" |
-| Sorted by indicator | Não existe | Badge de ordenação ativa |
-| Add column | Colunas fixas | Botão "+ Add column" (futuro) |
-| Add calculation | Não existe | Botão "+ Add calculation" por coluna (futuro) |
-| Import/Export | Não existe | Botões no header |
-| View settings | Não existe | Dropdown com configurações da vista |
+| View selector no header | Não existe -- vistas apenas no sidebar | Dropdown com pesquisa + lista de vistas no header |
+| Sidebar navegação | Apenas Records, Views, Favorites, Lists | Adicionar Quick Actions, Notifications, Tasks, Notes, Emails, Calls, Reports, Automations |
+| Footer "+ Add calculation" | Apenas contagem total | Placeholder "+ Add calculation" por coluna visível |
+| Botão New Entity | Existe mas sem destaque visual | Cor de destaque (primary) com ícone + |
+| Automations sub-items | Não existe | Secção colapsável com Sequences e Workflows |
 
 ## Componentes a Criar/Editar
 
-### 1. `DealsSidebar.tsx` -- EDIT
-- Adicionar campo `icon` (emoji) às listas -- usar emoji do `SavedView.icon` ou fallback para dot colorido
-- Adicionar link **"··· All lists"** no fundo da secção Lists, que navega para uma vista que mostra todas as listas
-- Estilização mais próxima do Attio: padding, tamanho de fonte, espaçamento
+### 1. `DealViewSelectorDropdown.tsx` -- **NEW**
+- Dropdown trigger no header mostrando nome da vista ativa (ex: "New Trial Workspaces ▾")
+- Campo de pesquisa dentro do dropdown
+- Lista de vistas com ícone/dot colorido, nome e botão de 3 pontos (opções)
+- Opção "Create new view" no fundo
+- Integra com `useSavedViews` e `activeViewId`
 
-### 2. `ActiveFilterPills.tsx` -- NEW
-- Componente que renderiza as condições de filtro ativas como pills visuais
-- Cada pill mostra: campo + operador + valor (ex: "Deal stage is ● Lead")
-- Botão X para remover filtro individual
-- Botão "+" para adicionar novo filtro
-- Integra com o `useFilterEngine` existente
+### 2. `DealsSidebar.tsx` -- **EDIT**
+- Adicionar secções de navegação no topo (antes das Views):
+  - Quick Actions, Notifications, Tasks, Notes, Emails, Calls, Reports
+  - Automations (colapsável) com sub-items: Sequences, Workflows
+- Links navegam para as rotas existentes do dashboard (ex: `/dashboard/tasks`, `/dashboard/notes`)
+- Ícones Lucide para cada item
 
-### 3. `OpportunityTableView.tsx` -- EDIT
-- Adicionar **footer row** com contagem de registos ("X count") e placeholder "+ Add calculation" por coluna
-- Adicionar **"+ Add column"** no final do header (placeholder visual, futura implementação)
-- Melhorar espaçamento e tipografia para se aproximar do Attio
+### 3. `OpportunityTableView.tsx` -- **EDIT**
+- Substituir footer simples por footer com "+ Add calculation" placeholder por cada coluna visível
+- Manter contagem de registos na primeira coluna do footer
+- Cada placeholder "+ Add calculation" é clicável mas mostra tooltip "Em breve"
 
-### 4. `OpportunitiesModule.tsx` -- EDIT
-- Adicionar `ActiveFilterPills` entre a barra de filtros e o conteúdo principal
-- Adicionar indicador **"Sorted by"** quando há ordenação ativa
-- Adicionar botões **"View settings"** e **"Import / Export"** no header
-- Mostrar nome da vista ativa no header (ex: "New inbound leads ▾")
-
-### 5. `ViewSettingsDropdown.tsx` -- NEW
-- Dropdown com opções: Rename, Duplicate, Set as default, Delete
-- Configurações de colunas visíveis (toggle on/off)
-- Ordem de colunas (drag-and-drop futuro)
-
-### 6. `DealsImportExportMenu.tsx` -- NEW
-- Dropdown com: Import CSV, Export CSV, Export Excel
-- Reutiliza lógica de `papaparse` e `xlsx` já instalados no projeto
-
-### 7. `useSavedViews` hook -- EDIT
-- Suportar campo `icon` (emoji string) nas vistas guardadas
-- Adicionar mutation para atualizar ícone
-
-## Migração de Base de Dados
-
-Adicionar coluna `icon` à tabela `saved_views`:
-
-```sql
-ALTER TABLE public.saved_views
-ADD COLUMN IF NOT EXISTS icon TEXT DEFAULT NULL;
-```
-
-Sem RLS changes -- a tabela já tem policies por workspace.
+### 4. `OpportunitiesModule.tsx` -- **EDIT**
+- Substituir título estático "Opportunities" pelo `DealViewSelectorDropdown` no header
+- Manter "View settings" e "Import / Export" à direita do view selector
+- Botão "+ New Deal" com estilo mais prominente
 
 ## Ficheiros
 
 | Ficheiro | Ação | Descrição |
 |---|---|---|
-| `src/components/opportunities/DealsSidebar.tsx` | **EDIT** | Emoji icons nas listas, link "All lists" |
-| `src/components/opportunities/ActiveFilterPills.tsx` | **NEW** | Pills visuais de filtros ativos |
-| `src/components/opportunities/ViewSettingsDropdown.tsx` | **NEW** | Dropdown de configurações da vista |
-| `src/components/opportunities/DealsImportExportMenu.tsx` | **NEW** | Menu Import/Export CSV/Excel |
-| `src/components/opportunities/OpportunityTableView.tsx` | **EDIT** | Footer com counts, "+ Add column", espaçamento |
-| `src/components/opportunities/OpportunitiesModule.tsx` | **EDIT** | Filter pills, sorted indicator, view name header, import/export |
-| `src/hooks/useSavedViews.ts` | **EDIT** | Suportar campo `icon` |
-| DB migration | **NEW** | Coluna `icon` em `saved_views` |
-| `src/i18n/locales/*/crm.json` | **EDIT** | ~12 novas keys |
+| `src/components/opportunities/DealViewSelectorDropdown.tsx` | **NEW** | Dropdown de seleção de vista com pesquisa |
+| `src/components/opportunities/DealsSidebar.tsx` | **EDIT** | Navegação expandida com Quick Actions, Tasks, Notes, etc. |
+| `src/components/opportunities/OpportunityTableView.tsx` | **EDIT** | Footer com "+ Add calculation" por coluna |
+| `src/components/opportunities/OpportunitiesModule.tsx` | **EDIT** | Integrar view selector dropdown no header |
+| `src/i18n/locales/*/crm.json` | **EDIT** | ~10 novas keys |
 
-## i18n Keys Novas (~12)
+## Detalhes Técnicos
 
+### DealViewSelectorDropdown
+```text
+┌─────────────────────────────┐
+│ 🔍 Search views...          │
+├─────────────────────────────┤
+│ ● New Trial Workspaces    ⋯ │  ← ativa (highlight)
+│ ● Workspaces Overview     ⋯ │
+│ ● PQL upsell opps         ⋯ │
+│ ● Active Accounts         ⋯ │
+│ ● Renewals this Quarter   ⋯ │
+├─────────────────────────────┤
+│ + Create new view            │
+└─────────────────────────────┘
 ```
-filterPillAdd, filterPillRemove, sortedBy,
-viewSettings, importExport, importCSV, exportCSV, exportExcel,
-tableRowCount, addColumn, addCalculation, viewSettingsRename
+- Usa `DropdownMenu` ou `Popover` com `Command` (cmdk) para pesquisa
+- Cada item mostra emoji/dot + nome + menu contextual (⋯)
+- Trigger: `<Button variant="ghost">` com nome da vista + `ChevronDown`
+
+### Sidebar Expandida
+Novas secções no topo (links simples com ícones):
+- `Bell` → Notifications
+- `CheckSquare` → Tasks  
+- `StickyNote` → Notes
+- `Mail` → Emails
+- `Phone` → Calls
+- `BarChart3` → Reports
+- `Zap` → Automations (colapsável)
+  - `GitBranch` → Sequences
+  - `Workflow` → Workflows
+
+### Table Footer
+```text
+│ 25 count │ + Add calculation │ + Add calculation │ ... │
 ```
+- Primeira célula: contagem de registos
+- Restantes células: botão ghost "+ Add calculation" com tooltip
+
+## i18n Keys Novas (~10)
+```
+quickActions, notifications, tasks, notes, emails, calls,
+reports, automations, sequences, workflows
+```
+(Muitas já podem existir -- verificar antes de adicionar)
 
 ## Ordem de Implementação
 
-1. Migração DB -- campo `icon` em `saved_views`
-2. `useSavedViews` -- suportar `icon`
-3. `DealsSidebar` -- emoji icons + "All lists"
-4. `ActiveFilterPills` -- pills visuais
-5. `ViewSettingsDropdown` -- configurações da vista
-6. `DealsImportExportMenu` -- import/export
-7. `OpportunityTableView` -- footer counts + add column
-8. `OpportunitiesModule` -- integrar tudo
-9. i18n keys
-
-## Notas Técnicas
-
-- O campo `icon` na DB é TEXT para guardar qualquer emoji (ex: "🎯", "🎊")
-- As filter pills leem as `FilterCondition[]` da vista ativa e renderizam cada uma como chip removível
-- O export CSV usa `papaparse` (já instalado) e o export Excel usa `xlsx` (já instalado)
-- O "Sorted by" mostra o campo + direção ativa, com botão para limpar
-- O "View settings" permite renomear a vista e toggle de colunas (a reordenação de colunas fica para iteração futura)
-- O "+ Add column" e "+ Add calculation" são placeholders visuais nesta iteração, com tooltip "Em breve"
+1. `DealViewSelectorDropdown.tsx` -- novo componente
+2. `DealsSidebar.tsx` -- navegação expandida
+3. `OpportunityTableView.tsx` -- footer melhorado
+4. `OpportunitiesModule.tsx` -- integrar view selector
+5. i18n keys
 
