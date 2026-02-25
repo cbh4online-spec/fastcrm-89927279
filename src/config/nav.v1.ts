@@ -25,6 +25,7 @@ export interface NavV1Item {
   group: string;
   end?: boolean;
   separator?: boolean; // show a thin line before this item
+  dynamic?: boolean; // dynamically loaded from database
 }
 
 export const NAV_V1_ITEMS: NavV1Item[] = [
