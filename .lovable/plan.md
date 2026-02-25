@@ -1,147 +1,162 @@
 
 
-# Fase 2.3 — Automation Intelligence Engine
+# Fase 2.4 — Multi-Pipeline Intelligence Engine
 
 ## Current State
 
-### What Already Exists (Extensive)
-1. **`automation_suggestions` table** — Full schema with id, workspace_id, title, description, trigger_type, trigger_config, conditions, actions, confidence, explanation, pattern_data, status (pending/accepted/dismissed/expired), reviewed_at, reviewed_by, created_automation_id. RLS policies in place.
-2. **`ai-automation-suggestions` edge function** (838 lines) — AI-powered (Gemini) pattern analysis. Fetches leads, opportunities, custom fields, existing automations. Analyzes lead patterns, opportunity patterns, custom field patterns. Generates structured suggestions with loop detection, conflict detection, condition validation. Stores in `automation_suggestions` table. **On-demand only** (no cron).
-3. **`AutomationSuggestionsPanel`** (533 lines) — Full UI with suggestion cards showing trigger/conditions/actions preview, confidence badge, explanation, and Activate/Edit/Dismiss buttons. Activate creates automation rule as DRAFT. Edit opens the rule builder.
-4. **`useAutomationSuggestions` hook** — Fetches pending suggestions with confidence >= 0.7, sorted by confidence DESC.
-5. **`AIEntityAutomationSuggestions`** — Entity-specific suggestion UI (per lead/deal/contact).
-6. **Dashboard `AIActionSuggestions`** — Shows Revenue Brain actions from intelligence-panel (NOT suggestion cards).
+### What Exists
+- **`pipelines` table**: id, name, workspace_id, is_default, type. Stages linked via `pipeline_stages.pipeline_id`.
+- **`opportunities` table**: Has `stage_id` (not direct `pipeline_id`). Pipeline is resolved via `pipeline_stages.pipeline_id` JOIN.
+- **`deal_intelligence_cache`**: Per-deal health scores with `health_score`, `health_label`, `stage_days`, `last_activity_days` in payload.
+- **`revenue_forecasts`**: Workspace-level (not per-pipeline). Has `forecast_confidence`, `stage_weighted`, `healthy_revenue`, `watch_revenue`, `at_risk_revenue`, `blockers`.
+- **`compute-revenue-forecast`**: Computes for entire workspace, no pipeline_id segmentation.
+- **`intelligence-panel`**: Aggregates health distribution for workspace, not per-pipeline.
+- **Navigation**: No "Revenue Overview" route. Closest is "Intelligence" (`/dashboard/intelligence`).
+- **Ask**: Has `pipeline_summary` intent but only shows stage breakdown for all deals, no multi-pipeline comparison.
 
-### What's Missing for V2
-1. **No heuristic pattern detection** — current system relies 100% on AI (Gemini). Spec wants deterministic V1 heuristics that run without AI credits.
-2. **No cron** — suggestions only generated when user clicks "Analisar Padrões".
-3. **No `detected_pattern_type`** — can't distinguish repetitive_task vs stage_risk vs no_activity vs invoice_delay.
-4. **No guardrails** — no max 5 pending limit, no check against previously dismissed pattern types.
-5. **No dashboard integration** — suggestions only visible in Automations page, not on Home dashboard.
-6. **No invoice delay pattern** — current analysis doesn't look at invoices at all.
+### What's Missing
+1. **No per-pipeline aggregation** — all intelligence is workspace-level
+2. **No pipeline comparison** — no way to see health/risk/confidence side by side
+3. **No multi-pipeline edge function** — would need to aggregate health cache + forecast data grouped by pipeline
+4. **No Revenue Overview page** — no executive multi-pipeline UI
+5. **No multi-pipeline Ask intents** — can't ask "which pipeline is riskier"
+6. **No velocity index** — no actual_stage_days / expected_stage_days ratio per pipeline
 
 ## Plan
 
-### 1. DB Migration: Add `detected_pattern_type` to `automation_suggestions`
+### 1. New Edge Function: `multi-pipeline-intelligence`
 
-Add column:
-- `detected_pattern_type` (text, nullable) — values: `repetitive_task`, `stage_risk`, `no_activity`, `invoice_delay`, `ai_generated`
+Pure aggregation engine (no AI). Receives `workspace_id`, returns structured comparison.
 
-This distinguishes heuristic suggestions from AI-generated ones.
+**Data flow**:
+1. Fetch all pipelines for workspace
+2. Fetch pipeline_stages with expected_days, probability
+3. Fetch open opportunities with stage_id + value
+4. Fetch deal_intelligence_cache for all open deals
+5. Fetch latest revenue_forecasts for workspace (forecast_confidence)
+6. Group by pipeline_id (via stage → pipeline mapping)
 
-### 2. New Edge Function: `automation-intelligence`
+**Per-pipeline metrics computed**:
+- `health_index` = avg(health_score) of active deals
+- `risk_ratio` = at_risk_count / total_active_deals
+- `velocity_index` = avg(actual_stage_days / expected_stage_days)
+- `revenue_share` = pipeline_total_value / workspace_total_value
+- `deal_count` = total active deals
+- `total_value` = sum of deal values
+- `forecast_confidence` = per-pipeline confidence using same V2 formula
 
-Pure heuristic engine — no AI calls, no API key needed. Runs fast, deterministic.
+**Insight generation** (deterministic, up to 5):
+- Pipeline with highest risk_ratio → "X pipeline shows highest risk ratio (Y%)"
+- Pipeline with velocity_index > 1.2 → "X pipeline is slower than benchmark"
+- Revenue concentration > 60% → "Revenue concentrated in X (Y%)"
+- Pipeline with confidence < 50 → "X pipeline has low forecast confidence"
+- Best performing pipeline → "X pipeline is healthiest"
 
-**Pattern 1 — Repetitive Task**: Query tasks grouped by title. If >5 tasks with similar title exist AND were created within similar timeframes relative to stage changes, generate suggestion to automate that task creation on stage change. Confidence = min(1, count / 10).
+**Guardrails**: Skip pipelines with < 5 active deals.
 
-**Pattern 2 — Stage Risk**: Query `health_score_history` + `deal_intelligence_cache`. For each pipeline stage, check if >40% of deals that entered it became AT_RISK within the expected_days benchmark. If yes, suggest "create follow-up after X days in stage Y". Confidence = at_risk_ratio.
+### 2. Frontend Hook: `useMultiPipelineIntelligence`
 
-**Pattern 3 — No Activity**: Count deals with no activity >10 days (from `deal_intelligence_cache` payloads). If >30% of open deals have this problem, suggest automated reminder. Confidence based on ratio.
+Hook to call the edge function and cache results (5 min stale time).
 
-**Pattern 4 — Invoice Delay**: Query invoices. Calculate average days between due_date and paid_date. If majority are paid late, suggest notification X days before due date. Confidence based on late payment ratio.
+Returns:
+```typescript
+interface PipelineIntelligence {
+  pipeline_id: string;
+  name: string;
+  health_index: number;
+  risk_ratio: number;
+  forecast_confidence: number;
+  velocity_index: number;
+  revenue_share: number;
+  deal_count: number;
+  total_value: number;
+}
 
-**Guardrails built into the function**:
-- Check existing pending suggestions count — skip if >= 5
-- Check dismissed suggestions — skip pattern types that were dismissed in last 30 days for same workspace
-- Minimum confidence 0.7
-- Expire old pending suggestions before inserting new ones
-- Max 1 suggestion per pattern type
+interface MultiPipelineIntelligence {
+  pipelines: PipelineIntelligence[];
+  insights: string[];
+  generated_at: string;
+}
+```
 
-### 3. Cron Job for Periodic Analysis
+### 3. Revenue Overview Page
 
-Schedule `automation-intelligence` to run daily via pg_cron + pg_net. The function iterates all workspaces with sufficient data (>= 10 deals or >= 20 tasks).
+New page: `src/pages/RevenueOverviewPage.tsx` at route `/dashboard/revenue`.
 
-### 4. Dashboard Integration: Compact Suggestion Cards
+**Section 1 — Pipeline Comparison Cards**: One card per pipeline showing health index (color-coded), risk ratio, forecast confidence, revenue share, deal count. Clean grid layout.
 
-Add a new component `DashboardAutomationSuggestions` to the Dashboard page. Shows up to 2 pending suggestions in a compact card format:
-- Headline + confidence badge
-- One-line description
-- Activate / Dismiss buttons
-- "View all" link to Automations page
+**Section 2 — Visual Comparisons**: Two horizontal bar charts using Recharts:
+- Health Index comparison (green/yellow/red gradient)
+- Forecast Confidence comparison
 
-Place it in the dashboard grid below `AIActionSuggestions` (Revenue Brain).
+**Section 3 — Executive Insights**: List of 3-5 auto-generated insight strings with severity icons.
 
-### 5. Update `useAutomationSuggestions` Hook
+### 4. Navigation Update
 
-Add a `limit` parameter so the dashboard can fetch only 2 suggestions while the full panel fetches all.
+Add "Revenue" to `NAV_V2_ITEMS` between "Intelligence" and "Reports", with `TrendingUp` icon.
+
+### 5. Ask Integration
+
+Add new intent `pipeline_comparison` to `ask-fastcrm`:
+- Keywords: "which pipeline", "riskier pipeline", "pipeline comparison", "revenue concentrated", "pipeline slowing"
+- Handler queries the same data as the edge function inline
+- Returns comparison headline + per-pipeline items + insights
+
+### 6. Dashboard Teaser
+
+Add a compact `PipelineComparisonCard` to the Dashboard right sidebar (below ForecastConfidenceCard). Shows mini health bars for each pipeline with a "View full comparison" link to `/dashboard/revenue`.
 
 ## File Summary
 
 | File | Action | Description |
 |---|---|---|
-| **DB Migration** | **NEW** | Add `detected_pattern_type` column to `automation_suggestions` |
-| `supabase/functions/automation-intelligence/index.ts` | **NEW** | Heuristic pattern engine: 4 patterns, guardrails, no AI dependency |
-| `src/components/dashboard/DashboardAutomationSuggestions.tsx` | **NEW** | Compact suggestion cards for Home dashboard |
-| `src/hooks/useAutomationSuggestions.ts` | **EDIT** | Add `limit` param, expose `detected_pattern_type` in interface |
-| `src/pages/Dashboard.tsx` | **EDIT** | Add `DashboardAutomationSuggestions` below Revenue Brain |
-| **Cron Job** (SQL insert) | **NEW** | Daily cron calling `automation-intelligence` |
+| `supabase/functions/multi-pipeline-intelligence/index.ts` | **NEW** | Aggregation engine: per-pipeline health, risk, velocity, revenue share, insights |
+| `src/hooks/useMultiPipelineIntelligence.ts` | **NEW** | Hook to call edge function, cache 5 min |
+| `src/pages/RevenueOverviewPage.tsx` | **NEW** | Executive multi-pipeline comparison page |
+| `src/components/dashboard/PipelineComparisonCard.tsx` | **NEW** | Compact dashboard teaser card |
+| `src/config/nav.v2.ts` | **EDIT** | Add "Revenue" nav item |
+| `src/App.tsx` | **EDIT** | Add `/dashboard/revenue` route |
+| `src/pages/Dashboard.tsx` | **EDIT** | Add PipelineComparisonCard to right sidebar |
+| `supabase/functions/ask-fastcrm/index.ts` | **EDIT** | Add `pipeline_comparison` intent + handler |
+| `supabase/config.toml` | **EDIT** | Add `multi-pipeline-intelligence` function config |
 
 ## Technical Details
 
-### Heuristic Pattern Detection Logic
-
+### Per-Pipeline Aggregation Logic
 ```text
-Pattern 1 — Repetitive Task:
-  SELECT title, COUNT(*) as cnt 
-  FROM tasks 
-  WHERE workspace_id = X AND created_at > now() - interval '90 days'
-  GROUP BY title HAVING COUNT(*) > 5
-  → For each: check if tasks correlate with stage changes
-  → confidence = min(1.0, cnt / 10)
+1. stages = SELECT id, pipeline_id, expected_days FROM pipeline_stages WHERE workspace_id = X
+2. stage_to_pipeline = Map(stage_id → pipeline_id)
+3. opps = SELECT id, stage_id, value, status FROM opportunities WHERE workspace_id = X AND status = 'open'
+4. health = SELECT deal_id, payload FROM deal_intelligence_cache WHERE workspace_id = X
 
-Pattern 2 — Stage Risk:
-  For each stage with deals:
-    at_risk_count = deals in stage with health_label = 'AT_RISK'
-    total_in_stage = total deals that entered stage
-    ratio = at_risk_count / total_in_stage
-    If ratio > 0.4 → suggest follow-up automation
-    confidence = ratio
+For each opp:
+  pipeline_id = stage_to_pipeline[opp.stage_id]
+  health_data = health[opp.id]
+  
+  Group into pipeline buckets:
+    - sum values
+    - sum health_scores, count
+    - count at_risk
+    - collect stage_days / expected_days ratios
 
-Pattern 3 — No Activity:
-  stale_count = deals with last_activity_days > 10
-  total = open deals
-  ratio = stale_count / total
-  If ratio > 0.3 → suggest activity reminder
-  confidence = min(1.0, ratio + 0.3)
-
-Pattern 4 — Invoice Delay:
-  late_invoices = invoices where paid_date > due_date
-  total_paid = invoices with paid_date
-  late_ratio = late_invoices / total_paid
-  avg_late_days = avg(paid_date - due_date) for late invoices
-  If late_ratio > 0.5 → suggest pre-due notification
-  confidence = late_ratio
+Per pipeline (if deal_count >= 5):
+  health_index = round(total_health / count)
+  risk_ratio = round(at_risk / count, 2)
+  velocity_index = round(avg(stage_days / expected_days), 2)
+  revenue_share = round(pipeline_value / total_value, 2)
+  confidence = V2 formula per pipeline subset
 ```
 
-### Guardrail Logic
+### Insight Generation (deterministic, no AI)
 ```text
-1. SELECT COUNT(*) FROM automation_suggestions 
-   WHERE workspace_id = X AND status = 'pending'
-   → If >= 5, skip generation entirely
-
-2. SELECT detected_pattern_type FROM automation_suggestions
-   WHERE workspace_id = X AND status = 'dismissed' 
-   AND reviewed_at > now() - interval '30 days'
-   → Skip any pattern type found in this list
-
-3. All suggestions inserted with confidence >= 0.7 only
+Rules evaluated in order, max 5 insights:
+1. If any pipeline risk_ratio > 0.3 → "X shows high risk (Y% deals at risk)"
+2. If any pipeline velocity_index > 1.2 → "X is moving Z% slower than benchmark"
+3. If any pipeline revenue_share > 0.6 → "Revenue concentrated: Y% in X"
+4. If any pipeline confidence < 50 → "X has low forecast confidence (Y%)"
+5. Best pipeline by health_index → "X is your healthiest pipeline (score Y)"
 ```
 
-### Dashboard Card Design
-```text
-┌─────────────────────────────────────────┐
-│ ⚡ Automation Suggestions          2 new │
-├─────────────────────────────────────────┤
-│ 💡 Automate follow-ups in Proposal  82% │
-│    You frequently create follow-ups...  │
-│    [Activate] [Dismiss]                 │
-│─────────────────────────────────────────│
-│ 💡 Auto-remind stale deals          78% │
-│    30% of deals have no activity...     │
-│    [Activate] [Dismiss]                 │
-├─────────────────────────────────────────┤
-│ View all suggestions →                  │
-└─────────────────────────────────────────┘
-```
+### No DB Migration Needed
+All data already exists in `deal_intelligence_cache`, `pipeline_stages`, `opportunities`, and `pipelines`. The edge function performs pure aggregation with no new tables.
 
