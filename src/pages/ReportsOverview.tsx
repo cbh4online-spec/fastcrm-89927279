@@ -329,11 +329,6 @@ export default function ReportsOverview() {
                     <p className="text-xs text-muted-foreground">Relatórios personalizados</p>
                   </div>
                   <ArrowUpRight className="w-4 h-4 text-muted-foreground" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Retenção & Churn</p>
-                    <p className="text-xs text-muted-foreground">Clientes em risco</p>
-                  </div>
-                  <ArrowUpRight className="w-4 h-4 text-muted-foreground" />
                 </Link>
               </CardContent>
             </Card>
