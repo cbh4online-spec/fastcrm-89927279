@@ -1,12 +1,15 @@
+import { useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { NAV_V1_ITEMS, NavV1Item } from "@/config/nav.v1";
-import { X, Command, Search, Star, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { X, Command, Search, Star, PanelLeftClose, PanelLeftOpen, Puzzle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useSidebarFavorites } from "@/hooks/useSidebarFavorites";
 import { useSidebarCollapse } from "@/hooks/useSidebarCollapse";
 import { useCustomObjects } from "@/hooks/useCustomObjects";
+import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
+import { getExtensionObjectTabs } from "@/config/extensionRegistry";
 import { getIconByName } from "@/lib/icons";
 import {
   Tooltip,
@@ -26,6 +29,11 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
   const { favorites, toggleFavorite, isFavorite } = useSidebarFavorites();
   const { collapsed, toggleCollapse } = useSidebarCollapse();
   const { data: customObjects } = useCustomObjects();
+  const { installedModuleIds } = useWorkspaceModules();
+
+  const extensionNavItems = useMemo(() => {
+    return getExtensionObjectTabs(installedModuleIds).filter((tab) => tab.route);
+  }, [installedModuleIds]);
 
   // On mobile overlay, always show expanded
   const isCollapsed = collapsed && !open;
@@ -239,6 +247,61 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
                 );
               })}
             </div>
+
+            {/* Extension modules */}
+            {extensionNavItems.length > 0 && (
+              <div className="mt-2">
+                <Separator className="my-2" />
+                {!isCollapsed && (
+                  <div className="flex items-center gap-2 px-3 mb-1.5">
+                    <Puzzle className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Extensões
+                    </span>
+                  </div>
+                )}
+                <div className="space-y-0.5">
+                  {extensionNavItems.map((ext) => {
+                    const active = isActive(ext.route!, false);
+                    const Icon = ext.icon;
+                    return isCollapsed ? (
+                      <Tooltip key={ext.key}>
+                        <TooltipTrigger asChild>
+                          <Link
+                            to={ext.route!}
+                            onClick={onClose}
+                            className={cn(
+                              "flex items-center justify-center p-2 rounded-lg transition-colors",
+                              active
+                                ? "bg-muted text-foreground"
+                                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                            )}
+                          >
+                            <Icon className="w-4 h-4" />
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">{ext.label}</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <Link
+                        key={ext.key}
+                        to={ext.route!}
+                        onClick={onClose}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                          active
+                            ? "bg-muted text-foreground"
+                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                        )}
+                      >
+                        <Icon className={cn("w-4 h-4", active ? "text-foreground" : "text-muted-foreground")} />
+                        <span>{ext.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Dynamic Records section removed — custom objects are now inline in CRM */}
           </nav>
