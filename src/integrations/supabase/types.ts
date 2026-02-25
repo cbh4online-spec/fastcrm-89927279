@@ -13589,6 +13589,85 @@ export type Database = {
           },
         ]
       }
+      health_engine_config: {
+        Row: {
+          created_at: string
+          id: string
+          label_thresholds: Json
+          updated_at: string
+          value_sensitivity_multiplier: number
+          value_sensitivity_threshold: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label_thresholds?: Json
+          updated_at?: string
+          value_sensitivity_multiplier?: number
+          value_sensitivity_threshold?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label_thresholds?: Json
+          updated_at?: string
+          value_sensitivity_multiplier?: number
+          value_sensitivity_threshold?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_engine_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_score_history: {
+        Row: {
+          deal_id: string
+          health_label: string
+          health_score: number
+          id: string
+          previous_label: string | null
+          recorded_at: string
+          top_reason: string | null
+          workspace_id: string
+        }
+        Insert: {
+          deal_id: string
+          health_label: string
+          health_score: number
+          id?: string
+          previous_label?: string | null
+          recorded_at?: string
+          top_reason?: string | null
+          workspace_id: string
+        }
+        Update: {
+          deal_id?: string
+          health_label?: string
+          health_score?: number
+          id?: string
+          previous_label?: string | null
+          recorded_at?: string
+          top_reason?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_score_history_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ig_ai_media_insights: {
         Row: {
           analyzed_at: string | null
@@ -20576,6 +20655,57 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pipeline_stage_benchmarks: {
+        Row: {
+          created_at: string
+          expected_days: number
+          id: string
+          pipeline_id: string
+          risk_multiplier: number
+          stage_id: string
+          updated_at: string
+          warning_multiplier: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          expected_days?: number
+          id?: string
+          pipeline_id: string
+          risk_multiplier?: number
+          stage_id: string
+          updated_at?: string
+          warning_multiplier?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          expected_days?: number
+          id?: string
+          pipeline_id?: string
+          risk_multiplier?: number
+          stage_id?: string
+          updated_at?: string
+          warning_multiplier?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_stage_benchmarks_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_stage_benchmarks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pipeline_stages: {
         Row: {

@@ -8,6 +8,9 @@ export interface DealWithHealth {
   health_score?: number;
   health_label?: string;
   top_reason?: string | null;
+  confidence?: number;
+  stage_days?: number | null;
+  last_activity_days?: number | null;
 }
 
 export function useDealsWithHealth() {
@@ -29,7 +32,7 @@ export function useDealsWithHealth() {
       });
 
       if (error) throw error;
-      return (data?.items || {}) as Record<string, { health_score: number; health_label: string; top_reason: string | null }>;
+      return (data?.items || {}) as Record<string, { health_score: number; health_label: string; top_reason: string | null; confidence?: number; stage_days?: number | null; last_activity_days?: number | null }>;
     },
     enabled: !!currentWorkspace?.id && dealIds.length > 0,
     staleTime: 5 * 60 * 1000,
@@ -42,6 +45,9 @@ export function useDealsWithHealth() {
       health_score: h?.health_score,
       health_label: h?.health_label,
       top_reason: h?.top_reason ?? null,
+      confidence: h?.confidence,
+      stage_days: h?.stage_days ?? null,
+      last_activity_days: h?.last_activity_days ?? null,
     };
   });
 

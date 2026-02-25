@@ -11,114 +11,6 @@ function differenceInDays(a: Date, b: Date): number {
   return Math.floor((a.getTime() - b.getTime()) / 86400000);
 }
 
-interface RiskDriver {
-  reason: string;
-  severity: "HIGH" | "MEDIUM" | "LOW";
-  penalty: number;
-}
-
-function scoreDeal(opp: any, activities: any[], tasks: any[], expectedDays = 14) {
-  const now = new Date();
-  const risks: RiskDriver[] = [];
-
-  const lastActivityDate = opp.last_activity_at
-    ? new Date(opp.last_activity_at)
-    : activities.length > 0
-      ? new Date(activities[0].created_at)
-      : null;
-
-  const daysSinceActivity = lastActivityDate
-    ? differenceInDays(now, lastActivityDate)
-    : Infinity;
-
-  if (daysSinceActivity > 14) {
-    risks.push({ reason: `No activity in ${daysSinceActivity} days`, severity: "HIGH", penalty: 40 });
-  } else if (daysSinceActivity > 7) {
-    risks.push({ reason: `No activity in ${daysSinceActivity} days`, severity: "HIGH", penalty: 25 });
-  }
-
-  const pendingTasks = tasks.filter((t: any) => t.status === "pending");
-  const futureTasks = pendingTasks.filter(
-    (t: any) => t.due_at && new Date(t.due_at) > now
-  );
-  const hasNextStep = pendingTasks.length > 0;
-
-  if (pendingTasks.length === 0) {
-    risks.push({ reason: "No next step scheduled", severity: "HIGH", penalty: 20 });
-  } else if (futureTasks.length > 0) {
-    const nextDue = new Date(futureTasks[0].due_at);
-    const daysUntil = differenceInDays(nextDue, now);
-    if (daysUntil > 7) {
-      risks.push({ reason: `Next task due in ${daysUntil} days`, severity: "MEDIUM", penalty: 10 });
-    }
-  }
-
-  const daysInStage = differenceInDays(now, new Date(opp.updated_at));
-  const stageName = opp.stage_name || "current";
-
-  if (daysInStage > expectedDays * 2) {
-    risks.push({ reason: `Stuck in stage '${stageName}' for ${daysInStage} days`, severity: "HIGH", penalty: 20 });
-  } else if (daysInStage > expectedDays) {
-    risks.push({ reason: `In stage '${stageName}' for ${daysInStage} days`, severity: "MEDIUM", penalty: 10 });
-  }
-
-  const missingFields: string[] = [];
-  if (!opp.value || Number(opp.value) === 0) {
-    missingFields.push("amount");
-    risks.push({ reason: "Amount not set", severity: "MEDIUM", penalty: 10 });
-  }
-  if (!opp.expected_close_date) {
-    missingFields.push("close_date");
-    risks.push({ reason: "Close date not set", severity: "MEDIUM", penalty: 10 });
-  }
-  if (!opp.contact_id && !opp.lead_id) {
-    missingFields.push("primary_contact");
-    risks.push({ reason: "No primary contact", severity: "LOW", penalty: 5 });
-  }
-
-  const totalCheckedFields = 3;
-  const filledCount = totalCheckedFields - missingFields.length;
-  const completenessPercent = Math.round((filledCount / totalCheckedFields) * 100);
-
-  // Momentum bonus
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
-  const recentActivityCount = activities.filter(
-    (a) => new Date(a.created_at) >= sevenDaysAgo
-  ).length;
-  const momentumBonus = recentActivityCount >= 2 ? 5 : 0;
-  const hasRecentActivity = recentActivityCount > 0;
-
-  const totalPenalty = risks.reduce((sum, r) => sum + r.penalty, 0);
-  const healthScore = Math.max(0, Math.min(100, 100 - totalPenalty + momentumBonus));
-  const healthLabel = healthScore >= 80 ? "HEALTHY" : healthScore >= 50 ? "WATCH" : "AT_RISK";
-
-  const sortedRisks = [...risks].sort((a, b) => b.penalty - a.penalty).slice(0, 3);
-
-  let nba: any;
-  if (daysSinceActivity > 7) {
-    nba = { title: "Schedule a follow-up within 48h", type: "FOLLOW_UP", priority: "HIGH" };
-  } else if (!hasNextStep) {
-    nba = { title: "Create next step for this deal", type: "CREATE_TASK", priority: "MEDIUM" };
-  } else if (daysInStage > expectedDays) {
-    nba = { title: "Review blockers and advance stage", type: "REVIEW_BLOCKERS", priority: "HIGH" };
-  } else if (missingFields.length > 0) {
-    nba = { title: "Complete deal details", type: "COMPLETE_DATA", priority: "LOW" };
-  } else {
-    nba = { title: "Send recap to stakeholders", type: "SEND_RECAP", priority: "LOW" };
-  }
-
-  return {
-    deal_id: opp.id,
-    deal_title: opp.title || opp.name || "Untitled",
-    health_score: healthScore,
-    health_label: healthLabel,
-    risk_drivers: sortedRisks.map((r) => ({ reason: r.reason, severity: r.severity, penalty: r.penalty })),
-    next_best_action: nba,
-    data_completeness: { percent: completenessPercent, missing_fields: missingFields },
-    has_recent_activity: hasRecentActivity,
-  };
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -160,19 +52,10 @@ Deno.serve(async (req) => {
 
     const serviceClient = createClient(supabaseUrl, serviceKey);
 
-    // Fetch stages with expected_days
-    const { data: stagesData } = await serviceClient
-      .from("pipeline_stages")
-      .select("id, name, expected_days")
-      .eq("workspace_id", workspaceId);
-
-    const stageMap = new Map<string, { name: string; expected_days: number }>();
-    (stagesData || []).forEach((s: any) => stageMap.set(s.id, { name: s.name, expected_days: s.expected_days ?? 14 }));
-
     // Fetch all open opportunities
     const { data: openOpps, error: oppsError } = await serviceClient
       .from("opportunities")
-      .select("*, stage:pipeline_stages(name, expected_days)")
+      .select("id, title, stage_id, value, updated_at, status")
       .eq("workspace_id", workspaceId)
       .not("status", "in", '("won","lost","cancelled")');
 
@@ -202,77 +85,46 @@ Deno.serve(async (req) => {
 
     const oppIds = opps.map((o: any) => o.id);
 
+    // --- Call deal-intelligence batch mode via internal HTTP ---
     let body: any = {};
     try { body = await req.json(); } catch { /* empty body ok */ }
     const force = body?.force === true;
 
-    let cachedMap = new Map<string, any>();
-    if (!force) {
-      const { data: cachedRows } = await serviceClient
-        .from("deal_intelligence_cache")
-        .select("deal_id, payload")
-        .eq("workspace_id", workspaceId)
-        .in("deal_id", oppIds)
-        .is("invalidated_at", null)
-        .gt("expires_at", new Date().toISOString());
-      (cachedRows || []).forEach((r: any) => cachedMap.set(r.deal_id, r.payload));
+    const batchRes = await fetch(`${supabaseUrl}/functions/v1/deal-intelligence`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+        "X-Workspace-Id": workspaceId!,
+      },
+      body: JSON.stringify({ deal_ids: oppIds, force }),
+    });
+
+    if (!batchRes.ok) {
+      const errText = await batchRes.text();
+      throw new Error(`deal-intelligence batch failed: ${errText}`);
     }
 
-    const missIds = oppIds.filter((id: string) => !cachedMap.has(id));
+    const batchData = await batchRes.json();
+    const healthItems: Record<string, any> = batchData.items || {};
 
-    const freshResults: any[] = [];
-    if (missIds.length > 0) {
-      const [actsRes, tasksRes] = await Promise.all([
-        serviceClient
-          .from("crm_activities")
-          .select("entity_id, created_at")
-          .eq("entity_type", "opportunity")
-          .in("entity_id", missIds)
-          .eq("workspace_id", workspaceId)
-          .order("created_at", { ascending: false }),
-        serviceClient
-          .from("tasks")
-          .select("*")
-          .eq("related_type", "opportunity")
-          .in("related_id", missIds)
-          .eq("workspace_id", workspaceId)
-          .order("due_at", { ascending: true, nullsFirst: false }),
-      ]);
+    // Also fetch cached full payloads for richer data
+    const { data: cachedPayloads } = await serviceClient
+      .from("deal_intelligence_cache")
+      .select("deal_id, payload")
+      .eq("workspace_id", workspaceId)
+      .in("deal_id", oppIds)
+      .is("invalidated_at", null)
+      .gt("expires_at", new Date().toISOString());
 
-      const actsByDeal = new Map<string, any[]>();
-      (actsRes.data || []).forEach((a: any) => {
-        const list = actsByDeal.get(a.entity_id) || [];
-        list.push(a);
-        actsByDeal.set(a.entity_id, list);
-      });
+    const payloadMap = new Map<string, any>();
+    (cachedPayloads || []).forEach((r: any) => payloadMap.set(r.deal_id, r.payload));
 
-      const tasksByDeal = new Map<string, any[]>();
-      (tasksRes.data || []).forEach((t: any) => {
-        const list = tasksByDeal.get(t.related_id) || [];
-        list.push(t);
-        tasksByDeal.set(t.related_id, list);
-      });
-
-      opps.filter((o: any) => missIds.includes(o.id)).forEach((opp: any) => {
-        const expDays = opp.stage?.expected_days ?? stageMap.get(opp.stage_id)?.expected_days ?? 14;
-        const o = { ...opp, stage_name: opp.stage?.name };
-        freshResults.push(scoreDeal(o, actsByDeal.get(opp.id) || [], tasksByDeal.get(opp.id) || [], expDays));
-      });
-
-      if (freshResults.length > 0) {
-        const rows = freshResults.map((r) => ({
-          workspace_id: workspaceId,
-          deal_id: r.deal_id,
-          payload: r,
-          computed_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-          invalidated_at: null,
-        }));
-        serviceClient.from("deal_intelligence_cache").upsert(rows, { onConflict: "workspace_id,deal_id" });
-      }
-    }
-
-    const allResults: any[] = [...freshResults, ...Array.from(cachedMap.values())];
+    // Fetch stages for benchmarks
+    const { data: stagesData } = await serviceClient
+      .from("pipeline_stages")
+      .select("id, name, expected_days")
+      .eq("workspace_id", workspaceId);
 
     // Aggregate
     const distribution = { HEALTHY: 0, WATCH: 0, AT_RISK: 0 };
@@ -283,46 +135,56 @@ Deno.serve(async (req) => {
     let dealsWithRecentActivity = 0;
     let dealsStale = 0;
 
-    // Track deals per stage for benchmarks
     const stageDealDays = new Map<string, number[]>();
-
     const allRisks: any[] = [];
     const allActions: any[] = [];
 
-    allResults.forEach((r) => {
-      distribution[r.health_label as keyof typeof distribution] = (distribution[r.health_label as keyof typeof distribution] || 0) + 1;
-      totalScore += r.health_score;
-      totalCompleteness += r.data_completeness?.percent || 0;
+    opps.forEach((opp: any) => {
+      const h = healthItems[opp.id];
+      const payload = payloadMap.get(opp.id);
+      
+      if (!h) return;
 
-      if (r.data_completeness?.missing_fields?.includes("amount")) dealsMissingValue++;
-      if (r.data_completeness?.missing_fields?.includes("close_date")) dealsMissingCloseDate++;
+      const label = h.health_label as keyof typeof distribution;
+      distribution[label] = (distribution[label] || 0) + 1;
+      totalScore += h.health_score;
 
-      if (r.has_recent_activity) dealsWithRecentActivity++;
+      // Use payload for richer data, fallback to h
+      const dc = payload?.data_completeness;
+      if (dc) {
+        totalCompleteness += dc.percent || 0;
+        if (dc.missing_fields?.includes("amount")) dealsMissingValue++;
+        if (dc.missing_fields?.includes("close_date")) dealsMissingCloseDate++;
+      }
+
+      if (payload?.has_recent_activity) dealsWithRecentActivity++;
       else dealsStale++;
 
-      (r.risk_drivers || []).forEach((rd: any) => {
+      // Risk drivers
+      const drivers = payload?.risk_drivers || [];
+      drivers.forEach((rd: any) => {
         allRisks.push({
-          deal_id: r.deal_id,
-          deal_title: r.deal_title,
+          deal_id: opp.id,
+          deal_title: payload?.deal_title || opp.title,
           reason: rd.reason,
           severity: rd.severity,
-          health_score: r.health_score,
+          health_score: h.health_score,
         });
       });
 
-      if (r.next_best_action) {
+      // NBA
+      const nba = payload?.next_best_action;
+      if (nba) {
         allActions.push({
-          deal_id: r.deal_id,
-          deal_title: r.deal_title,
-          action: r.next_best_action.title,
-          type: r.next_best_action.type,
-          priority: r.next_best_action.priority || "MEDIUM",
+          deal_id: opp.id,
+          deal_title: payload?.deal_title || opp.title,
+          action: nba.title,
+          type: nba.type,
+          priority: nba.payload?.suggested_priority || "MEDIUM",
         });
       }
-    });
 
-    // Compute stage days from open opps
-    opps.forEach((opp: any) => {
+      // Stage days
       if (opp.stage_id) {
         const days = differenceInDays(new Date(), new Date(opp.updated_at));
         const list = stageDealDays.get(opp.stage_id) || [];
@@ -355,9 +217,9 @@ Deno.serve(async (req) => {
       return (priorityOrder[a.priority as keyof typeof priorityOrder] || 2) - (priorityOrder[b.priority as keyof typeof priorityOrder] || 2);
     });
 
-    const total = allResults.length;
+    const total = Object.keys(healthItems).length || opps.length;
     const response = {
-      total_open: total,
+      total_open: opps.length,
       health_distribution: distribution,
       avg_health_score: total > 0 ? Math.round(totalScore / total) : 0,
       top_risks: allRisks.slice(0, 5),

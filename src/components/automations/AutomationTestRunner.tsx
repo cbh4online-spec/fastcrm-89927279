@@ -601,6 +601,9 @@ function getTriggerDescription(trigger: AutomationTrigger): string {
     store_repurchase: "When a customer makes a repeat purchase",
     store_first_purchase: "When a customer makes their first purchase",
     store_order_status_changed: "When an order status changes",
+    health_label_changed: "When deal health label changes",
+    health_score_below_threshold: "When health score drops below threshold",
+    health_score_dropped: "When health score drops significantly",
   };
   return descriptions[trigger] || trigger;
 }

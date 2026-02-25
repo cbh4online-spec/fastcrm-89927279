@@ -54,16 +54,22 @@ export interface DealIntelligencePayload {
   risk_drivers: APIRiskDriver[];
   next_best_action: APINextBestAction;
   data_completeness: APIDataCompleteness;
+  confidence: number;
   debug: APIDebug;
   benchmarks?: APIBenchmarks;
   historical_insights?: APIHistoricalInsight[];
   automation_suggestions?: APIAutomationSuggestion[];
+  label_changed?: boolean;
+  previous_label?: string | null;
 }
 
 export interface CompactDealIntelligence {
   health_score: number;
   health_label: APIHealthLabel;
   top_reason: string | null;
+  confidence?: number;
+  stage_days?: number | null;
+  last_activity_days?: number | null;
 }
 
 export interface BulkDealIntelligenceResponse {
