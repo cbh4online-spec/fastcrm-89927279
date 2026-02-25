@@ -1,97 +1,27 @@
 
 
-# Attio-Style Entity Detail Layout
+# Phase 2: Already Implemented
 
-## What Changes
+After reviewing the codebase, **all three hooks are already fully implemented**:
 
-The current 3-column layout (left sidebar menu → center content → right context sidebar) will be replaced with the Attio-style layout from the screenshot:
+## `useCompanies.ts` — Soft Delete/Restore
+- **Soft delete**: `deleteCompany` sets `deleted_at` timestamp instead of hard deleting (line 248-264)
+- **Restore**: `restoreCompany` sets `deleted_at` back to `null` (line 266-282)
+- **Query filter**: `companiesQuery` already filters `.is("deleted_at", null)` (line 134)
+- **Domain extraction**: `createCompany` auto-extracts domain from website (line 147-149)
+- **Core Object fields**: `updateCompany` handles all 22 new columns via `extraFields` array (line 223-226)
+- **Company interface**: Includes all new fields (`icp_fit_score`, `pare_score`, `deleted_at`, `domain`, etc.)
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│ [←] Entity Name ★                          [Run workflow] [⚙] [⋯] │
-├──────────────────────────────────────┬──────────────────────────────┤
-│ Overview | Activity | Emails 3 |     │ Details | Comments           │
-│ Notes 5 | Team 2 | Tasks 1 | Files  │                              │
-│ +2 more ▾                            │ ▸ Record Details             │
-├──────────────────────────────────────┤   Domains: cosme.pt          │
-│                                      │   Description: ...           │
-│ ═ Highlights                         │   Categories: Finance SaaS   │
-│ ┌──────┐ ┌──────┐ ┌──────┐          │                              │
-│ │Conn. │ │Deals │ │Last  │          │ ▸ Enriched Firmographics     │
-│ │Stren.│ │      │ │Inter.│          │   Founded: 2022              │
-│ └──────┘ └──────┘ └──────┘          │   Employees: 51-250          │
-│ ┌──────┐ ┌──────┐ ┌──────┐          │   Est ARR: $1M-$10M          │
-│ │ ICP  │ │Categ.│ │Worksp│          │   Funding: $10M              │
-│ └──────┘ └──────┘ └──────┘          │                              │
-│                                      │ ▸ Location                   │
-│ ← Activity                          │   City: Porto                │
-│   • Meeting attended 2h ago          │   Country: Portugal          │
-│   • 3 attributes changed 4d ago     │                              │
-│                                      │ ▸ Social Media Links         │
-│ ✉ Emails 3                      [+] │   LinkedIn: ...              │
-│   • Subject line preview...          │   Facebook: ...              │
-│                                      │   Twitter: ...               │
-│ 📝 Notes 5                      [+] │                              │
-│   • Note preview...                  │ ▸ Lists                      │
-│                                      │                              │
-│ ☐ Tasks 1                       [+] │                              │
-│   • Task name        @user  📅 date │                              │
-└──────────────────────────────────────┴──────────────────────────────┘
-```
+## `useCompanyAuditLog.ts` — Already Created
+- Queries `companies_audit_log` table by `company_id`
+- Returns entries ordered by `changed_at` descending, limited to 100
+- Exports `CompanyAuditLogEntry` interface
 
-## Architecture
+## `useCompanyScores.ts` — Already Created
+- `useUpdateCompanyScores` mutation updates `icp_fit_score` and/or `pare_score`
+- Sets `updated_by` for audit trail
+- Invalidates both `companies` and `company` query caches
+- Shows success/error toasts
 
-### 1. New shared component: `EntityHorizontalTabs`
-
-Replaces `EntitySidebarMenu`. Renders horizontal tabs with counts, overflow handling ("+2 more" dropdown), and section navigation. Used by all 3 entity types.
-
-### 2. New shared component: `EntityDetailsPanel`
-
-Right sidebar with collapsible sections showing record fields inline (not cards). Adapts per entity type:
-- **Company**: Record Details (domain, description, categories), Firmographics (founded, employees, ARR, funding), Location (city, state, country), Social Media
-- **Contact**: Record Details (email, phone, company, job title), Professional Profile, Address, Social Media
-- **Lead**: Record Details (email, phone, source), Tags, Social Media
-
-### 3. New shared component: `EntityHighlightsGrid`
-
-The "Highlights" card grid at top of Overview showing key metrics (Connection strength, Associated deals, Last interaction, ICP score, Categories, Associated workspaces). Each card is a small summary box.
-
-### 4. Overview section redesign
-
-The Overview tab becomes a single scrollable page with embedded preview sections:
-- **Highlights** grid (top)
-- **Activity** (last 3 entries + "View all →")
-- **Emails** (last 3 + count badge + "+" button)
-- **Notes** (last 3 + count badge + "+" button)
-- **Tasks** (active tasks + "+" button)
-
-Clicking "View all →" or the tab switches to that full section.
-
-### 5. Update all 3 detail pages
-
-- `CompanyDetailWithSidebar.tsx` — replace left sidebar + center with horizontal tabs + main + right details panel
-- `LeadDetailWithSidebar.tsx` — same layout transformation
-- `ENIContactDetailWithSidebar.tsx` — same layout transformation
-
-### 6. Header simplification
-
-Simplified header matching screenshot: icon + name + star (favorite). Action buttons on the right. Remove gradient background, use flat border-b style.
-
-## Files Changed
-
-| File | Change |
-|------|--------|
-| `src/components/entity/EntityHorizontalTabs.tsx` | **New** — horizontal tab bar with counts and overflow |
-| `src/components/entity/EntityDetailsPanel.tsx` | **New** — right sidebar with collapsible record details |
-| `src/components/entity/EntityHighlightsGrid.tsx` | **New** — highlights card grid for overview |
-| `src/components/entity/EntityOverviewSections.tsx` | **New** — inline Activity/Emails/Notes/Tasks previews |
-| `src/components/companies/CompanyDetailWithSidebar.tsx` | Replace 3-col with tabs + details panel layout |
-| `src/components/crm/LeadDetailWithSidebar.tsx` | Replace 3-col with tabs + details panel layout |
-| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | Replace 3-col with tabs + details panel layout |
-
-## What Stays
-
-- All existing section content components (IdentificationSection, FinancialSection, NotesSection, etc.) remain unchanged — only the container layout changes
-- `EntitySidebarMenu` and `EntityContextSidebar` remain in codebase (not deleted) but are no longer used by the 3 detail pages
-- All hooks, data fetching, and business logic untouched
+**No changes are required.** Phase 2 is complete.
 
