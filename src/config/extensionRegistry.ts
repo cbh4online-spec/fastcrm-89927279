@@ -107,7 +107,7 @@ export const EXTENSION_REGISTRY: ExtensionDefinition[] = [
     ],
   },
   {
-    moduleSlug: "c2c-marketplace",
+    moduleSlug: "marketplace-c2c",
     name: "Marketplace C2C",
     objectTabs: [
       { key: "c2c-listings", label: "C2C Listings", icon: Store, route: "/dashboard/c2c" },

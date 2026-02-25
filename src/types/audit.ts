@@ -281,7 +281,7 @@ const CORE_MODULE_ENRICHMENT: Record<string, { objective: string; components: st
     components: ["B2BPortal", "B2BCatalog", "B2BOrders"],
     status: "implemented"
   },
-  "c2c-marketplace": {
+  "marketplace-c2c": {
     objective: "Marketplace C2C para vendas entre utilizadores",
     components: ["C2CListings", "C2CCheckout", "C2CSellers"],
     status: "implemented"
