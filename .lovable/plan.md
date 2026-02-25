@@ -1,96 +1,83 @@
 
 
-# Plano: Dropdown "Add Tab" com Opções de Record Tabs
+# Plan: Add Missing i18n Keys to ES and FR for Opportunity Detail Page
 
-## Analise do Screenshot
+## Current State
 
-O screenshot mostra que ao clicar em **"+ Add tab"**, aparece um **dropdown menu** com opções de tabs relacionadas que podem ser adicionadas dinamicamente:
+The Attio-style opportunity detail page is already fully implemented in code -- header with close/nav, tabs with dots and badges, highlights cards with widgets, collapsible sidebar, dynamic tabs dropdown, activity timeline, notes/tasks tabs, and header actions.
 
-- Associated people
-- Associated company
-- Billing admin
-- Workspace
-- Key Contact
-- Partner
+However, **Spanish (ES) and French (FR) locales are missing ~30 keys** that were added to PT and EN during the previous implementation rounds. This causes fallback to English or missing text in those languages.
 
-Atualmente, o botão "+ Add tab" apenas mostra um toast "Em breve". A melhoria é transformá-lo num dropdown funcional com opções de tabs.
+## Missing Keys in ES and FR
 
-## Estado Atual vs Melhoria
+The following keys exist in PT/EN but are absent from ES/FR:
 
-| Funcionalidade | Estado Atual | Melhoria |
+| Key | ES Translation | FR Translation |
 |---|---|---|
-| "+ Add tab" | Toast "Em breve" | Dropdown com opções de record tabs |
-| Tabs dinâmicas | Estáticas (hardcoded) | Tabs que podem ser adicionadas/removidas |
-| Record tab options | Não existe | Lista de: Associated people, Associated company, Billing admin, Workspace, Key Contact, Partner |
+| `oppDetail_composeEmail` | Redactar email | Rédiger un email |
+| `oppDetail_favorite` | Favorito | Favori |
+| `oppDetail_unfavorite` | Quitar favorito | Retirer des favoris |
+| `oppDetail_associatedCompanyTab` | Empresa | Entreprise |
+| `oppDetail_associatedPeopleTab` | Contactos | Contacts |
+| `oppDetail_callsTab` | Llamadas | Appels |
+| `oppDetail_showAllValues` | Mostrar todos los valores > | Afficher toutes les valeurs > |
+| `oppDetail_hideValues` | < Ocultar valores | < Masquer les valeurs |
+| `oppDetail_priorityLevel` | Nivel de Prioridad | Niveau de Priorité |
+| `oppDetail_listsSection` | Listas | Listes |
+| `oppDetail_addToList` | Añadir a lista | Ajouter à une liste |
+| `oppDetail_addToListSoon` | Funcionalidad próximamente | Fonctionnalité bientôt disponible |
+| `oppDetail_noLists` | Este registro no se ha añadido a ninguna lista | Cet enregistrement n'a été ajouté à aucune liste |
+| `oppDetail_noDealValue` | Sin valor asignado | Aucune valeur attribuée |
+| `oppDetail_viewAll` | Ver todo | Tout voir |
+| `oppDetail_allActivity` | Toda la actividad | Toute l'activité |
+| `oppDetail_noActivity` | Sin actividades registradas | Aucune activité enregistrée |
+| `oppDetail_noAssociatedCompany` | Sin empresa asociada | Aucune entreprise associée |
+| `oppDetail_noAssociatedPeople` | Sin contactos asociados | Aucun contact associé |
+| `oppDetail_noCalls` | Sin llamadas registradas | Aucun appel enregistré |
+| `oppDetail_logCall` | Registrar llamada | Enregistrer un appel |
+| `oppDetail_logCallSoon` | Funcionalidad próximamente | Fonctionnalité bientôt disponible |
+| `oppDetail_currency` | Moneda | Devise |
+| `oppDetail_addTab` | + Añadir tab | + Ajouter un onglet |
+| `oppDetail_addTabSoon` | Tabs personalizadas próximamente | Onglets personnalisés bientôt |
+| `oppDetail_addWidget` | + Añadir widget | + Ajouter un widget |
+| `oppDetail_addWidgetSoon` | Widgets personalizados próximamente | Widgets personnalisés bientôt |
+| `oppDetail_documents` | Documentos | Documents |
+| `oppDetail_noDocuments` | Sin documentos | Aucun document |
+| `oppDetail_addSection` | + Añadir sección | + Ajouter une section |
+| `oppDetail_addSectionSoon` | Secciones personalizadas próximamente | Sections personnalisées bientôt |
+| `oppDetail_copyTitle` | Título copiado | Titre copié |
+| `oppDetail_copiedTitle` | Título copiado al portapapeles | Titre copié dans le presse-papiers |
+| `oppDetail_shareRecord` | Compartir registro | Partager l'enregistrement |
+| `oppDetail_expandView` | Expandir vista | Agrandir la vue |
+| `oppDetail_expandViewSoon` | Vista expandida próximamente | Vue agrandie bientôt disponible |
+| `oppDetail_companyDomains` | Dominios | Domaines |
+| `oppDetail_companyCategories` | Categorías | Catégories |
+| `oppDetail_companyICP` | ICP | ICP |
+| `oppDetail_billingAdmin` | Admin de facturación | Admin facturation |
+| `oppDetail_workspace` | Workspace | Espace de travail |
+| `oppDetail_keyContact` | Contacto clave | Contact clé |
+| `oppDetail_partner` | Partner | Partenaire |
+| `oppDetail_noRecordAssociated` | Ningún {{type}} asociado | Aucun {{type}} associé |
+| `oppDetail_associate` | + Asociar | + Associer |
 
-## Componentes a Editar
+Also missing from ES/FR but present in PT/EN (sidebar-related keys added in later rounds):
 
-### 1. `OpportunityDetailPage.tsx` -- **EDIT**
-- Substituir o `Button` "+ Add tab" por um `DropdownMenu` com as opções do screenshot
-- Manter state local `additionalTabs` para tabs adicionadas dinamicamente
-- Quando o user seleciona uma opção, adicionar a tab correspondente à lista de tabs visíveis
-- Tabs adicionadas dinamicamente aparecem na TabsList com dot colorido e badge
-- Cada opção no dropdown tem ícone e label (ex: `Users` → "Associated people", `Building2` → "Associated company", etc.)
-- Opções já adicionadas ficam desabilitadas no dropdown
-
-### 2. `OpportunityDetailSidebar.tsx` -- **EDIT (minor)**
-- Nenhuma alteração estrutural necessária, mas garantir que a sidebar tem um campo "Key Contact" disponível para quando essa tab for adicionada
-
-### 3. i18n keys -- **EDIT**
-- Adicionar ~6 novas keys para as opções do dropdown
-
-## Detalhes Tecnicos
-
-### Dropdown "+ Add tab"
-```text
-┌──────────────────────┐
-│ 👥 Associated people │
-│ 🏢 Associated company│
-│ 💳 Billing admin     │
-│ 🏠 Workspace         │
-│ 👤 Key Contact       │
-│ 🤝 Partner           │
-└──────────────────────┘
-```
-
-### State de tabs dinâmicas
-```typescript
-const [additionalTabs, setAdditionalTabs] = useState<string[]>([]);
-
-const ADD_TAB_OPTIONS = [
-  { id: "people", label: "Associated people", icon: Users },
-  { id: "company", label: "Associated company", icon: Building2 },
-  { id: "billing", label: "Billing admin", icon: CreditCard },
-  { id: "workspace", label: "Workspace", icon: LayoutGrid },
-  { id: "keycontact", label: "Key Contact", icon: UserCheck },
-  { id: "partner", label: "Partner", icon: Handshake },
-];
-```
-
-- Tabs que já existem por defeito (people, company) ficam desabilitadas no dropdown
-- Tabs novas (billing, workspace, keycontact, partner) são adicionadas ao `additionalTabs` state
-- Cada tab adicionada dinamicamente renderiza um `TabsContent` com empty state genérico e botão para associar registos
-
-### TabsContent para tabs dinâmicas
-- Cada nova tab mostra um empty state com ícone + "No {type} associated" + botão "+ Associate"
-- Clicar no botão mostra toast "Em breve" (funcionalidade futura)
-
-## Ficheiros
-
-| Ficheiro | Acao | Descricao |
+| Key | ES | FR |
 |---|---|---|
-| `src/components/opportunities/OpportunityDetailPage.tsx` | **EDIT** | Dropdown + tabs dinâmicas |
-| `src/i18n/locales/pt/crm.json` | **EDIT** | ~6 novas keys |
-| `src/i18n/locales/en/crm.json` | **EDIT** | ~6 novas keys |
+| Various `sidebar*`, `filterPill*`, `viewSettings*`, `importExport*`, `tableRowCount`, `addColumn`, `addCalculation` keys | Need Spanish translations | Need French translations |
 
-## i18n Keys Novas (~6)
-```
-oppDetail_billingAdmin, oppDetail_workspace, oppDetail_keyContact,
-oppDetail_partner, oppDetail_noRecordAssociated, oppDetail_associate
-```
+## Files to Edit
 
-## Ordem de Implementacao
+| File | Action | Description |
+|---|---|---|
+| `src/i18n/locales/es/crm.json` | **EDIT** | Add ~44 missing keys with Spanish translations |
+| `src/i18n/locales/fr/crm.json` | **EDIT** | Add ~44 missing keys with French translations |
 
-1. `OpportunityDetailPage.tsx` -- dropdown + tabs dinâmicas + empty states
-2. i18n keys PT + EN
+## Implementation
+
+1. Add all missing `oppDetail_*` keys to `es/crm.json` (inserted after line 600, before `companyTypeProspect`)
+2. Add all missing `oppDetail_*` keys to `fr/crm.json` (inserted after line 600, before `companyTypeProspect`)
+3. Add missing sidebar/table keys that PT has but ES/FR don't (e.g. `sidebarDuplicate`, `sidebarNoLists`, `filterPillAdd`, `sortedBy`, `viewSettings*`, `importExport`, `exportExcel`, `tableRowCount`, `addColumn`, `addCalculation`, `sidebarNotifications`, `sidebarNotes`, `sidebarEmails`, `sidebarCalls`, `sidebarReports`, `sidebarAutomations`, `sidebarSequences`, `sidebarWorkflows`, `quickActions`, `inviteTeamMembers`, `sidebarUsers`, `sidebarWorkspaces`, `sidebarPartners`, `commandPaletteSearch`, `navigation`)
+
+No component changes needed -- all UI code is already implemented.
 
