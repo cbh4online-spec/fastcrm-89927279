@@ -255,6 +255,8 @@ function LeadDetails({ entity, onUpdate }: { entity: LeadEntity; onUpdate?: (fie
       <CollapsibleSection title="Redes Sociais" defaultOpen={false}>
         <EditableFieldRow label="LinkedIn" value={e.linkedin_url} icon={Linkedin} isLink linkType="url" fieldKey="linkedin_url" onUpdate={onUpdate} />
         <EditableFieldRow label="Instagram" value={e.instagram_url} icon={Instagram} isLink linkType="url" fieldKey="instagram_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Facebook" value={e.facebook_url} icon={Facebook} isLink linkType="url" fieldKey="facebook_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Twitter/X" value={e.twitter_url} icon={Twitter} isLink linkType="url" fieldKey="twitter_url" onUpdate={onUpdate} />
       </CollapsibleSection>
     </div>
   );

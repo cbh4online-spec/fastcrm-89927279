@@ -198,7 +198,7 @@ export function LeadDetailWithSidebar() {
                 }}
               />
             )}
-            <IdentificationSection lead={lead} onFieldChange={handleFieldChange} />
+            {/* IdentificationSection removed — fields now editable in sidebar */}
           </div>
         );
       case 'insights':
@@ -250,7 +250,7 @@ export function LeadDetailWithSidebar() {
             <InstagramDataSection lead={lead} />
             {/* Secção de Análise IA */}
             <AIAnalysisSection lead={lead} />
-            <SocialMediaSection lead={lead} onFieldChange={handleFieldChange} />
+            {/* SocialMediaSection removed — fields now editable in sidebar */}
             <TagsSection lead={lead} onFieldChange={handleFieldChange} />
           </div>
         );
