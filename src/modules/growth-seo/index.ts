@@ -82,6 +82,7 @@ export { default as KeywordIdeasToolPage } from './pages/KeywordIdeasToolPage';
 export { default as CategoriesListPage } from './pages/CategoriesListPage';
 export { default as CategoryDetailPage } from './pages/CategoryDetailPage';
 export { default as ComparePage } from './pages/ComparePage';
+export { default as CompareListPage } from './pages/CompareListPage';
 export { default as BlogListPage } from './pages/BlogListPage';
 export { default as BlogPostPage } from './pages/BlogPostPage';
 export { default as GuidesListPage } from './pages/GuidesListPage';

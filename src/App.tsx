@@ -250,6 +250,7 @@ import {
   CategoriesListPage,
   CategoryDetailPage,
   ComparePage,
+  CompareListPage,
   BlogListPage,
   BlogPostPage,
   GuidePage,
@@ -344,6 +345,7 @@ function CRMRoutes() {
                 <Route path="/tools/:slug" element={<ToolDetailPage />} />
                 <Route path="/categories" element={<CategoriesListPage />} />
                 <Route path="/categories/:slug" element={<CategoryDetailPage />} />
+                <Route path="/compare" element={<CompareListPage />} />
                 <Route path="/compare/:slug" element={<ComparePage />} />
                 <Route path="/blog" element={<BlogListPage />} />
                 <Route path="/blog/:slug" element={<BlogPostPage />} />
