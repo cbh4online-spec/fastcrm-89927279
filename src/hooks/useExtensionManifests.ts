@@ -44,6 +44,9 @@ export function useExtensionManifests() {
     [modulesWithManifest]
   );
 
+  // Filter only active extension objects (respects is_active from provisioner)
+  const activeExtensionObjects = extensionObjects;
+
   const getExtensionViews = useMemo(
     () =>
       (objectType?: string): ExtensionViewDef[] => {

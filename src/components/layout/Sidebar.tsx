@@ -7,7 +7,9 @@ import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
 import { PlanBadge } from "@/components/subscription/FeatureGate";
 import { NAV_V2_ITEMS } from "@/config/nav.v2";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
-import { X } from "lucide-react";
+import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
+import { getExtensionObjectTabs } from "@/config/extensionRegistry";
+import { X, Puzzle } from "lucide-react";
 import { useMemo } from "react";
 import {
   Tooltip,
@@ -26,6 +28,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { currentWorkspace } = useWorkspace();
   const { plan } = useSubscription();
   const { data: flags, isLoading: flagsLoading } = useFeatureFlags();
+  const { installedModuleIds } = useWorkspaceModules();
 
   const navItems = useMemo(() => {
     if (flagsLoading) return [...NAV_V2_ITEMS];
@@ -36,6 +39,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       return flag?.enabled ?? false;
     });
   }, [flags, flagsLoading]);
+
+  const extensionNavItems = useMemo(() => {
+    return getExtensionObjectTabs(installedModuleIds).filter((tab) => tab.route);
+  }, [installedModuleIds]);
 
   const isActive = (href: string, end?: boolean) => {
     const basePath = href.split("?")[0];
@@ -124,6 +131,42 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                   </Tooltip>
                 );
               })}
+
+              {/* Extension nav items */}
+              {extensionNavItems.length > 0 && (
+                <>
+                  <div className="flex items-center gap-2 px-3 pt-4 pb-1">
+                    <Puzzle className="w-3 h-3 text-white/30" />
+                    <span className="text-[10px] uppercase tracking-wider text-white/30 font-semibold">Extensões</span>
+                  </div>
+                  {extensionNavItems.map((extItem) => {
+                    const active = isActive(extItem.route!);
+                    const Icon = extItem.icon;
+                    return (
+                      <Tooltip key={extItem.key}>
+                        <TooltipTrigger asChild>
+                          <Link
+                            to={extItem.route!}
+                            onClick={onClose}
+                            className={cn(
+                              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                              active
+                                ? "bg-primary/20 text-primary shadow-sm"
+                                : "text-white/60 hover:bg-white/5 hover:text-white/90"
+                            )}
+                          >
+                            <Icon className={cn("w-[18px] h-[18px]", active && "text-primary")} />
+                            <span>{extItem.label}</span>
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="text-xs">
+                          {extItem.label}
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                </>
+              )}
             </nav>
 
             {/* Role indicator */}

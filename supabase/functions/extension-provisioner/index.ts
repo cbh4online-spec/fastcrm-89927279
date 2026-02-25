@@ -6,6 +6,29 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-workspace-id",
 };
 
+interface ManifestObjectDef {
+  type: string;
+  label: string;
+  labelPt: string;
+  icon: string;
+  source_table: string;
+  color: string;
+  description: string;
+}
+
+interface ManifestFieldDef {
+  object_type: string;
+  key: string;
+  type: string;
+  label: string;
+}
+
+interface ManifestViewDef {
+  object_type: string;
+  name: string;
+  filter: Record<string, unknown>;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -24,6 +47,12 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Service client for admin operations on core_object_types
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
     const token = authHeader.replace("Bearer ", "");
@@ -85,9 +114,12 @@ Deno.serve(async (req) => {
 
     const manifest = (module.manifest_json as Record<string, unknown>) || {};
     const featureFlags = (manifest.feature_flags as string[]) || [];
+    const manifestObjects = (manifest.objects as ManifestObjectDef[]) || [];
+    const manifestFields = (manifest.fields as ManifestFieldDef[]) || [];
+    const manifestViews = (manifest.views as ManifestViewDef[]) || [];
 
     if (action === "enable") {
-      // Upsert workspace_modules
+      // --- Upsert workspace_modules ---
       const { data: existing } = await supabase
         .from("workspace_modules")
         .select("id, status")
@@ -102,7 +134,6 @@ Deno.serve(async (req) => {
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-        // Reactivate
         await supabase
           .from("workspace_modules")
           .update({
@@ -121,7 +152,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Enable feature flags
+      // --- Enable feature flags ---
       for (const flag of featureFlags) {
         const { data: existingFlag } = await supabase
           .from("workspace_feature_flags")
@@ -144,7 +175,94 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Audit log
+      // --- Provision manifest objects into core_object_types ---
+      for (const obj of manifestObjects) {
+        const { data: existingObj } = await serviceClient
+          .from("core_object_types")
+          .select("id")
+          .eq("workspace_id", workspaceId)
+          .eq("type", obj.type)
+          .maybeSingle();
+
+        if (existingObj) {
+          await serviceClient
+            .from("core_object_types")
+            .update({ is_active: true, source_module: module_slug })
+            .eq("id", existingObj.id);
+        } else {
+          await serviceClient.from("core_object_types").insert({
+            workspace_id: workspaceId,
+            type: obj.type,
+            label: obj.label,
+            label_pt: obj.labelPt,
+            icon: obj.icon,
+            source_table: obj.source_table,
+            color: obj.color,
+            description: obj.description,
+            source_module: module_slug,
+            is_active: true,
+          });
+        }
+      }
+
+      // --- Provision manifest fields into core_object_fields ---
+      for (const field of manifestFields) {
+        const { data: objType } = await serviceClient
+          .from("core_object_types")
+          .select("id")
+          .eq("workspace_id", workspaceId)
+          .eq("type", field.object_type)
+          .maybeSingle();
+
+        if (objType) {
+          const { data: existingField } = await serviceClient
+            .from("core_object_fields")
+            .select("id")
+            .eq("object_type_id", objType.id)
+            .eq("key", field.key)
+            .maybeSingle();
+
+          if (!existingField) {
+            await serviceClient.from("core_object_fields").insert({
+              object_type_id: objType.id,
+              key: field.key,
+              type: field.type,
+              label: field.label,
+              workspace_id: workspaceId,
+            });
+          }
+        }
+      }
+
+      // --- Provision manifest views into core_object_views ---
+      for (const view of manifestViews) {
+        const { data: objType } = await serviceClient
+          .from("core_object_types")
+          .select("id")
+          .eq("workspace_id", workspaceId)
+          .eq("type", view.object_type)
+          .maybeSingle();
+
+        if (objType) {
+          const { data: existingView } = await serviceClient
+            .from("core_object_views")
+            .select("id")
+            .eq("object_type_id", objType.id)
+            .eq("name", view.name)
+            .maybeSingle();
+
+          if (!existingView) {
+            await serviceClient.from("core_object_views").insert({
+              object_type_id: objType.id,
+              name: view.name,
+              filter: view.filter,
+              workspace_id: workspaceId,
+            });
+          }
+        }
+      }
+
+      // --- Audit log ---
       await supabase.from("extension_audit_logs").insert({
         workspace_id: workspaceId,
         extension_key: module_slug,
@@ -158,14 +276,14 @@ Deno.serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } else if (action === "disable") {
-      // Set canceled
+      // --- Set workspace_modules to canceled ---
       await supabase
         .from("workspace_modules")
         .update({ status: "canceled", cancel_at_period_end: true })
         .eq("workspace_id", workspaceId)
         .eq("module_id", module.id);
 
-      // Disable feature flags
+      // --- Disable feature flags ---
       for (const flag of featureFlags) {
         await supabase
           .from("workspace_feature_flags")
@@ -174,7 +292,18 @@ Deno.serve(async (req) => {
           .eq("flag_key", flag);
       }
 
-      // Audit log
+      // --- Soft-disable extension objects (preserve data) ---
+      if (manifestObjects.length > 0) {
+        const objectTypes = manifestObjects.map((o) => o.type);
+        await serviceClient
+          .from("core_object_types")
+          .update({ is_active: false })
+          .eq("workspace_id", workspaceId)
+          .eq("source_module", module_slug)
+          .in("type", objectTypes);
+      }
+
+      // --- Audit log ---
       await supabase.from("extension_audit_logs").insert({
         workspace_id: workspaceId,
         extension_key: module_slug,

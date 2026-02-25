@@ -9529,9 +9529,11 @@ export type Database = {
           description: string | null
           icon: string
           id: string
+          is_active: boolean | null
           is_system: boolean
           name: string
           slug: string
+          source_module: string | null
           workspace_id: string
         }
         Insert: {
@@ -9540,9 +9542,11 @@ export type Database = {
           description?: string | null
           icon?: string
           id?: string
+          is_active?: boolean | null
           is_system?: boolean
           name: string
           slug: string
+          source_module?: string | null
           workspace_id: string
         }
         Update: {
@@ -9551,9 +9555,11 @@ export type Database = {
           description?: string | null
           icon?: string
           id?: string
+          is_active?: boolean | null
           is_system?: boolean
           name?: string
           slug?: string
+          source_module?: string | null
           workspace_id?: string
         }
         Relationships: [

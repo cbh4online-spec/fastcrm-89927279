@@ -3,10 +3,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Wand2, ChevronRight, ChevronLeft, Check } from "lucide-react";
+import { Plus, Trash2, Wand2, ChevronRight, ChevronLeft, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface FieldDef {
   name: string;
@@ -38,6 +41,9 @@ export function CreateObjectWizard({ open, onOpenChange, onComplete }: CreateObj
   const [step, setStep] = useState(0);
   const [objectName, setObjectName] = useState("");
   const [fields, setFields] = useState<FieldDef[]>([{ name: "", type: "text" }]);
+  const [saving, setSaving] = useState(false);
+  const { currentWorkspace } = useWorkspace();
+  const queryClient = useQueryClient();
 
   const resetState = () => {
     setStep(0);
@@ -62,10 +68,68 @@ export function CreateObjectWizard({ open, onOpenChange, onComplete }: CreateObj
   const validFields = fields.filter((f) => f.name.trim());
   const canFinish = objectName.trim() && validFields.length >= 1;
 
-  const handleFinish = () => {
-    onComplete?.(objectName.trim(), validFields);
-    resetState();
-    onOpenChange(false);
+  const handleFinish = async () => {
+    if (!currentWorkspace?.id) {
+      toast.error("Nenhum workspace selecionado");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const typeSlug = objectName.trim().toLowerCase().replace(/\s+/g, "_");
+
+      // Insert into core_object_types
+      const { data: objectType, error: objError } = await supabase
+        .from("core_object_types")
+        .insert({
+          workspace_id: currentWorkspace.id,
+          type: typeSlug,
+          label: objectName.trim(),
+          label_pt: objectName.trim(),
+          icon: "Package",
+          source_table: `custom_${typeSlug}`,
+          color: "text-primary",
+          description: `Custom object: ${objectName.trim()}`,
+          source_module: null,
+          is_active: true,
+        } as any)
+        .select("id")
+        .single();
+
+      if (objError) throw objError;
+
+      // Insert fields into core_object_fields
+      if (objectType && validFields.length > 0) {
+        const fieldInserts = validFields.map((f) => ({
+          object_type_id: objectType.id,
+          workspace_id: currentWorkspace.id,
+          key: f.name.toLowerCase().replace(/\s+/g, "_"),
+          type: f.type,
+          label: f.name,
+        }));
+
+        const { error: fieldsError } = await supabase
+          .from("core_object_fields")
+          .insert(fieldInserts as any);
+
+        if (fieldsError) {
+          console.error("Error inserting fields:", fieldsError);
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["extension-manifests"] });
+      queryClient.invalidateQueries({ queryKey: ["object-counts"] });
+
+      toast.success(`Objeto "${objectName.trim()}" criado com ${validFields.length} campos`);
+      onComplete?.(objectName.trim(), validFields);
+      resetState();
+      onOpenChange(false);
+    } catch (err: any) {
+      console.error("Error creating object:", err);
+      toast.error(err.message || "Erro ao criar objeto");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -153,7 +217,7 @@ export function CreateObjectWizard({ open, onOpenChange, onComplete }: CreateObj
 
         <DialogFooter className="flex justify-between">
           {step > 0 ? (
-            <Button variant="ghost" size="sm" onClick={() => setStep(0)} className="gap-1">
+            <Button variant="ghost" size="sm" onClick={() => setStep(0)} className="gap-1" disabled={saving}>
               <ChevronLeft className="h-3.5 w-3.5" /> Back
             </Button>
           ) : <div />}
@@ -162,8 +226,9 @@ export function CreateObjectWizard({ open, onOpenChange, onComplete }: CreateObj
               Next <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           ) : (
-            <Button size="sm" onClick={handleFinish} disabled={!canFinish} className="gap-1">
-              <Check className="h-3.5 w-3.5" /> Create Object
+            <Button size="sm" onClick={handleFinish} disabled={!canFinish || saving} className="gap-1">
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              {saving ? "Creating..." : "Create Object"}
             </Button>
           )}
         </DialogFooter>
