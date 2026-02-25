@@ -44,6 +44,7 @@ export interface AskStructuredQuery {
 
 export interface AutomationPreview {
   name: string;
+  object_type: "deal" | "contact" | "invoice";
   trigger: string;
   trigger_config?: Record<string, any>;
   trigger_label: string;
@@ -303,6 +304,20 @@ export function useAskFastCRM() {
         }
         if (preview.trigger === "opportunity_stage_changed" && preview.trigger_config?.stage_name) {
           triggerConfig.stage_name = preview.trigger_config.stage_name;
+        }
+        // Contact triggers
+        if (preview.trigger === "contact_no_activity" && preview.trigger_config?.delay_days) {
+          triggerConfig.no_activity_days = preview.trigger_config.delay_days;
+        }
+        // Invoice triggers
+        if (preview.trigger === "invoice_overdue" && preview.trigger_config?.days_overdue) {
+          triggerConfig.days_overdue = preview.trigger_config.days_overdue;
+        }
+        if (preview.trigger === "due_date_approaching" && preview.trigger_config?.days_before_due) {
+          triggerConfig.days_before_due = preview.trigger_config.days_before_due;
+        }
+        if (preview.trigger === "invoice_status_changed" && preview.trigger_config?.status) {
+          triggerConfig.status = preview.trigger_config.status;
         }
 
         // Create rule

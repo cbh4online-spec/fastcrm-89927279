@@ -156,6 +156,16 @@ const KEYWORD_MAP: Record<string, string> = {
   "create task when": "create_automation_rule",
   "avisar-me": "create_automation_rule",
   "lembrar-me": "create_automation_rule",
+  // Multi-object automation keywords
+  "invoice overdue": "create_automation_rule",
+  "overdue alert": "create_automation_rule",
+  "due date approaching": "create_automation_rule",
+  "fatura vencida": "create_automation_rule",
+  "contact created": "create_automation_rule",
+  "contact no reply": "create_automation_rule",
+  "contacto criado": "create_automation_rule",
+  "new contact": "create_automation_rule",
+  "novo contacto": "create_automation_rule",
 };
 
 const EXACT_PHRASES: Record<string, string> = {
@@ -462,7 +472,8 @@ Deno.serve(async (req) => {
 
     // --- Automation intent: always route to LLM for structured extraction ---
     if (keywordResult?.intent === "create_automation_rule") {
-      const automationResponse = await handleAutomationIntent(question, workspaceId, claimsData.claims.sub, serviceClient);
+      const detectedObjectType = detectAutomationObjectType(question);
+      const automationResponse = await handleAutomationIntent(question, workspaceId, claimsData.claims.sub, serviceClient, detectedObjectType);
       return new Response(JSON.stringify(automationResponse), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -683,54 +694,83 @@ Always call the tool. Only use allowed fields, operators, and sort fields.`,
   }
 });
 
-// --- Automation Intent Handler ---
+// --- Multi-Object Automation Config ---
 
-const AUTOMATION_ALLOWED_TRIGGERS = [
-  "opportunity_stage_changed",
-  "lead_no_response",
-  "lead_score_changed",
-  "lead_temperature_changed",
-];
+type AutomationObjectType = "deal" | "contact" | "invoice";
 
-const AUTOMATION_ALLOWED_ACTIONS = [
-  "create_task",
-  "assign_owner",
-  "notify_user",
-  "move_opportunity_stage",
-];
+const AUTOMATION_OBJECT_CONFIG: Record<AutomationObjectType, {
+  triggers: string[];
+  actions: string[];
+  condition_fields: string[];
+  requires_extension?: string;
+}> = {
+  deal: {
+    triggers: ["opportunity_stage_changed", "lead_no_response", "lead_score_changed", "lead_temperature_changed"],
+    actions: ["create_task", "assign_owner", "notify_user", "move_opportunity_stage"],
+    condition_fields: ["amount", "stage", "health_label", "close_date", "owner_id"],
+  },
+  contact: {
+    triggers: ["contact_created", "contact_updated", "contact_no_activity", "contact_score_changed"],
+    actions: ["create_task", "assign_owner", "notify_user"],
+    condition_fields: ["name", "email", "owner_id"],
+  },
+  invoice: {
+    triggers: ["invoice_created", "invoice_overdue", "due_date_approaching", "invoice_status_changed"],
+    actions: ["create_task", "notify_user", "mark_as_at_risk", "send_overdue_alert"],
+    condition_fields: ["amount", "status", "days_overdue", "due_date"],
+    requires_extension: "invoices",
+  },
+};
 
-const AUTOMATION_ALLOWED_CONDITION_FIELDS = [
-  "amount", "stage", "health_label", "close_date", "owner_id",
-];
+const ALL_AUTOMATION_TRIGGERS = Object.values(AUTOMATION_OBJECT_CONFIG).flatMap(c => c.triggers);
+const ALL_AUTOMATION_ACTIONS = Object.values(AUTOMATION_OBJECT_CONFIG).flatMap(c => c.actions);
+const ALL_AUTOMATION_CONDITION_FIELDS = [...new Set(Object.values(AUTOMATION_OBJECT_CONFIG).flatMap(c => c.condition_fields))];
+
+function detectAutomationObjectType(question: string): AutomationObjectType {
+  const lower = question.toLowerCase();
+  const invoiceKeywords = ["invoice", "fatura", "overdue", "vencida", "due date", "data de vencimento"];
+  const contactKeywords = ["contact", "contacto", "replied", "reply", "resposta", "respondeu"];
+  if (invoiceKeywords.some(k => lower.includes(k))) return "invoice";
+  if (contactKeywords.some(k => lower.includes(k))) return "contact";
+  return "deal";
+}
 
 const AUTOMATION_TOOL = {
   type: "function" as const,
   function: {
     name: "extract_automation_rule",
-    description: "Extract a structured automation rule from a natural language request about CRM deals.",
+    description: "Extract a structured automation rule from a natural language CRM request. Supports deals, contacts, and invoices.",
     parameters: {
       type: "object",
       properties: {
         name: { type: "string", description: "Short descriptive name for the rule (max 60 chars)" },
+        object_type: {
+          type: "string",
+          enum: ["deal", "contact", "invoice"],
+          description: "The object type this rule applies to.",
+        },
         trigger: {
           type: "string",
-          enum: AUTOMATION_ALLOWED_TRIGGERS,
-          description: "The event that triggers this rule. Use 'lead_no_response' for inactivity/no-activity patterns, 'opportunity_stage_changed' for stage transitions.",
+          enum: ALL_AUTOMATION_TRIGGERS,
+          description: "The event that triggers this rule.",
         },
         trigger_config: {
           type: "object",
           properties: {
-            delay_days: { type: "number", description: "Number of days for inactivity triggers" },
+            delay_days: { type: "number", description: "Number of days for inactivity/approaching triggers" },
             stage_name: { type: "string", description: "Stage name for stage-change triggers" },
+            days_overdue: { type: "number", description: "Number of overdue days for invoice triggers" },
+            days_before_due: { type: "number", description: "Days before due date for approaching triggers" },
+            status: { type: "string", description: "Status value for status-change triggers" },
           },
         },
-        trigger_label: { type: "string", description: "Human-readable description of the trigger, e.g. 'Deal enters Proposal'" },
+        trigger_label: { type: "string", description: "Human-readable description of the trigger" },
         conditions: {
           type: "array",
           items: {
             type: "object",
             properties: {
-              field_name: { type: "string", enum: AUTOMATION_ALLOWED_CONDITION_FIELDS },
+              field_name: { type: "string", enum: ALL_AUTOMATION_CONDITION_FIELDS },
               operator: { type: "string", enum: ["equals", "not_equals", "greater_than", "less_than", "is_empty"] },
               value: { type: "string" },
             },
@@ -747,7 +787,7 @@ const AUTOMATION_TOOL = {
           items: {
             type: "object",
             properties: {
-              action_type: { type: "string", enum: AUTOMATION_ALLOWED_ACTIONS },
+              action_type: { type: "string", enum: ALL_AUTOMATION_ACTIONS },
               config: {
                 type: "object",
                 properties: {
@@ -768,13 +808,19 @@ const AUTOMATION_TOOL = {
           description: "Human-readable descriptions of each action",
         },
       },
-      required: ["name", "trigger", "trigger_label", "actions", "actions_labels"],
+      required: ["name", "object_type", "trigger", "trigger_label", "actions", "actions_labels"],
       additionalProperties: false,
     },
   },
 };
 
-async function handleAutomationIntent(question: string, workspaceId: string, userId: string, serviceClient: any) {
+const AUTOMATION_DID_YOU_MEAN: Record<AutomationObjectType, string[]> = {
+  deal: ["Remind me if no activity for 7 days", "Create follow-up when deal enters Proposal", "Alert me when deals are at risk"],
+  contact: ["Notify me if contact hasn't replied in 14 days", "Create task when new contact is created", "Assign new contacts to SDR team"],
+  invoice: ["Alert me when invoice is overdue", "Notify owner 3 days before due date", "Mark invoice as at risk if overdue 10 days"],
+};
+
+async function handleAutomationIntent(question: string, workspaceId: string, userId: string, serviceClient: any, detectedObjectType: AutomationObjectType) {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) {
     return buildResponse("create_automation_rule", "deals",
@@ -782,6 +828,47 @@ async function handleAutomationIntent(question: string, workspaceId: string, use
       { headline: "AI not configured.", items: [], actions: [], did_you_mean: DID_YOU_MEAN_DEFAULTS }
     );
   }
+
+  // Extension gate for invoices
+  if (detectedObjectType === "invoice") {
+    const { data: modulesData } = await serviceClient
+      .from("workspace_modules")
+      .select("id, module_id")
+      .eq("workspace_id", workspaceId)
+      .in("status", ["active", "trial"]);
+
+    let hasInvoiceModule = false;
+    if (modulesData && modulesData.length > 0) {
+      const moduleIds = modulesData.map((m: any) => m.module_id);
+      const { data: marketplaceModules } = await serviceClient
+        .from("marketplace_modules")
+        .select("id, slug")
+        .in("id", moduleIds);
+      hasInvoiceModule = marketplaceModules?.some((m: any) => m.slug === "invoices") || false;
+    }
+
+    if (!hasInvoiceModule) {
+      return {
+        version: "1.0",
+        routed_via: "llm" as const,
+        confidence: 0.90,
+        intent: "create_automation_rule",
+        object_type: "deals",
+        query: { filters: [], sort: [], limit: 0 },
+        answer: {
+          headline: "Invoice automations require the Finance Pack.",
+          subtext: "Activate it in Marketplace to unlock invoice rules.",
+        },
+        actions_available: [],
+        items: [],
+        actions: [],
+        did_you_mean: AUTOMATION_DID_YOU_MEAN.deal,
+      };
+    }
+  }
+
+  const objectConfig = AUTOMATION_OBJECT_CONFIG[detectedObjectType];
+  const objectLabel = detectedObjectType === "deal" ? "Deal" : detectedObjectType === "contact" ? "Contact" : "Invoice";
 
   try {
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -795,23 +882,41 @@ async function handleAutomationIntent(question: string, workspaceId: string, use
         messages: [
           {
             role: "system",
-            content: `You extract automation rules from natural language CRM requests. The user wants to create an automated rule for their CRM deals.
+            content: `You extract automation rules from natural language CRM requests. The user wants to create an automated rule.
 
-Allowed triggers:
-- opportunity_stage_changed: fires when a deal moves to a specific stage
-- lead_no_response: fires when there's no activity for N days (use trigger_config.delay_days)
-- lead_score_changed: fires when lead score changes
-- lead_temperature_changed: fires when lead temperature changes
+The detected object type is: ${detectedObjectType}
 
-Allowed actions:
-- create_task: creates a follow-up task (config: title, due_in_days, priority)
-- assign_owner: assigns deal to a user (config: message describing who)
-- notify_user: sends a notification (config: message)
-- move_opportunity_stage: moves deal to another stage (config: stage_name)
+Allowed triggers for ${detectedObjectType}:
+${objectConfig.triggers.map(t => `- ${t}`).join("\n")}
 
-Allowed condition fields: amount, stage, health_label, close_date, owner_id
+Allowed actions for ${detectedObjectType}:
+${objectConfig.actions.map(a => `- ${a}`).join("\n")}
+
+Allowed condition fields for ${detectedObjectType}: ${objectConfig.condition_fields.join(", ")}
 Allowed condition operators: equals, not_equals, greater_than, less_than, is_empty
 
+Trigger descriptions:
+- opportunity_stage_changed: deal moves to a specific stage (use trigger_config.stage_name)
+- lead_no_response: no activity for N days (use trigger_config.delay_days)
+- lead_score_changed / lead_temperature_changed: score/temperature changes
+- contact_created: new contact is created
+- contact_updated: contact is updated
+- contact_no_activity: no activity on contact for N days (use trigger_config.delay_days)
+- contact_score_changed: contact score changes
+- invoice_created: new invoice is created
+- invoice_overdue: invoice is past due date (use trigger_config.days_overdue)
+- due_date_approaching: invoice due date is approaching (use trigger_config.days_before_due)
+- invoice_status_changed: invoice status changes (use trigger_config.status)
+
+Action descriptions:
+- create_task: creates a follow-up task (config: title, due_in_days, priority)
+- assign_owner: assigns to a user (config: message describing who)
+- notify_user: sends a notification (config: message)
+- move_opportunity_stage: moves deal to another stage (config: stage_name)
+- mark_as_at_risk: flags entity as at risk (no config needed)
+- send_overdue_alert: sends overdue alert (config: message)
+
+IMPORTANT: Set object_type to "${detectedObjectType}". Only use triggers and actions listed above for this object type.
 Always call the tool. Generate clear human-readable labels. Keep names short.`,
           },
           { role: "user", content: question },
@@ -825,7 +930,7 @@ Always call the tool. Generate clear human-readable labels. Keep names short.`,
       console.error("AI gateway error for automation:", aiResponse.status);
       return buildResponse("create_automation_rule", "deals",
         { filters: [], sort: [], limit: 0 }, "llm", 0,
-        { headline: "Couldn't understand that automation request.", items: [], actions: [], did_you_mean: ["Remind me if no activity for 7 days", "Create follow-up when deal enters Proposal", "Alert me when deals are at risk"] }
+        { headline: "Couldn't understand that automation request.", items: [], actions: [], did_you_mean: AUTOMATION_DID_YOU_MEAN[detectedObjectType] }
       );
     }
 
@@ -834,7 +939,7 @@ Always call the tool. Generate clear human-readable labels. Keep names short.`,
     if (!toolCall) {
       return buildResponse("create_automation_rule", "deals",
         { filters: [], sort: [], limit: 0 }, "llm", 0,
-        { headline: "Couldn't parse that as an automation rule.", items: [], actions: [], did_you_mean: ["Remind me if no activity for 7 days", "Create follow-up when deal enters Proposal"] }
+        { headline: "Couldn't parse that as an automation rule.", items: [], actions: [], did_you_mean: AUTOMATION_DID_YOU_MEAN[detectedObjectType] }
       );
     }
 
@@ -848,29 +953,34 @@ Always call the tool. Generate clear human-readable labels. Keep names short.`,
       );
     }
 
-    // Guardrails: validate trigger
-    if (!AUTOMATION_ALLOWED_TRIGGERS.includes(parsed.trigger)) {
+    // Resolve object type — prefer LLM output but validate
+    const resolvedObjectType: AutomationObjectType = (["deal", "contact", "invoice"] as const).includes(parsed.object_type) ? parsed.object_type : detectedObjectType;
+    const resolvedConfig = AUTOMATION_OBJECT_CONFIG[resolvedObjectType];
+
+    // Guardrails: validate trigger belongs to resolved object
+    if (!resolvedConfig.triggers.includes(parsed.trigger)) {
       return buildResponse("create_automation_rule", "deals",
         { filters: [], sort: [], limit: 0 }, "llm", 0.3,
-        { headline: "That trigger type isn't supported yet.", items: [], actions: [], did_you_mean: ["Remind me if no activity for 7 days", "Create follow-up when deal enters Proposal", "Alert me when deals are at risk"] }
+        { headline: `That trigger isn't supported for ${resolvedObjectType}s.`, items: [], actions: [], did_you_mean: AUTOMATION_DID_YOU_MEAN[resolvedObjectType] }
       );
     }
 
-    // Guardrails: validate actions
-    const validActions = (parsed.actions || []).filter((a: any) => AUTOMATION_ALLOWED_ACTIONS.includes(a.action_type));
+    // Guardrails: validate actions belong to resolved object
+    const validActions = (parsed.actions || []).filter((a: any) => resolvedConfig.actions.includes(a.action_type));
     if (validActions.length === 0) {
       return buildResponse("create_automation_rule", "deals",
         { filters: [], sort: [], limit: 0 }, "llm", 0.3,
-        { headline: "That action type isn't supported yet.", items: [], actions: [], did_you_mean: ["Remind me if no activity for 7 days", "Create follow-up when deal enters Proposal"] }
+        { headline: `That action isn't supported for ${resolvedObjectType}s.`, items: [], actions: [], did_you_mean: AUTOMATION_DID_YOU_MEAN[resolvedObjectType] }
       );
     }
 
     // Guardrails: validate conditions
-    const validConditions = (parsed.conditions || []).filter((c: any) => AUTOMATION_ALLOWED_CONDITION_FIELDS.includes(c.field_name));
+    const validConditions = (parsed.conditions || []).filter((c: any) => resolvedConfig.condition_fields.includes(c.field_name));
 
     // Build automation_preview response
     const automationPreview = {
       name: (parsed.name || "New automation rule").slice(0, 60),
+      object_type: resolvedObjectType,
       trigger: parsed.trigger,
       trigger_config: parsed.trigger_config || {},
       trigger_label: parsed.trigger_label || parsed.trigger,
@@ -904,7 +1014,7 @@ Always call the tool. Generate clear human-readable labels. Keep names short.`,
       object_type: "deals",
       query: { filters: [], sort: [], limit: 0 },
       answer: {
-        headline: "You're creating a new automation rule.",
+        headline: `You're creating a new automation for ${objectLabel}s.`,
         subtext: "Review the details below and confirm.",
       },
       actions_available: ["CONFIRM_AUTOMATION", "CANCEL"],

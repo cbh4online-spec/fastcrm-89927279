@@ -33,12 +33,21 @@ const AUTOCOMPLETE_MAP: Record<string, string> = {
   "value": "Show highest value deals",
   "pipeline": "How is my pipeline?",
   "forecast": "What's blocking my forecast?",
-  // Automation suggestions
+  // Automation suggestions — deals
   "remind": "Remind me if no activity for 7 days",
   "alert": "Alert me when deals are at risk",
   "auto-assign": "Auto-assign high value deals",
   "follow-up": "Create follow-up when deal enters Proposal",
   "notify": "Notify me if close date is in 3 days",
+  // Automation suggestions — contacts
+  "contact reply": "Notify me if contact hasn't replied in 14 days",
+  "new contact": "Create task when new contact is created",
+  "assign contact": "Assign new contacts to SDR team",
+  // Automation suggestions — invoices
+  "invoice": "Alert me when invoice is overdue",
+  "overdue": "Alert me when invoice is overdue",
+  "due date": "Notify me 3 days before invoice due date",
+  "fatura": "Alertar-me quando fatura estiver vencida",
 };
 
 interface Props {
