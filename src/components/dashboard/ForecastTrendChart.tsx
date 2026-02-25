@@ -24,7 +24,7 @@ function useForecastHistory() {
       if (!currentWorkspace) return [];
       const { data, error } = await supabase
         .from("revenue_forecasts")
-        .select("generated_at, expected_case, best_case, worst_case")
+        .select("generated_at, expected_case, best_case, worst_case, health_adjusted_expected")
         .eq("workspace_id", currentWorkspace.id)
         .order("generated_at", { ascending: true })
         .limit(12);
@@ -34,6 +34,7 @@ function useForecastHistory() {
         expected: row.expected_case,
         best: row.best_case,
         worst: row.worst_case,
+        riskAdj: row.health_adjusted_expected || null,
       }));
     },
     enabled: !!currentWorkspace,
@@ -55,8 +56,10 @@ export function ForecastTrendChart() {
   }
 
   if (!chartData || chartData.length < 2) {
-    return null; // Don't show chart with less than 2 data points
+    return null;
   }
+
+  const hasRiskAdj = chartData.some((d) => d.riskAdj != null && d.riskAdj > 0);
 
   return (
     <Card>
@@ -81,21 +84,8 @@ export function ForecastTrendChart() {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 10 }}
-                className="text-muted-foreground"
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 10 }}
-                className="text-muted-foreground"
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(v) => formatCurrency(v)}
-                width={60}
-              />
+              <XAxis dataKey="date" tick={{ fontSize: 10 }} className="text-muted-foreground" tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 10 }} className="text-muted-foreground" tickLine={false} axisLine={false} tickFormatter={(v) => formatCurrency(v)} width={60} />
               <RechartsTooltip
                 contentStyle={{
                   backgroundColor: "hsl(var(--card))",
@@ -105,12 +95,15 @@ export function ForecastTrendChart() {
                 }}
                 formatter={(value: number, name: string) => [
                   formatCurrency(value),
-                  name === "expected" ? "Expected" : name === "best" ? "Best Case" : "Worst Case",
+                  name === "expected" ? "Expected" : name === "best" ? "Best Case" : name === "worst" ? "Worst Case" : "Risk-Adjusted",
                 ]}
               />
               <Area type="monotone" dataKey="worst" stroke="hsl(var(--destructive))" strokeWidth={1} strokeDasharray="4 2" fill="none" />
               <Area type="monotone" dataKey="best" stroke="hsl(142 76% 36%)" strokeWidth={1} fill="url(#gradBest)" />
               <Area type="monotone" dataKey="expected" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#gradExpected)" />
+              {hasRiskAdj && (
+                <Area type="monotone" dataKey="riskAdj" stroke="hsl(var(--primary))" strokeWidth={1.5} strokeDasharray="6 3" fill="none" />
+              )}
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -127,6 +120,12 @@ export function ForecastTrendChart() {
             <div className="w-3 h-0.5 rounded bg-destructive" />
             Worst
           </div>
+          {hasRiskAdj && (
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <div className="w-3 h-0.5 rounded bg-primary border-dashed" style={{ borderTop: "1px dashed" }} />
+              Risk-Adj
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

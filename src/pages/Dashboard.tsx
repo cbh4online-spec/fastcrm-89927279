@@ -26,6 +26,7 @@ import { ForecastTrendChart } from "@/components/dashboard/ForecastTrendChart";
 import { PipelineHealthCard } from "@/components/dashboard/PipelineHealthCard";
 import { DealsAtRiskList } from "@/components/dashboard/DealsAtRiskList";
 import { AIActionSuggestions } from "@/components/dashboard/AIActionSuggestions";
+import { ForecastConfidenceCard } from "@/components/dashboard/ForecastConfidenceCard";
 
 // Dialog components for creating entities
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
@@ -55,7 +56,6 @@ export default function Dashboard() {
   useEffect(() => {
     if (isOnboardingComplete) {
       setShowWelcome(true);
-      // Clean up URL params
       const newParams = new URLSearchParams(searchParams);
       newParams.delete("onboarding");
       newParams.delete("segment");
@@ -108,7 +108,7 @@ export default function Dashboard() {
             </DropdownMenu>
           </div>
 
-          {/* Welcome overlay (post-onboarding) */}
+          {/* Welcome overlay */}
           {showWelcome && (
             <WelcomeOverlay
               segment={onboardingSegment}
@@ -135,8 +135,9 @@ export default function Dashboard() {
             </div>
 
             {/* Right */}
-            <div className="col-span-12 lg:col-span-4">
+            <div className="col-span-12 lg:col-span-4 space-y-4">
               <PipelineHealthCard />
+              <ForecastConfidenceCard />
             </div>
           </div>
         </div>

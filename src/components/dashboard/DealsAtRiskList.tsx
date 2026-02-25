@@ -1,18 +1,19 @@
-import { useOpportunities } from "@/hooks/useOpportunities";
+import { useIntelligencePanel } from "@/hooks/useIntelligencePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { formatCurrency } from "@/hooks/useRevenueForecast";
+import { cn } from "@/lib/utils";
+
+const healthColor = (score: number) =>
+  score >= 70 ? "text-emerald-600" : score >= 40 ? "text-yellow-600" : "text-destructive";
+
+const severityDot = (severity: string) =>
+  severity === "HIGH" ? "bg-destructive" : severity === "MEDIUM" ? "bg-yellow-500" : "bg-muted-foreground";
 
 export function DealsAtRiskList() {
-  const { data: opportunities, isLoading } = useOpportunities();
+  const { data, isLoading } = useIntelligencePanel();
   const navigate = useNavigate();
-
-  const atRisk = opportunities
-    ?.filter((o: any) => o.status === "open" && (o.confidence || 0) < 40)
-    ?.sort((a: any, b: any) => (b.value || 0) - (a.value || 0))
-    ?.slice(0, 5) || [];
 
   if (isLoading) {
     return (
@@ -24,38 +25,43 @@ export function DealsAtRiskList() {
     );
   }
 
+  const risks = data?.top_risks?.slice(0, 5) || [];
+
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-warning" />
+          <AlertTriangle className="h-4 w-4 text-destructive" />
           Deals at Risk
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {atRisk.length === 0 ? (
+        {risks.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
             No deals at risk right now 🎉
           </p>
         ) : (
-          <div className="space-y-2">
-            {atRisk.map((deal: any) => (
-              <div
-                key={deal.id}
-                className="flex items-center justify-between py-2 px-2 rounded-md hover:bg-muted/50 cursor-pointer transition-colors"
-                onClick={() => navigate(`/dashboard/opportunities/${deal.id}`)}
+          <div className="space-y-1">
+            {risks.map((risk) => (
+              <button
+                key={risk.deal_id}
+                className="w-full flex items-center justify-between py-2.5 px-2 rounded-md hover:bg-muted/50 transition-colors text-left group"
+                onClick={() => navigate(`/dashboard/opportunities/${risk.deal_id}`)}
               >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{deal.title || deal.name}</p>
-                  <p className="text-xs text-muted-foreground">{deal.company_name || "—"}</p>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", severityDot(risk.severity))} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{risk.deal_title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{risk.reason}</p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-2">
-                  <span className="text-sm font-medium">{formatCurrency(deal.value || 0)}</span>
-                  <Badge variant="destructive" className="text-[10px]">
-                    {Math.round(deal.confidence || 0)}%
+                  <Badge variant="outline" className={cn("text-[10px] font-semibold", healthColor(risk.health_score))}>
+                    {risk.health_score}
                   </Badge>
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
