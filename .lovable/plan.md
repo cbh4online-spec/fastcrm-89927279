@@ -1,65 +1,53 @@
 
 
-# Add Charts to Reports Overview Page
+# Reorganize Reports Overview Cards Layout
 
 ## Problem
 
-The `/dashboard/reports` page (ReportsOverview) only shows KPI number cards, text-based AI insights, and navigation links. There are no visual charts or graphs, making the overview feel incomplete compared to the sub-pages (e.g., ReportsSales) which have full Recharts visualizations.
+The current layout has an awkward 3-column grid at the bottom where:
+- The Pie Chart sits alone in 1 column (too narrow)
+- AI Insights + Scenarios span 2 columns
+- Quick Links + Metrics Governance float in a third column below
 
-## Solution
+This creates unbalanced visual weight, with the pie chart cramped and the quick links pushed far down.
 
-Add 3 summary charts to `ReportsOverview.tsx` using data already fetched by the existing hooks (`useSalesPerformance`, `useRevenueMetrics`). These charts provide a quick visual snapshot without requiring users to navigate into sub-pages.
-
-### Charts to Add
-
-1. **Revenue Trend (Line Chart)** — Monthly won revenue over the last 12 months, using `useSalesPerformance().wonRevenueByMonth`. A simple area/line chart showing the revenue trajectory.
-
-2. **Pipeline by Stage (Horizontal Bar Chart)** — Current active deals grouped by pipeline stage, using `useSalesPerformance().dealForecast`. Shows total value and weighted value per stage.
-
-3. **Lead Sources (Donut/Pie Chart)** — Breakdown of lead sources, using `useSalesPerformance().sourceBreakdown`. A PieChart showing where leads come from.
-
-### Layout
+## New Layout
 
 ```text
 ┌──────────────────────────────────────────────────┐
-│  KPI Strip (6 cards) — already exists            │
-├──────────────────────────────────────────────────┤
-│  Revenue Trend (line)  │  Pipeline by Stage (bar)│
-├────────────────────────┼─────────────────────────┤
-│  Lead Sources (pie)    │  AI Insights (existing) │
-├────────────────────────┼─────────────────────────┤
-│  Scenarios (existing)  │  Quick Links (existing) │
-└────────────────────────┴─────────────────────────┘
+│  KPI Strip (6 cards)                             │
+├─────────────────────────┬────────────────────────┤
+│  Revenue Trend (line)   │  Pipeline by Stage     │
+├─────────────────────────┼────────────────────────┤
+│  Lead Sources (pie)     │  Cenários "E se..."    │
+├─────────────────────────┴────────────────────────┤
+│  AI Insights (full width, horizontal cards)      │
+├──────────┬──────────┬──────────┬─────────────────┤
+│  Quick Link 1  │  QL 2  │  QL 3  │  QL 4        │
+├──────────┴──────────┴──────────┴─────────────────┤
+│  Métricas Governadas (full width banner)         │
+└──────────────────────────────────────────────────┘
 ```
 
-## Changes
+## Changes to `src/pages/ReportsOverview.tsx`
 
-### `src/pages/ReportsOverview.tsx`
+### Row 1: Charts (unchanged)
+- Revenue Trend + Pipeline by Stage in `grid-cols-2` — stays the same.
 
-- Import `useSalesPerformance` hook (already exists, provides all needed data)
-- Import Recharts components: `LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend`
-- Add 3 new `<Card>` sections with charts between the KPI strip and the existing insights section:
-  1. **Revenue Trend Card** — `<LineChart>` with `wonRevenueByMonth` data, area fill gradient, formatted Y-axis with `€` currency
-  2. **Pipeline by Stage Card** — `<BarChart layout="vertical">` with `dealForecast` data showing `total_value` and `weighted_value` bars side by side, colored by stage
-  3. **Lead Sources Card** — `<PieChart>` with `sourceBreakdown` data, using a predefined color palette, with labels showing percentage
-- Rearrange the existing content into a better grid layout that accommodates the new charts
-- Add loading skeletons for the chart cards
-- Handle empty state (no data) with a centered message
+### Row 2: Pie + Scenarios (new 2-col grid)
+- Move the Lead Sources pie chart and Cenários card into a `grid-cols-2` row, giving the pie chart proper space.
 
-### No new files needed
+### Row 3: AI Insights (full width)
+- AI Insights becomes a full-width card with insight cards displayed in a responsive grid (`grid-cols-1 md:grid-cols-2 lg:grid-cols-3`) instead of stacked vertically.
 
-All data hooks already exist. All chart components use Recharts (already installed). Only `ReportsOverview.tsx` needs modification.
+### Row 4: Quick Links (horizontal grid)
+- Convert the Quick Links from a vertical list into a `grid-cols-2 lg:grid-cols-4` card grid, each link being its own small card with icon, title, and subtitle.
 
-### Color Palette for Pie Chart
+### Row 5: Metrics Governance (full width banner)
+- Stays as a full-width info banner at the bottom.
 
-```typescript
-const CHART_COLORS = [
-  "hsl(217, 91%, 60%)",  // blue
-  "hsl(142, 76%, 36%)",  // green
-  "hsl(38, 92%, 50%)",   // amber
-  "hsl(280, 67%, 55%)",  // purple
-  "hsl(0, 84%, 60%)",    // red
-  "hsl(190, 80%, 45%)",  // teal
-];
-```
+### Summary
+- Remove the awkward 3-column grid (lines 326-521)
+- Replace with 4 cleaner sections: pie+scenarios row, insights row, quick links grid, governance banner
+- No new components or data — just restructuring the existing cards
 
