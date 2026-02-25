@@ -23,6 +23,7 @@ import {
   GraduationCap,
   CalendarCheck,
   Link2,
+  ClipboardList,
 } from 'lucide-react';
 import { EntityType, MenuSection } from '@/types/entity';
 import { useWorkspaceLayoutConfig, getVisibleSections } from '@/hooks/useWorkspaceLayoutConfig';
@@ -92,6 +93,13 @@ const MENU_SECTIONS: {
       { id: 'details', label: 'Informações', icon: Settings2, showFor: ['lead', 'contact', 'company'] },
       { id: 'custom-fields', label: 'Campos Personalizados', icon: Layers, showFor: ['lead', 'contact', 'company'] },
       { id: 'relationships', label: 'Relações', icon: Link2, showFor: ['company', 'contact'] },
+      { id: 'automations' as MenuSection, label: 'Automações', icon: Activity, showFor: ['lead', 'contact', 'company'] },
+    ],
+  },
+  {
+    title: 'AUDITORIA',
+    items: [
+      { id: 'audit' as MenuSection, label: 'Registo de Alterações', icon: ClipboardList, showFor: ['contact'] },
     ],
   },
   {

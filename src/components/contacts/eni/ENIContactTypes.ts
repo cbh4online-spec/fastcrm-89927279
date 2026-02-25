@@ -5,11 +5,48 @@ export type ClientStatus = 'ativo' | 'inativo' | 'sem_compras';
 export type ClientTypes = 'consumidores' | 'empresas' | 'ambos';
 export type ABCCategory = 'A' | 'B' | 'C' | null;
 
+export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'unqualified' | 'customer' | 'churned';
+
+export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
+  new: 'Novo',
+  contacted: 'Contactado',
+  qualified: 'Qualificado',
+  unqualified: 'Não Qualificado',
+  customer: 'Cliente',
+  churned: 'Perdido',
+};
+
+export const LEAD_STATUS_COLORS: Record<LeadStatus, string> = {
+  new: 'bg-blue-500/10 text-blue-600 border-blue-500/30',
+  contacted: 'bg-amber-500/10 text-amber-600 border-amber-500/30',
+  qualified: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
+  unqualified: 'bg-slate-500/10 text-slate-600 border-slate-500/30',
+  customer: 'bg-purple-500/10 text-purple-600 border-purple-500/30',
+  churned: 'bg-red-500/10 text-red-600 border-red-500/30',
+};
+
+export interface EmailEntry {
+  email: string;
+  primary: boolean;
+  type: 'work' | 'personal' | 'other';
+  verified?: boolean;
+}
+
+export interface PhoneEntry {
+  number: string;
+  primary: boolean;
+  type: 'mobile' | 'work' | 'home' | 'other';
+}
+
 export interface ENIContact {
   id: string;
   name: string;
+  first_name?: string | null;
+  last_name?: string | null;
   email?: string | null;
   phone?: string | null;
+  emails?: EmailEntry[];
+  phones?: PhoneEntry[];
   
   // Entity Type
   entity_type: EntityType;
@@ -26,6 +63,7 @@ export interface ENIContact {
   postal_code?: string | null;
   country?: string | null;
   is_fiscal_address?: boolean;
+  timezone?: string | null;
   
   // Professional Profile (ENI)
   cae_code?: string | null;
@@ -37,6 +75,7 @@ export interface ENIContact {
   
   // Commercial Profile
   client_status?: ClientStatus | null;
+  lead_status?: LeadStatus | null;
   client_since?: string | null;
   abc_category?: ABCCategory;
   lead_source?: string | null;
@@ -61,16 +100,41 @@ export interface ENIContact {
   commercial_history_updated_at?: string | null;
   commercial_history_updated_by?: string | null;
   
+  // Scores
+  icp_fit_score?: number | null;
+  engagement_score?: number | null;
+  pare_score?: number | null;
+  
   // AI Fields
   ai_temperature?: string | null;
   ai_insight?: string | null;
   ai_next_action?: string | null;
   ai_next_action_type?: string | null;
   ai_analyzed_at?: string | null;
+  ai_summary?: string | null;
+  ai_tags?: string[] | null;
+  ai_pain_points?: Record<string, unknown> | null;
+  ai_recommendations?: Record<string, unknown> | null;
+  ai_risk_flags?: Record<string, unknown> | null;
+  ai_last_enriched_at?: string | null;
   contact_score?: number | null;
   conversion_probability?: number | null;
   estimated_value?: number | null;
   ai_contact_type?: string | null;
+  
+  // Preferences & Consent
+  contact_preferences?: Record<string, boolean> | null;
+  marketing_opt_in?: boolean;
+  consent_record?: Record<string, unknown> | null;
+  
+  // Follow-up
+  last_email_at?: string | null;
+  last_call_at?: string | null;
+  next_followup_at?: string | null;
+  
+  // Extensibility
+  custom_fields?: Record<string, unknown> | null;
+  segments?: string[] | null;
   
   // Other
   job_title?: string | null;
@@ -79,11 +143,13 @@ export interface ENIContact {
   notes?: string | null;
   tags?: string[] | null;
   
-  // Timestamps
+  // Timestamps & Audit
   created_at: string;
   updated_at: string;
   workspace_id: string;
   created_by: string;
+  updated_by?: string | null;
+  deleted_at?: string | null;
 }
 
 export interface ContactDocument {

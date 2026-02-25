@@ -56,6 +56,10 @@ import { ContactOrderNotesSection } from "@/components/contacts/sections/Contact
 import { ContactStudentJourneySection } from "@/components/contacts/sections/ContactStudentJourneySection";
 import { useContactStudentJourneyProfile } from "@/hooks/useContactStudentJourneyProfile";
 import { EntitySchedulingSection } from "@/components/scheduling/EntitySchedulingSection";
+import { ContactScoresCard } from "./sections/ContactScoresCard";
+import { ContactLifecycleSection } from "./sections/ContactLifecycleSection";
+import { ContactPreferencesSection } from "./sections/ContactPreferencesSection";
+import { ContactAuditSection } from "./sections/ContactAuditSection";
 
 // Role labels are now translated via t()
 function getTimeAgo(date: Date, t: (key: string, opts?: any) => string): string {
@@ -187,6 +191,12 @@ export function ENIContactDetailWithSidebar() {
               contactId={contact.id}
             />
             
+            {/* Scores + Lifecycle */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ContactScoresCard contact={contact} editable={role === 'owner' || role === 'admin'} />
+              <ContactLifecycleSection contact={contact} onFieldChange={handleFieldChange} />
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <CustomerJourneySection contactId={id} />
               <AIJourneySuggestionsPanel 
@@ -272,6 +282,11 @@ export function ENIContactDetailWithSidebar() {
               <CommercialProfileSection contact={contact} onFieldChange={handleFieldChange} />
               <FinancialSection contact={contact} onFieldChange={handleFieldChange} />
             </div>
+            <ContactPreferencesSection 
+              contact={contact} 
+              onFieldChange={handleFieldChange}
+              editable={role === 'owner' || role === 'admin'}
+            />
           </div>
         );
       case 'history':
@@ -380,6 +395,8 @@ export function ENIContactDetailWithSidebar() {
             entityPhone={contact.phone}
           />
         );
+      case 'audit':
+        return <ContactAuditSection contactId={id!} />;
       default:
         return (
           <div className="text-center py-12 text-muted-foreground">

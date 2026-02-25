@@ -9,8 +9,12 @@ export interface Contact {
   workspace_id: string;
   created_by: string;
   name: string;
+  first_name: string | null;
+  last_name: string | null;
   email: string | null;
   phone: string | null;
+  emails: unknown[];
+  phones: unknown[];
   company: string | null;
   company_id: string | null;
   is_primary_contact: boolean;
@@ -23,6 +27,13 @@ export interface Contact {
   facebook_url: string | null;
   instagram_url: string | null;
   twitter_url: string | null;
+  lead_status: string;
+  icp_fit_score: number;
+  engagement_score: number;
+  pare_score: number;
+  marketing_opt_in: boolean;
+  next_followup_at: string | null;
+  deleted_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -64,6 +75,7 @@ export function useContacts() {
         .from("contacts")
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -134,11 +146,12 @@ export function useContacts() {
     mutationFn: async (input: { id: string } & Record<string, unknown>) => {
       const { id, ...data } = input;
       // Build update data dynamically - include all fields except 'id'
-      const updateData: Record<string, unknown> = {};
+      const updateData: Record<string, unknown> = {
+        updated_by: null, // will be overridden below if user available
+      };
       
       Object.keys(data).forEach((key) => {
         const value = data[key];
-        // Convert undefined to null for database
         updateData[key] = value === undefined ? null : value;
       });
 
@@ -164,9 +177,10 @@ export function useContacts() {
 
   const deleteContact = useMutation({
     mutationFn: async (id: string) => {
+      // Soft delete
       const { error } = await workspaceClient
         .from("contacts")
-        .delete()
+        .update({ deleted_at: new Date().toISOString(), updated_by: user?.id })
         .eq("id", id);
 
       if (error) throw error;
@@ -180,11 +194,28 @@ export function useContacts() {
     },
   });
 
-  const deleteContacts = useMutation({
-    mutationFn: async (ids: string[]) => {
+  const restoreContact = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await workspaceClient
         .from("contacts")
-        .delete()
+        .update({ deleted_at: null, updated_by: user?.id })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
+      toast.success("Contacto restaurado");
+    },
+    onError: () => toast.error("Erro ao restaurar contacto"),
+  });
+
+  const deleteContacts = useMutation({
+    mutationFn: async (ids: string[]) => {
+      // Soft delete bulk
+      const { error } = await workspaceClient
+        .from("contacts")
+        .update({ deleted_at: new Date().toISOString(), updated_by: user?.id })
         .in("id", ids);
 
       if (error) throw error;
@@ -256,6 +287,7 @@ export function useContacts() {
     createContact,
     updateContact,
     deleteContact,
+    restoreContact,
     deleteContacts,
     addTagsToContacts,
     bulkUpdateContacts,

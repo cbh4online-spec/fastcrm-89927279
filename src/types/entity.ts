@@ -80,7 +80,8 @@ export type MenuSection =
   | 'orders'
   | 'scheduling'
   | 'relationships'
-  | 'student-journey'; // Student Journey module
+  | 'student-journey'
+  | 'audit';
 
 export interface MenuItemConfig {
   id: MenuSection;

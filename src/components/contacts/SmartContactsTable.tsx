@@ -87,6 +87,12 @@ const CONTACT_COLUMNS: ColumnConfig[] = [
   { id: "client_status", label: "Estado Cliente", category: "business", defaultVisible: false },
   { id: "client_types", label: "Tipo Cliente", category: "business", defaultVisible: false },
   { id: "entity_type", label: "Tipo Entidade", category: "business", defaultVisible: false },
+  { id: "lead_status", label: "Estado Lifecycle", category: "business", defaultVisible: true },
+  { id: "icp_fit_score", label: "ICP Fit", category: "ai", defaultVisible: false, description: "Score 0-100" },
+  { id: "engagement_score", label: "Engagement", category: "ai", defaultVisible: false, description: "Score 0-100" },
+  { id: "pare_score", label: "PARE", category: "ai", defaultVisible: false, description: "Score 0-100" },
+  { id: "next_followup_at", label: "Próximo Follow-up", category: "business", defaultVisible: false },
+  { id: "marketing_opt_in", label: "Opt-in Marketing", category: "business", defaultVisible: false },
   
   // Fiscal
   { id: "tax_id", label: "NIF", category: "business", defaultVisible: false },

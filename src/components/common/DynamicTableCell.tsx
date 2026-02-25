@@ -223,6 +223,45 @@ export function DynamicTableCell({ columnId, entity, entityType }: DynamicTableC
         </div>
       );
 
+    // Lead status
+    case "lead_status": {
+      const statusConfig: Record<string, { label: string; color: string }> = {
+        new: { label: "Novo", color: "bg-blue-500/10 text-blue-600 border-blue-500/30" },
+        contacted: { label: "Contactado", color: "bg-amber-500/10 text-amber-600 border-amber-500/30" },
+        qualified: { label: "Qualificado", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30" },
+        unqualified: { label: "Não Qualificado", color: "bg-slate-500/10 text-slate-600 border-slate-500/30" },
+        customer: { label: "Cliente", color: "bg-purple-500/10 text-purple-600 border-purple-500/30" },
+        churned: { label: "Perdido", color: "bg-red-500/10 text-red-600 border-red-500/30" },
+      };
+      const sc = statusConfig[value || "new"] || statusConfig.new;
+      return (
+        <Badge variant="outline" className={cn("text-xs", sc.color)}>
+          {sc.label}
+        </Badge>
+      );
+    }
+
+    // Score columns (0-100)
+    case "icp_fit_score":
+    case "engagement_score":
+    case "pare_score": {
+      const s = typeof value === "number" ? value : 0;
+      return (
+        <div className="flex items-center gap-2">
+          <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden">
+            <div 
+              className={cn(
+                "h-full rounded-full",
+                s >= 70 ? "bg-emerald-500" : s >= 40 ? "bg-amber-500" : "bg-muted-foreground"
+              )}
+              style={{ width: `${s}%` }}
+            />
+          </div>
+          <span className="text-xs tabular-nums text-muted-foreground">{s}</span>
+        </div>
+      );
+    }
+
     // Date columns
     case "created_at":
     case "updated_at":
@@ -232,6 +271,7 @@ export function DynamicTableCell({ columnId, entity, entityType }: DynamicTableC
     case "activity_start_date":
     case "client_since":
     case "founding_date":
+    case "next_followup_at":
       return <span className="text-xs text-muted-foreground">{formatDate(value)}</span>;
 
     // Boolean columns
@@ -240,6 +280,7 @@ export function DynamicTableCell({ columnId, entity, entityType }: DynamicTableC
     case "automation_active":
     case "is_primary_contact":
     case "is_fiscal_address":
+    case "marketing_opt_in":
       return value ? (
         <Check className="w-4 h-4 text-emerald-500" />
       ) : (
