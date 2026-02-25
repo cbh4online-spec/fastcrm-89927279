@@ -12,6 +12,7 @@ import { ChannelsSettings } from "@/components/settings/sections/ChannelsSetting
 import { CrmDataSettings } from "@/components/settings/sections/CrmDataSettings";
 import { TemplatesSettings } from "@/components/settings/sections/TemplatesSettings";
 import { AutomationAISettings } from "@/components/settings/sections/AutomationAISettings";
+import { EmailCalendarSettings } from "@/components/settings/sections/EmailCalendarSettings";
 import { ExperienceSettings } from "@/components/settings/sections/ExperienceSettings";
 import { SecuritySettings } from "@/components/settings/sections/SecuritySettings";
 import { IntegrationsSettings } from "@/components/settings/sections/IntegrationsSettings";
@@ -28,6 +29,7 @@ export default function Settings() {
 
   const categoryMeta: Record<SettingsCategory, { titleKey: string; descKey: string }> = {
     profile: { titleKey: "profile_title", descKey: "profile_description" },
+    emailCalendar: { titleKey: "emailCalendar_title", descKey: "emailCalendar_description" },
     appearance: { titleKey: "appearance_title", descKey: "appearance_description" },
     notifications: { titleKey: "notifications_title", descKey: "notifications_description" },
     workspace: { titleKey: "workspace", descKey: "workspace" },
@@ -82,6 +84,8 @@ export default function Settings() {
     switch (activeCategory) {
       case "profile":
         return <ProfileSettings />;
+      case "emailCalendar":
+        return <EmailCalendarSettings />;
       case "appearance":
         return <AppearanceSettings />;
       case "notifications":
