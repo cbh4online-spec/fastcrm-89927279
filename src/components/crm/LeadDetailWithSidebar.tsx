@@ -41,7 +41,9 @@ import { TagsSection } from "@/components/leads/sections/TagsSection";
 import { NotesSection } from "@/components/leads/sections/NotesSection";
 import { SocialMediaSection } from "@/components/leads/sections/SocialMediaSection";
 import { EntitySocialMediaAnalysisSection } from "@/components/shared/EntitySocialMediaAnalysisSection";
-import { EntitySidebarMenu } from "@/components/entity/EntitySidebarMenu";
+import { EntityHorizontalTabs } from "@/components/entity/EntityHorizontalTabs";
+import { EntityDetailsPanel } from "@/components/entity/EntityDetailsPanel";
+import { EntityHighlightsGrid } from "@/components/entity/EntityHighlightsGrid";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { MenuSection } from "@/types/entity";
 import { EntityTasksSection } from "@/components/tasks";
@@ -446,24 +448,32 @@ export function LeadDetailWithSidebar() {
         </div>
       </div>
 
-      {/* Main Content - 3 Column Layout */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Menu */}
-        <EntitySidebarMenu
-          entityType="lead"
-          activeSection={activeSection}
-          onSectionChange={setActiveSection}
-          counts={counts}
-        />
+      {/* Horizontal Tabs */}
+      <EntityHorizontalTabs
+        entityType="lead"
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+        counts={counts}
+      />
 
+      {/* Main Content - 2 Column Layout */}
+      <div className="flex-1 flex overflow-hidden">
         {/* Center Content */}
         <main className="flex-1 overflow-auto">
           <ScrollArea className="h-full">
             <div className="p-6 max-w-4xl">
+              {activeSection === 'overview' && (
+                <div className="mb-6">
+                  <EntityHighlightsGrid entityType="lead" entity={lead as any} />
+                </div>
+              )}
               {renderSectionContent()}
             </div>
           </ScrollArea>
         </main>
+
+        {/* Right Details Panel */}
+        <EntityDetailsPanel entityType="lead" entity={lead as any} />
       </div>
     </div>
   );

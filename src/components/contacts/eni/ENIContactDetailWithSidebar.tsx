@@ -34,7 +34,9 @@ import { useContactPermissions } from "./useContactPermissions";
 import { NifLookupResult } from "@/hooks/useNifLookup";
 import { cn } from "@/lib/utils";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
-import { EntitySidebarMenu } from "@/components/entity/EntitySidebarMenu";
+import { EntityHorizontalTabs } from "@/components/entity/EntityHorizontalTabs";
+import { EntityDetailsPanel } from "@/components/entity/EntityDetailsPanel";
+import { EntityHighlightsGrid } from "@/components/entity/EntityHighlightsGrid";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { MenuSection } from "@/types/entity";
 import { LinkedCompanyCard } from "@/components/contacts/LinkedCompanyCard";
@@ -548,25 +550,33 @@ export function ENIContactDetailWithSidebar() {
         </div>
       </div>
 
-      {/* Main Content - 3 Column Layout */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Menu */}
-        <EntitySidebarMenu
-          entityType="contact"
-          activeSection={activeSection}
-          onSectionChange={setActiveSection}
-          counts={counts}
-          hasStudentJourneyProfile={!!sjProfile}
-        />
+      {/* Horizontal Tabs */}
+      <EntityHorizontalTabs
+        entityType="contact"
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+        counts={counts}
+        hasStudentJourneyProfile={!!sjProfile}
+      />
 
+      {/* Main Content - 2 Column Layout */}
+      <div className="flex-1 flex overflow-hidden">
         {/* Center Content */}
         <main className="flex-1 overflow-auto">
           <ScrollArea className="h-full">
             <div className="p-6 max-w-4xl">
+              {activeSection === 'overview' && (
+                <div className="mb-6">
+                  <EntityHighlightsGrid entityType="contact" entity={contact as any} />
+                </div>
+              )}
               {renderSectionContent()}
             </div>
           </ScrollArea>
         </main>
+
+        {/* Right Details Panel */}
+        <EntityDetailsPanel entityType="contact" entity={contact as any} />
       </div>
 
       {/* Invoice Dialog */}
