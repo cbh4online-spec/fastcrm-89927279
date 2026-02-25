@@ -42,6 +42,7 @@ import { useOpportunityLayoutPreferences, getVisibleHighlights, getSidebarOrder,
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 
 interface OpportunityDetailPageProps {
   opportunityId: string | undefined;
@@ -86,7 +87,11 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
   const updateOpportunity = useUpdateOpportunityEnhanced();
   const { data: intelligence, isLoading: intelligenceLoading } = useDealIntelligenceAPI(opportunityId);
   const { data: commentsData = [] } = useOpportunityComments(opportunityId);
+  const { data: members = [] } = useWorkspaceMembers();
   
+  const ownerName = opportunity?.owner_id
+    ? members.find(m => m.user_id === opportunity.owner_id)?.profile?.full_name ?? "—"
+    : "—";
   const { data: leadsData = [], isLoading: isLoadingLeads } = useLeads();
   const { contacts: contactsData = [], isLoading: isLoadingContacts } = useContacts();
   const { companies: companiesData = [], isLoading: isLoadingCompanies } = useCompanies();
@@ -305,6 +310,7 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
               <OpportunityHighlightsCards
                 opportunity={opportunity}
                 stages={stages}
+                ownerName={ownerName}
                 visibleHighlights={visibleHighlights}
                 highlightsOrder={highlightsOrder}
                 onOpenConfig={() => setLayoutConfigOpen(true)}
