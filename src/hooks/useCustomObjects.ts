@@ -80,17 +80,18 @@ export function useDeleteCustomObject() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Soft delete — set is_active = false
       const { error } = await (supabase
         .from("custom_objects")
-        .delete() as any)
+        .update({ is_active: false, updated_at: new Date().toISOString() } as any) as any)
         .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["custom-objects", currentWorkspace?.id] });
-      toast.success("Object deleted");
+      toast.success("Objeto arquivado");
     },
-    onError: () => toast.error("Failed to delete object"),
+    onError: () => toast.error("Erro ao arquivar objeto"),
   });
 }
 

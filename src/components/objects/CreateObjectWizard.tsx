@@ -10,6 +10,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { ColorPicker } from "@/components/ui/color-picker";
+import { getIconByName, INDUSTRY_ICONS } from "@/lib/icons";
 
 interface FieldDef {
   name: string;
@@ -26,10 +29,12 @@ const FIELD_TYPES = [
 ];
 
 const TEMPLATES = [
-  { name: "Project", icon: "📁", fields: [{ name: "Project Name", type: "text" }, { name: "Start Date", type: "date" }, { name: "Budget", type: "number" }, { name: "Status", type: "select" }] },
-  { name: "Product", icon: "📦", fields: [{ name: "Product Name", type: "text" }, { name: "SKU", type: "text" }, { name: "Price", type: "number" }, { name: "Category", type: "select" }] },
-  { name: "Ticket", icon: "🎫", fields: [{ name: "Subject", type: "text" }, { name: "Priority", type: "select" }, { name: "Due Date", type: "date" }, { name: "Assignee", type: "text" }] },
+  { name: "Project", icon: "Briefcase", fields: [{ name: "Project Name", type: "text" }, { name: "Start Date", type: "date" }, { name: "Budget", type: "number" }, { name: "Status", type: "select" }] },
+  { name: "Product", icon: "Package", fields: [{ name: "Product Name", type: "text" }, { name: "SKU", type: "text" }, { name: "Price", type: "number" }, { name: "Category", type: "select" }] },
+  { name: "Ticket", icon: "FileText", fields: [{ name: "Subject", type: "text" }, { name: "Priority", type: "select" }, { name: "Due Date", type: "date" }, { name: "Assignee", type: "text" }] },
 ];
+
+const ICON_PRESETS = INDUSTRY_ICONS.flatMap(c => c.icons);
 
 interface CreateObjectWizardProps {
   open: boolean;
@@ -40,19 +45,25 @@ interface CreateObjectWizardProps {
 export function CreateObjectWizard({ open, onOpenChange, onComplete }: CreateObjectWizardProps) {
   const [step, setStep] = useState(0);
   const [objectName, setObjectName] = useState("");
+  const [selectedIcon, setSelectedIcon] = useState("Package");
+  const [selectedColor, setSelectedColor] = useState("#2563eb");
   const [fields, setFields] = useState<FieldDef[]>([{ name: "", type: "text" }]);
   const [saving, setSaving] = useState(false);
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const resetState = () => {
     setStep(0);
     setObjectName("");
+    setSelectedIcon("Package");
+    setSelectedColor("#2563eb");
     setFields([{ name: "", type: "text" }]);
   };
 
   const applyTemplate = (template: typeof TEMPLATES[0]) => {
     setObjectName(template.name);
+    setSelectedIcon(template.icon);
     setFields(template.fields);
     setStep(1);
   };
@@ -78,7 +89,7 @@ export function CreateObjectWizard({ open, onOpenChange, onComplete }: CreateObj
     try {
       const typeSlug = objectName.trim().toLowerCase().replace(/\s+/g, "_");
 
-      // Insert into core_object_types
+      // 1. Insert into core_object_types
       const { data: objectType, error: objError } = await supabase
         .from("core_object_types")
         .insert({
@@ -86,9 +97,9 @@ export function CreateObjectWizard({ open, onOpenChange, onComplete }: CreateObj
           type: typeSlug,
           label: objectName.trim(),
           label_pt: objectName.trim(),
-          icon: "Package",
+          icon: selectedIcon,
           source_table: `custom_${typeSlug}`,
-          color: "text-primary",
+          color: selectedColor,
           description: `Custom object: ${objectName.trim()}`,
           source_module: null,
           is_active: true,
@@ -98,14 +109,35 @@ export function CreateObjectWizard({ open, onOpenChange, onComplete }: CreateObj
 
       if (objError) throw objError;
 
-      // Insert fields into core_object_fields
-      if (objectType && validFields.length > 0) {
-        const fieldInserts = validFields.map((f) => ({
+      // 2. DUAL WRITE — Insert into custom_objects
+      const { data: customObj, error: customError } = await (supabase
+        .from("custom_objects")
+        .insert({
+          workspace_id: currentWorkspace.id,
+          name: objectName.trim(),
+          slug: typeSlug,
+          description: `Custom object: ${objectName.trim()}`,
+          icon: selectedIcon,
+          color: selectedColor,
+          is_active: true,
+        }) as any)
+        .select("id")
+        .single();
+
+      if (customError) throw customError;
+
+      const customObjectId = customObj?.id;
+
+      // 3. Insert fields into core_object_fields with object_id = custom_objects.id
+      if (customObjectId && validFields.length > 0) {
+        const fieldInserts = validFields.map((f, idx) => ({
+          object_id: customObjectId,
           object_type_id: objectType.id,
           workspace_id: currentWorkspace.id,
-          key: f.name.toLowerCase().replace(/\s+/g, "_"),
-          type: f.type,
-          label: f.name,
+          name: f.name,
+          slug: f.name.toLowerCase().replace(/\s+/g, "_"),
+          field_type: f.type,
+          sort_order: idx,
         }));
 
         const { error: fieldsError } = await supabase
@@ -117,6 +149,8 @@ export function CreateObjectWizard({ open, onOpenChange, onComplete }: CreateObj
         }
       }
 
+      // 4. Invalidate all relevant queries
+      queryClient.invalidateQueries({ queryKey: ["custom-objects"] });
       queryClient.invalidateQueries({ queryKey: ["extension-manifests"] });
       queryClient.invalidateQueries({ queryKey: ["object-counts"] });
 
@@ -124,6 +158,9 @@ export function CreateObjectWizard({ open, onOpenChange, onComplete }: CreateObj
       onComplete?.(objectName.trim(), validFields);
       resetState();
       onOpenChange(false);
+
+      // 5. Navigate to the new object's list page
+      navigate(`/objects/${typeSlug}`);
     } catch (err: any) {
       console.error("Error creating object:", err);
       toast.error(err.message || "Erro ao criar objeto");
@@ -132,9 +169,11 @@ export function CreateObjectWizard({ open, onOpenChange, onComplete }: CreateObj
     }
   };
 
+  const SelectedIconComponent = getIconByName(selectedIcon);
+
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetState(); onOpenChange(v); }}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wand2 className="h-5 w-5 text-primary" />
@@ -159,24 +198,62 @@ export function CreateObjectWizard({ open, onOpenChange, onComplete }: CreateObj
               <Input
                 value={objectName}
                 onChange={(e) => setObjectName(e.target.value)}
-                placeholder="e.g. Project, Product, Ticket..."
+                placeholder="e.g. Partnership, Project, Ticket..."
                 className="mt-1"
               />
             </div>
+
+            {/* Icon Picker */}
+            <div>
+              <Label className="text-xs font-medium">Icon</Label>
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {ICON_PRESETS.map((iconName) => {
+                  const IconComp = getIconByName(iconName);
+                  return (
+                    <button
+                      key={iconName}
+                      type="button"
+                      onClick={() => setSelectedIcon(iconName)}
+                      className={cn(
+                        "w-8 h-8 rounded-md border flex items-center justify-center transition-all hover:scale-110",
+                        selectedIcon === iconName
+                          ? "border-primary ring-2 ring-primary/30 bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                      )}
+                      title={iconName}
+                    >
+                      <IconComp className="h-4 w-4" style={{ color: selectedColor }} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Color Picker */}
+            <ColorPicker
+              label="Color"
+              value={selectedColor}
+              onChange={setSelectedColor}
+            />
+
+            {/* Templates */}
             <div>
               <p className="text-xs text-muted-foreground mb-2">Or start from a template:</p>
               <div className="grid grid-cols-3 gap-2">
-                {TEMPLATES.map((t) => (
-                  <button
-                    key={t.name}
-                    onClick={() => applyTemplate(t)}
-                    className="p-3 rounded-lg border border-border hover:border-primary/50 hover:bg-muted/50 transition-colors text-center"
-                  >
-                    <span className="text-2xl">{t.icon}</span>
-                    <p className="text-xs font-medium mt-1">{t.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{t.fields.length} fields</p>
-                  </button>
-                ))}
+                {TEMPLATES.map((t) => {
+                  const TIcon = getIconByName(t.icon);
+                  return (
+                    <button
+                      key={t.name}
+                      onClick={() => applyTemplate(t)}
+                      className="p-3 rounded-lg border border-border hover:border-primary/50 hover:bg-muted/50 transition-colors text-center"
+                    >
+                      <TIcon className="h-6 w-6 mx-auto text-muted-foreground" />
+                      <p className="text-xs font-medium mt-1">{t.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{t.fields.length} fields</p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -184,6 +261,12 @@ export function CreateObjectWizard({ open, onOpenChange, onComplete }: CreateObj
 
         {step === 1 && (
           <div className="space-y-3 py-2 max-h-64 overflow-y-auto">
+            {/* Preview */}
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 mb-2">
+              <SelectedIconComponent className="h-5 w-5" style={{ color: selectedColor }} />
+              <span className="text-sm font-medium">{objectName}</span>
+            </div>
+
             {fields.map((field, i) => (
               <div key={i} className="flex items-center gap-2">
                 <Input

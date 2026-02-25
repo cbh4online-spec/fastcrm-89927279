@@ -13,6 +13,9 @@ const CompanyDetailWithSidebar = lazy(() =>
 const OpportunityDetailPage = lazy(() =>
   import("@/components/opportunities/OpportunityDetailPage").then(m => ({ default: m.OpportunityDetailPage }))
 );
+const CustomObjectDetailPage = lazy(() =>
+  import("@/pages/CustomObjectDetailPage")
+);
 
 const Loading = () => (
   <div className="flex justify-center py-12">
@@ -24,17 +27,27 @@ export default function ObjectDetailPage() {
   const { type, id } = useParams<{ type: string; id: string }>();
   const config = type ? getObjectConfig(type) : undefined;
 
-  if (!config || !id) {
+  if (!id) {
     return <Navigate to="/objects" replace />;
   }
 
+  // Core object — use specialized component
+  if (config) {
+    return (
+      <DashboardLayout>
+        <Suspense fallback={<Loading />}>
+          {config.slug === "contacts" && <ENIContactDetailWithSidebar />}
+          {config.slug === "companies" && <CompanyDetailWithSidebar />}
+          {config.slug === "deals" && <OpportunityDetailPage opportunityId={id} />}
+        </Suspense>
+      </DashboardLayout>
+    );
+  }
+
+  // Custom object — fallback to CustomObjectDetailPage
   return (
-    <DashboardLayout>
-      <Suspense fallback={<Loading />}>
-        {config.slug === "contacts" && <ENIContactDetailWithSidebar />}
-        {config.slug === "companies" && <CompanyDetailWithSidebar />}
-        {config.slug === "deals" && <OpportunityDetailPage opportunityId={id} />}
-      </Suspense>
-    </DashboardLayout>
+    <Suspense fallback={<DashboardLayout><Loading /></DashboardLayout>}>
+      <CustomObjectDetailPage />
+    </Suspense>
   );
 }

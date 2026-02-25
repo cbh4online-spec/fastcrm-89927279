@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useObjectRecords, useCreateObjectRecord, useDeleteObjectRecord, ObjectRecord } from "@/hooks/useCustomObjects";
-import { useCoreObjectFields } from "@/hooks/useCoreObjectFields";
+import { useCoreObjectFields, CoreObjectView } from "@/hooks/useCoreObjectFields";
 import { DynamicRecordTable } from "./DynamicRecordTable";
 import { DynamicRecordForm } from "./DynamicRecordForm";
+import { ObjectViewsManager } from "./ObjectViewsManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,13 @@ export function AttioObjectListView({ objectId, objectSlug, objectName }: Props)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [activeView, setActiveView] = useState<CoreObjectView | null>(null);
+
+  // Filter fields based on active view
+  const visibleFields = useMemo(() => {
+    if (!activeView?.visible_fields || activeView.visible_fields.length === 0) return fields;
+    return fields.filter((f) => activeView.visible_fields!.includes(f.slug));
+  }, [fields, activeView]);
 
   const isLoading = recordsLoading || fieldsLoading;
 
@@ -174,6 +182,15 @@ export function AttioObjectListView({ objectId, objectSlug, objectName }: Props)
         </div>
       </div>
 
+      {/* ── Views bar ── */}
+      <div className="py-2 border-b border-border/40">
+        <ObjectViewsManager
+          objectId={objectId}
+          activeViewId={activeView?.id || null}
+          onSelectView={setActiveView}
+        />
+      </div>
+
       {/* ── Filter bar ── */}
       <div className="flex items-center gap-2 py-2 border-b border-border/40">
         {/* Sort */}
@@ -263,7 +280,7 @@ export function AttioObjectListView({ objectId, objectSlug, objectName }: Props)
           </div>
         ) : (
           <DynamicRecordTable
-            fields={fields}
+            fields={visibleFields}
             records={paginatedRecords}
             onDeleteRecord={handleDeleteRecord}
             onRecordClick={handleRecordClick}
