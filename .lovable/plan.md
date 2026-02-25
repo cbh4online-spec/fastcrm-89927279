@@ -1,135 +1,169 @@
 
 
-# Plan: Comments Tab with Real-Time Collaborative Comments, @Mentions, and Threaded Replies
+# Plan: Configurable Layout System for Opportunity Detail Page
 
 ## Overview
 
-Add a fully functional **Comments** tab to the opportunity detail page with real-time collaboration. Comments will be stored in a new database table, support threaded replies (parent_id), @mentions of workspace members, and real-time updates via Supabase Realtime.
+Add a layout configuration system where users can:
+1. **Choose which highlight cards** to show/hide in the overview tab
+2. **Reorder sidebar sections** via drag-and-drop
+3. **Persist preferences** per workspace in the database
 
-## Database
+The system builds on the existing `workspace_layout_config` pattern used for entity detail menus, extending it specifically for opportunity detail layouts.
 
-### New Table: `opportunity_comments`
+## Current State
+
+- **Highlights cards** (`OpportunityHighlightsCards.tsx`): Fixed 4-card grid (Deal Stage, Deal Owner, Associated Company, Documents) + Deal Value row. Has hover icons (GripVertical, Settings) but they are decorative/non-functional.
+- **Sidebar** (`OpportunityDetailSidebar.tsx`): Fixed order of collapsible sections (Communication, Deal Info, Associations, Company Info, Lists, Intelligence). Uses `SidebarSection` component with `Collapsible`.
+- **Existing config system** (`useWorkspaceLayoutConfig`): Already stores `visible_sections` and `section_order` per entity type per workspace in `workspace_layout_config` table. Only supports entity types `lead`, `contact`, `company`.
+
+## Database Changes
+
+### Migration: Add `opportunity` support to `workspace_layout_config`
+
+No schema change needed -- the `entity_type` column is TEXT, so it already accepts `'opportunity'`. We need a new table for the highlights card configuration:
 
 ```sql
-CREATE TABLE public.opportunity_comments (
+CREATE TABLE public.opportunity_layout_preferences (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  opportunity_id UUID NOT NULL REFERENCES public.crm_opportunities(id) ON DELETE CASCADE,
   workspace_id UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
   user_id UUID NOT NULL,
-  parent_id UUID REFERENCES public.opportunity_comments(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  mentions UUID[] DEFAULT '{}',
+  visible_highlights TEXT[] DEFAULT ARRAY['stage','owner','company','documents','value'],
+  highlights_order TEXT[] DEFAULT NULL,
+  sidebar_order TEXT[] DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(workspace_id, user_id)
 );
-
--- Indexes
-CREATE INDEX idx_opp_comments_opportunity ON public.opportunity_comments(opportunity_id);
-CREATE INDEX idx_opp_comments_parent ON public.opportunity_comments(parent_id);
-
--- RLS
-ALTER TABLE public.opportunity_comments ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view comments in their workspace"
-  ON public.opportunity_comments FOR SELECT
-  USING (workspace_id IN (
-    SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()
-  ));
-
-CREATE POLICY "Users can insert comments in their workspace"
-  ON public.opportunity_comments FOR INSERT
-  WITH CHECK (
-    auth.uid() = user_id AND
-    workspace_id IN (
-      SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can update own comments"
-  ON public.opportunity_comments FOR UPDATE
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete own comments"
-  ON public.opportunity_comments FOR DELETE
-  USING (auth.uid() = user_id);
-
--- Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE public.opportunity_comments;
 ```
+
+RLS policies for workspace-scoped access + own-user CRUD.
 
 ## New Files
 
-### 1. `src/hooks/useOpportunityComments.ts`
-Custom hook for CRUD + realtime subscription on `opportunity_comments`:
-- `useOpportunityComments(opportunityId)` -- fetches all comments for an opportunity, joins with `profiles` table for author name/avatar
-- `useAddComment()` -- mutation to insert a comment (top-level or reply via `parent_id`)
-- `useDeleteComment()` -- mutation to delete own comment
-- Realtime subscription via `supabase.channel()` on `postgres_changes` for the `opportunity_comments` table filtered by `opportunity_id`, invalidating the query cache on changes
+### 1. `src/hooks/useOpportunityLayoutPreferences.ts`
+- `useOpportunityLayoutPreferences()` -- fetches the user's layout preferences for opportunity detail
+- `useUpdateOpportunityLayoutPreferences()` -- mutation to upsert preferences
+- Default highlight cards: `['stage', 'owner', 'company', 'documents', 'value']`
+- Default sidebar order: `['communication', 'dealInfo', 'associations', 'companyInfo', 'lists', 'intelligence']`
 
-### 2. `src/components/opportunities/detail/OpportunityCommentsTab.tsx`
-Main tab component:
-- Renders list of top-level comments (where `parent_id IS NULL`)
-- Each comment shows: avatar, author name, timestamp, content with parsed @mentions highlighted, reply button, delete button (own comments only)
-- **Threaded replies**: Clicking "Reply" expands an inline textarea under the comment; replies are indented and shown below the parent
-- **@Mentions**: A `MentionInput` subcomponent -- typing `@` in the textarea opens a popover/dropdown listing workspace members (from `useWorkspaceMembers`), selecting one inserts `@Name` into the text and adds the user_id to the `mentions[]` array
-- **New comment form**: Textarea at the top with the MentionInput behavior and a "Post" button
-- **Empty state**: Icon + "No comments yet" message
+### 2. `src/components/opportunities/detail/OpportunityLayoutConfigDialog.tsx`
+A dialog/sheet that opens from a "Configure layout" button. Contains two sections:
+
+**Highlights Configuration:**
+- Checkbox list of available highlight cards with labels
+- Each card can be toggled on/off
+- Drag handle for reordering (using HTML5 drag-and-drop, no new dependency needed)
+
+**Sidebar Configuration:**
+- List of sidebar sections with checkboxes + drag handles
+- Drag-and-drop reorder
+- Save/Reset buttons
 
 ### Component Structure
 ```text
-OpportunityCommentsTab
-├── NewCommentForm (textarea + @mention dropdown + Post button)
-└── CommentThread[] (for each top-level comment)
-    ├── CommentItem (avatar, name, time, content, Reply/Delete buttons)
-    ├── ReplyForm (inline textarea, shown on click "Reply")
-    └── CommentItem[] (nested replies, indented)
+OpportunityLayoutConfigDialog
+├── Tabs: "Highlights" | "Sidebar"
+├── Highlights Tab
+│   └── DraggableList of highlight cards with checkboxes
+├── Sidebar Tab
+│   └── DraggableList of sidebar sections with checkboxes
+└── Footer: Reset to defaults | Save
 ```
-
-### @Mention Dropdown Behavior
-- Triggered by typing `@` in the textarea
-- Filters workspace members by typed text after `@`
-- Shows member name + avatar in dropdown
-- On select: replaces `@partial` with `@FullName` and stores `user_id` in mentions array
-- Rendered mentions in displayed comments are highlighted with a distinct style (e.g., `text-primary font-medium`)
 
 ## Edited Files
 
-### 3. `src/components/opportunities/OpportunityDetailPage.tsx`
-- Import `OpportunityCommentsTab` and `MessageSquare` icon
-- Add `comments` tab to `tabDotColors` (e.g., `"bg-violet-500"`)
-- Add `TabsTrigger` for "Comments" with badge showing comment count
-- Add `TabsContent` rendering `<OpportunityCommentsTab opportunityId={opportunity.id} />`
-- Fetch comment count for badge (from the hook or a separate count query)
+### 3. `src/components/opportunities/detail/OpportunityHighlightsCards.tsx`
+- Accept new props: `visibleHighlights: string[]`, `highlightsOrder: string[]`
+- Define all possible highlight cards as a registry (id, component renderer)
+- Filter and order cards based on preferences
+- Make the Settings icon functional -- opens the config dialog
+- Make the GripVertical icon trigger drag-and-drop reorder (inline, quick reorder)
 
-### 4. i18n files (all 4 locales: `en`, `pt`, `es`, `fr`)
-New keys (~12):
+### 4. `src/components/opportunities/detail/OpportunityDetailSidebar.tsx`
+- Accept new prop: `sidebarOrder: string[]`
+- Define each sidebar section with an id
+- Render sections in the order specified by `sidebarOrder`
+- Add a drag handle to each `SidebarSection` header for reordering
+- Implement HTML5 drag-and-drop within the sidebar for live reordering
+- On drop, call the update mutation to persist the new order
+
+### 5. `src/components/opportunities/OpportunityDetailPage.tsx`
+- Import and use `useOpportunityLayoutPreferences`
+- Pass `visibleHighlights`, `highlightsOrder`, `sidebarOrder` to children
+- Add a "Configure layout" button (Settings icon) near the highlights header
+- Pass config dialog open/close state
+
+### 6. i18n files (all 4 locales)
+New keys (~10):
 | Key | EN | PT | ES | FR |
 |---|---|---|---|---|
-| `oppDetail_commentsTab` | Comments | Comentarios | Comentarios | Commentaires |
-| `oppDetail_noComments` | No comments yet | Sem comentarios ainda | Sin comentarios aun | Aucun commentaire |
-| `oppDetail_addComment` | Write a comment... | Escrever um comentario... | Escribir un comentario... | Ecrire un commentaire... |
-| `oppDetail_postComment` | Post | Publicar | Publicar | Publier |
-| `oppDetail_reply` | Reply | Responder | Responder | Repondre |
-| `oppDetail_deleteComment` | Delete | Eliminar | Eliminar | Supprimer |
-| `oppDetail_deleteCommentConfirm` | Delete this comment? | Eliminar este comentario? | Eliminar este comentario? | Supprimer ce commentaire? |
-| `oppDetail_editComment` | Edit | Editar | Editar | Modifier |
-| `oppDetail_repliesCount` | {{count}} replies | {{count}} respostas | {{count}} respuestas | {{count}} reponses |
-| `oppDetail_mentionSearch` | Search team members... | Procurar membros... | Buscar miembros... | Rechercher des membres... |
-| `oppDetail_commentPosted` | Comment posted | Comentario publicado | Comentario publicado | Commentaire publie |
-| `oppDetail_commentDeleted` | Comment deleted | Comentario eliminado | Comentario eliminado | Commentaire supprime |
-
-## Implementation Order
-
-1. Database migration (create table + RLS + realtime)
-2. `useOpportunityComments.ts` hook
-3. `OpportunityCommentsTab.tsx` component with @mentions and threads
-4. Edit `OpportunityDetailPage.tsx` to add the tab
-5. Add i18n keys to all 4 locales
+| `oppLayout_configureLayout` | Configure layout | Configurar layout | Configurar diseño | Configurer la mise en page |
+| `oppLayout_highlights` | Highlights | Destaques | Destacados | Points clés |
+| `oppLayout_sidebar` | Sidebar | Barra lateral | Barra lateral | Barre latérale |
+| `oppLayout_resetDefaults` | Reset to defaults | Repor predefinições | Restablecer valores | Réinitialiser |
+| `oppLayout_saved` | Layout saved | Layout guardado | Diseño guardado | Mise en page enregistrée |
+| `oppLayout_dealStage` | Deal Stage | Fase do Negócio | Etapa del negocio | Étape du deal |
+| `oppLayout_dealOwner` | Deal Owner | Responsável | Propietario | Responsable |
+| `oppLayout_associatedCompany` | Associated Company | Empresa Associada | Empresa Asociada | Entreprise Associée |
+| `oppLayout_documents` | Documents | Documentos | Documentos | Documents |
+| `oppLayout_dealValue` | Deal Value | Valor do Negócio | Valor del negocio | Valeur du deal |
+| `oppLayout_dragToReorder` | Drag to reorder | Arrastar para reordenar | Arrastrar para reordenar | Glisser pour réorganiser |
 
 ## Technical Details
 
-- **Realtime**: Subscribe to `postgres_changes` on `opportunity_comments` filtered by `opportunity_id` using `eq` filter. On any event (`INSERT`, `UPDATE`, `DELETE`), invalidate the `["opportunity_comments", opportunityId]` query key.
-- **Auth**: Uses `useAuth()` to get current `user.id` for comment ownership checks.
-- **Members**: Uses existing `useWorkspaceMembers()` for the @mention dropdown.
-- **Workspace isolation**: All queries filter by `workspace_id` via RLS policies tied to `workspace_members`.
+### Drag-and-Drop Implementation
+Using native HTML5 drag-and-drop (no new dependency):
+- `draggable` attribute on section headers / card wrappers
+- `onDragStart`, `onDragOver`, `onDragEnd` handlers
+- Visual feedback with opacity change and drop indicator line
+- On drop: update local state immediately, then persist via mutation
+
+### Highlight Cards Registry
+```typescript
+const HIGHLIGHT_CARDS = [
+  { id: 'stage', label: t('oppLayout_dealStage'), icon: Layers },
+  { id: 'owner', label: t('oppLayout_dealOwner'), icon: User },
+  { id: 'company', label: t('oppLayout_associatedCompany'), icon: Building2 },
+  { id: 'documents', label: t('oppLayout_documents'), icon: FileText },
+  { id: 'value', label: t('oppLayout_dealValue'), icon: DollarSign },
+];
+```
+
+### Sidebar Sections Registry
+```typescript
+const SIDEBAR_SECTIONS = [
+  { id: 'communication', title: t('oppDetail_communication'), icon: MessageSquare },
+  { id: 'dealInfo', title: t('oppDetail_dealInfo'), icon: Briefcase },
+  { id: 'associations', title: t('oppDetail_associations'), icon: UserCheck },
+  { id: 'companyInfo', title: t('oppDetail_companyInfo'), icon: Building2 },
+  { id: 'lists', title: t('oppDetail_listsSection'), icon: ListChecks },
+  { id: 'intelligence', title: 'Intelligence', icon: Brain },
+];
+```
+
+## Files Summary
+
+| File | Action | Description |
+|---|---|---|
+| `supabase migration` | **CREATE** | `opportunity_layout_preferences` table + RLS + realtime |
+| `src/hooks/useOpportunityLayoutPreferences.ts` | **CREATE** | Hook for CRUD on layout preferences |
+| `src/components/opportunities/detail/OpportunityLayoutConfigDialog.tsx` | **CREATE** | Config dialog with drag-and-drop lists |
+| `src/components/opportunities/detail/OpportunityHighlightsCards.tsx` | **EDIT** | Accept preferences, filter/order cards, functional settings icon |
+| `src/components/opportunities/detail/OpportunityDetailSidebar.tsx` | **EDIT** | Accept sidebar order, drag-and-drop reordering |
+| `src/components/opportunities/OpportunityDetailPage.tsx` | **EDIT** | Wire up preferences hook, pass to children |
+| `src/i18n/locales/en/crm.json` | **EDIT** | ~11 new keys |
+| `src/i18n/locales/pt/crm.json` | **EDIT** | ~11 new keys |
+| `src/i18n/locales/es/crm.json` | **EDIT** | ~11 new keys |
+| `src/i18n/locales/fr/crm.json` | **EDIT** | ~11 new keys |
+
+## Implementation Order
+
+1. Database migration (create table + RLS)
+2. `useOpportunityLayoutPreferences.ts` hook
+3. `OpportunityLayoutConfigDialog.tsx` component
+4. Edit `OpportunityHighlightsCards.tsx` -- configurable cards
+5. Edit `OpportunityDetailSidebar.tsx` -- drag-and-drop sidebar sections
+6. Edit `OpportunityDetailPage.tsx` -- wire everything together
+7. Add i18n keys to all 4 locales
 
