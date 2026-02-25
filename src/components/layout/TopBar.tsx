@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Menu, LogOut, User, Settings, Search, ShieldCheck } from "lucide-react";
+import { Menu, LogOut, User, Settings, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { GlobalSearch } from "./GlobalSearch";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -16,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 import { HelpSupportDropdown } from "./HelpSupportDropdown";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { AskFastCRMDialog } from "@/components/ask-fastcrm";
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -25,6 +27,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { isSuperAdmin } = useUserRole();
+  const [askOpen, setAskOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -55,6 +58,25 @@ export function TopBar({ onMenuClick }: TopBarProps) {
       </div>
 
       <div className="flex items-center gap-1.5">
+        {/* Ask FastCRM */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setAskOpen(true)}
+              className="hidden sm:flex gap-1.5 h-9 text-xs text-muted-foreground hover:text-primary"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">Ask</span>
+              <kbd className="hidden lg:flex items-center text-[10px] bg-muted px-1 py-0.5 rounded">⌘J</kbd>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs">Ask FastCRM about your revenue</p>
+          </TooltipContent>
+        </Tooltip>
+
         {/* Mobile search button */}
         <div className="md:hidden">
           <GlobalSearch
@@ -136,6 +158,8 @@ export function TopBar({ onMenuClick }: TopBarProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <AskFastCRMDialog open={askOpen} onOpenChange={setAskOpen} />
     </header>
   );
 }
