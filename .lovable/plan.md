@@ -1,167 +1,61 @@
 
 
-# Redesign da Página de Detalhe de Oportunidade -- Estilo Attio com Melhorias
+# Drag-and-Drop Animations with Framer Motion for Kanban Board
 
-## Referência Visual
+## Current State
 
-A imagem mostra o layout de detalhe de deal do Attio/Basepoint com:
-- Header com navegação entre registos ("1 of 5 in Deal stage → Lead")
-- Tabs horizontais: Overview, Activity, Notes, Associated company, Associated People, Tasks, Calls, Workspace
-- Secção de **Highlights** com cards inline (Deal stage, Deal owner, Associated company, Deal value)
-- Timeline de **Activity** com avatares e datas
-- **Sidebar direita** com Details e Comments em tabs, contendo secções colapsáveis: Communication, Deal Info (campos editáveis inline), Company Info, Lists
+The Kanban board uses native HTML5 drag-and-drop (`draggable`, `onDragStart`, `onDragEnd`, `onDragOver`, `onDrop`) with minimal visual feedback:
+- Cards get `opacity-50 rotate-2 shadow-lg` when dragging
+- Columns get `bg-primary/5 border-primary/50 ring-2` when hovered over during drag
+- No animation on card mount, reorder, or drop
+- Cards are rendered in plain `div` wrappers inside `OpportunityKanbanColumn`
 
-## Estado Atual
+## What We'll Build
 
-A página `OpportunityDetailPage.tsx` tem:
-- Header simples com botão voltar + título
-- Tabs: Overview, Insights, Tasks (coming soon), Notes (coming soon)
-- Overview: Stepper de estágios → Grid de detalhes estática → Timeline de atividade
-- Sidebar: Intelligence panel, Associações (lead/contacto/empresa), Comissão
-- **Problemas**: detalhes não são editáveis inline na tab overview, sem highlights cards, sem navegação entre deals, sem contagem nas tabs, sem secção de comunicação
+Smooth framer-motion animations for:
+1. **Card mount/layout animation** — cards animate in with stagger and animate position changes via `AnimatePresence` + `layoutId`
+2. **Drag ghost enhancement** — scale + shadow + rotation animation on drag start
+3. **Drop landing animation** — spring animation when card lands in new column
+4. **Column hover pulse** — subtle scale pulse on column when valid drop target
+5. **Card exit animation** — fade-out when card leaves a column during drag
+6. **Empty state transition** — smooth transition when column goes from empty to populated
 
-## Melhorias Planeadas (vs Attio)
+## Approach
 
-1. **Record navigation** -- navegar entre oportunidades do mesmo estágio com "X of Y"
-2. **Highlights cards** -- cards visuais de destaque com stage (com cor), owner, empresa, valor
-3. **Tabs com contadores** -- Notes (3), Tasks (5), Associated People (2), Calls (0)
-4. **Sidebar reestruturada** -- tabs Details/Comments, secções colapsáveis com campos editáveis inline
-5. **Communication section** na sidebar -- última comunicação com tempo relativo
-6. **Deal Info section** colapsável -- todos os campos editáveis inline (valor, prioridade, estágio, data fecho, probabilidade)
-7. **Company Info section** colapsável -- domínios, categorias, ICP
-8. **Notes tab funcional** -- lista de notas com criação inline
-9. **Tasks tab funcional** -- lista de tarefas associadas com criação rápida
-10. **Copy URL / Copy ID / Add to favorites** -- dropdown menu no header
+We keep native HTML5 drag-and-drop for the actual data transfer (it works reliably cross-browser), but wrap cards in `motion.div` with `layout` prop for automatic position animations. The key technique: `layout` prop on `motion.div` makes framer-motion automatically animate position/size changes when the DOM order changes (e.g., card moves between columns via React re-render after drop).
 
-## Arquitetura de Componentes
+## File Changes
 
-```text
-OpportunityDetailPage (redesenhado)
-├── Header
-│   ├── Record Navigation ("1 of 5 in Qualificação")
-│   ├── Title + Star (favorite)
-│   └── Actions (Compose email, Configure, ...)
-├── Main Content Area
-│   ├── Tabs (Overview | Activity | Notes | People | Tasks | Calls)
-│   │   
-│   │   Tab: Overview
-│   │   ├── HighlightsCards (stage, owner, company, value)
-│   │   └── ActivityTimeline (existente, melhorado)
-│   │   
-│   │   Tab: Activity (timeline completa)
-│   │   Tab: Notes (CRUD de notas)
-│   │   Tab: Tasks (lista + criação)
-│   │   Tab: Associated People (contactos)
-│   │   Tab: Calls (recordings/transcripts)
-│   │   
-│   └── Sidebar Direita (fixa)
-│       ├── Sub-tabs: Details | Comments
-│       ├── Communication (último contacto)
-│       ├── Deal Info (campos editáveis inline colapsáveis)
-│       ├── Company Info (colapsável)
-│       └── AI Intelligence (colapsável, existente)
-```
-
-## Componentes Novos
-
-### 1. `OpportunityHighlightsCards.tsx`
-Cards inline horizontais mostrando métricas-chave com cor e ícones:
-- **Deal Stage**: nome + barra de cor do estágio
-- **Deal Owner**: avatar + nome
-- **Associated Company**: logo + nome
-- **Deal Value**: valor formatado com moeda
-
-Cada card é clicável para edição rápida (popover com select/input).
-
-### 2. `OpportunityRecordNav.tsx`
-Navegação entre registos do mesmo estágio:
-- "← 3 of 12 in Qualificação →"
-- Busca oportunidades do mesmo `stage_id`, ordena por `created_at`
-- Botões prev/next navegam entre IDs
-
-### 3. `OpportunityDetailSidebar.tsx`
-Sidebar completa estilo Attio com:
-- Tabs internos: Details | Comments
-- **Communication**: última atividade com ícone + tempo relativo ("About 2 months ago")
-- **Deal Info**: campos editáveis inline usando `InlineEditableField` (título, valor, prioridade, estágio, data fecho, probabilidade, moeda)
-- **Company Info**: domínios, categorias -- com "Show all values" expandível
-- **AI Intelligence**: panel existente integrado como secção colapsável
-- Cada secção com `Collapsible` + chevron
-
-### 4. `OpportunityNotesTab.tsx`
-Lista de notas com:
-- Criação inline (textarea + guardar)
-- Lista cronológica de notas existentes
-- Edição/eliminação
-
-### 5. `OpportunityTasksTab.tsx`
-Lista de tarefas associadas à oportunidade:
-- Usa hook `useTasks` existente com filtro `related_type: "opportunity"`
-- Criação rápida com título + data
-- Toggle de conclusão
-- Contagem na tab
-
-### 6. `OpportunityHeaderActions.tsx`
-Dropdown menu com:
-- Copy page URL
-- Copy record ID
-- Add to favorites (toggle)
-- Delete record
-
-## Ficheiros
-
-| Ficheiro | Ação | Descrição |
+| File | Action | Description |
 |---|---|---|
-| `src/components/opportunities/detail/OpportunityHighlightsCards.tsx` | **NEW** | Cards de destaque (stage, owner, company, value) |
-| `src/components/opportunities/detail/OpportunityRecordNav.tsx` | **NEW** | Navegação entre registos do mesmo estágio |
-| `src/components/opportunities/detail/OpportunityDetailSidebar.tsx` | **NEW** | Sidebar reestruturada estilo Attio |
-| `src/components/opportunities/detail/OpportunityNotesTab.tsx` | **NEW** | Tab de notas funcional |
-| `src/components/opportunities/detail/OpportunityTasksTab.tsx` | **NEW** | Tab de tarefas funcional |
-| `src/components/opportunities/detail/OpportunityHeaderActions.tsx` | **NEW** | Menu de ações do header |
-| `src/components/opportunities/detail/OpportunityCommunicationSection.tsx` | **NEW** | Secção de comunicação na sidebar |
-| `src/components/opportunities/OpportunityDetailPage.tsx` | **EDIT** | Reestruturar layout completo |
-| `src/i18n/locales/pt/crm.json` | **EDIT** | +20 keys |
-| `src/i18n/locales/en/crm.json` | **EDIT** | +20 keys |
-| `src/i18n/locales/es/crm.json` | **EDIT** | +20 keys |
-| `src/i18n/locales/fr/crm.json` | **EDIT** | +20 keys |
+| `src/components/opportunities/OpportunityKanbanColumn.tsx` | **EDIT** | Wrap cards in `motion.div` with `layout`, `initial`, `animate`, `exit` props; add `AnimatePresence`; animate column drop zone |
+| `src/components/opportunities/OpportunityCard.tsx` | **EDIT** | Add `motion.div` wrapper with drag state animations (scale, shadow, rotation transitions) |
+| `src/components/opportunities/OpportunitiesModule.tsx` | **EDIT** | Add `LayoutGroup` wrapper around kanban columns for cross-column layout animations |
 
-## Base de Dados
+## Technical Details
 
-Sem alterações de schema necessárias. As tabelas `opportunities`, `activities`, `tasks`, e `notes` já existem. Os campos `notes` na opportunity já suportam texto. As tasks já têm `related_type`/`related_id`.
+### OpportunityCard.tsx
+- Wrap the `Card` in a `motion.div` with `layout` prop and `layoutId={opportunity.id}`
+- On `isDragging`: animate to `scale: 1.05, rotate: 2, boxShadow: "..."` with spring transition
+- On drop: spring back to `scale: 1, rotate: 0`
 
-## i18n Keys (~20 novas)
+### OpportunityKanbanColumn.tsx
+- Wrap card list in `AnimatePresence mode="popLayout"`
+- Each card wrapper gets `motion.div` with:
+  - `layout` for smooth position transitions
+  - `initial={{ opacity: 0, y: 20 }}` for mount animation
+  - `animate={{ opacity: 1, y: 0 }}` 
+  - `exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}`
+  - `transition={{ type: "spring", stiffness: 500, damping: 35 }}`
+- Column drop zone gets `motion.div` with animated border/background on `isDragOver`
+- Empty state gets `AnimatePresence` for smooth appear/disappear
 
-```
-oppDetail_highlights, oppDetail_dealStage, oppDetail_dealOwner,
-oppDetail_dealValue, oppDetail_associatedCompany,
-oppDetail_recordNav, oppDetail_ofRecords,
-oppDetail_communication, oppDetail_lastContact,
-oppDetail_dealInfo, oppDetail_companyInfo,
-oppDetail_showAllValues, oppDetail_hideValues,
-oppDetail_copyUrl, oppDetail_copyId, oppDetail_addFavorite,
-oppDetail_removeFavorite, oppDetail_configureLayout,
-oppDetail_comments, oppDetail_details,
-oppDetail_noNotes, oppDetail_addNote
-```
+### OpportunitiesModule.tsx
+- Wrap the kanban columns `div` with `<LayoutGroup>` from framer-motion so layout animations coordinate across columns
 
-## Ordem de Implementação
+## Implementation Order
 
-1. `OpportunityHighlightsCards` -- cards visuais de destaque
-2. `OpportunityRecordNav` -- navegação entre registos
-3. `OpportunityDetailSidebar` -- sidebar completa com secções colapsáveis
-4. `OpportunityCommunicationSection` -- última comunicação
-5. `OpportunityNotesTab` -- notas funcionais
-6. `OpportunityTasksTab` -- tarefas funcionais
-7. `OpportunityHeaderActions` -- dropdown de ações
-8. Reestruturar `OpportunityDetailPage` com o novo layout
-9. Adicionar i18n keys
-
-## Notas Técnicas
-
-- Os Highlights Cards reutilizam `InlineEditableField` e `InlineEntitySelect` existentes para edição inline via popover
-- A navegação entre registos usa uma query separada para buscar IDs do mesmo estágio, sem carregar dados completos
-- A sidebar usa `Collapsible` do Radix para secções expansíveis, com estado persistido em `localStorage`
-- O tab de Tasks reutiliza o hook `useTasks` existente, filtrando por `related_type: "opportunity"` e `related_id: opportunityId`
-- A secção Communication busca a última atividade do tipo `call`/`email`/`meeting` e mostra tempo relativo com `formatDistanceToNow`
-- O layout muda de `flex-col-reverse lg:flex-row` para `flex lg:flex-row` com sidebar fixa à direita com `sticky top`
+1. Edit `OpportunitiesModule.tsx` — add `LayoutGroup` wrapper
+2. Edit `OpportunityKanbanColumn.tsx` — add `AnimatePresence`, `motion.div` wrappers with layout animations
+3. Edit `OpportunityCard.tsx` — add motion-based drag state animations
 
