@@ -1,78 +1,104 @@
 
 
-# Custom Objects in Sidebar — Attio-Style Dynamic Navigation
+# Redesign Contacts Table — Attio-Style List View
 
-## Context
+## Overview
 
-Attio treats all data as "objects" — standard ones (People, Companies, Deals) and custom ones (Partnership, Invoice, Project, etc.) — and all appear as first-class items in the sidebar under a "Records" section. Your project already has all the backend infrastructure for this:
-
-- `custom_objects` table (name, slug, icon, color, is_active)
-- `core_object_fields` for attribute definitions
-- `object_records` for the actual data
-- `object_relationships` for associations
-- `useCustomObjects` hook that queries active custom objects
-- Routes at `/objects`, `/objects/:type`, `/objects/:type/:id`
-
-What's missing is the sidebar integration — custom objects don't appear in the navigation.
+Rebuild the Contacts page to match Attio's clean, minimal list view design. Remove the left filter sidebar in favor of inline filter controls. Add a view selector, sort indicators, and advanced filter badges. Cleaner table typography and spacing.
 
 ## What Changes
 
-The sidebar will dynamically load active custom objects from the database and render them as navigation items below the static CRM section, with a subtle "Records" label and separator. Each custom object gets its own icon (from the DB) and links to `/objects/{slug}`.
+### Current vs Target
 
 ```text
-┌─────────────────────────┐
-│ ...                     │
-│─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│
-│ 👤 Leads                │
-│ 📇 Contactos            │
-│ 🏢 Empresas             │
-│ 🎯 Oportunidades        │
-│ ☑ Tarefas               │
-│─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│
-│ RECORDS                 │  ← New dynamic section
-│ 🤝 Parcerias            │  ← From custom_objects
-│ 📄 Faturas              │
-│ 📦 Projetos             │
-│─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│
-│ 📦 Produtos             │
-│ ...                     │
-└─────────────────────────┘
+CURRENT:                              TARGET (Attio-style):
+┌─────────┬──────────────────────┐    ┌──────────────────────────────────┐
+│ Filter  │ PageHeader + Tabs    │    │ Contactos ⓘ                     │
+│ Sidebar │ Toolbar (search/sort)│    │──────────────────────────────────│
+│         │ ┌──────────────────┐ │    │ ⊞ Todos os contactos ▾  ⚙ View │
+│ Temp    │ │ Table            │ │    │   settings  ↓ Import/Export ▾   │
+│ Estado  │ │                  │ │    │──────────────────────────────────│
+│ Ativ.   │ │                  │ │    │ ≡ Sorted by Mais recentes       │
+│ ABC     │ └──────────────────┘ │    │   Advanced filter 0  ⋮  +       │
+│         │ Pagination           │    │──────────────────────────────────│
+└─────────┴──────────────────────┘    │ ☐ Contacto  +  Email  Empresa  │
+                                      │ ☐ ◉ João Silva  jo@..  Acme    │
+                                      │ ☐ ◉ Maria..     ma@..  Corp    │
+                                      │──────────────────────────────────│
+                                      │ Pagination (clean)              │
+                                      └──────────────────────────────────┘
 ```
 
-When no custom objects exist, the "Records" section is hidden entirely.
+### Key Design Changes
+
+1. **Remove left FilterSidebar** — replace with inline "Advanced filter" badge/popover
+2. **New header layout**: Title "Contactos" with info icon, no tabs (tabs become view options)
+3. **View selector row**: Dropdown "Todos os contactos ▾" + "View settings" + "Import/Export"
+4. **Sort/filter bar**: "Sorted by X" label + "Advanced filter N" badge + more menu + add filter button
+5. **Cleaner table**: More whitespace, subtle borders, column headers with "+" to add columns, AI badges on AI columns
+6. **Row design**: Avatar with company initial/logo, clickable domains as badges, colored status badges (like ICP Fit), colored currency ranges
+7. **Pagination**: Simpler, bottom-aligned
 
 ## Technical Plan
 
-### 1. Update `SidebarV1.tsx`
+### 1. Create `AttioContactsTable.tsx`
 
-- Import `useCustomObjects` hook and `getIconByName` utility
-- After the static `NAV_V1_ITEMS` navigation loop, insert a dynamic "Records" section:
-  - A `Separator` followed by a small "Records" label (hidden when collapsed)
-  - For each active custom object: render a nav link to `/objects/{slug}` with the object's icon (resolved via `getIconByName`) and name
-  - Support collapsed mode (icon-only + tooltip) and expanded mode (icon + name + star for favorites)
-  - Items are pinable to favorites using the same `toggleFavorite` mechanism (using the `/objects/{slug}` href)
+New component replacing `SmartContactsTable` with the Attio-inspired layout:
 
-### 2. Update `nav.v1.ts` — Add type to `NavV1Item`
+- **Header**: Simple title "Contactos" with count badge and info tooltip
+- **View bar**: View selector dropdown (replacing tabs), "View settings" button (opens ColumnSelector), "Import/Export" dropdown
+- **Filter bar**: Sort indicator as a styled label, "Advanced filter" badge showing active filter count, "+" button to add filters via popover, "⋮" more menu
+- **Table**: Same data source (`useSmartContacts`), same `DynamicTableCell`, but with:
+  - Cleaner header styling (lighter text, no background gradient)
+  - "+" icon after the first column header (to add columns quickly)
+  - AI badge labels on AI columns (small "AI" chip like Attio)
+  - Rows with more padding, subtle hover, no strong borders
+- **Search**: Integrated into the filter bar as a filter option or a persistent search in the view bar
+- **Keeps**: All existing bulk actions, export, create dialog, duplicate management
 
-- Add an optional `dynamic?: boolean` flag so dynamic items can be differentiated if needed
-- No changes to the static items array itself
+### 2. Create `AttioFilterBar.tsx`
 
-### 3. Update `useSidebarFavorites.ts`
+Reusable inline filter bar component:
+- "Sorted by X" styled label (clickable to change sort)
+- "Advanced filter N" badge (clickable to open filter popover)
+- "⋮" more menu for saved views, export
+- "+" button to add new filter criteria
+- Filter popover: Select field → operator → value pattern
 
-- No changes needed — it already works with any `href` string, so `/objects/partnerships` will work automatically
+### 3. Create `AttioViewSelector.tsx`
+
+View selector dropdown:
+- Shows current view name with grid icon
+- Dropdown lists saved views (from existing page tabs concept)
+- "All contacts" as default view
+
+### 4. Update `Contacts.tsx`
+
+- Replace `SmartContactsTable` with `AttioContactsTable`
+
+### 5. Reuse existing infrastructure
+
+- `useSmartContacts` hook — unchanged
+- `useContacts` for mutations — unchanged
+- `DynamicTableCell` for rendering — unchanged
+- `ColumnSelector` / `useColumnPreferences` — unchanged, wired into "View settings"
+- `BulkActionsBar` — unchanged
+- `CreateContactDialog`, `DuplicateManagementDialog` — unchanged
 
 ## Files to Create / Edit
 
 | File | Change |
 |---|---|
-| `src/components/layout/SidebarV1.tsx` | Add dynamic "Records" section after static nav, using `useCustomObjects` |
-| `src/config/nav.v1.ts` | Minor: add optional `dynamic` flag to `NavV1Item` interface |
+| `src/components/contacts/AttioContactsTable.tsx` | **NEW** — Main Attio-style contacts list component |
+| `src/components/contacts/AttioFilterBar.tsx` | **NEW** — Inline sort + advanced filter bar |
+| `src/components/contacts/AttioViewSelector.tsx` | **NEW** — View selector dropdown |
+| `src/pages/Contacts.tsx` | Swap `SmartContactsTable` → `AttioContactsTable` |
 
-## Edge Cases
+## Improvements Over Attio
 
-- **No custom objects**: Section hidden entirely (no label, no separator)
-- **Loading state**: Custom objects query loading — section not shown until loaded
-- **Icon resolution**: Uses `getIconByName(obj.icon)` which falls back to a default icon
-- **Collapsed mode**: Shows only icons with tooltips, same as static items
-- **Favorites**: Custom object links can be pinned to favorites just like any other page
+- **AI columns with badges**: Keep the AI-powered columns (Temperature, Score, Type, Next Action) with small "AI" chips, matching Attio's style
+- **Bulk actions**: Retain the powerful bulk edit/analyze/LinkedIn analysis — Attio doesn't have this
+- **Search**: Keep search as a prominent input in the view bar rather than hidden
+- **Temperature indicators**: Colored dots on avatars for hot/warm/cold leads — more visual than Attio's text-only approach
+- **Column "+" shortcut**: Allow quickly adding columns from the header, matching Attio's pattern
 
