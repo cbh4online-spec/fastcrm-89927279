@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { 
   useOpportunitiesEnhanced, 
   useMoveOpportunityEnhanced,
@@ -59,6 +60,7 @@ type StatusFilter = "all" | "open" | "won" | "lost";
 
 
 export function OpportunitiesModule() {
+  const { t } = useTranslation('crm');
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -148,25 +150,24 @@ export function OpportunitiesModule() {
         trackLeadMovedPipeline({ from_stage: fromStage.name, to_stage: toStage.name, days_in_previous_stage: daysInPrevious });
       }
       
-      toast.success("Oportunidade movida");
+      toast.success(t('opportunityMoved'));
     } catch (error) {
-      toast.error("Erro ao mover oportunidade");
+      toast.error(t('errorMovingOpportunity'));
     }
   };
 
   const handleMarkAsWon = async (id: string) => {
     try {
       await closeOpportunity.mutateAsync({ id, status: "won" });
-      toast.success("Oportunidade marcada como ganha! 🎉");
+      toast.success(t('opportunityWon'));
       
-      // Find the opportunity and prompt for invoice creation
       const opp = opportunities?.find(o => o.id === id);
       if (opp) {
         setWonOpportunity(opp);
         setShowInvoicePrompt(true);
       }
     } catch (error) {
-      toast.error("Erro ao atualizar oportunidade");
+      toast.error(t('errorUpdatingOpportunity'));
     }
   };
 
@@ -183,9 +184,9 @@ export function OpportunitiesModule() {
   const handleMarkAsLost = async (id: string) => {
     try {
       await closeOpportunity.mutateAsync({ id, status: "lost" });
-      toast.success("Oportunidade marcada como perdida");
+      toast.success(t('opportunityLost'));
     } catch (error) {
-      toast.error("Erro ao atualizar oportunidade");
+      toast.error(t('errorUpdatingOpportunity'));
     }
   };
 
@@ -206,7 +207,7 @@ export function OpportunitiesModule() {
   const isLoading = oppLoading || stagesLoading;
 
   if (isLoading) {
-    return <PageLoading message="A carregar oportunidades..." />;
+    return <PageLoading message={t('loadingOpportunities')} />;
   }
 
   return (
@@ -214,17 +215,17 @@ export function OpportunitiesModule() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between flex-shrink-0">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Oportunidades</h1>
-          <p className="text-muted-foreground">Gerencie o seu pipeline de vendas</p>
+          <h1 className="text-2xl font-semibold text-foreground">{t('opportunitiesTitle')}</h1>
+          <p className="text-muted-foreground">{t('opportunitiesDesc')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setIsSettingsDialogOpen(true)}>
             <Settings className="w-4 h-4 mr-2" />
-            Pipeline
+            {t('pipelineSettings')}
           </Button>
           <Button onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            Nova Oportunidade
+            {t('newOpportunity')}
           </Button>
         </div>
       </div>
@@ -247,7 +248,7 @@ export function OpportunitiesModule() {
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Pesquisar oportunidades..."
+              placeholder={t('searchOpportunities')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -261,10 +262,10 @@ export function OpportunitiesModule() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="open">Abertas</SelectItem>
-              <SelectItem value="won">Ganhas</SelectItem>
-              <SelectItem value="lost">Perdidas</SelectItem>
+              <SelectItem value="all">{t('allStatusFilter')}</SelectItem>
+              <SelectItem value="open">{t('openFilter')}</SelectItem>
+              <SelectItem value="won">{t('wonFilter')}</SelectItem>
+              <SelectItem value="lost">{t('lostFilter')}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -276,7 +277,7 @@ export function OpportunitiesModule() {
             onClick={() => setSortByScore((v) => !v)}
           >
             <ArrowUpDown className="w-4 h-4" />
-            Score
+            {t('score')}
           </Button>
 
           {/* Hot Deals filter */}
@@ -287,7 +288,7 @@ export function OpportunitiesModule() {
             onClick={() => setHotDealsOnly((v) => !v)}
           >
             <Flame className="w-4 h-4" />
-            Hot Deals
+            {t('hotDeals')}
             {hotCount > 0 && (
               <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
                 {hotCount}
@@ -301,11 +302,11 @@ export function OpportunitiesModule() {
           <TabsList>
             <TabsTrigger value="kanban" className="gap-2">
               <LayoutGrid className="w-4 h-4" />
-              Kanban
+              {t('kanban')}
             </TabsTrigger>
             <TabsTrigger value="list" className="gap-2">
               <List className="w-4 h-4" />
-              Lista
+              {t('list')}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -316,10 +317,10 @@ export function OpportunitiesModule() {
       {!stages?.length ? (
         <EmptyState
           type="opportunities"
-          title="Sem etapas de pipeline"
-          description="Configure as etapas do pipeline para começar a acompanhar oportunidades."
+          title={t('noPipelineStages')}
+          description={t('noPipelineStagesDesc')}
           action={{
-            label: "Configurar Pipeline",
+            label: t('configurePipeline'),
             onClick: () => setIsSettingsDialogOpen(true),
           }}
         />
@@ -387,23 +388,23 @@ export function OpportunitiesModule() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-green-600" />
-              Criar Fatura?
+              {t('createInvoiceTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              A oportunidade <strong>"{wonOpportunity?.title}"</strong> foi marcada como ganha!
+              {t('createInvoiceDesc', { title: wonOpportunity?.title })}
               {wonOpportunity?.value && (
                 <span className="block mt-2">
-                  Valor: <strong>{new Intl.NumberFormat("pt-PT", { style: "currency", currency: wonOpportunity.currency || "EUR" }).format(Number(wonOpportunity.value))}</strong>
+                  {t('createInvoiceValue')} <strong>{new Intl.NumberFormat("pt-PT", { style: "currency", currency: wonOpportunity.currency || "EUR" }).format(Number(wonOpportunity.value))}</strong>
                 </span>
               )}
-              <span className="block mt-2">Deseja criar uma fatura para este negócio?</span>
+              <span className="block mt-2">{t('createInvoicePrompt')}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleSkipInvoice}>Mais tarde</AlertDialogCancel>
+            <AlertDialogCancel onClick={handleSkipInvoice}>{t('laterButton')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleCreateInvoiceFromWon} className="bg-green-600 hover:bg-green-700">
               <FileText className="w-4 h-4 mr-2" />
-              Criar Fatura
+              {t('createInvoice')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

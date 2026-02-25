@@ -1,4 +1,5 @@
 import { useContactsKPIs } from "@/hooks/useSmartContacts";
+import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
@@ -48,6 +49,7 @@ function KPICard({ title, value, icon, highlight, description }: KPICardProps) {
 }
 
 export function SmartContactsKPIs() {
+  const { t } = useTranslation('crm');
   const { data: kpis, isLoading } = useContactsKPIs();
 
   if (isLoading) {
@@ -71,42 +73,42 @@ export function SmartContactsKPIs() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
       <KPICard
-        title="Total Contactos"
+        title={t('kpiTotalContacts')}
         value={kpis.totalContacts}
         icon={<Users className="w-4 h-4" />}
-        description="Base de contactos"
+        description={t('kpiTotalContactsDesc')}
       />
       <KPICard
-        title="Contactos Quentes"
+        title={t('kpiHotContacts')}
         value={kpis.hotContacts}
         icon={<Flame className="w-4 h-4" />}
         highlight={kpis.hotContacts > 0}
-        description="Prontos para ação"
+        description={t('kpiHotContactsDesc')}
       />
       <KPICard
-        title="Sem Resposta >24h"
+        title={t('kpiNoResponseContacts')}
         value={kpis.noResponseOver24h}
         icon={<Clock className="w-4 h-4" />}
         highlight={kpis.noResponseOver24h > 0}
-        description="Precisam de atenção"
+        description={t('kpiNoResponseContactsDesc')}
       />
       <KPICard
-        title="Score Médio"
+        title={t('kpiAvgScore')}
         value={kpis.avgScore}
         icon={<TrendingUp className="w-4 h-4" />}
-        description="Qualidade da base"
+        description={t('kpiAvgScoreDesc')}
       />
       <KPICard
-        title="Decisores"
+        title={t('kpiDecisionMakers')}
         value={kpis.decisionMakers}
         icon={<UserCheck className="w-4 h-4" />}
-        description="Contactos-chave"
+        description={t('kpiDecisionMakersDesc')}
       />
       <KPICard
-        title="Pipeline"
+        title={t('kpiContactsPipeline')}
         value={formatCurrency(kpis.totalPipelineValue)}
         icon={<Euro className="w-4 h-4" />}
-        description="Valor estimado"
+        description={t('kpiContactsPipelineDesc')}
       />
     </div>
   );

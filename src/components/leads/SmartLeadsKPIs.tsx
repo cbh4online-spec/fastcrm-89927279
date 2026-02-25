@@ -1,4 +1,5 @@
 import { useLeadsKPIs } from "@/hooks/useSmartLeads";
+import { useTranslation } from "react-i18next";
 import { 
   Users, 
   Flame, 
@@ -11,6 +12,7 @@ import {
 import { KPICard, KPIGrid, KPIGridSkeleton } from "@/components/design-system";
 
 export function SmartLeadsKPIs() {
+  const { t } = useTranslation('crm');
   const { data: kpis, isLoading } = useLeadsKPIs();
 
   if (isLoading) {
@@ -28,44 +30,44 @@ export function SmartLeadsKPIs() {
   return (
     <KPIGrid columns={4} className="grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
       <KPICard
-        title="Leads Hoje"
+        title={t('kpiLeadsToday')}
         value={kpis.receivedToday}
         icon={<Users className="w-4 h-4" />}
-        description="Novos leads recebidos"
+        description={t('kpiLeadsTodayDesc')}
       />
       <KPICard
-        title="Leads Quentes"
+        title={t('kpiHotLeads')}
         value={kpis.hotLeads}
         icon={<Flame className="w-4 h-4" />}
         variant={kpis.hotLeads > 0 ? "destructive" : "default"}
-        description="Prontos para converter"
+        description={t('kpiHotLeadsDesc')}
       />
       <KPICard
-        title="Sem Resposta >24h"
+        title={t('kpiNoResponse24h')}
         value={kpis.noResponseOver24h}
         icon={<Clock className="w-4 h-4" />}
         variant={kpis.noResponseOver24h > 0 ? "warning" : "default"}
-        description="Precisam de atenção"
+        description={t('kpiNoResponse24hDesc')}
       />
       <KPICard
-        title="Tempo Médio"
+        title={t('kpiAvgTime')}
         value={kpis.avgResponseTimeHours > 0 ? `${kpis.avgResponseTimeHours}h` : "—"}
         icon={<Timer className="w-4 h-4" />}
-        description="Resposta média"
+        description={t('kpiAvgTimeDesc')}
       />
       <KPICard
-        title="Conversões"
+        title={t('kpiConversions')}
         value={kpis.conversionsThisWeek}
         icon={<TrendingUp className="w-4 h-4" />}
         variant="success"
-        description="Esta semana"
+        description={t('kpiConversionsDesc')}
       />
       <KPICard
-        title="Pipeline"
+        title={t('kpiPipeline')}
         value={formatCurrency(kpis.totalPipelineValue)}
         icon={<Euro className="w-4 h-4" />}
         variant="primary"
-        description="Valor total"
+        description={t('kpiPipelineDesc')}
       />
     </KPIGrid>
   );

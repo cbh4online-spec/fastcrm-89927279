@@ -1,4 +1,5 @@
 import { useCompaniesKPIs } from "@/hooks/useSmartCompanies";
+import { useTranslation } from "react-i18next";
 import { 
   Building2, 
   Flame, 
@@ -10,6 +11,7 @@ import {
 import { KPICard, KPIGrid, KPIGridSkeleton } from "@/components/design-system";
 
 export function SmartCompaniesKPIs() {
+  const { t } = useTranslation('crm');
   const { data: kpis, isLoading } = useCompaniesKPIs();
 
   if (isLoading) {
@@ -27,44 +29,44 @@ export function SmartCompaniesKPIs() {
   return (
     <KPIGrid columns={3}>
       <KPICard
-        title="Total Empresas"
+        title={t('kpiTotalCompanies')}
         value={kpis.totalCompanies}
         icon={<Building2 className="w-4 h-4" />}
-        description="Base de empresas"
+        description={t('kpiTotalCompaniesDesc')}
         variant="primary"
       />
       <KPICard
-        title="Empresas Quentes"
+        title={t('kpiHotCompanies')}
         value={kpis.hotCompanies}
         icon={<Flame className="w-4 h-4" />}
-        description="Prontas para ação"
+        description={t('kpiHotCompaniesDesc')}
         variant={kpis.hotCompanies > 0 ? "destructive" : "default"}
       />
       <KPICard
-        title="Sem Resposta >24h"
+        title={t('kpiNoResponseCompanies')}
         value={kpis.noResponseOver24h}
         icon={<Clock className="w-4 h-4" />}
-        description="Precisam de atenção"
+        description={t('kpiNoResponseCompaniesDesc')}
         variant={kpis.noResponseOver24h > 0 ? "warning" : "default"}
       />
       <KPICard
-        title="Clientes"
+        title={t('kpiClients')}
         value={kpis.clients}
         icon={<Users className="w-4 h-4" />}
-        description="Empresas ativas"
+        description={t('kpiClientsDesc')}
         variant="success"
       />
       <KPICard
-        title="Prospects"
+        title={t('kpiProspects')}
         value={kpis.prospects}
         icon={<Briefcase className="w-4 h-4" />}
-        description="Oportunidades"
+        description={t('kpiProspectsDesc')}
       />
       <KPICard
-        title="Pipeline"
+        title={t('kpiCompaniesPipeline')}
         value={formatCurrency(kpis.totalPipelineValue)}
         icon={<Euro className="w-4 h-4" />}
-        description="Valor estimado"
+        description={t('kpiCompaniesPipelineDesc')}
         variant="primary"
       />
     </KPIGrid>

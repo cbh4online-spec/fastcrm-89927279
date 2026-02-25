@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Opportunity } from "@/types/opportunity";
 import { PipelineStage } from "@/hooks/usePipelineStages";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,19 +30,19 @@ function formatCurrency(value: number): string {
 }
 
 export function PipelineSummaryBar({ opportunities, stages, className }: PipelineSummaryBarProps) {
+  const { t } = useTranslation('crm');
+
   const stats = useMemo(() => {
     const openOpps = opportunities.filter(o => o.status === "open");
     const total = openOpps.length;
     const totalValue = openOpps.reduce((sum, o) => sum + Number(o.value || 0), 0);
     
-    // Calculate weighted value based on stage probability
     const weightedValue = openOpps.reduce((sum, o) => {
       const stage = stages.find(s => s.id === o.stage_id);
       const probability = (stage as any)?.probability || 50;
       return sum + (Number(o.value || 0) * probability / 100);
     }, 0);
     
-    // Calculate average sales cycle from won opportunities
     const wonOpps = opportunities.filter(o => o.status === "won");
     const avgCycle = wonOpps.length > 0
       ? wonOpps.reduce((sum, o) => {
@@ -50,7 +51,6 @@ export function PipelineSummaryBar({ opportunities, stages, className }: Pipelin
         }, 0) / wonOpps.length
       : 0;
     
-    // Win rate
     const closedOpps = opportunities.filter(o => o.status === "won" || o.status === "lost");
     const winRate = closedOpps.length > 0 
       ? (wonOpps.length / closedOpps.length) * 100 
@@ -61,38 +61,38 @@ export function PipelineSummaryBar({ opportunities, stages, className }: Pipelin
 
   const metrics = [
     {
-      label: "Negócios Ativos",
+      label: t('pipelineActiveDeals'),
       value: stats.total.toString(),
       icon: Target,
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
     },
     {
-      label: "Valor em Pipeline",
+      label: t('pipelineTotalValue'),
       value: formatCurrency(stats.totalValue),
       icon: DollarSign,
       color: "text-green-500",
       bgColor: "bg-green-500/10",
     },
     {
-      label: "Valor Ponderado",
+      label: t('pipelineWeightedValue'),
       value: formatCurrency(stats.weightedValue),
-      sublabel: "por probabilidade",
+      sublabel: t('pipelineWeightedSublabel'),
       icon: TrendingUp,
       color: "text-amber-500",
       bgColor: "bg-amber-500/10",
     },
     {
-      label: "Ciclo Médio",
-      value: stats.avgCycle > 0 ? `${Math.round(stats.avgCycle)} dias` : "—",
+      label: t('pipelineAvgCycle'),
+      value: stats.avgCycle > 0 ? t('pipelineAvgCycleDays', { days: Math.round(stats.avgCycle) }) : "—",
       icon: Clock,
       color: "text-purple-500",
       bgColor: "bg-purple-500/10",
     },
     {
-      label: "Taxa de Conversão",
+      label: t('pipelineConversionRate'),
       value: stats.winRate > 0 ? `${stats.winRate.toFixed(0)}%` : "—",
-      sublabel: stats.wonCount > 0 ? `${stats.wonCount} ganhas` : undefined,
+      sublabel: stats.wonCount > 0 ? t('pipelineWonCount', { count: stats.wonCount }) : undefined,
       icon: BarChart3,
       color: "text-emerald-500",
       bgColor: "bg-emerald-500/10",

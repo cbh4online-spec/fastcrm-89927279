@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { SmartLead, NextActionType } from "@/hooks/useSmartLeads";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +44,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
-import { pt } from "date-fns/locale";
+import { pt, enUS, es, fr, type Locale } from "date-fns/locale";
+import i18n from "@/i18n";
+
+const dateLocales: Record<string, Locale> = { pt, en: enUS, es, fr };
 
 interface SmartLeadRowProps {
   lead: SmartLead;
@@ -70,18 +74,6 @@ const sourceColors: Record<string, string> = {
   website: "bg-orange-500/10 text-orange-600 border-orange-500/20",
 };
 
-const statusLabels: Record<string, { label: string; color: string }> = {
-  new: { label: "Novo", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  in_progress: { label: "Em contacto", color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  completed: { label: "Qualificado", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
-};
-
-const temperatureConfig = {
-  cold: { icon: <Snowflake className="w-4 h-4" />, label: "Frio", emoji: "❄️", color: "text-blue-500", bg: "bg-blue-500/10" },
-  warm: { icon: <ThermometerSun className="w-4 h-4" />, label: "Morno", emoji: "🟡", color: "text-amber-500", bg: "bg-amber-500/10" },
-  hot: { icon: <Flame className="w-4 h-4" />, label: "Quente", emoji: "🔥", color: "text-red-500", bg: "bg-red-500/10" },
-};
-
 const nextActionIcons: Record<NextActionType, React.ReactNode> = {
   reply_manual: <Reply className="w-3 h-3" />,
   send_template: <FileSpreadsheet className="w-3 h-3" />,
@@ -89,15 +81,6 @@ const nextActionIcons: Record<NextActionType, React.ReactNode> = {
   activate_automation: <Settings2 className="w-3 h-3" />,
   archive: <Archive className="w-3 h-3" />,
   follow_up: <Clock className="w-3 h-3" />,
-};
-
-const nextActionLabels: Record<NextActionType, string> = {
-  reply_manual: "Responder manualmente",
-  send_template: "Enviar template",
-  create_opportunity: "Criar oportunidade",
-  activate_automation: "Ativar automação",
-  archive: "Arquivar",
-  follow_up: "Follow-up",
 };
 
 export function SmartLeadRow({ 
@@ -108,6 +91,30 @@ export function SmartLeadRow({
   isAnalyzing,
   showAdvanced = false 
 }: SmartLeadRowProps) {
+  const { t } = useTranslation('crm');
+  const locale = dateLocales[i18n.language] || pt;
+
+  const statusLabels: Record<string, { label: string; color: string }> = {
+    new: { label: t('statusNewLabel'), color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+    in_progress: { label: t('statusInProgressLabel'), color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+    completed: { label: t('statusQualifiedLabel'), color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+  };
+
+  const temperatureConfig = {
+    cold: { icon: <Snowflake className="w-4 h-4" />, label: t('temperatureCold'), emoji: "❄️", color: "text-blue-500", bg: "bg-blue-500/10" },
+    warm: { icon: <ThermometerSun className="w-4 h-4" />, label: t('temperatureWarm'), emoji: "🟡", color: "text-amber-500", bg: "bg-amber-500/10" },
+    hot: { icon: <Flame className="w-4 h-4" />, label: t('temperatureHot'), emoji: "🔥", color: "text-red-500", bg: "bg-red-500/10" },
+  };
+
+  const nextActionLabels: Record<NextActionType, string> = {
+    reply_manual: t('actionReplyManual'),
+    send_template: t('actionSendTemplate'),
+    create_opportunity: t('actionCreateOpportunity'),
+    activate_automation: t('actionActivateAutomation'),
+    archive: t('actionArchive'),
+    follow_up: t('actionFollowUp'),
+  };
+
   const initials = lead.name
     .split(" ")
     .map((n) => n[0])
@@ -123,7 +130,7 @@ export function SmartLeadRow({
 
   const formatSLA = () => {
     if (lead.hoursSinceLastContact === null) return "—";
-    if (lead.hoursSinceLastContact < 1) return "Agora";
+    if (lead.hoursSinceLastContact < 1) return t('now');
     if (lead.hoursSinceLastContact < 24) return `${Math.round(lead.hoursSinceLastContact)}h`;
     return `${Math.round(lead.hoursSinceLastContact / 24)}d`;
   };
@@ -201,7 +208,7 @@ export function SmartLeadRow({
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p className="text-xs">Classificação automática baseada na intenção do lead</p>
+              <p className="text-xs">{t('tempTooltip')}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -233,7 +240,7 @@ export function SmartLeadRow({
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p className="text-xs">Score calculado automaticamente (0-100)</p>
+              <p className="text-xs">{t('scoreTooltip')}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -258,7 +265,7 @@ export function SmartLeadRow({
               </TooltipTrigger>
               <TooltipContent>
                 <p className="text-xs max-w-[200px]">
-                  <span className="font-medium">O que faz mais sentido agora:</span><br />
+                  <span className="font-medium">{t('nextActionTooltip')}</span><br />
                   {lead.ai_next_action}
                 </p>
               </TooltipContent>
@@ -311,7 +318,7 @@ export function SmartLeadRow({
             {lead.automation_active ? (
               <Badge variant="outline" className="gap-1 text-xs bg-primary/10 text-primary border-primary/20">
                 <Zap className="w-3 h-3" />
-                Ativa
+                {t('automationActive')}
               </Badge>
             ) : (
               <span className="text-xs text-muted-foreground">—</span>
@@ -331,7 +338,7 @@ export function SmartLeadRow({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="text-xs max-w-[250px]">
-                      <span className="font-medium">Resumo rápido para decidir sem abrir o lead:</span><br />
+                      <span className="font-medium">{t('insightTooltip')}</span><br />
                       {lead.ai_insight}
                     </p>
                   </TooltipContent>
@@ -364,7 +371,7 @@ export function SmartLeadRow({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p className="text-xs">Analisar com IA</p>
+                <p className="text-xs">{t('analyzeWithAI')}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -384,20 +391,20 @@ export function SmartLeadRow({
             <DropdownMenuContent align="end">
               <DropdownMenuItem>
                 <Reply className="w-4 h-4 mr-2" />
-                Enviar mensagem
+                {t('sendMessage')}
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Target className="w-4 h-4 mr-2" />
-                Criar oportunidade
+                {t('createOpportunity')}
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Settings2 className="w-4 h-4 mr-2" />
-                Ativar automação
+                {t('activateAutomation')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
                 <Archive className="w-4 h-4 mr-2" />
-                Arquivar
+                {t('archive')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
