@@ -1,59 +1,54 @@
 
 
-# Remove Duplicate Fields from Lead Detail Page
+# Add Color to EntityDetailsPanel
 
 ## Problem
 
-The Lead detail page shows the same fields in multiple places:
+The sidebar "Detalhes" panel is entirely monochrome — all icons use `text-muted-foreground`, tags use plain `secondary` badges, and there is no visual distinction between field types. Comparing with the Attio reference, icons should use semantic/brand colors, and tags should have colored variants.
 
-1. **Overview tab → IdentificationSection**: Nome, Email, Telefone, Origem, Estado
-2. **Right sidebar → EntityDetailsPanel**: Email, Telefone, Fonte (=Origem), Empresa
-3. **Details tab → SocialMediaSection**: LinkedIn, Instagram, Facebook, Twitter
-4. **Right sidebar → EntityDetailsPanel**: LinkedIn, Instagram (under "Redes Sociais")
+## Changes
 
-Email, Telefone, and Origem/Fonte appear in both the main content and the sidebar. Social links appear in both the Details tab and the sidebar.
+### `src/components/entity/EntityDetailsPanel.tsx`
 
-## Solution
+**1. Colored icons per field type** — Instead of all icons being `text-muted-foreground`, apply semantic colors:
 
-Since the right sidebar (`EntityDetailsPanel`) is always visible and now supports inline editing, the main content sections should not repeat those fields. The sidebar is the canonical place for contact data and social links.
+| Icon | Color Class |
+|------|------------|
+| Mail | `text-blue-500` |
+| Phone | `text-green-500` |
+| Globe | `text-purple-500` |
+| Linkedin | `text-[#0A66C2]` (LinkedIn brand) |
+| Facebook | `text-[#1877F2]` (Facebook brand) |
+| Instagram | `text-[#E4405F]` (Instagram brand) |
+| Twitter | `text-foreground` (X brand) |
+| Building2 | `text-slate-500` |
+| Briefcase | `text-amber-500` |
+| MapPin | `text-red-500` |
+| TrendingUp | `text-emerald-500` |
+| Users | `text-indigo-500` |
+| DollarSign | `text-green-600` |
+| Tag | `text-orange-500` |
+| Calendar | `text-sky-500` |
 
-### Changes
+Implementation: Add an `iconClassName` prop to `EditableFieldRow` and pass the color class for each field. The icon will use this class instead of the default `text-muted-foreground`.
 
-**1. `src/components/leads/sections/IdentificationSection.tsx`**
-- Remove Email, Telefone, and Origem fields (keep only Nome and Estado, which are not in the sidebar or serve a different purpose as the primary identification)
-- Actually, since Nome is the page title and Estado is shown as a badge in the header AND in the sidebar... the entire IdentificationSection becomes redundant.
-- **Remove the `IdentificationSection` from the Overview tab entirely** — all its fields are already editable in the sidebar or header.
+**2. Colored tags** — Replace the plain `Badge variant="secondary"` in `TagList` with a deterministic color system: hash the tag string to pick from a palette of soft colors (similar to the Attio Categories badges).
 
-**2. `src/components/crm/LeadDetailWithSidebar.tsx`**
-- In the `overview` case (line 201): Remove `<IdentificationSection lead={lead} onFieldChange={handleFieldChange} />`
-- In the `details` case (line 253): Remove `<SocialMediaSection lead={lead} onFieldChange={handleFieldChange} />` since LinkedIn, Instagram, Facebook, Twitter are all editable in the sidebar's "Redes Sociais" section.
+Color palette for tags:
+- `bg-blue-100 text-blue-700 border-blue-200`
+- `bg-green-100 text-green-700 border-green-200`
+- `bg-amber-100 text-amber-700 border-amber-200`
+- `bg-purple-100 text-purple-700 border-purple-200`
+- `bg-red-100 text-red-700 border-red-200`
+- `bg-teal-100 text-teal-700 border-teal-200`
+- `bg-pink-100 text-pink-700 border-pink-200`
+- `bg-indigo-100 text-indigo-700 border-indigo-200`
 
-**3. `src/components/entity/EntityDetailsPanel.tsx` → `LeadDetails`**
-- Add the missing fields that were only in `IdentificationSection` / `SocialMediaSection` but not yet in the sidebar:
-  - Add `Empresa` field (already present)
-  - Add `Facebook` and `Twitter` to "Redes Sociais" (currently only LinkedIn and Instagram are shown)
-- This ensures no data is lost when we remove the main-content sections.
-
-### Summary of Field Locations After Fix
-
-| Field | Location |
-|-------|----------|
-| Nome | Header (page title) |
-| Status/Estado | Header badge + LeadLifecycleSection |
-| Email | Sidebar "Dados do Lead" |
-| Telefone | Sidebar "Dados do Lead" |
-| Fonte/Origem | Sidebar "Dados do Lead" |
-| Empresa | Sidebar "Dados do Lead" |
-| LinkedIn | Sidebar "Redes Sociais" |
-| Instagram | Sidebar "Redes Sociais" |
-| Facebook | Sidebar "Redes Sociais" (NEW) |
-| Twitter | Sidebar "Redes Sociais" (NEW) |
-| Tags | Sidebar "Dados do Lead" + Details tab TagsSection |
+**3. Section header icons** — Add subtle colored icons to `CollapsibleSection` titles for visual hierarchy (optional, lightweight enhancement).
 
 ### Files Modified
 
 | File | Change |
 |------|--------|
-| `src/components/crm/LeadDetailWithSidebar.tsx` | Remove `IdentificationSection` from overview; remove `SocialMediaSection` from details |
-| `src/components/entity/EntityDetailsPanel.tsx` | Add Facebook + Twitter to LeadDetails "Redes Sociais" section |
+| `src/components/entity/EntityDetailsPanel.tsx` | Add `iconClassName` prop to `EditableFieldRow`, apply colored classes to all icon instances, update `TagList` with deterministic color mapping |
 
