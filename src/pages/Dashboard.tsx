@@ -164,7 +164,14 @@ export default function Dashboard() {
           setCreateTaskOpen(false);
         }}
       />
-      <AskFastCRMDialog open={askDialogOpen} onOpenChange={setAskDialogOpen} />
+      <AskFastCRMDialog
+        open={askDialogOpen}
+        onOpenChange={(v) => {
+          setAskDialogOpen(v);
+          if (!v) setAskPrefilledQuery("");
+        }}
+        initialQuery={askPrefilledQuery}
+      />
     </DashboardLayout>
   );
 }
