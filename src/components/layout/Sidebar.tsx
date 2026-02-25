@@ -10,7 +10,7 @@ import { PlanBadge } from "@/components/subscription/FeatureGate";
 import { NAV_V2_ITEMS } from "@/config/nav.v2";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
-import { getExtensionObjectTabs } from "@/config/extensionRegistry";
+import { getExtensionObjectTabsGrouped } from "@/config/extensionRegistry";
 import { X, Puzzle } from "lucide-react";
 import { useMemo } from "react";
 import {
@@ -51,8 +51,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     });
   }, [flags, flagsLoading]);
 
-  const extensionNavItems = useMemo(() => {
-    return getExtensionObjectTabs(installedModuleIds).filter((tab) => tab.route);
+  const extensionGroups = useMemo(() => {
+    return getExtensionObjectTabsGrouped(installedModuleIds);
   }, [installedModuleIds]);
 
   const isActive = (href: string, end?: boolean) => {
@@ -109,13 +109,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                   </Tooltip>
                 );
               })}
-              {extensionNavItems.length > 0 && (
-                <>
+              {extensionGroups.length > 0 && extensionGroups.map((group) => (
+                <div key={group.category}>
                   <div className="flex items-center gap-2 px-3 pt-4 pb-1">
                     <Puzzle className="w-3 h-3 text-white/30" />
-                    <span className="text-[10px] uppercase tracking-wider text-white/30 font-semibold">{tc("extensions")}</span>
+                    <span className="text-[10px] uppercase tracking-wider text-white/30 font-semibold">{group.category}</span>
                   </div>
-                  {extensionNavItems.map((extItem) => {
+                  {group.tabs.map((extItem) => {
                     const active = isActive(extItem.route!);
                     const Icon = extItem.icon;
                     return (
@@ -133,8 +133,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                       </Tooltip>
                     );
                   })}
-                </>
-              )}
+                </div>
+              ))}
             </nav>
             {currentWorkspace && (
               <div className="p-2 border-t border-white/5">

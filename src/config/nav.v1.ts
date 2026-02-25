@@ -5,11 +5,7 @@ import {
   Building2,
   Target,
   CheckSquare,
-  ShoppingBag,
-  Package,
-  FolderOpen,
   Megaphone,
-  Search,
   Zap,
   Brain,
   FileText,
@@ -44,14 +40,8 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Oportunidades", href: "/dashboard/opportunities", icon: Target, group: "CRM" },
   { name: "Tarefas", href: "/dashboard/tasks", icon: CheckSquare, group: "CRM" },
 
-  // Loja
-  { name: "Produtos", href: "/dashboard/store-products", icon: Package, group: "Loja", separator: true },
-  { name: "Encomendas", href: "/dashboard/store-orders", icon: ShoppingBag, group: "Loja" },
-  { name: "Categorias", href: "/dashboard/store-categories", icon: FolderOpen, group: "Loja" },
-
   // Marketing
   { name: "Marketing", href: "/dashboard/marketing", icon: Megaphone, group: "Marketing", separator: true },
-  { name: "SEO", href: "/dashboard/seo", icon: Search, group: "Marketing" },
 
   // Ferramentas
   { name: "Automações", href: "/dashboard/automations", icon: Zap, group: "Ferramentas", separator: true },
