@@ -57,7 +57,7 @@ export const EXTENSION_PACKS: ExtensionPack[] = [
     name: "Commerce Pack",
     description: "Online store and C2C marketplace",
     icon: "🛒",
-    modules: ["online-store", "c2c-marketplace"],
+    modules: ["online-store", "marketplace-c2c"],
     requiredPlan: "growth",
     color: "hsl(25 95% 53%)",
     priceMonthly: 29,
