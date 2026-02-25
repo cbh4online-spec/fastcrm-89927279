@@ -1,28 +1,46 @@
 
 
-# Fix: Reports (and other modules) Missing from Sidebar
+# Fix: System Not Updating After Module Installation
 
-## Problem
+## Root Cause
 
-The sidebar navigation has two versions:
-- **V2 Sidebar** (`nav.v2.ts`): Has Reports, Marketplace, Intelligence — but these are gated behind feature flags that may not be enabled for the workspace.
-- **V1 Sidebar** (`nav.v1.ts`): Does **not** have Reports, Marketplace, or Inbox entries at all.
+The `extension-provisioner` edge function has **column name mismatches** with the actual database schema. When a module is installed, the `workspace_modules` row is created (module appears as "installed"), but all subsequent provisioning steps (objects, fields, views) fail silently because the SQL references non-existent columns.
 
-The `DashboardLayout` checks the `ui.shell_v2_enabled` feature flag to decide which sidebar to render. If V1 is active (the default when no flag exists), the user will never see Reports, Marketplace, or other V2-only items.
+**Postgres logs confirm:** `column core_object_types.type does not exist`
+
+### Column Mismatches Found
+
+| Table | Provisioner Uses | Actual Column |
+|-------|-----------------|---------------|
+| `core_object_types` | `type` | `slug` |
+| `core_object_types` | `label` | `name` |
+| `core_object_types` | `label_pt` | *(doesn't exist)* |
+| `core_object_types` | `source_table` | *(doesn't exist)* |
+| `core_object_fields` | `object_type_id` | `object_id` |
+| `core_object_fields` | `key` | `slug` |
+| `core_object_fields` | `type` | `field_type` |
+| `core_object_fields` | `label` | `name` |
+| `core_object_views` | `object_type_id` | `object_id` |
+| `core_object_views` | `filter` | `filters` |
 
 ## Fix
 
-Add the missing nav items to `nav.v1.ts` so they appear regardless of which sidebar version is active:
+### 1. Update `extension-provisioner` edge function
 
-| Item | Route | Group |
-|------|-------|-------|
-| Reports | `/dashboard/reports` | Ferramentas |
-| Marketplace | `/dashboard/marketplace` | Ferramentas |
-| Inbox | `/dashboard/inbox` | Geral |
+Correct all column references to match the actual database schema:
+
+- **core_object_types**: Use `slug` instead of `type`, `name` instead of `label`, remove `label_pt` and `source_table`
+- **core_object_fields**: Use `object_id` instead of `object_type_id`, `slug` instead of `key`, `field_type` instead of `type`, `name` instead of `label`
+- **core_object_views**: Use `object_id` instead of `object_type_id`, `filters` instead of `filter`
+- Add proper error logging for each provisioning step so failures are visible
+
+### 2. Update manifest interfaces
+
+Align the `ManifestObjectDef`, `ManifestFieldDef`, and `ManifestViewDef` interfaces to reflect usable fields.
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/config/nav.v1.ts` | Add Reports (`BarChart3`), Marketplace (`Layers`), and Inbox (`Inbox`) nav items |
+| `supabase/functions/extension-provisioner/index.ts` | Fix all column name references to match actual DB schema; add error logging per step |
 
