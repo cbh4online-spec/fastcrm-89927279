@@ -1,0 +1,3 @@
+ALTER TABLE public.crm_saved_views
+  ADD COLUMN IF NOT EXISTS is_favorite BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS position INTEGER DEFAULT 0;

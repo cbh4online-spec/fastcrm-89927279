@@ -576,5 +576,25 @@
   "actionScheduleMeeting": "Programar reunión",
   "actionResearch": "Investigar",
   "insightQuickSummary": "Resumen rápido para decidir:",
-  "tempAutoClassification": "Clasificación automática basada en la intención"
+  "tempAutoClassification": "Clasificación automática basada en la intención",
+
+  "sidebarViews": "Vistas",
+  "sidebarFavorites": "Favoritos",
+  "sidebarRecords": "Registros",
+  "sidebarLists": "Listas",
+  "sidebarCreateView": "Crear nueva vista",
+  "sidebarAllLists": "Todas las listas",
+  "sidebarSearchViews": "Buscar vistas...",
+  "sidebarDealsOverview": "Resumen de negocios",
+  "sidebarAllDeals": "Todos los negocios",
+  "sidebarNoFavorites": "Sin favoritos aún",
+  "sidebarToggleFavorite": "Marcar como favorito",
+  "sidebarViewSettings": "Ajustes de vista",
+  "sidebarCompanies": "Empresas",
+  "sidebarPeople": "Personas",
+  "sidebarDeals": "Negocios",
+  "sidebarInvoices": "Facturas",
+  "sidebarDeleteView": "Eliminar vista",
+  "sidebarEditView": "Editar vista",
+  "sidebarSetDefault": "Establecer como predeterminada"
 }

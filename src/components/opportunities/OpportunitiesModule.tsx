@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { 
@@ -8,6 +8,7 @@ import {
 } from "@/hooks/useOpportunitiesEnhanced";
 import { usePipelineStages } from "@/hooks/usePipelineStages";
 import { useDealScores } from "@/hooks/useDealScores";
+import { SavedView } from "@/hooks/useSavedViews";
 import { Opportunity } from "@/types/opportunity";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -49,6 +50,8 @@ import { OpportunityTableView } from "./OpportunityTableView";
 import { CreateOpportunityEnhancedDialog } from "./CreateOpportunityEnhancedDialog";
 import { PipelineSettingsDialog } from "@/components/crm/PipelineSettingsDialog";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
+import { DealsSidebar } from "./DealsSidebar";
+import { CreateViewDialog } from "./CreateViewDialog";
 import { toast } from "sonner";
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { useBulkDealIntelligenceAPI } from "@/hooks/useDealIntelligenceAPI";
@@ -75,6 +78,9 @@ export function OpportunitiesModule() {
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [sortByScore, setSortByScore] = useState(false);
   const [hotDealsOnly, setHotDealsOnly] = useState(false);
+  const [activeViewId, setActiveViewId] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showCreateViewDialog, setShowCreateViewDialog] = useState(false);
 
   const { data: opportunities, isLoading: oppLoading } = useOpportunitiesEnhanced({
     status: statusFilter !== "all" ? statusFilter : undefined,
@@ -215,6 +221,13 @@ export function OpportunitiesModule() {
     }
   };
 
+  const handleSelectView = useCallback((view: SavedView | null) => {
+    setActiveViewId(view?.id ?? null);
+    if (view?.view_mode === "list" || view?.view_mode === "kanban") {
+      setViewMode(view.view_mode as ViewMode);
+    }
+  }, []);
+
   const isLoading = oppLoading || stagesLoading;
 
   if (isLoading) {
@@ -222,7 +235,16 @@ export function OpportunitiesModule() {
   }
 
   return (
-    <div className="space-y-6 h-full flex flex-col">
+    <div className="flex h-full">
+      <DealsSidebar
+        activeViewId={activeViewId}
+        onSelectView={handleSelectView}
+        onCreateView={() => setShowCreateViewDialog(true)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+        opportunities={opportunities}
+      />
+      <div className="flex-1 min-w-0 space-y-6 h-full flex flex-col p-6 overflow-auto">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between flex-shrink-0">
         <div>
@@ -434,6 +456,12 @@ export function OpportunitiesModule() {
         defaultCompanyId={wonOpportunity?.company_id || undefined}
         defaultOpportunityId={wonOpportunity?.id}
       />
+      <CreateViewDialog
+        open={showCreateViewDialog}
+        onOpenChange={setShowCreateViewDialog}
+        onCreated={(id) => setActiveViewId(id)}
+      />
+      </div>
     </div>
   );
 }
