@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +42,8 @@ import {
   BarChart3,
   GitBranch,
   Brain,
+  Star,
+  ListOrdered,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Toolbar } from '@/components/common/Toolbar';
@@ -63,6 +66,7 @@ import { AITemplateGeneratorDialog } from './AITemplateGeneratorDialog';
 import { TemplateLibraryDialog } from './TemplateLibraryDialog';
 import type { LibraryTemplate } from './templateLibraryData';
 import { BookOpen } from 'lucide-react';
+import { useTemplateFavorites, useToggleFavorite } from '@/hooks/useTemplateFavorites';
 
 const CHANNEL_ICONS: Record<TemplateChannel, React.ElementType> = {
   email: Mail,
@@ -83,6 +87,7 @@ const sortOptions = [
 ];
 
 export function TemplatesListPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [channelFilter, setChannelFilter] = useState<TemplateChannel | 'all'>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -111,6 +116,8 @@ export function TemplatesListPage() {
   const { data: selectedVariants } = useTemplateVariants(selectedStatsTemplate);
   const { data: lengthStats } = useStructureLengthStats();
   const [lengthChannelFilter, setLengthChannelFilter] = useState<string>('all');
+  const { data: favoriteIds } = useTemplateFavorites();
+  const toggleFavorite = useToggleFavorite();
 
   // Filter groups for sidebar
   const filterGroups: FilterGroup[] = [
@@ -124,6 +131,15 @@ export function TemplatesListPage() {
         { id: 'channel_whatsapp', label: 'WhatsApp', icon: <MessageCircle className="h-4 w-4" /> },
         { id: 'channel_inbox', label: 'Inbox', icon: <Inbox className="h-4 w-4" /> },
         { id: 'channel_note', label: 'Nota Interna', icon: <StickyNote className="h-4 w-4" /> },
+      ],
+    },
+    {
+      id: 'favorites',
+      label: 'Favoritos',
+      icon: <Star className="h-4 w-4" />,
+      defaultOpen: false,
+      items: [
+        { id: 'favorites_only', label: 'Apenas Favoritos', icon: <Star className="h-4 w-4" /> },
       ],
     },
     {
@@ -196,7 +212,8 @@ export function TemplatesListPage() {
       const query = searchValue.toLowerCase();
       result = result.filter(t => 
         t.name.toLowerCase().includes(query) ||
-        t.body.toLowerCase().includes(query)
+        t.body.toLowerCase().includes(query) ||
+        t.tags?.some(tag => tag.toLowerCase().includes(query))
       );
     }
 
@@ -212,6 +229,8 @@ export function TemplatesListPage() {
         result = result.filter(t => t.isDynamic);
       } else if (activeFilterId === 'status_predictive') {
         result = result.filter(t => t.personalizationLevel === 'predictive');
+      } else if (activeFilterId === 'favorites_only') {
+        result = result.filter(t => favoriteIds?.includes(t.id));
       }
     }
 
@@ -339,6 +358,10 @@ export function TemplatesListPage() {
               <Brain className="h-4 w-4" />
               Treino do Workspace
             </TabsTrigger>
+            <TabsTrigger value="sequences" className="gap-1.5" onClick={() => navigate('/dashboard/sequences')}>
+              <ListOrdered className="h-4 w-4" />
+              Sequências
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="templates" className="mt-4 space-y-4">
@@ -459,12 +482,19 @@ export function TemplatesListPage() {
                   {paginatedTemplates.map(template => {
                     const ChannelIcon = CHANNEL_ICONS[template.channel];
                     const tStats = statsMap[template.id];
+                    const isFav = favoriteIds?.includes(template.id) || false;
                     
                     return (
-                      <Card key={template.id} className={`${!template.isActive ? 'opacity-60' : ''} hover:shadow-md transition-all`}>
+                      <Card key={template.id} className={`${!template.isActive ? 'opacity-60' : ''} hover:shadow-md transition-all relative`}>
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
                             <div className="flex items-center gap-2">
+                              <button
+                                className="shrink-0"
+                                onClick={() => toggleFavorite.mutate({ templateId: template.id, isFavorite: isFav })}
+                              >
+                                <Star className={`h-4 w-4 ${isFav ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground hover:text-amber-400'}`} />
+                              </button>
                               <div className="p-2 rounded-lg bg-primary/10">
                                 <ChannelIcon className="h-4 w-4 text-primary" />
                               </div>
@@ -532,13 +562,18 @@ export function TemplatesListPage() {
                         </CardHeader>
                         <CardContent className="space-y-3">
                           <div className="flex flex-wrap gap-1">
-                            {template.journeyContexts.slice(0, 3).map(ctx => (
+                            {template.tags?.slice(0, 2).map(tag => (
+                              <Badge key={tag} variant="outline" className="text-[10px] bg-primary/5 text-primary border-primary/20">
+                                {tag}
+                              </Badge>
+                            ))}
+                            {template.journeyContexts.slice(0, 2).map(ctx => (
                               <Badge key={ctx} variant="secondary" className="text-xs">
                                 {JOURNEY_CONTEXT_LABELS[ctx]}
                               </Badge>
                             ))}
-                            {template.journeyContexts.length > 3 && (
-                              <Badge variant="outline" className="text-xs">+{template.journeyContexts.length - 3}</Badge>
+                            {(template.journeyContexts.length + (template.tags?.length || 0)) > 4 && (
+                              <Badge variant="outline" className="text-xs">+{template.journeyContexts.length + (template.tags?.length || 0) - 4}</Badge>
                             )}
                           </div>
                           <p className="text-sm text-muted-foreground line-clamp-2">
@@ -900,6 +935,7 @@ export function TemplatesListPage() {
             structureFamilies: [],
             brandConstraints: {},
             maxLengthByChannel: {},
+            tags: [],
             createdBy: '',
             createdAt: '',
             updatedAt: '',

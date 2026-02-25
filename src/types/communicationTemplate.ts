@@ -43,6 +43,7 @@ export interface CommunicationTemplate {
   structureFamilies: string[];
   brandConstraints: Record<string, unknown>;
   maxLengthByChannel: Record<string, number>;
+  tags: string[];
   createdBy: string;
   createdAt: string;
   updatedAt: string;

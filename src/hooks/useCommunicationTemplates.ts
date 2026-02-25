@@ -70,6 +70,7 @@ export function useCommunicationTemplates(filters?: {
         structureFamilies: (t as any).structure_families || ['AIDA'],
         brandConstraints: (t as any).brand_constraints || {},
         maxLengthByChannel: (t as any).max_length_by_channel || { whatsapp: 350, email: 1600, sms: 160, inbox: 800 },
+        tags: (t as any).tags || [],
         createdBy: t.created_by,
         createdAt: t.created_at,
         updatedAt: t.updated_at
@@ -158,6 +159,7 @@ export function useCreateCommunicationTemplate() {
           structure_families: template.structureFamilies || ['AIDA'],
           brand_constraints: template.brandConstraints || {},
           max_length_by_channel: template.maxLengthByChannel || { whatsapp: 350, email: 1600, sms: 160, inbox: 800 },
+          tags: template.tags || [],
         } as any)
         .select()
         .single();
@@ -201,6 +203,7 @@ export function useUpdateCommunicationTemplate() {
       if (updates.structureFamilies !== undefined) updateData.structure_families = updates.structureFamilies;
       if (updates.brandConstraints !== undefined) updateData.brand_constraints = updates.brandConstraints;
       if (updates.maxLengthByChannel !== undefined) updateData.max_length_by_channel = updates.maxLengthByChannel;
+      if (updates.tags !== undefined) updateData.tags = updates.tags;
 
       const { data, error } = await supabase
         .from('communication_templates')

@@ -69,6 +69,7 @@ import FastCRMLanding from "./pages/FastCRMLanding";
 import VerticalLandingPage from "./pages/VerticalLandingPage";
 import ProposalView from "./pages/ProposalView";
 import CommunicationTemplates from "./pages/CommunicationTemplates";
+import Sequences from "./pages/Sequences";
 
 // Client Portal
 import { CartProvider } from "@/contexts/CartContext";
@@ -427,6 +428,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/ai-employees/:botId/analytics" element={<AIEmployeeDetailPage />} />
                 <Route path="/dashboard/kpis" element={<ReportsKPIs />} />
                 <Route path="/dashboard/communication/templates" element={<CommunicationTemplates />} />
+                <Route path="/dashboard/sequences" element={<Sequences />} />
                 <Route path="/dashboard/reports" element={<ReportsOverview />} />
                 <Route path="/dashboard/reports/forecasts" element={<ReportsForecasts />} />
                 <Route path="/dashboard/reports/consumption" element={<ReportsConsumption />} />
