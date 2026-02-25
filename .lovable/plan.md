@@ -1,174 +1,174 @@
 
 
-# Ask FastCRM — Multi-Object Automation Builder (Deals + Contacts + Invoices)
+# Ask FastCRM — Automation Quotas by Plan + Proactive Suggestions
 
 ## Current State
 
-- **Automation intent** exists for deals only, routing to LLM extraction via `handleAutomationIntent()`
-- **Allowed triggers**: `opportunity_stage_changed`, `lead_no_response`, `lead_score_changed`, `lead_temperature_changed`
-- **Allowed actions**: `create_task`, `assign_owner`, `notify_user`, `move_opportunity_stage`
-- **DB `automation_trigger` enum** has many triggers but NO invoice-specific ones (no `invoice_created`, `invoice_overdue`, `due_date_approaching`, `invoice_status_changed`)
-- **DB `automation_action_type` enum** has no `mark_as_at_risk` or `send_overdue_alert`
-- **`AutomationPreview` interface** has no `object_type` field
-- **Extension check**: `useWorkspaceModules` provides `installedModuleIds` — Finance Pack = module slug `invoices`
-- **Contact triggers available in DB**: `contact_created`, `contact_updated`, `contact_score_changed`, `contact_temperature_changed` — but NOT `contact_no_activity` or `contact_last_reply_days`
+| Aspect | Status |
+|---|---|
+| `max_automations` in Starter | 3 (too low for "Ask→Automate" to shine) |
+| `max_automations` in Growth | 50 |
+| `max_automations` in Scale | -1 (unlimited) |
+| Quota enforcement on `confirmAutomation` | **None** — no check before creating |
+| Multi-condition support | Not gated by plan |
+| Multi-action support | Not gated by plan |
+| Proactive suggestions | Not implemented |
 
-## Database Migration Required
-
-Add to the `automation_trigger` enum:
-```sql
-ALTER TYPE automation_trigger ADD VALUE IF NOT EXISTS 'invoice_created';
-ALTER TYPE automation_trigger ADD VALUE IF NOT EXISTS 'invoice_overdue';
-ALTER TYPE automation_trigger ADD VALUE IF NOT EXISTS 'invoice_status_changed';
-ALTER TYPE automation_trigger ADD VALUE IF NOT EXISTS 'due_date_approaching';
-ALTER TYPE automation_trigger ADD VALUE IF NOT EXISTS 'contact_no_activity';
-```
-
-Add to the `automation_action_type` enum:
-```sql
-ALTER TYPE automation_action_type ADD VALUE IF NOT EXISTS 'mark_as_at_risk';
-ALTER TYPE automation_action_type ADD VALUE IF NOT EXISTS 'send_overdue_alert';
-```
-
-No new tables needed — existing `automation_rules`, `automation_conditions`, `automation_actions` handle all object types via trigger type differentiation.
+The current system allows any user to create unlimited automations via Ask, bypassing the `max_automations` limit entirely. The plan limits exist in `check-subscription` but are never enforced in the automation creation flow.
 
 ---
 
 ## Implementation Plan
 
-### 1. Edge Function — Multi-Object Automation (`supabase/functions/ask-fastcrm/index.ts`)
+### 1. Update Plan Limits
 
-**1A. Per-object whitelists**
+**`supabase/functions/check-subscription/index.ts`**
 
-Replace flat `AUTOMATION_ALLOWED_TRIGGERS` with a per-object structure:
+Change Starter `max_automations` from 3 → 5. Add new boolean flags to all plan tiers:
+
+```
+starter:  max_automations: 5,  multi_conditions: false,  multi_actions: false
+growth:   max_automations: 50, multi_conditions: true,   multi_actions: false
+scale:    max_automations: -1, multi_conditions: true,   multi_actions: true
+```
+
+**`src/contexts/SubscriptionContext.tsx`**
+
+Add `multi_conditions: boolean` and `multi_actions: boolean` to `PlanLimits`. Update `STARTER_LIMITS`, `FEATURE_REQUIRED_PLAN`, and `PLAN_INFO` features lists accordingly.
+
+### 2. Enforce Quota on Automation Creation
+
+**`src/hooks/useAskFastCRM.ts` — `confirmAutomation()`**
+
+Before inserting, count the workspace's active automations:
 
 ```typescript
-const AUTOMATION_OBJECT_CONFIG = {
-  deal: {
-    triggers: ["opportunity_stage_changed", "lead_no_response", "lead_score_changed", "lead_temperature_changed"],
-    actions: ["create_task", "assign_owner", "notify_user", "move_opportunity_stage"],
-    condition_fields: ["amount", "stage", "health_label", "close_date", "owner_id"],
-  },
-  contact: {
-    triggers: ["contact_created", "contact_updated", "contact_no_activity", "contact_score_changed"],
-    actions: ["create_task", "assign_owner", "notify_user"],
-    condition_fields: ["name", "email", "owner_id"],
-  },
-  invoice: {
-    triggers: ["invoice_created", "invoice_overdue", "due_date_approaching", "invoice_status_changed"],
-    actions: ["create_task", "notify_user", "mark_as_at_risk", "send_overdue_alert"],
-    condition_fields: ["amount", "status", "days_overdue", "due_date"],
-    requires_extension: "invoices",
-  },
-};
+const { count } = await workspaceClient
+  .from("automation_rules")
+  .select("*", { count: "exact", head: true })
+  .eq("workspace_id", currentWorkspace.id)
+  .eq("is_active", true);
 ```
 
-**1B. Object type detection from natural language**
+Compare against `limits.max_automations`. If at limit (`max_automations !== -1 && count >= max_automations`):
+- Don't create the rule
+- Show upgrade prompt via toast with plan name
+- Return early
 
-Add object-type keywords to the deterministic classifier — before routing to LLM:
-- "invoice", "fatura", "overdue", "due date" → `object_type: "invoice"`
-- "contact", "contacto", "replied", "reply" → `object_type: "contact"`
-- Default: `object_type: "deal"`
+Also validate:
+- If `preview.conditions.length > 1` and `!limits.multi_conditions` → block with upgrade prompt
+- If `preview.actions.length > 1` and `!limits.multi_actions` → block with upgrade prompt
 
-**1C. Extension gate for invoices**
+### 3. Show Quota in Automation Preview
 
-When `object_type === "invoice"`, check if the `invoices` module is installed for the workspace by querying `workspace_modules`. If not installed, return a response with:
+**`src/components/ask-fastcrm/AskAutomationPreview.tsx`**
+
+Add a subtle quota indicator below the action buttons:
+
 ```
-headline: "Invoice automations require the Finance Pack."
-subtext: "Activate it in Marketplace to unlock invoice rules."
-did_you_mean: ["Remind me if a deal has no activity for 7 days", ...]
-```
-
-**1D. Update `AUTOMATION_TOOL` LLM definition**
-
-- Add `object_type` as a required field with enum `["deal", "contact", "invoice"]`
-- Expand trigger enum to include all per-object triggers
-- Expand action enum to include `mark_as_at_risk`, `send_overdue_alert`
-- Expand condition field enum to include contact/invoice fields
-- Update system prompt to describe all three object types and their allowed triggers/actions
-
-**1E. Update `handleAutomationIntent()`**
-
-- Accept detected `object_type` as parameter
-- After LLM extraction, validate trigger/actions/conditions against the per-object config
-- Cross-object validation: if LLM returns a trigger from one object with actions from another, reject
-- Include `object_type` in the response `automation_preview`
-- Update headline: `"You're creating a new automation for {Object}s."`
-
-**1F. Add automation keywords**
-
-Add to `KEYWORD_MAP`:
-```
-"invoice overdue" → create_automation_rule
-"overdue alert" → create_automation_rule  
-"due date approaching" → create_automation_rule
-"contact created" → create_automation_rule
-"contact no reply" → create_automation_rule
-"new contact" → create_automation_rule
+3 of 5 automations used  ·  Upgrade for unlimited
 ```
 
-### 2. Frontend Types (`src/hooks/useAskFastCRM.ts`)
+This requires passing `currentCount` and `maxAutomations` as props. Fetch the count in the parent (Dialog) and pass down.
 
-**2A. Add `object_type` to `AutomationPreview`**
+When at limit, the "Confirm & Activate" button becomes disabled with text "Limit reached — Upgrade".
+
+### 4. Gate Multi-Conditions/Actions in Edge Function
+
+**`supabase/functions/ask-fastcrm/index.ts` — `handleAutomationIntent()`**
+
+After LLM extraction, check the workspace's plan limits. If Starter:
+- Trim conditions array to max 1 (keep first)
+- Trim actions array to max 1 (keep first)
+- Add a note in the response: `"Your plan supports 1 condition and 1 action per rule."`
+
+This is a server-side guardrail in addition to the frontend check.
+
+### 5. Update Plan Display Info
+
+**`src/contexts/SubscriptionContext.tsx` — `PLAN_INFO`**
+
+Update feature descriptions:
+
+```
+starter: ["Up to 5 automations", "1 condition per rule", "1 action per rule", ...]
+growth:  ["Up to 50 automations", "Multiple conditions (AND)", "Automation templates", ...]
+scale:   ["Unlimited automations", "Multiple actions per rule", "Cross-object rules (coming soon)", ...]
+```
+
+**`src/types/saas.ts` — `PLAN_DISPLAY_INFO`**
+
+Sync the same feature strings.
+
+### 6. Proactive Ask Suggestions (Revenue Control)
+
+**New file: `src/hooks/useProactiveAskSuggestions.ts`**
+
+A hook that periodically checks for actionable insights and surfaces them. Runs a lightweight query every 5 minutes (or on dashboard mount):
 
 ```typescript
-export interface AutomationPreview {
-  name: string;
-  object_type: "deal" | "contact" | "invoice";  // NEW
-  trigger: string;
-  trigger_config?: Record<string, any>;
-  trigger_label: string;
-  conditions: Array<{ field_name: string; operator: string; value: string | null }>;
-  conditions_labels: string[];
-  actions: Array<{ action_type: string; config: Record<string, any> }>;
-  actions_labels: string[];
+// Check for deals with no activity > 10 days
+const { count: staleDeals } = await workspaceClient
+  .from("opportunities")
+  .select("*", { count: "exact", head: true })
+  .eq("workspace_id", currentWorkspace.id)
+  .lt("last_activity_at", tenDaysAgo);
+
+// Check for deals closing this week with no next step
+const { count: urgentDeals } = await workspaceClient
+  .from("opportunities")
+  .select("*", { count: "exact", head: true })
+  .eq("workspace_id", currentWorkspace.id)
+  .lte("close_date", endOfWeek)
+  .is("next_step", null);
+```
+
+Returns an array of `ProactiveSuggestion`:
+```typescript
+interface ProactiveSuggestion {
+  id: string;
+  message: string;        // "You have 4 deals without activity for 10 days."
+  askQuery: string;        // "Deals with no activity in 10 days"
+  automationQuery?: string; // "Remind me if a deal has no activity for 7 days"
+  priority: "high" | "medium";
+  icon: string;
 }
 ```
 
-**2B. Update `confirmAutomation`**
+### 7. Proactive Banner in AskFastCRMDialog
 
-- Add mapping for new triggers (`contact_created`, `contact_no_activity`, `invoice_overdue`, etc.)
-- Add mapping for new action types (`mark_as_at_risk`, `send_overdue_alert`)
-- Handle `trigger_config` for invoice-specific params like `days_before_due`
+**`src/components/ask-fastcrm/AskFastCRMDialog.tsx`**
 
-### 3. UI — Multi-Object Preview (`src/components/ask-fastcrm/AskAutomationPreview.tsx`)
+When the dialog opens and there are proactive suggestions, show them above the suggestion chips:
 
-**3A. Object-type indicator in header**
-
-Show object type badge in the preview header:
 ```
-⚡ Follow up on Proposal deals     [Deal]
-   New automation rule
+┌──────────────────────────────────────────┐
+│ 💡 4 deals have no activity for 10 days. │
+│    Want me to create follow-ups?         │
+│    [Yes, show deals]  [Create rule]      │
+└──────────────────────────────────────────┘
 ```
 
-**3B. Edit mode for new trigger types**
+- "Yes, show deals" → submits `askQuery` 
+- "Create rule" → submits `automationQuery`
+- Max 2 proactive suggestions shown at a time
+- Dismissable (stored in localStorage per user)
 
-Add edit fields for:
-- `contact_no_activity` → delay_days input
-- `invoice_overdue` → days_overdue input  
-- `due_date_approaching` → days_before input
-- `invoice_status_changed` → status select
+### 8. Proactive Nudge on Dashboard
 
-**3C. Edit mode for new action types**
+**`src/components/ask-fastcrm/AskProactiveNudge.tsx`** (new)
 
-Add edit fields for:
-- `mark_as_at_risk` → no config needed (simple flag)
-- `send_overdue_alert` → message template input
+A small, dismissable card that can be placed on the dashboard:
 
-### 4. Autocomplete (`src/components/ask-fastcrm/AskFastCRMDialog.tsx`)
-
-Add multi-object suggestions:
-```typescript
-"invoice": "Alert me when invoice is overdue",
-"overdue": "Alert me when invoice is overdue",
-"contact reply": "Notify me if contact hasn't replied in 14 days",
-"new contact": "Create task when new contact is created",
-"due date": "Notify me 3 days before invoice due date",
+```
+┌─────────────────────────────────────────┐
+│ ⚡ 3 deals are closing this week with   │
+│    no next step.                         │
+│    [Ask FastCRM]                         │
+└─────────────────────────────────────────┘
 ```
 
-### 5. AskFastCRMInline — No changes needed
-
-The inline component already passes through all automation handlers from the Dialog.
+Clicking "Ask FastCRM" opens the dialog pre-filled with the query.
 
 ---
 
@@ -176,17 +176,17 @@ The inline component already passes through all automation handlers from the Dia
 
 | File | Change |
 |---|---|
-| **Database migration** | Add 5 trigger values + 2 action type values to enums |
-| `supabase/functions/ask-fastcrm/index.ts` | Per-object config, object detection, extension gate, expanded LLM tool, updated handler |
-| `src/hooks/useAskFastCRM.ts` | Add `object_type` to `AutomationPreview`, update `confirmAutomation` mappings |
-| `src/components/ask-fastcrm/AskAutomationPreview.tsx` | Object badge, edit fields for new trigger/action types |
-| `src/components/ask-fastcrm/AskFastCRMDialog.tsx` | Add multi-object autocomplete entries |
+| `supabase/functions/check-subscription/index.ts` | Starter max_automations: 5, add `multi_conditions` and `multi_actions` flags per plan |
+| `src/contexts/SubscriptionContext.tsx` | Add `multi_conditions`, `multi_actions` to `PlanLimits`, update STARTER_LIMITS, PLAN_INFO, FEATURE_REQUIRED_PLAN |
+| `src/hooks/useAskFastCRM.ts` | Add quota check + plan-feature gating before insert in `confirmAutomation` |
+| `src/components/ask-fastcrm/AskAutomationPreview.tsx` | Add quota indicator, disable button at limit |
+| `supabase/functions/ask-fastcrm/index.ts` | Trim conditions/actions for Starter plan server-side |
+| `src/types/saas.ts` | Sync `PLAN_DISPLAY_INFO` feature lists |
+| `src/hooks/useProactiveAskSuggestions.ts` | **NEW** — lightweight query for stale/urgent deals |
+| `src/components/ask-fastcrm/AskProactiveNudge.tsx` | **NEW** — dashboard nudge card |
+| `src/components/ask-fastcrm/AskFastCRMDialog.tsx` | Show proactive suggestions above chips |
 
-## Guardrails Summary
+## No Database Migration Needed
 
-- No cross-object rules (trigger from deal + action from invoice = rejected)
-- Invoice automations gated by Finance Pack installation check
-- Single trigger, single action per rule (v1)
-- All triggers/actions/fields validated against per-object whitelist
-- LLM output validated server-side before returning preview
+All quota data comes from `check-subscription` edge function. Active automation count is queried at runtime. No schema changes required.
 
