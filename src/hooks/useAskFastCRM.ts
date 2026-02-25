@@ -11,6 +11,7 @@ export interface AskResultItem {
   subtitle?: string;
   value?: number;
   health_label?: string;
+  stage?: string;
   link: string;
 }
 

@@ -1,7 +1,13 @@
 import { AskResult, AskResultAction, AskResultItem } from "@/hooks/useAskFastCRM";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Minus, ListTodo, Eye, Zap, Bookmark, ArrowRight, UserPlus, Lightbulb, AlertTriangle } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { TrendingUp, TrendingDown, Minus, ListTodo, Eye, Zap, Bookmark, ArrowRight, UserPlus, Lightbulb, AlertTriangle, MoreHorizontal, SearchX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -14,6 +20,15 @@ const iconMap: Record<string, React.ElementType> = {
   UserPlus,
 };
 
+const MAX_VISIBLE_ITEMS = 10;
+const MAX_VISIBLE_ACTIONS = 3;
+
+const EMPTY_CHIPS = [
+  { label: "No activity 7d", query: "Deals with no activity in 7 days" },
+  { label: "No activity 14d", query: "Deals with no activity in 14 days" },
+  { label: "No activity 30d", query: "Deals with no activity in 30 days" },
+];
+
 interface Props {
   result: AskResult;
   onAction: (action: AskResultAction) => void;
@@ -22,15 +37,23 @@ interface Props {
   pendingAction?: AskResultAction | null;
   onConfirmAction?: () => void;
   onCancelAction?: () => void;
+  selectedItemIndex?: number;
 }
 
-export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouMean, pendingAction, onConfirmAction, onCancelAction }: Props) {
+export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouMean, pendingAction, onConfirmAction, onCancelAction, selectedItemIndex = -1 }: Props) {
   const TrendIcon =
     result.metric?.trend === "up"
       ? TrendingUp
       : result.metric?.trend === "down"
         ? TrendingDown
         : Minus;
+
+  const visibleItems = result.items.slice(0, MAX_VISIBLE_ITEMS);
+  const hasMoreItems = result.items.length > MAX_VISIBLE_ITEMS;
+  const visibleActions = result.actions.slice(0, MAX_VISIBLE_ACTIONS);
+  const overflowActions = result.actions.slice(MAX_VISIBLE_ACTIONS);
+
+  const isEmptyResult = result.items.length === 0 && !result.did_you_mean?.length && !result.metric;
 
   return (
     <motion.div
@@ -40,12 +63,14 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
       transition={{ duration: 0.25, ease: "easeOut" }}
     >
       {/* Header */}
-      <p className="font-semibold text-base text-foreground">
-        {result.answer?.headline || (result as any).header || ""}
-      </p>
-      {result.answer?.subtext && (
-        <p className="text-sm text-muted-foreground -mt-2">{result.answer.subtext}</p>
-      )}
+      <div>
+        <p className="font-semibold text-base text-foreground">
+          {result.answer?.headline || (result as any).header || ""}
+        </p>
+        {result.answer?.subtext && (
+          <p className="text-sm text-muted-foreground mt-0.5">{result.answer.subtext}</p>
+        )}
+      </div>
 
       {/* Bulk action confirmation overlay */}
       {pendingAction && (
@@ -61,7 +86,22 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
               <p className="text-sm text-foreground font-medium">
                 This will affect {pendingAction.payload?.deal_ids?.length || 0} items
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              {/* Preview first 5 items */}
+              {result.items.length > 0 && (
+                <ul className="mt-1.5 space-y-0.5">
+                  {result.items.slice(0, 5).map((item) => (
+                    <li key={item.id} className="text-xs text-muted-foreground truncate">
+                      • {item.title}
+                    </li>
+                  ))}
+                  {result.items.length > 5 && (
+                    <li className="text-xs text-muted-foreground">
+                      …and {result.items.length - 5} more
+                    </li>
+                  )}
+                </ul>
+              )}
+              <p className="text-xs text-muted-foreground mt-1.5">
                 {pendingAction.label} — confirm to proceed.
               </p>
               <div className="flex gap-2 mt-2">
@@ -72,6 +112,38 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
                   Cancel
                 </Button>
               </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Empty results state */}
+      {isEmptyResult && (
+        <motion.div
+          className="flex flex-col items-center text-center py-6 space-y-3"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.05, duration: 0.2 }}
+        >
+          <SearchX className="h-8 w-8 text-muted-foreground/30" />
+          <p className="text-sm text-muted-foreground">Nothing found for that query.</p>
+          <div className="space-y-1.5">
+            <p className="text-xs text-muted-foreground">Try:</p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {EMPTY_CHIPS.map((chip) => (
+                <button
+                  key={chip.label}
+                  onClick={() => onDidYouMean?.(chip.query)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-xs font-medium",
+                    "border border-border/60 bg-muted/30",
+                    "hover:bg-primary/10 hover:border-primary/30 hover:text-primary",
+                    "transition-colors"
+                  )}
+                >
+                  {chip.label}
+                </button>
+              ))}
             </div>
           </div>
         </motion.div>
@@ -129,18 +201,28 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
       )}
 
       {/* Items list */}
-      {result.items.length > 0 && (
+      {visibleItems.length > 0 && (
         <motion.div
           className="rounded-lg border border-border/50 overflow-hidden divide-y divide-border/50"
+          role="listbox"
+          aria-label="Results"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1, duration: 0.2 }}
         >
-          {result.items.map((item, idx) => (
+          {visibleItems.map((item, idx) => (
             <motion.button
               key={item.id}
+              id={`ask-result-${idx}`}
+              role="option"
+              aria-selected={selectedItemIndex === idx}
               onClick={() => onItemClick?.(item)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/40 transition-colors"
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors",
+                selectedItemIndex === idx
+                  ? "bg-accent"
+                  : "hover:bg-muted/40"
+              )}
               initial={{ opacity: 0, x: -4 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 + idx * 0.03, duration: 0.15 }}
@@ -158,6 +240,11 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
                   {item.health_label === "AT_RISK" ? "Risk" : item.health_label === "WATCH" ? "Watch" : "Ok"}
                 </Badge>
               )}
+              {item.stage && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
+                  {item.stage}
+                </Badge>
+              )}
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium truncate text-foreground">{item.title}</p>
                 {item.subtitle && (
@@ -171,6 +258,14 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
               )}
             </motion.button>
           ))}
+          {hasMoreItems && (
+            <button
+              onClick={() => onAction({ id: "view_all", label: "View all", icon: "Eye", type: "navigate", payload: { link: "/dashboard/opportunities" } })}
+              className="w-full px-3 py-2 text-sm text-primary hover:bg-muted/40 transition-colors text-center font-medium"
+            >
+              View all ({result.items.length})
+            </button>
+          )}
         </motion.div>
       )}
 
@@ -197,7 +292,7 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
         </motion.div>
       )}
 
-      {/* Actions */}
+      {/* Actions — max 3 visible + overflow dropdown */}
       {result.actions.length > 0 && (
         <motion.div
           className="flex flex-wrap gap-2"
@@ -205,7 +300,7 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
           animate={{ opacity: 1 }}
           transition={{ delay: 0.15, duration: 0.2 }}
         >
-          {result.actions.map((action) => {
+          {visibleActions.map((action) => {
             const Icon = iconMap[action.icon] || Eye;
             return (
               <Button
@@ -220,6 +315,27 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
               </Button>
             );
           })}
+          {overflowActions.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                  More…
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {overflowActions.map((action) => {
+                  const Icon = iconMap[action.icon] || Eye;
+                  return (
+                    <DropdownMenuItem key={action.id} onClick={() => onAction(action)} className="gap-2">
+                      <Icon className="h-3.5 w-3.5" />
+                      {action.label}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </motion.div>
       )}
     </motion.div>

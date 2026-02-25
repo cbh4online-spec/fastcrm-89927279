@@ -69,7 +69,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
             >
               <Sparkles className="h-3.5 w-3.5" />
               <span className="hidden md:inline">Ask</span>
-              <kbd className="hidden lg:flex items-center text-[10px] bg-muted px-1 py-0.5 rounded">⌘J</kbd>
+              <kbd className="hidden lg:flex items-center text-[10px] bg-muted px-1 py-0.5 rounded">⌘K</kbd>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
