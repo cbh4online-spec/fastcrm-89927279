@@ -69,6 +69,24 @@ export function useMeetingTranscript(meetingId: string | undefined) {
 
   const recordingId = recording?.id;
 
+  const { data: crmLinks = [] } = useQuery({
+    queryKey: ["recording-crm-links", recordingId],
+    queryFn: async () => {
+      if (!recordingId) return [];
+      const { data, error } = await supabase
+        .from("recording_crm_links" as any)
+        .select("*")
+        .eq("recording_id", recordingId);
+      if (error) throw error;
+      return (data || []).map((d: any) => ({
+        entity_type: d.entity_type,
+        entity_id: d.entity_id,
+        entity_name: d.entity_name,
+      }));
+    },
+    enabled: !!recordingId,
+  });
+
   const { data: segments = [], isLoading: loadingSegments } = useQuery({
     queryKey: ["transcript-segments", recordingId],
     queryFn: async () => {
@@ -141,6 +159,7 @@ export function useMeetingTranscript(meetingId: string | undefined) {
     recording,
     segments,
     highlights,
+    crmLinks,
     isLoading: loadingRecording || loadingSegments || loadingHighlights,
     analyzeTranscript: () => analyzeMutation.mutateAsync(),
     isAnalyzing: analyzeMutation.isPending,

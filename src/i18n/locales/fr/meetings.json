@@ -40,5 +40,20 @@
   "transcript_backToMeeting": "Retour à la réunion",
   "transcript_statusLabel": "Statut",
   "transcript_keyMoment": "Moment clé",
-  "transcript_viewTranscript": "Voir la Transcription"
+  "transcript_viewTranscript": "Voir la Transcription",
+  "recording_upload": "Télécharger l'Enregistrement",
+  "recording_dropzone": "Déposez votre fichier audio ou vidéo ici",
+  "recording_dropzoneHint": "MP3, WAV, WebM, OGG, MP4, QuickTime",
+  "recording_uploading": "Téléchargement en cours...",
+  "recording_uploadSuccess": "Enregistrement téléchargé avec succès",
+  "recording_uploadFailed": "Échec du téléchargement",
+  "recording_maxSize": "Taille max : 500 Mo",
+  "recording_invalidType": "Type de fichier invalide",
+  "recording_crmLinks": "Entités CRM Liées",
+  "recording_linkedContact": "Contact",
+  "recording_linkedDeal": "Affaire",
+  "recording_linkedCompany": "Entreprise",
+  "recording_autoLinked": "Lié automatiquement",
+  "recording_manualLink": "Lien manuel",
+  "recording_confirmUpload": "Confirmer le Téléchargement"
 }
