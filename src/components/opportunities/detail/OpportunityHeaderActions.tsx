@@ -18,7 +18,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreHorizontal, Copy, Link, Trash2, Star, Mail } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { MoreHorizontal, Copy, Link, Trash2, Star, Mail, ClipboardCopy, Share2, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -46,6 +51,11 @@ export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onT
     toast.success(t("oppDetail_copiedId"));
   };
 
+  const copyTitle = () => {
+    navigator.clipboard.writeText(title);
+    toast.success(t("oppDetail_copiedTitle"));
+  };
+
   const handleDelete = async () => {
     if (onDelete) {
       await onDelete();
@@ -63,6 +73,33 @@ export function OpportunityHeaderActions({ opportunityId, title, isFavorite, onT
         <Mail className="w-3.5 h-3.5" />
         {t("oppDetail_composeEmail")}
       </Button>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={copyTitle}>
+            <ClipboardCopy className="h-3.5 w-3.5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{t("oppDetail_copyTitle")}</TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={copyUrl}>
+            <Share2 className="h-3.5 w-3.5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{t("oppDetail_shareRecord")}</TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toast.info(t("oppDetail_expandViewSoon"))}>
+            <Maximize2 className="h-3.5 w-3.5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{t("oppDetail_expandView")}</TooltipContent>
+      </Tooltip>
 
       {onToggleFavorite && (
         <Button

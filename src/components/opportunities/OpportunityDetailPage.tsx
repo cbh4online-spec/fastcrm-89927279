@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Sparkles, Building2, Users, Phone } from "lucide-react";
+import { X, Sparkles, Building2, Users, Phone, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,6 +31,7 @@ import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
 import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
 
 interface OpportunityDetailPageProps {
   opportunityId: string | undefined;
@@ -119,6 +120,21 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
     <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full ml-1">{count}</span>
   );
 
+  const tabDotColors: Record<string, string> = {
+    overview: "bg-muted-foreground/50",
+    activity: "bg-yellow-500",
+    notes: "bg-blue-500",
+    company: "bg-purple-500",
+    people: "bg-emerald-500",
+    tasks: "bg-orange-500",
+    calls: "bg-red-500",
+    insights: "bg-amber-500",
+  };
+
+  const tabDot = (key: string) => (
+    <span className={cn("w-1.5 h-1.5 rounded-full mr-1", tabDotColors[key] || "bg-muted-foreground/50")} />
+  );
+
   return (
     <div className="space-y-0">
       {/* Top bar: Close + Nav */}
@@ -157,35 +173,52 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full md:w-auto bg-transparent border-b rounded-none h-10 p-0 flex-wrap">
               <TabsTrigger value="overview" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary text-xs">
+                {tabDot("overview")}
                 {t("oppDetailTabOverview")}
               </TabsTrigger>
               <TabsTrigger value="activity" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary text-xs">
+                {tabDot("activity")}
                 {t("activities")}
               </TabsTrigger>
               <TabsTrigger value="notes" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+                {tabDot("notes")}
                 {t("oppDetailTabNotes")}
                 {tabBadge(notesCount)}
               </TabsTrigger>
               <TabsTrigger value="company" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+                {tabDot("company")}
                 {t("oppDetail_associatedCompanyTab")}
                 {tabBadge(associatedCompanies.length)}
               </TabsTrigger>
               <TabsTrigger value="people" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+                {tabDot("people")}
                 {t("oppDetail_associatedPeopleTab")}
                 {tabBadge(associatedPeople.length)}
               </TabsTrigger>
               <TabsTrigger value="tasks" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+                {tabDot("tasks")}
                 {t("oppDetailTabTasks")}
                 {tabBadge(pendingTasksCount)}
               </TabsTrigger>
               <TabsTrigger value="calls" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+                {tabDot("calls")}
                 {t("oppDetail_callsTab")}
                 {tabBadge(0)}
               </TabsTrigger>
               <TabsTrigger value="insights" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+                {tabDot("insights")}
                 <Sparkles className="h-3 w-3" />
                 {t("oppDetailTabInsights")}
               </TabsTrigger>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1 rounded-none"
+                onClick={() => toast.info(t("oppDetail_addTabSoon"))}
+              >
+                <Plus className="w-3 h-3" />
+                {t("oppDetail_addTab")}
+              </Button>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4 mt-4">

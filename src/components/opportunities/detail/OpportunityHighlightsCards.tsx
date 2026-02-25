@@ -1,14 +1,46 @@
+import { useState } from "react";
 import { Opportunity, PipelineStage } from "@/types/opportunity";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { Building2, Layers, User, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Building2, Layers, User, DollarSign, Sparkles, Plus, GripVertical, Settings, FileText } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface OpportunityHighlightsCardsProps {
   opportunity: Opportunity;
   stages: PipelineStage[];
   ownerName?: string;
+}
+
+function HighlightCard({ children, className }: { children: React.ReactNode; className?: string }) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      className={cn(
+        "relative group rounded-lg border border-border/50 bg-card p-3 space-y-2 transition-all hover:border-border hover:shadow-sm",
+        className
+      )}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {hovered && (
+        <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 z-10">
+          <button className="p-0.5 rounded hover:bg-muted text-muted-foreground/60 hover:text-muted-foreground">
+            <GripVertical className="w-3 h-3" />
+          </button>
+          <button className="p-0.5 rounded hover:bg-muted text-muted-foreground/60 hover:text-muted-foreground">
+            <Settings className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+      {children}
+    </div>
+  );
 }
 
 export function OpportunityHighlightsCards({ opportunity, stages, ownerName }: OpportunityHighlightsCardsProps) {
@@ -18,12 +50,32 @@ export function OpportunityHighlightsCards({ opportunity, stages, ownerName }: O
   const stageIndex = stages.findIndex(s => s.id === opportunity.stage_id);
   const stageProgress = stages.length > 0 ? ((stageIndex + 1) / stages.length) * 100 : 0;
 
+  const widgetCount = 4;
+  const maxWidgets = 6;
+
   return (
     <div className="space-y-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
+          <Sparkles className="w-3.5 h-3.5 text-primary" />
+          Highlights
+        </h3>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs gap-1.5 border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-950/30"
+          onClick={() => toast.info(t("oppDetail_addWidgetSoon"))}
+        >
+          <Plus className="w-3 h-3" />
+          {t("oppDetail_addWidget")} ({widgetCount}/{maxWidgets})
+        </Button>
+      </div>
+
       {/* Main highlights row */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {/* Deal Stage */}
-        <div className="space-y-2">
+        <HighlightCard>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-wider font-medium">
             <Layers className="w-3.5 h-3.5" />
             {t("oppDetail_dealStage")}
@@ -34,10 +86,10 @@ export function OpportunityHighlightsCards({ opportunity, stages, ownerName }: O
             className="h-1.5"
             style={{ "--progress-color": currentStage?.color || "hsl(var(--primary))" } as React.CSSProperties}
           />
-        </div>
+        </HighlightCard>
 
         {/* Deal Owner */}
-        <div className="space-y-2">
+        <HighlightCard>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-wider font-medium">
             <User className="w-3.5 h-3.5" />
             {t("oppDetail_dealOwner")}
@@ -56,10 +108,10 @@ export function OpportunityHighlightsCards({ opportunity, stages, ownerName }: O
               <span className="text-sm text-muted-foreground">—</span>
             )}
           </div>
-        </div>
+        </HighlightCard>
 
         {/* Associated Company */}
-        <div className="space-y-2">
+        <HighlightCard>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-wider font-medium">
             <Building2 className="w-3.5 h-3.5" />
             {t("oppDetail_associatedCompany")}
@@ -78,11 +130,25 @@ export function OpportunityHighlightsCards({ opportunity, stages, ownerName }: O
               <span className="text-sm text-muted-foreground">—</span>
             )}
           </div>
-        </div>
+        </HighlightCard>
+
+        {/* Documents (PandaDoc) */}
+        <HighlightCard>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-wider font-medium">
+              <FileText className="w-3.5 h-3.5" />
+              {t("oppDetail_documents")}
+            </div>
+            <Badge variant="outline" className="h-4 text-[9px] px-1.5 border-emerald-500/30 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30">
+              PandaDoc
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground italic">{t("oppDetail_noDocuments")}</p>
+        </HighlightCard>
       </div>
 
       {/* Deal value row */}
-      <div className="border-t pt-3">
+      <HighlightCard>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground uppercase tracking-wider font-medium mb-1">
           <DollarSign className="w-3.5 h-3.5" />
           {t("oppDetail_dealValue")}
@@ -94,7 +160,7 @@ export function OpportunityHighlightsCards({ opportunity, stages, ownerName }: O
         ) : (
           <p className="text-sm text-muted-foreground italic">{t("oppDetail_noDealValue")}</p>
         )}
-      </div>
+      </HighlightCard>
     </div>
   );
 }

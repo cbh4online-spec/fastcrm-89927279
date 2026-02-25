@@ -679,5 +679,21 @@
   "sidebarWorkspaces": "Workspaces",
   "sidebarPartners": "Partners",
   "commandPaletteSearch": "Search or type a command...",
-  "navigation": "Navigation"
+  "navigation": "Navigation",
+  "oppDetail_addTab": "+ Add tab",
+  "oppDetail_addTabSoon": "Custom tabs coming soon",
+  "oppDetail_addWidget": "+ Add widget",
+  "oppDetail_addWidgetSoon": "Custom widgets coming soon",
+  "oppDetail_documents": "Documents",
+  "oppDetail_noDocuments": "No documents",
+  "oppDetail_addSection": "+ Add section",
+  "oppDetail_addSectionSoon": "Custom sections coming soon",
+  "oppDetail_copyTitle": "Title copied",
+  "oppDetail_copiedTitle": "Title copied to clipboard",
+  "oppDetail_shareRecord": "Share record",
+  "oppDetail_expandView": "Expand view",
+  "oppDetail_expandViewSoon": "Expanded view coming soon",
+  "oppDetail_companyDomains": "Domains",
+  "oppDetail_companyCategories": "Categories",
+  "oppDetail_companyICP": "ICP"
 }
