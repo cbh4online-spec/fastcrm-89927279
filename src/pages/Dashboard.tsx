@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { AskProactiveNudge } from "@/components/ask-fastcrm/AskProactiveNudge";
+import { AskFastCRMDialog } from "@/components/ask-fastcrm/AskFastCRMDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { WelcomeOverlay } from "@/components/dashboard/WelcomeOverlay";
@@ -44,6 +46,8 @@ export default function Dashboard() {
   const [createContactOpen, setCreateContactOpen] = useState(false);
   const [createCompanyOpen, setCreateCompanyOpen] = useState(false);
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
+  const [askDialogOpen, setAskDialogOpen] = useState(false);
+  const [askPrefilledQuery, setAskPrefilledQuery] = useState("");
 
   // Post-onboarding welcome state
   const isOnboardingComplete = searchParams.get("onboarding") === "complete";
@@ -116,6 +120,12 @@ export default function Dashboard() {
             />
           )}
 
+          {/* Proactive Ask Nudge */}
+          <AskProactiveNudge onAskQuery={(q) => {
+            setAskPrefilledQuery(q);
+            setAskDialogOpen(true);
+          }} />
+
           {/* Revenue Hero */}
           <RevenueHero />
 
@@ -154,6 +164,7 @@ export default function Dashboard() {
           setCreateTaskOpen(false);
         }}
       />
+      <AskFastCRMDialog open={askDialogOpen} onOpenChange={setAskDialogOpen} />
     </DashboardLayout>
   );
 }

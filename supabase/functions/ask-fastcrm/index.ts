@@ -977,6 +977,28 @@ Always call the tool. Generate clear human-readable labels. Keep names short.`,
     // Guardrails: validate conditions
     const validConditions = (parsed.conditions || []).filter((c: any) => resolvedConfig.condition_fields.includes(c.field_name));
 
+    // Server-side plan gating: check workspace subscription for condition/action limits
+    let planNote = "";
+    try {
+      const { data: subData } = await serviceClient
+        .from("workspace_subscriptions")
+        .select("plan")
+        .eq("workspace_id", workspaceId)
+        .maybeSingle();
+      const wsPlan = subData?.plan || "starter";
+      if (wsPlan === "starter") {
+        // Starter: max 1 condition, max 1 action
+        if (validConditions.length > 1) validConditions.length = 1;
+        if (validActions.length > 1) validActions.length = 1;
+        planNote = "Your plan supports 1 condition and 1 action per rule.";
+      } else if (wsPlan === "growth") {
+        // Growth: multi-conditions allowed, but max 1 action
+        if (validActions.length > 1) validActions.length = 1;
+      }
+    } catch (e) {
+      console.error("Plan check error in automation:", e);
+    }
+
     // Build automation_preview response
     const automationPreview = {
       name: (parsed.name || "New automation rule").slice(0, 60),
@@ -1015,7 +1037,7 @@ Always call the tool. Generate clear human-readable labels. Keep names short.`,
       query: { filters: [], sort: [], limit: 0 },
       answer: {
         headline: `You're creating a new automation for ${objectLabel}s.`,
-        subtext: "Review the details below and confirm.",
+        subtext: planNote || "Review the details below and confirm.",
       },
       actions_available: ["CONFIRM_AUTOMATION", "CANCEL"],
       items: [],
