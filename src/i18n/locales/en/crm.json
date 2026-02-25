@@ -713,5 +713,18 @@
   "oppDetail_repliesCount": "{{count}} replies",
   "oppDetail_mentionSearch": "Search team members...",
   "oppDetail_commentPosted": "Comment posted",
-  "oppDetail_commentDeleted": "Comment deleted"
+  "oppDetail_commentDeleted": "Comment deleted",
+  "oppLayout_configureLayout": "Configure layout",
+  "oppLayout_highlights": "Highlights",
+  "oppLayout_sidebar": "Sidebar",
+  "oppLayout_resetDefaults": "Reset to defaults",
+  "oppLayout_saved": "Layout saved",
+  "oppLayout_save": "Save",
+  "oppLayout_dealStage": "Deal Stage",
+  "oppLayout_dealOwner": "Deal Owner",
+  "oppLayout_associatedCompany": "Associated Company",
+  "oppLayout_documents": "Documents",
+  "oppLayout_dealValue": "Deal Value",
+  "oppLayout_dragToReorder": "Drag to reorder sections and toggle visibility",
+  "oppLayout_intelligence": "Intelligence"
 }

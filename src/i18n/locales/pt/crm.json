@@ -713,5 +713,18 @@
   "oppDetail_repliesCount": "{{count}} respostas",
   "oppDetail_mentionSearch": "Procurar membros...",
   "oppDetail_commentPosted": "Comentário publicado",
-  "oppDetail_commentDeleted": "Comentário eliminado"
+  "oppDetail_commentDeleted": "Comentário eliminado",
+  "oppLayout_configureLayout": "Configurar layout",
+  "oppLayout_highlights": "Destaques",
+  "oppLayout_sidebar": "Barra lateral",
+  "oppLayout_resetDefaults": "Repor predefinições",
+  "oppLayout_saved": "Layout guardado",
+  "oppLayout_save": "Guardar",
+  "oppLayout_dealStage": "Fase do Negócio",
+  "oppLayout_dealOwner": "Responsável",
+  "oppLayout_associatedCompany": "Empresa Associada",
+  "oppLayout_documents": "Documentos",
+  "oppLayout_dealValue": "Valor do Negócio",
+  "oppLayout_dragToReorder": "Arrastar para reordenar secções e alternar visibilidade",
+  "oppLayout_intelligence": "Inteligência"
 }

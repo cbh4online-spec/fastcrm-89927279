@@ -713,5 +713,18 @@
   "sidebarWorkspaces": "Workspaces",
   "sidebarPartners": "Socios",
   "commandPaletteSearch": "Buscar o escribir comando...",
-  "navigation": "Navegación"
+  "navigation": "Navegación",
+  "oppLayout_configureLayout": "Configurar diseño",
+  "oppLayout_highlights": "Destacados",
+  "oppLayout_sidebar": "Barra lateral",
+  "oppLayout_resetDefaults": "Restablecer valores",
+  "oppLayout_saved": "Diseño guardado",
+  "oppLayout_save": "Guardar",
+  "oppLayout_dealStage": "Etapa del negocio",
+  "oppLayout_dealOwner": "Propietario",
+  "oppLayout_associatedCompany": "Empresa Asociada",
+  "oppLayout_documents": "Documentos",
+  "oppLayout_dealValue": "Valor del negocio",
+  "oppLayout_dragToReorder": "Arrastrar para reordenar secciones y alternar visibilidad",
+  "oppLayout_intelligence": "Inteligencia"
 }
