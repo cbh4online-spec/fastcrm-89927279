@@ -33,6 +33,7 @@ const SECTION_LABELS: Record<MenuSection, string> = {
   'orders': 'Encomendas B2B',
   'scheduling': 'Agendamentos',
   'student-journey': 'Student Journey',
+  'relationships': 'Relações',
 };
 
 const ENTITY_LABELS: Record<EntityType, string> = {

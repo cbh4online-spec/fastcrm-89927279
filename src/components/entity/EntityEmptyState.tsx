@@ -16,6 +16,7 @@ import {
   Plus,
   ShoppingCart,
   GraduationCap,
+  Link2,
 } from 'lucide-react';
 import { MenuSection } from '@/types/entity';
 
@@ -145,6 +146,12 @@ const SECTION_CONFIG: Record<MenuSection, {
     description: 'Nenhum agendamento associado.',
     suggestion: 'Cria uma reunião ou evento para acompanhamento.',
     actionLabel: 'Agendar Reunião',
+  },
+  'relationships': {
+    icon: Link2,
+    title: 'Sem relações',
+    description: 'Nenhuma relação com outros registos foi criada.',
+    suggestion: 'Adicione relações para conectar este registo com outros objetos.',
   },
   'student-journey': {
     icon: GraduationCap,

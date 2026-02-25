@@ -71,6 +71,7 @@ import { CompanyOrderNotesSection } from "@/components/companies/sections/Compan
 import { CommercialHistorySection } from "@/components/companies/sections/CommercialHistorySection";
 import { EntityProposalsSection } from "@/components/proposals/EntityProposalsSection";
 import { EntitySchedulingSection } from "@/components/scheduling/EntitySchedulingSection";
+import { RelationshipsPanel } from "@/components/objects/RelationshipsPanel";
 
 function getTimeAgo(date: Date): string {
   const now = new Date();
@@ -247,6 +248,12 @@ export function CompanyDetailWithSidebar() {
             entityId={id!} 
             entityName={company.name} 
           />
+        );
+      case 'relationships':
+        return (
+          <div className="space-y-6">
+            <RelationshipsPanel recordId={id!} entityType="company" />
+          </div>
         );
       case 'details':
         return (

@@ -14,7 +14,8 @@ import { useNavigate } from "react-router-dom";
 
 interface Props {
   recordId: string;
-  objectId: string;
+  objectId?: string;
+  entityType?: string;
 }
 
 function getRecordDisplayName(data: Record<string, unknown> | undefined): string {
@@ -28,7 +29,7 @@ function getRecordDisplayName(data: Record<string, unknown> | undefined): string
   return (firstStr as string) || "Sem nome";
 }
 
-export function RelationshipsPanel({ recordId, objectId }: Props) {
+export function RelationshipsPanel({ recordId, objectId, entityType }: Props) {
   const navigate = useNavigate();
   const { data: relationships = [], isLoading } = useObjectRelationships(recordId);
   const deleteRelationship = useDeleteRelationship();
@@ -51,20 +52,22 @@ export function RelationshipsPanel({ recordId, objectId }: Props) {
           <Link2 className="h-4 w-4 text-muted-foreground" />
           Relações
         </h4>
-        <Popover open={showAdd} onOpenChange={setShowAdd}>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1">
-              <Plus className="h-3 w-3" /> Adicionar
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80 p-3" align="end">
-            <AddRelationshipForm
-              recordId={recordId}
-              objectId={objectId}
-              onDone={() => setShowAdd(false)}
-            />
-          </PopoverContent>
-        </Popover>
+        {objectId && (
+          <Popover open={showAdd} onOpenChange={setShowAdd}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1">
+                <Plus className="h-3 w-3" /> Adicionar
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-3" align="end">
+              <AddRelationshipForm
+                recordId={recordId}
+                objectId={objectId}
+                onDone={() => setShowAdd(false)}
+              />
+            </PopoverContent>
+          </Popover>
+        )}
       </div>
 
       {isLoading ? (
