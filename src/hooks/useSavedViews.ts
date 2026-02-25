@@ -13,6 +13,8 @@ export interface SavedView {
   visible_columns: string[] | null;
   view_mode: string;
   is_default: boolean;
+  is_favorite: boolean;
+  position: number;
   user_id: string | null;
   created_at: string;
 }
@@ -94,5 +96,24 @@ export function useDeleteSavedView() {
       toast.success("View deleted");
     },
     onError: () => toast.error("Failed to delete view"),
+  });
+}
+
+export function useToggleFavorite() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+
+  return useMutation({
+    mutationFn: async (input: { id: string; entity_type: string; is_favorite: boolean }) => {
+      const { error } = await (supabase
+        .from("crm_saved_views")
+        .update({ is_favorite: input.is_favorite } as any) as any)
+        .eq("id", input.id);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["saved-views", currentWorkspace?.id, vars.entity_type] });
+    },
+    onError: () => toast.error("Failed to update favorite"),
   });
 }

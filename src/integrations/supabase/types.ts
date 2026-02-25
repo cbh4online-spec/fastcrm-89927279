@@ -10110,7 +10110,9 @@ export type Database = {
           for_role: Database["public"]["Enums"]["workspace_role"] | null
           id: string
           is_default: boolean | null
+          is_favorite: boolean
           name: string
+          position: number | null
           sort_config: Json | null
           updated_at: string | null
           user_id: string | null
@@ -10125,7 +10127,9 @@ export type Database = {
           for_role?: Database["public"]["Enums"]["workspace_role"] | null
           id?: string
           is_default?: boolean | null
+          is_favorite?: boolean
           name: string
+          position?: number | null
           sort_config?: Json | null
           updated_at?: string | null
           user_id?: string | null
@@ -10140,7 +10144,9 @@ export type Database = {
           for_role?: Database["public"]["Enums"]["workspace_role"] | null
           id?: string
           is_default?: boolean | null
+          is_favorite?: boolean
           name?: string
+          position?: number | null
           sort_config?: Json | null
           updated_at?: string | null
           user_id?: string | null
