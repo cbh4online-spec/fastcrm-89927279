@@ -98,4 +98,3 @@ Single hook that fetches all metrics in parallel using `Promise.all`:
 4. **Period comparison** — Not just "this quarter vs last" but configurable: week, month, quarter, year
 5. **i18n ready** — All strings translated from day one
 6. **Real data** — All queries hit existing tables (opportunities, leads, proposals, pipeline_stages, invoices)
-
