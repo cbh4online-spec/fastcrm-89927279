@@ -1,162 +1,147 @@
 
 
-# Fase 2.2 — Forecast Engine V2 (Risk-Adjusted Revenue Projection)
+# Fase 2.3 — Automation Intelligence Engine
 
 ## Current State
 
-### What Already Exists
-- **`compute-revenue-forecast` edge function**: Already computes gross, expected, worst, best case, and `health_adjusted_expected` using health scores from `deal_intelligence_cache`. Already calculates `forecast_confidence` (0-100).
-- **`pipeline_stages.probability`**: Column already exists in the database (nullable, numeric). NOT used by the current forecast engine.
-- **`revenue_forecasts` table**: Has `health_adjusted_expected`, `pipeline_health_avg`, `forecast_confidence` columns (added in Fase 2).
-- **Dashboard**: `RevenueHero`, `ForecastTrendChart`, `ForecastConfidenceCard` already show confidence, risk-adjusted line, and data quality breakdown.
-- **Ask FastCRM**: Has `forecast_summary` and `forecast_risk` intents, but `queryForecast` reads from old `payload` column format and doesn't show stage-weighted or blockers.
-- **Automation triggers**: Has health-based triggers but NO forecast-specific triggers.
+### What Already Exists (Extensive)
+1. **`automation_suggestions` table** — Full schema with id, workspace_id, title, description, trigger_type, trigger_config, conditions, actions, confidence, explanation, pattern_data, status (pending/accepted/dismissed/expired), reviewed_at, reviewed_by, created_automation_id. RLS policies in place.
+2. **`ai-automation-suggestions` edge function** (838 lines) — AI-powered (Gemini) pattern analysis. Fetches leads, opportunities, custom fields, existing automations. Analyzes lead patterns, opportunity patterns, custom field patterns. Generates structured suggestions with loop detection, conflict detection, condition validation. Stores in `automation_suggestions` table. **On-demand only** (no cron).
+3. **`AutomationSuggestionsPanel`** (533 lines) — Full UI with suggestion cards showing trigger/conditions/actions preview, confidence badge, explanation, and Activate/Edit/Dismiss buttons. Activate creates automation rule as DRAFT. Edit opens the rule builder.
+4. **`useAutomationSuggestions` hook** — Fetches pending suggestions with confidence >= 0.7, sorted by confidence DESC.
+5. **`AIEntityAutomationSuggestions`** — Entity-specific suggestion UI (per lead/deal/contact).
+6. **Dashboard `AIActionSuggestions`** — Shows Revenue Brain actions from intelligence-panel (NOT suggestion cards).
 
-### What's Missing
-1. **No stage-weighted forecast** — `pipeline_stages.probability` exists but is never used in computation
-2. **No risk multiplier by health label** — current formula uses `health_score/100` linearly, not the tiered 0.7/0.9/1.0 approach
-3. **No forecast blockers** — no structured list of what's hurting the forecast
-4. **No `stage_weighted` field** in `revenue_forecasts` — only gross/expected/worst/best/health_adjusted
-5. **No deal breakdown by health label** in stored forecast (healthy_revenue / watch_revenue / at_risk_revenue)
-6. **Ask `queryForecast`** reads old `payload` format, doesn't show stage-weighted, blockers, or confidence
-7. **No forecast automation triggers** — no `forecast_confidence_below_threshold` or `forecast_drop_percentage`
-8. **`RevenueHero` doesn't show stage-weighted** — only shows expected and risk-adjusted
+### What's Missing for V2
+1. **No heuristic pattern detection** — current system relies 100% on AI (Gemini). Spec wants deterministic V1 heuristics that run without AI credits.
+2. **No cron** — suggestions only generated when user clicks "Analisar Padrões".
+3. **No `detected_pattern_type`** — can't distinguish repetitive_task vs stage_risk vs no_activity vs invoice_delay.
+4. **No guardrails** — no max 5 pending limit, no check against previously dismissed pattern types.
+5. **No dashboard integration** — suggestions only visible in Automations page, not on Home dashboard.
+6. **No invoice delay pattern** — current analysis doesn't look at invoices at all.
 
 ## Plan
 
-### 1. DB Migration: Add stage_weighted + blockers + deal_breakdown to `revenue_forecasts`
+### 1. DB Migration: Add `detected_pattern_type` to `automation_suggestions`
 
-Add columns:
-- `stage_weighted` (numeric, default 0) — stage probability-weighted total
-- `healthy_revenue` (numeric, default 0)
-- `watch_revenue` (numeric, default 0)
-- `at_risk_revenue` (numeric, default 0)
-- `blockers` (jsonb, default '[]') — array of blocker strings
+Add column:
+- `detected_pattern_type` (text, nullable) — values: `repetitive_task`, `stage_risk`, `no_activity`, `invoice_delay`, `ai_generated`
 
-### 2. Upgrade `compute-revenue-forecast` Edge Function
+This distinguishes heuristic suggestions from AI-generated ones.
 
-Key changes:
+### 2. New Edge Function: `automation-intelligence`
 
-**Stage probability weighting**: Fetch `pipeline_stages` with `probability` for the workspace. For each deal, lookup its stage probability (fallback 0.5 if null). Compute: `stage_weighted_value = value × stage_probability`.
+Pure heuristic engine — no AI calls, no API key needed. Runs fast, deterministic.
 
-**Risk multiplier by health label** (replaces linear health_score/100):
-```
-AT_RISK → 0.7
-WATCH  → 0.9
-HEALTHY → 1.0
-```
-`risk_adjusted = value × stage_probability × risk_multiplier`
+**Pattern 1 — Repetitive Task**: Query tasks grouped by title. If >5 tasks with similar title exist AND were created within similar timeframes relative to stage changes, generate suggestion to automate that task creation on stage change. Confidence = min(1, count / 10).
 
-**Confidence score V2** (spec formula):
-```
-confidence = 1 - (at_risk_ratio × 0.4 + no_activity_ratio × 0.3 + missing_data_ratio × 0.3)
-```
-Clamp 0-1, store as 0-100.
+**Pattern 2 — Stage Risk**: Query `health_score_history` + `deal_intelligence_cache`. For each pipeline stage, check if >40% of deals that entered it became AT_RISK within the expected_days benchmark. If yes, suggest "create follow-up after X days in stage Y". Confidence = at_risk_ratio.
 
-**Blockers generation**: Produce up to 5 strings describing what's hurting the forecast:
-- "X high-value deals have no activity"
-- "Stage Y exceeding benchmark by Z%"
-- "X deals missing close date"
-- "X deals at risk"
-- "X deals without next step"
+**Pattern 3 — No Activity**: Count deals with no activity >10 days (from `deal_intelligence_cache` payloads). If >30% of open deals have this problem, suggest automated reminder. Confidence based on ratio.
 
-**Deal breakdown by health label**: Sum revenue per HEALTHY/WATCH/AT_RISK into `healthy_revenue`, `watch_revenue`, `at_risk_revenue`.
+**Pattern 4 — Invoice Delay**: Query invoices. Calculate average days between due_date and paid_date. If majority are paid late, suggest notification X days before due date. Confidence based on late payment ratio.
 
-Store all new fields in `revenue_forecasts` insert.
+**Guardrails built into the function**:
+- Check existing pending suggestions count — skip if >= 5
+- Check dismissed suggestions — skip pattern types that were dismissed in last 30 days for same workspace
+- Minimum confidence 0.7
+- Expire old pending suggestions before inserting new ones
+- Max 1 suggestion per pattern type
 
-### 3. Update Frontend Types & Hook
+### 3. Cron Job for Periodic Analysis
 
-**`useRevenueForecast`**: Add `stage_weighted`, `healthy_revenue`, `watch_revenue`, `at_risk_revenue`, `blockers` to `RevenueForecast` interface.
+Schedule `automation-intelligence` to run daily via pg_cron + pg_net. The function iterates all workspaces with sufficient data (>= 10 deals or >= 20 tasks).
 
-### 4. Upgrade `RevenueHero`
+### 4. Dashboard Integration: Compact Suggestion Cards
 
-Show 3 values in the right section instead of 2:
-- **Stage-Weighted** (new, primary emphasis)
-- **Risk-Adjusted** (existing, from `health_adjusted_expected`)
-- **Gross** (was "Best Case")
+Add a new component `DashboardAutomationSuggestions` to the Dashboard page. Shows up to 2 pending suggestions in a compact card format:
+- Headline + confidence badge
+- One-line description
+- Activate / Dismiss buttons
+- "View all" link to Automations page
 
-Add a warning badge when `forecast_confidence < 60`.
+Place it in the dashboard grid below `AIActionSuggestions` (Revenue Brain).
 
-### 5. Upgrade `ForecastConfidenceCard`
+### 5. Update `useAutomationSuggestions` Hook
 
-Add **Blockers section**: Display the blockers array from `latestForecast.blockers` as a list of short warning items. Each blocker shows with a dot severity indicator.
-
-Add **Deal breakdown bar**: Horizontal stacked bar showing healthy/watch/at_risk revenue proportions.
-
-### 6. Upgrade Ask FastCRM `queryForecast`
-
-Rewrite to read the new columns directly instead of parsing old `payload` format:
-- Show: gross, stage-weighted, risk-adjusted, confidence
-- Show blockers as items
-- Add "Is my forecast realistic?" answer based on confidence
-
-### 7. Add Forecast Automation Triggers
-
-Add 2 new triggers to `AutomationTrigger` type:
-- `forecast_confidence_below_threshold`
-- `forecast_drop_percentage`
-
-Add to all trigger registries (AutomationRuleBuilder, VisualAutomationBuilder, AutomationRulesList, AutomationTestRunner, automationPlainLanguage).
-
-### 8. Upgrade Proactive Suggestions
-
-Add to `useProactiveAskSuggestions`:
-- **Forecast confidence low**: When `forecast_confidence < 50` → "Your forecast confidence is low — review data quality"
-- Replace existing forecast drift signal with blocker-aware version
+Add a `limit` parameter so the dashboard can fetch only 2 suggestions while the full panel fetches all.
 
 ## File Summary
 
 | File | Action | Description |
 |---|---|---|
-| **DB Migration** | **NEW** | Add `stage_weighted`, `healthy_revenue`, `watch_revenue`, `at_risk_revenue`, `blockers` to `revenue_forecasts` |
-| `supabase/functions/compute-revenue-forecast/index.ts` | **EDIT** | Stage probability weighting, risk multiplier by label, confidence V2 formula, blockers generation, deal breakdown |
-| `src/hooks/useRevenueForecast.ts` | **EDIT** | Add new fields to `RevenueForecast` interface |
-| `src/components/dashboard/RevenueHero.tsx` | **EDIT** | Show stage-weighted + risk-adjusted + gross, confidence warning |
-| `src/components/dashboard/ForecastConfidenceCard.tsx` | **EDIT** | Add blockers list, deal breakdown bar |
-| `src/components/dashboard/ForecastTrendChart.tsx` | **EDIT** | Add stage-weighted line to chart |
-| `supabase/functions/ask-fastcrm/index.ts` | **EDIT** | Rewrite `queryForecast` to use new columns |
-| `src/hooks/useAutomations.ts` | **EDIT** | Add 2 forecast triggers |
-| `src/hooks/useProactiveAskSuggestions.ts` | **EDIT** | Add forecast confidence low signal |
-| `src/lib/automationPlainLanguage.ts` | **EDIT** | Add 2 forecast trigger labels |
-| `src/components/automations/AutomationRuleBuilder.tsx` | **EDIT** | Add 2 forecast trigger options |
-| `src/components/automations/VisualAutomationBuilder.tsx` | **EDIT** | Add 2 forecast trigger options |
-| `src/components/automations/AutomationRulesList.tsx` | **EDIT** | Add 2 trigger labels + colors |
-| `src/components/automations/AutomationTestRunner.tsx` | **EDIT** | Add 2 trigger descriptions |
+| **DB Migration** | **NEW** | Add `detected_pattern_type` column to `automation_suggestions` |
+| `supabase/functions/automation-intelligence/index.ts` | **NEW** | Heuristic pattern engine: 4 patterns, guardrails, no AI dependency |
+| `src/components/dashboard/DashboardAutomationSuggestions.tsx` | **NEW** | Compact suggestion cards for Home dashboard |
+| `src/hooks/useAutomationSuggestions.ts` | **EDIT** | Add `limit` param, expose `detected_pattern_type` in interface |
+| `src/pages/Dashboard.tsx` | **EDIT** | Add `DashboardAutomationSuggestions` below Revenue Brain |
+| **Cron Job** (SQL insert) | **NEW** | Daily cron calling `automation-intelligence` |
 
 ## Technical Details
 
-### Risk-Adjusted Formula (V2)
-```text
-For each deal:
-  stage_prob = pipeline_stages.probability ?? 0.5
-  risk_mult  = AT_RISK ? 0.7 : WATCH ? 0.9 : 1.0
-  
-  stage_weighted_value = value × stage_prob
-  risk_adjusted_value  = value × stage_prob × risk_mult
+### Heuristic Pattern Detection Logic
 
-Totals:
-  gross           = sum(value)
-  stage_weighted  = sum(stage_weighted_value)
-  risk_adjusted   = sum(risk_adjusted_value)
+```text
+Pattern 1 — Repetitive Task:
+  SELECT title, COUNT(*) as cnt 
+  FROM tasks 
+  WHERE workspace_id = X AND created_at > now() - interval '90 days'
+  GROUP BY title HAVING COUNT(*) > 5
+  → For each: check if tasks correlate with stage changes
+  → confidence = min(1.0, cnt / 10)
+
+Pattern 2 — Stage Risk:
+  For each stage with deals:
+    at_risk_count = deals in stage with health_label = 'AT_RISK'
+    total_in_stage = total deals that entered stage
+    ratio = at_risk_count / total_in_stage
+    If ratio > 0.4 → suggest follow-up automation
+    confidence = ratio
+
+Pattern 3 — No Activity:
+  stale_count = deals with last_activity_days > 10
+  total = open deals
+  ratio = stale_count / total
+  If ratio > 0.3 → suggest activity reminder
+  confidence = min(1.0, ratio + 0.3)
+
+Pattern 4 — Invoice Delay:
+  late_invoices = invoices where paid_date > due_date
+  total_paid = invoices with paid_date
+  late_ratio = late_invoices / total_paid
+  avg_late_days = avg(paid_date - due_date) for late invoices
+  If late_ratio > 0.5 → suggest pre-due notification
+  confidence = late_ratio
 ```
 
-### Confidence Score V2
+### Guardrail Logic
 ```text
-at_risk_ratio     = at_risk_count / total_deals
-no_activity_ratio = deals_no_activity_10d / total_deals
-missing_data_ratio = (missing_value + missing_close_date) / (total_deals * 2)
+1. SELECT COUNT(*) FROM automation_suggestions 
+   WHERE workspace_id = X AND status = 'pending'
+   → If >= 5, skip generation entirely
 
-confidence = clamp(0, 1, 1 - (at_risk_ratio × 0.4 + no_activity_ratio × 0.3 + missing_data_ratio × 0.3))
-Stored as integer 0-100.
+2. SELECT detected_pattern_type FROM automation_suggestions
+   WHERE workspace_id = X AND status = 'dismissed' 
+   AND reviewed_at > now() - interval '30 days'
+   → Skip any pattern type found in this list
+
+3. All suggestions inserted with confidence >= 0.7 only
 ```
 
-### Blockers (max 5)
+### Dashboard Card Design
 ```text
-Generated in priority order:
-1. "X high-value deals without activity" (value > avg && no activity > 10d)
-2. "Stage 'Y' exceeding benchmark by Z%" (avg_days > expected × 1.4)
-3. "X deals missing close date"
-4. "X deals at risk" (AT_RISK label)
-5. "X deals without next step" (no pending tasks)
+┌─────────────────────────────────────────┐
+│ ⚡ Automation Suggestions          2 new │
+├─────────────────────────────────────────┤
+│ 💡 Automate follow-ups in Proposal  82% │
+│    You frequently create follow-ups...  │
+│    [Activate] [Dismiss]                 │
+│─────────────────────────────────────────│
+│ 💡 Auto-remind stale deals          78% │
+│    30% of deals have no activity...     │
+│    [Activate] [Dismiss]                 │
+├─────────────────────────────────────────┤
+│ View all suggestions →                  │
+└─────────────────────────────────────────┘
 ```
 
