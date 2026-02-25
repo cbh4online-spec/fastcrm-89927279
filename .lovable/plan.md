@@ -1,100 +1,69 @@
 
 
-# Transições Automáticas de Lifecycle Stage Baseadas em Eventos
+# Notificações Automáticas de Transição de Lifecycle Stage
 
 ## Contexto
 
-O sistema já tem:
-- Coluna `lifecycle_stage` na tabela `contacts` (visitor/lead/prospect/sales/onboarding/customer/churned)
-- Coluna `lead_status` (new/contacted/qualified/unqualified/customer/churned)
-- Coluna `client_status` (ativo/inativo/etc.)
-- Trigger de auditoria `trg_contact_audit` que regista alterações de campos
-- `ConvertLeadDialog` que cria contactos a partir de leads (mas não define lifecycle_stage)
-- `contact_audit_log` para tracking de alterações
-
-Não existe nenhuma lógica automática para transicionar o `lifecycle_stage` quando eventos ocorrem.
+Já existe:
+- Tabela `admin_notifications` com realtime habilitado, RLS policies, e índices
+- Hook `useAdminNotifications` com subscrição realtime que invalida queries automaticamente
+- UI de notificações no `NotificationsDropdown` (actualmente usa dados demo estáticos)
+- Trigger `trg_contact_lifecycle` que transiciona automaticamente o `lifecycle_stage`
+- Trigger `trg_contact_audit` que regista alterações no `contact_audit_log`
 
 ## Solução
 
-Criar um **trigger PostgreSQL** que automaticamente transiciona o `lifecycle_stage` baseado em alterações de campos existentes, sem necessidade de lógica frontend.
-
-### Regras de Transição
-
-| Evento | De | Para |
-|--------|----|----|
-| `lead_status` muda para `contacted` ou `qualified` | visitor | lead |
-| `lead_status` muda para `qualified` | lead | prospect |
-| `lead_status` muda para `customer` | qualquer (visitor/lead/prospect) | sales |
-| `client_status` muda para `ativo` | qualquer (visitor/lead/prospect/sales) | onboarding |
-| `client_status` é `ativo` há mais de 30 dias (ou `client_since` existe) | onboarding | customer |
-| `client_status` muda para `inativo` ou `churned` | customer | churned |
-| Contacto criado via conversão de lead (`ConvertLeadDialog`) | — (default visitor) | lead |
-
-A lógica é: transições só avançam (nunca retrocedem automaticamente), excepto para `churned`.
+Criar um **trigger PostgreSQL AFTER UPDATE** na tabela `contacts` que detecta mudanças em `lifecycle_stage` e insere uma notificação na tabela `admin_notifications`. A UI já consome esta tabela via realtime.
 
 ### Alterações
 
-#### 1. Migração SQL — Trigger `fn_lifecycle_auto_transition`
+#### 1. Migração SQL — Trigger `fn_notify_lifecycle_transition`
 
-Criar um trigger `BEFORE UPDATE` na tabela `contacts` que:
-- Verifica se `lead_status` ou `client_status` mudaram
-- Aplica as regras de transição acima
-- Só avança o lifecycle (nunca retrocede), excepto para churned
-- Executa **antes** do trigger de auditoria para que a mudança de `lifecycle_stage` seja registada no audit log
+Função que executa `AFTER UPDATE` em `contacts`:
+- Verifica se `lifecycle_stage` mudou (`OLD.lifecycle_stage IS DISTINCT FROM NEW.lifecycle_stage`)
+- Insere registo em `admin_notifications` com:
+  - `type`: `'lifecycle_transition'`
+  - `title`: Nome do contacto + transição (ex: "João Silva avançou para Prospect")
+  - `message`: Detalhe da transição (ex: "Lead → Prospect")
+  - `metadata`: `{ contact_id, old_stage, new_stage }`
+  - `workspace_id`: do contacto
 
 ```sql
-CREATE OR REPLACE FUNCTION public.fn_lifecycle_auto_transition()
+CREATE OR REPLACE FUNCTION public.fn_notify_lifecycle_transition()
 RETURNS TRIGGER AS $$
-DECLARE
-  stage_order int;
-  new_stage text;
-  current_order int;
 BEGIN
-  -- Só processar se lead_status ou client_status mudaram
-  IF OLD.lead_status IS NOT DISTINCT FROM NEW.lead_status
-     AND OLD.client_status IS NOT DISTINCT FROM NEW.client_status THEN
-    RETURN NEW;
+  IF OLD.lifecycle_stage IS DISTINCT FROM NEW.lifecycle_stage THEN
+    INSERT INTO public.admin_notifications (workspace_id, type, title, message, metadata)
+    VALUES (
+      NEW.workspace_id,
+      'lifecycle_transition',
+      COALESCE(NEW.name, NEW.email, 'Contacto') || ' → ' || NEW.lifecycle_stage,
+      OLD.lifecycle_stage || ' → ' || NEW.lifecycle_stage,
+      jsonb_build_object('contact_id', NEW.id, 'old_stage', OLD.lifecycle_stage, 'new_stage', NEW.lifecycle_stage)
+    );
   END IF;
-  
-  -- Mapa de ordem para evitar retrocesso
-  -- visitor=0, lead=1, prospect=2, sales=3, onboarding=4, customer=5, churned=-1
-  
-  -- Regras de transição...
-  -- Actualizar NEW.lifecycle_stage se aplicável
-  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 ```
 
-#### 2. Migração SQL — Trigger `BEFORE INSERT` para novos contactos
+#### 2. `src/components/layout/NotificationsDropdown.tsx`
 
-Quando um contacto é criado com `lead_status != 'new'`, definir lifecycle_stage adequado (ex: se `lead_status = 'qualified'`, definir como `prospect`).
+Substituir os dados demo estáticos pelo hook `useAdminNotifications`:
+- Consumir `useAdminNotifications()` em vez do estado local com `demoNotifications`
+- Mapear `type` para ícones (incluindo `lifecycle_transition` → ícone de GitBranch ou similar)
+- Usar `markAsRead` e `markAllAsRead` do hook
+- Manter o layout actual mas com dados reais e realtime
 
-#### 3. `src/components/crm/ConvertLeadDialog.tsx`
+#### 3. Mapeamento de tipos de notificação
 
-Actualizar `createContact.mutateAsync` para incluir `lifecycle_stage: 'lead'` nos dados de criação, garantindo que contactos criados a partir de leads começam no estágio correcto.
-
-#### 4. `src/hooks/useCustomerLifecycle.ts`
-
-Adicionar a coluna `lifecycle_stage` ao array de colunas auditadas no trigger existente (se não estiver já), para que transições automáticas sejam registadas no `contact_audit_log`.
-
-#### 5. `src/components/lifecycle/CustomerLifecycleFlow.tsx` (melhoria menor)
-
-Adicionar tooltip nos nós indicando que transições automáticas estão activas.
+Adicionar ao `NotificationsDropdown` o ícone para o novo tipo:
+- `lifecycle_transition` → ícone `GitBranch` com cor verde
 
 ## Ficheiros
 
 | Ficheiro | Acção |
 |----------|-------|
-| Migração SQL | Criar trigger `fn_lifecycle_auto_transition` + adicionar `lifecycle_stage` ao audit |
-| `src/components/crm/ConvertLeadDialog.tsx` | Passar `lifecycle_stage: 'lead'` na criação |
-
-## Detalhe Técnico
-
-O trigger tem prioridade de execução definida pelo nome (ordem alfabética em PostgreSQL para triggers `BEFORE UPDATE`). O trigger `fn_lifecycle_auto_transition` será nomeado `trg_contact_lifecycle` que executa antes de `trg_contact_audit`, garantindo que a transição automática é auditada.
-
-Ordem numérica para stages (para evitar retrocesso):
-- `visitor` = 0, `lead` = 1, `prospect` = 2, `sales` = 3, `onboarding` = 4, `customer` = 5
-- `churned` é especial: pode ser aplicado a qualquer estágio
+| Migração SQL | Criar trigger `fn_notify_lifecycle_transition` |
+| `src/components/layout/NotificationsDropdown.tsx` | Substituir dados demo por `useAdminNotifications` + suporte ao tipo `lifecycle_transition` |
 
