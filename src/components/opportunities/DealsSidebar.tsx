@@ -42,6 +42,10 @@ import {
   Zap,
   GitBranch,
   Workflow,
+  Building,
+  Handshake,
+  UserPlus,
+  Command,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +68,7 @@ interface DealsSidebarProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
   opportunities?: any[];
+  onOpenCommandPalette?: () => void;
 }
 
 const RECORDS_LINKS = [
@@ -71,6 +76,9 @@ const RECORDS_LINKS = [
   { key: "contacts", icon: Users, href: "/dashboard/contacts" },
   { key: "deals", icon: DollarSign, href: "/dashboard/opportunities" },
   { key: "invoices", icon: FileText, href: "/dashboard/invoices" },
+  { key: "sidebarUsers", icon: Users, href: "/dashboard" },
+  { key: "sidebarWorkspaces", icon: Building, href: "/dashboard" },
+  { key: "sidebarPartners", icon: Handshake, href: "/dashboard" },
 ];
 
 const NAV_LINKS = [
@@ -94,6 +102,7 @@ export function DealsSidebar({
   collapsed,
   onToggleCollapse,
   opportunities,
+  onOpenCommandPalette,
 }: DealsSidebarProps) {
   const { t } = useTranslation("crm");
   const navigate = useNavigate();
@@ -172,8 +181,22 @@ export function DealsSidebar({
         </Button>
       </div>
 
-      {/* Search */}
+      {/* Quick Actions */}
       <div className="px-3 py-2">
+        <button
+          onClick={onOpenCommandPalette}
+          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-left text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors border border-border"
+        >
+          <Command className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="truncate flex-1">{t("quickActions", "Quick actions")}</span>
+          <div className="flex items-center gap-1">
+            <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-0.5 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">⌘K</kbd>
+          </div>
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="px-3 pb-2">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
@@ -364,6 +387,17 @@ export function DealsSidebar({
             </Collapsible>
         </div>
       </ScrollArea>
+
+      {/* Invite team members - fixed bottom */}
+      <div className="border-t border-border px-3 py-2.5">
+        <button
+          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-left text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+          onClick={() => navigate("/dashboard/settings")}
+        >
+          <UserPlus className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="truncate">{t("inviteTeamMembers", "Invite team members")}</span>
+        </button>
+      </div>
     </div>
   );
 }

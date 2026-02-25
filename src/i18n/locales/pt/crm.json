@@ -649,5 +649,12 @@
   "sidebarReports": "Relatórios",
   "sidebarAutomations": "Automações",
   "sidebarSequences": "Sequências",
-  "sidebarWorkflows": "Workflows"
+  "sidebarWorkflows": "Workflows",
+  "quickActions": "Ações rápidas",
+  "inviteTeamMembers": "Convidar membros",
+  "sidebarUsers": "Utilizadores",
+  "sidebarWorkspaces": "Workspaces",
+  "sidebarPartners": "Parceiros",
+  "commandPaletteSearch": "Pesquisar ou escrever comando...",
+  "navigation": "Navegação"
 }
