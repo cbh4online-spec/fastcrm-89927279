@@ -60,6 +60,9 @@ import { TemplateFormDialog } from './TemplateFormDialog';
 import { TemplatePreviewDialog } from './TemplatePreviewDialog';
 import { SendEmailFromTemplateDialog } from './SendEmailFromTemplateDialog';
 import { AITemplateGeneratorDialog } from './AITemplateGeneratorDialog';
+import { TemplateLibraryDialog } from './TemplateLibraryDialog';
+import type { LibraryTemplate } from './templateLibraryData';
+import { BookOpen } from 'lucide-react';
 
 const CHANNEL_ICONS: Record<TemplateChannel, React.ElementType> = {
   email: Mail,
@@ -87,6 +90,7 @@ export function TemplatesListPage() {
   const [previewTemplate, setPreviewTemplate] = useState<CommunicationTemplate | null>(null);
   const [sendEmailTemplate, setSendEmailTemplate] = useState<CommunicationTemplate | null>(null);
   const [showAIDialog, setShowAIDialog] = useState(false);
+  const [showLibraryDialog, setShowLibraryDialog] = useState(false);
   const [activePageTab, setActivePageTab] = useState('templates');
   const [selectedStatsTemplate, setSelectedStatsTemplate] = useState<string | undefined>();
   
@@ -300,6 +304,12 @@ export function TemplatesListPage() {
           count={stats.total}
           description="Crie e gira mensagens reutilizáveis com IA preditiva"
           actions={[
+            {
+              label: 'Biblioteca',
+              icon: <BookOpen className="h-4 w-4" />,
+              onClick: () => setShowLibraryDialog(true),
+              variant: 'outline',
+            },
             {
               label: 'Criar com IA',
               icon: <Sparkles className="h-4 w-4" />,
@@ -862,6 +872,38 @@ export function TemplatesListPage() {
         onOpenChange={setShowAIDialog}
         onGenerated={(generated) => {
           setEditingTemplate(generated as CommunicationTemplate);
+          setShowCreateDialog(true);
+        }}
+      />
+
+      <TemplateLibraryDialog
+        open={showLibraryDialog}
+        onOpenChange={setShowLibraryDialog}
+        onSelectTemplate={(libTemplate: LibraryTemplate) => {
+          setEditingTemplate({
+            id: '',
+            workspaceId: '',
+            name: libTemplate.name,
+            channel: libTemplate.channel,
+            language: 'pt',
+            journeyContexts: [],
+            subject: libTemplate.subject,
+            body: libTemplate.body,
+            tone: libTemplate.tone,
+            structureType: libTemplate.structureType,
+            isActive: true,
+            usageCount: 0,
+            conversionCount: 0,
+            isDynamic: false,
+            dynamicRules: {},
+            personalizationLevel: 'basic',
+            structureFamilies: [],
+            brandConstraints: {},
+            maxLengthByChannel: {},
+            createdBy: '',
+            createdAt: '',
+            updatedAt: '',
+          } as CommunicationTemplate);
           setShowCreateDialog(true);
         }}
       />
