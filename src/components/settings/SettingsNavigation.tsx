@@ -1,25 +1,30 @@
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "react-i18next";
 import {
+  User,
+  Palette,
+  Bell,
+  Building2,
   Users,
   MessageSquare,
   Database,
+  FileText,
   Sparkles,
-  Layout,
   Shield,
   Plug,
+  CreditCard,
+  Puzzle,
+  Code,
   Search,
   Crown,
-  FileText,
-  CreditCard,
-  SlidersHorizontal,
-  FlaskConical,
-  Puzzle,
 } from "lucide-react";
 
 export type SettingsCategory =
+  | "profile"
+  | "appearance"
+  | "notifications"
   | "workspace"
   | "channels"
   | "crm"
@@ -32,6 +37,49 @@ export type SettingsCategory =
   | "extensions"
   | "flags";
 
+interface NavItem {
+  id: SettingsCategory;
+  labelKey: string;
+  icon: React.ElementType;
+  isPremium?: boolean;
+}
+
+interface NavGroup {
+  labelKey: string;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    labelKey: "personal",
+    items: [
+      { id: "profile", labelKey: "nav_profile", icon: User },
+      { id: "appearance", labelKey: "nav_appearance", icon: Palette },
+      { id: "notifications", labelKey: "nav_notifications", icon: Bell },
+    ],
+  },
+  {
+    labelKey: "workspace",
+    items: [
+      { id: "workspace", labelKey: "nav_general", icon: Building2 },
+      { id: "channels", labelKey: "nav_channels", icon: MessageSquare },
+      { id: "crm", labelKey: "nav_crmData", icon: Database },
+      { id: "templates", labelKey: "nav_templates", icon: FileText },
+      { id: "automation", labelKey: "nav_automationAI", icon: Sparkles, isPremium: true },
+    ],
+  },
+  {
+    labelKey: "advanced",
+    items: [
+      { id: "security", labelKey: "nav_security", icon: Shield },
+      { id: "integrations", labelKey: "nav_integrations", icon: Plug },
+      { id: "billing", labelKey: "nav_billing", icon: CreditCard },
+      { id: "extensions", labelKey: "nav_extensions", icon: Puzzle },
+      { id: "flags", labelKey: "nav_developer", icon: Code },
+    ],
+  },
+];
+
 interface SettingsNavigationProps {
   activeCategory: SettingsCategory;
   onCategoryChange: (category: SettingsCategory) => void;
@@ -41,76 +89,6 @@ interface SettingsNavigationProps {
   matchCount?: number;
 }
 
-const categories = [
-  {
-    id: "workspace" as const,
-    label: "Workspace & Equipa",
-    icon: Users,
-    description: "Utilizadores, permissões, marca",
-  },
-  {
-    id: "channels" as const,
-    label: "Canais & Fontes",
-    icon: MessageSquare,
-    description: "Email, WhatsApp, Formulários",
-  },
-  {
-    id: "crm" as const,
-    label: "CRM & Dados",
-    icon: Database,
-    description: "Campos, Pipelines, Importação",
-  },
-  {
-    id: "templates" as const,
-    label: "Templates",
-    icon: FileText,
-    description: "Mensagens, Propostas, Variáveis",
-  },
-  {
-    id: "automation" as const,
-    label: "Automação & IA",
-    icon: Sparkles,
-    description: "Regras, Sugestões, Lead Scoring",
-    isPremium: true,
-  },
-  {
-    id: "experience" as const,
-    label: "Experiência & Interface",
-    icon: Layout,
-    description: "Dashboards, Vistas, Layouts",
-  },
-  {
-    id: "security" as const,
-    label: "Segurança & Conformidade",
-    icon: Shield,
-    description: "Permissões, Logs, SSO",
-  },
-  {
-    id: "integrations" as const,
-    label: "Integrações & API",
-    icon: Plug,
-    description: "Stripe, Webhooks, Variáveis",
-  },
-  {
-    id: "billing" as const,
-    label: "Plano & Faturação",
-    icon: CreditCard,
-    description: "Subscrição, Utilização, Upgrade",
-  },
-  {
-    id: "extensions" as const,
-    label: "Extensões",
-    icon: Puzzle,
-    description: "Ativação, auditoria, manifests",
-  },
-  {
-    id: "flags" as const,
-    label: "Feature Flags",
-    icon: FlaskConical,
-    description: "Funcionalidades experimentais",
-  },
-];
-
 export function SettingsNavigation({
   activeCategory,
   onCategoryChange,
@@ -119,73 +97,72 @@ export function SettingsNavigation({
   matchedCategories,
   matchCount,
 }: SettingsNavigationProps) {
+  const { t } = useTranslation("settings");
   const hasSearch = searchQuery.trim().length > 0;
-  
-  const filteredCategories = hasSearch && matchedCategories
-    ? categories.filter(cat => matchedCategories.has(cat.id))
-    : categories;
 
   return (
-    <div className="w-72 border-r border-border bg-muted/30 flex flex-col">
+    <div className="w-64 border-r border-border bg-muted/20 flex flex-col">
       {/* Search */}
       <div className="p-4 border-b border-border">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Pesquisar definições..."
-            className="pl-9"
+            placeholder={t("searchPlaceholder")}
+            className="pl-9 h-9 text-sm"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
           />
         </div>
         {hasSearch && matchCount !== undefined && (
           <p className="text-xs text-muted-foreground mt-2">
-            {matchCount === 0 
-              ? "Nenhum resultado encontrado" 
-              : `${matchCount} resultado${matchCount !== 1 ? "s" : ""} encontrado${matchCount !== 1 ? "s" : ""}`
-            }
+            {matchCount === 0
+              ? t("noResults")
+              : `${matchCount} resultado${matchCount !== 1 ? "s" : ""}`}
           </p>
         )}
       </div>
 
-      {/* Categories */}
+      {/* Grouped Navigation */}
       <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
-          {filteredCategories.length === 0 && hasSearch ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Sem categorias correspondentes
-            </p>
-          ) : (
-            filteredCategories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => onCategoryChange(category.id)}
-                className={cn(
-                  "w-full text-left px-3 py-3 rounded-lg transition-colors",
-                  activeCategory === category.id
-                    ? "bg-primary/10 text-primary"
-                    : "text-foreground hover:bg-muted"
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <category.icon className="h-5 w-5" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm truncate">
-                        {category.label}
-                      </span>
-                      {category.isPremium && (
-                        <Crown className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {category.description}
-                    </p>
-                  </div>
+        <div className="py-2">
+          {navGroups.map((group) => {
+            const visibleItems = hasSearch && matchedCategories
+              ? group.items.filter((item) => matchedCategories.has(item.id))
+              : group.items;
+
+            if (visibleItems.length === 0) return null;
+
+            return (
+              <div key={group.labelKey} className="mb-1">
+                <p className="px-5 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t(group.labelKey)}
+                </p>
+                <div className="space-y-0.5 px-2">
+                  {visibleItems.map((item) => {
+                    const isActive = activeCategory === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => onCategoryChange(item.id)}
+                        className={cn(
+                          "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors",
+                          isActive
+                            ? "bg-primary/10 text-primary font-medium border-l-2 border-primary"
+                            : "text-foreground/80 hover:bg-muted hover:text-foreground"
+                        )}
+                      >
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">{t(item.labelKey)}</span>
+                        {item.isPremium && (
+                          <Crown className="h-3 w-3 text-amber-500 ml-auto flex-shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
-              </button>
-            ))
-          )}
+              </div>
+            );
+          })}
         </div>
       </ScrollArea>
     </div>

@@ -401,7 +401,7 @@ export function searchSettings(query: string): {
   if (!normalizedQuery) {
     return {
       matchedItems: settingsSearchData,
-      matchedCategories: new Set(["workspace", "channels", "crm", "templates", "automation", "experience", "security", "integrations"]),
+      matchedCategories: new Set(["profile", "appearance", "notifications", "workspace", "channels", "crm", "templates", "automation", "experience", "security", "integrations", "billing", "extensions", "flags"] as SettingsCategory[]),
       matchedSections: new Set(settingsSearchData.map(item => item.id)),
     };
   }
