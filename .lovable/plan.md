@@ -1,39 +1,51 @@
 
 
-# Analysis: Attio-style Deal Detail Page
+# Plan: Keyboard Accessibility for Drag-and-Drop Reordering
 
-## Current State
+## Overview
 
-After thorough review, **all the features described in this request are already implemented** in the codebase:
+Add keyboard accessibility to the drag-and-drop reordering in the Layout Config Dialog and the Sidebar, supporting Enter/Space to grab/release items, arrow keys to move, and a live region for screen reader announcements.
 
-| Feature | Status | Location |
-|---|---|---|
-| Header with close (X) + nav | Implemented | `OpportunityDetailPage.tsx` lines 182-196, `OpportunityRecordNav.tsx` |
-| Expanded tabs with counts/badges | Implemented | `OpportunityDetailPage.tsx` lines 215-301, colored dots + badge counts |
-| Redesigned highlights cards | Implemented | `OpportunityHighlightsCards.tsx` with configurable layout |
-| Collapsible sidebar sections | Implemented | `OpportunityDetailSidebar.tsx` with `SidebarSection` + `Collapsible` |
-| "Show all values" toggle | Implemented | `OpportunityDetailSidebar.tsx` line 189-191 |
-| Priority Level field | Implemented | `OpportunityDetailSidebar.tsx` line 179 |
-| Lists section | Implemented | `OpportunityDetailSidebar.tsx` lines 256-275 |
-| Compact activity timeline | Implemented | `OpportunityActivityTimeline.tsx` |
-| Header actions (email, copy, share, favorite, more) | Implemented | `OpportunityHeaderActions.tsx` |
-| "+ Add tab" dropdown | Implemented | `OpportunityDetailPage.tsx` lines 272-301 |
-| Drag-and-drop sidebar reordering | Implemented | `OpportunityDetailSidebar.tsx` with DnD handlers |
-| Layout config dialog | Implemented | `OpportunityLayoutConfigDialog.tsx` |
+## Files to Edit
 
-## One Bug Found: Owner Name Not Displayed
+### 1. `src/components/opportunities/detail/OpportunityLayoutConfigDialog.tsx` — EDIT
 
-The `ownerName` prop on `OpportunityHighlightsCards` is never passed from `OpportunityDetailPage`, so the "Deal Owner" card always shows "—". The opportunity has an `owner_id` field but the owner's profile name is not being resolved.
+**DraggableItem component changes:**
+- Add `tabIndex={0}`, `role="listitem"`, `aria-grabbed`, `aria-label` attributes
+- Add `isGrabbed` and `onKeyDown` props
+- Add focus ring styles and grabbed visual state (ring-2 ring-primary shadow-md)
+- Set checkbox `tabIndex={-1}` so tab goes to the row, not the checkbox independently
 
-## Proposed Fix
+**Dialog component changes:**
+- Add `grabbedItem` state (string | null) to track keyboard-grabbed item
+- Add `liveText` state (string) for screen reader announcements
+- Add a visually hidden `<div aria-live="assertive">` live region that reads `liveText`
+- Add `handleKeyDown(listId, list, setList)` function:
+  - **Enter/Space**: Toggle grabbed state. Announce "Grabbed [name], position X of Y" or "Dropped [name] at position X of Y"
+  - **ArrowUp/ArrowDown**: When grabbed, swap item with neighbor, update list state, announce "Moved [name] to position X of Y"
+  - **Escape**: Cancel grab, announce "Reorder cancelled"
+- Pass `isGrabbed` and `onKeyDown` to each `DraggableItem`
+- Wrap item lists in `<div role="list" aria-label="...">`
 
-| File | Action | Description |
-|---|---|---|
-| `src/components/opportunities/OpportunityDetailPage.tsx` | **EDIT** | Resolve `owner_id` to a display name using workspace members or profiles, then pass `ownerName` prop to `OpportunityHighlightsCards` |
+### 2. `src/components/opportunities/detail/OpportunityDetailSidebar.tsx` — EDIT
 
-### Implementation
-1. Query workspace members or profiles to match `opportunity.owner_id` to a name
-2. Pass the resolved name as `ownerName` to `OpportunityHighlightsCards`
+**SidebarSection component changes:**
+- Add `tabIndex`, `role="listitem"`, `aria-grabbed`, `aria-label`, `onKeyDown` props
+- Add focus ring and grabbed visual styles
 
-This is a small fix (3-5 lines of code change). All other Attio-style features are already fully functional.
+**OpportunityDetailSidebar component changes:**
+- Add `grabbedSection` state and `liveText` state
+- Add a visually hidden live region `<div aria-live="assertive">`
+- Add `handleSidebarKeyDown(sectionId)` function with same Enter/Space/Arrow/Escape logic
+- On arrow key move: reorder `sidebarOrder` locally and call `updatePrefs.mutate({ sidebar_order: newOrder })`
+- Pass keyboard props to each SidebarSection
+- Wrap sections container in `<div role="list" aria-label="Sidebar sections">`
+
+## No New Files or Dependencies
+
+All changes are within existing components using native keyboard events and ARIA attributes.
+
+## i18n
+
+No new translation keys needed — announcements use programmatic strings with item labels and positions that are already translated.
 
