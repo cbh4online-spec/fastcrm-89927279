@@ -18,7 +18,7 @@ export function useRecentAskQueries() {
         .eq("workspace_id", currentWorkspace.id)
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(12);
 
       if (error) throw error;
 
@@ -29,7 +29,7 @@ export function useRecentAskQueries() {
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
-      });
+      }).slice(0, 8);
     },
     enabled: !!currentWorkspace?.id && !!user?.id,
     staleTime: 30_000,

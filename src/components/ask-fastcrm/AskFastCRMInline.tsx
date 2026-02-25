@@ -3,19 +3,19 @@ import { useAskFastCRM } from "@/hooks/useAskFastCRM";
 import { AskFastCRMResultPanel } from "./AskFastCRMResultPanel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Send, Loader2 } from "lucide-react";
+import { Sparkles, Send } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 const SUGGESTED_CHIPS = [
   "Deals at risk",
-  "Closing this month",
-  "Pipeline summary",
-  "Inactive deals",
+  "No activity in 14 days",
   "No next step",
+  "Closing this month",
+  "Stuck in stage",
   "High value deals",
-  "Forecast",
-  "Stage bottlenecks",
 ];
 
 export function AskFastCRMInline() {
@@ -83,9 +83,17 @@ export function AskFastCRMInline() {
         )}
 
         {isLoading && !result && (
-          <div className="flex items-center gap-3 py-12 justify-center text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <span className="text-sm">Querying your data...</span>
+          <div className="space-y-3 py-8">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: i * 0.08, duration: 0.2 }}
+              >
+                <Skeleton className={cn("h-5 rounded-lg", i === 0 ? "w-3/4" : i === 4 ? "w-2/3" : "w-full")} />
+              </motion.div>
+            ))}
           </div>
         )}
 
@@ -121,6 +129,7 @@ export function AskFastCRMInline() {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about your revenue..."
             disabled={isLoading}
+            aria-label="Ask FastCRM"
             className="flex-1"
           />
           <Button type="submit" size="icon" disabled={!input.trim() || isLoading}>
