@@ -13,10 +13,13 @@ import { useMeetingTranscript, TranscriptHighlight } from "@/hooks/useMeetingTra
 import { TranscriptSummaryPanel } from "./TranscriptSummaryPanel";
 import { TranscriptKeyMoments } from "./TranscriptKeyMoments";
 import { TranscriptSegmentRow } from "./TranscriptSegmentRow";
+import { RecordingUploadCard } from "./RecordingUploadCard";
+import { RecordingCrmLinks } from "./RecordingCrmLinks";
 
 interface Props {
   meetingId: string;
   meetingTitle?: string;
+  workspaceId?: string;
   onBack?: () => void;
 }
 
@@ -34,9 +37,9 @@ const sentimentConfig: Record<string, { label: string; color: string }> = {
   mixed: { label: "Mixed", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" },
 };
 
-export function TranscriptViewer({ meetingId, meetingTitle, onBack }: Props) {
+export function TranscriptViewer({ meetingId, meetingTitle, workspaceId, onBack }: Props) {
   const { t } = useTranslation("meetings");
-  const { recording, segments, highlights, isLoading, analyzeTranscript, isAnalyzing } = useMeetingTranscript(meetingId);
+  const { recording, segments, highlights, crmLinks, isLoading, analyzeTranscript, isAnalyzing } = useMeetingTranscript(meetingId);
 
   const [search, setSearch] = useState("");
   const [speakerFilter, setSpeakerFilter] = useState("all");
@@ -93,6 +96,8 @@ export function TranscriptViewer({ meetingId, meetingTitle, onBack }: Props) {
     );
   }
 
+  const showUploadCard = !recording || !recording.file_url;
+
   if (!recording) {
     return (
       <div className="space-y-4">
@@ -102,7 +107,8 @@ export function TranscriptViewer({ meetingId, meetingTitle, onBack }: Props) {
             {t("transcript_backToMeeting")}
           </Button>
         )}
-        <div className="flex items-center justify-center h-48 text-muted-foreground">
+        <RecordingUploadCard meetingId={meetingId} workspaceId={workspaceId} />
+        <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
           {t("transcript_noTranscript")}
         </div>
       </div>
@@ -161,6 +167,14 @@ export function TranscriptViewer({ meetingId, meetingTitle, onBack }: Props) {
           )}
         </div>
       </div>
+
+      {/* Upload card when no file */}
+      {showUploadCard && (
+        <RecordingUploadCard meetingId={meetingId} workspaceId={workspaceId} />
+      )}
+
+      {/* CRM Links */}
+      {crmLinks.length > 0 && <RecordingCrmLinks links={crmLinks} />}
 
       {/* AI Summary Panel */}
       <TranscriptSummaryPanel recording={recording} />

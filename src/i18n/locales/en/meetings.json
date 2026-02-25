@@ -40,5 +40,20 @@
   "transcript_backToMeeting": "Back to meeting",
   "transcript_statusLabel": "Status",
   "transcript_keyMoment": "Key moment",
-  "transcript_viewTranscript": "View Transcript"
+  "transcript_viewTranscript": "View Transcript",
+  "recording_upload": "Upload Recording",
+  "recording_dropzone": "Drop your audio or video file here",
+  "recording_dropzoneHint": "MP3, WAV, WebM, OGG, MP4, QuickTime",
+  "recording_uploading": "Uploading recording...",
+  "recording_uploadSuccess": "Recording uploaded successfully",
+  "recording_uploadFailed": "Upload failed",
+  "recording_maxSize": "Max file size: 500MB",
+  "recording_invalidType": "Invalid file type",
+  "recording_crmLinks": "Linked CRM Entities",
+  "recording_linkedContact": "Contact",
+  "recording_linkedDeal": "Deal",
+  "recording_linkedCompany": "Company",
+  "recording_autoLinked": "Auto-linked",
+  "recording_manualLink": "Manual link",
+  "recording_confirmUpload": "Confirm Upload"
 }

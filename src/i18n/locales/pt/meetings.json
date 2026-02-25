@@ -40,5 +40,20 @@
   "transcript_backToMeeting": "Voltar à reunião",
   "transcript_statusLabel": "Estado",
   "transcript_keyMoment": "Momento-chave",
-  "transcript_viewTranscript": "Ver Transcrição"
+  "transcript_viewTranscript": "Ver Transcrição",
+  "recording_upload": "Enviar Gravação",
+  "recording_dropzone": "Arraste o ficheiro de áudio ou vídeo aqui",
+  "recording_dropzoneHint": "MP3, WAV, WebM, OGG, MP4, QuickTime",
+  "recording_uploading": "A enviar gravação...",
+  "recording_uploadSuccess": "Gravação enviada com sucesso",
+  "recording_uploadFailed": "Falha no envio",
+  "recording_maxSize": "Tamanho máximo: 500MB",
+  "recording_invalidType": "Tipo de ficheiro inválido",
+  "recording_crmLinks": "Entidades CRM Associadas",
+  "recording_linkedContact": "Contacto",
+  "recording_linkedDeal": "Negócio",
+  "recording_linkedCompany": "Empresa",
+  "recording_autoLinked": "Ligado automaticamente",
+  "recording_manualLink": "Ligação manual",
+  "recording_confirmUpload": "Confirmar Envio"
 }
