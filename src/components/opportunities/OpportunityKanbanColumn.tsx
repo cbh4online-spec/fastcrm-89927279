@@ -21,6 +21,7 @@ import {
   Calculator,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 import { differenceInDays } from "date-fns";
 import { DealScore, getCategoryColors } from "@/hooks/useDealScores";
 import type { CompactDealIntelligence } from "@/types/dealIntelligence";
@@ -129,11 +130,16 @@ export function OpportunityKanbanColumn({
   };
 
   return (
-    <div
+    <motion.div
       className={cn(
-        "flex-shrink-0 w-80 flex flex-col rounded-lg bg-muted/30 border border-border transition-all",
-        isDragOver && "bg-primary/5 border-primary/50 ring-2 ring-primary/20"
+        "flex-shrink-0 w-80 flex flex-col rounded-lg bg-muted/30 border border-border",
+        isDragOver && "border-primary/50 ring-2 ring-primary/20"
       )}
+      animate={{
+        backgroundColor: isDragOver ? "hsl(var(--primary) / 0.05)" : "hsl(var(--muted) / 0.3)",
+        scale: isDragOver ? 1.01 : 1,
+      }}
+      transition={{ type: "spring", stiffness: 400, damping: 30 }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -208,37 +214,53 @@ export function OpportunityKanbanColumn({
       {/* Column Content */}
       <ScrollArea className="flex-1 p-2">
         <div className="space-y-2">
-          {opportunities.map((opp) => (
-            <div
-              key={opp.id}
-              draggable
-              onDragStart={(e) => { e.dataTransfer.setData("text/plain", opp.id); onDragStart(opp.id); }}
-              onDragEnd={onDragEnd}
-            >
-              <OpportunityCard
-                opportunity={opp}
-                isDragging={draggedId === opp.id}
-                onClick={onOpportunityClick ? () => onOpportunityClick(opp) : undefined}
-                dealScore={scoresMap?.get(opp.id)}
-                healthIntelligence={healthMap?.get(opp.id)}
-                stages={allStages}
-                ownerProfile={membersMap?.get(opp.owner_id)}
-              />
-            </div>
-          ))}
+          <AnimatePresence mode="popLayout">
+            {opportunities.map((opp) => (
+              <motion.div
+                key={opp.id}
+                layout
+                layoutId={opp.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
+                transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                draggable
+                onDragStart={(e: any) => { e.dataTransfer?.setData("text/plain", opp.id); onDragStart(opp.id); }}
+                onDragEnd={onDragEnd}
+              >
+                <OpportunityCard
+                  opportunity={opp}
+                  isDragging={draggedId === opp.id}
+                  onClick={onOpportunityClick ? () => onOpportunityClick(opp) : undefined}
+                  dealScore={scoresMap?.get(opp.id)}
+                  healthIntelligence={healthMap?.get(opp.id)}
+                  stages={allStages}
+                  ownerProfile={membersMap?.get(opp.owner_id)}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
 
-          {opportunities.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
-              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                <ArrowRight className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <p className="text-sm text-muted-foreground mb-3">{t("kanbanDragHere")}</p>
-              <Button variant="outline" size="sm" className="gap-2" onClick={() => onCreateOpportunity?.(stage.id)}>
-                <Plus className="w-4 h-4" />
-                {t("kanbanNewDeal")}
-              </Button>
-            </div>
-          )}
+          <AnimatePresence>
+            {opportunities.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="flex flex-col items-center justify-center py-8 px-4 text-center"
+              >
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                  <ArrowRight className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">{t("kanbanDragHere")}</p>
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => onCreateOpportunity?.(stage.id)}>
+                  <Plus className="w-4 h-4" />
+                  {t("kanbanNewDeal")}
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </ScrollArea>
 
@@ -270,6 +292,6 @@ export function OpportunityKanbanColumn({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </div>
+    </motion.div>
   );
 }

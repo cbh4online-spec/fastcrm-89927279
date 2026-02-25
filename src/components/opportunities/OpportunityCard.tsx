@@ -13,6 +13,7 @@ import {
   Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 import { format, differenceInDays } from "date-fns";
 import { pt } from "date-fns/locale";
 import { DealScore, getCategoryColors } from "@/hooks/useDealScores";
@@ -90,10 +91,23 @@ export function OpportunityCard({
   const totalStages = stages?.length ?? 0;
 
   const cardContent = (
+    <motion.div
+      animate={isDragging ? {
+        scale: 1.05,
+        rotate: 2,
+        boxShadow: "0 20px 40px -10px rgba(0,0,0,0.2)",
+        opacity: 0.8,
+      } : {
+        scale: 1,
+        rotate: 0,
+        boxShadow: "0 0px 0px 0px rgba(0,0,0,0)",
+        opacity: 1,
+      }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+    >
     <Card
       className={cn(
-        "cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md transition-all group/card",
-        isDragging && "opacity-50 rotate-2 shadow-lg",
+        "cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md transition-colors group/card",
         onClick && "cursor-pointer",
         dealScore?.urgency === "critical" && "border-red-300/60"
       )}
@@ -213,6 +227,7 @@ export function OpportunityCard({
         </div>
       </CardContent>
     </Card>
+    </motion.div>
   );
 
   if (dealScore?.next_action) {
