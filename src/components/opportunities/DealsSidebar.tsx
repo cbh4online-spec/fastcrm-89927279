@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { applyFilters, FilterCondition } from "@/hooks/useFilterEngine";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useSavedViews, useDeleteSavedView, useToggleFavorite, SavedView } from "@/hooks/useSavedViews";
+import { useSavedViews, useDeleteSavedView, useToggleFavorite, useUpdateSavedView, useDuplicateSavedView, SavedView } from "@/hooks/useSavedViews";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,8 @@ import {
   Plus,
   MoreHorizontal,
   Trash2,
+  Pencil,
+  Copy,
   Building2,
   Users,
   DollarSign,
@@ -109,6 +111,8 @@ export function DealsSidebar({
   const { data: views } = useSavedViews("opportunities");
   const deleteView = useDeleteSavedView();
   const toggleFavorite = useToggleFavorite();
+  const updateView = useUpdateSavedView();
+  const duplicateView = useDuplicateSavedView();
   const [searchQuery, setSearchQuery] = useState("");
   const [viewsOpen, setViewsOpen] = useState(true);
   const [favoritesOpen, setFavoritesOpen] = useState(true);
@@ -275,6 +279,8 @@ export function DealsSidebar({
                   onToggleFavorite={() =>
                     toggleFavorite.mutate({ id: view.id, entity_type: "opportunities", is_favorite: !view.is_favorite })
                   }
+                  onRename={(newName) => updateView.mutate({ id: view.id, entity_type: "opportunities", updates: { name: newName } })}
+                  onDuplicate={() => duplicateView.mutate({ view })}
                 />
               ))}
               <button
@@ -303,11 +309,13 @@ export function DealsSidebar({
                     view={view}
                     isActive={activeViewId === view.id}
                     onClick={() => onSelectView(view)}
-                    onDelete={() => deleteView.mutate({ id: view.id, entity_type: "opportunities" })}
-                    onToggleFavorite={() =>
-                      toggleFavorite.mutate({ id: view.id, entity_type: "opportunities", is_favorite: false })
-                    }
-                    showStar
+                  onDelete={() => deleteView.mutate({ id: view.id, entity_type: "opportunities" })}
+                  onToggleFavorite={() =>
+                    toggleFavorite.mutate({ id: view.id, entity_type: "opportunities", is_favorite: false })
+                  }
+                  onRename={(newName) => updateView.mutate({ id: view.id, entity_type: "opportunities", updates: { name: newName } })}
+                  onDuplicate={() => duplicateView.mutate({ view })}
+                  showStar
                   />
                 ))
               )}
@@ -408,6 +416,8 @@ function ViewItem({
   onClick,
   onDelete,
   onToggleFavorite,
+  onRename,
+  onDuplicate,
   showStar,
 }: {
   view: SavedView;
@@ -415,47 +425,91 @@ function ViewItem({
   onClick: () => void;
   onDelete: () => void;
   onToggleFavorite: () => void;
+  onRename: (newName: string) => void;
+  onDuplicate: () => void;
   showStar?: boolean;
 }) {
+  const { t } = useTranslation("crm");
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [newName, setNewName] = useState(view.name);
+
+  const handleRenameSubmit = () => {
+    if (newName.trim() && newName.trim() !== view.name) {
+      onRename(newName.trim());
+    }
+    setRenameOpen(false);
+  };
+
   return (
-    <div
-      className={cn(
-        "group flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors hover:bg-accent/50 cursor-pointer",
-        isActive && "bg-accent text-accent-foreground font-medium"
+    <>
+      <div
+        className={cn(
+          "group flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors hover:bg-accent/50 cursor-pointer",
+          isActive && "bg-accent text-accent-foreground font-medium"
+        )}
+        onClick={onClick}
+      >
+        {showStar ? (
+          <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500 flex-shrink-0" />
+        ) : view.icon ? (
+          <span className="flex-shrink-0 text-sm">{view.icon}</span>
+        ) : (
+          <div className={cn("w-2.5 h-2.5 rounded-full flex-shrink-0", hashColor(view.name))} />
+        )}
+        <span className="truncate flex-1">{view.name}</span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-muted rounded transition-opacity"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}>
+              <Star className={cn("h-3.5 w-3.5 mr-2", view.is_favorite && "text-amber-500 fill-amber-500")} />
+              {view.is_favorite ? t("sidebarRemoveFavorite") : t("sidebarAddToFavorites")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setNewName(view.name); setRenameOpen(true); }}>
+              <Pencil className="h-3.5 w-3.5 mr-2" />
+              {t("sidebarRenameView")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDuplicate(); }}>
+              <Copy className="h-3.5 w-3.5 mr-2" />
+              {t("sidebarDuplicate")}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-2" />
+              {t("sidebarDeleteView")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Rename Dialog */}
+      {renameOpen && (
+        <div className="px-3 py-1">
+          <div className="flex gap-1">
+            <Input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleRenameSubmit();
+                if (e.key === "Escape") setRenameOpen(false);
+              }}
+              className="h-7 text-xs"
+              autoFocus
+            />
+            <Button size="sm" className="h-7 px-2 text-xs" onClick={handleRenameSubmit}>
+              OK
+            </Button>
+          </div>
+        </div>
       )}
-      onClick={onClick}
-    >
-      {showStar ? (
-        <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500 flex-shrink-0" />
-      ) : view.icon ? (
-        <span className="flex-shrink-0 text-sm">{view.icon}</span>
-      ) : (
-        <div className={cn("w-2.5 h-2.5 rounded-full flex-shrink-0", hashColor(view.name))} />
-      )}
-      <span className="truncate flex-1">{view.name}</span>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-muted rounded transition-opacity"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}>
-            <Star className="h-3.5 w-3.5 mr-2" />
-            {view.is_favorite ? "Remover favorito" : "Favorito"}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-destructive"
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          >
-            <Trash2 className="h-3.5 w-3.5 mr-2" />
-            Eliminar
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+    </>
   );
 }

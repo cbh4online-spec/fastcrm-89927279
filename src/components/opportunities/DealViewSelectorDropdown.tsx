@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "cmdk";
-import { useSavedViews, useCreateSavedView, useDeleteSavedView, SavedView } from "@/hooks/useSavedViews";
-import { ChevronDown, LayoutGrid, Plus, MoreHorizontal, Trash2, Star, Edit } from "lucide-react";
+import { useSavedViews, useDeleteSavedView, useToggleFavorite, useDuplicateSavedView, SavedView } from "@/hooks/useSavedViews";
+import { ChevronDown, LayoutGrid, Plus, MoreHorizontal, Trash2, Star, Pencil, Copy } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,12 +28,15 @@ interface DealViewSelectorDropdownProps {
   activeViewId: string | null;
   onSelectView: (view: SavedView | null) => void;
   onCreateView: () => void;
+  onRenameView?: (view: SavedView) => void;
 }
 
-export function DealViewSelectorDropdown({ activeViewId, onSelectView, onCreateView }: DealViewSelectorDropdownProps) {
+export function DealViewSelectorDropdown({ activeViewId, onSelectView, onCreateView, onRenameView }: DealViewSelectorDropdownProps) {
   const { t } = useTranslation("crm");
   const { data: views } = useSavedViews("opportunities");
   const deleteView = useDeleteSavedView();
+  const toggleFavorite = useToggleFavorite();
+  const duplicateView = useDuplicateSavedView();
   const [open, setOpen] = useState(false);
 
   const activeView = views?.find((v) => v.id === activeViewId);
@@ -102,7 +105,35 @@ export function DealViewSelectorDropdown({ activeViewId, onSelectView, onCreateV
                         <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-40 bg-popover z-[60]">
+                    <DropdownMenuContent align="end" className="w-44 bg-popover z-[60]">
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite.mutate({ id: view.id, entity_type: "opportunities", is_favorite: !view.is_favorite });
+                        }}
+                      >
+                        <Star className={cn("h-3.5 w-3.5 mr-2", view.is_favorite && "text-amber-500 fill-amber-500")} />
+                        {view.is_favorite ? t("sidebarRemoveFavorite") : t("sidebarAddToFavorites")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRenameView?.(view);
+                          setOpen(false);
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5 mr-2" />
+                        {t("sidebarRenameView")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          duplicateView.mutate({ view });
+                        }}
+                      >
+                        <Copy className="h-3.5 w-3.5 mr-2" />
+                        {t("sidebarDuplicate")}
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"
                         onClick={(e) => {
