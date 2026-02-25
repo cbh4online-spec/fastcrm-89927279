@@ -27,7 +27,7 @@ interface Props {
 
 export function AskFastCRMDialog({ open, onOpenChange }: Props) {
   const [input, setInput] = useState("");
-  const { isLoading, result, ask, clear, executeAction } = useAskFastCRM();
+  const { isLoading, result, ask, clear, executeAction, pendingAction, confirmPendingAction, cancelPendingAction } = useAskFastCRM();
   const { data: recentQueries } = useRecentAskQueries();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -73,6 +73,11 @@ export function AskFastCRMDialog({ open, onOpenChange }: Props) {
     if (action.type === "navigate" || action.type === "automation") {
       onOpenChange(false);
     }
+  };
+
+  const handleDidYouMean = (text: string) => {
+    setInput(text);
+    ask(text);
   };
 
   return (
@@ -174,6 +179,10 @@ export function AskFastCRMDialog({ open, onOpenChange }: Props) {
               result={result}
               onAction={handleAction}
               onItemClick={handleItemClick}
+              onDidYouMean={handleDidYouMean}
+              pendingAction={pendingAction}
+              onConfirmAction={confirmPendingAction}
+              onCancelAction={cancelPendingAction}
             />
           )}
         </div>
