@@ -59,6 +59,16 @@ export interface StageDurationData {
   heat_ratio: number;
 }
 
+export interface DealForecastStage {
+  stage_name: string;
+  stage_color: string;
+  position: number;
+  total_value: number;
+  weighted_value: number;
+  probability: number;
+  deal_count: number;
+}
+
 export interface SalesVelocity {
   deals: number;
   avgValue: number;
@@ -303,6 +313,22 @@ export function useSalesPerformance() {
         };
       }).filter(s => s.deal_count > 0).sort((a, b) => a.position - b.position);
 
+      // --- Deal Forecast ---
+      const dealForecast: DealForecastStage[] = allStages.map((stage: any) => {
+        const stageOpps = activeOpps.filter((o: any) => o.stage_id === stage.id);
+        const totalValue = stageOpps.reduce((s: number, o: any) => s + (o.value || 0), 0);
+        const prob = (stage.probability || 0) / 100;
+        return {
+          stage_name: stage.name,
+          stage_color: stage.color || "hsl(var(--primary))",
+          position: stage.position,
+          total_value: totalValue,
+          weighted_value: totalValue * prob,
+          probability: stage.probability || 0,
+          deal_count: stageOpps.length,
+        };
+      }).filter(s => s.deal_count > 0).sort((a, b) => a.position - b.position);
+
       return {
         kpis,
         leadFlow,
@@ -314,6 +340,7 @@ export function useSalesPerformance() {
         topPerformers,
         sourceBreakdown,
         stageDuration,
+        dealForecast,
         activeDeals: activeOpps.length,
         totalPipeline,
       };
