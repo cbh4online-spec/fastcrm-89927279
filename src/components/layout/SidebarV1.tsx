@@ -6,6 +6,8 @@ import { X, Command, Search, Star, PanelLeftClose, PanelLeftOpen } from "lucide-
 import { Separator } from "@/components/ui/separator";
 import { useSidebarFavorites } from "@/hooks/useSidebarFavorites";
 import { useSidebarCollapse } from "@/hooks/useSidebarCollapse";
+import { useCustomObjects } from "@/hooks/useCustomObjects";
+import { getIconByName } from "@/lib/icons";
 import {
   Tooltip,
   TooltipContent,
@@ -23,6 +25,7 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
   const navigate = useNavigate();
   const { favorites, toggleFavorite, isFavorite } = useSidebarFavorites();
   const { collapsed, toggleCollapse } = useSidebarCollapse();
+  const { data: customObjects } = useCustomObjects();
 
   // On mobile overlay, always show expanded
   const isCollapsed = collapsed && !open;
@@ -35,7 +38,17 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
     return location.pathname === basePath || location.pathname.startsWith(basePath + "/");
   };
 
-  const favoriteItems = NAV_V1_ITEMS.filter((item) => favorites.includes(item.href));
+  // Build dynamic nav items from custom objects
+  const dynamicItems = (customObjects || []).map((obj) => ({
+    name: obj.name,
+    href: `/objects/${obj.slug}`,
+    icon: getIconByName(obj.icon),
+    group: "Records",
+    dynamic: true,
+  }));
+
+  const allNavItems = [...NAV_V1_ITEMS, ...dynamicItems];
+  const favoriteItems = allNavItems.filter((item) => favorites.includes(item.href));
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -111,7 +124,7 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
               )}
               <div className={cn("space-y-0.5", !isCollapsed && "mt-1.5")}>
                 {favoriteItems.map((item) => {
-                  const active = isActive(item.href, item.end);
+                  const active = isActive(item.href, 'end' in item ? item.end : undefined);
                   return isCollapsed ? (
                     <Tooltip key={item.href}>
                       <TooltipTrigger asChild>
@@ -216,6 +229,71 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
                 );
               })}
             </div>
+
+            {/* Dynamic Records section */}
+            {dynamicItems.length > 0 && (
+              <>
+                <Separator className="my-2" />
+                {!isCollapsed && (
+                  <span className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Records
+                  </span>
+                )}
+                <div className={cn("space-y-0.5", !isCollapsed && "mt-1.5")}>
+                  {dynamicItems.map((item) => {
+                    const href = item.href;
+                    const active = isActive(href);
+                    const pinned = isFavorite(href);
+                    const Icon = item.icon;
+
+                    return isCollapsed ? (
+                      <Tooltip key={href}>
+                        <TooltipTrigger asChild>
+                          <Link
+                            to={href}
+                            onClick={onClose}
+                            className={cn(
+                              "flex items-center justify-center p-2 rounded-lg transition-colors",
+                              active
+                                ? "bg-muted text-foreground"
+                                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                            )}
+                          >
+                            <Icon className="w-4 h-4" />
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">{item.name}</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <div key={href} className="group flex items-center">
+                        <Link
+                          to={href}
+                          onClick={onClose}
+                          className={cn(
+                            "flex-1 flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                            active
+                              ? "bg-muted text-foreground"
+                              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                          )}
+                        >
+                          <Icon className={cn("w-4 h-4", active ? "text-foreground" : "text-muted-foreground")} />
+                          <span className="flex-1">{item.name}</span>
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(href); }}
+                            className={cn(
+                              "p-0.5 rounded hover:bg-muted transition-all",
+                              pinned ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                            )}
+                          >
+                            <Star className={cn("w-3.5 h-3.5", pinned ? "fill-foreground text-foreground" : "text-muted-foreground")} />
+                          </button>
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </nav>
 
           {/* Collapse Toggle — desktop only */}
