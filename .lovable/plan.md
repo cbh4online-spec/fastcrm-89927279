@@ -1,73 +1,67 @@
 
 
-# Replicate Scores, Lifecycle & Audit for Lead Page
+# Make EntityDetailsPanel Fields Editable
 
-## Current State
+## Problem
 
-- **Company**: Has `CompanyScoresCard`, `CompanyLifecycleSection`, `CompanyFirmographicsSection`, `CompanyAuditSection` -- all integrated in overview and audit tabs.
-- **Contact**: Already has `ContactScoresCard`, `ContactLifecycleSection`, `ContactAuditSection` integrated (lines 197-199 and 401 of `ENIContactDetailWithSidebar.tsx`). No firmographics needed for contacts.
-- **Lead**: Missing all three. The `leads` DB table lacks `icp_fit_score`, `engagement_score`, `pare_score` columns. No `leads_audit_log` table exists.
+The right-side "Detalhes" panel (`EntityDetailsPanel`) currently renders all fields as read-only text using `FieldRow`. Users cannot edit Email, Telefone, Fonte, Empresa, LinkedIn, or Instagram directly from this panel.
 
-## Changes Required
+## Solution
 
-### 1. Database Migration
+Add an `onUpdate` callback prop to `EntityDetailsPanel` and replace `FieldRow` with `EditableFieldRow` — a new inline component that uses click-to-edit behavior (similar to `InlineFieldEditor`). When a user clicks on a field value (or the "—" placeholder), it becomes an input. On blur/Enter it saves; on Escape it cancels.
 
-Add score columns to `leads` table and create audit log table:
+## Architecture
 
-```sql
-ALTER TABLE public.leads
-  ADD COLUMN IF NOT EXISTS icp_fit_score integer DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS engagement_score integer DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS pare_score integer DEFAULT 0;
-
-CREATE TABLE IF NOT EXISTS public.leads_audit_log (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id uuid REFERENCES public.workspaces(id),
-  lead_id uuid REFERENCES public.leads(id) ON DELETE CASCADE,
-  changed_by uuid,
-  changed_at timestamptz DEFAULT now(),
-  field_name text NOT NULL,
-  old_value jsonb,
-  new_value jsonb
-);
-
-ALTER TABLE public.leads_audit_log ENABLE ROW LEVEL SECURITY;
--- RLS policy matching existing audit log patterns
+```text
+EntityDetailsPanel
+  props: + onUpdate?: (field: string, value: string) => void
+  │
+  ├─ LeadDetails    → receives onUpdate
+  │   ├─ EditableFieldRow "email"      → onSave → onUpdate('email', val)
+  │   ├─ EditableFieldRow "phone"      → onUpdate('phone', val)
+  │   ├─ EditableFieldRow "source"     → onUpdate('source', val)
+  │   ├─ EditableFieldRow "company"    → onUpdate('company', val)
+  │   ├─ EditableFieldRow "linkedin_url" → onUpdate('linkedin_url', val)
+  │   └─ EditableFieldRow "instagram_url" → onUpdate('instagram_url', val)
+  │
+  ├─ ContactDetails → receives onUpdate (same pattern)
+  └─ CompanyDetails → receives onUpdate (same pattern)
 ```
 
-### 2. New Hooks
+## Changes
 
-| File | Purpose |
-|------|---------|
-| `src/hooks/useLeadScores.ts` | `useUpdateLeadScores` mutation -- mirrors `useContactScores.ts` but for leads table |
-| `src/hooks/useLeadAuditLog.ts` | Query `leads_audit_log` -- mirrors `useContactAuditLog.ts` |
+### 1. `src/components/entity/EntityDetailsPanel.tsx`
 
-### 3. New Components
+- Add `onUpdate?: (field: string, value: unknown) => void` to `EntityDetailsPanelProps`
+- Create `EditableFieldRow` component inside the file: displays value normally, on click switches to an `<input>`, commits on blur/Enter, cancels on Escape. For link fields, shows value as link when not editing but still allows click-to-edit via a pencil icon.
+- Replace all `FieldRow` calls in `LeadDetails`, `ContactDetails`, and `CompanyDetails` with `EditableFieldRow` that includes a `fieldKey` prop
+- Pass `onUpdate` down to each entity-specific sub-component
 
-| File | Based On |
-|------|----------|
-| `src/components/leads/sections/LeadScoresCard.tsx` | `ContactScoresCard` -- ICP Fit, Engagement, PARE with editable progress bars |
-| `src/components/leads/sections/LeadLifecycleSection.tsx` | `ContactLifecycleSection` -- pipeline with statuses: New, Contacted, Qualified, Customer |
-| `src/components/leads/sections/LeadAuditSection.tsx` | `ContactAuditSection` -- audit log table using `useLeadAuditLog` |
+### 2. `src/components/crm/LeadDetailWithSidebar.tsx` (line 490)
 
-### 4. Integration: `LeadDetailWithSidebar.tsx`
+- Pass `onUpdate` to `EntityDetailsPanel`:
+  ```tsx
+  <EntityDetailsPanel 
+    entityType="lead" 
+    entity={lead as any} 
+    onUpdate={(field, value) => handleFieldChange(field as keyof Lead, value)} 
+  />
+  ```
 
-- **Overview section** (line 181): Add `LeadScoresCard` + `LeadLifecycleSection` in a 2-column grid before existing content
-- **Audit case**: Add `case 'audit'` to the switch returning `<LeadAuditSection leadId={id!} />`
-- Update Lead interface in `useLeads.ts` to include the 3 new score fields
+### 3. `src/components/companies/CompanyDetailWithSidebar.tsx`
 
-### 5. Files Changed Summary
+- Same pattern: pass `onUpdate` connecting to the company update handler
 
-| File | Change |
-|------|--------|
-| DB migration | Add 3 columns to `leads`, create `leads_audit_log` table + RLS |
-| `src/hooks/useLeads.ts` | Add `icp_fit_score`, `engagement_score`, `pare_score` to `Lead` interface |
-| `src/hooks/useLeadScores.ts` | **New** -- mutation hook for lead scores |
-| `src/hooks/useLeadAuditLog.ts` | **New** -- query hook for lead audit log |
-| `src/components/leads/sections/LeadScoresCard.tsx` | **New** -- scores card component |
-| `src/components/leads/sections/LeadLifecycleSection.tsx` | **New** -- lifecycle pipeline component |
-| `src/components/leads/sections/LeadAuditSection.tsx` | **New** -- audit log table component |
-| `src/components/crm/LeadDetailWithSidebar.tsx` | Integrate scores + lifecycle in overview, add audit case |
+### 4. `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx`
 
-No changes needed for Contacts -- already fully integrated.
+- Same pattern: pass `onUpdate` connecting to the contact update handler
+
+## EditableFieldRow Behavior
+
+- **Display mode**: Shows icon + label + value (or "—"), with a subtle pencil icon on hover
+- **Link fields**: Value remains clickable as a link; pencil icon triggers edit mode
+- **Edit mode**: Replaces value with `<input>` (type based on field: email, url, tel, text)
+- **Save**: On blur or Enter key
+- **Cancel**: On Escape key
+- **Tags**: Remain non-editable in this panel (edited in dedicated section)
 
