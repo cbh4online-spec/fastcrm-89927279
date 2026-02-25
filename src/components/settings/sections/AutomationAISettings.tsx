@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { AgentSchedulesManager } from "@/components/ai-agents/AgentSchedulesManager";
 import { CacheMetricsDashboard } from "@/components/ai-agents/CacheMetricsDashboard";
+import { LeadRoutingConfig } from "@/components/plg/LeadRoutingConfig";
 
 interface AutomationAISettingsProps {
   searchQuery?: string;
@@ -217,6 +218,9 @@ export function AutomationAISettings({ searchQuery = "", matchedSections }: Auto
           action={<Button variant="outline">Exportar</Button>}
         />
       </SettingsSection>
+
+      {/* PLG Lead Routing */}
+      <LeadRoutingConfig />
     </div>
   );
 }

@@ -29,6 +29,7 @@ import { AIActionSuggestions } from "@/components/dashboard/AIActionSuggestions"
 import { ForecastConfidenceCard } from "@/components/dashboard/ForecastConfidenceCard";
 import { DashboardAutomationSuggestions } from "@/components/dashboard/DashboardAutomationSuggestions";
 import { PipelineComparisonCard } from "@/components/dashboard/PipelineComparisonCard";
+import { PLGSignalsFeed } from "@/components/dashboard/PLGSignalsFeed";
 
 // Dialog components for creating entities
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
@@ -140,6 +141,7 @@ export default function Dashboard() {
             {/* Right */}
             <div className="col-span-12 lg:col-span-4 space-y-4">
               <PipelineHealthCard />
+              <PLGSignalsFeed />
               <ForecastConfidenceCard />
               <PipelineComparisonCard />
             </div>

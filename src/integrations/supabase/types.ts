@@ -16175,6 +16175,56 @@ export type Database = {
           },
         ]
       }
+      lead_routing_rules: {
+        Row: {
+          action_config: Json
+          action_type: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          priority: number
+          score_max: number
+          score_min: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          action_config?: Json
+          action_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          priority?: number
+          score_max?: number
+          score_min?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          action_config?: Json
+          action_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          priority?: number
+          score_max?: number
+          score_min?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_routing_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           address: string | null
@@ -22177,6 +22227,76 @@ export type Database = {
           },
           {
             foreignKeyName: "product_relations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_signals: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          email: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          lead_id: string | null
+          processed: boolean
+          routing_action: string | null
+          routing_details: Json | null
+          score_impact: number | null
+          source: string
+          workspace_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          email: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          lead_id?: string | null
+          processed?: boolean
+          routing_action?: string | null
+          routing_details?: Json | null
+          score_impact?: number | null
+          source?: string
+          workspace_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          email?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          lead_id?: string | null
+          processed?: boolean
+          routing_action?: string | null
+          routing_details?: Json | null
+          score_impact?: number | null
+          source?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_signals_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_signals_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_signals_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
