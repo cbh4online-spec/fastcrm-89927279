@@ -1,43 +1,105 @@
 
 
-# Plan: Add Rename & Duplicate to View Context Menus (like Attio)
+# Plan: Template Library Modal (Attio-style)
 
-## Context
+## What We're Building
 
-The screenshot shows Attio's deals view with a context menu containing 4 actions: **Add to favorites**, **Rename**, **Duplicate**, and **Delete**. Our current `ViewItem` in `DealsSidebar.tsx` only has 2: Favorito and Eliminar. The `DealViewSelectorDropdown.tsx` only has Delete.
+A full-screen modal template library matching the Attio/Basepoint pattern shown in the screenshot. This will be a reusable dialog that can be opened from the existing Communication Templates page (and other surfaces) to browse, search, and apply pre-built templates organized by use case categories.
 
-The `useUpdateSavedView` hook already exists for renaming. We need to add a duplicate mutation and wire up both Rename and Duplicate into the context menus.
+## Key UI Elements (from screenshot)
+
+- **Left sidebar**: "USE CASES" vertical nav with category icons (General, Sales, Success, Product, Marketing, Recruiting, Fundraising, Investing)
+- **Search bar**: "Search for templates, topics, goals..." at the top
+- **Template cards**: Horizontal list items showing:
+  - Left: Field preview chips (e.g. "Budget > Text", "Authority > List")
+  - Center: Template name, description, category badge
+  - Right: Section count (e.g. "4 Sections")
+- **Preview button**: "Preview template" sticky at bottom-right
+- **Close button**: X in top-right corner
+
+## Architecture
+
+### New Components
+
+1. **`src/components/communication/TemplateLibraryDialog.tsx`** — Main modal dialog
+   - Left sidebar with category list + icons
+   - Search input at top
+   - Scrollable template card list
+   - Preview panel/button
+   - Props: `open`, `onOpenChange`, `onSelectTemplate`
+
+2. **`src/components/communication/TemplateLibraryCard.tsx`** — Individual template row card
+   - Field preview chips on the left
+   - Title + description + category badge in center
+   - Section/field count on right
+   - Hover state with selection
+
+3. **`src/components/communication/templateLibraryData.ts`** — Static pre-built template definitions
+   - ~15-20 pre-built templates organized by use case
+   - Categories: Geral, Vendas, Sucesso, Produto, Marketing, Recrutamento, Captação, Investimento
+   - Each template has: name, description, category, fields/sections, body content
+
+### Integration Points
+
+- Add "Biblioteca" button to existing `TemplatesListPage.tsx` header actions
+- When a template is selected from the library, it pre-fills the `TemplateFormDialog` for creation
+- Reuses existing `CommunicationTemplate` type and `useCreateCommunicationTemplate` hook
+
+## Use Case Categories (adapted for CRM context)
+
+| Category | Icon | Templates |
+|----------|------|-----------|
+| Geral | LayoutGrid | Boas-vindas, Agradecimento, Confirmação |
+| Vendas | TrendingUp | BANT, Cold Outreach, Follow-Up, Proposta |
+| Sucesso | Heart | Onboarding, Check-in, Satisfação, Renovação |
+| Produto | Package | Lançamento, Demo, Feature Update |
+| Marketing | Megaphone | Newsletter, Promoção, Evento, Reativação |
+| Recrutamento | Users | Entrevista, Candidato, Oferta |
+
+## Pre-built Templates (examples)
+
+Each template includes:
+- **Name** and **description** 
+- **Category** badge (colored)
+- **Fields/sections** with type indicators (Text, List, etc.)
+- **Channel** (email/whatsapp)
+- **Structure** (AIDA, PAS, etc.)
+- **Body** content with variables
+
+Example:
+```text
+BANT Qualification
+├── Budget      > Text
+├── Authority   > Text  
+├── Need        > List
+└── Timeline    > Text
+Category: Sales | 4 Sections
+```
 
 ## Implementation Steps
 
-### 1. Add `useDuplicateSavedView` hook — EDIT `src/hooks/useSavedViews.ts`
+### Step 1: Create template library data file
+`src/components/communication/templateLibraryData.ts` with ~18 pre-built templates, each with name, description, category, sections (field previews), channel, tone, structure, and body content.
 
-Add a new mutation that reads the view by ID, then inserts a copy with `name + " (copy)"` and resets `is_default`/`is_favorite`.
+### Step 2: Create TemplateLibraryCard component
+Horizontal card matching the screenshot layout: field chips on left, title+description+badge in center, section count on right.
 
-### 2. Update `ViewItem` context menu — EDIT `src/components/opportunities/DealsSidebar.tsx`
+### Step 3: Create TemplateLibraryDialog component
+Full modal with:
+- Left sidebar (240px) with category list and active state
+- Top search bar
+- Scrollable card list
+- Bottom "Preview template" button that shows a preview of selected template
+- "Use template" action that passes data to `TemplateFormDialog`
 
-Add "Rename" and "Duplicate" menu items between "Favorito" and "Eliminar":
-- **Add to favorites** (existing, with star icon)
-- **Rename** — opens an inline edit or prompt to rename (using `useUpdateSavedView`)
-- **Duplicate** — calls `useDuplicateSavedView`
-- **Delete** — existing destructive action
-
-Add a rename dialog/inline state to `ViewItem` for editing the name.
-
-Pass new callbacks (`onRename`, `onDuplicate`) into `ViewItem`.
-
-### 3. Update `DealViewSelectorDropdown` context menu — EDIT `src/components/opportunities/DealViewSelectorDropdown.tsx`
-
-Add the same 3 actions (Favorite, Rename, Duplicate) above Delete in each view's dropdown. Currently it only shows Delete.
-
-### 4. Add i18n keys — EDIT locale files (en, es, fr, pt)
-
-Add keys for `sidebarRenameView`, `sidebarDuplicateView`, `sidebarAddToFavorites`, `sidebarRemoveFavorite` to `crm.json` locale files.
+### Step 4: Integrate into TemplatesListPage
+Add a "Biblioteca" button to the page header that opens the dialog. On template selection, open `TemplateFormDialog` pre-filled with the template data.
 
 ## Technical Notes
 
-- `useUpdateSavedView` already supports partial updates including `name` — rename just calls it with `{ name: newName }`
-- Duplicate creates a new record server-side — no need for client-side ID generation
-- The rename UX will use a small Dialog with a single input field (matching the existing `CreateViewDialog` pattern)
-- All 4 context menu items will have icons: Star, Edit (Pencil), Copy, Trash2
+- The dialog uses `@radix-ui/react-dialog` (already installed) with `max-w-5xl` for the wide layout
+- Categories filter client-side from the static data array
+- Search filters by name, description, and field names
+- No database changes needed — this is a static library of starter templates
+- When "Use template" is clicked, the template body/structure is passed to the existing create flow
 
