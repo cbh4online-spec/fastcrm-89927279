@@ -15,6 +15,9 @@ import {
   FileText,
   Settings,
   Sparkles,
+  Inbox,
+  BarChart3,
+  Layers,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -32,6 +35,7 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   // Geral
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Geral", end: true },
   { name: "Ask FastCRM", href: "/dashboard/ask", icon: Sparkles, group: "Geral" },
+  { name: "Inbox", href: "/dashboard/inbox", icon: Inbox, group: "Geral" },
 
   // CRM
   { name: "Leads", href: "/dashboard/leads", icon: Users, group: "CRM", separator: true },
@@ -53,6 +57,8 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Automações", href: "/dashboard/automations", icon: Zap, group: "Ferramentas", separator: true },
   { name: "Assistentes IA", href: "/dashboard/ai-assistants", icon: Brain, group: "Ferramentas" },
   { name: "Form Studio", href: "/dashboard/form-studio", icon: FileText, group: "Ferramentas" },
+  { name: "Relatórios", href: "/dashboard/reports", icon: BarChart3, group: "Ferramentas" },
+  { name: "Marketplace", href: "/dashboard/marketplace", icon: Layers, group: "Ferramentas" },
 
   // Settings
   { name: "Definições", href: "/settings", icon: Settings, group: "Definições", separator: true },
