@@ -523,5 +523,39 @@
   "smartListFieldEmployees": "Employés",
   "smartListFieldCreatedAt": "Créé le",
 
-  "importExport": "Importer/Exporter"
+  "importExport": "Importer/Exporter",
+
+  "kanbanAddOpportunity": "Ajouter opportunité",
+  "kanbanTotalValue": "Valeur Totale",
+  "kanbanWeighted": "Pondéré",
+  "kanbanAvgDays": "Moy: {{days}} jours",
+  "kanbanScore": "Score :",
+  "kanbanDragHere": "Glissez les opportunités ici",
+  "kanbanNewDeal": "Nouvelle Affaire",
+  "kanbanNextAction": "Prochaine Action :",
+
+  "oppDetailTitle": "Détails de l'Opportunité",
+  "oppDetailNotFound": "Opportunité non trouvée",
+  "oppDetailBackToList": "Retour aux opportunités",
+  "oppDetailTabOverview": "Vue d'ensemble",
+  "oppDetailTabInsights": "Insights IA",
+  "oppDetailTabTasks": "Tâches",
+  "oppDetailTabNotes": "Notes",
+  "oppDetailAdvancedTo": "Avancé à : {{stage}}",
+  "oppDetailAdvanceError": "Erreur lors de l'avancement de l'étape",
+  "oppDetailTasksComingSoon": "Gestion des tâches bientôt...",
+  "oppDetailNotesComingSoon": "Notes bientôt...",
+  "oppDetailActivity": "Activité",
+  "oppDetailAction": "Action : {{action}}",
+
+  "companyTypeProspect": "Prospect",
+  "companyTypeClient": "Client",
+  "companyTypePartner": "Partenaire",
+  "companyTypeCompetitor": "Concurrent",
+  "companyTypeVendor": "Fournisseur",
+  "companyTypeUnknown": "Inconnu",
+  "actionScheduleMeeting": "Planifier réunion",
+  "actionResearch": "Rechercher",
+  "insightQuickSummary": "Résumé rapide pour décider :",
+  "tempAutoClassification": "Classification automatique basée sur l'intention"
 }
