@@ -14,6 +14,7 @@ import { IntegrationsSettings } from "@/components/settings/sections/Integration
 import { BillingSettings } from "@/components/settings/sections/BillingSettings";
 import { FeatureFlagsSettings } from "@/components/settings/FeatureFlagsSettings";
 import { ExtensionAuditLog } from "@/components/settings/ExtensionAuditLog";
+import { ExtensionSettingsSection } from "@/components/settings/ExtensionSettingsSection";
 import { searchSettings } from "@/components/settings/settingsSearchData";
 
 const categoryTitles: Record<SettingsCategory, { title: string; description: string }> = {
@@ -132,7 +133,12 @@ export default function Settings() {
       case "billing":
         return <BillingSettings searchQuery={searchQuery} matchedSections={matchedSections} />;
       case "extensions":
-        return <ExtensionAuditLog />;
+        return (
+          <div className="space-y-8">
+            <ExtensionSettingsSection />
+            <ExtensionAuditLog />
+          </div>
+        );
       case "flags":
         return <FeatureFlagsSettings />;
       default:
