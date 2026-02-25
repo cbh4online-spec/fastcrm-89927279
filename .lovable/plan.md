@@ -1,142 +1,177 @@
 
 
-# FastCRM 2.0 — Honest Audit of 6 Revenue Pillars
+# Ask FastCRM — Revenue Command Interface
 
-## Summary Verdict
+## Architecture Overview
 
-| Layer | Status | Verdict |
-|---|---|---|
-| 1. Revenue Visibility | ✅ Solid | Forecast is real but has one gap |
-| 2. Revenue Control | ⚠️ Functional but passive | Abandoned deal detection exists but is advisory-only |
-| 3. Revenue Execution | ✅ Built | Proposals, invoices, orders all wired — automations are visual |
-| 4. Intelligence Layer | ✅ Real | Scoring is deterministic and explainable, not decorative |
-| 5. Object Flexibility | ⚠️ Structural but hidden | Custom fields/objects exist but UX doesn't sell the flexibility |
-| 6. Performance & UX | ⚠️ Mixed | Premium in places, complex in others |
+```text
+┌──────────────────────────────────────────────────┐
+│  UI Layer                                         │
+│  ┌─────────────────┐  ┌───────────────────────┐  │
+│  │ AskFastCRM      │  │ GlobalSearch (⌘K)     │  │
+│  │ CommandDialog    │  │ + "Ask" mode toggle   │  │
+│  └────────┬────────┘  └───────────┬───────────┘  │
+│           │                       │               │
+│           └───────┬───────────────┘               │
+│                   ▼                               │
+│  ┌─────────────────────────────────────────────┐  │
+│  │  useAskFastCRM hook                         │  │
+│  │  - sends question to edge function          │  │
+│  │  - receives structured response             │  │
+│  │  - exposes action handlers                  │  │
+│  └────────────────┬────────────────────────────┘  │
+└───────────────────┼──────────────────────────────┘
+                    ▼
+┌──────────────────────────────────────────────────┐
+│  Edge Function: ask-fastcrm                       │
+│  1. Intent classification (LLM tool call)         │
+│  2. Data query (Supabase service client)          │
+│  3. Structured response assembly                  │
+│  Calls: opportunities, deal_intelligence_cache,   │
+│         deal_scores, crm_activities,              │
+│         revenue_forecasts, contacts               │
+└──────────────────────────────────────────────────┘
+```
 
----
+## Technical Details
 
-## 1. Revenue Visibility — "Is the forecast reliable?"
+### 1. Edge Function: `supabase/functions/ask-fastcrm/index.ts`
 
-**What exists:**
-- `compute-revenue-forecast` edge function computes 7/30/90-day horizons using behavioral deal scores (not just stage probability)
-- 3 scenarios: Best Case, Expected Case, Worst Case with a Risk Index
-- `deal-intelligence` edge function scores each deal (0-100) using: recency, stage stagnation vs `expected_days` benchmarks, data completeness, activity count
-- `intelligence-panel` computes portfolio-level `stage_benchmarks` (expected vs actual days per stage)
-- Health badges (HEALTHY/WATCH/AT_RISK) now visible in both table and Kanban views
-- Sorting by health status just implemented
+**Input:** `{ question: string }` + JWT auth + X-Workspace-Id header
 
-**Honest assessment:** The forecast is **real and behavioral** — it uses deal scores weighted by confidence category (hot/likely/uncertain/low), not just static stage percentages. This is genuinely better than most CRMs.
+**Flow:**
+1. Validate auth and workspace
+2. Call Lovable AI (`google/gemini-2.5-flash`) with structured tool calling to classify the question into one of these intents:
+   - `deals_at_risk` — fetch AT_RISK deals from deal_intelligence_cache
+   - `deals_inactive` — fetch deals with no activity in N days (from crm_activities)
+   - `closing_soon` — deals with expected_close_date within N days
+   - `forecast_summary` — latest revenue_forecasts row
+   - `pipeline_summary` — aggregate open opportunities by stage
+   - `contacts_inactive` — contacts without recent activity
+   - `stage_bottleneck` — stages where avg_days > expected_days (from intelligence-panel logic)
+3. Execute the corresponding database query via service client
+4. Return structured response
 
-**One gap:** There is no **trend visualization**. The hook fetches the last 2 forecasts and computes a single trend percentage, but there is no chart showing forecast trajectory over time. A founder cannot see "is my pipeline getting healthier or worse week over week?"
+**Response contract:**
+```typescript
+{
+  header: string;           // "3 deals are at risk."
+  items: Array<{
+    id: string;
+    title: string;
+    subtitle?: string;      // "Health 42 · Stuck in Proposal"
+    value?: number;
+    health_label?: string;
+    link: string;            // "/dashboard/opportunities?deal=xxx"
+  }>;
+  actions: Array<{
+    id: string;              // "create_tasks_all" | "view_list" | "create_automation"
+    label: string;
+    icon: string;            // lucide icon name
+    type: "bulk_task" | "navigate" | "automation";
+    payload?: Record<string, any>;
+  }>;
+  metric?: {
+    label: string;
+    value: string;
+    trend?: "up" | "down" | "neutral";
+  };
+}
+```
 
-**Recommendation:** Create a `ForecastTrendChart` component that queries the last 8-12 `revenue_forecasts` snapshots and renders a simple line chart (expected_case over time). This is the single highest-impact addition to make the forecast feel trustworthy.
+### 2. Frontend Hook: `src/hooks/useAskFastCRM.ts`
 
----
+- Manages state: `question`, `isLoading`, `result`, `error`
+- Calls `supabase.functions.invoke("ask-fastcrm", { body: { question } })`
+- Passes workspace header via existing pattern
+- Exposes `ask(question)`, `clear()`, `executeAction(actionId, payload)`
+- `executeAction` handles:
+  - `bulk_task`: Creates tasks for all listed deal IDs via existing tasks table insert
+  - `navigate`: Calls `navigate(link)`
+  - `create_automation`: Opens automation builder with pre-filled template
 
-## 2. Revenue Control — "Can it detect abandoned deals?"
+### 3. UI Component: `src/components/ask-fastcrm/AskFastCRMDialog.tsx`
 
-**What exists:**
-- `deal-intelligence` function flags deals stuck in a stage beyond `expected_days` (MEDIUM risk) or `2x expected_days` (HIGH risk)
-- `intelligence-panel` computes `portfolio_momentum.deals_stale` count
-- NBA (Next Best Action) system generates contextual actions: FOLLOW_UP, CREATE_TASK, REVIEW_BLOCKERS, COMPLETE_DATA
-- `DealIntelligencePanel` renders NBA with one-click task creation
-- `ConversationFollowupBanner` detects `hot_stalled` conversations
-- Behavioral mode selector in `agentBehavioralModeSelector.ts` has explicit `stalledOpportunities` override
+A dedicated CommandDialog-style modal (not reusing GlobalSearch, to keep concerns separate):
 
-**Honest assessment:** The system **can detect** abandoned/stalled deals — it measures days in stage vs benchmarks and flags them as AT_RISK with specific risk reasons. The NBA tells the user what to do.
+- **Trigger:** New keyboard shortcut `⌘J` (⌘K already taken by GlobalSearch)
+- **Input bar** at top: "Ask about your revenue..."
+- **Suggested queries** shown when empty (6 chips: "Deals at risk", "Closing this month", "Pipeline summary", "Inactive deals", "Forecast", "Stage bottlenecks")
+- **Result area:**
+  - Header text (bold, 1 line)
+  - Optional metric card (value + trend arrow)
+  - Items list (max 10, each row: title, subtitle, value, health badge, click to navigate)
+  - Action buttons bar at bottom (max 3 actions)
+- **Design:** Clean, no chat bubbles, no conversation history. Single question → single answer. New question replaces old answer.
 
-**Gap:** Detection is **passive** — the user must open the deal or look at the intelligence panel to see the warning. There is no **proactive alert system** that pushes notifications when a deal crosses the stale threshold.
+### 4. UI Integration Points
 
-**Recommendation:** Add a lightweight "Deals at Risk" notification card to the main dashboard or opportunities view header. It should show count of AT_RISK deals with one-click navigation. The data already exists in `intelligence-panel` response (`portfolio_momentum.deals_stale`).
+**a) TopBar** (`src/components/layout/TopBar.tsx`):
+- Add an "Ask FastCRM" button (small, icon + text) next to GlobalSearch
+- Clicking opens the dialog
 
----
+**b) Intelligence Tab** (`src/pages/IntelligencePage.tsx`):
+- Replace current `AssistTab` content with an embedded version of AskFastCRM (inline, not modal)
+- Reuses the same hook and response renderer
 
-## 3. Revenue Execution — "Are automations easy to configure?"
+**c) Keyboard shortcut:** `⌘J` globally registered via useEffect in `AskFastCRMDialog`
 
-**What exists:**
-- `VisualAutomationBuilder` — full visual builder with trigger/condition/action pattern
-- `AutomationRecipesPanel` — pre-built recipes that install with one click
-- `AutomationTestRunner` — test automations before activating
-- `AIAutomationExplainer` — explains any rule in plain language
-- `ConversationAutomationHelper` — describe what you want in natural language, AI generates the rule
-- `AutomationSuggestionsPanel` — AI suggests automations based on patterns
-- Proposals system with PDF generation (jsPDF) and email delivery (Resend)
-- Invoices module at `/dashboard/invoices`
-- Order notes at `/dashboard/order-notes`
+### 5. Action Execution (Phase 2 — Ask → Act)
 
-**Honest assessment:** Automations are **surprisingly mature**. The combination of visual builder + one-click recipes + AI generation + plain language explainer covers all skill levels. This is not "technical" — it is genuinely accessible.
+Each action button in the response triggers:
 
-**No significant gaps here.** The execution layer is the strongest pillar.
+| Action ID | Behavior |
+|---|---|
+| `create_tasks_all` | Bulk insert into `tasks` table for each item's deal ID, with suggested title/priority from the edge function |
+| `view_as_list` | Navigate to opportunities page with filter query params matching the result set |
+| `create_automation` | Navigate to `/dashboard/automations?create=true&template=opportunity-stale-alert` |
+| `update_stage` | Opens stage selector for the specific deal (when single-deal context) |
 
----
+### 6. Files to Create
 
-## 4. Intelligence Layer — "Are insights actually useful?"
+| File | Purpose |
+|---|---|
+| `supabase/functions/ask-fastcrm/index.ts` | Edge function with intent classification + data queries |
+| `src/hooks/useAskFastCRM.ts` | Frontend hook |
+| `src/components/ask-fastcrm/AskFastCRMDialog.tsx` | Modal dialog component |
+| `src/components/ask-fastcrm/AskFastCRMResultPanel.tsx` | Shared result renderer (used in dialog and inline) |
+| `src/components/ask-fastcrm/AskFastCRMInline.tsx` | Inline version for Intelligence tab |
+| `src/components/ask-fastcrm/index.ts` | Barrel export |
 
-**What exists:**
-- Deal scoring is **deterministic**: engagement_score + recency_score + trust_score + intent_score - objection_penalty + historical_similarity
-- `score_breakdown` is stored and can be displayed to explain why a deal scored 73 vs 45
-- Stage benchmarks compare actual vs expected days per stage
-- `risk_drivers` provide specific reasons: "Stuck in stage 'Proposal' for 21 days", not generic "Deal needs attention"
-- `data_completeness` shows exactly which fields are missing
-- `historical_insights` from the intelligence panel
-- Conversation signals extract buying intent, urgency, objections from messages
+### 7. Files to Edit
 
-**Honest assessment:** The intelligence is **genuinely useful and explainable**. The scoring is not a black box — every component is visible. The risk reasons are specific and actionable.
+| File | Change |
+|---|---|
+| `src/components/layout/TopBar.tsx` | Add Ask FastCRM button |
+| `src/components/intelligence/AssistTab.tsx` | Replace with AskFastCRMInline |
+| `supabase/config.toml` | Add `[functions.ask-fastcrm]` with `verify_jwt = false` |
 
-**Minor gap:** The `score_breakdown` (engagement, recency, trust, etc.) is available in the data but the `DealIntelligencePanel` UI focuses on risk drivers and NBA. The breakdown visualization would make the "why" even more transparent.
+### 8. Intent → Query Mapping (Edge Function)
 
-**Recommendation:** Add a small radar or bar chart showing the 6 score components in the deal detail intelligence panel. The data is already there in `score_breakdown`.
+| Intent | Query Logic |
+|---|---|
+| `deals_at_risk` | `deal_intelligence_cache` WHERE `payload->health_label = 'AT_RISK'` |
+| `deals_inactive` | `opportunities` LEFT JOIN `crm_activities` WHERE last activity > N days |
+| `closing_soon` | `opportunities` WHERE `expected_close_date` within N days + join deal_scores |
+| `forecast_summary` | Latest `revenue_forecasts` row for workspace |
+| `pipeline_summary` | COUNT opportunities grouped by `pipeline_stages.name` |
+| `contacts_inactive` | Contacts without messages/activities in N days |
+| `stage_bottleneck` | Stages where avg deal days > expected_days (reuse intelligence-panel logic) |
 
----
+### 9. UX Rules Enforced
 
-## 5. Object Flexibility — "Can the user model their CRM?"
+- No conversation history — each query is independent
+- Header max 1 sentence
+- Items list max 10 rows
+- Max 3 action buttons
+- Suggested queries as clickable chips (not freeform chat)
+- Response appears in < 3s (LLM intent classification + DB query)
+- Dialog closes on action execution with toast confirmation
 
-**What exists:**
-- `core_object_types`, `core_object_fields`, `core_object_views` tables
-- `DynamicRecordTable` and `DynamicRecordForm` generate UI from field definitions
-- Custom fields on contacts, companies, and deals via `CustomFieldsForm`
-- Saved views with filters and visible columns via `core_object_views`
-- Objects home page at `/objects` with unified navigation
-- Object registry pattern in `objectRegistry.ts`
+### 10. Analytics
 
-**Honest assessment:** The infrastructure is **real and functional**. Users can create custom objects and fields. But the experience doesn't **feel** flexible because:
-1. The objects page is a secondary navigation item, not a first-class citizen
-2. Creating a custom object requires knowing the system exists
-3. There is no "drag to reorder fields" or "create a view with 2 clicks" flow that makes flexibility feel effortless
-
-**Gap:** The flexibility is **structural but not experiential**. Attio makes you feel powerful in 30 seconds. FastCRM's flexibility requires discovery.
-
-**Recommendation:** This is a UX problem, not a feature problem. The objects system needs a guided "Create your first custom object" onboarding moment and more prominent placement in the sidebar.
-
----
-
-## 6. Performance & UX — "Does it feel premium?"
-
-**Honest assessment based on architecture review:**
-- Landing page has been updated to premium dark mode with elegant technical tone
-- Dashboard uses design system components (`PageLoading`, `EmptyState`)
-- Kanban view has drag-and-drop, health badges, score badges, temperature indicators
-- Table view has sortable columns with health and score
-- Intelligence panel uses collapsible sections with tooltips
-
-**Potential concerns:**
-- The opportunities module loads 4+ parallel queries (opportunities, stages, deal scores, bulk intelligence) — if any is slow, the whole view feels sluggish
-- With many Kanban cards showing badges + scores + health + value, visual density could feel "platform complex" rather than "premium clean"
-- No evidence of skeleton loading states beyond `PageLoading`
-
-**Recommendation:** Audit the Kanban card density — consider making health badge and score conditional (show on hover or in a compact mode) to keep the default view clean.
-
----
-
-## Priority Actions (If Any Implementation Is Desired)
-
-| Priority | Action | Effort | Impact |
-|---|---|---|---|
-| 1 | **Forecast Trend Chart** — line chart of expected_case over last 8-12 snapshots | Medium | High — makes forecast feel trustworthy |
-| 2 | **Deals at Risk Summary Card** — proactive count + list on opportunities header | Small | High — turns passive detection into active alerts |
-| 3 | **Score Breakdown Visualization** — radar/bar chart of 6 scoring components | Small | Medium — makes intelligence transparent |
-| 4 | **Kanban Card Density Audit** — simplify default card, show details on hover | Medium | Medium — premium feel |
-| 5 | **Objects Onboarding** — guided flow to create first custom object | Medium | Medium — makes flexibility experiential |
-
-No code changes in this audit — this is a diagnostic assessment only. If you want to proceed with any of the 5 actions, indicate which ones.
+Track via existing `useCRMAnalytics`:
+- `ask_fastcrm.query_submitted` (intent, has_results)
+- `ask_fastcrm.action_executed` (action_id, items_count)
+- `ask_fastcrm.chip_clicked` (chip_label)
 
