@@ -679,5 +679,21 @@
   "sidebarWorkspaces": "Workspaces",
   "sidebarPartners": "Parceiros",
   "commandPaletteSearch": "Pesquisar ou escrever comando...",
-  "navigation": "Navegação"
+  "navigation": "Navegação",
+  "oppDetail_addTab": "+ Adicionar tab",
+  "oppDetail_addTabSoon": "Adicionar tabs personalizadas em breve",
+  "oppDetail_addWidget": "+ Adicionar widget",
+  "oppDetail_addWidgetSoon": "Adicionar widgets personalizados em breve",
+  "oppDetail_documents": "Documentos",
+  "oppDetail_noDocuments": "Sem documentos",
+  "oppDetail_addSection": "+ Adicionar secção",
+  "oppDetail_addSectionSoon": "Adicionar secções personalizadas em breve",
+  "oppDetail_copyTitle": "Título copiado",
+  "oppDetail_copiedTitle": "Título copiado para a área de transferência",
+  "oppDetail_shareRecord": "Partilhar registo",
+  "oppDetail_expandView": "Expandir vista",
+  "oppDetail_expandViewSoon": "Vista expandida em breve",
+  "oppDetail_companyDomains": "Domínios",
+  "oppDetail_companyCategories": "Categorias",
+  "oppDetail_companyICP": "ICP"
 }

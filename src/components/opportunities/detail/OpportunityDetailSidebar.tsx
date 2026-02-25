@@ -3,7 +3,7 @@ import { Opportunity, PipelineStage, OPPORTUNITY_SOURCES } from "@/types/opportu
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, MessageSquare, Briefcase, Building2, Brain, UserCheck, ListChecks, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, MessageSquare, Briefcase, Building2, Brain, UserCheck, ListChecks, Plus, Globe, Tag, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
@@ -224,19 +224,35 @@ export function OpportunityDetailSidebar({
             {/* Company Info */}
             {opportunity.company && (
               <SidebarSection title={t("oppDetail_companyInfo")} icon={<Building2 className="w-3.5 h-3.5" />} defaultOpen={false}>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t("companyName")}</span>
-                    <span className="font-medium">{opportunity.company.name}</span>
+                <div className="space-y-1">
+                  {/* Navigation-style fields */}
+                  <div className="flex items-center gap-1 py-2 text-sm hover:bg-muted/50 rounded px-1.5 cursor-pointer">
+                    <Globe className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground text-xs">{t("oppDetail_associatedCompany")}</span>
+                    <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                    <span className="text-xs font-medium">{t("oppDetail_companyDomains")}</span>
+                    <span className="ml-auto text-xs text-primary truncate max-w-[100px]">
+                      {opportunity.company.website ? (
+                        <a href={opportunity.company.website.startsWith("http") ? opportunity.company.website : `https://${opportunity.company.website}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                          {opportunity.company.website}
+                        </a>
+                      ) : "—"}
+                    </span>
                   </div>
-                  {opportunity.company.website && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t("website")}</span>
-                      <a href={opportunity.company.website.startsWith("http") ? opportunity.company.website : `https://${opportunity.company.website}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[140px]">
-                        {opportunity.company.website}
-                      </a>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1 py-2 text-sm hover:bg-muted/50 rounded px-1.5 cursor-pointer">
+                    <Tag className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground text-xs">{t("oppDetail_associatedCompany")}</span>
+                    <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                    <span className="text-xs font-medium">{t("oppDetail_companyCategories")}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">—</span>
+                  </div>
+                  <div className="flex items-center gap-1 py-2 text-sm hover:bg-muted/50 rounded px-1.5 cursor-pointer">
+                    <Target className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-muted-foreground text-xs">{t("oppDetail_associatedCompany")}</span>
+                    <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                    <span className="text-xs font-medium">{t("oppDetail_companyICP")}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">—</span>
+                  </div>
                 </div>
               </SidebarSection>
             )}
@@ -256,6 +272,19 @@ export function OpportunityDetailSidebar({
             <SidebarSection title="Intelligence" icon={<Brain className="w-3.5 h-3.5" />} defaultOpen={false}>
               <DealIntelligencePanel intelligence={intelligence} dealId={opportunity.id} isLoading={intelligenceLoading} />
             </SidebarSection>
+
+            {/* Add Section */}
+            <div className="px-3 py-3 border-t border-border/50">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => toast.info(t("oppDetail_addSectionSoon"))}
+              >
+                <Plus className="w-3 h-3" />
+                {t("oppDetail_addSection")}
+              </Button>
+            </div>
           </TabsContent>
 
           <TabsContent value="comments" className="mt-0 p-4">
