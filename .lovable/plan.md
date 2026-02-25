@@ -1,46 +1,90 @@
 
 
-# Fix: Ask FastCRM Page Not Opening
+# Redesign Sidebar V1 — Attio-Style
 
-## Root Cause Analysis
+## Attio's Sidebar Design Language
 
-After thorough investigation, all the routing and components are correctly wired:
-- Route `/dashboard/ask` exists at line 374 of `App.tsx`
-- `AskPage.tsx` renders `AskFastCRMInline` inside `DashboardLayout`
-- TopBar ⌘K and Ask button both call `navigate("/dashboard/ask")`
-- `AskFastCRMInline` component compiles and has all imports
+From the screenshot, Attio's sidebar has these distinctive characteristics:
 
-The console logs reveal the page IS rendering (`AskPage` appears in the component tree), but then the URL changes back to `/dashboard`. This indicates a **runtime error inside the component tree** that causes React to unmount and fall back.
+- **White/light background** — no dark gradients, clean and bright
+- **Workspace switcher at top** — workspace name + dropdown chevron, minimal chrome
+- **Quick Actions bar** — a row with "Quick Actions", ⌘K badge, and search icon
+- **Flat navigation list** — no group headers dividing sections, just a clean vertical list of items with small monochrome icons
+- **Subtle active state** — light gray background fill, no colored highlights
+- **Monochrome icons** — small, consistent size, muted gray when inactive, darker when active
+- **Collapsible groups** — "Automations" expands to show sub-items (Sequences, Workflows) with indentation
+- **"Favorites" section** — a labeled section near the bottom for pinned items
+- **No plan badge, no role indicator** — clean, focused purely on navigation
 
-The most likely culprit: `useWorkspaceInstance()` hook is used by `useAskFastCRM()` which is called inside `AskFastCRMInline`. If the `workspaceClient` or workspace instance hasn't resolved yet when the Ask page mounts, the hook could throw, causing React's error boundary to catch it and redirect.
+## Changes to `SidebarV1.tsx`
 
-## Fix Plan
+Complete visual overhaul:
 
-### 1. Add error boundary protection to AskPage
+1. **Background**: Replace `bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950` with `bg-white dark:bg-card` (light background)
+2. **Border**: Replace `border-white/5` with `border-border` (standard border)
+3. **Header**: Simplified — workspace name + dropdown icon, no logo block
+4. **Remove Plan Badge section** entirely
+5. **Remove Role Indicator section** at the bottom
+6. **Navigation items**: 
+   - Remove group labels (`Geral`, `CRM`, `Loja`, etc.)
+   - Flatten into a single list
+   - Active state: `bg-muted text-foreground font-medium` instead of `bg-primary/20 text-primary`
+   - Inactive: `text-muted-foreground hover:bg-muted/50 hover:text-foreground`
+   - Icons: `text-muted-foreground` when inactive, `text-foreground` when active
+   - Slightly tighter vertical spacing (`py-1.5` instead of `py-2`)
+7. **Quick Actions row**: Add a clickable row at the top of nav with "Quick Actions" label, ⌘K badge, and search icon that navigates to `/dashboard/ask`
+8. **Text color**: All text uses standard foreground colors (dark on light), not white
 
-**Edit: `src/pages/AskPage.tsx`**
+## Changes to `nav.v1.ts`
 
-Wrap the `AskFastCRMInline` in an `ErrorBoundary` component to catch runtime crashes and display a fallback instead of silently redirecting. Also add a guard for workspace loading state.
+- Add a `section` field to support optional visual separators (thin line) between logical groups, without labels
+- Or simpler: just add separator markers between groups
 
-### 2. Guard AskFastCRMInline against missing workspace
+## Changes to `WorkspaceSwitcher.tsx`
 
-**Edit: `src/components/ask-fastcrm/AskFastCRMInline.tsx`**
-
-Add a null guard at the top of the component: if `useWorkspace().currentWorkspace` is null, show a loading skeleton instead of calling `useAskFastCRM()` which depends on the workspace being available.
-
-### 3. Add Ask to SidebarV1 navigation
-
-Since the user is using SidebarV1 (shell v2 feature flag is not enabled), the "Ask" item is only in `nav.v2.ts`. Need to also add it to the V1 sidebar config so users can see and click it.
-
-**Edit: `src/components/layout/SidebarV1.tsx`** (or its nav config)
-
-Add an "Ask" nav item with the Sparkles icon pointing to `/dashboard/ask`.
+- Update styling for light-background context: remove `bg-sidebar-accent` and dark-theme specific colors
+- Use standard `hover:bg-muted` styling
 
 ## Files to Edit
 
 | File | Change |
 |---|---|
-| `src/pages/AskPage.tsx` | Add workspace loading guard and error boundary |
-| `src/components/ask-fastcrm/AskFastCRMInline.tsx` | Guard against null workspace before calling hooks |
-| `src/components/layout/SidebarV1.tsx` | Add "Ask" nav item for V1 sidebar users |
+| `src/components/layout/SidebarV1.tsx` | Complete visual redesign — light bg, flat nav, no groups, Quick Actions row, remove plan badge and role indicator |
+| `src/config/nav.v1.ts` | Add separator markers between groups for subtle dividers |
+
+## Visual Comparison
+
+```text
+BEFORE (Current)                    AFTER (Attio-style)
+┌─────────────────────┐            ┌─────────────────────┐
+│ ██ FastCRM      [X] │            │ Workspace Name   ▾  │
+│─────────────────────│            │─────────────────────│
+│ [Workspace ▾]       │            │ ⌘ Quick Actions  ⌘K │
+│─────────────────────│            │  🔍  /              │
+│ ★ Pro Plan          │            │─────────────────────│
+│─────────────────────│            │ ⌂ Home              │
+│ GERAL               │            │ ✦ Ask FastCRM       │
+│  ⌂ Dashboard        │            │─ ─ ─ ─ ─ ─ ─ ─ ─ ─│
+│  ✦ Ask FastCRM      │            │ 👤 Leads            │
+│ CRM                 │            │ 📇 Contactos        │
+│  👤 Leads           │            │ 🏢 Empresas         │
+│  📇 Contactos       │            │ 🎯 Oportunidades    │
+│  🏢 Empresas        │            │ ☑ Tarefas           │
+│  🎯 Oportunidades   │            │─ ─ ─ ─ ─ ─ ─ ─ ─ ─│
+│  ☑ Tarefas          │            │ 📦 Produtos         │
+│ LOJA                │            │ 🛒 Encomendas       │
+│  📦 Produtos        │            │ 📁 Categorias       │
+│  🛒 Encomendas      │            │─ ─ ─ ─ ─ ─ ─ ─ ─ ─│
+│  📁 Categorias      │            │ 📣 Marketing        │
+│ ...                 │            │ 🔍 SEO              │
+│─────────────────────│            │─ ─ ─ ─ ─ ─ ─ ─ ─ ─│
+│ O SEU CARGO         │            │ ⚡ Automações       │
+│ admin               │            │ 🤖 Assistentes IA   │
+└─────────────────────┘            │ 📝 Form Studio      │
+                                   │─ ─ ─ ─ ─ ─ ─ ─ ─ ─│
+                                   │ ⚙ Definições        │
+                                   └─────────────────────┘
+```
+
+Key differences: light background, no group headers (just subtle separators), no plan badge, no role card, Quick Actions bar at top with ⌘K shortcut.
 
