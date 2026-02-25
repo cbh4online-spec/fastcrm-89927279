@@ -1,89 +1,131 @@
 
 
-# Batch 4 — CRM Pages i18n Migration
+# Fix Build Error + Attio-Style Settings Redesign
 
-## Scope
+## 1. Build Error Fix (immediate)
 
-Migrate the 4 main CRM list pages (Leads, Contacts, Companies, Opportunities) and their sub-components to use `t()` calls from the `crm` namespace. This covers ~200 hardcoded Portuguese strings across 12 files.
+**File**: `src/components/opportunities/OpportunityTableView.tsx` line 41
 
-## Files to Edit (12 components)
+The `Locale` type is used but not imported. Fix: add `import type { Locale } from "date-fns";` or change the type annotation to remove the explicit `Locale` reference.
 
-| File | Hardcoded Strings (approx.) |
+```typescript
+// Change line 41 from:
+const dateLocales: Record<string, Locale> = { pt, en: enUS, es, fr };
+// To:
+const dateLocales: Record<string, typeof pt> = { pt, en: enUS, es, fr };
+```
+
+---
+
+## 2. Attio-Style Settings Page Redesign
+
+Inspired by the Attio screenshot, the current Settings page will be restructured with a cleaner, more organized sidebar with grouped sections (Personal vs Workspace), and a dedicated Profile section matching Attio's layout.
+
+### Current vs Proposed
+
+| Aspect | Current | Proposed (Attio-style) |
+|---|---|---|
+| Sidebar | Flat list of 11 categories | **Grouped sections**: Personal (Profile, Appearance, Notifications) + Workspace (General, Members & Teams, Channels, CRM, etc.) |
+| Profile | Separate `/profile` page with card grid | **Integrated into Settings** as first "Personal" section with inline avatar upload, first/last name fields, email with Edit button, time preferences |
+| Search | Basic text search | Same but with cleaner styling |
+| Section headers | Bold text + description | Light category group labels (like "Personal", "Workspace") |
+| Active state | Primary color background | Subtle left border accent + light background |
+| Navigation items | Icon + label + description | Icon + label only (cleaner), with descriptions as tooltip |
+
+### New Sidebar Structure
+
+```text
+Personal
+  ├─ Profile           (avatar, name, email, timezone)
+  ├─ Appearance        (theme, language, date format)
+  ├─ Notifications     (email, push, in-app preferences)
+
+Workspace
+  ├─ General           (workspace name, logo, slug)
+  ├─ Members & Teams   (invite, roles, permissions)
+  ├─ Channels          (email, WhatsApp, forms)
+  ├─ CRM & Data        (fields, pipelines, import)
+  ├─ Templates         (messages, proposals)
+  ├─ Automation & AI   (rules, scoring, suggestions)
+
+Advanced
+  ├─ Security          (SSO, audit, 2FA)
+  ├─ Integrations      (API keys, webhooks, Stripe)
+  ├─ Billing           (plan, usage, invoices)
+  ├─ Extensions        (installed, audit log)
+  ├─ Developer         (feature flags, API docs)
+```
+
+### New Profile Section (Attio-inspired)
+
+Replaces the current card-based `/profile` page with an inline settings section:
+
+```text
+┌──────────────────────────────────────────────────┐
+│  Profile                                         │
+│  Manage your personal details                    │
+│                                                  │
+│  ℹ️ Changes apply to all your workspaces         │
+│                                                  │
+│  Profile Picture                                 │
+│  [Avatar]  PNGs, JPEGs and GIFs under 10MB       │
+│  [🟢 Upload new image] [🗑️]                      │
+│                                                  │
+│  First Name          Last Name                   │
+│  ┌──────────┐       ┌──────────┐                 │
+│  │ João     │       │ Silva    │                 │
+│  └──────────┘       └──────────┘                 │
+│                                                  │
+│  Primary Email Address                           │
+│  ┌────────────────────────────────┐ [Edit]       │
+│  │ joao@company.com              │               │
+│  └────────────────────────────────┘              │
+│                                                  │
+│  Time preferences                                │
+│  Manage your time preferences                    │
+│                                                  │
+│  Preferred Timezone    Start week on              │
+│  [Europe/Lisbon ▼]    [Monday ▼]                 │
+└──────────────────────────────────────────────────┘
+```
+
+### New Appearance Section
+
+Extracts language/theme/date format from the current scattered locations into one dedicated section:
+
+- Theme toggle (light/dark/system)
+- Language selector (PT/EN/ES/FR)
+- Date format preference
+- Currency preference
+
+### File Plan
+
+| File | Action |
 |---|---|
-| `SmartLeadsTable.tsx` | Column labels (30+), filter labels, tab labels, sort options, toast messages, empty states, pagination, bulk actions |
-| `SmartLeadsKPIs.tsx` | 6 KPI titles + descriptions |
-| `SmartFilters.tsx` | Filter labels, placeholders, select options |
-| `SmartLeadRow.tsx` | Status labels, temperature labels, next action labels, tooltips, dropdown menu items, hardcoded `pt` date locale |
-| `AttioContactsTable.tsx` | Column labels (20+), sort options, filter fields, bulk edit fields, header, tooltips, empty states, pagination, toast messages |
-| `SmartContactsKPIs.tsx` | 6 KPI titles + descriptions |
-| `SmartCompaniesTable.tsx` | Column labels (24+), filter groups, tab labels, sort options, toast messages, empty states, pagination, bulk actions |
-| `SmartCompaniesKPIs.tsx` | 6 KPI titles + descriptions |
-| `OpportunitiesModule.tsx` | Header, status filter labels, loading message, empty state, toast messages, button labels, invoice prompt dialog |
-| `OpportunityKPICards.tsx` | 8 KPI titles + descriptions |
-| `PipelineSummaryBar.tsx` | 5 metric labels + sublabels |
-| `OpportunityTableView.tsx` | Table headers (11), status badges, dropdown menu items, empty state, hardcoded `pt` date locale |
+| `src/components/opportunities/OpportunityTableView.tsx` | **FIX** — Change `Locale` type to `typeof pt` |
+| `src/components/settings/SettingsNavigation.tsx` | **REWRITE** — Grouped sidebar with Personal/Workspace/Advanced sections, cleaner item styling |
+| `src/pages/Settings.tsx` | **EDIT** — Add new categories (profile, appearance, notifications), update routing, merge Profile page content |
+| `src/components/settings/sections/ProfileSettings.tsx` | **NEW** — Attio-style profile editor (avatar, split name fields, email with edit, timezone, week start) |
+| `src/components/settings/sections/AppearanceSettings.tsx` | **NEW** — Theme, language, date format, currency |
+| `src/components/settings/sections/NotificationSettings.tsx` | **NEW** — Email/push/in-app notification preferences |
+| `src/i18n/locales/{pt,en,es,fr}/settings.json` | **EXPAND** — Add ~40 new keys for profile, appearance, notification strings |
+| `src/pages/Profile.tsx` | **EDIT** — Redirect to `/settings/profile` instead of standalone page |
 
-## Translation Keys to Add (~150 new keys)
+### Enhancements Over Attio
 
-### Leads Section
-- Column labels: `col_lead`, `col_email`, `col_phone`, `col_externalEmail`, `col_fax`, `col_source`, `col_status`, `col_tags`, `col_company`, `col_companyStatus`, `col_address`, `col_city`, `col_county`, `col_parish`, `col_region`, `col_postalCode`, `col_latitude`, `col_longitude`, `col_temperature`, `col_score`, `col_aiLeadType`, `col_nextAction`, `col_insight`, `col_lastAnalysis`, `col_sla`, `col_estimatedValue`, `col_conversionProb`, `col_automation`, `col_assignedTo`, `col_lastContact`, `col_businessCategory`, `col_services`, `col_taxId`, `col_foundingDate`, `col_capitalSocial`, `col_legalNature`, `col_caeCodes`, `col_caeDescription`, `col_website`, `col_linkedin`, `col_facebook`, `col_instagram`, `col_twitter`, `col_googlePlaceId`, `col_rating`, `col_reviewsCount`, `col_priceLevel`, `col_instagramId`, `col_whatsappId`, `col_externalUsername`, `col_createdAt`, `col_updatedAt`
-- Filter labels: `filterTemperature`, `filterStatus`, `filterActivity`, `filterSmartFilters`, `filterHot`, `filterWarm`, `filterCold`, `filterNew`, `filterContacted`, `filterQualified`, `filterInProposal`, `filterLost`, `filterWaitingReply`, `filterNoReply48h`, `filterActiveConversation`, `filterMaxPriority`, `filterReadyToConvert`, `filterNurture`, `filterAtRisk`
-- Tab labels: `tabLeads`, `tabSmartLists`, `tabAutomations`, `tabImport`
-- Sort labels: `sortNewest`, `sortOldest`, `sortHighestScore`, `sortLowestScore`, `sortHighestValue`, `sortLastContact`
-- Actions: `import`, `newLead`, `refresh`, `searchLeads`, `selected`, `analyzeAI`, `analyzeLinkedIn`, `export`, `delete`, `sendMessage`, `createOpportunity`, `activateAutomation`, `archive`
-- Empty states: `noLeadsYet`, `noLeadsDesc`, `addLead`
-- Pagination: `show`, `perPage`, `totalLeads`, `pageOf`
-- Toasts: `leadsDeleted`, `errorDeletingLeads`, `leadAnalyzed`, `rateLimitReached`, `aiCreditsExhausted`, `errorAnalyzing`, `analyzingLeads`, `leadsAnalyzed`, `errorBulkAnalyze`, `noLinkedInUrl`, `analyzingLinkedIn`, `exportComplete`
-- KPIs: `kpiLeadsToday`, `kpiLeadsTodayDesc`, `kpiHotLeads`, `kpiHotLeadsDesc`, `kpiNoResponse24h`, `kpiNoResponse24hDesc`, `kpiAvgTime`, `kpiAvgTimeDesc`, `kpiConversions`, `kpiConversionsDesc`, `kpiPipeline`, `kpiPipelineDesc`
-- SmartLeadRow: `statusNew`, `statusInProgress`, `statusQualified`, `tempCold`, `tempWarm`, `tempHot`, `tempTooltip`, `scoreTooltip`, `nextActionTooltip`, `actionReplyManual`, `actionSendTemplate`, `actionCreateOpportunity`, `actionActivateAutomation`, `actionArchive`, `actionFollowUp`, `insightTooltip`, `automationActive`, `now`
+1. **Unified search** across all sections (Personal + Workspace) — Attio has no cross-section search
+2. **i18n from day one** — All labels translated in 4 languages
+3. **Role-aware visibility** — Workspace sections hidden for viewers, admin sections gated
+4. **Responsive** — Sidebar collapses to sheet on mobile (Attio is desktop-only settings)
+5. **Time preferences** include timezone auto-detect suggestion based on browser
+6. **Profile changes propagate** — Info banner "Changes apply to all your workspaces" like Attio
 
-### Contacts Section
-- Similar column/sort/filter labels
-- KPIs: `kpiTotalContacts`, `kpiHotContacts`, `kpiNoResponse`, `kpiAvgScore`, `kpiDecisionMakers`, `kpiContactsPipeline`
-- Header: `contactsTitle`, `contactsTooltip`, `newContact`
-- Empty: `noContactsYet`, `noContactsDesc`
-- Bulk edit field labels
+### Implementation Order
 
-### Companies Section
-- Filter groups: company-specific (size, industry, activity labels)
-- KPIs: `kpiTotalCompanies`, `kpiHotCompanies`, `kpiClients`, `kpiProspects`
-- Tab labels, sort options, bulk actions
-- Empty: `noCompaniesYet`, `noCompaniesDesc`
-
-### Opportunities Section
-- Header: `opportunitiesTitle`, `opportunitiesDesc`, `newOpportunity`
-- Status filters: `allStatus`, `open`, `won`, `lost`
-- Pipeline metrics: `activeDeals`, `pipelineValue`, `weightedValue`, `avgCycle`, `conversionRate`
-- KPIs: 8 cards (pipelineValue, weightedValue, openOpps, conversionRate, won, lost, avgDealSize, avgCloseTime)
-- Table headers and dropdown actions
-- Invoice prompt dialog strings
-- Loading: `loadingOpportunities`
-
-## Implementation Pattern
-
-Each component gets:
-```typescript
-import { useTranslation } from 'react-i18next';
-const { t } = useTranslation('crm');
-```
-
-Date-fns locale switches to dynamic:
-```typescript
-import { pt, enUS, es, fr } from 'date-fns/locale';
-const dateLocales = { pt, en: enUS, es, fr };
-const locale = dateLocales[i18n.language] || pt;
-```
-
-Column configs, filter groups, sort options, and status/temperature maps become functions that receive `t` instead of hardcoded objects.
-
-## Implementation Order
-
-1. Expand all 4 `crm.json` files with ~150 new keys
-2. Edit all 12 component files in parallel
-
-## Technical Notes
-
-- Column labels like `LEAD_COLUMNS`, `CONTACT_COLUMNS`, `COMPANY_COLUMNS` are currently declared as module-level constants. They will need to be moved inside the component (or into a `useMemo` with `t` dependency) so they can access `t()`.
-- Same for `filterGroups`, `pageTabs`, `sortOptions`, `statusLabels`, `temperatureConfig`, `nextActionLabels` in the various files.
-- `SmartLeadRow.tsx` and `OpportunityTableView.tsx` use hardcoded `pt` locale for `date-fns` -- will be made dynamic.
+1. Fix the `Locale` build error (1 line)
+2. Expand settings.json files with new keys (4 files)
+3. Create ProfileSettings, AppearanceSettings, NotificationSettings components (3 files)
+4. Rewrite SettingsNavigation with grouped sections
+5. Update Settings.tsx with new categories and routing
+6. Update Profile.tsx to redirect
 
