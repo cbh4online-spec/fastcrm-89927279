@@ -14,6 +14,7 @@ import {
   Inbox,
   BarChart3,
   Layers,
+  GitBranch,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -39,6 +40,7 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Empresas", href: "/dashboard/companies", icon: Building2, group: "CRM" },
   { name: "Oportunidades", href: "/dashboard/opportunities", icon: Target, group: "CRM" },
   { name: "Tarefas", href: "/dashboard/tasks", icon: CheckSquare, group: "CRM" },
+  { name: "Ciclo de Vida", href: "/dashboard/lifecycle", icon: GitBranch, group: "CRM" },
 
   // Marketing
   { name: "Marketing", href: "/dashboard/marketing", icon: Megaphone, group: "Marketing", separator: true },

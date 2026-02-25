@@ -8140,6 +8140,7 @@ export type Database = {
           last_purchase_date: string | null
           lead_source: string | null
           lead_status: string
+          lifecycle_stage: string
           linkedin_url: string | null
           marketing_opt_in: boolean
           name: string
@@ -8239,6 +8240,7 @@ export type Database = {
           last_purchase_date?: string | null
           lead_source?: string | null
           lead_status?: string
+          lifecycle_stage?: string
           linkedin_url?: string | null
           marketing_opt_in?: boolean
           name: string
@@ -8338,6 +8340,7 @@ export type Database = {
           last_purchase_date?: string | null
           lead_source?: string | null
           lead_status?: string
+          lifecycle_stage?: string
           linkedin_url?: string | null
           marketing_opt_in?: boolean
           name?: string
