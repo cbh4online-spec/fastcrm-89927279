@@ -158,6 +158,26 @@ export function useCreateObjectView() {
   });
 }
 
+export function useUpdateObjectView() {
+  const qc = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  return useMutation({
+    mutationFn: async (input: { id: string; object_id: string; name?: string; filters?: Record<string, unknown>; sort_config?: Record<string, unknown>; visible_fields?: string[]; is_default?: boolean }) => {
+      const { id, object_id, ...rest } = input;
+      const { error } = await (supabase
+        .from("core_object_views")
+        .update({ ...rest, updated_at: new Date().toISOString() } as any) as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, v) => {
+      qc.invalidateQueries({ queryKey: ["core-object-views", currentWorkspace?.id, v.object_id] });
+      toast.success("View atualizada");
+    },
+    onError: () => toast.error("Erro ao atualizar view"),
+  });
+}
+
 export function useDeleteObjectView() {
   const qc = useQueryClient();
   const { currentWorkspace } = useWorkspace();

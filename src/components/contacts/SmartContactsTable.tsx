@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useSmartContacts, useAnalyzeContact, useBulkAnalyzeContacts, SmartContactsFilters, SmartContact } from "@/hooks/useSmartContacts";
+import { SmartListsPanel } from "@/components/objects/SmartListsPanel";
 import { useBulkAnalyzeEntityLinkedIn } from "@/hooks/useEntitySocialMediaAnalysis";
 import { useContacts } from "@/hooks/useContacts";
 import { CreateContactDialog } from "./CreateContactDialog";
@@ -627,8 +628,28 @@ export function SmartContactsTable() {
           className="mt-4"
         />
 
-        {/* Bulk Actions */}
-        {selectedIds.size > 0 && (
+        {activeTab === "smart-lists" && (
+          <div className="mt-4 flex-1">
+            <SmartListsPanel
+              entityType="contact"
+              fields={[
+                { slug: "name", name: "Nome", field_type: "text" },
+                { slug: "email", name: "Email", field_type: "email" },
+                { slug: "company", name: "Empresa", field_type: "text" },
+                { slug: "source", name: "Origem", field_type: "select", options: { options: ["website", "referral", "linkedin", "cold_call", "event", "import", "other"] } },
+                { slug: "ai_temperature", name: "Temperatura", field_type: "select", options: { options: ["hot", "warm", "cold"] } },
+                { slug: "contact_score", name: "Score", field_type: "number" },
+                { slug: "client_status", name: "Estado", field_type: "select", options: { options: ["prospect", "lead", "active", "churned", "inactive"] } },
+                { slug: "estimated_value", name: "Valor Estimado", field_type: "currency" },
+                { slug: "created_at", name: "Criado em", field_type: "date" },
+                { slug: "last_contact_at", name: "Último contacto", field_type: "date" },
+              ]}
+              records={(filteredContacts || []) as unknown as Record<string, unknown>[]}
+            />
+          </div>
+        )}
+
+        {activeTab === "contacts" && selectedIds.size > 0 && (
           <BulkActionsBar
             entityType="contacts"
             selectedCount={selectedIds.size}
@@ -641,7 +662,8 @@ export function SmartContactsTable() {
           />
         )}
 
-        {/* Table - Nexus Style */}
+        {activeTab === "contacts" && (
+        <React.Fragment>
         <div className="mt-4 rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden flex-1 min-w-0 shadow-sm">
           <StickyTableWrapper minWidth={`${Math.max(1200, totalColumns * 120)}px`}>
             <TableHeader>
@@ -898,6 +920,8 @@ export function SmartContactsTable() {
               </div>
             </div>
           </div>
+        )}
+        </React.Fragment>
         )}
 
         <CreateContactDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />

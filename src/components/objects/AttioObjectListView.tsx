@@ -5,6 +5,10 @@ import { useCoreObjectFields, CoreObjectView } from "@/hooks/useCoreObjectFields
 import { DynamicRecordTable } from "./DynamicRecordTable";
 import { DynamicRecordForm } from "./DynamicRecordForm";
 import { ObjectViewsManager } from "./ObjectViewsManager";
+import { AdvancedFilterBuilder } from "./AdvancedFilterBuilder";
+import { SaveAsListDialog } from "./SaveAsListDialog";
+import { BulkCreateTasksDialog } from "./BulkCreateTasksDialog";
+import { FilterCondition, applyFiltersToObjectRecords } from "@/hooks/useFilterEngine";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Search, Info, Trash2, ChevronLeft, ChevronRight, ArrowUpDown, X, Download, Settings } from "lucide-react";
+import { Plus, Search, Info, Trash2, ChevronLeft, ChevronRight, ArrowUpDown, X, Download, Settings, Filter, Save, ListTodo } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +49,12 @@ export function AttioObjectListView({ objectId, objectSlug, objectName }: Props)
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [activeView, setActiveView] = useState<CoreObjectView | null>(null);
 
+  // Filter state
+  const [filterConditions, setFilterConditions] = useState<FilterCondition[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showBulkTasksDialog, setShowBulkTasksDialog] = useState(false);
+
   // Filter fields based on active view
   const visibleFields = useMemo(() => {
     if (!activeView?.visible_fields || activeView.visible_fields.length === 0) return fields;
@@ -53,9 +63,14 @@ export function AttioObjectListView({ objectId, objectSlug, objectName }: Props)
 
   const isLoading = recordsLoading || fieldsLoading;
 
-  // Search + sort
+  // Search + sort + filter
   const filteredRecords = useMemo(() => {
     let result = records;
+
+    // Apply advanced filters
+    if (filterConditions.length > 0) {
+      result = applyFiltersToObjectRecords(result, filterConditions, "AND");
+    }
 
     if (searchValue) {
       const lower = searchValue.toLowerCase();
@@ -79,7 +94,7 @@ export function AttioObjectListView({ objectId, objectSlug, objectName }: Props)
     }
 
     return result;
-  }, [records, searchValue, sortField, sortDir]);
+  }, [records, searchValue, sortField, sortDir, filterConditions]);
 
   // Pagination
   const totalRecords = filteredRecords.length;
@@ -141,6 +156,23 @@ export function AttioObjectListView({ objectId, objectSlug, objectName }: Props)
     }
   };
 
+  const handleFiltersFromView = (conditions: FilterCondition[]) => {
+    setFilterConditions(conditions);
+    if (conditions.length > 0) setShowFilters(true);
+  };
+
+  // Selected records for bulk tasks
+  const selectedRecordsForTasks = useMemo(() => {
+    return filteredRecords
+      .filter((r) => selectedIds.has(r.id))
+      .map((r) => ({ id: r.id, name: String((r.data as Record<string, unknown>).name || r.id) }));
+  }, [filteredRecords, selectedIds]);
+
+  // Filterable fields for the builder
+  const filterableFields = useMemo(() => {
+    return fields.map((f) => ({ slug: f.slug, name: f.name, field_type: f.field_type, options: f.options }));
+  }, [fields]);
+
   return (
     <div className="flex flex-col h-full">
       {/* ── Header ── */}
@@ -188,11 +220,34 @@ export function AttioObjectListView({ objectId, objectSlug, objectName }: Props)
           objectId={objectId}
           activeViewId={activeView?.id || null}
           onSelectView={setActiveView}
+          onFiltersFromView={handleFiltersFromView}
         />
       </div>
 
       {/* ── Filter bar ── */}
       <div className="flex items-center gap-2 py-2 border-b border-border/40">
+        {/* Filter toggle */}
+        <Button
+          variant={filterConditions.length > 0 ? "secondary" : "ghost"}
+          size="sm"
+          className="h-7 text-xs gap-1.5 px-2"
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <Filter className="h-3 w-3" />
+          Filtros
+          {filterConditions.length > 0 && (
+            <Badge variant="secondary" className="h-4 px-1 text-[10px] ml-0.5">{filterConditions.length}</Badge>
+          )}
+        </Button>
+
+        {/* Save as list */}
+        {filterConditions.length > 0 && (
+          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5 px-2 text-muted-foreground" onClick={() => setShowSaveDialog(true)}>
+            <Save className="h-3 w-3" />
+            Guardar como Lista
+          </Button>
+        )}
+
         {/* Sort */}
         {fields.length > 0 && (
           <DropdownMenu>
@@ -245,6 +300,24 @@ export function AttioObjectListView({ objectId, objectSlug, objectName }: Props)
         </Button>
       </div>
 
+      {/* ── Advanced Filters ── */}
+      {showFilters && (
+        <div className="py-3 px-1 border-b border-border/40">
+          <AdvancedFilterBuilder
+            fields={filterableFields}
+            conditions={filterConditions}
+            onChange={(c) => { setFilterConditions(c); setCurrentPage(1); }}
+          />
+          {filterConditions.length > 0 && (
+            <div className="flex items-center gap-2 mt-2">
+              <Button variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground" onClick={() => setFilterConditions([])}>
+                Limpar filtros
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Bulk actions ── */}
       {selectedIds.size > 0 && (
         <div className="flex items-center gap-3 py-2 px-3 bg-primary/5 border-b border-border/40">
@@ -252,6 +325,10 @@ export function AttioObjectListView({ objectId, objectSlug, objectName }: Props)
           <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={handleBulkDelete}>
             <Trash2 className="h-3 w-3" />
             Eliminar
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => setShowBulkTasksDialog(true)}>
+            <ListTodo className="h-3 w-3" />
+            Criar Tarefas
           </Button>
           <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground ml-auto" onClick={() => setSelectedIds(new Set())}>
             Limpar seleção
@@ -321,6 +398,21 @@ export function AttioObjectListView({ objectId, objectSlug, objectName }: Props)
           </div>
         </div>
       )}
+
+      {/* ── Dialogs ── */}
+      <SaveAsListDialog
+        open={showSaveDialog}
+        onOpenChange={setShowSaveDialog}
+        conditions={filterConditions}
+        objectId={objectId}
+        visibleFields={activeView?.visible_fields || undefined}
+      />
+
+      <BulkCreateTasksDialog
+        open={showBulkTasksDialog}
+        onOpenChange={setShowBulkTasksDialog}
+        selectedRecords={selectedRecordsForTasks}
+      />
     </div>
   );
 }

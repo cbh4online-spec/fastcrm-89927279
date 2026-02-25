@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
+import { SmartListsPanel } from "@/components/objects/SmartListsPanel";
 import { useSmartCompanies, useAnalyzeCompany, useBulkAnalyzeCompanies, SmartCompaniesFilters } from "@/hooks/useSmartCompanies";
 import { useCompanies } from "@/hooks/useCompanies";
 import { useBulkSocialMediaAnalysis } from "@/hooks/useSocialMediaAnalysis";
@@ -361,8 +362,29 @@ export function SmartCompaniesTable() {
           className="mt-4"
         />
 
-        {/* Bulk Actions */}
-        {selectedIds.size > 0 && (
+        {activeTab === "smart-lists" && (
+          <div className="mt-4 flex-1">
+            <SmartListsPanel
+              entityType="company"
+              fields={[
+                { slug: "name", name: "Nome", field_type: "text" },
+                { slug: "email", name: "Email", field_type: "email" },
+                { slug: "industry", name: "Indústria", field_type: "text" },
+                { slug: "phone", name: "Telefone", field_type: "text" },
+                { slug: "city", name: "Cidade", field_type: "text" },
+                { slug: "source", name: "Origem", field_type: "text" },
+                { slug: "ai_temperature", name: "Temperatura", field_type: "select", options: { options: ["hot", "warm", "cold"] } },
+                { slug: "company_score", name: "Score", field_type: "number" },
+                { slug: "annual_revenue", name: "Faturação", field_type: "currency" },
+                { slug: "employee_count", name: "Funcionários", field_type: "number" },
+                { slug: "created_at", name: "Criado em", field_type: "date" },
+              ]}
+              records={(filteredCompanies || []) as unknown as Record<string, unknown>[]}
+            />
+          </div>
+        )}
+
+        {activeTab === "companies" && selectedIds.size > 0 && (
           <div className="flex items-center gap-3 p-3 mt-4 bg-muted/50 rounded-lg border flex-wrap">
             <span className="text-sm text-muted-foreground">{selectedIds.size} selecionada(s)</span>
             <Button variant="outline" size="sm" onClick={handleBulkAnalyze} disabled={bulkAnalyze.isPending}>
@@ -380,7 +402,8 @@ export function SmartCompaniesTable() {
           </div>
         )}
 
-        {/* Table */}
+        {activeTab === "companies" && (
+        <React.Fragment>
         <div className="mt-4 rounded-lg border border-border bg-card overflow-hidden flex-1 min-w-0">
           <StickyTableWrapper minWidth="1400px">
             <TableHeader>
@@ -535,6 +558,8 @@ export function SmartCompaniesTable() {
               </div>
             </div>
           </div>
+        )}
+        </React.Fragment>
         )}
 
         <CreateCompanyDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
