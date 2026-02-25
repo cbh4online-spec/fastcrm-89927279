@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { getIconByName } from '@/lib/icons';
 import { LIBRARY_CATEGORIES, LIBRARY_TEMPLATES, CATEGORY_LABELS, type LibraryTemplate, type LibraryCategory, type LibraryTemplateField } from './templateLibraryData';
 import { TemplateLibraryCard } from './TemplateLibraryCard';
+import { TemplatePreviewPanel } from './TemplatePreviewPanel';
 
 interface TemplateLibraryDialogProps {
   open: boolean;
@@ -225,25 +226,37 @@ export function TemplateLibraryDialog({ open, onOpenChange, onSelectTemplate }: 
                 </div>
               </div>
             ) : (
-              <ScrollArea className="flex-1">
-                <div className="p-4 space-y-2">
-                  {filtered.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                      <Search className="h-8 w-8 mb-3 opacity-40" />
-                      <p className="text-sm">Nenhum template encontrado</p>
-                    </div>
-                  ) : (
-                    filtered.map((t) => (
-                      <TemplateLibraryCard
-                        key={t.id}
-                        template={t}
-                        isSelected={selectedTemplate?.id === t.id}
-                        onClick={() => setSelectedTemplate(t)}
-                      />
-                    ))
-                  )}
-                </div>
-              </ScrollArea>
+              <div className="flex flex-1 min-h-0">
+                <ScrollArea className="flex-1">
+                  <div className="p-4 space-y-2">
+                    {filtered.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                        <Search className="h-8 w-8 mb-3 opacity-40" />
+                        <p className="text-sm">Nenhum template encontrado</p>
+                      </div>
+                    ) : (
+                      filtered.map((t) => (
+                        <TemplateLibraryCard
+                          key={t.id}
+                          template={t}
+                          isSelected={selectedTemplate?.id === t.id}
+                          onClick={() => setSelectedTemplate(t)}
+                          onHover={() => setSelectedTemplate(t)}
+                        />
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+
+                {/* Slide-in preview panel */}
+                {selectedTemplate && (
+                  <TemplatePreviewPanel
+                    key={selectedTemplate.id}
+                    template={selectedTemplate}
+                    onUse={handleUse}
+                  />
+                )}
+              </div>
             )}
           </div>
         </div>

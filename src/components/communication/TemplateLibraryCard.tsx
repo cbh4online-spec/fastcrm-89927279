@@ -16,12 +16,14 @@ interface TemplateLibraryCardProps {
   template: LibraryTemplate;
   isSelected: boolean;
   onClick: () => void;
+  onHover?: () => void;
 }
 
-export function TemplateLibraryCard({ template, isSelected, onClick }: TemplateLibraryCardProps) {
+export function TemplateLibraryCard({ template, isSelected, onClick, onHover }: TemplateLibraryCardProps) {
   return (
     <button
       onClick={onClick}
+      onMouseEnter={onHover}
       className={cn(
         'w-full flex items-center gap-4 p-4 rounded-lg border text-left transition-all',
         'hover:bg-accent/50 hover:border-primary/30',
