@@ -1,159 +1,183 @@
 
 
-# Enhanced Deals Kanban -- Attio-Style Rich Cards
+# Deals Sidebar Navigation -- Attio-Style Views, Favorites & Lists
 
-## Current State vs Attio Reference
+## Screenshot Analysis
 
-The current Kanban has **compact single-line cards** showing only title, value, and health badge (details appear on hover). The Attio screenshot shows **rich multi-line cards** with structured fields displayed permanently:
+The Attio screenshot shows a **left sidebar** alongside the Deals Kanban with structured navigation:
 
-```text
-Current card (single line):
-┌──────────────────────────────────┐
-│ ⠿ Deal Title    €5,000  🟢      │
-└──────────────────────────────────┘
+1. **Views dropdown** at the top ("Deals overview") with a searchable list of saved views:
+   - Deals overview, Marisa's Active Pipeline, New inbound leads, Workspace signups, All Deals, Cassandra's Pipeline, Enterprise Deal Board, US team performance, Marisa: inbound leads
+2. **Favorites** section with starred/pinned views
+3. **Records** section linking to entity types (Companies, People, Deals, Users, Workspaces, Invoices, Partners)
+4. **Lists** section with smart lists (Inbound Leads, Product Launch Campaign, Event Invitees, Customer Success, Onboarding Pipeline, PQL)
+5. **"+ Create new view"** button
+6. **"+ Add calculation"** footer per Kanban column
 
-Attio card (multi-line, what we'll build):
-┌──────────────────────────────────┐
-│ Bitlift <> expansion             │
-│ 🏢 bitlift.io                   │
-│ ●● ─── ─── ─── ───              │
-│ 💰 US$18,950.00                  │
-│ 👤 Marisa McGill                 │
-│ 🟢 Workspace signup              │
-│ 📝 📧 💬  ·  11d                 │
-└──────────────────────────────────┘
-```
+## Current State
+
+- `crm_saved_views` table already exists with `entity_type`, `filters`, `sort_config`, `visible_columns`, `view_mode`, `is_default`
+- `useSavedViews` hook exists for CRUD operations
+- `SavedViewsDropdown` component exists but is a simple dropdown, not a sidebar
+- `SmartListsPanel` exists for filter-based lists
+- `usePipelines` hook already supports multiple pipelines
+- The Opportunities page has no sidebar -- it's a full-width Kanban/table view
 
 ## Improvements Over Attio
 
-1. **Deal health badge** -- keep existing health intelligence indicator (Attio doesn't have this)
-2. **Temperature badge** -- color-coded hot/warm/cold indicator
-3. **Deal score** -- numeric AI score badge visible on card
-4. **Progress dots** -- visual stage progression indicator (inspired by Attio's dot pattern)
-5. **Activity age** -- days since creation, like Attio's "133d" counter
-6. **Quick actions on hover** -- mark won/lost, edit, without opening detail
-7. **Column calculations footer** -- "+ Add calculation" row at bottom of each column (sum, avg, count)
-8. **Owner avatar** -- show deal owner with avatar circle
-9. **Source badge** -- colored source tag (Website, Referral, etc.)
+1. **Favorite views** -- add `is_favorite` column to `crm_saved_views` for pinning views
+2. **View icons** -- each view gets a color dot or emoji, not just text
+3. **Quick pipeline switcher** -- switch between multiple pipelines directly from sidebar
+4. **Smart lists with live counts** -- show deal count badges next to each list
+5. **Collapsible sections** -- each section (Views, Favorites, Records, Lists) is collapsible
+6. **Drag-to-reorder** favorites
+7. **"View settings"** button in header for column visibility, sort defaults
+
+## Database Changes
+
+Add `is_favorite` and `position` columns to `crm_saved_views`:
+
+```sql
+ALTER TABLE public.crm_saved_views
+  ADD COLUMN IF NOT EXISTS is_favorite BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS position INTEGER DEFAULT 0;
+```
+
+No new tables needed -- we leverage the existing `crm_saved_views` and `pipelines` tables.
+
+## Visual Design
+
+```text
+┌──────────────────────┬──────────────────────────────────────────────┐
+│  Deals               │  ● Contacted 7  ● Prospecting 19  ...      │
+│                      │                                              │
+│  🔍 Search views...  │  ┌──────────┐ ┌──────────┐ ┌──────────┐    │
+│                      │  │ Card     │ │ Card     │ │ Card     │    │
+│  VIEWS               │  │ ...      │ │ ...      │ │ ...      │    │
+│  📊 Deals overview   │  │          │ │          │ │          │    │
+│  📋 Active Pipeline  │  └──────────┘ └──────────┘ └──────────┘    │
+│  📥 Inbound leads    │                                              │
+│  👥 All Deals        │                                              │
+│  + Create new view   │                                              │
+│                      │                                              │
+│  FAVORITES           │                                              │
+│  ⭐ Enterprise Board │                                              │
+│  ⭐ Top Performers   │                                              │
+│                      │                                              │
+│  RECORDS             │                                              │
+│  🏢 Companies        │                                              │
+│  👤 People           │                                              │
+│  💰 Deals            │                                              │
+│  📄 Invoices         │                                              │
+│                      │                                              │
+│  LISTS               │                                              │
+│  🟢 Inbound Leads  5 │                                              │
+│  🔵 Product Launch 12│                                              │
+│  🟡 Customer Success │                                              │
+│  ⋯ All lists         │                                              │
+│                      │                                              │
+└──────────────────────┴──────────────────────────────────────────────┘
+```
 
 ## File Plan
 
 | File | Action | Description |
 |---|---|---|
-| `src/components/opportunities/OpportunityCard.tsx` | **REWRITE** | Rich multi-line card matching Attio layout with all fields visible |
-| `src/components/opportunities/OpportunityKanbanColumn.tsx` | **EDIT** | Add column footer with calculation row, adjust spacing |
-| `src/components/opportunities/OpportunitiesModule.tsx` | **EDIT** | Pass owner profiles data to cards, add "Sorted by" toolbar like Attio |
-| `src/hooks/useOpportunitiesEnhanced.ts` | **EDIT** | Join owner profile data (name, avatar) into opportunity query |
-| `src/i18n/locales/{pt,en,es,fr}/crm.json` | **EDIT** | Add ~12 new keys for card labels and column footer |
+| **Database migration** | **NEW** | Add `is_favorite`, `position` columns to `crm_saved_views` |
+| `src/components/opportunities/DealsSidebar.tsx` | **NEW** | Full sidebar component with Views, Favorites, Records, Lists sections |
+| `src/components/opportunities/CreateViewDialog.tsx` | **NEW** | Dialog to create a new saved view with name, filters, view mode |
+| `src/hooks/useSavedViews.ts` | **EDIT** | Add `toggleFavorite` mutation, update types for `is_favorite` |
+| `src/components/opportunities/OpportunitiesModule.tsx` | **EDIT** | Wrap in sidebar + content layout, apply selected view filters |
+| `src/i18n/locales/pt/crm.json` | **EDIT** | Add ~20 new keys |
+| `src/i18n/locales/en/crm.json` | **EDIT** | Same |
+| `src/i18n/locales/es/crm.json` | **EDIT** | Same |
+| `src/i18n/locales/fr/crm.json` | **EDIT** | Same |
 
-## New OpportunityCard Design (153 lines to ~180 lines)
+## New i18n Keys (~20)
 
-```text
-┌─────────────────────────────────────┐
-│ Bitlift <> expansion          🟢🔥 │  ← title + health + temperature
-│ 🏢 bitlift.io                      │  ← company
-│ ●●●○○○                             │  ← stage progress dots
-│ US$18,950.00                        │  ← value (prominent)
-│ 👤 Marisa McGill                    │  ← contact/lead
-│ 🟣 Workspace signup                 │  ← source badge
-│ 📝 📧 💬    🧑 Owner    · 11d      │  ← activity icons + owner + age
-└─────────────────────────────────────┘
+```
+sidebarViews, sidebarFavorites, sidebarRecords, sidebarLists,
+sidebarCreateView, sidebarAllLists, sidebarSearchViews,
+sidebarDealsOverview, sidebarAllDeals, sidebarNoFavorites,
+sidebarToggleFavorite, sidebarViewSettings,
+sidebarCompanies, sidebarPeople, sidebarDeals, sidebarInvoices,
+sidebarDeleteView, sidebarEditView, sidebarSetDefault
 ```
 
-Key changes to `OpportunityCard.tsx`:
-- Multi-line vertical layout instead of single horizontal row
-- Remove `GripVertical` icon (drag works on full card)
-- Company row with `Building2` icon
-- Stage progress dots: filled circles for stages passed, empty for remaining
-- Value displayed prominently on its own row
-- Contact/lead name with user icon
-- Source as a colored badge
-- Footer row: activity indicators (notes count, email count) + owner avatar + "Xd" age counter
-- Temperature and health badges in top-right corner
-- Deal score badge inline
+## DealsSidebar Component Details
 
-## Stage Progress Dots
+A collapsible sidebar (~240px wide) with four sections using `Collapsible` from Radix:
 
-A visual indicator showing how far a deal has progressed through the pipeline:
+1. **Search bar** at top -- filters the views list
+2. **Views section** -- lists all saved views for `entity_type = "opportunities"`, clickable to apply filters/sort. Active view highlighted. "+ Create new view" button at bottom.
+3. **Favorites section** -- views where `is_favorite = true`. Star icon to toggle. Empty state: "No favorites yet".
+4. **Records section** -- static navigation links to `/dashboard/companies`, `/dashboard/contacts`, `/objects/deals`, `/dashboard/invoices`. Uses `useNavigate`.
+5. **Lists section** -- saved views that have filter conditions (smart lists). Shows live count badge based on filtering against current opportunities. "All lists" link at bottom.
+
+Each view item shows:
+- Color dot (derived from view name hash)
+- View name (truncated)
+- Three-dot menu on hover: Edit, Favorite, Delete, Set as default
+
+## Hook Changes (`useSavedViews.ts`)
+
+Add `useToggleFavorite` mutation:
 
 ```typescript
-// Given 6 total stages and deal is at stage 3:
-// ●●●○○○
-const totalStages = allStages.length;
-const currentPosition = allStages.findIndex(s => s.id === opportunity.stage_id);
+export function useToggleFavorite() {
+  return useMutation({
+    mutationFn: async ({ id, is_favorite }: { id: string; is_favorite: boolean }) => {
+      await supabase.from("crm_saved_views").update({ is_favorite }).eq("id", id);
+    },
+    onSuccess: () => queryClient.invalidateQueries(...)
+  });
+}
 ```
 
-This requires passing `stages` array to `OpportunityCard` (currently not passed).
+Update `SavedView` interface to include `is_favorite` and `position`.
 
-## Column Footer -- Calculations
+## OpportunitiesModule Layout Change
 
-Like Attio's "+ Add calculation" at the bottom of each column:
+Current: full-width content.
+New: `flex` row with sidebar + content:
 
-```text
-───────────────────
-+ Add calculation ▾
+```tsx
+<div className="flex h-full">
+  <DealsSidebar
+    activeViewId={activeViewId}
+    onSelectView={handleSelectView}
+    onCreateView={() => setShowCreateView(true)}
+  />
+  <div className="flex-1 min-w-0 space-y-6">
+    {/* existing content */}
+  </div>
+</div>
 ```
 
-Clicking opens a dropdown with:
-- **Sum** of deal values (already shown in header, but toggleable here)
-- **Average** deal value
-- **Count** (already shown)
-- **Min / Max** value
+The sidebar is collapsible via a toggle button (hidden on mobile by default).
 
-This is a presentational enhancement -- no database changes needed.
+## Active View Application
 
-## Owner Data
-
-Currently `owner_id` exists on opportunities but the owner profile (name, avatar) is not joined in the query. The hook `useOpportunitiesEnhanced` needs to join `profiles` on `owner_id`:
-
-```sql
-SELECT *, profiles!opportunities_owner_id_fkey(name, avatar_url)
-FROM opportunities
-```
-
-This adds owner name and avatar to each card without a separate query.
-
-## New i18n Keys (~12)
-
-```
-kanbanSortedBy, kanbanCreatedAt, kanbanDealValue,
-kanbanSource, kanbanOwner, kanbanDaysAgo,
-kanbanAddCalculation, kanbanCalcSum, kanbanCalcAvg,
-kanbanCalcMin, kanbanCalcMax, kanbanCalcCount,
-kanbanStageProgress
-```
-
-## Source Badge Colors
-
-Map existing `OPPORTUNITY_SOURCES` to color schemes:
-
-```typescript
-const sourceColors: Record<string, string> = {
-  website: "bg-green-100 text-green-700",
-  referral: "bg-purple-100 text-purple-700",
-  email: "bg-blue-100 text-blue-700",
-  social: "bg-pink-100 text-pink-700",
-  phone: "bg-amber-100 text-amber-700",
-  event: "bg-indigo-100 text-indigo-700",
-  advertising: "bg-cyan-100 text-cyan-700",
-  partner: "bg-orange-100 text-orange-700",
-  other: "bg-gray-100 text-gray-700",
-};
-```
+When a view is selected:
+1. Its `filters` are applied to the opportunities query
+2. Its `sort_config` is applied to sorting
+3. Its `view_mode` switches between kanban/list
+4. The header updates to show the view name instead of generic "Opportunities"
 
 ## Implementation Order
 
-1. Update `useOpportunitiesEnhanced` to join owner profile data
-2. Add i18n keys to all 4 locales
-3. Rewrite `OpportunityCard.tsx` with rich multi-line layout
-4. Update `OpportunityKanbanColumn.tsx` with calculation footer and pass stages to cards
-5. Update `OpportunitiesModule.tsx` to pass stages array to columns for progress dots
+1. Database migration (add columns)
+2. Update `useSavedViews` hook with favorite toggle + updated types
+3. Add i18n keys to all 4 locales
+4. Create `DealsSidebar.tsx` component
+5. Create `CreateViewDialog.tsx`
+6. Update `OpportunitiesModule.tsx` with sidebar layout and view application logic
 
 ## Technical Notes
 
-- No database migrations needed -- all data already exists
-- The card redesign is purely presentational; drag-and-drop logic stays identical
-- Stage progress dots require passing the full `stages` array through the component tree: `OpportunitiesModule` -> `OpportunityKanbanColumn` -> `OpportunityCard`
-- Column width stays at `w-80` (320px) to accommodate multi-line cards
-- `ScrollArea` inside columns handles overflow for many cards
+- No new tables needed -- leverages existing `crm_saved_views`
+- Sidebar is responsive: hidden on mobile, toggleable on desktop
+- The Records section uses static links, no additional data fetching
+- Smart lists count is computed client-side from already-fetched opportunities
+- View color dots use a simple hash function on the view name for deterministic colors
 
