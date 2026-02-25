@@ -32941,6 +32941,8 @@ export type Database = {
         | "start_onboarding_flow"
         | "activate_ai_assistant"
         | "schedule_repurchase_reminder"
+        | "mark_as_at_risk"
+        | "send_overdue_alert"
       automation_state: "draft" | "active" | "paused" | "error"
       automation_trigger:
         | "lead_created"
@@ -32985,6 +32987,11 @@ export type Database = {
         | "store_repurchase"
         | "store_first_purchase"
         | "store_order_status_changed"
+        | "invoice_created"
+        | "invoice_overdue"
+        | "invoice_status_changed"
+        | "due_date_approaching"
+        | "contact_no_activity"
       billing_cycle:
         | "weekly"
         | "monthly"
@@ -33320,6 +33327,8 @@ export const Constants = {
         "start_onboarding_flow",
         "activate_ai_assistant",
         "schedule_repurchase_reminder",
+        "mark_as_at_risk",
+        "send_overdue_alert",
       ],
       automation_state: ["draft", "active", "paused", "error"],
       automation_trigger: [
@@ -33365,6 +33374,11 @@ export const Constants = {
         "store_repurchase",
         "store_first_purchase",
         "store_order_status_changed",
+        "invoice_created",
+        "invoice_overdue",
+        "invoice_status_changed",
+        "due_date_approaching",
+        "contact_no_activity",
       ],
       billing_cycle: [
         "weekly",
