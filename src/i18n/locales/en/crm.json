@@ -695,5 +695,11 @@
   "oppDetail_expandViewSoon": "Expanded view coming soon",
   "oppDetail_companyDomains": "Domains",
   "oppDetail_companyCategories": "Categories",
-  "oppDetail_companyICP": "ICP"
+  "oppDetail_companyICP": "ICP",
+  "oppDetail_billingAdmin": "Billing admin",
+  "oppDetail_workspace": "Workspace",
+  "oppDetail_keyContact": "Key Contact",
+  "oppDetail_partner": "Partner",
+  "oppDetail_noRecordAssociated": "No {{type}} associated",
+  "oppDetail_associate": "+ Associate"
 }

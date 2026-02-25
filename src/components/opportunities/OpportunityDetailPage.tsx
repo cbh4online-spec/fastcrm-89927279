@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Sparkles, Building2, Users, Phone, Plus } from "lucide-react";
+import { X, Sparkles, Building2, Users, Phone, Plus, CreditCard, LayoutGrid, UserCheck, Handshake } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +48,26 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
   const [isFavorite, setIsFavorite] = useState(false);
+  const [additionalTabs, setAdditionalTabs] = useState<string[]>([]);
+
+  const ADD_TAB_OPTIONS = [
+    { id: "people", label: t("oppDetail_associatedPeopleTab"), icon: Users, dot: "bg-emerald-500", isDefault: true },
+    { id: "company", label: t("oppDetail_associatedCompanyTab"), icon: Building2, dot: "bg-purple-500", isDefault: true },
+    { id: "billing", label: t("oppDetail_billingAdmin"), icon: CreditCard, dot: "bg-pink-500", isDefault: false },
+    { id: "workspace", label: t("oppDetail_workspace"), icon: LayoutGrid, dot: "bg-cyan-500", isDefault: false },
+    { id: "keycontact", label: t("oppDetail_keyContact"), icon: UserCheck, dot: "bg-teal-500", isDefault: false },
+    { id: "partner", label: t("oppDetail_partner"), icon: Handshake, dot: "bg-indigo-500", isDefault: false },
+  ];
+
+  const defaultTabIds = ["people", "company"];
+  const isTabVisible = (id: string) => defaultTabIds.includes(id) || additionalTabs.includes(id);
+
+  const handleAddTab = (tabId: string) => {
+    if (!additionalTabs.includes(tabId)) {
+      setAdditionalTabs(prev => [...prev, tabId]);
+      setActiveTab(tabId);
+    }
+  };
 
   const { data: opportunity, isLoading } = useOpportunityDetail(opportunityId);
   const { data: stages = [] } = usePipelineStagesEnhanced();
@@ -129,6 +155,10 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
     tasks: "bg-orange-500",
     calls: "bg-red-500",
     insights: "bg-amber-500",
+    billing: "bg-pink-500",
+    workspace: "bg-cyan-500",
+    keycontact: "bg-teal-500",
+    partner: "bg-indigo-500",
   };
 
   const tabDot = (key: string) => (
@@ -210,15 +240,47 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
                 <Sparkles className="h-3 w-3" />
                 {t("oppDetailTabInsights")}
               </TabsTrigger>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1 rounded-none"
-                onClick={() => toast.info(t("oppDetail_addTabSoon"))}
-              >
-                <Plus className="w-3 h-3" />
-                {t("oppDetail_addTab")}
-              </Button>
+              {/* Dynamic tabs */}
+              {additionalTabs.map(tabId => {
+                const opt = ADD_TAB_OPTIONS.find(o => o.id === tabId);
+                if (!opt) return null;
+                return (
+                  <TabsTrigger key={tabId} value={tabId} className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary gap-1 text-xs">
+                    {tabDot(tabId)}
+                    {opt.label}
+                  </TabsTrigger>
+                );
+              })}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1 rounded-none"
+                  >
+                    <Plus className="w-3 h-3" />
+                    {t("oppDetail_addTab")}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="z-50 bg-popover">
+                  {ADD_TAB_OPTIONS.map(opt => {
+                    const alreadyVisible = isTabVisible(opt.id);
+                    const Icon = opt.icon;
+                    return (
+                      <DropdownMenuItem
+                        key={opt.id}
+                        disabled={alreadyVisible}
+                        onClick={() => handleAddTab(opt.id)}
+                        className="gap-2 text-xs"
+                      >
+                        <span className={cn("w-1.5 h-1.5 rounded-full", opt.dot)} />
+                        <Icon className="w-3.5 h-3.5" />
+                        {opt.label}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4 mt-4">
@@ -272,6 +334,25 @@ export function OpportunityDetailPage({ opportunityId }: OpportunityDetailPagePr
                 <EntityMemoryPanel entityId={opportunity.id} entityType="opportunity" entityName={opportunity.title} />
               </div>
             </TabsContent>
+
+            {/* Dynamic tab contents */}
+            {additionalTabs.map(tabId => {
+              const opt = ADD_TAB_OPTIONS.find(o => o.id === tabId);
+              if (!opt) return null;
+              const Icon = opt.icon;
+              return (
+                <TabsContent key={tabId} value={tabId} className="mt-4">
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Icon className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm mb-3">{t("oppDetail_noRecordAssociated", { type: opt.label })}</p>
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => toast.info("Em breve")}>
+                      <Plus className="w-3.5 h-3.5" />
+                      {t("oppDetail_associate")}
+                    </Button>
+                  </div>
+                </TabsContent>
+              );
+            })}
           </Tabs>
         </div>
 
