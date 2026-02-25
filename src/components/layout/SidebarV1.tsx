@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
-import { NAV_V1_ITEMS } from "@/config/nav.v1";
+import { NAV_V1_ITEMS, NavV1Item } from "@/config/nav.v1";
 import { X, Command, Search, Star, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useSidebarFavorites } from "@/hooks/useSidebarFavorites";
@@ -38,16 +38,26 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
     return location.pathname === basePath || location.pathname.startsWith(basePath + "/");
   };
 
-  // Build dynamic nav items from custom objects
-  const dynamicItems = (customObjects || []).map((obj) => ({
+  // Build dynamic nav items from custom objects — insert inline after CRM group
+  const dynamicItems: NavV1Item[] = (customObjects || []).map((obj) => ({
     name: obj.name,
     href: `/objects/${obj.slug}`,
     icon: getIconByName(obj.icon),
-    group: "Records",
+    group: "CRM",
     dynamic: true,
   }));
 
-  const allNavItems = [...NAV_V1_ITEMS, ...dynamicItems];
+  // Insert custom objects right after the CRM section items
+  const crmEndIndex = NAV_V1_ITEMS.findIndex((item, i) => 
+    item.group === "CRM" && (i + 1 >= NAV_V1_ITEMS.length || NAV_V1_ITEMS[i + 1].group !== "CRM")
+  );
+  const mergedNavItems = [
+    ...NAV_V1_ITEMS.slice(0, crmEndIndex + 1),
+    ...dynamicItems,
+    ...NAV_V1_ITEMS.slice(crmEndIndex + 1),
+  ];
+
+  const allNavItems = [...mergedNavItems];
   const favoriteItems = allNavItems.filter((item) => favorites.includes(item.href));
 
   return (
@@ -174,7 +184,7 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
           {/* Navigation */}
           <nav className={cn("flex-1 overflow-y-auto", isCollapsed ? "px-1 py-2" : "px-3 py-2")}>
             <div className="space-y-0.5">
-              {NAV_V1_ITEMS.map((item) => {
+              {mergedNavItems.map((item) => {
                 const active = isActive(item.href, item.end);
                 const pinned = isFavorite(item.href);
 
@@ -230,70 +240,7 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
               })}
             </div>
 
-            {/* Dynamic Records section */}
-            {dynamicItems.length > 0 && (
-              <>
-                <Separator className="my-2" />
-                {!isCollapsed && (
-                  <span className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Records
-                  </span>
-                )}
-                <div className={cn("space-y-0.5", !isCollapsed && "mt-1.5")}>
-                  {dynamicItems.map((item) => {
-                    const href = item.href;
-                    const active = isActive(href);
-                    const pinned = isFavorite(href);
-                    const Icon = item.icon;
-
-                    return isCollapsed ? (
-                      <Tooltip key={href}>
-                        <TooltipTrigger asChild>
-                          <Link
-                            to={href}
-                            onClick={onClose}
-                            className={cn(
-                              "flex items-center justify-center p-2 rounded-lg transition-colors",
-                              active
-                                ? "bg-muted text-foreground"
-                                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                            )}
-                          >
-                            <Icon className="w-4 h-4" />
-                          </Link>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">{item.name}</TooltipContent>
-                      </Tooltip>
-                    ) : (
-                      <div key={href} className="group flex items-center">
-                        <Link
-                          to={href}
-                          onClick={onClose}
-                          className={cn(
-                            "flex-1 flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                            active
-                              ? "bg-muted text-foreground"
-                              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                          )}
-                        >
-                          <Icon className={cn("w-4 h-4", active ? "text-foreground" : "text-muted-foreground")} />
-                          <span className="flex-1">{item.name}</span>
-                          <button
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(href); }}
-                            className={cn(
-                              "p-0.5 rounded hover:bg-muted transition-all",
-                              pinned ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                            )}
-                          >
-                            <Star className={cn("w-3.5 h-3.5", pinned ? "fill-foreground text-foreground" : "text-muted-foreground")} />
-                          </button>
-                        </Link>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
+            {/* Dynamic Records section removed — custom objects are now inline in CRM */}
           </nav>
 
           {/* Collapse Toggle — desktop only */}
