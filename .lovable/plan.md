@@ -1,61 +1,85 @@
 
 
-# Plan: Drag-and-Drop Reordering for Saved Views
+# Plan: Add Emoji/Icon Picker to View Rename Dialog
 
 ## Overview
 
-Add drag-and-drop reordering to the Views section in the DealsSidebar. Users will be able to grab a view item and drag it to reorder within the list. The new position is persisted to the database via the existing `position` column on `crm_saved_views`.
+Add an emoji/icon picker alongside the rename input so users can customize the view's icon. This applies to both the inline rename in `DealsSidebar.tsx` and the dialog rename in `ViewSettingsDropdown.tsx`.
 
 ## Current State
 
-- `SavedView` already has a `position: number` field
-- The query in `useSavedViews` currently orders by `name` — needs to change to `position`
-- No drag-and-drop library is installed, but we can implement lightweight HTML5 drag-and-drop without adding a dependency
+- `SavedView` already has an `icon: string | null` field stored in the database
+- The sidebar already renders `view.icon` as a text emoji when present (line 567)
+- `useUpdateSavedView` already supports updating `icon` in the `updates` partial
+- Rename in `DealsSidebar` is an inline input (lines 605-624) — callback is `onRename(newName: string)`
+- Rename in `ViewSettingsDropdown` is a Dialog with input (lines 94-112)
 
 ## Implementation Steps
 
-### 1. Update query ordering — `src/hooks/useSavedViews.ts`
+### 1. Create `EmojiIconPicker` component — NEW `src/components/opportunities/EmojiIconPicker.tsx`
 
-Change `.order("name")` to `.order("position").order("name")` so views respect their saved position.
+A small Popover-based picker with:
+- A grid of common emojis organized by category (Objects, Faces, Nature, Symbols — ~60 emojis total)
+- A "Remove" option to clear the icon back to the default colored dot
+- Trigger is the current icon (emoji or colored dot) rendered as a clickable button
+- Static emoji list embedded in the component (no external dependency needed)
 
-### 2. Add `useReorderSavedViews` mutation — `src/hooks/useSavedViews.ts`
+Categories and emojis:
+- **Objects**: 📋 📊 📈 💼 🎯 ⭐ 💡 🔔 📌 🏷️ 📁 📂 💰 🏆 🎨
+- **People**: 👥 👤 🤝 💪 🙌 👋 ✋ 🫂
+- **Status**: ✅ ❌ ⚡ 🔥 ❄️ 🚀 ⏰ 🔒 🔓
+- **Shapes**: 🔴 🟢 🔵 🟡 🟣 ⬛ 🔶 🔷
 
-New mutation that accepts an array of `{ id, position }` pairs and batch-updates them. Uses a simple loop of individual updates (Supabase doesn't support batch upsert on partial fields elegantly).
+### 2. Update inline rename in `DealsSidebar.tsx` ViewItem (lines 605-624)
 
-```typescript
-export function useReorderSavedViews() {
-  // mutationFn: receives { entity_type, items: { id, position }[] }
-  // Updates each view's position in sequence
-  // Invalidates saved-views query on success
-}
+- Change `onRename` callback signature to `onRename: (newName: string, icon?: string | null) => void`
+- Add local `newIcon` state initialized from `view.icon`
+- Place `EmojiIconPicker` to the left of the name input
+- On submit, pass both `newName` and `newIcon`
+
+### 3. Update rename dialog in `ViewSettingsDropdown.tsx` (lines 94-112)
+
+- Add `newIcon` state initialized from `activeView.icon`
+- Place `EmojiIconPicker` to the left of the name input inside the Dialog
+- Update `onRename` prop signature to include icon: `onRename?: (id: string, newName: string, icon?: string | null) => void`
+- Pass icon in `handleRenameSubmit`
+
+### 4. Update parent callbacks in `DealsSidebar.tsx` (view mapping, ~line 272-290)
+
+- Update the `onRename` handler to call `updateView.mutate` with both `name` and `icon` in the `updates` object
+
+## Component Design — `EmojiIconPicker`
+
+```text
+┌──────────────────────────┐
+│ [Current Icon ▾]         │  ← Popover trigger (button)
+├──────────────────────────┤
+│ Objects                  │
+│ 📋 📊 📈 💼 🎯 ⭐ 💡 🔔 │
+│ People                   │
+│ 👥 👤 🤝 💪 🙌          │
+│ Status                   │
+│ ✅ ❌ ⚡ 🔥 🚀 ⏰       │
+│ Shapes                   │
+│ 🔴 🟢 🔵 🟡 🟣          │
+├──────────────────────────┤
+│ [✕ Remove icon]          │
+└──────────────────────────┘
 ```
 
-### 3. Add drag-and-drop to Views list — `src/components/opportunities/DealsSidebar.tsx`
+Props: `currentIcon: string | null`, `viewName: string` (for fallback dot color), `onSelect: (icon: string | null) => void`
 
-- Add local `orderedViews` state derived from `filteredViews`
-- Add `draggedIndex` / `dragOverIndex` state tracking
-- On each `ViewItem`, add `draggable`, `onDragStart`, `onDragOver`, `onDragEnd`, `onDrop` handlers
-- Show a visual drop indicator (blue line) between items during drag
-- Add a subtle drag handle (grip dots icon) on hover, left of the view dot/icon
-- On drop, recompute positions and call `useReorderSavedViews`
+## Files Changed
 
-### 4. Update `ViewItem` component — `src/components/opportunities/DealsSidebar.tsx`
-
-- Accept new props: `isDragging`, `isDragOver`, `dragHandleProps`
-- Add `GripVertical` icon (from lucide) as drag handle, visible on hover
-- Apply opacity/border styling when dragging or being dragged over
-
-## Visual Behavior
-
-- Drag handle (⠿) appears on hover, left side of item
-- Dragged item becomes semi-transparent (opacity-50)
-- Drop target shows a 2px blue line above it
-- On release, list reorders smoothly and positions persist
+| File | Change |
+|------|--------|
+| `src/components/opportunities/EmojiIconPicker.tsx` | NEW — Popover emoji grid picker |
+| `src/components/opportunities/DealsSidebar.tsx` | Update `onRename` signature, add icon state to inline rename, wire `EmojiIconPicker` |
+| `src/components/opportunities/ViewSettingsDropdown.tsx` | Add icon state + `EmojiIconPicker` to rename dialog, update callback signature |
 
 ## Technical Notes
 
-- Uses native HTML5 Drag and Drop API — no new dependencies needed
-- Position values are set as 0, 1, 2, ... based on final order
-- The `GripVertical` icon is already available in lucide-react
-- Drag is only enabled in the Views section (not Favorites or Lists — those derive from the same data)
+- No new dependencies — uses existing `@radix-ui/react-popover` and native emoji characters
+- The `icon` column is already `text | null` in the database, so any emoji string works
+- `useUpdateSavedView` already handles `icon` in the updates partial — no hook changes needed
 
