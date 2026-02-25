@@ -23,6 +23,7 @@ import {
 
 export type SettingsCategory =
   | "profile"
+  | "emailCalendar"
   | "appearance"
   | "notifications"
   | "workspace"
@@ -54,6 +55,7 @@ const navGroups: NavGroup[] = [
     labelKey: "personal",
     items: [
       { id: "profile", labelKey: "nav_profile", icon: User },
+      { id: "emailCalendar", labelKey: "nav_emailCalendar", icon: MessageSquare },
       { id: "appearance", labelKey: "nav_appearance", icon: Palette },
       { id: "notifications", labelKey: "nav_notifications", icon: Bell },
     ],

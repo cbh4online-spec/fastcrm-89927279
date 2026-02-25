@@ -11,6 +11,31 @@ export interface SearchableItem {
 }
 
 export const settingsSearchData: SearchableItem[] = [
+  // Email & Calendar
+  {
+    id: "emailcalendar-accounts",
+    category: "emailCalendar",
+    sectionTitle: "Contas de Email & Calendário",
+    sectionDescription: "Gerir e sincronizar contas de email e calendário",
+    itemTitle: "Contas conectadas",
+    itemDescription: "Google, Microsoft, IMAP, Hostinger",
+    keywords: ["email", "calendário", "calendar", "google", "microsoft", "imap", "hostinger", "contas", "sincronizar", "sync"],
+  },
+  {
+    id: "emailcalendar-signature",
+    category: "emailCalendar",
+    sectionTitle: "Assinatura de Email",
+    sectionDescription: "Configurar assinatura predefinida",
+    keywords: ["assinatura", "signature", "email", "rodapé"],
+  },
+  {
+    id: "emailcalendar-watermark",
+    category: "emailCalendar",
+    sectionTitle: "Marca de Água",
+    sectionDescription: "FastCRM watermark nos emails",
+    keywords: ["watermark", "marca", "água", "fastcrm", "branding"],
+  },
+
   // Workspace & Team
   {
     id: "workspace-info",
@@ -401,7 +426,7 @@ export function searchSettings(query: string): {
   if (!normalizedQuery) {
     return {
       matchedItems: settingsSearchData,
-      matchedCategories: new Set(["profile", "appearance", "notifications", "workspace", "channels", "crm", "templates", "automation", "experience", "security", "integrations", "billing", "extensions", "flags"] as SettingsCategory[]),
+      matchedCategories: new Set(["profile", "emailCalendar", "appearance", "notifications", "workspace", "channels", "crm", "templates", "automation", "experience", "security", "integrations", "billing", "extensions", "flags"] as SettingsCategory[]),
       matchedSections: new Set(settingsSearchData.map(item => item.id)),
     };
   }
