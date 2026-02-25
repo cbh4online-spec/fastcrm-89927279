@@ -1,44 +1,97 @@
 
 
-# Domain Auto-Link: Contact → Company
+# Attio-Style Entity Detail Layout
 
-## What It Does
+## What Changes
 
-When creating a contact with an email (e.g. `user@acme.com`), automatically look up companies in the same workspace where `domain = 'acme.com'`. If found, set `company_id` on the new contact.
-
-## Implementation
-
-### Single file change: `src/hooks/useContacts.ts`
-
-Modify the `createContact` mutation (lines 105-133) to:
-
-1. Extract domain from the provided email (strip everything before `@`)
-2. If no `company_id` was explicitly provided and an email exists:
-   - Query `companies` table for a matching `domain` in the same workspace (case-insensitive, `deleted_at IS NULL`)
-   - If exactly one match found, use that company's `id` as `company_id` and its `name` as `company`
-3. Proceed with the insert using the resolved `company_id`
+The current 3-column layout (left sidebar menu → center content → right context sidebar) will be replaced with the Attio-style layout from the screenshot:
 
 ```text
-createContact flow:
-  email provided? ──► extract domain
-  company_id already set? ──► skip lookup
-  query companies WHERE lower(domain) = lower(extracted_domain) ──► found?
-    yes ──► set company_id + company name
-    no  ──► proceed without company_id
+┌─────────────────────────────────────────────────────────────────────┐
+│ [←] Entity Name ★                          [Run workflow] [⚙] [⋯] │
+├──────────────────────────────────────┬──────────────────────────────┤
+│ Overview | Activity | Emails 3 |     │ Details | Comments           │
+│ Notes 5 | Team 2 | Tasks 1 | Files  │                              │
+│ +2 more ▾                            │ ▸ Record Details             │
+├──────────────────────────────────────┤   Domains: cosme.pt          │
+│                                      │   Description: ...           │
+│ ═ Highlights                         │   Categories: Finance SaaS   │
+│ ┌──────┐ ┌──────┐ ┌──────┐          │                              │
+│ │Conn. │ │Deals │ │Last  │          │ ▸ Enriched Firmographics     │
+│ │Stren.│ │      │ │Inter.│          │   Founded: 2022              │
+│ └──────┘ └──────┘ └──────┘          │   Employees: 51-250          │
+│ ┌──────┐ ┌──────┐ ┌──────┐          │   Est ARR: $1M-$10M          │
+│ │ ICP  │ │Categ.│ │Worksp│          │   Funding: $10M              │
+│ └──────┘ └──────┘ └──────┘          │                              │
+│                                      │ ▸ Location                   │
+│ ← Activity                          │   City: Porto                │
+│   • Meeting attended 2h ago          │   Country: Portugal          │
+│   • 3 attributes changed 4d ago     │                              │
+│                                      │ ▸ Social Media Links         │
+│ ✉ Emails 3                      [+] │   LinkedIn: ...              │
+│   • Subject line preview...          │   Facebook: ...              │
+│                                      │   Twitter: ...               │
+│ 📝 Notes 5                      [+] │                              │
+│   • Note preview...                  │ ▸ Lists                      │
+│                                      │                              │
+│ ☐ Tasks 1                       [+] │                              │
+│   • Task name        @user  📅 date │                              │
+└──────────────────────────────────────┴──────────────────────────────┘
 ```
 
-### Edge case: `store-capture-lead` edge function
+## Architecture
 
-The `supabase/functions/store-capture-lead/index.ts` also creates contacts. Add the same domain-matching logic there: after determining the contact, if no `company_id` is set, check for a company with matching domain and update the contact.
+### 1. New shared component: `EntityHorizontalTabs`
 
-### Files Changed
+Replaces `EntitySidebarMenu`. Renders horizontal tabs with counts, overflow handling ("+2 more" dropdown), and section navigation. Used by all 3 entity types.
+
+### 2. New shared component: `EntityDetailsPanel`
+
+Right sidebar with collapsible sections showing record fields inline (not cards). Adapts per entity type:
+- **Company**: Record Details (domain, description, categories), Firmographics (founded, employees, ARR, funding), Location (city, state, country), Social Media
+- **Contact**: Record Details (email, phone, company, job title), Professional Profile, Address, Social Media
+- **Lead**: Record Details (email, phone, source), Tags, Social Media
+
+### 3. New shared component: `EntityHighlightsGrid`
+
+The "Highlights" card grid at top of Overview showing key metrics (Connection strength, Associated deals, Last interaction, ICP score, Categories, Associated workspaces). Each card is a small summary box.
+
+### 4. Overview section redesign
+
+The Overview tab becomes a single scrollable page with embedded preview sections:
+- **Highlights** grid (top)
+- **Activity** (last 3 entries + "View all →")
+- **Emails** (last 3 + count badge + "+" button)
+- **Notes** (last 3 + count badge + "+" button)
+- **Tasks** (active tasks + "+" button)
+
+Clicking "View all →" or the tab switches to that full section.
+
+### 5. Update all 3 detail pages
+
+- `CompanyDetailWithSidebar.tsx` — replace left sidebar + center with horizontal tabs + main + right details panel
+- `LeadDetailWithSidebar.tsx` — same layout transformation
+- `ENIContactDetailWithSidebar.tsx` — same layout transformation
+
+### 6. Header simplification
+
+Simplified header matching screenshot: icon + name + star (favorite). Action buttons on the right. Remove gradient background, use flat border-b style.
+
+## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/hooks/useContacts.ts` | Add domain extraction + company lookup before insert in `createContact` |
-| `supabase/functions/store-capture-lead/index.ts` | Add domain auto-link after contact creation |
+| `src/components/entity/EntityHorizontalTabs.tsx` | **New** — horizontal tab bar with counts and overflow |
+| `src/components/entity/EntityDetailsPanel.tsx` | **New** — right sidebar with collapsible record details |
+| `src/components/entity/EntityHighlightsGrid.tsx` | **New** — highlights card grid for overview |
+| `src/components/entity/EntityOverviewSections.tsx` | **New** — inline Activity/Emails/Notes/Tasks previews |
+| `src/components/companies/CompanyDetailWithSidebar.tsx` | Replace 3-col with tabs + details panel layout |
+| `src/components/crm/LeadDetailWithSidebar.tsx` | Replace 3-col with tabs + details panel layout |
+| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | Replace 3-col with tabs + details panel layout |
 
-### No DB changes needed
+## What Stays
 
-The `companies.domain` column and the unique index `(workspace_id, lower(domain))` already exist from the previous migration.
+- All existing section content components (IdentificationSection, FinancialSection, NotesSection, etc.) remain unchanged — only the container layout changes
+- `EntitySidebarMenu` and `EntityContextSidebar` remain in codebase (not deleted) but are no longer used by the 3 detail pages
+- All hooks, data fetching, and business logic untouched
 
