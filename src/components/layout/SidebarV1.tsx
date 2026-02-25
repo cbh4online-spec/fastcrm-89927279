@@ -9,7 +9,7 @@ import { useSidebarFavorites } from "@/hooks/useSidebarFavorites";
 import { useSidebarCollapse } from "@/hooks/useSidebarCollapse";
 import { useCustomObjects } from "@/hooks/useCustomObjects";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
-import { getExtensionObjectTabs } from "@/config/extensionRegistry";
+import { getExtensionObjectTabsGrouped } from "@/config/extensionRegistry";
 import { getIconByName } from "@/lib/icons";
 import {
   Tooltip,
@@ -31,8 +31,8 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
   const { data: customObjects } = useCustomObjects();
   const { installedModuleIds } = useWorkspaceModules();
 
-  const extensionNavItems = useMemo(() => {
-    return getExtensionObjectTabs(installedModuleIds).filter((tab) => tab.route);
+  const extensionGroups = useMemo(() => {
+    return getExtensionObjectTabsGrouped(installedModuleIds);
   }, [installedModuleIds]);
 
   // On mobile overlay, always show expanded
@@ -248,20 +248,20 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
               })}
             </div>
 
-            {/* Extension modules */}
-            {extensionNavItems.length > 0 && (
-              <div className="mt-2">
+            {/* Extension modules grouped by category */}
+            {extensionGroups.length > 0 && extensionGroups.map((group) => (
+              <div key={group.category} className="mt-2">
                 <Separator className="my-2" />
                 {!isCollapsed && (
                   <div className="flex items-center gap-2 px-3 mb-1.5">
                     <Puzzle className="w-3.5 h-3.5 text-muted-foreground" />
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Extensões
+                      {group.category}
                     </span>
                   </div>
                 )}
                 <div className="space-y-0.5">
-                  {extensionNavItems.map((ext) => {
+                  {group.tabs.map((ext) => {
                     const active = isActive(ext.route!, false);
                     const Icon = ext.icon;
                     return isCollapsed ? (
@@ -301,7 +301,7 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
                   })}
                 </div>
               </div>
-            )}
+            ))}
 
             {/* Dynamic Records section removed — custom objects are now inline in CRM */}
           </nav>
