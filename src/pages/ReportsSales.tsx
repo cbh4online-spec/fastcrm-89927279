@@ -15,6 +15,7 @@ import { SalesVelocityCard } from "@/components/reports/sales/SalesVelocityCard"
 import { TopPerformersCard } from "@/components/reports/sales/TopPerformersCard";
 import { SourceAnalysisChart } from "@/components/reports/sales/SourceAnalysisChart";
 import { StageDurationHeatmap } from "@/components/reports/sales/StageDurationHeatmap";
+import { DealForecastChart } from "@/components/reports/sales/DealForecastChart";
 
 export default function ReportsSales() {
   const { t } = useTranslation("reports");
@@ -67,6 +68,9 @@ export default function ReportsSales() {
 
         {/* Stage Duration Heatmap */}
         <StageDurationHeatmap data={data?.stageDuration} isLoading={isLoading} />
+
+        {/* Deal Forecast */}
+        <DealForecastChart data={data?.dealForecast} isLoading={isLoading} />
 
         {/* Row 3: Velocity + Top Performers */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

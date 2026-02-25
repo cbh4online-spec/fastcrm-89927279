@@ -46,5 +46,12 @@
   "stage_expected": "Attendu",
   "stage_under_expected": "Sous l'attendu",
   "stage_on_track": "Dans les temps",
-  "stage_over_expected": "Au-dessus de l'attendu"
+  "stage_over_expected": "Au-dessus de l'attendu",
+  "deal_forecast_chart": "Prévision des Deals par Étape",
+  "deal_forecast_subtitle": "Revenu projeté basé sur la probabilité du pipeline",
+  "deal_forecast_total": "Valeur Totale",
+  "deal_forecast_weighted": "Valeur Pondérée",
+  "deal_forecast_probability": "Probabilité",
+  "deal_forecast_total_weighted": "Pipeline Pondéré Total",
+  "deal_forecast_deals": "deals"
 }
