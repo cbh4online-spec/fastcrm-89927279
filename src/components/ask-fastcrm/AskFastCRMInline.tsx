@@ -20,7 +20,7 @@ const SUGGESTED_CHIPS = [
 
 export function AskFastCRMInline() {
   const [input, setInput] = useState("");
-  const { isLoading, result, ask, clear, executeAction, pendingAction, confirmPendingAction, cancelPendingAction } = useAskFastCRM();
+  const { isLoading, result, ask, clear, executeAction, pendingAction, confirmPendingAction, cancelPendingAction, confirmAutomation, cancelAutomation, isConfirmingAutomation } = useAskFastCRM();
   const navigate = useNavigate();
 
   const handleSubmit = () => {
@@ -111,6 +111,13 @@ export function AskFastCRMInline() {
             pendingAction={pendingAction}
             onConfirmAction={confirmPendingAction}
             onCancelAction={cancelPendingAction}
+            onConfirmAutomation={(preview) => {
+              confirmAutomation(preview);
+            }}
+            onCancelAutomation={() => {
+              cancelAutomation();
+            }}
+            isConfirmingAutomation={isConfirmingAutomation}
           />
         )}
       </div>

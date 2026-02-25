@@ -1,4 +1,5 @@
-import { AskResult, AskResultAction, AskResultItem } from "@/hooks/useAskFastCRM";
+import { AskResult, AskResultAction, AskResultItem, AutomationPreview } from "@/hooks/useAskFastCRM";
+import { AskAutomationPreview } from "./AskAutomationPreview";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -38,9 +39,12 @@ interface Props {
   onConfirmAction?: () => void;
   onCancelAction?: () => void;
   selectedItemIndex?: number;
+  onConfirmAutomation?: (preview: AutomationPreview) => void;
+  onCancelAutomation?: () => void;
+  isConfirmingAutomation?: boolean;
 }
 
-export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouMean, pendingAction, onConfirmAction, onCancelAction, selectedItemIndex = -1 }: Props) {
+export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouMean, pendingAction, onConfirmAction, onCancelAction, selectedItemIndex = -1, onConfirmAutomation, onCancelAutomation, isConfirmingAutomation }: Props) {
   const TrendIcon =
     result.metric?.trend === "up"
       ? TrendingUp
@@ -53,7 +57,8 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
   const visibleActions = result.actions.slice(0, MAX_VISIBLE_ACTIONS);
   const overflowActions = result.actions.slice(MAX_VISIBLE_ACTIONS);
 
-  const isEmptyResult = result.items.length === 0 && !result.did_you_mean?.length && !result.metric;
+  const isEmptyResult = result.items.length === 0 && !result.did_you_mean?.length && !result.metric && !result.automation_preview;
+  const isAutomationIntent = result.intent === "create_automation_rule" && !!result.automation_preview;
 
   return (
     <motion.div
@@ -71,6 +76,16 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
           <p className="text-sm text-muted-foreground mt-0.5">{result.answer.subtext}</p>
         )}
       </div>
+
+      {/* Automation preview */}
+      {isAutomationIntent && result.automation_preview && (
+        <AskAutomationPreview
+          preview={result.automation_preview}
+          onConfirm={(preview) => onConfirmAutomation?.(preview)}
+          onCancel={() => onCancelAutomation?.()}
+          isConfirming={isConfirmingAutomation}
+        />
+      )}
 
       {/* Bulk action confirmation overlay */}
       {pendingAction && (

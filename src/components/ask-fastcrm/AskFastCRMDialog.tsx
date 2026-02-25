@@ -33,6 +33,12 @@ const AUTOCOMPLETE_MAP: Record<string, string> = {
   "value": "Show highest value deals",
   "pipeline": "How is my pipeline?",
   "forecast": "What's blocking my forecast?",
+  // Automation suggestions
+  "remind": "Remind me if no activity for 7 days",
+  "alert": "Alert me when deals are at risk",
+  "auto-assign": "Auto-assign high value deals",
+  "follow-up": "Create follow-up when deal enters Proposal",
+  "notify": "Notify me if close date is in 3 days",
 };
 
 interface Props {
@@ -43,7 +49,7 @@ interface Props {
 export function AskFastCRMDialog({ open, onOpenChange }: Props) {
   const [input, setInput] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const { isLoading, result, ask, clear, executeAction, pendingAction, confirmPendingAction, cancelPendingAction } = useAskFastCRM();
+  const { isLoading, result, ask, clear, executeAction, pendingAction, confirmPendingAction, cancelPendingAction, confirmAutomation, cancelAutomation, isConfirmingAutomation } = useAskFastCRM();
   const { data: recentQueries } = useRecentAskQueries();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -294,6 +300,13 @@ export function AskFastCRMDialog({ open, onOpenChange }: Props) {
               onConfirmAction={confirmPendingAction}
               onCancelAction={cancelPendingAction}
               selectedItemIndex={selectedIndex}
+              onConfirmAutomation={(preview) => {
+                confirmAutomation(preview);
+              }}
+              onCancelAutomation={() => {
+                cancelAutomation();
+              }}
+              isConfirmingAutomation={isConfirmingAutomation}
             />
           )}
         </div>
