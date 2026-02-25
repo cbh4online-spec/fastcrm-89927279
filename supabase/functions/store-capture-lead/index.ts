@@ -108,6 +108,38 @@ Deno.serve(async (req) => {
       }
     }
 
+    // --- Domain auto-link: associate contact with company by email domain ---
+    if (contactId && email) {
+      const emailDomain = email.split('@')[1]?.toLowerCase();
+      if (emailDomain) {
+        // Check if contact already has a company_id
+        const { data: currentContact } = await supabase
+          .from('contacts')
+          .select('company_id')
+          .eq('id', contactId)
+          .single();
+
+        if (currentContact && !currentContact.company_id) {
+          const { data: matchedCompany } = await supabase
+            .from('companies')
+            .select('id, name')
+            .eq('workspace_id', resolvedWorkspaceId)
+            .ilike('domain', emailDomain)
+            .is('deleted_at', null)
+            .limit(1)
+            .maybeSingle();
+
+          if (matchedCompany) {
+            await supabase
+              .from('contacts')
+              .update({ company_id: matchedCompany.id, company: matchedCompany.name })
+              .eq('id', contactId);
+            logStep('Auto-linked contact to company', { contactId, companyId: matchedCompany.id });
+          }
+        }
+      }
+    }
+
     // --- Upsert abandoned cart ---
     const subtotal = (cartItems || []).reduce(
       (sum: number, i: { price: number; quantity: number }) => sum + i.price * i.quantity,

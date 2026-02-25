@@ -106,6 +106,29 @@ export function useContacts() {
     mutationFn: async (data: CreateContactData) => {
       if (!currentWorkspace || !user) throw new Error("Not authenticated");
 
+      // Domain auto-link: resolve company from email domain
+      let resolvedCompanyId = data.company_id || null;
+      let resolvedCompanyName = data.company || null;
+
+      if (!resolvedCompanyId && data.email) {
+        const emailDomain = data.email.split('@')[1]?.toLowerCase();
+        if (emailDomain) {
+          const { data: matchedCompany } = await workspaceClient
+            .from("companies")
+            .select("id, name")
+            .eq("workspace_id", currentWorkspace.id)
+            .ilike("domain", emailDomain)
+            .is("deleted_at", null)
+            .limit(1)
+            .maybeSingle();
+
+          if (matchedCompany) {
+            resolvedCompanyId = matchedCompany.id;
+            resolvedCompanyName = resolvedCompanyName || matchedCompany.name;
+          }
+        }
+      }
+
       const { data: contact, error } = await workspaceClient
         .from("contacts")
         .insert({
@@ -114,8 +137,8 @@ export function useContacts() {
           name: data.name,
           email: data.email || null,
           phone: data.phone || null,
-          company: data.company || null,
-          company_id: data.company_id || null,
+          company: resolvedCompanyName,
+          company_id: resolvedCompanyId,
           is_primary_contact: data.is_primary_contact || false,
           job_title: data.job_title || null,
           notes: data.notes || null,
