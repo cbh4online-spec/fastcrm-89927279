@@ -1,0 +1,18 @@
+{
+  "title": "Automações",
+  "createRule": "Criar Regra",
+  "editRule": "Editar Regra",
+  "trigger": "Trigger",
+  "condition": "Condição",
+  "action": "Ação",
+  "active": "Ativa",
+  "inactive": "Inativa",
+  "noRules": "Sem regras de automação",
+  "suggestions": "Sugestões",
+  "templates": "Templates",
+  "testRule": "Testar Regra",
+  "runHistory": "Histórico de Execução",
+  "lastRun": "Última Execução",
+  "runsToday": "Execuções Hoje",
+  "successRate": "Taxa de Sucesso"
+}

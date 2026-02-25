@@ -1,0 +1,23 @@
+{
+  "title": "Inbox",
+  "compose": "Compose",
+  "reply": "Reply",
+  "forward": "Forward",
+  "archive": "Archive",
+  "markAsRead": "Mark as read",
+  "markAsUnread": "Mark as unread",
+  "delete": "Delete",
+  "subject": "Subject",
+  "to": "To",
+  "from": "From",
+  "cc": "Cc",
+  "bcc": "Bcc",
+  "send": "Send",
+  "draft": "Draft",
+  "drafts": "Drafts",
+  "sent": "Sent",
+  "trash": "Trash",
+  "noMessages": "No messages",
+  "attachment": "Attachment",
+  "attachments": "Attachments"
+}

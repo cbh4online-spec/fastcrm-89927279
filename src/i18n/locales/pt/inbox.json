@@ -1,0 +1,23 @@
+{
+  "title": "Caixa de Entrada",
+  "compose": "Compor",
+  "reply": "Responder",
+  "forward": "Reencaminhar",
+  "archive": "Arquivar",
+  "markAsRead": "Marcar como lida",
+  "markAsUnread": "Marcar como não lida",
+  "delete": "Eliminar",
+  "subject": "Assunto",
+  "to": "Para",
+  "from": "De",
+  "cc": "Cc",
+  "bcc": "Bcc",
+  "send": "Enviar",
+  "draft": "Rascunho",
+  "drafts": "Rascunhos",
+  "sent": "Enviados",
+  "trash": "Lixo",
+  "noMessages": "Sem mensagens",
+  "attachment": "Anexo",
+  "attachments": "Anexos"
+}

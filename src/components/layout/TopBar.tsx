@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 import { HelpSupportDropdown } from "./HelpSupportDropdown";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { LanguageSelector } from "@/components/ui/LanguageSelector";
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -117,6 +118,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
           </Tooltip>
         )}
 
+        <LanguageSelector />
         <HelpSupportDropdown />
 
         <NotificationBell />

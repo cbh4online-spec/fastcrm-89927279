@@ -1,0 +1,23 @@
+{
+  "title": "Bandeja de Entrada",
+  "compose": "Redactar",
+  "reply": "Responder",
+  "forward": "Reenviar",
+  "archive": "Archivar",
+  "markAsRead": "Marcar como leído",
+  "markAsUnread": "Marcar como no leído",
+  "delete": "Eliminar",
+  "subject": "Asunto",
+  "to": "Para",
+  "from": "De",
+  "cc": "Cc",
+  "bcc": "Cco",
+  "send": "Enviar",
+  "draft": "Borrador",
+  "drafts": "Borradores",
+  "sent": "Enviados",
+  "trash": "Papelera",
+  "noMessages": "Sin mensajes",
+  "attachment": "Adjunto",
+  "attachments": "Adjuntos"
+}

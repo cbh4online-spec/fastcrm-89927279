@@ -1,0 +1,23 @@
+{
+  "title": "Boîte de Réception",
+  "compose": "Rédiger",
+  "reply": "Répondre",
+  "forward": "Transférer",
+  "archive": "Archiver",
+  "markAsRead": "Marquer comme lu",
+  "markAsUnread": "Marquer comme non lu",
+  "delete": "Supprimer",
+  "subject": "Objet",
+  "to": "À",
+  "from": "De",
+  "cc": "Cc",
+  "bcc": "Cci",
+  "send": "Envoyer",
+  "draft": "Brouillon",
+  "drafts": "Brouillons",
+  "sent": "Envoyés",
+  "trash": "Corbeille",
+  "noMessages": "Aucun message",
+  "attachment": "Pièce jointe",
+  "attachments": "Pièces jointes"
+}

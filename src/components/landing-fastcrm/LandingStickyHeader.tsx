@@ -4,6 +4,7 @@ import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Zap, Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import { LanguageSelector } from "@/components/ui/LanguageSelector";
 
 const navLinks = [
   { href: "#features", label: "Features" },
@@ -49,6 +50,9 @@ export function LandingStickyHeader() {
           ))}
         </nav>
 
+        <div className="flex items-center gap-2">
+          <LanguageSelector className="text-[hsl(210,40%,98%)] hover:bg-[hsl(217,33%,17%)]" />
+        </div>
         <div className="flex items-center gap-3">
           <Link to="/auth" className="hidden md:inline-flex">
             <Button

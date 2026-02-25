@@ -1,0 +1,61 @@
+{
+  "hero": {
+    "badge": "Plataforma de Inteligencia de Ingresos",
+    "title1": "Construye tu CRM.",
+    "title2": "Haz crecer tus ingresos.",
+    "subtitle": "Ve tus ingresos antes de que ocurran. Health scores, inteligencia de negocios y automatizaciones inteligentes — integrados en cada objeto.",
+    "startFree": "Empezar Gratis",
+    "seeHow": "Ver cómo funciona"
+  },
+  "problem": {
+    "title": "¿Te suena familiar?",
+    "subtitle": "La mayoría de los CRM almacenan contactos. FastCRM te dice qué hacer con ellos.",
+    "q1": "\"No sé qué negocios van a cerrar realmente.\"",
+    "q2": "\"Mi pronóstico es una suposición — no una estrategia.\"",
+    "q3": "\"Paso más tiempo actualizando el CRM que vendiendo.\"",
+    "q4": "\"Necesito propuestas y facturación, pero no quiero otra herramienta.\""
+  },
+  "solution": {
+    "title": "Todo lo que necesitas para",
+    "titleHighlight": "cerrar más negocios.",
+    "subtitle": "Cuatro pilares. Una plataforma. Hecha para equipos de ingresos que quieren estructura sin complejidad."
+  },
+  "comparison": {
+    "title": "¿Por qué",
+    "titleHighlight": "FastCRM?",
+    "subtitle": "Inteligencia de ingresos, no adivinanzas."
+  },
+  "pricing": {
+    "title": "Precios simples y transparentes.",
+    "subtitle": "Empieza gratis. Escala a medida que creces. Sin sorpresas.",
+    "startFree": "Empezar Gratis",
+    "startFreeUpgrade": "Empezar Gratis, Upgrade Después",
+    "mostPopular": "Más popular",
+    "extendBundles": "Extender con bundles",
+    "extendBundlesSub": "Packs de extensiones preconfigurados. Ahorra vs comprar individualmente."
+  },
+  "fastclub": {
+    "badge": "Private Capital Circle",
+    "title": "El círculo privado del",
+    "titleHighlight": "ecosistema FastCRM.",
+    "subtitle": "Un ambiente restringido donde empresarios, inversores y decisores estratégicos alinean oportunidades con método, control y métricas reales.",
+    "cta": "Conocer el Private Capital Circle",
+    "ctaNote": "Acceso exclusivamente por invitación o candidatura validada."
+  },
+  "finalCta": {
+    "title": "Ve tus ingresos con claridad.",
+    "subtitle": "Empieza gratis. Sin tarjeta de crédito. Tu primer insight de negocio en menos de 2 minutos.",
+    "cta": "Empezar Gratis"
+  },
+  "faq": {
+    "title": "Preguntas Frecuentes",
+    "subtitle": "Todo lo que necesitas saber antes de empezar."
+  },
+  "footer": {
+    "tagline": "Plataforma de Inteligencia de Ingresos",
+    "privacy": "Privacidad",
+    "terms": "Términos",
+    "gdpr": "RGPD",
+    "allRightsReserved": "Todos los derechos reservados."
+  }
+}

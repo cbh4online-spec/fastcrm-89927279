@@ -1,0 +1,18 @@
+{
+  "title": "Automatizaciones",
+  "createRule": "Crear Regla",
+  "editRule": "Editar Regla",
+  "trigger": "Disparador",
+  "condition": "Condición",
+  "action": "Acción",
+  "active": "Activa",
+  "inactive": "Inactiva",
+  "noRules": "Sin reglas de automatización",
+  "suggestions": "Sugerencias",
+  "templates": "Plantillas",
+  "testRule": "Probar Regla",
+  "runHistory": "Historial de Ejecución",
+  "lastRun": "Última Ejecución",
+  "runsToday": "Ejecuciones Hoy",
+  "successRate": "Tasa de Éxito"
+}
