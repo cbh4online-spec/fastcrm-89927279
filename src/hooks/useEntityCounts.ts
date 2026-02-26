@@ -10,6 +10,7 @@ export interface EntityCounts {
   orders: number;
   scheduling: number;
   files: number;
+  notes: number;
 }
 
 type EntityType = 'lead' | 'contact' | 'company';
@@ -19,7 +20,7 @@ export function useEntityCounts(entityType: EntityType, entityId: string | undef
     queryKey: ['entity-counts', entityType, entityId],
     queryFn: async (): Promise<EntityCounts> => {
       if (!entityId) {
-        return { messages: 0, tasks: 0, opportunities: 0, proposals: 0, contacts: 0, orders: 0, scheduling: 0, files: 0 };
+        return { messages: 0, tasks: 0, opportunities: 0, proposals: 0, contacts: 0, orders: 0, scheduling: 0, files: 0, notes: 0 };
       }
 
       let tasksCount = 0;
@@ -114,6 +115,15 @@ export function useEntityCounts(entityType: EntityType, entityId: string | undef
         .eq('entity_id', entityId);
       filesCount = filesResult.data?.length || 0;
 
+      // Count notes (entity_notes)
+      let notesCount = 0;
+      const notesResult = await (supabase
+        .from('entity_notes' as any)
+        .select('id') as any)
+        .eq('entity_type', entityType)
+        .eq('entity_id', entityId);
+      notesCount = notesResult.data?.length || 0;
+
       return {
         messages: 0,
         tasks: tasksCount,
@@ -123,6 +133,7 @@ export function useEntityCounts(entityType: EntityType, entityId: string | undef
         orders: ordersCount,
         scheduling: schedulingCount,
         files: filesCount,
+        notes: notesCount,
       };
     },
     enabled: !!entityId,
