@@ -175,12 +175,41 @@ export function useEventRSVPs(eventId: string | undefined) {
   });
 }
 
+interface InviteWithEventContext extends Omit<EventRSVP, "id" | "created_at" | "invited_at" | "responded_at"> {
+  eventTitle?: string;
+  eventDate?: string;
+  eventLocation?: string | null;
+  eventLink?: string | null;
+}
+
 export function useInviteToEvent() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (rsvp: Omit<EventRSVP, "id" | "created_at" | "invited_at" | "responded_at">) => {
-      const { error } = await (supabase.from("event_rsvps").insert(rsvp as any) as any);
+    mutationFn: async (rsvp: InviteWithEventContext) => {
+      const { eventTitle, eventDate, eventLocation, eventLink, ...rsvpData } = rsvp;
+      const { error } = await (supabase.from("event_rsvps").insert(rsvpData as any) as any);
       if (error) throw error;
+
+      // Send invite email (non-blocking)
+      if (rsvpData.email && eventTitle && eventDate) {
+        try {
+          await supabase.functions.invoke("send-event-invite", {
+            body: {
+              email: rsvpData.email,
+              name: rsvpData.name || "",
+              eventTitle,
+              eventDate,
+              eventLocation,
+              eventLink,
+              eventId: rsvpData.event_id,
+              workspaceId: rsvpData.workspace_id,
+            },
+          });
+        } catch (emailErr) {
+          console.warn("[useInviteToEvent] Email send failed:", emailErr);
+          toast.warning("Convite criado mas o email não foi enviado");
+        }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["event-rsvps"] });
