@@ -1,49 +1,26 @@
 
 
-# Estado Atual do Menu "Relações"
+# Corrigir erro ao criar relações: UUID inválido
 
-## O que já funciona
-- O `RelationshipsPanel` existe e renderiza corretamente para Contactos e Empresas
-- O hook `useObjectRelationships` consulta a tabela `object_relationships` e resolve nomes/ícones
-- Listar, agrupar por tipo de objeto, e eliminar relações funciona
-- Navegação para o registo relacionado funciona
+## Problema
+A coluna `source_object_id` e `target_object_id` na tabela `object_relationships` são do tipo **UUID**, mas o código envia strings como `"__core_contacts"` e `"__core_companies"`, causando o erro `invalid input syntax for type uuid`.
 
-## O que falta
+Não existem registos na tabela `core_object_types` para Contactos, Empresas ou Oportunidades.
 
-### 1. Botão "Adicionar" não aparece para entidades core
-O botão "Adicionar" só aparece quando `objectId` é passado. Nas chamadas para Contactos e Empresas, **não é passado `objectId`**:
+## Solução
+
+### Passo 1: Alterar colunas para tipo TEXT (migração DB)
+Alterar `source_object_id` e `target_object_id` de `uuid` para `text`, permitindo IDs sintéticos como `__core_contacts` para entidades core.
+
+```sql
+ALTER TABLE object_relationships 
+  ALTER COLUMN source_object_id TYPE text,
+  ALTER COLUMN target_object_id TYPE text;
 ```
-<RelationshipsPanel recordId={id!} entityType="contact" />
-```
-É preciso resolver o `objectId` do core object type (contacto/empresa) e passá-lo, ou adaptar o formulário para funcionar com `entityType` directamente.
 
-### 2. Formulário só lista objectos customizados
-O `AddRelationshipForm` usa `useCustomObjects()` que só retorna objectos customizados. Não permite relacionar com Contactos, Empresas ou Deals (core objects). É necessário incluir os core objects na lista de alvos.
+### Passo 2: Actualizar `useObjectRelationships.ts`
+Na resolução de nomes de objectos, tratar IDs com prefixo `__core_` separadamente — mapear para nomes/ícones/slugs das definições core em vez de consultar `custom_objects`.
 
-### 3. Sem contador badge na tab
-A tab "Relações" não tem badge com contagem (ao contrário de Notas que acabámos de adicionar).
-
-## Plano de Implementação
-
-### Ficheiro 1: `ENIContactDetailWithSidebar.tsx`
-- Passar `objectId` resolvido do core object type "contacts" para o `RelationshipsPanel`
-
-### Ficheiro 2: `CompanyDetailWithSidebar.tsx`
-- Idem para "companies"
-
-### Ficheiro 3: `RelationshipsPanel.tsx` / `AddRelationshipForm`
-- No select de "Tipo de Objeto", incluir core objects (Contactos, Empresas, Deals) além dos custom objects
-- Ao seleccionar um core object, carregar registos da tabela correspondente (`contacts`, `companies`, `opportunities`) em vez de `object_records`
-
-### Ficheiro 4: `useEntityCounts.ts`
-- Adicionar contagem de relações (`relationships`) da tabela `object_relationships`
-
-### Ficheiro 5: `EntityHorizontalTabs.tsx`
-- Adicionar `relationships?: number` ao tipo `counts`
-
-| Prioridade | Tarefa | Impacto |
-|------------|--------|---------|
-| Alta | Passar `objectId` nos detail pages | Desbloqueia botão "Adicionar" |
-| Alta | Incluir core objects no formulário | Permite relacionar contactos entre si |
-| Baixa | Badge com contagem na tab | Consistência visual |
+### Passo 3: Sem alterações no `RelationshipsPanel.tsx`
+O formulário já funciona correctamente com os IDs `__core_*`. Apenas a base de dados e o hook de leitura precisam de ajuste.
 
