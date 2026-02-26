@@ -42,6 +42,9 @@ export interface FormattingConfig {
   validateNif?: boolean;
   validateEmail?: boolean;
   tagSeparator?: string;
+  ai_autofill_enabled?: boolean;
+  ai_autofill_type?: 'research' | 'generate' | 'classify';
+  ai_autofill_guidance?: string;
 }
 
 export interface IndustryLabel {
