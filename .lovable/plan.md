@@ -1,40 +1,35 @@
 
 
-# Cores por Categoria de Evento na Vista de Calendário
+# Tooltip com Detalhes do Evento no Calendário
 
 ## Abordagem
 
-Actualmente todos os eventos comunitários usam a mesma cor (`#F59E0B`) porque partilham um único pseudo-calendário virtual. A cor é resolvida via `getCalendarColor(event.calendar_id)` que procura na lista de calendários.
-
-A solução mais simples: guardar a cor da categoria no `metadata` de cada evento mapeado e alterar `getCalendarColor` para dar prioridade a essa cor quando presente.
+Enriquecer o `metadata` dos eventos comunitários com `location`, `price`, `capacity` e `currency` no hook. Depois, adicionar um `Tooltip` (Radix) a cada bloco de evento nas 3 vistas (Month, Week, Day) mostrando esses dados. Para RSVPs, adicionar contagem ao metadata via query secundária no hook.
 
 ## Alterações
 
 ### 1. Editar `src/hooks/useCommunityEventsForCalendar.ts`
 
-Adicionar mapa de cores por categoria:
-```
-networking → #3B82F6 (azul)
-jantar → #EF4444 (vermelho)
-workshop → #8B5CF6 (roxo)
-webinar → #06B6D4 (ciano)
-conferencia → #F59E0B (amarelo, actual)
-outro → #6B7280 (cinza)
-```
+- No mapeamento de eventos, adicionar ao `metadata`: `_location`, `_price`, `_currency`, `_capacity`
+- Após buscar eventos, fazer query a `event_rsvps` agrupada por `event_id` para contar RSVPs (`confirmed`, `invited`, total) e guardar em `metadata._rsvpCounts`
 
-No mapeamento de cada evento, incluir `metadata._categoryColor` com a cor correspondente a `evt.event_category`.
+### 2. Criar componente auxiliar `src/components/calendars/EventTooltipContent.tsx`
 
-### 2. Editar `src/components/calendars/CalendarView.tsx`
+Componente simples que recebe `event.metadata` e renderiza:
+- 📍 Local (se existir)
+- 💰 Preço (se > 0, com currency)
+- 👥 RSVPs: X confirmados / Y convidados
 
-Alterar `getCalendarColor` para verificar se o evento tem `metadata?._categoryColor` e usar essa cor em vez da cor do calendário. Passar o evento completo (ou a cor) em vez de apenas `calendar_id` nos pontos de renderização (MonthView, WeekView, DayView).
+### 3. Editar `src/components/calendars/CalendarView.tsx`
 
-### 3. Editar `src/components/calendars/CalendarListView.tsx`
-
-Mesma alteração: usar `event.metadata?._categoryColor` como override da cor do calendário na barra lateral colorida.
+- Importar `Tooltip`, `TooltipTrigger`, `TooltipContent`, `TooltipProvider` do Radix
+- Importar `EventTooltipContent`
+- Envolver cada bloco de evento (nas 3 vistas: MonthView, WeekView, DayView) num `Tooltip` com o conteúdo detalhado
+- Manter o `onClick` existente no trigger
 
 | Ficheiro | Acção |
 |----------|-------|
-| `src/hooks/useCommunityEventsForCalendar.ts` | Adicionar mapa de cores e guardar em metadata |
-| `src/components/calendars/CalendarView.tsx` | Usar cor da categoria como override |
-| `src/components/calendars/CalendarListView.tsx` | Usar cor da categoria como override |
+| `src/hooks/useCommunityEventsForCalendar.ts` | Adicionar location/price/rsvps ao metadata |
+| `src/components/calendars/EventTooltipContent.tsx` | Novo componente de tooltip |
+| `src/components/calendars/CalendarView.tsx` | Envolver eventos em Tooltip |
 
