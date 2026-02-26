@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CalendarIcon, Check, Pencil, X, Loader2, ExternalLink, Sparkles } from "lucide-react";
-import { format } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import { pt } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { FieldSuggestion } from "@/hooks/useFieldSuggestions";
@@ -200,36 +200,56 @@ export function InlineEditableField({
           />
         );
 
-      case "date":
+      case "date": {
         const dateValue = editedValue ? new Date(editedValue as string) : undefined;
+        const dateDisplayText = dateValue && isValid(dateValue) ? format(dateValue, "dd/MM/yyyy") : (editedValue as string) || "";
         return (
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "h-8 justify-start text-left font-normal text-sm",
-                  !dateValue && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                {dateValue ? format(dateValue, "dd/MM/yyyy", { locale: pt }) : "Selecionar data"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={dateValue}
-                onSelect={(date) => {
-                  setEditedValue(date?.toISOString() || null);
-                }}
-                locale={pt}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <div className="flex items-center gap-1">
+            <Input
+              value={dateDisplayText}
+              onChange={(e) => {
+                const raw = e.target.value;
+                // Try to parse dd/MM/yyyy as the user types
+                if (raw.length === 10) {
+                  const parsed = parse(raw, "dd/MM/yyyy", new Date());
+                  if (isValid(parsed)) {
+                    setEditedValue(parsed.toISOString());
+                    return;
+                  }
+                }
+                // Store raw text so user can keep typing
+                setEditedValue(raw);
+              }}
+              onKeyDown={handleKeyDown}
+              className="h-8 text-sm w-[130px]"
+              autoFocus
+              placeholder="dd/mm/aaaa"
+              maxLength={10}
+            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0">
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateValue && isValid(dateValue) ? dateValue : undefined}
+                  onSelect={(date) => {
+                    if (date) {
+                      setEditedValue(date.toISOString());
+                    }
+                  }}
+                  locale={pt}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         );
+      }
 
       case "boolean":
         return (
