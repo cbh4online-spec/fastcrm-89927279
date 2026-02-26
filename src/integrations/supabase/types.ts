@@ -11430,6 +11430,7 @@ export type Database = {
           entity_type: string
           id: string
           is_pinned: boolean | null
+          mentions: string[] | null
           note_type: string
           transcription: string | null
           updated_at: string
@@ -11446,6 +11447,7 @@ export type Database = {
           entity_type: string
           id?: string
           is_pinned?: boolean | null
+          mentions?: string[] | null
           note_type?: string
           transcription?: string | null
           updated_at?: string
@@ -11462,6 +11464,7 @@ export type Database = {
           entity_type?: string
           id?: string
           is_pinned?: boolean | null
+          mentions?: string[] | null
           note_type?: string
           transcription?: string | null
           updated_at?: string

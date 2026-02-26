@@ -2,18 +2,17 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Users, Send, Pin, Trash2, MessageSquareText } from 'lucide-react';
+import { Send, Pin, Trash2, MessageSquareText } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { EntitySubTabs } from './EntitySubTabs';
 import { EntityDocumentsSection } from './EntityDocumentsSection';
+import { MentionTextarea, renderNoteContent } from './MentionTextarea';
 
 interface EntityTeamSectionProps {
   entityType: string;
@@ -76,7 +75,7 @@ function useTeamNotes(entityType: string, entityId: string) {
   });
 
   const addNote = useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async ({ content, mentions }: { content: string; mentions: string[] }) => {
       if (!currentWorkspace?.id) throw new Error('No workspace');
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -89,7 +88,8 @@ function useTeamNotes(entityType: string, entityId: string) {
           content,
           note_type: 'team',
           created_by: user?.id || null,
-        });
+          mentions,
+        } as any);
 
       if (error) throw error;
     },
@@ -133,13 +133,15 @@ function useTeamNotes(entityType: string, entityId: string) {
 
 function TeamNotesPanel({ entityType, entityId }: { entityType: string; entityId: string }) {
   const [newNote, setNewNote] = useState('');
+  const [mentions, setMentions] = useState<string[]>([]);
   const { notes, isLoading, addNote, deleteNote, togglePin } = useTeamNotes(entityType, entityId);
 
   const handleSubmit = () => {
     const trimmed = newNote.trim();
     if (!trimmed) return;
-    addNote.mutate(trimmed);
+    addNote.mutate({ content: trimmed, mentions });
     setNewNote('');
+    setMentions([]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -153,15 +155,15 @@ function TeamNotesPanel({ entityType, entityId }: { entityType: string; entityId
       {/* New note input */}
       <Card>
         <CardContent className="pt-4 space-y-3">
-          <Textarea
+          <MentionTextarea
             value={newNote}
-            onChange={(e) => setNewNote(e.target.value)}
+            onChange={(val, ids) => { setNewNote(val); setMentions(ids); }}
             onKeyDown={handleKeyDown}
-            placeholder="Escreve uma nota interna para a equipa..."
+            placeholder="Escreve uma nota interna para a equipa... usa @nome para mencionar"
             className="min-h-[80px] resize-none"
           />
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Ctrl+Enter para enviar</span>
+            <span className="text-xs text-muted-foreground">Ctrl+Enter para enviar · @ para mencionar</span>
             <Button
               size="sm"
               onClick={handleSubmit}
@@ -222,7 +224,7 @@ function TeamNotesPanel({ entityType, entityId }: { entityType: string; entityId
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-foreground whitespace-pre-wrap">{note.content}</p>
+                      <p className="text-sm text-foreground whitespace-pre-wrap">{renderNoteContent(note.content || '')}</p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Button

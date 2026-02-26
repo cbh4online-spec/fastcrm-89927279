@@ -1,0 +1,1 @@
+ALTER TABLE public.entity_notes ADD COLUMN IF NOT EXISTS mentions TEXT[] DEFAULT '{}';
