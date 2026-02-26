@@ -39,6 +39,7 @@ import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { EntityHorizontalTabs } from "@/components/entity/EntityHorizontalTabs";
 import { EntityDetailsPanel } from "@/components/entity/EntityDetailsPanel";
 import { EntitySubTabs } from "@/components/entity/EntitySubTabs";
+import { FinancialKPIStrip } from "@/components/shared/FinancialKPIStrip";
 import { EntityHighlightsGrid } from "@/components/entity/EntityHighlightsGrid";
 import { MenuSection } from "@/types/entity";
 import { InsightsSidebar } from "@/components/insights";
@@ -293,6 +294,8 @@ export function CompanyDetailWithSidebar() {
         );
       case 'financial':
         return (
+          <div className="space-y-4">
+          <FinancialKPIStrip entityType="company" entityId={id!} />
           <EntitySubTabs
             tabs={[
               { id: 'profile', label: 'Perfil' },
@@ -317,6 +320,7 @@ export function CompanyDetailWithSidebar() {
               }
             }}
           </EntitySubTabs>
+          </div>
         );
       case 'timeline':
         return (
