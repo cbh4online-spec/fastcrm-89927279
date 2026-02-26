@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Check, CheckCheck, ShoppingBag, AlertTriangle, Info } from "lucide-react";
+import { Bell, Check, CheckCheck, ShoppingBag, AlertTriangle, Info, StickyNote, AtSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -15,11 +15,15 @@ import { cn } from "@/lib/utils";
 const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   new_order: ShoppingBag,
   low_stock: AlertTriangle,
+  team_note: StickyNote,
+  team_mention: AtSign,
 };
 
 const typeColors: Record<string, string> = {
   new_order: "text-success bg-success/10",
   low_stock: "text-warning bg-warning/10",
+  team_note: "text-blue-500 bg-blue-500/10",
+  team_mention: "text-orange-500 bg-orange-500/10",
 };
 
 export function NotificationBell() {

@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Check, Trash2, Settings, MessageSquare, UserPlus, TrendingUp, AlertTriangle, GitBranch, Info } from "lucide-react";
+import { Bell, Check, Trash2, Settings, MessageSquare, UserPlus, TrendingUp, AlertTriangle, GitBranch, Info, StickyNote, AtSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -23,6 +23,8 @@ const typeIcons: Record<string, React.ReactNode> = {
   lifecycle_transition: <GitBranch className="w-4 h-4 text-emerald-500" />,
   new_order: <TrendingUp className="w-4 h-4 text-green-500" />,
   low_stock: <AlertTriangle className="w-4 h-4 text-amber-500" />,
+  team_note: <StickyNote className="w-4 h-4 text-blue-500" />,
+  team_mention: <AtSign className="w-4 h-4 text-orange-500" />,
 };
 
 const defaultIcon = <Info className="w-4 h-4 text-muted-foreground" />;
