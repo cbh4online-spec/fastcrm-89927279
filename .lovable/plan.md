@@ -1,31 +1,42 @@
 
 
-# Filtrar Eventos por Categoria na Vista de Calendário
+# Integrar AI Autofill nos Formulários de Criação de Contactos/Empresas
 
 ## Abordagem
 
-Tornar a legenda de categorias na sidebar interactiva (checkboxes), e propagar as categorias seleccionadas até à página de calendário para filtrar os eventos comunitários antes de os fundir com os restantes.
+Após criar um contacto/empresa e guardar os campos personalizados, o sistema verifica quais campos têm `ai_autofill_enabled: true` no `formatting_config` e invoca automaticamente a edge function para preencher esses campos com IA. O processo é assíncrono e mostra feedback ao utilizador.
 
 ## Alterações
 
-### 1. Editar `src/components/calendars/CalendarSidebar.tsx`
+### 1. Editar `src/components/custom-fields/CustomFieldsForm.tsx`
 
-- Adicionar props: `selectedCategories: string[]` e `onToggleCategory: (key: string) => void`
-- Substituir as bolinhas estáticas da legenda por `Checkbox` clicáveis (estilo idêntico aos calendários, com cor da categoria)
-- Manter visual compacto, apenas adicionar interactividade
+No componente `CustomFieldsFormCreate`:
+- Importar `useManagedFields` para aceder ao `formatting_config` dos campos (o hook `useCustomFields` não inclui `formatting_config`)
+- Adicionar método `runAIAutofill(entityId, recordData)` ao `useImperativeHandle` exposto via ref
+- Este método:
+  - Filtra campos com `formatting_config.ai_autofill_enabled === true`
+  - Para cada campo, chama o hook `useAIAutofillField` com o `record_data` do registo
+  - Guarda o valor gerado via `setFieldValue`
+  - Mostra toast de progresso/sucesso
 
-### 2. Editar `src/pages/CalendarsPage.tsx`
+### 2. Editar `src/components/contacts/CreateContactDialog.tsx`
 
-- Adicionar estado `selectedCategories` (inicializado com todas as chaves de `CATEGORY_COLORS`)
-- Passar `selectedCategories` e `onToggleCategory` à `CalendarSidebar`
-- Filtrar `communityEvents` no `mergedEvents` memo: só incluir eventos cuja `metadata._categoryColor` corresponda a uma categoria seleccionada
+Após `customFieldsRef.current.saveCustomFields(result.id)`:
+- Chamar `customFieldsRef.current.runAIAutofill(result.id, formData)` para preencher campos com IA
+- O `formData` (name, email, phone, company, etc.) serve como `record_data` para contexto da IA
 
-### 3. Editar `src/components/scheduling/SchedulingHub.tsx` (se usar sidebar com community events)
+### 3. Editar `src/components/companies/CreateCompanyDialog.tsx`
 
-- Mesma lógica de estado + filtragem, ou ignorar se não tiver calendário comunitário
+Mesma lógica: após guardar custom fields dos dois refs (primary + secondary), invocar `runAIAutofill` em ambos.
+
+### 4. Editar `src/components/contacts/EditContactDialog.tsx`
+
+Adicionar botão "Preencher com IA" (ícone Sparkles) que dispara o AI autofill para campos configurados, usando os dados actuais do contacto como contexto.
 
 | Ficheiro | Acção |
 |----------|-------|
-| `src/components/calendars/CalendarSidebar.tsx` | Tornar legenda interactiva com checkboxes |
-| `src/pages/CalendarsPage.tsx` | Estado de categorias + filtragem de eventos |
+| `src/components/custom-fields/CustomFieldsForm.tsx` | Adicionar método `runAIAutofill` ao ref do `CustomFieldsFormCreate` |
+| `src/components/contacts/CreateContactDialog.tsx` | Chamar AI autofill após criar contacto |
+| `src/components/companies/CreateCompanyDialog.tsx` | Chamar AI autofill após criar empresa |
+| `src/components/contacts/EditContactDialog.tsx` | Botão para AI autofill manual |
 
