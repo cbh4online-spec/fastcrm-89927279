@@ -326,13 +326,14 @@ export function CompanyDetailWithSidebar() {
             }}
           </EntitySubTabs>
         );
+      case 'relationships':
+        return <RelationshipsPanel recordId={id!} entityType="company" />;
       case 'data':
         return (
           <EntitySubTabs
             tabs={[
               { id: 'details', label: 'Informações' },
               { id: 'fields', label: 'Campos' },
-              { id: 'relationships', label: 'Relações' },
               { id: 'audit', label: 'Auditoria' },
             ]}
           >
@@ -367,8 +368,6 @@ export function CompanyDetailWithSidebar() {
                       Campos personalizados em desenvolvimento.
                     </div>
                   );
-                case 'relationships':
-                  return <RelationshipsPanel recordId={id!} entityType="company" />;
                 case 'audit':
                   return <CompanyAuditSection companyId={id!} />;
                 default: return null;
