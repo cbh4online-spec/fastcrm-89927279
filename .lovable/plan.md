@@ -1,35 +1,46 @@
 
 
-# Tooltip com Detalhes do Evento no Calendário
+# Link de Confirmação/Recusa no Email de Convite
 
 ## Abordagem
 
-Enriquecer o `metadata` dos eventos comunitários com `location`, `price`, `capacity` e `currency` no hook. Depois, adicionar um `Tooltip` (Radix) a cada bloco de evento nas 3 vistas (Month, Week, Day) mostrando esses dados. Para RSVPs, adicionar contagem ao metadata via query secundária no hook.
+Criar uma edge function pública (`event-rsvp-respond`) que recebe `rsvp_id` e `action` (confirm/decline) via query params, actualiza o status na tabela `event_rsvps` e redireciona para uma página de confirmação. Os links são gerados no email de convite com um token simples (o próprio `rsvp_id`). Adicionalmente, criar uma página frontend para mostrar feedback visual ao convidado.
 
 ## Alterações
 
-### 1. Editar `src/hooks/useCommunityEventsForCalendar.ts`
+### 1. Nova edge function `supabase/functions/event-rsvp-respond/index.ts`
 
-- No mapeamento de eventos, adicionar ao `metadata`: `_location`, `_price`, `_currency`, `_capacity`
-- Após buscar eventos, fazer query a `event_rsvps` agrupada por `event_id` para contar RSVPs (`confirmed`, `invited`, total) e guardar em `metadata._rsvpCounts`
+- Aceita GET com query params `rsvp_id` e `action` (`confirm` ou `decline`)
+- Usa service role key para actualizar `event_rsvps` sem autenticação (link público)
+- Mapeia `confirm` → status `confirmed`, `decline` → status `declined`, define `responded_at`
+- Redireciona (HTTP 302) para página de feedback: `{baseUrl}/event-rsvp?status=confirmed&event=...`
+- Adiciona `verify_jwt = false` no config (é um link público de email)
 
-### 2. Criar componente auxiliar `src/components/calendars/EventTooltipContent.tsx`
+### 2. Editar `supabase/functions/send-event-invite/index.ts`
 
-Componente simples que recebe `event.metadata` e renderiza:
-- 📍 Local (se existir)
-- 💰 Preço (se > 0, com currency)
-- 👥 RSVPs: X confirmados / Y convidados
+- Receber `rsvpId` no body da request
+- Gerar URLs de confirmação e recusa apontando para a edge function: `{supabaseUrl}/functions/v1/event-rsvp-respond?rsvp_id=X&action=confirm`
+- Adicionar dois botões lado a lado no email HTML: "Confirmar Presença" (verde) e "Recusar" (vermelho/cinza), antes do botão "Ver Evento" existente
 
-### 3. Editar `src/components/calendars/CalendarView.tsx`
+### 3. Nova página `src/pages/EventRsvpResponse.tsx`
 
-- Importar `Tooltip`, `TooltipTrigger`, `TooltipContent`, `TooltipProvider` do Radix
-- Importar `EventTooltipContent`
-- Envolver cada bloco de evento (nas 3 vistas: MonthView, WeekView, DayView) num `Tooltip` com o conteúdo detalhado
-- Manter o `onClick` existente no trigger
+- Página pública (sem auth) que lê `status` e `event` dos query params
+- Mostra mensagem de sucesso: "Presença confirmada!" ou "Convite recusado"
+- Ícone visual (CheckCircle / XCircle) e link para voltar
+
+### 4. Editar `src/App.tsx`
+
+- Adicionar rota pública `/event-rsvp` para `EventRsvpResponse`
+
+### 5. Editar código de envio de convites (hook)
+
+- Passar `rsvpId` no payload enviado à edge function `send-event-invite`
 
 | Ficheiro | Acção |
 |----------|-------|
-| `src/hooks/useCommunityEventsForCalendar.ts` | Adicionar location/price/rsvps ao metadata |
-| `src/components/calendars/EventTooltipContent.tsx` | Novo componente de tooltip |
-| `src/components/calendars/CalendarView.tsx` | Envolver eventos em Tooltip |
+| `supabase/functions/event-rsvp-respond/index.ts` | Nova edge function pública |
+| `supabase/functions/send-event-invite/index.ts` | Adicionar botões confirm/decline no email |
+| `src/pages/EventRsvpResponse.tsx` | Página de feedback |
+| `src/App.tsx` | Rota `/event-rsvp` |
+| `src/hooks/useEvents.ts` | Passar rsvpId no envio |
 
