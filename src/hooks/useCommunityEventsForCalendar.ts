@@ -6,7 +6,7 @@ import type { CalendarEvent, Calendar } from './useCalendars';
 
 const COMMUNITY_CALENDAR_ID = 'community-events';
 
-const CATEGORY_COLORS: Record<string, string> = {
+export const CATEGORY_COLORS: Record<string, string> = {
   networking: '#3B82F6',
   jantar: '#EF4444',
   workshop: '#8B5CF6',
