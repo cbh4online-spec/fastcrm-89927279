@@ -367,3 +367,6 @@ verify_jwt = false
 [functions.automation-intelligence]
 verify_jwt = false
 
+[functions.send-event-invite]
+verify_jwt = false
+

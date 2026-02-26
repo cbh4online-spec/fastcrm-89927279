@@ -48,7 +48,20 @@ export default function EventDetailPage() {
   const handleInvite = () => {
     if (!eventId || !currentWorkspace) return;
     inviteMut.mutate(
-      { event_id: eventId, workspace_id: currentWorkspace.id, name: inviteForm.name, email: inviteForm.email, phone: inviteForm.phone, status: "invited", contact_id: null, notes: null },
+      {
+        event_id: eventId,
+        workspace_id: currentWorkspace.id,
+        name: inviteForm.name,
+        email: inviteForm.email,
+        phone: inviteForm.phone,
+        status: "invited",
+        contact_id: null,
+        notes: null,
+        eventTitle: event?.title,
+        eventDate: event?.starts_at,
+        eventLocation: event?.location,
+        eventLink: event?.link,
+      },
       { onSuccess: () => { setInviteOpen(false); setInviteForm({ name: "", email: "", phone: "" }); } }
     );
   };
