@@ -2,6 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ENIContact, LeadStatus, LEAD_STATUS_LABELS, LEAD_STATUS_COLORS } from "../ENIContactTypes";
 import { cn } from "@/lib/utils";
+import { ContactLifecycleTimeline } from "./ContactLifecycleTimeline";
+import { Separator } from "@/components/ui/separator";
+import { History } from "lucide-react";
 
 interface ContactLifecycleSectionProps {
   contact: ENIContact;
@@ -19,9 +22,9 @@ export function ContactLifecycleSection({ contact, onFieldChange }: ContactLifec
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium">Ciclo de Vida</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         {/* Pipeline visual */}
-        <div className="flex items-center gap-1 mb-4">
+        <div className="flex items-center gap-1">
           {LIFECYCLE_STEPS.map((step, i) => {
             const isActive = step === currentStatus;
             const isPast = i <= currentIndex;
@@ -58,6 +61,16 @@ export function ContactLifecycleSection({ contact, onFieldChange }: ContactLifec
               {LEAD_STATUS_LABELS[status]}
             </Badge>
           ))}
+        </div>
+
+        {/* Timeline history */}
+        <Separator />
+        <div>
+          <div className="flex items-center gap-1.5 mb-3">
+            <History className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs font-medium text-muted-foreground">Histórico de Transições</span>
+          </div>
+          <ContactLifecycleTimeline contactId={contact.id} />
         </div>
       </CardContent>
     </Card>
