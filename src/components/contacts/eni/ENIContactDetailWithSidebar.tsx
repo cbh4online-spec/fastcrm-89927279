@@ -327,6 +327,7 @@ export function ENIContactDetailWithSidebar() {
         return (
           <EntitySubTabs
             tabs={[
+              { id: 'profile', label: 'Perfil' },
               { id: 'payments', label: 'Pagamentos' },
               { id: 'orders', label: 'Encomendas' },
               { id: 'history', label: 'Histórico' },
@@ -334,6 +335,13 @@ export function ENIContactDetailWithSidebar() {
           >
             {(tab) => {
               switch (tab) {
+                case 'profile':
+                  return (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <CommercialProfileSection contact={contact} onFieldChange={handleFieldChange} />
+                      <FinancialSection contact={contact} onFieldChange={handleFieldChange} />
+                    </div>
+                  );
                 case 'payments':
                   return (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -389,11 +397,7 @@ export function ENIContactDetailWithSidebar() {
                         />
                       )}
                       <ProfessionalProfileSection contact={contact} onFieldChange={handleFieldChange} />
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <CommercialProfileSection contact={contact} onFieldChange={handleFieldChange} />
-                        <FinancialSection contact={contact} onFieldChange={handleFieldChange} />
-                      </div>
-                      <ContactPreferencesSection 
+                      <ContactPreferencesSection
                         contact={contact} onFieldChange={handleFieldChange}
                         editable={role === 'owner' || role === 'admin'}
                       />
