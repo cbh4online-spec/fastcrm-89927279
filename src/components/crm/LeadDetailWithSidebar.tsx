@@ -44,6 +44,7 @@ import { EntitySocialMediaAnalysisSection } from "@/components/shared/EntitySoci
 import { EntityHorizontalTabs } from "@/components/entity/EntityHorizontalTabs";
 import { EntityDetailsPanel } from "@/components/entity/EntityDetailsPanel";
 import { EntityHighlightsGrid } from "@/components/entity/EntityHighlightsGrid";
+import { EntitySubTabs } from "@/components/entity/EntitySubTabs";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { MenuSection } from "@/types/entity";
 import { EntityTasksSection } from "@/components/tasks";
@@ -198,135 +199,108 @@ export function LeadDetailWithSidebar() {
                 }}
               />
             )}
-            {/* IdentificationSection removed — fields now editable in sidebar */}
           </div>
         );
       case 'insights':
         return (
           <div className="space-y-6">
-            {/* AI Agent Queue Status */}
-            <AgentQueueStatus
-              entityId={id!}
-              entityType="lead"
-              compact={false}
-              showAnalyzeButton={true}
-            />
-            {/* AI Agent Analysis - New Architecture */}
+            <AgentQueueStatus entityId={id!} entityType="lead" compact={false} showAnalyzeButton={true} />
             <LeadAgentInsightsSection 
               leadId={id!}
-              onActionClick={(actionType) => {
-                toast.info(`Ação: ${actionType}`);
-              }}
+              onActionClick={(actionType) => { toast.info(`Ação: ${actionType}`); }}
             />
-            {/* AI Deal Insight - Conversation Intelligence Engine */}
             <AIDealInsightPanel leadId={id} />
             <InsightsSidebar entityType="lead" entityId={id || ''} />
             <EntitySocialMediaAnalysisSection
-              entityType="lead"
-              entityId={id!}
-              entityName={lead.name}
-              linkedinUrl={lead.linkedin_url}
+              entityType="lead" entityId={id!} entityName={lead.name} linkedinUrl={lead.linkedin_url}
             />
-            {/* AI Memory Panel */}
-            <EntityMemoryPanel
-              entityId={id!}
-              entityType="lead"
-              entityName={lead.name}
-            />
+            <EntityMemoryPanel entityId={id!} entityType="lead" entityName={lead.name} />
           </div>
-        );
-      case 'notes':
-        return (
-          <NotesSection 
-            entityType="lead" 
-            entityId={id!} 
-            entityName={lead.name} 
-          />
-        );
-      case 'details':
-        return (
-          <div className="space-y-6">
-            {/* Secção de Dados Instagram */}
-            <InstagramDataSection lead={lead} />
-            {/* Secção de Análise IA */}
-            <AIAnalysisSection lead={lead} />
-            {/* SocialMediaSection removed — fields now editable in sidebar */}
-            <TagsSection lead={lead} onFieldChange={handleFieldChange} />
-          </div>
-        );
-      case 'tasks':
-        return (
-          <EntityTasksSection
-            entityType="lead"
-            entityId={id!}
-            entityName={lead.name}
-          />
-        );
-      case 'automations':
-        return (
-          <EntityAutomationSection
-            entityType="lead"
-            entityId={id!}
-            entityName={lead.name}
-          />
-        );
-      case 'messages':
-        return (
-          <ContactMessagesSection
-            entityType="lead"
-            entityId={id!}
-            entityName={lead.name}
-            entityEmail={lead.email}
-            entityPhone={lead.phone}
-          />
-        );
-      case 'custom-fields':
-        return (
-          <CustomFieldsSection leadId={id!} />
-        );
-      case 'credit':
-        return (
-          <EntityCreditProposalsSection
-            entityType="lead"
-            entityId={id!}
-            entityName={lead.name}
-          />
-        );
-      case 'opportunities':
-        return (
-          <OpportunitiesSection
-            leadId={id!}
-            leadName={lead.name}
-          />
-        );
-      case 'proposals':
-        return (
-          <ProposalsSection
-            leadId={id!}
-            leadName={lead.name}
-          />
         );
       case 'timeline':
         return (
-          <EntityTimelineSection
-            entityType="lead"
-            entityId={id!}
-            entityName={lead.name}
-          />
+          <div className="space-y-6">
+            <EntityTimelineSection entityType="lead" entityId={id!} entityName={lead.name} />
+            <NotesSection entityType="lead" entityId={id!} entityName={lead.name} />
+          </div>
         );
-      case 'scheduling':
+      case 'communication':
         return (
-          <EntitySchedulingSection
-            entityType="lead"
-            entityId={id!}
-            entityName={lead.name}
-            entityEmail={lead.email}
-            entityPhone={lead.phone}
-          />
+          <EntitySubTabs
+            tabs={[
+              { id: 'messages', label: 'Mensagens' },
+              { id: 'scheduling', label: 'Agendamentos' },
+            ]}
+          >
+            {(tab) => tab === 'messages'
+              ? <ContactMessagesSection entityType="lead" entityId={id!} entityName={lead.name} entityEmail={lead.email} entityPhone={lead.phone} />
+              : <EntitySchedulingSection entityType="lead" entityId={id!} entityName={lead.name} entityEmail={lead.email} entityPhone={lead.phone} />
+            }
+          </EntitySubTabs>
         );
-      case 'audit':
+      case 'activity':
         return (
-          <LeadAuditSection leadId={id!} />
+          <EntitySubTabs
+            tabs={[
+              { id: 'tasks', label: 'Tarefas' },
+              { id: 'automations', label: 'Automações' },
+            ]}
+          >
+            {(tab) => tab === 'tasks'
+              ? <EntityTasksSection entityType="lead" entityId={id!} entityName={lead.name} />
+              : <EntityAutomationSection entityType="lead" entityId={id!} entityName={lead.name} />
+            }
+          </EntitySubTabs>
+        );
+      case 'business':
+        return (
+          <EntitySubTabs
+            tabs={[
+              { id: 'opportunities', label: 'Oportunidades' },
+              { id: 'proposals', label: 'Propostas' },
+              { id: 'credit', label: 'Crédito' },
+            ]}
+          >
+            {(tab) => {
+              switch (tab) {
+                case 'opportunities':
+                  return <OpportunitiesSection leadId={id!} leadName={lead.name} />;
+                case 'proposals':
+                  return <ProposalsSection leadId={id!} leadName={lead.name} />;
+                case 'credit':
+                  return <EntityCreditProposalsSection entityType="lead" entityId={id!} entityName={lead.name} />;
+                default: return null;
+              }
+            }}
+          </EntitySubTabs>
+        );
+      case 'data':
+        return (
+          <EntitySubTabs
+            tabs={[
+              { id: 'details', label: 'Informações' },
+              { id: 'fields', label: 'Campos' },
+              { id: 'audit', label: 'Auditoria' },
+            ]}
+          >
+            {(tab) => {
+              switch (tab) {
+                case 'details':
+                  return (
+                    <div className="space-y-6">
+                      <InstagramDataSection lead={lead} />
+                      <AIAnalysisSection lead={lead} />
+                      <TagsSection lead={lead} onFieldChange={handleFieldChange} />
+                    </div>
+                  );
+                case 'fields':
+                  return <CustomFieldsSection leadId={id!} />;
+                case 'audit':
+                  return <LeadAuditSection leadId={id!} />;
+                default: return null;
+              }
+            }}
+          </EntitySubTabs>
         );
       default:
         return (
@@ -393,7 +367,7 @@ export function LeadDetailWithSidebar() {
                     <Button 
                       variant="outline" 
                       size="icon"
-                      onClick={() => setActiveSection('messages')}
+                      onClick={() => setActiveSection('communication')}
                     >
                       <Mail className="w-4 h-4" />
                     </Button>
@@ -409,7 +383,7 @@ export function LeadDetailWithSidebar() {
                     <Button 
                       variant="outline" 
                       size="icon"
-                      onClick={() => setActiveSection('messages')}
+                      onClick={() => setActiveSection('communication')}
                     >
                       <Phone className="w-4 h-4" />
                     </Button>

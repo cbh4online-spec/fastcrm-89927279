@@ -65,6 +65,14 @@ export type MenuSection =
   | 'overview' 
   | 'insights' 
   | 'timeline' 
+  | 'communication'
+  | 'activity'
+  | 'business'
+  | 'financial'
+  | 'data'
+  | 'contacts'
+  | 'student-journey'
+  // Legacy values kept for backward compatibility with workspace_layout_config
   | 'notes' 
   | 'messages' 
   | 'tasks'
@@ -74,13 +82,11 @@ export type MenuSection =
   | 'details'
   | 'custom-fields'
   | 'history'
-  | 'contacts'
   | 'automations'
   | 'credit'
   | 'orders'
   | 'scheduling'
   | 'relationships'
-  | 'student-journey'
   | 'audit';
 
 export interface MenuItemConfig {

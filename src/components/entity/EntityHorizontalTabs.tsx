@@ -24,26 +24,14 @@ const ALL_TABS: TabItem[] = [
   { id: 'overview', label: 'Visão Geral', showFor: ['lead', 'contact', 'company'] },
   { id: 'insights', label: 'Insights IA', showFor: ['lead', 'contact', 'company'] },
   { id: 'timeline', label: 'Timeline', showFor: ['lead', 'contact', 'company'] },
-  { id: 'notes', label: 'Notas', showFor: ['lead', 'contact', 'company'] },
-  { id: 'messages', label: 'Mensagens', showFor: ['lead', 'contact', 'company'] },
-  { id: 'tasks', label: 'Tarefas', showFor: ['lead', 'contact', 'company'] },
-  { id: 'opportunities', label: 'Oportunidades', showFor: ['lead', 'contact', 'company'] },
-  { id: 'proposals', label: 'Propostas', showFor: ['lead', 'contact', 'company'] },
-  { id: 'scheduling', label: 'Agendamentos', showFor: ['lead', 'contact', 'company'] },
+  { id: 'communication', label: 'Comunicação', showFor: ['lead', 'contact', 'company'] },
+  { id: 'activity', label: 'Atividade', showFor: ['lead', 'contact', 'company'] },
+  { id: 'business', label: 'Negócios', showFor: ['lead', 'contact', 'company'] },
+  { id: 'financial', label: 'Financeiro', showFor: ['contact', 'company'] },
+  { id: 'data', label: 'Dados', showFor: ['lead', 'contact', 'company'] },
   { id: 'contacts', label: 'Contactos', showFor: ['company'] },
-  { id: 'history', label: 'Histórico', showFor: ['contact', 'company'] },
-  { id: 'payments', label: 'Pagamentos', showFor: ['contact', 'company'] },
-  { id: 'orders', label: 'Encomendas', showFor: ['contact', 'company'] },
-  { id: 'details', label: 'Informações', showFor: ['lead', 'contact', 'company'] },
-  { id: 'custom-fields', label: 'Campos', showFor: ['lead', 'contact', 'company'] },
-  { id: 'relationships', label: 'Relações', showFor: ['company', 'contact'] },
-  { id: 'automations', label: 'Automações', showFor: ['lead', 'contact', 'company'] },
-  { id: 'credit', label: 'Crédito', showFor: ['lead', 'contact', 'company'] },
   { id: 'student-journey', label: 'Student Journey', showFor: ['contact'] },
-  { id: 'audit', label: 'Auditoria', showFor: ['contact', 'company'] },
 ];
-
-const MAX_VISIBLE_TABS = 8;
 
 interface EntityHorizontalTabsProps {
   entityType: EntityType;
@@ -74,7 +62,6 @@ export function EntityHorizontalTabs({
   const { isModuleInstalled } = useWorkspaceModules();
 
   const isVisible = (sectionId: MenuSection): boolean => {
-    if (sectionId === 'credit' && !isModuleInstalled('credit-intermediation')) return false;
     if (sectionId === 'student-journey') return isModuleInstalled('student-journey') || hasStudentJourneyProfile;
     return visibleSections.includes(sectionId);
   };
@@ -83,8 +70,9 @@ export function EntityHorizontalTabs({
     tab => tab.showFor.includes(entityType) && isVisible(tab.id)
   );
 
-  const visibleTabs = filteredTabs.slice(0, MAX_VISIBLE_TABS);
-  const overflowTabs = filteredTabs.slice(MAX_VISIBLE_TABS);
+  // With consolidated tabs, we show all of them directly (no overflow needed for 8-9 tabs)
+  const visibleTabs = filteredTabs;
+  const overflowTabs: TabItem[] = [];
 
   const getCount = (id: MenuSection): number | undefined => counts[id as keyof typeof counts];
 
