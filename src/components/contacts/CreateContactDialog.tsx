@@ -328,6 +328,15 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
       // Save custom fields if any
       if (result?.id && customFieldsRef.current) {
         await customFieldsRef.current.saveCustomFields(result.id);
+        // Run AI autofill asynchronously (don't block dialog close)
+        customFieldsRef.current.runAIAutofill(result.id, {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          company: formData.company,
+          job_title: formData.job_title,
+          notes: formData.notes,
+        });
       }
       
       resetForm();

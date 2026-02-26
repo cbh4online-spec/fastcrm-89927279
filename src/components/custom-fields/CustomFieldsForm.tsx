@@ -1,4 +1,4 @@
-import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
+import { useEffect, useState, forwardRef, useImperativeHandle, useCallback } from "react";
 import {
   useCustomFields,
   useCustomFieldValues,
@@ -6,6 +6,9 @@ import {
   CustomField,
   CustomFieldEntityType,
 } from "@/hooks/useCustomFields";
+import { useManagedFields } from "@/hooks/useManagedFields";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -89,6 +92,7 @@ export function CustomFieldsForm({ entityType, entityId, className }: CustomFiel
 export interface CustomFieldsFormCreateRef {
   saveCustomFields: (entityId: string) => Promise<void>;
   getValues: () => Record<string, unknown>;
+  runAIAutofill: (entityId: string, recordData: Record<string, unknown>) => Promise<void>;
 }
 
 interface CustomFieldsFormCreateProps {
@@ -103,6 +107,7 @@ interface CustomFieldsFormCreateProps {
 export const CustomFieldsFormCreate = forwardRef<CustomFieldsFormCreateRef, CustomFieldsFormCreateProps>(
   function CustomFieldsFormCreate({ entityType, className, positionFilter = 'all', hideLabel = false }, ref) {
     const { data: allFields = [] } = useCustomFields(entityType);
+    const { data: managedFields = [] } = useManagedFields(entityType as any);
     const setFieldValue = useSetCustomFieldValue();
 
     const [values, setValues] = useState<Record<string, unknown>>({});
@@ -114,10 +119,60 @@ export const CustomFieldsFormCreate = forwardRef<CustomFieldsFormCreateRef, Cust
       return true;
     });
 
-    // Expose methods to parent - uses allFields to save all values
+    // AI Autofill logic
+    const runAIAutofill = useCallback(async (entityId: string, recordData: Record<string, unknown>) => {
+      // Find fields with ai_autofill_enabled from managedFields
+      const autofillFields = managedFields.filter(
+        (mf) => mf.formatting_config?.ai_autofill_enabled && fields.some((f) => f.id === mf.id)
+      );
+
+      if (autofillFields.length === 0) return;
+
+      const toastId = toast.loading(`A preencher ${autofillFields.length} campo(s) com IA...`);
+      let filled = 0;
+
+      for (const mf of autofillFields) {
+        try {
+          const { data, error } = await supabase.functions.invoke("ai-autofill-field", {
+            body: {
+              field_config: {
+                ai_autofill_type: mf.formatting_config.ai_autofill_type || "generate",
+                ai_autofill_guidance: mf.formatting_config.ai_autofill_guidance,
+              },
+              record_data: recordData,
+              field_name: mf.label || mf.name,
+            },
+          });
+
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
+
+          const generatedValue = data?.value;
+          if (generatedValue) {
+            // Save to DB
+            await setFieldValue.mutateAsync({
+              customFieldId: mf.id,
+              entityId,
+              value: generatedValue,
+              fieldName: mf.name,
+              isUnique: mf.is_unique,
+            });
+            filled++;
+          }
+        } catch (err) {
+          console.error(`AI autofill failed for ${mf.name}:`, err);
+        }
+      }
+
+      toast.dismiss(toastId);
+      if (filled > 0) {
+        toast.success(`${filled} campo(s) preenchido(s) com IA`);
+      }
+    }, [managedFields, fields, setFieldValue]);
+
+    // Expose methods to parent
     useImperativeHandle(ref, () => ({
       saveCustomFields: async (entityId: string) => {
-        // Save all field values (only those managed by this instance)
         for (const field of fields) {
           const value = values[field.id];
           if (value !== undefined && value !== null && value !== "") {
@@ -132,6 +187,7 @@ export const CustomFieldsFormCreate = forwardRef<CustomFieldsFormCreateRef, Cust
         }
       },
       getValues: () => values,
+      runAIAutofill,
     }));
 
     const handleValueChange = (field: CustomField, value: unknown) => {
