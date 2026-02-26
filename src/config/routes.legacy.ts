@@ -51,4 +51,5 @@ export const LEGACY_ROUTES = [
   { path: "/dashboard/prospecting/google-local", label: "Google Local Prospecting", hidden: true },
   { path: "/dashboard/prospecting/web-search", label: "Web Search Prospecting", hidden: true },
   { path: "/dashboard/prospecting/professionals", label: "Professional Prospecting", hidden: true },
+  { path: "/dashboard/events", label: "Eventos", hidden: true },
 ] as const;
