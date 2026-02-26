@@ -78,7 +78,7 @@ import { CompanyScoresCard } from "./sections/CompanyScoresCard";
 import { CompanyLifecycleSection } from "./sections/CompanyLifecycleSection";
 import { CompanyFirmographicsSection } from "./sections/CompanyFirmographicsSection";
 import { CompanyAuditSection } from "./sections/CompanyAuditSection";
-
+import { EntityTeamSection } from "@/components/entity/EntityTeamSection";
 function getTimeAgo(date: Date): string {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -360,6 +360,14 @@ export function CompanyDetailWithSidebar() {
             entityName={company.name}
             entityEmail={company.email}
             entityPhone={company.phone}
+          />
+        );
+      case 'team':
+        return (
+          <EntityTeamSection
+            entityType="company"
+            entityId={id!}
+            entityName={company.name}
           />
         );
       case 'audit':

@@ -13,14 +13,12 @@ import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { EntitySubTabs } from './EntitySubTabs';
-import { DocumentsSection } from '@/components/contacts/eni/sections/DocumentsSection';
-import { EntityType } from '@/types/entity';
+import { EntityDocumentsSection } from './EntityDocumentsSection';
 
 interface EntityTeamSectionProps {
   entityType: string;
   entityId: string;
   entityName: string;
-  showDocuments?: boolean;
 }
 
 interface TeamNote {
@@ -255,22 +253,17 @@ function TeamNotesPanel({ entityType, entityId }: { entityType: string; entityId
   );
 }
 
-export function EntityTeamSection({ entityType, entityId, entityName, showDocuments = false }: EntityTeamSectionProps) {
+export function EntityTeamSection({ entityType, entityId, entityName }: Omit<EntityTeamSectionProps, 'showDocuments'>) {
   const tabs = [
     { id: 'notes', label: 'Notas Internas' },
-    ...(showDocuments ? [{ id: 'files', label: 'Ficheiros' }] : []),
+    { id: 'files', label: 'Ficheiros' },
   ];
-
-  // If no documents tab, just show notes directly
-  if (!showDocuments) {
-    return <TeamNotesPanel entityType={entityType} entityId={entityId} />;
-  }
 
   return (
     <EntitySubTabs tabs={tabs}>
       {(tab) => {
         if (tab === 'notes') return <TeamNotesPanel entityType={entityType} entityId={entityId} />;
-        if (tab === 'files') return <DocumentsSection contactId={entityId} />;
+        if (tab === 'files') return <EntityDocumentsSection entityType={entityType} entityId={entityId} />;
         return null;
       }}
     </EntitySubTabs>
