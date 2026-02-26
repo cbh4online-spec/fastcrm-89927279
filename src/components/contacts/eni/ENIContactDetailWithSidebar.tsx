@@ -19,7 +19,6 @@ import { ProfessionalProfileSection } from "./sections/ProfessionalProfileSectio
 import { CommercialProfileSection } from "./sections/CommercialProfileSection";
 import { FinancialSection } from "./sections/FinancialSection";
 import { CommercialHistorySection } from "./sections/CommercialHistorySection";
-import { NotesSection as ContactNotesSection } from "./sections/NotesSection";
 import { NotesSection } from "@/components/leads/sections/NotesSection";
 import { AIInsightsSection } from "./sections/AIInsightsSection";
 import { AIDealInsightPanel } from "@/components/contacts/sections/AIDealInsightPanel";
@@ -245,7 +244,7 @@ export function ENIContactDetailWithSidebar() {
         );
       case 'notes':
         return (
-          <ContactNotesSection contact={contact} onFieldChange={handleFieldChange} />
+          <NotesSection entityType="contact" entityId={id!} entityName={contact.name} />
         );
       case 'communication':
         return (
