@@ -121,7 +121,22 @@ function useEntityDocuments(entityType: string, entityId: string) {
     onError: () => toast.error('Erro ao eliminar documento'),
   });
 
-  return { documents: query.data || [], isLoading: query.isLoading, upload, remove };
+  const moveToFolder = useMutation({
+    mutationFn: async ({ docId, folder }: { docId: string; folder: string | null }) => {
+      const { error } = await supabase
+        .from('entity_documents' as any)
+        .update({ folder })
+        .eq('id', docId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success('Ficheiro movido');
+    },
+    onError: () => toast.error('Erro ao mover ficheiro'),
+  });
+
+  return { documents: query.data || [], isLoading: query.isLoading, upload, remove, moveToFolder };
 }
 
 const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'];
@@ -134,14 +149,33 @@ function getFileExtension(fileName: string): string {
 
 function DocumentRow({ doc, remove }: { doc: EntityDocument; remove: (doc: EntityDocument) => void }) {
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const ext = getFileExtension(doc.file_name);
   const isPreviewable = PREVIEWABLE_EXTENSIONS.includes(ext);
   const isImage = IMAGE_EXTENSIONS.includes(ext);
   const isPdf = PDF_EXTENSIONS.includes(ext);
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('text/plain', doc.id);
+    e.dataTransfer.effectAllowed = 'move';
+    setIsDragging(true);
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
   return (
     <div className="space-y-0">
-      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+      <div
+        draggable
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        className={cn(
+          "flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-grab active:cursor-grabbing",
+          isDragging && "opacity-40"
+        )}
+      >
         <div className="flex items-center gap-3 min-w-0">
           <div className="p-2 rounded-lg bg-primary/10">
             <FileText className="h-4 w-4 text-primary" />
@@ -217,14 +251,34 @@ function DocumentRow({ doc, remove }: { doc: EntityDocument; remove: (doc: Entit
   );
 }
 
-function FolderGroup({ folderName, docs, remove }: { folderName: string; docs: EntityDocument[]; remove: (doc: EntityDocument) => void }) {
+function FolderGroup({ folderName, docs, remove, onDropToFolder }: { folderName: string; docs: EntityDocument[]; remove: (doc: EntityDocument) => void; onDropToFolder: (docId: string, folder: string) => void }) {
   const [open, setOpen] = useState(true);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const docId = e.dataTransfer.getData('text/plain');
+    if (docId) onDropToFolder(docId, folderName);
+  };
 
   return (
     <div className="space-y-1">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 w-full px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors text-sm font-medium"
+        onDragOver={handleDragOver}
+        onDragEnter={() => setIsDragOver(true)}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={handleDrop}
+        className={cn(
+          "flex items-center gap-2 w-full px-3 py-2 rounded-lg hover:bg-muted/50 transition-all text-sm font-medium",
+          isDragOver && "ring-2 ring-primary bg-primary/5"
+        )}
       >
         <ChevronRight className={cn('h-3.5 w-3.5 text-muted-foreground transition-transform', open && 'rotate-90')} />
         <Folder className="h-4 w-4 text-amber-500" />
@@ -242,13 +296,45 @@ function FolderGroup({ folderName, docs, remove }: { folderName: string; docs: E
   );
 }
 
+function RootDropZone({ onDropToRoot }: { onDropToRoot: (docId: string) => void }) {
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const docId = e.dataTransfer.getData('text/plain');
+    if (docId) onDropToRoot(docId);
+  };
+
+  return (
+    <div
+      onDragOver={handleDragOver}
+      onDragEnter={() => setIsDragOver(true)}
+      onDragLeave={() => setIsDragOver(false)}
+      onDrop={handleDrop}
+      className={cn(
+        "flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border text-xs text-muted-foreground transition-all",
+        isDragOver && "ring-2 ring-primary bg-primary/5 border-primary"
+      )}
+    >
+      <File className="h-3.5 w-3.5" />
+      Largar aqui para mover para a raiz
+    </div>
+  );
+}
+
 interface EntityDocumentsSectionProps {
   entityType: string;
   entityId: string;
 }
 
 export function EntityDocumentsSection({ entityType, entityId }: EntityDocumentsSectionProps) {
-  const { documents, isLoading, upload, remove } = useEntityDocuments(entityType, entityId);
+  const { documents, isLoading, upload, remove, moveToFolder } = useEntityDocuments(entityType, entityId);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isFolderDialogOpen, setIsFolderDialogOpen] = useState(false);
   const [folderName, setFolderName] = useState('');
@@ -424,10 +510,14 @@ export function EntityDocumentsSection({ entityType, entityId }: EntityDocuments
           </div>
         ) : (
           <div className="space-y-2">
+            {/* Root drop zone */}
+            {allFolderNames.length > 0 && (
+              <RootDropZone onDropToRoot={(docId) => moveToFolder.mutate({ docId, folder: null })} />
+            )}
             {/* Folders */}
             {allFolderNames.map((fname) => {
               const docs = folderGroups[fname] || [];
-              return <FolderGroup key={fname} folderName={fname} docs={docs} remove={(d) => remove.mutate(d)} />;
+              return <FolderGroup key={fname} folderName={fname} docs={docs} remove={(d) => remove.mutate(d)} onDropToFolder={(docId, folder) => moveToFolder.mutate({ docId, folder })} />;
             })}
             {/* Root files */}
             {rootDocs.map((doc) => (
