@@ -8,3 +8,4 @@ export * from './EntityOverviewSection';
 export * from './EntityHorizontalTabs';
 export * from './EntityDetailsPanel';
 export * from './EntityHighlightsGrid';
+export * from './EntitySubTabs';

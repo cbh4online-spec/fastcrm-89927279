@@ -37,6 +37,7 @@ import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { EntityHorizontalTabs } from "@/components/entity/EntityHorizontalTabs";
 import { EntityDetailsPanel } from "@/components/entity/EntityDetailsPanel";
 import { EntityHighlightsGrid } from "@/components/entity/EntityHighlightsGrid";
+import { EntitySubTabs } from "@/components/entity/EntitySubTabs";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { MenuSection } from "@/types/entity";
 import { LinkedCompanyCard } from "@/components/contacts/LinkedCompanyCard";
@@ -187,18 +188,14 @@ export function ENIContactDetailWithSidebar() {
       case 'overview':
         return (
           <div className="space-y-6">
-            {/* Linked Company Card - prominent position */}
             <LinkedCompanyCard 
               companyId={(contact as any).company_id}
               contactId={contact.id}
             />
-            
-            {/* Scores + Lifecycle */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <ContactScoresCard contact={contact} editable={role === 'owner' || role === 'admin'} />
               <ContactLifecycleSection contact={contact} onFieldChange={handleFieldChange} />
             </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <CustomerJourneySection contactId={id} />
               <AIJourneySuggestionsPanel 
@@ -225,180 +222,184 @@ export function ENIContactDetailWithSidebar() {
       case 'insights':
         return (
           <div className="space-y-6">
-            {/* AI Agent Queue Status */}
-            <AgentQueueStatus
-              entityId={id!}
-              entityType="contact"
-              compact={false}
-              showAnalyzeButton={true}
-            />
+            <AgentQueueStatus entityId={id!} entityType="contact" compact={false} showAnalyzeButton={true} />
             <AIInsightsSection 
               contact={contact} 
               onGenerateInsights={handleGenerateInsights}
               isGenerating={analyzeContact.isPending}
             />
-            {/* AI Deal Insight - Conversation Intelligence Engine */}
             <AIDealInsightPanel contactId={id} />
             <EntitySocialMediaAnalysisSection
-              entityType="contact"
-              entityId={id!}
-              entityName={contact.name}
+              entityType="contact" entityId={id!} entityName={contact.name}
               linkedinUrl={(contact as any).linkedin_url}
             />
-            {/* AI Memory Panel */}
-            <EntityMemoryPanel
-              entityId={id!}
-              entityType="contact"
-              entityName={contact.name}
-            />
+            <EntityMemoryPanel entityId={id!} entityType="contact" entityName={contact.name} />
           </div>
         );
-      case 'notes':
-        return (
-          <NotesSection 
-            entityType="contact" 
-            entityId={id!} 
-            entityName={contact.name} 
-          />
-        );
-      case 'details':
-        return (
-          <div className="space-y-6">
-            {/* Profile-specific custom fields */}
-            {entityProfile && (
-              <ProfileCustomFieldsSection
-                entityType="contact"
-                profileType={entityProfile.profile_type}
-                values={(contact as any).profile_field_values || {}}
-                onFieldChange={async (fieldName, value) => {
-                  const currentValues = (contact as any).profile_field_values || {};
-                  await handleFieldChange('profile_field_values' as keyof ENIContact, {
-                    ...currentValues,
-                    [fieldName]: value,
-                  });
-                }}
-              />
-            )}
-            <ProfessionalProfileSection contact={contact} onFieldChange={handleFieldChange} />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <CommercialProfileSection contact={contact} onFieldChange={handleFieldChange} />
-              <FinancialSection contact={contact} onFieldChange={handleFieldChange} />
-            </div>
-            <ContactPreferencesSection 
-              contact={contact} 
-              onFieldChange={handleFieldChange}
-              editable={role === 'owner' || role === 'admin'}
-            />
-          </div>
-        );
-      case 'history':
-        return <CommercialHistorySection contact={contact} onFieldChange={handleFieldChange} />;
       case 'timeline':
         return (
-          <EntityTimelineSection
-            entityType="contact"
-            entityId={id!}
-            entityName={contact.name}
-          />
-        );
-      case 'payments':
-        return (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <AcquiredProductsSection contactId={id!} />
-              <InvoiceHistorySection contactId={id!} />
-            </div>
+            <EntityTimelineSection entityType="contact" entityId={id!} entityName={contact.name} />
+            <ContactNotesSection contact={contact} onFieldChange={handleFieldChange} />
           </div>
         );
-      case 'custom-fields':
-        return <DocumentsSection contactId={id!} />;
-      case 'messages':
+      case 'communication':
         return (
-          <div className="space-y-6">
-            {/* Email History */}
-            <EmailHistorySection
-              entityType="contact"
-              entityId={id!}
-              entityEmail={contact.email || undefined}
-              maxHeight="500px"
-            />
-            
-            {/* Message Composer */}
-            <ContactMessagesSection
-              entityType="contact"
-              entityId={id!}
-              entityName={contact.name}
-              entityEmail={contact.email}
-              entityPhone={contact.phone}
-            />
-          </div>
+          <EntitySubTabs
+            tabs={[
+              { id: 'emails', label: 'Emails' },
+              { id: 'messages', label: 'Mensagens' },
+              { id: 'scheduling', label: 'Agendamentos' },
+            ]}
+          >
+            {(tab) => {
+              switch (tab) {
+                case 'emails':
+                  return (
+                    <EmailHistorySection
+                      entityType="contact" entityId={id!}
+                      entityEmail={contact.email || undefined} maxHeight="500px"
+                    />
+                  );
+                case 'messages':
+                  return (
+                    <ContactMessagesSection
+                      entityType="contact" entityId={id!} entityName={contact.name}
+                      entityEmail={contact.email} entityPhone={contact.phone}
+                    />
+                  );
+                case 'scheduling':
+                  return (
+                    <EntitySchedulingSection
+                      entityType="contact" entityId={id!} entityName={contact.name}
+                      entityEmail={contact.email} entityPhone={contact.phone}
+                    />
+                  );
+                default: return null;
+              }
+            }}
+          </EntitySubTabs>
         );
-      case 'tasks':
+      case 'activity':
         return (
-          <EntityTasksSection
-            entityType="contact"
-            entityId={id!}
-            entityName={contact.name}
-          />
+          <EntitySubTabs
+            tabs={[
+              { id: 'tasks', label: 'Tarefas' },
+              { id: 'automations', label: 'Automações' },
+            ]}
+          >
+            {(tab) => tab === 'tasks' 
+              ? <EntityTasksSection entityType="contact" entityId={id!} entityName={contact.name} />
+              : <EntityAutomationSection entityType="contact" entityId={id!} entityName={contact.name} />
+            }
+          </EntitySubTabs>
         );
-      case 'automations':
+      case 'business':
         return (
-          <EntityAutomationSection
-            entityType="contact"
-            entityId={id!}
-            entityName={contact.name}
-          />
+          <EntitySubTabs
+            tabs={[
+              { id: 'opportunities', label: 'Oportunidades' },
+              { id: 'proposals', label: 'Propostas' },
+              { id: 'credit', label: 'Crédito' },
+            ]}
+          >
+            {(tab) => {
+              switch (tab) {
+                case 'opportunities':
+                  return (
+                    <EntityOpportunitiesSection
+                      entityType="contact" entityId={id!} entityName={contact.name}
+                      entityIndustry={(contact as any).business_area} entityNotes={contact.notes}
+                    />
+                  );
+                case 'proposals':
+                  return <EntityProposalsSection entityType="contact" entityId={id!} entityName={contact.name} />;
+                case 'credit':
+                  return <EntityCreditProposalsSection entityType="contact" entityId={id!} entityName={contact.name} />;
+                default: return null;
+              }
+            }}
+          </EntitySubTabs>
         );
-      case 'opportunities':
+      case 'financial':
         return (
-          <EntityOpportunitiesSection
-            entityType="contact"
-            entityId={id!}
-            entityName={contact.name}
-            entityIndustry={(contact as any).business_area}
-            entityNotes={contact.notes}
-          />
+          <EntitySubTabs
+            tabs={[
+              { id: 'payments', label: 'Pagamentos' },
+              { id: 'orders', label: 'Encomendas' },
+              { id: 'history', label: 'Histórico' },
+            ]}
+          >
+            {(tab) => {
+              switch (tab) {
+                case 'payments':
+                  return (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <AcquiredProductsSection contactId={id!} />
+                      <InvoiceHistorySection contactId={id!} />
+                    </div>
+                  );
+                case 'orders':
+                  return <ContactOrderNotesSection contactId={id!} />;
+                case 'history':
+                  return <CommercialHistorySection contact={contact} onFieldChange={handleFieldChange} />;
+                default: return null;
+              }
+            }}
+          </EntitySubTabs>
         );
-      case 'credit':
+      case 'data':
         return (
-          <EntityCreditProposalsSection
-            entityType="contact"
-            entityId={id!}
-            entityName={contact.name}
-          />
-        );
-      case 'orders':
-        return (
-          <ContactOrderNotesSection contactId={id!} />
+          <EntitySubTabs
+            tabs={[
+              { id: 'details', label: 'Informações' },
+              { id: 'fields', label: 'Campos' },
+              { id: 'audit', label: 'Auditoria' },
+            ]}
+          >
+            {(tab) => {
+              switch (tab) {
+                case 'details':
+                  return (
+                    <div className="space-y-6">
+                      {entityProfile && (
+                        <ProfileCustomFieldsSection
+                          entityType="contact" profileType={entityProfile.profile_type}
+                          values={(contact as any).profile_field_values || {}}
+                          onFieldChange={async (fieldName, value) => {
+                            const currentValues = (contact as any).profile_field_values || {};
+                            await handleFieldChange('profile_field_values' as keyof ENIContact, {
+                              ...currentValues, [fieldName]: value,
+                            });
+                          }}
+                        />
+                      )}
+                      <ProfessionalProfileSection contact={contact} onFieldChange={handleFieldChange} />
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <CommercialProfileSection contact={contact} onFieldChange={handleFieldChange} />
+                        <FinancialSection contact={contact} onFieldChange={handleFieldChange} />
+                      </div>
+                      <ContactPreferencesSection 
+                        contact={contact} onFieldChange={handleFieldChange}
+                        editable={role === 'owner' || role === 'admin'}
+                      />
+                    </div>
+                  );
+                case 'fields':
+                  return <DocumentsSection contactId={id!} />;
+                case 'audit':
+                  return <ContactAuditSection contactId={id!} />;
+                default: return null;
+              }
+            }}
+          </EntitySubTabs>
         );
       case 'student-journey':
         return (
           <ContactStudentJourneySection 
-            contactId={id!} 
-            contactName={contact.name}
-            contactEmail={contact.email}
+            contactId={id!} contactName={contact.name} contactEmail={contact.email}
           />
         );
-      case 'proposals':
-        return (
-          <EntityProposalsSection
-            entityType="contact"
-            entityId={id!}
-            entityName={contact.name}
-          />
-        );
-      case 'scheduling':
-        return (
-          <EntitySchedulingSection
-            entityType="contact"
-            entityId={id!}
-            entityName={contact.name}
-            entityEmail={contact.email}
-            entityPhone={contact.phone}
-          />
-        );
-      case 'audit':
-        return <ContactAuditSection contactId={id!} />;
       default:
         return (
           <div className="text-center py-12 text-muted-foreground">
