@@ -1,29 +1,40 @@
 
 
-# Widget de Próximos Eventos no Dashboard
+# Cores por Categoria de Evento na Vista de Calendário
+
+## Abordagem
+
+Actualmente todos os eventos comunitários usam a mesma cor (`#F59E0B`) porque partilham um único pseudo-calendário virtual. A cor é resolvida via `getCalendarColor(event.calendar_id)` que procura na lista de calendários.
+
+A solução mais simples: guardar a cor da categoria no `metadata` de cada evento mapeado e alterar `getCalendarColor` para dar prioridade a essa cor quando presente.
 
 ## Alterações
 
-### 1. Novo hook `src/hooks/useUpcomingEventsWithRsvps.ts`
+### 1. Editar `src/hooks/useCommunityEventsForCalendar.ts`
 
-Query que busca os próximos 5 `community_events` (futuros, ordenados por `starts_at`) do workspace actual. Para cada evento, faz uma segunda query a `event_rsvps` agrupada por `status` para obter contagem de pendentes (`invited`). Retorna array com evento + `rsvpCounts`.
+Adicionar mapa de cores por categoria:
+```
+networking → #3B82F6 (azul)
+jantar → #EF4444 (vermelho)
+workshop → #8B5CF6 (roxo)
+webinar → #06B6D4 (ciano)
+conferencia → #F59E0B (amarelo, actual)
+outro → #6B7280 (cinza)
+```
 
-### 2. Novo componente `src/components/dashboard/UpcomingEventsWidget.tsx`
+No mapeamento de cada evento, incluir `metadata._categoryColor` com a cor correspondente a `evt.event_category`.
 
-Widget no estilo do `UpcomingBirthdaysWidget`:
-- Ícone `CalendarDays` no header + título "Próximos Eventos"
-- Lista dos próximos 5 eventos com: título, data formatada, badge com contagem de RSVPs pendentes (status `invited`)
-- Click navega para `/dashboard/events/{id}`
-- Loading skeleton + empty state
-- Badge amber para pendentes > 0
+### 2. Editar `src/components/calendars/CalendarView.tsx`
 
-### 3. Editar `src/pages/Dashboard.tsx`
+Alterar `getCalendarColor` para verificar se o evento tem `metadata?._categoryColor` e usar essa cor em vez da cor do calendário. Passar o evento completo (ou a cor) em vez de apenas `calendar_id` nos pontos de renderização (MonthView, WeekView, DayView).
 
-Importar e adicionar `UpcomingEventsWidget` na coluna lateral (col-span-4), acima do `UpcomingBirthdaysWidget`.
+### 3. Editar `src/components/calendars/CalendarListView.tsx`
+
+Mesma alteração: usar `event.metadata?._categoryColor` como override da cor do calendário na barra lateral colorida.
 
 | Ficheiro | Acção |
 |----------|-------|
-| `src/hooks/useUpcomingEventsWithRsvps.ts` | Hook que busca eventos + contagem RSVPs |
-| `src/components/dashboard/UpcomingEventsWidget.tsx` | Widget visual |
-| `src/pages/Dashboard.tsx` | Adicionar widget ao layout |
+| `src/hooks/useCommunityEventsForCalendar.ts` | Adicionar mapa de cores e guardar em metadata |
+| `src/components/calendars/CalendarView.tsx` | Usar cor da categoria como override |
+| `src/components/calendars/CalendarListView.tsx` | Usar cor da categoria como override |
 
