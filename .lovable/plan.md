@@ -1,36 +1,29 @@
 
 
-# Envio Automático de Email ao Convidar para Evento
-
-## Contexto
-
-Actualmente, `useInviteToEvent` apenas insere um registo na tabela `event_rsvps` sem enviar email. Já existe a edge function `send-community-invite` para convites de comunidade que pode servir de modelo.
+# Widget de Próximos Eventos no Dashboard
 
 ## Alterações
 
-### 1. Nova Edge Function `supabase/functions/send-event-invite/index.ts`
+### 1. Novo hook `src/hooks/useUpcomingEventsWithRsvps.ts`
 
-Baseada na `send-community-invite`, recebe:
-- `email`, `name`, `eventTitle`, `eventDate`, `eventLocation`, `eventLink`, `workspaceId`, `eventId`
+Query que busca os próximos 5 `community_events` (futuros, ordenados por `starts_at`) do workspace actual. Para cada evento, faz uma segunda query a `event_rsvps` agrupada por `status` para obter contagem de pendentes (`invited`). Retorna array com evento + `rsvpCounts`.
 
-Gera email HTML com:
-- Nome do evento, data/hora, local, link do evento
-- Botão "Confirmar Presença" que aponta para URL de confirmação
-- Template visual alinhado com o da comunidade
+### 2. Novo componente `src/components/dashboard/UpcomingEventsWidget.tsx`
 
-Usa Resend (já configurado com `RESEND_API_KEY`) para enviar.
+Widget no estilo do `UpcomingBirthdaysWidget`:
+- Ícone `CalendarDays` no header + título "Próximos Eventos"
+- Lista dos próximos 5 eventos com: título, data formatada, badge com contagem de RSVPs pendentes (status `invited`)
+- Click navega para `/dashboard/events/{id}`
+- Loading skeleton + empty state
+- Badge amber para pendentes > 0
 
-### 2. Editar `src/hooks/useEvents.ts` — `useInviteToEvent`
+### 3. Editar `src/pages/Dashboard.tsx`
 
-Após inserir o RSVP com sucesso, chamar `supabase.functions.invoke("send-event-invite")` se o email estiver presente. Não bloquear o insert se o email falhar (log + toast warning).
-
-### 3. Editar `src/components/events/EventDetailPage.tsx`
-
-Passar dados do evento ao `useInviteToEvent` para que a mutation tenha contexto suficiente para enviar o email (título, data, local, link).
+Importar e adicionar `UpcomingEventsWidget` na coluna lateral (col-span-4), acima do `UpcomingBirthdaysWidget`.
 
 | Ficheiro | Acção |
 |----------|-------|
-| `supabase/functions/send-event-invite/index.ts` | Edge function que envia email de convite para evento |
-| `src/hooks/useEvents.ts` | Chamar edge function após insert do RSVP |
-| `src/components/events/EventDetailPage.tsx` | Passar dados do evento à mutation |
+| `src/hooks/useUpcomingEventsWithRsvps.ts` | Hook que busca eventos + contagem RSVPs |
+| `src/components/dashboard/UpcomingEventsWidget.tsx` | Widget visual |
+| `src/pages/Dashboard.tsx` | Adicionar widget ao layout |
 
