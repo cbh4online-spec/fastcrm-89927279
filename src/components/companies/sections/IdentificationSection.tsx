@@ -3,7 +3,7 @@ import { InlineEditableField } from "@/components/custom-fields/InlineEditableFi
 import { InlineNifField } from "@/components/custom-fields/InlineNifField";
 import { NifLookupResult } from "@/hooks/useNifLookup";
 import { Company } from "@/hooks/useCompanies";
-import { Building2, Hash, Mail, Phone, Globe, Factory, Users } from "lucide-react";
+import { Building2, Hash, Mail, Phone, Globe, Factory, Users, Cake } from "lucide-react";
 
 const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-500", "500+"];
 
@@ -99,6 +99,14 @@ export function IdentificationSection({ company, onFieldChange, onNifDataReceive
             onChange={(val) => onFieldChange("size", val)}
             icon={<Users className="w-4 h-4" />}
             options={COMPANY_SIZES}
+          />
+          <InlineEditableField
+            label="Data de Aniversário"
+            fieldId="birth_date"
+            fieldType="date"
+            value={(company as any).birth_date || ''}
+            onChange={(val) => onFieldChange("birth_date" as keyof Company, val)}
+            icon={<Cake className="w-4 h-4" />}
           />
         </div>
       </CardContent>

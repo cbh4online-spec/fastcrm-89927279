@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 import { Lead } from "@/hooks/useLeads";
-import { User, Mail, Phone, Briefcase, Tag } from "lucide-react";
+import { User, Mail, Phone, Briefcase, Tag, Cake } from "lucide-react";
 
 const LEAD_SOURCES = ["Instagram", "WhatsApp", "Website", "Referral", "Email", "Facebook", "LinkedIn", "Outro"];
 const LEAD_STATUSES = ["new", "in_progress", "completed"];
@@ -70,6 +70,14 @@ export function IdentificationSection({ lead, onFieldChange }: IdentificationSec
             onChange={(val) => onFieldChange("status", val)}
             icon={<Tag className="w-4 h-4" />}
             options={LEAD_STATUSES}
+          />
+          <InlineEditableField
+            label="Data de Nascimento"
+            fieldId="birth_date"
+            fieldType="date"
+            value={(lead as any).birth_date || ''}
+            onChange={(val) => onFieldChange("birth_date" as keyof Lead, val)}
+            icon={<Cake className="w-4 h-4" />}
           />
         </div>
       </CardContent>
