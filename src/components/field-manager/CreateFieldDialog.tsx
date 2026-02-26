@@ -25,6 +25,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, X, Info } from "lucide-react";
+import { AIAutofillConfig } from "./AIAutofillConfig";
 import { useCreateManagedField } from "@/hooks/useManagedFields";
 import type { 
   FieldEntityType, 
@@ -170,9 +171,10 @@ export function CreateFieldDialog({ open, onOpenChange, preselectedEntity }: Cre
         </DialogHeader>
 
         <Tabs defaultValue="identification" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="identification">Identificação</TabsTrigger>
             <TabsTrigger value="formatting">Formatação</TabsTrigger>
+            <TabsTrigger value="ai">IA</TabsTrigger>
             <TabsTrigger value="industry">Indústria</TabsTrigger>
             <TabsTrigger value="permissions">Permissões</TabsTrigger>
           </TabsList>
@@ -421,6 +423,14 @@ export function CreateFieldDialog({ open, onOpenChange, preselectedEntity }: Cre
                   />
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="ai" className="space-y-4 pr-4">
+              <AIAutofillConfig
+                config={formattingConfig}
+                onChange={setFormattingConfig}
+                existingFields={[]}
+              />
             </TabsContent>
 
             <TabsContent value="industry" className="space-y-4 pr-4">
