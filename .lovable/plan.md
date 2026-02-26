@@ -1,35 +1,35 @@
 
 
-# Separar Ficheiros da Equipa + Criar Aba Própria de Ficheiros
-
-## Problema Actual
-Os ficheiros estão embebidos dentro da aba "Equipa" como sub-tab. O utilizador quer que a aba "Equipa" tenha apenas notas internas e que exista uma aba dedicada "Ficheiros" nas tabs horizontais.
+# Pré-visualização Inline de Ficheiros PDF e Imagens
 
 ## Alterações
 
-### 1. Adicionar `'files'` ao `MenuSection` type
-- Adicionar `| 'files'` ao tipo `MenuSection` em `src/types/entity.ts`
+### `EntityDocumentsSection.tsx` — Componente `DocumentRow`
 
-### 2. Adicionar tab "Ficheiros" em `EntityHorizontalTabs.tsx`
-- Adicionar `{ id: 'files', label: 'Ficheiros', showFor: ['lead', 'contact', 'company'] }` ao array `ALL_TABS`, após `'team'`
+Adicionar um botão de pré-visualização (ícone `Eye`) e um estado de expansão por documento. Ao clicar, expande uma área abaixo do ficheiro com:
 
-### 3. Remover sub-tab de ficheiros de `EntityTeamSection.tsx`
-- Remover a sub-tab `'files'` — a aba Equipa passa a mostrar apenas as notas internas directamente (sem sub-tabs)
-- Remover import de `EntityDocumentsSection` e `EntitySubTabs`
+- **Imagens** (`.jpg`, `.jpeg`, `.png`, `.webp`): renderizar `<img>` com `max-height: 300px`, `object-contain`, cantos arredondados
+- **PDFs** (`.pdf`): renderizar `<iframe>` com `src={doc.file_url}`, `height: 400px`, `width: 100%`, borda arredondada
 
-### 4. Renderizar `EntityDocumentsSection` na nova aba em cada detail page
-- **`LeadDetailWithSidebar.tsx`**: adicionar `case 'files': return <EntityDocumentsSection ... />`
-- **`CompanyDetailWithSidebar.tsx`**: adicionar `case 'files': return <EntityDocumentsSection ... />`
-- **`ENIContactDetailWithSidebar.tsx`**: adicionar `case 'files': return <EntityDocumentsSection ... />`
+Lógica de detecção: extrair extensão do `file_name` para determinar o tipo. Só mostrar o botão de pré-visualização para extensões suportadas (imagens + PDF).
 
-## Ficheiros
+### Estrutura visual
+
+```text
+📄 Contrato.pdf   [👁 Preview] [⬇ Download] [🗑 Delete]
+┌─────────────────────────────────────────┐
+│  <iframe src="...pdf" height=400 />     │
+└─────────────────────────────────────────┘
+
+📄 Logo.png       [👁 Preview] [⬇ Download] [🗑 Delete]
+┌─────────────────────────────────────────┐
+│  <img src="...png" max-h=300 />         │
+└─────────────────────────────────────────┘
+```
+
+### Ficheiros
 
 | Ficheiro | Acção |
 |----------|-------|
-| `src/types/entity.ts` | Adicionar `'files'` ao `MenuSection` |
-| `src/components/entity/EntityHorizontalTabs.tsx` | Nova tab "Ficheiros" |
-| `src/components/entity/EntityTeamSection.tsx` | Remover sub-tabs, mostrar só notas |
-| `src/components/crm/LeadDetailWithSidebar.tsx` | Render ficheiros na aba `files` |
-| `src/components/companies/CompanyDetailWithSidebar.tsx` | Render ficheiros na aba `files` |
-| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | Render ficheiros na aba `files` |
+| `src/components/entity/EntityDocumentsSection.tsx` | Adicionar estado `previewOpen`, botão `Eye`, e render condicional de `<img>` ou `<iframe>` no `DocumentRow` |
 
