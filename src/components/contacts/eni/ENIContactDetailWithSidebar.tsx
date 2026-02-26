@@ -355,7 +355,6 @@ export function ENIContactDetailWithSidebar() {
             entityType="contact"
             entityId={id!}
             entityName={contact.name}
-            showDocuments={true}
           />
         );
       case 'data':
