@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useCompanies } from "@/hooks/useCompanies";
 import { useContacts } from "@/hooks/useContacts";
 import { useCompanyEnrichment, EnrichmentResult } from "@/hooks/useCompanyEnrichment";
@@ -36,7 +37,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CustomFieldsFormCreate, CustomFieldsFormCreateRef } from "@/components/custom-fields/CustomFieldsForm";
+import { CustomFieldsFormCreate, CustomFieldsFormCreateRef, type AIAutofillResult } from "@/components/custom-fields/CustomFieldsForm";
+import { AIAutofillPreviewDialog } from "@/components/custom-fields/AIAutofillPreviewDialog";
 import {
   Building2,
   Globe,
@@ -87,6 +89,10 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [createAssociatedContact, setCreateAssociatedContact] = useState(false);
   const [isIndividual, setIsIndividual] = useState(false);
+  const [previewResults, setPreviewResults] = useState<AIAutofillResult[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [isApplyingPreview, setIsApplyingPreview] = useState(false);
+  const [pendingEntityId, setPendingEntityId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     website: "",
@@ -237,7 +243,7 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
       if (result?.id) {
         await customFieldsPrimaryRef.current?.saveCustomFields(result.id);
         await customFieldsSecondaryRef.current?.saveCustomFields(result.id);
-        // Run AI autofill asynchronously
+        // Run AI autofill and collect results for preview
         const aiRecordData = {
           name: formData.name,
           website: formData.website,
@@ -247,8 +253,16 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
           address: formData.address,
           notes: formData.notes,
         };
-        customFieldsPrimaryRef.current?.runAIAutofill(result.id, aiRecordData);
-        customFieldsSecondaryRef.current?.runAIAutofill(result.id, aiRecordData);
+        const [primaryResults, secondaryResults] = await Promise.all([
+          customFieldsPrimaryRef.current?.runAIAutofill(result.id, aiRecordData) ?? Promise.resolve([]),
+          customFieldsSecondaryRef.current?.runAIAutofill(result.id, aiRecordData) ?? Promise.resolve([]),
+        ]);
+        const allResults = [...primaryResults, ...secondaryResults];
+        if (allResults.length > 0) {
+          setPendingEntityId(result.id);
+          setPreviewResults(allResults);
+          setShowPreview(true);
+        }
       }
 
       // Create associated contact if checkbox is checked (forced for ENI)
@@ -839,6 +853,30 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AIAutofillPreviewDialog
+        open={showPreview}
+        onOpenChange={setShowPreview}
+        results={previewResults}
+        onConfirm={async (selected) => {
+          if (!pendingEntityId) return;
+          setIsApplyingPreview(true);
+          let filled = 0;
+          for (const r of selected) {
+            try {
+              const { error } = await supabase
+                .from("custom_field_values")
+                .upsert({ custom_field_id: r.fieldId, entity_id: pendingEntityId, value: r.generatedValue }, { onConflict: "custom_field_id,entity_id" });
+              if (!error) filled++;
+            } catch {}
+          }
+          setIsApplyingPreview(false);
+          setShowPreview(false);
+          setPreviewResults([]);
+          setPendingEntityId(null);
+          if (filled > 0) toast.success(`${filled} campo(s) preenchido(s) com IA`);
+        }}
+        isApplying={isApplyingPreview}
+      />
     </>
   );
 }

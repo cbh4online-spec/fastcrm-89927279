@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useContacts } from "@/hooks/useContacts";
 import { useContactEnrichment, type ContactEnrichmentResult } from "@/hooks/useContactEnrichment";
 import { useContactDuplicateCheck, type DuplicateMatch } from "@/hooks/useContactDuplicates";
@@ -17,7 +18,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { CustomFieldsFormCreate, CustomFieldsFormCreateRef } from "@/components/custom-fields/CustomFieldsForm";
+import { CustomFieldsFormCreate, CustomFieldsFormCreateRef, type AIAutofillResult } from "@/components/custom-fields/CustomFieldsForm";
+import { AIAutofillPreviewDialog } from "@/components/custom-fields/AIAutofillPreviewDialog";
 import {
   Collapsible,
   CollapsibleContent,
@@ -203,6 +205,10 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
   const [enrichmentResult, setEnrichmentResult] = useState<ContactEnrichmentResult | null>(null);
   const [isEnriching, setIsEnriching] = useState(false);
   const [dismissedDuplicates, setDismissedDuplicates] = useState(false);
+  const [previewResults, setPreviewResults] = useState<AIAutofillResult[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [isApplyingPreview, setIsApplyingPreview] = useState(false);
+  const [pendingEntityId, setPendingEntityId] = useState<string | null>(null);
   const customFieldsRef = useRef<CustomFieldsFormCreateRef>(null);
   
   const [formData, setFormData] = useState({
@@ -328,8 +334,8 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
       // Save custom fields if any
       if (result?.id && customFieldsRef.current) {
         await customFieldsRef.current.saveCustomFields(result.id);
-        // Run AI autofill asynchronously (don't block dialog close)
-        customFieldsRef.current.runAIAutofill(result.id, {
+        // Run AI autofill and show preview
+        const aiResults = await customFieldsRef.current.runAIAutofill(result.id, {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
@@ -337,6 +343,11 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
           job_title: formData.job_title,
           notes: formData.notes,
         });
+        if (aiResults.length > 0) {
+          setPendingEntityId(result.id);
+          setPreviewResults(aiResults);
+          setShowPreview(true);
+        }
       }
       
       resetForm();
@@ -377,6 +388,7 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
   const hasMinimumInput = formData.name.trim() || formData.email.trim() || formData.phone.trim();
 
   return (
+    <>
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -585,5 +597,30 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
         </form>
       </DialogContent>
     </Dialog>
+    <AIAutofillPreviewDialog
+      open={showPreview}
+      onOpenChange={setShowPreview}
+      results={previewResults}
+      onConfirm={async (selected) => {
+        if (!pendingEntityId) return;
+        setIsApplyingPreview(true);
+        let filled = 0;
+        for (const r of selected) {
+          try {
+            const { error } = await supabase
+              .from("custom_field_values")
+              .upsert({ custom_field_id: r.fieldId, entity_id: pendingEntityId, value: r.generatedValue }, { onConflict: "custom_field_id,entity_id" });
+            if (!error) filled++;
+          } catch {}
+        }
+        setIsApplyingPreview(false);
+        setShowPreview(false);
+        setPreviewResults([]);
+        setPendingEntityId(null);
+        if (filled > 0) toast.success(`${filled} campo(s) preenchido(s) com IA`);
+      }}
+      isApplying={isApplyingPreview}
+    />
+    </>
   );
 }
