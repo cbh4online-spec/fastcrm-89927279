@@ -3,6 +3,8 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSam
 import { pt } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { CalendarEvent, Calendar } from '@/hooks/useCalendars';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { EventTooltipContent } from './EventTooltipContent';
 
 type ViewMode = 'month' | 'week' | 'day';
 
@@ -43,6 +45,7 @@ export function CalendarView({
   };
 
   return (
+    <TooltipProvider delayDuration={300}>
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-gradient-to-br from-background via-background to-muted/20">
       {/* Calendar Grid */}
       <div className="flex-1 overflow-auto p-4">
@@ -75,6 +78,7 @@ export function CalendarView({
         )}
       </div>
     </div>
+    </TooltipProvider>
   );
 }
 
@@ -141,21 +145,27 @@ function MonthView({ currentDate, events, getCalendarColor, onDayClick, onEventC
                 {dayEvents.slice(0, 3).map(event => {
                   const color = getCalendarColor(event.calendar_id, event);
                   return (
-                    <div
-                      key={event.id}
-                      className="text-xs px-2 py-1 rounded-lg truncate cursor-pointer transition-all duration-150 hover:scale-105 hover:shadow-md"
-                      style={{ 
-                        background: `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)`,
-                        color: 'white',
-                        boxShadow: `0 2px 8px ${color}40`
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEventClick(event);
-                      }}
-                    >
-                      {event.title}
-                    </div>
+                    <Tooltip key={event.id}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className="text-xs px-2 py-1 rounded-lg truncate cursor-pointer transition-all duration-150 hover:scale-105 hover:shadow-md"
+                          style={{ 
+                            background: `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)`,
+                            color: 'white',
+                            boxShadow: `0 2px 8px ${color}40`
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEventClick(event);
+                          }}
+                        >
+                          {event.title}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" align="start">
+                        <EventTooltipContent metadata={event.metadata as Record<string, any>} title={event.title} />
+                      </TooltipContent>
+                    </Tooltip>
                   );
                 })}
                 {dayEvents.length > 3 && (
@@ -244,22 +254,28 @@ function WeekView({ currentDate, events, getCalendarColor, onTimeClick, onEventC
                     {hourEvents.map(event => {
                       const color = getCalendarColor(event.calendar_id, event);
                       return (
-                        <div
-                          key={event.id}
-                          className="absolute inset-x-1 text-xs px-2 py-1 rounded-lg truncate cursor-pointer z-10 transition-all duration-150 hover:scale-105"
-                          style={{ 
-                            background: `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)`,
-                            color: 'white',
-                            top: '4px',
-                            boxShadow: `0 2px 8px ${color}40`
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEventClick(event);
-                          }}
-                        >
-                          {format(new Date(event.start_time), 'HH:mm')} {event.title}
-                        </div>
+                        <Tooltip key={event.id}>
+                          <TooltipTrigger asChild>
+                            <div
+                              className="absolute inset-x-1 text-xs px-2 py-1 rounded-lg truncate cursor-pointer z-10 transition-all duration-150 hover:scale-105"
+                              style={{ 
+                                background: `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)`,
+                                color: 'white',
+                                top: '4px',
+                                boxShadow: `0 2px 8px ${color}40`
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEventClick(event);
+                              }}
+                            >
+                              {format(new Date(event.start_time), 'HH:mm')} {event.title}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" align="start">
+                            <EventTooltipContent metadata={event.metadata as Record<string, any>} title={event.title} />
+                          </TooltipContent>
+                        </Tooltip>
                       );
                     })}
                   </div>
@@ -312,26 +328,32 @@ function DayView({ currentDate, events, getCalendarColor, onTimeClick, onEventCl
                 {hourEvents.map(event => {
                   const color = getCalendarColor(event.calendar_id, event);
                   return (
-                    <div
-                      key={event.id}
-                      className="text-sm px-3 py-2 rounded-xl cursor-pointer mb-1 transition-all duration-150 hover:scale-[1.02] hover:shadow-lg"
-                      style={{ 
-                        background: `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)`,
-                        color: 'white',
-                        boxShadow: `0 4px 12px ${color}40`
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEventClick(event);
-                      }}
-                    >
-                      <span className="font-bold">{format(new Date(event.start_time), 'HH:mm')}</span>
-                      <span className="mx-2">•</span>
-                      <span>{event.title}</span>
-                      {event.location && (
-                        <span className="opacity-80 ml-3 text-xs">📍 {event.location}</span>
-                      )}
-                    </div>
+                    <Tooltip key={event.id}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className="text-sm px-3 py-2 rounded-xl cursor-pointer mb-1 transition-all duration-150 hover:scale-[1.02] hover:shadow-lg"
+                          style={{ 
+                            background: `linear-gradient(135deg, ${color} 0%, ${color}cc 100%)`,
+                            color: 'white',
+                            boxShadow: `0 4px 12px ${color}40`
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEventClick(event);
+                          }}
+                        >
+                          <span className="font-bold">{format(new Date(event.start_time), 'HH:mm')}</span>
+                          <span className="mx-2">•</span>
+                          <span>{event.title}</span>
+                          {event.location && (
+                            <span className="opacity-80 ml-3 text-xs">📍 {event.location}</span>
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" align="start">
+                        <EventTooltipContent metadata={event.metadata as Record<string, any>} title={event.title} />
+                      </TooltipContent>
+                    </Tooltip>
                   );
                 })}
               </div>
