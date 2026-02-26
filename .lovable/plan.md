@@ -1,35 +1,24 @@
 
 
-# Pré-visualização Inline de Ficheiros PDF e Imagens
+# Drag-and-Drop para Mover Ficheiros entre Pastas
 
 ## Alterações
 
-### `EntityDocumentsSection.tsx` — Componente `DocumentRow`
+### `src/components/entity/EntityDocumentsSection.tsx`
 
-Adicionar um botão de pré-visualização (ícone `Eye`) e um estado de expansão por documento. Ao clicar, expande uma área abaixo do ficheiro com:
+1. **Adicionar mutação `moveToFolder`** no hook `useEntityDocuments` — faz `UPDATE` do campo `folder` de um documento por ID
 
-- **Imagens** (`.jpg`, `.jpeg`, `.png`, `.webp`): renderizar `<img>` com `max-height: 300px`, `object-contain`, cantos arredondados
-- **PDFs** (`.pdf`): renderizar `<iframe>` com `src={doc.file_url}`, `height: 400px`, `width: 100%`, borda arredondada
+2. **Tornar `DocumentRow` arrastável** — adicionar `draggable`, `onDragStart` (guarda `doc.id` em `dataTransfer`), visual de opacidade reduzida ao arrastar
 
-Lógica de detecção: extrair extensão do `file_name` para determinar o tipo. Só mostrar o botão de pré-visualização para extensões suportadas (imagens + PDF).
+3. **Tornar `FolderGroup` um drop target** — adicionar `onDragOver`, `onDragEnter`, `onDragLeave`, `onDrop` no header da pasta. Ao largar, chama `moveToFolder(docId, folderName)`. Indicador visual (ring azul) quando hover com drag
 
-### Estrutura visual
+4. **Adicionar zona de drop "Raiz"** — uma área no fundo da lista ou acima dos ficheiros raiz que aceita drop para mover ficheiros para `folder = null` (remover de pasta)
 
-```text
-📄 Contrato.pdf   [👁 Preview] [⬇ Download] [🗑 Delete]
-┌─────────────────────────────────────────┐
-│  <iframe src="...pdf" height=400 />     │
-└─────────────────────────────────────────┘
-
-📄 Logo.png       [👁 Preview] [⬇ Download] [🗑 Delete]
-┌─────────────────────────────────────────┐
-│  <img src="...png" max-h=300 />         │
-└─────────────────────────────────────────┘
-```
+5. **Feedback visual**: documento arrastado fica com `opacity-40`, pasta alvo fica com `ring-2 ring-primary`
 
 ### Ficheiros
 
 | Ficheiro | Acção |
 |----------|-------|
-| `src/components/entity/EntityDocumentsSection.tsx` | Adicionar estado `previewOpen`, botão `Eye`, e render condicional de `<img>` ou `<iframe>` no `DocumentRow` |
+| `src/components/entity/EntityDocumentsSection.tsx` | Adicionar mutação `moveToFolder`, drag no `DocumentRow`, drop no `FolderGroup` e zona raiz |
 
