@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { FileText, Upload, Trash2, Download, Plus, File, Calendar, FolderPlus, Folder, ChevronRight } from 'lucide-react';
+import { FileText, Upload, Trash2, Download, Plus, File, Calendar, FolderPlus, Folder, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -124,51 +124,95 @@ function useEntityDocuments(entityType: string, entityId: string) {
   return { documents: query.data || [], isLoading: query.isLoading, upload, remove };
 }
 
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'];
+const PDF_EXTENSIONS = ['pdf'];
+const PREVIEWABLE_EXTENSIONS = [...IMAGE_EXTENSIONS, ...PDF_EXTENSIONS];
+
+function getFileExtension(fileName: string): string {
+  return fileName.split('.').pop()?.toLowerCase() || '';
+}
+
 function DocumentRow({ doc, remove }: { doc: EntityDocument; remove: (doc: EntityDocument) => void }) {
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const ext = getFileExtension(doc.file_name);
+  const isPreviewable = PREVIEWABLE_EXTENSIONS.includes(ext);
+  const isImage = IMAGE_EXTENSIONS.includes(ext);
+  const isPdf = PDF_EXTENSIONS.includes(ext);
+
   return (
-    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="p-2 rounded-lg bg-primary/10">
-          <FileText className="h-4 w-4 text-primary" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-medium truncate">{doc.file_name}</p>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant="outline" className="text-xs">{doc.document_type}</Badge>
-            <span>{formatFileSize(doc.file_size)}</span>
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              {new Date(doc.created_at).toLocaleDateString('pt-PT')}
-            </span>
+    <div className="space-y-0">
+      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <FileText className="h-4 w-4 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium truncate">{doc.file_name}</p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Badge variant="outline" className="text-xs">{doc.document_type}</Badge>
+              <span>{formatFileSize(doc.file_size)}</span>
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                {new Date(doc.created_at).toLocaleDateString('pt-PT')}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
-      <div className="flex items-center gap-1">
-        {doc.file_url && (
-          <Button variant="ghost" size="icon" asChild>
-            <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
-              <Download className="h-4 w-4" />
-            </a>
-          </Button>
-        )}
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-              <Trash2 className="h-4 w-4" />
+        <div className="flex items-center gap-1">
+          {isPreviewable && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setPreviewOpen(!previewOpen)}
+              title={previewOpen ? 'Fechar pré-visualização' : 'Pré-visualizar'}
+            >
+              {previewOpen ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Eliminar documento</AlertDialogTitle>
-              <AlertDialogDescription>Tem a certeza que deseja eliminar este documento? Esta ação é irreversível.</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => remove(doc)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          )}
+          {doc.file_url && (
+            <Button variant="ghost" size="icon" asChild>
+              <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
+                <Download className="h-4 w-4" />
+              </a>
+            </Button>
+          )}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Eliminar documento</AlertDialogTitle>
+                <AlertDialogDescription>Tem a certeza que deseja eliminar este documento? Esta ação é irreversível.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => remove(doc)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
+      {previewOpen && doc.file_url && (
+        <div className="mt-1 mx-3 mb-2 rounded-lg border border-border overflow-hidden bg-background">
+          {isImage && (
+            <img
+              src={doc.file_url}
+              alt={doc.file_name}
+              className="max-h-[300px] w-full object-contain rounded-lg"
+            />
+          )}
+          {isPdf && (
+            <iframe
+              src={doc.file_url}
+              title={doc.file_name}
+              className="w-full h-[400px] rounded-lg"
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
