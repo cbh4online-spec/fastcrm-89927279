@@ -221,10 +221,11 @@ export function LeadDetailWithSidebar() {
         );
       case 'timeline':
         return (
-          <div className="space-y-6">
-            <EntityTimelineSection entityType="lead" entityId={id!} entityName={lead.name} />
-            <NotesSection entityType="lead" entityId={id!} entityName={lead.name} />
-          </div>
+          <EntityTimelineSection entityType="lead" entityId={id!} entityName={lead.name} />
+        );
+      case 'notes':
+        return (
+          <NotesSection entityType="lead" entityId={id!} entityName={lead.name} />
         );
       case 'communication':
         return (
