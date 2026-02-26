@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Calendar, Plus, ChevronDown, ChevronRight, Eye, EyeOff, Settings } from 'lucide-react';
+import { Calendar, Plus, ChevronDown, ChevronRight, Eye, EyeOff, Settings, Palette } from 'lucide-react';
+import { CATEGORY_COLORS } from '@/hooks/useCommunityEventsForCalendar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -221,7 +222,41 @@ export function CalendarSidebar({
                   />
                 ))}
               </CollapsibleContent>
-            </Collapsible>
+          </Collapsible>
+          </>
+        )}
+
+        {/* Category color legend */}
+        {virtualCalendarIds.includes('community-events') && (
+          <>
+            <Separator className="my-2" />
+            <div className="px-3 py-2">
+              <div className="flex items-center gap-2 mb-2">
+                <Palette className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Categorias</span>
+              </div>
+              <div className="space-y-1.5">
+                {Object.entries(CATEGORY_COLORS).map(([key, color]) => {
+                  const labels: Record<string, string> = {
+                    networking: 'Networking',
+                    jantar: 'Jantar',
+                    workshop: 'Workshop',
+                    webinar: 'Webinar',
+                    conferencia: 'Conferência',
+                    outro: 'Outro',
+                  };
+                  return (
+                    <div key={key} className="flex items-center gap-2 px-1">
+                      <div
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: color as string }}
+                      />
+                      <span className="text-xs text-muted-foreground">{labels[key] || key}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </>
         )}
       </div>
