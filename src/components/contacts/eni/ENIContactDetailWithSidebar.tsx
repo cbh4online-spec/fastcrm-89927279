@@ -32,6 +32,8 @@ import { useAnalyzeContact } from "@/hooks/useSmartContacts";
 import { useContactPermissions } from "./useContactPermissions";
 import { NifLookupResult } from "@/hooks/useNifLookup";
 import { cn } from "@/lib/utils";
+import { checkDuplicate } from "@/utils/duplicateCheck";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
 import { EntityHorizontalTabs } from "@/components/entity/EntityHorizontalTabs";
 import { EntityDetailsPanel } from "@/components/entity/EntityDetailsPanel";
@@ -82,6 +84,7 @@ export function ENIContactDetailWithSidebar() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { contacts, isLoading, updateContact, deleteContact } = useContacts();
+  const { currentWorkspace } = useWorkspace();
   const analyzeContact = useAnalyzeContact();
   const { data: counts } = useEntityCounts('contact', id);
   const { setCurrentEntityProfile } = useActivityProfileContext();
@@ -111,7 +114,18 @@ export function ENIContactDetailWithSidebar() {
   ];
 
   const handleFieldChange = useCallback(async (field: keyof ENIContact, value: unknown) => {
-    if (!contact) return;
+    if (!contact || !currentWorkspace) return;
+    
+    // Preventive duplicate check for email and tax_id
+    if ((field === 'email' || field === 'tax_id') && typeof value === 'string' && value.trim()) {
+      const duplicateName = await checkDuplicate('contacts', field, value, currentWorkspace.id, contact.id);
+      if (duplicateName) {
+        const label = field === 'email' ? 'email' : 'NIF';
+        toast.error(`Já existe um contacto com este ${label}: "${duplicateName}"`);
+        throw new Error(`DUPLICATE_${field.toUpperCase()}`);
+      }
+    }
+    
     try {
       const updateData: Record<string, unknown> = { id: contact.id, [field]: value };
       if (commercialHistoryFields.includes(field)) {
@@ -119,10 +133,11 @@ export function ENIContactDetailWithSidebar() {
       }
       await updateContact.mutateAsync(updateData as { id: string });
       toast.success(t('common:fieldUpdated'));
-    } catch {
+    } catch (e: any) {
+      if (e?.message?.startsWith('DUPLICATE_')) throw e;
       toast.error(t('common:errorUpdatingField'));
     }
-  }, [contact, updateContact]);
+  }, [contact, updateContact, currentWorkspace]);
 
   const handleNifDataReceived = useCallback(async (data: NifLookupResult) => {
     if (!contact) return;
