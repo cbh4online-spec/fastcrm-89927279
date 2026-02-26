@@ -177,6 +177,7 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
           value: result.generatedValue,
           fieldName: result.fieldName,
           isUnique: result.isUnique,
+          origin: 'ai',
         });
         filled++;
       } catch (err) {

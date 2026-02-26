@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarIcon, Check, Pencil, X, Loader2, ExternalLink } from "lucide-react";
+import { CalendarIcon, Check, Pencil, X, Loader2, ExternalLink, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -38,6 +38,7 @@ export interface InlineEditableFieldProps {
   onRejectSuggestion?: () => void;
   isAcceptingSuggestion?: boolean;
   placeholder?: string;
+  isAIGenerated?: boolean;
 }
 
 export function InlineEditableField({
@@ -58,6 +59,7 @@ export function InlineEditableField({
   onRejectSuggestion,
   isAcceptingSuggestion = false,
   placeholder,
+  isAIGenerated = false,
 }: InlineEditableFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedValue, setEditedValue] = useState<unknown>(value);
@@ -354,6 +356,14 @@ export function InlineEditableField({
               >
                 {displayValue}
               </span>
+            )}
+            
+            {/* AI Generated badge */}
+            {isAIGenerated && hasValue && (
+              <Badge variant="secondary" className="text-[10px] h-5 gap-1 px-1.5 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                <Sparkles className="w-3 h-3" />
+                IA
+              </Badge>
             )}
             
             <Button

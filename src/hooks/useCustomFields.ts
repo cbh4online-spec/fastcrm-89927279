@@ -25,6 +25,7 @@ export interface CustomFieldValue {
   custom_field_id: string;
   entity_id: string;
   value: unknown;
+  origin: string;
   created_at: string;
   updated_at: string;
 }
@@ -286,13 +287,15 @@ export function useSetCustomFieldValue() {
       entityId, 
       value,
       fieldName,
-      isUnique
+      isUnique,
+      origin = 'manual'
     }: { 
       customFieldId: string; 
       entityId: string; 
       value: unknown;
       fieldName?: string;
       isUnique?: boolean;
+      origin?: string;
     }) => {
       // Check for uniqueness if the field requires it
       if (isUnique && value !== null && value !== undefined && value !== "") {
@@ -318,6 +321,7 @@ export function useSetCustomFieldValue() {
             custom_field_id: customFieldId,
             entity_id: entityId,
             value: value as never,
+            origin,
           },
           {
             onConflict: "custom_field_id,entity_id",
