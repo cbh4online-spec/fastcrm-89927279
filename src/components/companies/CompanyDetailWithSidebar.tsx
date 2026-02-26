@@ -38,6 +38,7 @@ import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { EntityHorizontalTabs } from "@/components/entity/EntityHorizontalTabs";
 import { EntityDetailsPanel } from "@/components/entity/EntityDetailsPanel";
+import { EntitySubTabs } from "@/components/entity/EntitySubTabs";
 import { EntityHighlightsGrid } from "@/components/entity/EntityHighlightsGrid";
 import { MenuSection } from "@/types/entity";
 import { InsightsSidebar } from "@/components/insights";
@@ -211,14 +212,11 @@ export function CompanyDetailWithSidebar() {
               />
             </div>
             <InsightsSidebar entityType="company" entityId={id || ''} />
-            <div className="grid gap-6 lg:grid-cols-2">
-              <IdentificationSection 
-                company={company} 
-                onFieldChange={handleFieldChange}
-                onNifDataReceived={handleNifDataReceived}
-              />
-              <FinancialSection company={company} onFieldChange={handleFieldChange} />
-            </div>
+            <IdentificationSection 
+              company={company} 
+              onFieldChange={handleFieldChange}
+              onNifDataReceived={handleNifDataReceived}
+            />
             <CompanyContextSection companyContext={company.company_context} />
           </div>
         );
@@ -293,8 +291,33 @@ export function CompanyDetailWithSidebar() {
             <TagsSection company={company} onFieldChange={handleFieldChange} />
           </div>
         );
-      case 'history':
-        return <CommercialHistorySection company={company} onFieldChange={handleFieldChange} />;
+      case 'financial':
+        return (
+          <EntitySubTabs
+            tabs={[
+              { id: 'profile', label: 'Perfil' },
+              { id: 'payments', label: 'Pagamentos' },
+              { id: 'orders', label: 'Encomendas' },
+              { id: 'history', label: 'Histórico' },
+            ]}
+            defaultTab="profile"
+          >
+            {(subTab) => {
+              switch (subTab) {
+                case 'profile':
+                  return <FinancialSection company={company} onFieldChange={handleFieldChange} />;
+                case 'payments':
+                  return <AcquiredProductsSection companyId={id} />;
+                case 'orders':
+                  return <CompanyOrderNotesSection companyId={id!} />;
+                case 'history':
+                  return <CommercialHistorySection company={company} onFieldChange={handleFieldChange} />;
+                default:
+                  return null;
+              }
+            }}
+          </EntitySubTabs>
+        );
       case 'timeline':
         return (
           <EntityTimelineSection
@@ -303,8 +326,6 @@ export function CompanyDetailWithSidebar() {
             entityName={company.name}
           />
         );
-      case 'payments':
-        return <AcquiredProductsSection companyId={id} />;
       case 'messages':
         return (
           <ContactMessagesSection
@@ -340,10 +361,6 @@ export function CompanyDetailWithSidebar() {
             entityIndustry={company.industry || undefined}
             entityNotes={company.notes || undefined}
           />
-        );
-      case 'orders':
-        return (
-          <CompanyOrderNotesSection companyId={id!} />
         );
       case 'proposals':
         return (
