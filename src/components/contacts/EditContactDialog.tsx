@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useContacts, Contact } from "@/hooks/useContacts";
 import {
   Dialog,
@@ -14,6 +14,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CustomFieldsForm } from "@/components/custom-fields/CustomFieldsForm";
 import { SocialMediaFields } from "@/components/shared/SocialMediaFields";
+import { useManagedFields } from "@/hooks/useManagedFields";
+import { supabase } from "@/integrations/supabase/client";
+import { useSetCustomFieldValue } from "@/hooks/useCustomFields";
+import { useQueryClient } from "@tanstack/react-query";
+import { Sparkles, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface EditContactDialogProps {
   contact: Contact;
@@ -23,7 +29,11 @@ interface EditContactDialogProps {
 
 export function EditContactDialog({ contact, open, onOpenChange }: EditContactDialogProps) {
   const { updateContact } = useContacts();
+  const { data: managedFields = [] } = useManagedFields('contact' as any);
+  const setFieldValue = useSetCustomFieldValue();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -88,6 +98,72 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
   const handleSocialChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
   };
+
+  const handleAIAutofill = useCallback(async () => {
+    const autofillFields = managedFields.filter(
+      (mf) => mf.formatting_config?.ai_autofill_enabled
+    );
+    if (autofillFields.length === 0) {
+      toast.info("Nenhum campo configurado para AI autofill");
+      return;
+    }
+
+    setIsAutoFilling(true);
+    const toastId = toast.loading(`A preencher ${autofillFields.length} campo(s) com IA...`);
+    let filled = 0;
+
+    const recordData = {
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      company: formData.company,
+      job_title: formData.job_title,
+      notes: formData.notes,
+    };
+
+    for (const mf of autofillFields) {
+      try {
+        const { data, error } = await supabase.functions.invoke("ai-autofill-field", {
+          body: {
+            field_config: {
+              ai_autofill_type: mf.formatting_config.ai_autofill_type || "generate",
+              ai_autofill_guidance: mf.formatting_config.ai_autofill_guidance,
+            },
+            record_data: recordData,
+            field_name: mf.label || mf.name,
+          },
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        if (data?.value) {
+          await setFieldValue.mutateAsync({
+            customFieldId: mf.id,
+            entityId: contact.id,
+            value: data.value,
+            fieldName: mf.name,
+            isUnique: mf.is_unique,
+          });
+          filled++;
+        }
+      } catch (err) {
+        console.error(`AI autofill failed for ${mf.name}:`, err);
+      }
+    }
+
+    toast.dismiss(toastId);
+    if (filled > 0) {
+      toast.success(`${filled} campo(s) preenchido(s) com IA`);
+      // Refresh custom field values
+      queryClient.invalidateQueries({ queryKey: ["custom_field_values", contact.id] });
+    } else {
+      toast.info("Nenhum campo preenchido");
+    }
+    setIsAutoFilling(false);
+  }, [managedFields, formData, contact.id, setFieldValue, queryClient]);
+
+  const hasAIFields = managedFields.some((mf) => mf.formatting_config?.ai_autofill_enabled);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -184,7 +260,23 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
               <CustomFieldsForm entityType="contact" entityId={contact.id} />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {hasAIFields && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleAIAutofill}
+                disabled={isAutoFilling}
+                className="mr-auto"
+              >
+                {isAutoFilling ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4 mr-2" />
+                )}
+                Preencher com IA
+              </Button>
+            )}
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>

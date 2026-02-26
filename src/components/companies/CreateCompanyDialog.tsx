@@ -237,6 +237,18 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
       if (result?.id) {
         await customFieldsPrimaryRef.current?.saveCustomFields(result.id);
         await customFieldsSecondaryRef.current?.saveCustomFields(result.id);
+        // Run AI autofill asynchronously
+        const aiRecordData = {
+          name: formData.name,
+          website: formData.website,
+          email: formData.email,
+          phone: formData.phone,
+          tax_id: formData.tax_id,
+          address: formData.address,
+          notes: formData.notes,
+        };
+        customFieldsPrimaryRef.current?.runAIAutofill(result.id, aiRecordData);
+        customFieldsSecondaryRef.current?.runAIAutofill(result.id, aiRecordData);
       }
 
       // Create associated contact if checkbox is checked (forced for ENI)
