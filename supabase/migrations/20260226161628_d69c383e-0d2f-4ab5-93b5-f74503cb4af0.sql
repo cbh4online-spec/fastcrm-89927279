@@ -1,0 +1,1 @@
+ALTER TABLE public.entity_documents ADD COLUMN IF NOT EXISTS folder TEXT DEFAULT NULL;
