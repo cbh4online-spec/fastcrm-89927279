@@ -1,13 +1,19 @@
 
 
-# AI Autofill para Atributos (estilo Attio)
+# Legenda de Cores das Categorias na Sidebar do Calendário
 
-## Status: ✅ Implementado
+## Alterações
 
-## O que foi feito
+### Editar `src/components/calendars/CalendarSidebar.tsx`
 
-1. **Tipos** — Adicionados `ai_autofill_enabled`, `ai_autofill_type`, `ai_autofill_guidance` ao `FormattingConfig`
-2. **Componente `AIAutofillConfig.tsx`** — Toggle, select de tipo, textarea com variáveis, nota informativa
-3. **Diálogos** — Tab "IA" adicionada ao `CreateFieldDialog` e `EditFieldDialog`
-4. **Edge function `ai-autofill-field`** — Chama Lovable AI Gateway com prompt baseado no tipo e orientação
-5. **Hook `useAIAutofillField`** — Mutation para invocar a edge function nos formulários
+Adicionar uma secção "Categorias" no final da sidebar (após os calendários virtuais) com a legenda das cores das categorias de eventos comunitários:
+
+- Importar `CATEGORY_COLORS` de `useCommunityEventsForCalendar`
+- Renderizar uma lista com bolinha colorida + label para cada categoria: Networking, Jantar, Workshop, Webinar, Conferência, Outro
+- Visualmente: lista compacta com `Separator` antes, sem interacção — apenas informativa
+- Só aparece se o calendário "community-events" estiver nos `virtualCalendarIds`
+
+| Ficheiro | Acção |
+|----------|-------|
+| `src/components/calendars/CalendarSidebar.tsx` | Adicionar secção legenda de categorias |
+
