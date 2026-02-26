@@ -1,22 +1,31 @@
 
 
-# Adicionar contagem de ficheiros na badge da aba Ficheiros
+# Consolidar informação financeira no menu Financeiro
+
+## Contexto actual
+
+No detalhe de contacto, a tab **Financeiro** tem 3 subtabs: Pagamentos, Encomendas, Histórico. Mas o **Perfil Comercial** (categoria ABC, área de negócio) e a secção **Financeiro & Pagamentos** (condições de pagamento, crédito) estão escondidos dentro da tab **Dados > Informações**.
 
 ## Alterações
 
-### 1. `src/hooks/useEntityCounts.ts`
-- Adicionar `files: number` ao `EntityCounts` interface
-- Contar documentos na tabela `entity_documents` filtrados por `entity_type` e `entity_id`
-- Retornar `files: filesCount`
+### `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx`
 
-### 2. `src/components/entity/EntityHorizontalTabs.tsx`
-- Garantir que o `counts` prop inclui `files` e que a tab `'files'` recebe a contagem via `getCount`
+1. **Adicionar subtab "Perfil" ao bloco `financial`** — nova subtab como primeira posição, contendo `CommercialProfileSection` e `FinancialSection` lado a lado (grid 2 colunas)
 
-### 3. Detail pages (Lead, Company, Contact)
-- Já passam `counts` às tabs — como `files` será adicionado ao `EntityCounts`, a badge aparecerá automaticamente
+2. **Remover essas secções da tab `data > details`** — retirar `CommercialProfileSection` e `FinancialSection` do bloco de informações para evitar duplicação
+
+Subtabs do Financeiro passam a ser:
+
+```text
+[ Perfil | Pagamentos | Encomendas | Histórico ]
+```
+
+- **Perfil**: CommercialProfileSection + FinancialSection (grid 1-2 cols)
+- **Pagamentos**: AcquiredProductsSection + InvoiceHistorySection (sem alteração)
+- **Encomendas**: ContactOrderNotesSection (sem alteração)
+- **Histórico**: CommercialHistorySection (sem alteração)
 
 | Ficheiro | Acção |
 |----------|-------|
-| `src/hooks/useEntityCounts.ts` | Adicionar query `entity_documents` + campo `files` |
-| `src/components/entity/EntityHorizontalTabs.tsx` | Incluir `files` no tipo `counts` |
+| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | Mover CommercialProfile + Financial para subtab "Perfil" no financial; remover do data |
 
