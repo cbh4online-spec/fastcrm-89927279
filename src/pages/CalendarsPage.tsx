@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths } from 'date-fns';
 import { useCalendars, type Calendar, type CalendarEvent, type CreateCalendarData, type CreateEventData } from '@/hooks/useCalendars';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
-import { useCommunityEventsForCalendar, COMMUNITY_CALENDAR } from '@/hooks/useCommunityEventsForCalendar';
+import { useCommunityEventsForCalendar, COMMUNITY_CALENDAR, CATEGORY_COLORS } from '@/hooks/useCommunityEventsForCalendar';
 import { CalendarSidebar } from '@/components/calendars/CalendarSidebar';
 import { CalendarGlobalView } from '@/components/calendars/CalendarGlobalView';
 import { CalendarCreateModal } from '@/components/calendars/CalendarCreateModal';
@@ -22,6 +22,13 @@ export default function CalendarsPage() {
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [defaultEventDate, setDefaultEventDate] = useState<Date>(new Date());
   const [showCommunityEvents, setShowCommunityEvents] = useState(true);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(Object.keys(CATEGORY_COLORS));
+
+  const handleToggleCategory = (key: string) => {
+    setSelectedCategories(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
 
   const {
     calendars,
@@ -58,10 +65,16 @@ export default function CalendarsPage() {
   // Merge events
   const mergedEvents = useMemo(() => {
     if (showCommunityEvents) {
-      return [...events, ...communityEvents];
+      const filtered = communityEvents.filter(evt => {
+        const color = (evt.metadata as any)?._categoryColor;
+        // Find the category key by its color
+        const categoryKey = Object.entries(CATEGORY_COLORS).find(([, c]) => c === color)?.[0];
+        return categoryKey ? selectedCategories.includes(categoryKey) : true;
+      });
+      return [...events, ...filtered];
     }
     return events;
-  }, [events, communityEvents, showCommunityEvents]);
+  }, [events, communityEvents, showCommunityEvents, selectedCategories]);
 
   // Merge calendars for sidebar
   const allCalendars = useMemo(() => {
@@ -185,6 +198,8 @@ export default function CalendarsPage() {
         onCreateCalendar={handleCreateCalendar}
         onEditCalendar={handleEditCalendar}
         virtualCalendarIds={[COMMUNITY_CALENDAR_ID]}
+        selectedCategories={selectedCategories}
+        onToggleCategory={handleToggleCategory}
       />
 
       <CalendarGlobalView
