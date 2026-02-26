@@ -1,37 +1,41 @@
 
 
-# Implementar KPIs Financeiros no topo da tab Financeiro
+# Notificações automáticas de aniversário
+
+## Situação actual
+
+- `birth_date` existe em `contacts`, `leads` e `companies`
+- Template `contact-birthday` já existe em `entityAutomationTemplates.ts` mas não há backend que o execute
+- `contact_birthday` **não está** no tipo `AutomationTrigger` do `useAutomations.ts`
+- Não existe edge function nem cron job para verificar aniversários
 
 ## Alterações
 
-### 1. Novo hook `src/hooks/useFinancialKPIs.ts`
-Query à tabela `invoices` filtrada por `contact_id` ou `company_id` (excluindo draft), calculando no cliente:
-- **Total Faturado**: soma de todos os `total`
-- **Pago**: soma onde `status` = 'paid'
-- **Pendente**: soma onde `status` = 'unpaid' ou 'sent'
-- **Vencido**: soma onde `status` = 'overdue'
+### 1. Edge function `supabase/functions/check-birthdays/index.ts`
 
-### 2. Novo componente `src/components/shared/FinancialKPIStrip.tsx`
-Usa `KPIGrid` (4 colunas) + `KPICard` do design system (`src/components/design-system/KPICard.tsx`):
-- Total Faturado — variant: primary, ícone `Euro`
-- Pago — variant: success, ícone `CheckCircle`
-- Pendente — variant: warning, ícone `Clock`
-- Vencido — variant: destructive, ícone `AlertTriangle`
+Função que:
+- Consulta `contacts`, `leads` e `companies` onde `EXTRACT(MONTH FROM birth_date) = mês actual` AND `EXTRACT(DAY FROM birth_date) = dia actual`
+- Filtra por `deleted_at IS NULL`
+- Para cada match, insere notificação em `admin_notifications` com `type: 'birthday'`, título "🎂 Aniversário: {nome}" e metadata com entity type/id
+- Usa service role key (chamada por cron, sem user auth)
 
-Props: `entityType: 'contact' | 'company'`, `entityId: string`
+### 2. DB function + cron job (via SQL insert tool)
 
-Valores formatados com `formatCurrency` de `src/lib/formatters.ts`.
+- Criar função SQL `check_birthdays_today()` que faz o mesmo em SQL puro (mais eficiente) ou agendar a edge function via `pg_cron` + `pg_net`
+- Cron: executa diariamente às 08:00 UTC
 
-### 3. Integrar nos dois ficheiros
+### 3. Adicionar `contact_birthday` ao tipo `AutomationTrigger`
 
-- **`ENIContactDetailWithSidebar.tsx`** (linha 327): renderizar `<FinancialKPIStrip entityType="contact" entityId={id!} />` antes do `<EntitySubTabs>` dentro do case `'financial'`, wrapping ambos num `<div className="space-y-4">`
+Em `src/hooks/useAutomations.ts`, adicionar `"contact_birthday"` ao union type.
 
-- **`CompanyDetailWithSidebar.tsx`** (linha 295): renderizar `<FinancialKPIStrip entityType="company" entityId={id!} />` antes do `<EntitySubTabs>` dentro do case `'financial'`, wrapping ambos num `<div className="space-y-4">`
+### 4. Ícone de aniversário no `NotificationsDropdown`
+
+Em `src/components/layout/NotificationsDropdown.tsx`, adicionar `birthday: <Cake>` ao mapa `typeIcons`.
 
 | Ficheiro | Acção |
 |----------|-------|
-| `src/hooks/useFinancialKPIs.ts` | Criar hook com query a invoices |
-| `src/components/shared/FinancialKPIStrip.tsx` | Criar strip com 4 KPICards |
-| `ENIContactDetailWithSidebar.tsx` | Adicionar strip acima de EntitySubTabs |
-| `CompanyDetailWithSidebar.tsx` | Adicionar strip acima de EntitySubTabs |
+| `supabase/functions/check-birthdays/index.ts` | Criar edge function que verifica aniversários do dia |
+| SQL (insert tool) | Criar cron job diário às 08:00 via pg_cron + pg_net |
+| `src/hooks/useAutomations.ts` | Adicionar `contact_birthday` ao tipo AutomationTrigger |
+| `src/components/layout/NotificationsDropdown.tsx` | Adicionar ícone Cake para tipo `birthday` |
 
