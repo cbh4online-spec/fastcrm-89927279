@@ -1,24 +1,22 @@
 
 
-# Drag-and-Drop para Mover Ficheiros entre Pastas
+# Adicionar contagem de ficheiros na badge da aba Ficheiros
 
 ## Alterações
 
-### `src/components/entity/EntityDocumentsSection.tsx`
+### 1. `src/hooks/useEntityCounts.ts`
+- Adicionar `files: number` ao `EntityCounts` interface
+- Contar documentos na tabela `entity_documents` filtrados por `entity_type` e `entity_id`
+- Retornar `files: filesCount`
 
-1. **Adicionar mutação `moveToFolder`** no hook `useEntityDocuments` — faz `UPDATE` do campo `folder` de um documento por ID
+### 2. `src/components/entity/EntityHorizontalTabs.tsx`
+- Garantir que o `counts` prop inclui `files` e que a tab `'files'` recebe a contagem via `getCount`
 
-2. **Tornar `DocumentRow` arrastável** — adicionar `draggable`, `onDragStart` (guarda `doc.id` em `dataTransfer`), visual de opacidade reduzida ao arrastar
-
-3. **Tornar `FolderGroup` um drop target** — adicionar `onDragOver`, `onDragEnter`, `onDragLeave`, `onDrop` no header da pasta. Ao largar, chama `moveToFolder(docId, folderName)`. Indicador visual (ring azul) quando hover com drag
-
-4. **Adicionar zona de drop "Raiz"** — uma área no fundo da lista ou acima dos ficheiros raiz que aceita drop para mover ficheiros para `folder = null` (remover de pasta)
-
-5. **Feedback visual**: documento arrastado fica com `opacity-40`, pasta alvo fica com `ring-2 ring-primary`
-
-### Ficheiros
+### 3. Detail pages (Lead, Company, Contact)
+- Já passam `counts` às tabs — como `files` será adicionado ao `EntityCounts`, a badge aparecerá automaticamente
 
 | Ficheiro | Acção |
 |----------|-------|
-| `src/components/entity/EntityDocumentsSection.tsx` | Adicionar mutação `moveToFolder`, drag no `DocumentRow`, drop no `FolderGroup` e zona raiz |
+| `src/hooks/useEntityCounts.ts` | Adicionar query `entity_documents` + campo `files` |
+| `src/components/entity/EntityHorizontalTabs.tsx` | Incluir `files` no tipo `counts` |
 
