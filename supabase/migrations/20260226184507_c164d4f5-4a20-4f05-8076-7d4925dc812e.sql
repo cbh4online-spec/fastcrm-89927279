@@ -1,0 +1,1 @@
+ALTER TABLE public.custom_field_values ADD COLUMN origin text NOT NULL DEFAULT 'manual';

@@ -9,6 +9,7 @@ import {
 import { useManagedFields } from "@/hooks/useManagedFields";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -26,7 +27,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,11 @@ export function CustomFieldsForm({ entityType, entityId, className }: CustomFiel
 
   const [values, setValues] = useState<Record<string, unknown>>({});
 
+  // Track which fields have AI origin
+  const aiOriginFields = new Set(
+    existingValues.filter((v) => v.origin === 'ai').map((v) => v.custom_field_id)
+  );
+
   // Initialize values from existing data
   useEffect(() => {
     const initial: Record<string, unknown> = {};
@@ -57,13 +63,14 @@ export function CustomFieldsForm({ entityType, entityId, className }: CustomFiel
   const handleValueChange = async (field: CustomField, value: unknown) => {
     setValues((prev) => ({ ...prev, [field.id]: value }));
     
-    // Save the value with uniqueness validation
+    // Save the value — manual edit resets origin to 'manual'
     await setFieldValue.mutateAsync({
       customFieldId: field.id,
       entityId,
       value,
       fieldName: field.name,
       isUnique: field.is_unique,
+      origin: 'manual',
     });
   };
 
@@ -81,6 +88,7 @@ export function CustomFieldsForm({ entityType, entityId, className }: CustomFiel
             field={field}
             value={values[field.id]}
             onChange={(value) => handleValueChange(field, value)}
+            isAIGenerated={aiOriginFields.has(field.id)}
           />
         ))}
       </div>
@@ -225,18 +233,27 @@ interface CustomFieldInputProps {
   field: CustomField;
   value: unknown;
   onChange: (value: unknown) => void;
+  isAIGenerated?: boolean;
 }
 
-function CustomFieldInput({ field, value, onChange }: CustomFieldInputProps) {
+function CustomFieldInput({ field, value, onChange, isAIGenerated = false }: CustomFieldInputProps) {
   const fieldId = `custom-field-${field.id}`;
+
+  const aiTag = isAIGenerated ? (
+    <Badge variant="secondary" className="text-[10px] h-5 gap-1 px-1.5 ml-1 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+      <Sparkles className="w-3 h-3" />
+      IA
+    </Badge>
+  ) : null;
 
   switch (field.field_type) {
     case "text":
       return (
         <div className="space-y-2">
-          <Label htmlFor={fieldId}>
+          <Label htmlFor={fieldId} className="flex items-center">
             {field.name}
             {field.required && <span className="text-destructive ml-1">*</span>}
+            {aiTag}
           </Label>
           <Input
             id={fieldId}
@@ -250,9 +267,10 @@ function CustomFieldInput({ field, value, onChange }: CustomFieldInputProps) {
     case "number":
       return (
         <div className="space-y-2">
-          <Label htmlFor={fieldId}>
+          <Label htmlFor={fieldId} className="flex items-center">
             {field.name}
             {field.required && <span className="text-destructive ml-1">*</span>}
+            {aiTag}
           </Label>
           <Input
             id={fieldId}
@@ -268,9 +286,10 @@ function CustomFieldInput({ field, value, onChange }: CustomFieldInputProps) {
       const dateValue = value ? new Date(value as string) : undefined;
       return (
         <div className="space-y-2">
-          <Label htmlFor={fieldId}>
+          <Label htmlFor={fieldId} className="flex items-center">
             {field.name}
             {field.required && <span className="text-destructive ml-1">*</span>}
+            {aiTag}
           </Label>
           <Popover>
             <PopoverTrigger asChild>
@@ -301,9 +320,10 @@ function CustomFieldInput({ field, value, onChange }: CustomFieldInputProps) {
     case "boolean":
       return (
         <div className="flex items-center justify-between space-y-0 rounded-lg border p-3">
-          <Label htmlFor={fieldId} className="cursor-pointer">
+          <Label htmlFor={fieldId} className="cursor-pointer flex items-center">
             {field.name}
             {field.required && <span className="text-destructive ml-1">*</span>}
+            {aiTag}
           </Label>
           <Switch
             id={fieldId}
@@ -318,9 +338,10 @@ function CustomFieldInput({ field, value, onChange }: CustomFieldInputProps) {
       const options = Array.isArray(field.options) ? field.options : [];
       return (
         <div className="space-y-2">
-          <Label htmlFor={fieldId}>
+          <Label htmlFor={fieldId} className="flex items-center">
             {field.name}
             {field.required && <span className="text-destructive ml-1">*</span>}
+            {aiTag}
           </Label>
           <Select
             value={(value as string) || ""}

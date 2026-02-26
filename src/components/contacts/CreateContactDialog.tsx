@@ -607,9 +607,9 @@ export function CreateContactDialog({ open, onOpenChange }: CreateContactDialogP
         let filled = 0;
         for (const r of selected) {
           try {
-            const { error } = await supabase
-              .from("custom_field_values")
-              .upsert({ custom_field_id: r.fieldId, entity_id: pendingEntityId, value: r.generatedValue }, { onConflict: "custom_field_id,entity_id" });
+              const { error } = await supabase
+                .from("custom_field_values")
+                .upsert({ custom_field_id: r.fieldId, entity_id: pendingEntityId, value: r.generatedValue, origin: 'ai' }, { onConflict: "custom_field_id,entity_id" });
             if (!error) filled++;
           } catch {}
         }

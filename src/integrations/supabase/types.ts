@@ -10523,6 +10523,7 @@ export type Database = {
           custom_field_id: string
           entity_id: string
           id: string
+          origin: string
           updated_at: string
           value: Json
         }
@@ -10531,6 +10532,7 @@ export type Database = {
           custom_field_id: string
           entity_id: string
           id?: string
+          origin?: string
           updated_at?: string
           value?: Json
         }
@@ -10539,6 +10541,7 @@ export type Database = {
           custom_field_id?: string
           entity_id?: string
           id?: string
+          origin?: string
           updated_at?: string
           value?: Json
         }

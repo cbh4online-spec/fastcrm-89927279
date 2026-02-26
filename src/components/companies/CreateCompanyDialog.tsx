@@ -865,7 +865,7 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
             try {
               const { error } = await supabase
                 .from("custom_field_values")
-                .upsert({ custom_field_id: r.fieldId, entity_id: pendingEntityId, value: r.generatedValue }, { onConflict: "custom_field_id,entity_id" });
+                .upsert({ custom_field_id: r.fieldId, entity_id: pendingEntityId, value: r.generatedValue, origin: 'ai' }, { onConflict: "custom_field_id,entity_id" });
               if (!error) filled++;
             } catch {}
           }

@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Pencil } from "lucide-react";
+import { Check, X, Pencil, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -14,9 +14,10 @@ interface Props {
   onSave: (value: unknown) => void;
   placeholder?: string;
   className?: string;
+  isAIGenerated?: boolean;
 }
 
-export function InlineFieldEditor({ value, fieldType, options, onSave, placeholder = "—", className }: Props) {
+export function InlineFieldEditor({ value, fieldType, options, onSave, placeholder = "—", className, isAIGenerated = false }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<unknown>(value);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -144,6 +145,12 @@ export function InlineFieldEditor({ value, fieldType, options, onSave, placehold
         <span className={cn("text-sm truncate", isEmpty && "text-muted-foreground/50")}>
           {isEmpty ? placeholder : formatDisplay(value, fieldType)}
         </span>
+        {isAIGenerated && !isEmpty && (
+          <Badge variant="secondary" className="text-[10px] h-5 gap-1 px-1.5 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800 shrink-0">
+            <Sparkles className="w-3 h-3" />
+            IA
+          </Badge>
+        )}
         <Pencil className="h-3 w-3 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
       </button>
     );
