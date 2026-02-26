@@ -241,10 +241,11 @@ export function ENIContactDetailWithSidebar() {
         );
       case 'timeline':
         return (
-          <div className="space-y-6">
-            <EntityTimelineSection entityType="contact" entityId={id!} entityName={contact.name} />
-            <ContactNotesSection contact={contact} onFieldChange={handleFieldChange} />
-          </div>
+          <EntityTimelineSection entityType="contact" entityId={id!} entityName={contact.name} />
+        );
+      case 'notes':
+        return (
+          <ContactNotesSection contact={contact} onFieldChange={handleFieldChange} />
         );
       case 'communication':
         return (
