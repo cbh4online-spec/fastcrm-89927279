@@ -187,8 +187,10 @@ export function useInviteToEvent() {
   return useMutation({
     mutationFn: async (rsvp: InviteWithEventContext) => {
       const { eventTitle, eventDate, eventLocation, eventLink, ...rsvpData } = rsvp;
-      const { error } = await (supabase.from("event_rsvps").insert(rsvpData as any) as any);
+      const { data: insertedData, error } = await (supabase.from("event_rsvps").insert(rsvpData as any).select("id").single() as any);
       if (error) throw error;
+
+      const rsvpId = insertedData?.id;
 
       // Send invite email (non-blocking)
       if (rsvpData.email && eventTitle && eventDate) {
@@ -203,6 +205,7 @@ export function useInviteToEvent() {
               eventLink,
               eventId: rsvpData.event_id,
               workspaceId: rsvpData.workspace_id,
+              rsvpId,
             },
           });
         } catch (emailErr) {

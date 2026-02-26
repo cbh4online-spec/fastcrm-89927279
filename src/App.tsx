@@ -155,6 +155,7 @@ import StoreCategoriesPage from "./pages/StoreCategoriesPage";
 import StoreCouponsPage from "./pages/StoreCouponsPage";
 import StoreAnalyticsPage from "./pages/StoreAnalyticsPage";
 import MobileQuickProductCreate from "./pages/MobileQuickProductCreate";
+import EventRsvpResponse from "./pages/EventRsvpResponse";
 
 // C2C Marketplace
 import C2CMarketplace from "./pages/c2c/C2CMarketplace";
@@ -529,6 +530,7 @@ function CRMRoutes() {
                 <Route path="/condominios" element={<VerticalLandingPage />} />
                 <Route path="/agencias" element={<VerticalLandingPage />} />
                 <Route path="/empresas" element={<VerticalLandingPage />} />
+                <Route path="/event-rsvp" element={<EventRsvpResponse />} />
                 <Route path="/invite/:token" element={<AcceptWorkspaceInvite />} />
                 <Route path="/marketplace" element={<Navigate to="/dashboard/marketplace" replace />} />
                 <Route path="/:slug" element={<VerticalLandingPage />} />

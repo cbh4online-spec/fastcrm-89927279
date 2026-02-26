@@ -370,3 +370,6 @@ verify_jwt = false
 [functions.send-event-invite]
 verify_jwt = false
 
+[functions.event-rsvp-respond]
+verify_jwt = false
+
