@@ -38,6 +38,7 @@ import { EntityHorizontalTabs } from "@/components/entity/EntityHorizontalTabs";
 import { EntityDetailsPanel } from "@/components/entity/EntityDetailsPanel";
 import { EntityHighlightsGrid } from "@/components/entity/EntityHighlightsGrid";
 import { EntitySubTabs } from "@/components/entity/EntitySubTabs";
+import { FinancialKPIStrip } from "@/components/shared/FinancialKPIStrip";
 import { EntityTeamSection } from "@/components/entity/EntityTeamSection";
 import { EntityDocumentsSection } from "@/components/entity/EntityDocumentsSection";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
@@ -325,6 +326,8 @@ export function ENIContactDetailWithSidebar() {
         );
       case 'financial':
         return (
+          <div className="space-y-4">
+          <FinancialKPIStrip entityType="contact" entityId={id!} />
           <EntitySubTabs
             tabs={[
               { id: 'profile', label: 'Perfil' },
@@ -357,6 +360,7 @@ export function ENIContactDetailWithSidebar() {
               }
             }}
           </EntitySubTabs>
+          </div>
         );
       case 'team':
         return (
