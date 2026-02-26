@@ -79,7 +79,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <div className="flex items-center justify-between h-16 px-4 border-b border-white/5">
               <div className="flex items-center gap-3">
                 <WorkspaceLogo logoUrl={currentWorkspace?.logo_url} workspaceName={currentWorkspace?.name} size="lg" variant="sidebar" />
-                <div><span className="font-bold text-white text-sm">FastCRM</span></div>
+                <div><span className="font-bold text-white text-base truncate max-w-[140px] block">{currentWorkspace?.name || "FastCRM"}</span></div>
               </div>
               <button onClick={onClose} className="lg:hidden p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors">
                 <X className="w-5 h-5" />

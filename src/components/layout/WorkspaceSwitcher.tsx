@@ -136,7 +136,7 @@ export function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps) {
                 )}
                 <div className="text-left min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-sidebar-foreground truncate">
+                    <p className="text-sm font-semibold text-white truncate max-w-[150px]">
                       {currentWorkspace?.name || "Select workspace"}
                     </p>
                     {currentWorkspace?.isAgencyManaged && (
