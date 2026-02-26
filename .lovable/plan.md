@@ -1,31 +1,42 @@
 
 
-# Consolidar informação financeira no menu Financeiro
+# Adicionar Data de Aniversário a Contactos, Leads e Empresas
 
-## Contexto actual
+## 1. Migração de Base de Dados
 
-No detalhe de contacto, a tab **Financeiro** tem 3 subtabs: Pagamentos, Encomendas, Histórico. Mas o **Perfil Comercial** (categoria ABC, área de negócio) e a secção **Financeiro & Pagamentos** (condições de pagamento, crédito) estão escondidos dentro da tab **Dados > Informações**.
+Adicionar coluna `birth_date` (tipo `DATE`, nullable) às 3 tabelas:
 
-## Alterações
-
-### `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx`
-
-1. **Adicionar subtab "Perfil" ao bloco `financial`** — nova subtab como primeira posição, contendo `CommercialProfileSection` e `FinancialSection` lado a lado (grid 2 colunas)
-
-2. **Remover essas secções da tab `data > details`** — retirar `CommercialProfileSection` e `FinancialSection` do bloco de informações para evitar duplicação
-
-Subtabs do Financeiro passam a ser:
-
-```text
-[ Perfil | Pagamentos | Encomendas | Histórico ]
+```sql
+ALTER TABLE public.contacts ADD COLUMN birth_date DATE;
+ALTER TABLE public.leads ADD COLUMN birth_date DATE;
+ALTER TABLE public.companies ADD COLUMN founding_date_anniversary DATE;
 ```
 
-- **Perfil**: CommercialProfileSection + FinancialSection (grid 1-2 cols)
-- **Pagamentos**: AcquiredProductsSection + InvoiceHistorySection (sem alteração)
-- **Encomendas**: ContactOrderNotesSection (sem alteração)
-- **Histórico**: CommercialHistorySection (sem alteração)
+Nota: `leads` já tem `founding_date` — para empresas usamos `founding_date_anniversary` como data de aniversário da empresa. Para leads e contactos usamos `birth_date`.
+
+**Alternativa**: usar `birth_date` nas 3 tabelas com label diferente no UI ("Data de Aniversário" para empresas, "Data de Nascimento" para contactos/leads).
+
+## 2. Secções de Identificação — UI
+
+### `src/components/contacts/eni/sections/IdentificationSection.tsx`
+- Adicionar campo `InlineEditableField` com `fieldType="date"` para `birth_date`, com ícone `Cake` e label "Data de Nascimento"
+
+### `src/components/leads/sections/IdentificationSection.tsx`
+- Adicionar campo `InlineEditableField` com `fieldType="date"` para `birth_date`, com ícone `Cake` e label "Data de Nascimento"
+
+### `src/components/companies/sections/IdentificationSection.tsx`
+- Adicionar campo `InlineEditableField` com `fieldType="date"` para `birth_date`, com ícone `Cake` e label "Data de Aniversário"
+
+## 3. Tipos TypeScript
+
+### `src/components/contacts/eni/ENIContactTypes.ts`
+- Adicionar `birth_date?: string | null` à interface `ENIContact`
 
 | Ficheiro | Acção |
 |----------|-------|
-| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | Mover CommercialProfile + Financial para subtab "Perfil" no financial; remover do data |
+| Migração SQL | Adicionar `birth_date DATE` a contacts, leads, companies |
+| `ENIContactTypes.ts` | Adicionar campo `birth_date` |
+| `contacts/eni/sections/IdentificationSection.tsx` | Adicionar campo data nascimento |
+| `leads/sections/IdentificationSection.tsx` | Adicionar campo data nascimento |
+| `companies/sections/IdentificationSection.tsx` | Adicionar campo data aniversário |
 
