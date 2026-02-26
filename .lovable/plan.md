@@ -1,42 +1,44 @@
 
 
-# Adicionar Ficheiros e Aba de Equipa na Ficha do Contacto
+# Adicionar Ficheiros à Equipa de Leads e Empresas
 
-## Situação Actual
+## Problema
+1. **Empresas** não têm case `'team'` no `renderSectionContent` — nem notas internas nem ficheiros
+2. **Leads** têm `'team'` mas sem `showDocuments={true}` — só notas, sem ficheiros
+3. A tabela `contact_documents` e o `DocumentsSection` são específicos de contactos (`contact_id`) — não suportam leads/empresas
 
-- **Ficheiros/Documentos**: O `DocumentsSection` já existe e funciona, mas está escondido dentro da sub-tab "Campos" do separador "Dados" — local pouco intuitivo.
-- **Equipa**: Não existe nenhuma secção para comunicação interna entre membros do workspace sobre um contacto. A tabela `entity_notes` já suporta `note_type` e `attachments`, e `useWorkspaceMembers` já existe.
+## Solução
 
-## Alterações
+### 1. Nova tabela `entity_documents` (migração)
+Criar tabela genérica para documentos de qualquer entidade:
+- `id`, `entity_type` (lead/contact/company), `entity_id`, `workspace_id`
+- `document_type`, `file_name`, `file_url`, `file_size`, `notes`
+- `uploaded_by`, `created_at`
+- RLS policies para workspace members
+- Índice em `(entity_type, entity_id)`
 
-### 1. Novo separador "Equipa" nos tabs horizontais
+### 2. Novo componente `EntityDocumentsSection.tsx`
+Versão genérica do `DocumentsSection` que usa `entity_documents` em vez de `contact_documents`. Aceita `entityType` e `entityId` como props. Reutiliza o bucket `contact-documents` existente (ou cria um novo `entity-documents`).
 
-Adicionar `'team'` como novo `MenuSection` em `src/types/entity.ts` e como tab em `EntityHorizontalTabs.tsx` (visível para contact, lead, company). Posicionar entre "Atividade" e "Negócios".
+### 3. Actualizar `EntityTeamSection.tsx`
+- Substituir `DocumentsSection` por `EntityDocumentsSection`
+- Passar `entityType` e `entityId` em vez de `contactId`
+- Mostrar sempre ficheiros (remover prop `showDocuments`, activar por defeito)
 
-### 2. Componente `EntityTeamSection` (novo)
+### 4. Adicionar `'team'` à empresa (`CompanyDetailWithSidebar.tsx`)
+- Importar `EntityTeamSection`
+- Adicionar case `'team'` no `renderSectionContent` com `showDocuments={true}`
 
-Secção com duas sub-tabs internas:
-- **Notas internas**: Comentários da equipa sobre este contacto (usa `entity_notes` com `note_type = 'team'`), mostrando autor (avatar + nome via `profiles`), data relativa, e conteúdo. Com input para adicionar nova nota.
-- **Ficheiros**: Move o `DocumentsSection` existente para aqui, tornando-o acessível de forma natural.
+### 5. Activar ficheiros no lead (`LeadDetailWithSidebar.tsx`)
+- Adicionar `showDocuments={true}` ao `EntityTeamSection` existente
 
-### 3. Tabela de base de dados
-
-Não é necessária nova tabela — reutiliza `entity_notes` com `note_type = 'team'` para notas internas. Os ficheiros já usam `contact_documents`.
-
-### 4. Ajustar tab "Dados"
-
-Remover `DocumentsSection` da sub-tab "Campos" (que passa a mostrar apenas campos customizados/perfil profissional) e realocar para a nova aba "Equipa".
-
-## Ficheiros a alterar
+## Ficheiros
 
 | Ficheiro | Acção |
 |----------|-------|
-| `src/types/entity.ts` | Adicionar `'team'` ao `MenuSection` |
-| `src/components/entity/EntityHorizontalTabs.tsx` | Adicionar tab "Equipa" |
-| `src/components/entity/EntityTeamSection.tsx` | **Novo** — notas internas + ficheiros |
-| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | Adicionar case `'team'`, remover DocumentsSection do case `'data'` |
-| `src/components/crm/LeadDetailWithSidebar.tsx` | Adicionar case `'team'` |
-| `src/hooks/useWorkspaceLayoutConfig.ts` | Adicionar `'team'` aos defaults |
-| `src/components/entity/EntityEmptyState.tsx` | Adicionar mensagem para `'team'` |
-| `src/components/settings/WorkspaceLayoutConfigPanel.tsx` | Adicionar `'team'` às opções configuráveis |
+| Migração SQL | Nova tabela `entity_documents` + RLS + storage bucket |
+| `src/components/entity/EntityDocumentsSection.tsx` | **Novo** — upload/lista/delete genérico |
+| `src/components/entity/EntityTeamSection.tsx` | Usar `EntityDocumentsSection`, mostrar ficheiros sempre |
+| `src/components/companies/CompanyDetailWithSidebar.tsx` | Adicionar case `'team'` + import |
+| `src/components/crm/LeadDetailWithSidebar.tsx` | Adicionar `showDocuments={true}` |
 
