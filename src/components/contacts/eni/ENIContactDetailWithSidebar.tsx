@@ -39,6 +39,7 @@ import { EntityDetailsPanel } from "@/components/entity/EntityDetailsPanel";
 import { EntityHighlightsGrid } from "@/components/entity/EntityHighlightsGrid";
 import { EntitySubTabs } from "@/components/entity/EntitySubTabs";
 import { EntityTeamSection } from "@/components/entity/EntityTeamSection";
+import { EntityDocumentsSection } from "@/components/entity/EntityDocumentsSection";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { MenuSection } from "@/types/entity";
 import { LinkedCompanyCard } from "@/components/contacts/LinkedCompanyCard";
@@ -356,6 +357,10 @@ export function ENIContactDetailWithSidebar() {
             entityId={id!}
             entityName={contact.name}
           />
+        );
+      case 'files':
+        return (
+          <EntityDocumentsSection entityType="contact" entityId={id!} />
         );
       case 'data':
         return (

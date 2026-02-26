@@ -46,6 +46,7 @@ import { EntityDetailsPanel } from "@/components/entity/EntityDetailsPanel";
 import { EntityHighlightsGrid } from "@/components/entity/EntityHighlightsGrid";
 import { EntitySubTabs } from "@/components/entity/EntitySubTabs";
 import { EntityTeamSection } from "@/components/entity/EntityTeamSection";
+import { EntityDocumentsSection } from "@/components/entity/EntityDocumentsSection";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { MenuSection } from "@/types/entity";
 import { EntityTasksSection } from "@/components/tasks";
@@ -282,6 +283,10 @@ export function LeadDetailWithSidebar() {
             entityId={id!}
             entityName={lead.name}
           />
+        );
+      case 'files':
+        return (
+          <EntityDocumentsSection entityType="lead" entityId={id!} />
         );
       case 'data':
         return (
