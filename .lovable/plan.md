@@ -1,42 +1,26 @@
 
 
-# Adicionar Data de Aniversário a Contactos, Leads e Empresas
+# Consolidar informação financeira na página de Empresa
 
-## 1. Migração de Base de Dados
+## Situação actual
 
-Adicionar coluna `birth_date` (tipo `DATE`, nullable) às 3 tabelas:
+Na empresa, a `FinancialSection` está no `overview`, e `payments`, `orders`, `history` são cases separados no switch. Não há agrupamento financeiro com subtabs como nos contactos.
 
-```sql
-ALTER TABLE public.contacts ADD COLUMN birth_date DATE;
-ALTER TABLE public.leads ADD COLUMN birth_date DATE;
-ALTER TABLE public.companies ADD COLUMN founding_date_anniversary DATE;
-```
+## Alterações em `src/components/companies/CompanyDetailWithSidebar.tsx`
 
-Nota: `leads` já tem `founding_date` — para empresas usamos `founding_date_anniversary` como data de aniversário da empresa. Para leads e contactos usamos `birth_date`.
+1. **Importar `EntitySubTabs`** e `CommercialHistorySection` (já importado)
 
-**Alternativa**: usar `birth_date` nas 3 tabelas com label diferente no UI ("Data de Aniversário" para empresas, "Data de Nascimento" para contactos/leads).
+2. **Adicionar case `'financial'`** com `EntitySubTabs` contendo 4 subtabs:
+   - **Perfil**: `FinancialSection` (condições pagamento, crédito)
+   - **Pagamentos**: `AcquiredProductsSection`
+   - **Encomendas**: `CompanyOrderNotesSection`
+   - **Histórico**: `CommercialHistorySection`
 
-## 2. Secções de Identificação — UI
+3. **Remover `FinancialSection` do case `'overview'`** — fica apenas `IdentificationSection` + scores + lifecycle
 
-### `src/components/contacts/eni/sections/IdentificationSection.tsx`
-- Adicionar campo `InlineEditableField` com `fieldType="date"` para `birth_date`, com ícone `Cake` e label "Data de Nascimento"
-
-### `src/components/leads/sections/IdentificationSection.tsx`
-- Adicionar campo `InlineEditableField` com `fieldType="date"` para `birth_date`, com ícone `Cake` e label "Data de Nascimento"
-
-### `src/components/companies/sections/IdentificationSection.tsx`
-- Adicionar campo `InlineEditableField` com `fieldType="date"` para `birth_date`, com ícone `Cake` e label "Data de Aniversário"
-
-## 3. Tipos TypeScript
-
-### `src/components/contacts/eni/ENIContactTypes.ts`
-- Adicionar `birth_date?: string | null` à interface `ENIContact`
+4. **Remover cases individuais** `'payments'`, `'orders'`, `'history'` — ficam consolidados dentro do `'financial'`
 
 | Ficheiro | Acção |
 |----------|-------|
-| Migração SQL | Adicionar `birth_date DATE` a contacts, leads, companies |
-| `ENIContactTypes.ts` | Adicionar campo `birth_date` |
-| `contacts/eni/sections/IdentificationSection.tsx` | Adicionar campo data nascimento |
-| `leads/sections/IdentificationSection.tsx` | Adicionar campo data nascimento |
-| `companies/sections/IdentificationSection.tsx` | Adicionar campo data aniversário |
+| `CompanyDetailWithSidebar.tsx` | Importar EntitySubTabs; criar case financial com subtabs; remover FinancialSection do overview; remover cases payments/orders/history |
 
