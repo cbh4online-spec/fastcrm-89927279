@@ -19,6 +19,8 @@ interface CalendarSidebarProps {
   onCreateCalendar: () => void;
   onEditCalendar: (calendar: CalendarType) => void;
   virtualCalendarIds?: string[];
+  selectedCategories?: string[];
+  onToggleCategory?: (key: string) => void;
 }
 
 const calendarTypeLabels = {
@@ -37,6 +39,8 @@ export function CalendarSidebar({
   onCreateCalendar,
   onEditCalendar,
   virtualCalendarIds = [],
+  selectedCategories,
+  onToggleCategory,
 }: CalendarSidebarProps) {
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['ungrouped', 'virtual', ...groups.map(g => g.id)]);
 
@@ -245,13 +249,26 @@ export function CalendarSidebar({
                     conferencia: 'Conferência',
                     outro: 'Outro',
                   };
+                  const isSelected = selectedCategories ? selectedCategories.includes(key) : true;
                   return (
-                    <div key={key} className="flex items-center gap-2 px-1">
-                      <div
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: color as string }}
+                    <div
+                      key={key}
+                      className="flex items-center gap-2 px-1 cursor-pointer rounded-lg hover:bg-accent/40 py-1 transition-all duration-200"
+                      onClick={() => onToggleCategory?.(key)}
+                    >
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => onToggleCategory?.(key)}
+                        className="border-2 rounded-md h-4 w-4 transition-all duration-200 data-[state=checked]:shadow-md"
+                        style={{
+                          borderColor: color as string,
+                          backgroundColor: isSelected ? (color as string) : 'transparent',
+                          boxShadow: isSelected ? `0 2px 8px ${color}40` : 'none',
+                        }}
                       />
-                      <span className="text-xs text-muted-foreground">{labels[key] || key}</span>
+                      <span className={cn("text-xs", isSelected ? "text-foreground" : "text-muted-foreground line-through")}>
+                        {labels[key] || key}
+                      </span>
                     </div>
                   );
                 })}
