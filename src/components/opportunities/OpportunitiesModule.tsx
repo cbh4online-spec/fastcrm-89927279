@@ -289,7 +289,7 @@ export function OpportunitiesModule() {
         onSelectView={handleSelectView}
         onCreateDeal={() => setIsCreateDialogOpen(true)}
       />
-      <div className="flex-1 min-w-0 space-y-6 h-full flex flex-col p-6 overflow-auto">
+      <div className="flex-1 min-w-0 space-y-4 md:space-y-6 h-full flex flex-col overflow-auto">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -332,10 +332,10 @@ export function OpportunitiesModule() {
       <OpportunityKPICards />
 
       {/* Filters Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {/* Search */}
-          <div className="relative w-64">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder={t('searchOpportunities')}
@@ -367,7 +367,7 @@ export function OpportunitiesModule() {
             onClick={() => setSortByScore((v) => !v)}
           >
             <ArrowUpDown className="w-4 h-4" />
-            {t('score')}
+            <span className="hidden sm:inline">{t('score')}</span>
           </Button>
 
           {/* Hot Deals filter */}
@@ -378,7 +378,7 @@ export function OpportunitiesModule() {
             onClick={() => setHotDealsOnly((v) => !v)}
           >
             <Flame className="w-4 h-4" />
-            {t('hotDeals')}
+            <span className="hidden sm:inline">{t('hotDeals')}</span>
             {hotCount > 0 && (
               <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
                 {hotCount}
@@ -434,7 +434,7 @@ export function OpportunitiesModule() {
           }}
         />
       ) : viewMode === "kanban" ? (
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <ScrollArea className="flex-1">
           <LayoutGroup>
           <div className="flex gap-4 pb-4">
              {stages.map((stage) => (
