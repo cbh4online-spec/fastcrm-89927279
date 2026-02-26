@@ -1,22 +1,31 @@
 
 
-# Editar valores sugeridos pela IA no Preview
+# Mover Notas para Aba Principal
 
-## Abordagem
-
-Adicionar estado local `editedValues` ao `AIAutofillPreviewDialog` para permitir edição inline de cada valor. Ao confirmar, usar os valores editados em vez dos originais.
+## Situação Atual
+- **Leads e Contactos**: Notas está dentro do separador "Timeline", misturada com a timeline
+- **Empresas**: Tem `case 'notes'` no switch mas não aparece como aba horizontal
+- `EntityHorizontalTabs` não inclui "Notas" no array `ALL_TABS`
 
 ## Alterações
 
-### 1. Editar `src/components/custom-fields/AIAutofillPreviewDialog.tsx`
+### 1. `src/components/entity/EntityHorizontalTabs.tsx`
+- Adicionar `{ id: 'notes', label: 'Notas', showFor: ['lead', 'contact', 'company'] }` ao array `ALL_TABS`, posicionado após "Timeline"
 
-- Adicionar estado `editedValues: Record<string, string>` inicializado com os `generatedValue` dos resultados
-- Substituir o `<p>` de display por um `<Input>` ou `<Textarea>` editável por campo
-- Adicionar ícone `Pencil` para indicar que é editável
-- No `handleConfirm`, mapear os resultados seleccionados com os valores editados (`editedValues[fieldId]`)
-- Actualizar a descrição do dialog para mencionar que os valores podem ser editados
+### 2. `src/components/crm/LeadDetailWithSidebar.tsx`
+- Remover `<NotesSection>` do `case 'timeline'`
+- Adicionar `case 'notes'` dedicado com `<NotesSection entityType="lead" entityId={id!} entityName={lead.name} />`
+
+### 3. `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx`
+- Remover `<ContactNotesSection>` do `case 'timeline'`
+- Adicionar `case 'notes'` dedicado com `<ContactNotesSection contact={contact} onFieldChange={handleFieldChange} />`
+
+### 4. `src/components/companies/CompanyDetailWithSidebar.tsx`
+- Já tem `case 'notes'` — sem alteração necessária no switch
 
 | Ficheiro | Acção |
 |----------|-------|
-| `src/components/custom-fields/AIAutofillPreviewDialog.tsx` | Adicionar edição inline dos valores sugeridos |
+| `EntityHorizontalTabs.tsx` | Adicionar 'notes' ao `ALL_TABS` |
+| `LeadDetailWithSidebar.tsx` | Separar Notes da Timeline para case próprio |
+| `ENIContactDetailWithSidebar.tsx` | Separar Notes da Timeline para case próprio |
 
