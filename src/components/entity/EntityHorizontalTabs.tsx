@@ -51,6 +51,7 @@ interface EntityHorizontalTabsProps {
     orders?: number;
     scheduling?: number;
     files?: number;
+    notes?: number;
   };
   hasStudentJourneyProfile?: boolean;
 }
