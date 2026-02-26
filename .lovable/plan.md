@@ -1,96 +1,38 @@
 
 
-# Zona de Convites & Eventos com Picker de Atributos estilo Attio
+# Integrar Eventos (community_events) na Vista de Calendário
 
 ## Contexto
 
-A tabela `community_events` existe mas é muito básica (title, description, event_type, starts_at, ends_at, link). O utilizador quer uma zona completa de gestão de eventos/convites com um picker de atributos idêntico ao Attio (screenshot).
+Existem dois sistemas separados: `calendar_events` (calendários internos) e `community_events` (eventos/convites). Os eventos de `community_events` não aparecem na vista de calendário. A integração vai converter `EventRecord` em `CalendarEvent` e mesclá-los na vista.
 
 ## Alterações
 
-### 1. Migração DB — Expandir `community_events` com novos campos
+### 1. Novo hook `src/hooks/useCommunityEventsForCalendar.ts`
 
-Adicionar colunas à tabela existente:
-- `location` (text) — local do evento
-- `location_url` (text) — link Google Maps
-- `capacity` (integer) — capacidade máxima
-- `event_category` (text) — categoria (networking, jantar, workshop, webinar, conferência, outro)
-- `rsvp_required` (boolean, default true)
-- `cover_image_url` (text)
-- `host_name` (text)
-- `host_email` (text)
-- `host_phone` (text)
-- `price` (numeric) — preço (0 = grátis)
-- `currency` (text, default 'EUR')
-- `status` (text, default 'draft') — draft, published, cancelled, completed
-- `tags` (text[])
-- `metadata` (jsonb) — campos dinâmicos adicionais
+Busca `community_events` do workspace actual dentro do dateRange fornecido. Converte cada `EventRecord` para o formato `CalendarEvent` com:
+- `calendar_id` fixo como `"community-events"` (pseudo-calendário virtual)
+- `start_time` = `starts_at`, `end_time` = `ends_at` (ou starts_at + 1h se null)
+- `status` mapeado: published→confirmed, draft→tentative, cancelled→cancelled
+- `calendar` virtual com cor distinta (ex: `#F59E0B` amarelo) e nome "Eventos & Convites"
 
-Criar tabela `event_rsvps`:
-- `id`, `event_id` (FK), `workspace_id`, `contact_id` (FK nullable), `name`, `email`, `phone`, `status` (invited/confirmed/declined/attended), `invited_at`, `responded_at`, `notes`, `created_at`
+### 2. Editar `CalendarsPage.tsx`
 
-RLS policies para ambas, filtradas por workspace_id.
+- Importar `useCommunityEventsForCalendar`
+- Chamar o hook com o mesmo `dateRange`
+- Adicionar um pseudo-calendário "Eventos & Convites" à lista de calendários e ao sidebar
+- Toggle de visibilidade independente na sidebar
+- Mesclar os eventos convertidos com os `events` do calendário normal antes de passar ao `CalendarGlobalView`
+- Click em evento comunitário → navegar para `/dashboard/events/:id` em vez de abrir o modal de edição
 
-### 2. Novo componente `src/components/events/AttioAttributePicker.tsx`
+### 3. Editar `CalendarSidebar.tsx`
 
-Popover com 2 painéis lado a lado (como no screenshot):
-
-**Painel direito** (lista de atributos existentes):
-- Lista dos campos actuais do evento com ícones por tipo
-- Cada item mostra nome + contagem de registos (quando aplicável)
-- Footer: "+ Criar novo atributo >" que abre o painel esquerdo
-
-**Painel esquerdo** (tipos de campo — visível ao clicar "Criar novo atributo"):
-- Secção "Tipo": Text, Number, Checkbox, Date, Select, Multi-select, Currency, Status, Location, Phone Number, URL, Email, User, Record
-- Ao clicar num tipo, abre inline um input para nome do atributo e guarda via `core_object_fields` ou campo JSONB metadata
-
-### 3. Novo componente `src/components/events/EventsManagementPage.tsx`
-
-Página principal com:
-- Header com título "Eventos & Convites" + botão "Criar Evento"
-- Tabs: Próximos | Passados | Rascunhos | Cancelados
-- Cards de eventos com: título, data, local, categoria badge, contagem RSVPs, status badge
-- Cada card navega para detalhe
-
-### 4. Novo componente `src/components/events/CreateEventDialog.tsx`
-
-Dialog de criação com campos:
-- Título, Descrição, Categoria (select), Data início/fim
-- Local + URL mapa, Capacidade, Preço
-- Host (nome, email, phone)
-- Tags, Link externo, Imagem de capa
-- Status (draft/published)
-- Integração com `AttioAttributePicker` para adicionar campos personalizados
-
-### 5. Novo componente `src/components/events/EventDetailPage.tsx`
-
-Vista de detalhe do evento com:
-- Header com dados do evento
-- Tab RSVPs: lista de convidados com status (invited/confirmed/declined/attended)
-- Botão "Convidar" — selecionar contactos existentes ou adicionar manualmente
-- Tab Detalhes: campos do evento + atributos personalizados via picker Attio
-
-### 6. Hook `src/hooks/useEvents.ts`
-
-CRUD completo para `community_events` (expandida) e `event_rsvps`:
-- `useEvents(workspaceId, filters)` — listar com filtros por status/categoria
-- `useEvent(eventId)` — detalhe
-- `useCreateEvent`, `useUpdateEvent`, `useDeleteEvent`
-- `useEventRSVPs(eventId)` — listar convidados
-- `useInviteToEvent`, `useUpdateRSVP`
-
-### 7. Rota no `App.tsx`
-
-- `/dashboard/events` → `EventsManagementPage`
-- `/dashboard/events/:eventId` → `EventDetailPage`
+- Aceitar prop opcional `extraCalendars` para calendários virtuais (como o de eventos)
+- Renderizar na sidebar com checkbox e cor própria, separados por divisor "Outros"
 
 | Ficheiro | Acção |
 |----------|-------|
-| SQL migration | Expandir `community_events` + criar `event_rsvps` com RLS |
-| `src/components/events/AttioAttributePicker.tsx` | Picker de atributos estilo Attio (2 painéis) |
-| `src/components/events/EventsManagementPage.tsx` | Página principal de eventos |
-| `src/components/events/CreateEventDialog.tsx` | Dialog de criação de evento |
-| `src/components/events/EventDetailPage.tsx` | Detalhe do evento com RSVPs |
-| `src/hooks/useEvents.ts` | Hook CRUD eventos + RSVPs |
-| `src/App.tsx` | Adicionar rotas /dashboard/events |
+| `src/hooks/useCommunityEventsForCalendar.ts` | Criar hook que converte community_events → CalendarEvent[] |
+| `src/pages/CalendarsPage.tsx` | Mesclar eventos comunitários + toggle de visibilidade |
+| `src/components/calendars/CalendarSidebar.tsx` | Renderizar calendário virtual "Eventos & Convites" |
 
