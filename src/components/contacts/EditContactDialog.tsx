@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CustomFieldsForm } from "@/components/custom-fields/CustomFieldsForm";
+import { AIAutofillPreviewDialog, type AIAutofillResult } from "@/components/custom-fields/AIAutofillPreviewDialog";
 import { SocialMediaFields } from "@/components/shared/SocialMediaFields";
 import { useManagedFields } from "@/hooks/useManagedFields";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +35,9 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [previewResults, setPreviewResults] = useState<AIAutofillResult[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [isApplyingPreview, setIsApplyingPreview] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -109,8 +113,8 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
     }
 
     setIsAutoFilling(true);
-    const toastId = toast.loading(`A preencher ${autofillFields.length} campo(s) com IA...`);
-    let filled = 0;
+    const toastId = toast.loading(`A gerar ${autofillFields.length} campo(s) com IA...`);
+    const results: AIAutofillResult[] = [];
 
     const recordData = {
       name: formData.name,
@@ -138,14 +142,13 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
         if (data?.error) throw new Error(data.error);
 
         if (data?.value) {
-          await setFieldValue.mutateAsync({
-            customFieldId: mf.id,
-            entityId: contact.id,
-            value: data.value,
+          results.push({
+            fieldId: mf.id,
             fieldName: mf.name,
+            fieldLabel: mf.label || mf.name,
+            generatedValue: data.value,
             isUnique: mf.is_unique,
           });
-          filled++;
         }
       } catch (err) {
         console.error(`AI autofill failed for ${mf.name}:`, err);
@@ -153,19 +156,46 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
     }
 
     toast.dismiss(toastId);
-    if (filled > 0) {
-      toast.success(`${filled} campo(s) preenchido(s) com IA`);
-      // Refresh custom field values
-      queryClient.invalidateQueries({ queryKey: ["custom_field_values", contact.id] });
+    setIsAutoFilling(false);
+
+    if (results.length > 0) {
+      setPreviewResults(results);
+      setShowPreview(true);
     } else {
       toast.info("Nenhum campo preenchido");
     }
-    setIsAutoFilling(false);
-  }, [managedFields, formData, contact.id, setFieldValue, queryClient]);
+  }, [managedFields, formData]);
+
+  const handleApplyPreview = useCallback(async (selectedResults: AIAutofillResult[]) => {
+    setIsApplyingPreview(true);
+    let filled = 0;
+    for (const result of selectedResults) {
+      try {
+        await setFieldValue.mutateAsync({
+          customFieldId: result.fieldId,
+          entityId: contact.id,
+          value: result.generatedValue,
+          fieldName: result.fieldName,
+          isUnique: result.isUnique,
+        });
+        filled++;
+      } catch (err) {
+        console.error(`Failed to save ${result.fieldName}:`, err);
+      }
+    }
+    setIsApplyingPreview(false);
+    setShowPreview(false);
+    setPreviewResults([]);
+    if (filled > 0) {
+      toast.success(`${filled} campo(s) preenchido(s) com IA`);
+      queryClient.invalidateQueries({ queryKey: ["custom_field_values", contact.id] });
+    }
+  }, [setFieldValue, contact.id, queryClient]);
 
   const hasAIFields = managedFields.some((mf) => mf.formatting_config?.ai_autofill_enabled);
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
@@ -287,5 +317,13 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
         </form>
       </DialogContent>
     </Dialog>
+    <AIAutofillPreviewDialog
+      open={showPreview}
+      onOpenChange={setShowPreview}
+      results={previewResults}
+      onConfirm={handleApplyPreview}
+      isApplying={isApplyingPreview}
+    />
+    </>
   );
 }

@@ -89,10 +89,18 @@ export function CustomFieldsForm({ entityType, entityId, className }: CustomFiel
 }
 
 // ==================== Create Mode (new entity, save later) ====================
+export interface AIAutofillResult {
+  fieldId: string;
+  fieldName: string;
+  fieldLabel: string;
+  generatedValue: string;
+  isUnique?: boolean;
+}
+
 export interface CustomFieldsFormCreateRef {
   saveCustomFields: (entityId: string) => Promise<void>;
   getValues: () => Record<string, unknown>;
-  runAIAutofill: (entityId: string, recordData: Record<string, unknown>) => Promise<void>;
+  runAIAutofill: (entityId: string, recordData: Record<string, unknown>) => Promise<AIAutofillResult[]>;
 }
 
 interface CustomFieldsFormCreateProps {
@@ -119,17 +127,16 @@ export const CustomFieldsFormCreate = forwardRef<CustomFieldsFormCreateRef, Cust
       return true;
     });
 
-    // AI Autofill logic
-    const runAIAutofill = useCallback(async (entityId: string, recordData: Record<string, unknown>) => {
-      // Find fields with ai_autofill_enabled from managedFields
+    // AI Autofill logic - returns results for preview instead of saving directly
+    const runAIAutofill = useCallback(async (_entityId: string, recordData: Record<string, unknown>): Promise<AIAutofillResult[]> => {
       const autofillFields = managedFields.filter(
         (mf) => mf.formatting_config?.ai_autofill_enabled && fields.some((f) => f.id === mf.id)
       );
 
-      if (autofillFields.length === 0) return;
+      if (autofillFields.length === 0) return [];
 
-      const toastId = toast.loading(`A preencher ${autofillFields.length} campo(s) com IA...`);
-      let filled = 0;
+      const toastId = toast.loading(`A gerar ${autofillFields.length} campo(s) com IA...`);
+      const results: AIAutofillResult[] = [];
 
       for (const mf of autofillFields) {
         try {
@@ -147,17 +154,14 @@ export const CustomFieldsFormCreate = forwardRef<CustomFieldsFormCreateRef, Cust
           if (error) throw error;
           if (data?.error) throw new Error(data.error);
 
-          const generatedValue = data?.value;
-          if (generatedValue) {
-            // Save to DB
-            await setFieldValue.mutateAsync({
-              customFieldId: mf.id,
-              entityId,
-              value: generatedValue,
+          if (data?.value) {
+            results.push({
+              fieldId: mf.id,
               fieldName: mf.name,
+              fieldLabel: mf.label || mf.name,
+              generatedValue: data.value,
               isUnique: mf.is_unique,
             });
-            filled++;
           }
         } catch (err) {
           console.error(`AI autofill failed for ${mf.name}:`, err);
@@ -165,10 +169,8 @@ export const CustomFieldsFormCreate = forwardRef<CustomFieldsFormCreateRef, Cust
       }
 
       toast.dismiss(toastId);
-      if (filled > 0) {
-        toast.success(`${filled} campo(s) preenchido(s) com IA`);
-      }
-    }, [managedFields, fields, setFieldValue]);
+      return results;
+    }, [managedFields, fields]);
 
     // Expose methods to parent
     useImperativeHandle(ref, () => ({
