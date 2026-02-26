@@ -11,6 +11,7 @@ export interface EntityCounts {
   scheduling: number;
   files: number;
   notes: number;
+  relationships: number;
 }
 
 type EntityType = 'lead' | 'contact' | 'company';
@@ -20,7 +21,7 @@ export function useEntityCounts(entityType: EntityType, entityId: string | undef
     queryKey: ['entity-counts', entityType, entityId],
     queryFn: async (): Promise<EntityCounts> => {
       if (!entityId) {
-        return { messages: 0, tasks: 0, opportunities: 0, proposals: 0, contacts: 0, orders: 0, scheduling: 0, files: 0, notes: 0 };
+        return { messages: 0, tasks: 0, opportunities: 0, proposals: 0, contacts: 0, orders: 0, scheduling: 0, files: 0, notes: 0, relationships: 0 };
       }
 
       let tasksCount = 0;
@@ -124,6 +125,14 @@ export function useEntityCounts(entityType: EntityType, entityId: string | undef
         .eq('entity_id', entityId);
       notesCount = notesResult.data?.length || 0;
 
+      // Count relationships (object_relationships)
+      let relationshipsCount = 0;
+      const relsResult = await (supabase
+        .from('object_relationships')
+        .select('id') as any)
+        .or(`source_record_id.eq.${entityId},target_record_id.eq.${entityId}`);
+      relationshipsCount = relsResult.data?.length || 0;
+
       return {
         messages: 0,
         tasks: tasksCount,
@@ -134,6 +143,7 @@ export function useEntityCounts(entityType: EntityType, entityId: string | undef
         scheduling: schedulingCount,
         files: filesCount,
         notes: notesCount,
+        relationships: relationshipsCount,
       };
     },
     enabled: !!entityId,
