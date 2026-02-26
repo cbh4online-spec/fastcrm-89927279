@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { ChevronRight, Mail, Phone, Globe, MapPin, Linkedin, Facebook, Twitter, Instagram, Building2, Briefcase, Tag, Calendar, Users, TrendingUp, DollarSign, Pencil } from 'lucide-react';
+import { ChevronRight, Mail, Phone, Globe, MapPin, Linkedin, Facebook, Twitter, Instagram, Building2, Briefcase, Tag, Calendar, Users, TrendingUp, DollarSign, Pencil, Clock } from 'lucide-react';
 import { EntityType, Entity, CompanyEntity, ContactEntity, LeadEntity } from '@/types/entity';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { formatDate, formatRelativeTime } from '@/lib/formatters';
 
 interface EntityDetailsPanelProps {
   entityType: EntityType;
@@ -30,6 +31,25 @@ function CollapsibleSection({ title, children, defaultOpen = true }: { title: st
         </div>
       )}
     </div>
+  );
+}
+
+/** Wraps children with progressive disclosure — shows first `limit` items, then "Show all" link */
+function ProgressiveFields({ children, limit = 5 }: { children: React.ReactNode; limit?: number }) {
+  const [showAll, setShowAll] = useState(false);
+  const items = Array.isArray(children) ? children.filter(Boolean) : children ? [children] : [];
+  if (items.length <= limit) return <>{items}</>;
+
+  return (
+    <>
+      {showAll ? items : items.slice(0, limit)}
+      <button
+        onClick={() => setShowAll(!showAll)}
+        className="text-xs text-primary hover:underline mt-1"
+      >
+        {showAll ? 'Mostrar menos' : `Mostrar todos os valores (${items.length})`}
+      </button>
+    </>
   );
 }
 
@@ -134,6 +154,23 @@ function EditableFieldRow({
   );
 }
 
+function ReadOnlyFieldRow({ label, value, icon: Icon, iconClassName }: {
+  label: string;
+  value: string | null | undefined;
+  icon?: React.ElementType;
+  iconClassName?: string;
+}) {
+  return (
+    <div className="flex items-start gap-2 text-sm">
+      {Icon && <Icon className={cn("h-3.5 w-3.5 mt-0.5 shrink-0", iconClassName || "text-muted-foreground")} />}
+      <span className="text-muted-foreground shrink-0 min-w-[80px]">{label}</span>
+      <div className="flex-1 text-right truncate">
+        <span className="text-foreground">{value || '—'}</span>
+      </div>
+    </div>
+  );
+}
+
 const TAG_COLORS = [
   'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800',
   'bg-green-100 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800',
@@ -165,6 +202,26 @@ function TagList({ tags }: { tags: string[] }) {
   );
 }
 
+/** Dates section shown at the bottom for all entity types */
+function DatesSection({ entity }: { entity: Entity }) {
+  return (
+    <CollapsibleSection title="Datas" defaultOpen={false}>
+      <ReadOnlyFieldRow
+        label="Criado"
+        value={entity.created_at ? `${formatDate(entity.created_at)} (${formatRelativeTime(entity.created_at)})` : null}
+        icon={Calendar}
+        iconClassName="text-blue-500"
+      />
+      <ReadOnlyFieldRow
+        label="Atualizado"
+        value={entity.updated_at ? `${formatDate(entity.updated_at)} (${formatRelativeTime(entity.updated_at)})` : null}
+        icon={Clock}
+        iconClassName="text-muted-foreground"
+      />
+    </CollapsibleSection>
+  );
+}
+
 export function EntityDetailsPanel({ entityType, entity, onUpdate }: EntityDetailsPanelProps) {
   return (
     <div className="w-80 border-l bg-muted/20 flex-shrink-0 overflow-hidden flex flex-col">
@@ -176,6 +233,7 @@ export function EntityDetailsPanel({ entityType, entity, onUpdate }: EntityDetai
         {entityType === 'company' && <CompanyDetails entity={entity as CompanyEntity} onUpdate={onUpdate} />}
         {entityType === 'contact' && <ContactDetails entity={entity as ContactEntity} onUpdate={onUpdate} />}
         {entityType === 'lead' && <LeadDetails entity={entity as LeadEntity} onUpdate={onUpdate} />}
+        <DatesSection entity={entity} />
       </ScrollArea>
     </div>
   );
@@ -186,24 +244,28 @@ function CompanyDetails({ entity, onUpdate }: { entity: CompanyEntity; onUpdate?
   return (
     <div>
       <CollapsibleSection title="Dados da Empresa">
-        <EditableFieldRow label="Domínio" value={e.domain || e.website} icon={Globe} iconClassName="text-purple-500" isLink linkType="url" fieldKey="website" onUpdate={onUpdate} />
-        <EditableFieldRow label="Email" value={entity.email} icon={Mail} iconClassName="text-blue-500" isLink linkType="email" fieldKey="email" onUpdate={onUpdate} />
-        <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} iconClassName="text-green-500" isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
-        <EditableFieldRow label="Indústria" value={entity.industry} icon={Briefcase} iconClassName="text-amber-500" fieldKey="industry" onUpdate={onUpdate} />
-        <EditableFieldRow label="Dimensão" value={entity.size} icon={Users} iconClassName="text-indigo-500" fieldKey="size" onUpdate={onUpdate} />
-        {entity.tags && entity.tags.length > 0 && (
-          <div className="pt-1">
-            <span className="text-sm text-muted-foreground">Tags</span>
-            <TagList tags={entity.tags} />
-          </div>
-        )}
+        <ProgressiveFields>
+          <EditableFieldRow label="Domínio" value={e.domain || e.website} icon={Globe} iconClassName="text-purple-500" isLink linkType="url" fieldKey="website" onUpdate={onUpdate} />
+          <EditableFieldRow label="Email" value={entity.email} icon={Mail} iconClassName="text-blue-500" isLink linkType="email" fieldKey="email" onUpdate={onUpdate} />
+          <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} iconClassName="text-green-500" isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
+          <EditableFieldRow label="Indústria" value={entity.industry} icon={Briefcase} iconClassName="text-amber-500" fieldKey="industry" onUpdate={onUpdate} />
+          <EditableFieldRow label="Dimensão" value={entity.size} icon={Users} iconClassName="text-indigo-500" fieldKey="size" onUpdate={onUpdate} />
+          {entity.tags && entity.tags.length > 0 && (
+            <div className="pt-1">
+              <span className="text-sm text-muted-foreground">Tags</span>
+              <TagList tags={entity.tags} />
+            </div>
+          )}
+        </ProgressiveFields>
       </CollapsibleSection>
 
       <CollapsibleSection title="Dados Financeiros" defaultOpen={false}>
-        <EditableFieldRow label="Receita" value={entity.annual_revenue ? `€${entity.annual_revenue.toLocaleString()}` : null} icon={DollarSign} iconClassName="text-green-600" fieldKey="annual_revenue" onUpdate={onUpdate} />
-        <EditableFieldRow label="Funcionários" value={entity.employee_count} icon={Users} iconClassName="text-indigo-500" fieldKey="employee_count" onUpdate={onUpdate} />
-        <EditableFieldRow label="NIF" value={e.tax_id} fieldKey="tax_id" onUpdate={onUpdate} />
-        <EditableFieldRow label="CAE" value={e.cae_description} fieldKey="cae_description" onUpdate={onUpdate} />
+        <ProgressiveFields>
+          <EditableFieldRow label="Receita" value={entity.annual_revenue ? `€${entity.annual_revenue.toLocaleString()}` : null} icon={DollarSign} iconClassName="text-green-600" fieldKey="annual_revenue" onUpdate={onUpdate} />
+          <EditableFieldRow label="Funcionários" value={entity.employee_count} icon={Users} iconClassName="text-indigo-500" fieldKey="employee_count" onUpdate={onUpdate} />
+          <EditableFieldRow label="NIF" value={e.tax_id} fieldKey="tax_id" onUpdate={onUpdate} />
+          <EditableFieldRow label="CAE" value={e.cae_description} fieldKey="cae_description" onUpdate={onUpdate} />
+        </ProgressiveFields>
       </CollapsibleSection>
 
       <CollapsibleSection title="Localização" defaultOpen={false}>
@@ -227,17 +289,19 @@ function ContactDetails({ entity, onUpdate }: { entity: ContactEntity; onUpdate?
   return (
     <div>
       <CollapsibleSection title="Dados do Contacto">
-        <EditableFieldRow label="Email" value={entity.email} icon={Mail} iconClassName="text-blue-500" isLink linkType="email" fieldKey="email" onUpdate={onUpdate} />
-        <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} iconClassName="text-green-500" isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
-        <EditableFieldRow label="Empresa" value={entity.company} icon={Building2} iconClassName="text-slate-500" fieldKey="company" onUpdate={onUpdate} />
-        <EditableFieldRow label="Cargo" value={entity.job_title} icon={Briefcase} iconClassName="text-amber-500" fieldKey="job_title" onUpdate={onUpdate} />
-        <EditableFieldRow label="NIF" value={e.tax_id} fieldKey="tax_id" onUpdate={onUpdate} />
-        {entity.tags && entity.tags.length > 0 && (
-          <div className="pt-1">
-            <span className="text-sm text-muted-foreground">Tags</span>
-            <TagList tags={entity.tags} />
-          </div>
-        )}
+        <ProgressiveFields>
+          <EditableFieldRow label="Email" value={entity.email} icon={Mail} iconClassName="text-blue-500" isLink linkType="email" fieldKey="email" onUpdate={onUpdate} />
+          <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} iconClassName="text-green-500" isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
+          <EditableFieldRow label="Empresa" value={entity.company} icon={Building2} iconClassName="text-slate-500" fieldKey="company" onUpdate={onUpdate} />
+          <EditableFieldRow label="Cargo" value={entity.job_title} icon={Briefcase} iconClassName="text-amber-500" fieldKey="job_title" onUpdate={onUpdate} />
+          <EditableFieldRow label="NIF" value={e.tax_id} fieldKey="tax_id" onUpdate={onUpdate} />
+          {entity.tags && entity.tags.length > 0 && (
+            <div className="pt-1">
+              <span className="text-sm text-muted-foreground">Tags</span>
+              <TagList tags={entity.tags} />
+            </div>
+          )}
+        </ProgressiveFields>
       </CollapsibleSection>
 
       <CollapsibleSection title="Morada" defaultOpen={false}>
@@ -261,16 +325,18 @@ function LeadDetails({ entity, onUpdate }: { entity: LeadEntity; onUpdate?: (fie
   return (
     <div>
       <CollapsibleSection title="Dados do Lead">
-        <EditableFieldRow label="Email" value={entity.email} icon={Mail} iconClassName="text-blue-500" isLink linkType="email" fieldKey="email" onUpdate={onUpdate} />
-        <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} iconClassName="text-green-500" isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
-        <EditableFieldRow label="Fonte" value={entity.source} icon={TrendingUp} iconClassName="text-emerald-500" fieldKey="source" onUpdate={onUpdate} />
-        <EditableFieldRow label="Empresa" value={entity.company} icon={Building2} iconClassName="text-slate-500" fieldKey="company" onUpdate={onUpdate} />
-        {entity.tags && entity.tags.length > 0 && (
-          <div className="pt-1">
-            <span className="text-sm text-muted-foreground">Tags</span>
-            <TagList tags={entity.tags} />
-          </div>
-        )}
+        <ProgressiveFields>
+          <EditableFieldRow label="Email" value={entity.email} icon={Mail} iconClassName="text-blue-500" isLink linkType="email" fieldKey="email" onUpdate={onUpdate} />
+          <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} iconClassName="text-green-500" isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
+          <EditableFieldRow label="Fonte" value={entity.source} icon={TrendingUp} iconClassName="text-emerald-500" fieldKey="source" onUpdate={onUpdate} />
+          <EditableFieldRow label="Empresa" value={entity.company} icon={Building2} iconClassName="text-slate-500" fieldKey="company" onUpdate={onUpdate} />
+          {entity.tags && entity.tags.length > 0 && (
+            <div className="pt-1">
+              <span className="text-sm text-muted-foreground">Tags</span>
+              <TagList tags={entity.tags} />
+            </div>
+          )}
+        </ProgressiveFields>
       </CollapsibleSection>
 
       <CollapsibleSection title="Redes Sociais" defaultOpen={false}>

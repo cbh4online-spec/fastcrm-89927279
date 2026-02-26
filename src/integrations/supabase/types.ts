@@ -11377,6 +11377,7 @@ export type Database = {
           file_name: string
           file_size: number | null
           file_url: string
+          folder: string | null
           id: string
           notes: string | null
           uploaded_by: string | null
@@ -11390,6 +11391,7 @@ export type Database = {
           file_name: string
           file_size?: number | null
           file_url: string
+          folder?: string | null
           id?: string
           notes?: string | null
           uploaded_by?: string | null
@@ -11403,6 +11405,7 @@ export type Database = {
           file_name?: string
           file_size?: number | null
           file_url?: string
+          folder?: string | null
           id?: string
           notes?: string | null
           uploaded_by?: string | null
