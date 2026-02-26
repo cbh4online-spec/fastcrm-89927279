@@ -1,6 +1,8 @@
 import { useCallback, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCompanies, Company } from "@/hooks/useCompanies";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { checkDuplicate } from "@/utils/duplicateCheck";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -100,6 +102,7 @@ export function CompanyDetailWithSidebar() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { companies, isLoading, updateCompany, deleteCompany } = useCompanies();
+  const { currentWorkspace } = useWorkspace();
   const { isModuleInstalled } = useWorkspaceModules();
   const { data: counts } = useEntityCounts('company', id);
   const { setCurrentEntityProfile } = useActivityProfileContext();
@@ -124,13 +127,24 @@ export function CompanyDetailWithSidebar() {
   }, [entityProfile, setCurrentEntityProfile]);
 
   const handleFieldChange = useCallback(async (field: keyof Company, value: unknown) => {
-    if (!company) return;
+    if (!company || !currentWorkspace) return;
+    
+    // Preventive duplicate check for email and tax_id
+    if ((field === 'email' || field === 'tax_id') && typeof value === 'string' && value.trim()) {
+      const duplicateName = await checkDuplicate('companies', field, value, currentWorkspace.id, company.id);
+      if (duplicateName) {
+        const label = field === 'email' ? 'email' : 'NIF';
+        toast.error(`Já existe uma empresa com este ${label}: "${duplicateName}"`);
+        throw new Error(`DUPLICATE_${field.toUpperCase()}`);
+      }
+    }
+    
     await updateCompany.mutateAsync({
       id: company.id,
       [field]: value || undefined,
     });
     toast.success("Campo atualizado");
-  }, [company, updateCompany]);
+  }, [company, updateCompany, currentWorkspace]);
 
   const handleNifDataReceived = useCallback(async (data: NifLookupResult) => {
     if (!company) return;

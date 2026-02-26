@@ -152,7 +152,15 @@ export function useContacts() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === "23505") {
+          const msg = error.message || "";
+          if (msg.includes("email")) throw new Error("DUPLICATE_EMAIL");
+          if (msg.includes("tax_id")) throw new Error("DUPLICATE_TAX_ID");
+          throw new Error("DUPLICATE_FIELD");
+        }
+        throw error;
+      }
       return contact;
     },
     onSuccess: () => {
@@ -161,7 +169,15 @@ export function useContacts() {
     },
     onError: (error) => {
       console.error("Error creating contact:", error);
-      toast.error("Erro ao criar contacto");
+      if (error.message === "DUPLICATE_EMAIL") {
+        toast.error("Já existe um contacto com este email neste workspace.");
+      } else if (error.message === "DUPLICATE_TAX_ID") {
+        toast.error("Já existe um contacto com este NIF neste workspace.");
+      } else if (error.message === "DUPLICATE_FIELD") {
+        toast.error("Já existe um contacto com estes dados neste workspace.");
+      } else {
+        toast.error("Erro ao criar contacto");
+      }
     },
   });
 
@@ -185,7 +201,15 @@ export function useContacts() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === "23505") {
+          const msg = error.message || "";
+          if (msg.includes("email")) throw new Error("DUPLICATE_EMAIL");
+          if (msg.includes("tax_id")) throw new Error("DUPLICATE_TAX_ID");
+          throw new Error("DUPLICATE_FIELD");
+        }
+        throw error;
+      }
       return contact;
     },
     onSuccess: () => {
@@ -194,7 +218,15 @@ export function useContacts() {
     },
     onError: (error) => {
       console.error("Error updating contact:", error);
-      toast.error("Erro ao atualizar contacto");
+      if (error.message === "DUPLICATE_EMAIL") {
+        toast.error("Já existe um contacto com este email neste workspace.");
+      } else if (error.message === "DUPLICATE_TAX_ID") {
+        toast.error("Já existe um contacto com este NIF neste workspace.");
+      } else if (error.message === "DUPLICATE_FIELD") {
+        toast.error("Já existe um contacto com estes dados neste workspace.");
+      } else {
+        toast.error("Erro ao atualizar contacto");
+      }
     },
   });
 

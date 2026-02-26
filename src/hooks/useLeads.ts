@@ -3,6 +3,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { trackLeadCreated } from "@/modules/growth-seo/lib/gtmEvents";
+import { toast } from "sonner";
 
 export type LeadStatus = "new" | "in_progress" | "completed";
 export type LeadSource = "instagram" | "whatsapp" | "email" | "form" | string;
@@ -176,7 +177,12 @@ export function useCreateLead() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === "23505" && (error.message || "").includes("email")) {
+          throw new Error("DUPLICATE_EMAIL");
+        }
+        throw error;
+      }
       return data as Lead;
     },
     onSuccess: (data) => {
@@ -190,6 +196,12 @@ export function useCreateLead() {
         lead_source: data.source || undefined,
         workspace_id: data.workspace_id,
       });
+    },
+    onError: (error) => {
+      console.error("Error creating lead:", error);
+      if (error.message === "DUPLICATE_EMAIL") {
+        toast.error("Já existe um lead com este email neste workspace.");
+      }
     },
   });
 }
@@ -210,12 +222,23 @@ export function useUpdateLead() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === "23505" && (error.message || "").includes("email")) {
+          throw new Error("DUPLICATE_EMAIL");
+        }
+        throw error;
+      }
       return data as Lead;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["leads", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["lead", data.id] });
+    },
+    onError: (error) => {
+      console.error("Error updating lead:", error);
+      if (error.message === "DUPLICATE_EMAIL") {
+        toast.error("Já existe um lead com este email neste workspace.");
+      }
     },
   });
 }

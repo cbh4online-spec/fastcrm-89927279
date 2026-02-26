@@ -174,7 +174,15 @@ export function useCompanies() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === "23505") {
+          const msg = error.message || "";
+          if (msg.includes("email")) throw new Error("DUPLICATE_EMAIL");
+          if (msg.includes("tax_id")) throw new Error("DUPLICATE_TAX_ID");
+          throw new Error("DUPLICATE_FIELD");
+        }
+        throw error;
+      }
       return company;
     },
     onSuccess: () => {
@@ -183,7 +191,15 @@ export function useCompanies() {
     },
     onError: (error) => {
       console.error("Error creating company:", error);
-      toast.error("Erro ao criar empresa");
+      if (error.message === "DUPLICATE_EMAIL") {
+        toast.error("Já existe uma empresa com este email neste workspace.");
+      } else if (error.message === "DUPLICATE_TAX_ID") {
+        toast.error("Já existe uma empresa com este NIF neste workspace.");
+      } else if (error.message === "DUPLICATE_FIELD") {
+        toast.error("Já existe uma empresa com estes dados neste workspace.");
+      } else {
+        toast.error("Erro ao criar empresa");
+      }
     },
   });
 
@@ -232,7 +248,15 @@ export function useCompanies() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === "23505") {
+          const msg = error.message || "";
+          if (msg.includes("email")) throw new Error("DUPLICATE_EMAIL");
+          if (msg.includes("tax_id")) throw new Error("DUPLICATE_TAX_ID");
+          throw new Error("DUPLICATE_FIELD");
+        }
+        throw error;
+      }
       return company;
     },
     onSuccess: () => {
@@ -240,7 +264,15 @@ export function useCompanies() {
     },
     onError: (error) => {
       console.error("Error updating company:", error);
-      toast.error("Erro ao atualizar empresa");
+      if (error.message === "DUPLICATE_EMAIL") {
+        toast.error("Já existe uma empresa com este email neste workspace.");
+      } else if (error.message === "DUPLICATE_TAX_ID") {
+        toast.error("Já existe uma empresa com este NIF neste workspace.");
+      } else if (error.message === "DUPLICATE_FIELD") {
+        toast.error("Já existe uma empresa com estes dados neste workspace.");
+      } else {
+        toast.error("Erro ao atualizar empresa");
+      }
     },
   });
 
