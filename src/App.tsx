@@ -141,6 +141,8 @@ import SEOAdminPage from "./pages/dashboard/seo";
 import CreditIntermediation from "./pages/CreditIntermediation";
 import StrategyPage from "./pages/StrategyPage";
 import CustomerLifecyclePage from "./pages/CustomerLifecyclePage";
+import EventsManagementPage from "./components/events/EventsManagementPage";
+import EventDetailPage from "./components/events/EventDetailPage";
 import RevenueOverviewPage from "./pages/RevenueOverviewPage";
 import ForgotPassword from "./pages/ForgotPassword";
 import AcceptWorkspaceInvite from "./pages/AcceptWorkspaceInvite";
@@ -461,6 +463,8 @@ function CRMRoutes() {
                 <Route path="/dashboard/credit" element={<CreditIntermediation />} />
                 <Route path="/dashboard/strategy" element={<StrategyPage />} />
                 <Route path="/dashboard/lifecycle" element={<CustomerLifecyclePage />} />
+                <Route path="/dashboard/events" element={<EventsManagementPage />} />
+                <Route path="/dashboard/events/:eventId" element={<EventDetailPage />} />
                 <Route path="/dashboard/lead-enricher" element={<LeadEnricher />} />
                 
                 {/* Order Notes Admin Routes */}

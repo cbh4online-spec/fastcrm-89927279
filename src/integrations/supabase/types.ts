@@ -6464,38 +6464,80 @@ export type Database = {
       }
       community_events: {
         Row: {
+          capacity: number | null
+          cover_image_url: string | null
           created_at: string
           created_by: string | null
+          currency: string | null
           description: string | null
           ends_at: string | null
+          event_category: string | null
           event_type: string
+          host_email: string | null
+          host_name: string | null
+          host_phone: string | null
           id: string
           link: string | null
+          location: string | null
+          location_url: string | null
+          metadata: Json | null
+          price: number | null
+          rsvp_required: boolean | null
           starts_at: string
+          status: string | null
+          tags: string[] | null
           title: string
           workspace_id: string
         }
         Insert: {
+          capacity?: number | null
+          cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
+          currency?: string | null
           description?: string | null
           ends_at?: string | null
+          event_category?: string | null
           event_type?: string
+          host_email?: string | null
+          host_name?: string | null
+          host_phone?: string | null
           id?: string
           link?: string | null
+          location?: string | null
+          location_url?: string | null
+          metadata?: Json | null
+          price?: number | null
+          rsvp_required?: boolean | null
           starts_at: string
+          status?: string | null
+          tags?: string[] | null
           title: string
           workspace_id: string
         }
         Update: {
+          capacity?: number | null
+          cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
+          currency?: string | null
           description?: string | null
           ends_at?: string | null
+          event_category?: string | null
           event_type?: string
+          host_email?: string | null
+          host_name?: string | null
+          host_phone?: string | null
           id?: string
           link?: string | null
+          location?: string | null
+          location_url?: string | null
+          metadata?: Json | null
+          price?: number | null
+          rsvp_required?: boolean | null
           starts_at?: string
+          status?: string | null
+          tags?: string[] | null
           title?: string
           workspace_id?: string
         }
@@ -11530,6 +11572,73 @@ export type Database = {
           },
           {
             foreignKeyName: "entity_profile_data_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_rsvps: {
+        Row: {
+          contact_id: string | null
+          created_at: string | null
+          email: string | null
+          event_id: string
+          id: string
+          invited_at: string | null
+          name: string | null
+          notes: string | null
+          phone: string | null
+          responded_at: string | null
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          event_id: string
+          id?: string
+          invited_at?: string | null
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          responded_at?: string | null
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          event_id?: string
+          id?: string
+          invited_at?: string | null
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          responded_at?: string | null
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_rsvps_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "community_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_rsvps_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
