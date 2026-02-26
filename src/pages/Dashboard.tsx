@@ -22,6 +22,7 @@ import { DashboardAutomationSuggestions } from "@/components/dashboard/Dashboard
 import { PipelineComparisonCard } from "@/components/dashboard/PipelineComparisonCard";
 import { PLGSignalsFeed } from "@/components/dashboard/PLGSignalsFeed";
 import { UpcomingBirthdaysWidget } from "@/components/dashboard/UpcomingBirthdaysWidget";
+import { UpcomingEventsWidget } from "@/components/dashboard/UpcomingEventsWidget";
 
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
 import { CreateOpportunityDialog } from "@/components/crm/CreateOpportunityDialog";
@@ -115,6 +116,7 @@ export default function Dashboard() {
             <div className="col-span-12 lg:col-span-4 space-y-4">
               <PipelineHealthCard />
               <PLGSignalsFeed />
+              <UpcomingEventsWidget />
               <UpcomingBirthdaysWidget />
               <ForecastConfidenceCard />
               <PipelineComparisonCard />
