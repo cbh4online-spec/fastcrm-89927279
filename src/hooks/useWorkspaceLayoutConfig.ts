@@ -8,9 +8,9 @@ export type EntityType = 'lead' | 'contact' | 'company';
 
 // Default sections for each entity type
 const DEFAULT_SECTIONS: Record<EntityType, MenuSection[]> = {
-  lead: ['overview', 'insights', 'timeline', 'communication', 'activity', 'team', 'files', 'business', 'data'],
-  contact: ['overview', 'insights', 'timeline', 'communication', 'activity', 'team', 'files', 'business', 'financial', 'data'],
-  company: ['overview', 'insights', 'timeline', 'communication', 'activity', 'team', 'files', 'business', 'financial', 'data', 'contacts'],
+  lead: ['overview', 'insights', 'timeline', 'notes', 'communication', 'activity', 'team', 'files', 'business', 'data'],
+  contact: ['overview', 'insights', 'timeline', 'notes', 'communication', 'activity', 'team', 'files', 'business', 'financial', 'data'],
+  company: ['overview', 'insights', 'timeline', 'notes', 'communication', 'activity', 'team', 'files', 'business', 'financial', 'data', 'contacts'],
 };
 
 export interface WorkspaceLayoutConfig {

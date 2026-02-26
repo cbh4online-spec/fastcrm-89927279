@@ -43,6 +43,10 @@ import { FinancialKPIStrip } from "@/components/shared/FinancialKPIStrip";
 import { EntityHighlightsGrid } from "@/components/entity/EntityHighlightsGrid";
 import { MenuSection } from "@/types/entity";
 import { InsightsSidebar } from "@/components/insights";
+import { EmailHistorySection } from "@/components/email";
+import { EntityCreditProposalsSection } from "@/modules/credit-intermediation/components/EntityCreditProposalsSection";
+import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
+import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
 import { CompanyContacts } from "./CompanyContacts";
 import { IdentificationSection } from "./sections/IdentificationSection";
 import { FinancialSection } from "./sections/FinancialSection";
@@ -224,6 +228,7 @@ export function CompanyDetailWithSidebar() {
       case 'insights':
         return (
           <div className="space-y-6">
+            <AgentQueueStatus entityId={id!} entityType="company" compact={false} showAnalyzeButton={true} />
             <CompanyInsightsPanel company={company} />
             <CompleteSocialAnalysisSection 
               companyId={id || ''}
@@ -244,6 +249,7 @@ export function CompanyDetailWithSidebar() {
               entityId={id!} 
               entityName={company.name}
             />
+            <EntityMemoryPanel entityId={id!} entityType="company" entityName={company.name} />
           </div>
         );
       case 'contacts':
@@ -262,142 +268,114 @@ export function CompanyDetailWithSidebar() {
             entityName={company.name} 
           />
         );
-      case 'relationships':
+      case 'communication':
         return (
-          <div className="space-y-6">
-            <RelationshipsPanel recordId={id!} entityType="company" />
-          </div>
-        );
-      case 'details':
-        return (
-          <div className="space-y-6">
-            {/* Profile-specific custom fields */}
-            {entityProfile && (
-              <ProfileCustomFieldsSection
-                entityType="company"
-                profileType={entityProfile.profile_type}
-                values={(company as any).profile_field_values || {}}
-                onFieldChange={async (fieldName, value) => {
-                  const currentValues = (company as any).profile_field_values || {};
-                  await handleFieldChange('profile_field_values' as keyof Company, {
-                    ...currentValues,
-                    [fieldName]: value,
-                  });
-                }}
-              />
-            )}
-            <CompanyFirmographicsSection company={company} onFieldChange={handleFieldChange} />
-            <AddressSection company={company} onFieldChange={handleFieldChange} />
-            <SocialMediaSection company={company} onFieldChange={handleFieldChange} />
-            <TagsSection company={company} onFieldChange={handleFieldChange} />
-          </div>
-        );
-      case 'financial':
-        return (
-          <div className="space-y-4">
-          <FinancialKPIStrip entityType="company" entityId={id!} />
           <EntitySubTabs
             tabs={[
-              { id: 'profile', label: 'Perfil' },
-              { id: 'payments', label: 'Pagamentos' },
-              { id: 'orders', label: 'Encomendas' },
-              { id: 'history', label: 'Histórico' },
+              { id: 'emails', label: 'Emails' },
+              { id: 'messages', label: 'Mensagens' },
+              { id: 'scheduling', label: 'Agendamentos' },
             ]}
-            defaultTab="profile"
           >
-            {(subTab) => {
-              switch (subTab) {
-                case 'profile':
-                  return <FinancialSection company={company} onFieldChange={handleFieldChange} />;
-                case 'payments':
-                  return <AcquiredProductsSection companyId={id} />;
-                case 'orders':
-                  return <CompanyOrderNotesSection companyId={id!} />;
-                case 'history':
-                  return <CommercialHistorySection company={company} onFieldChange={handleFieldChange} />;
-                default:
-                  return null;
+            {(tab) => {
+              switch (tab) {
+                case 'emails':
+                  return <EmailHistorySection entityType="company" entityId={id!} entityEmail={company.email} />;
+                case 'messages':
+                  return <ContactMessagesSection entityType="company" entityId={id!} entityName={company.name} entityEmail={company.email} entityPhone={company.phone} />;
+                case 'scheduling':
+                  return <EntitySchedulingSection entityType="company" entityId={id!} entityName={company.name} entityEmail={company.email} entityPhone={company.phone} />;
+                default: return null;
               }
             }}
           </EntitySubTabs>
-          </div>
         );
-      case 'timeline':
+      case 'activity':
         return (
-          <EntityTimelineSection
-            entityType="company"
-            entityId={id!}
-            entityName={company.name}
-          />
+          <EntitySubTabs
+            tabs={[
+              { id: 'tasks', label: 'Tarefas' },
+              { id: 'automations', label: 'Automações' },
+            ]}
+          >
+            {(tab) => tab === 'tasks'
+              ? <EntityTasksSection entityType="company" entityId={id!} entityName={company.name} />
+              : <EntityAutomationSection entityType="company" entityId={id!} entityName={company.name} />
+            }
+          </EntitySubTabs>
         );
-      case 'messages':
+      case 'business':
         return (
-          <ContactMessagesSection
-            entityType="company"
-            entityId={id!}
-            entityName={company.name}
-            entityEmail={company.email}
-            entityPhone={company.phone}
-          />
+          <EntitySubTabs
+            tabs={[
+              { id: 'opportunities', label: 'Oportunidades' },
+              { id: 'proposals', label: 'Propostas' },
+              { id: 'credit', label: 'Crédito' },
+            ]}
+          >
+            {(tab) => {
+              switch (tab) {
+                case 'opportunities':
+                  return <EntityOpportunitiesSection entityType="company" entityId={id!} entityName={company.name} entityIndustry={company.industry || undefined} entityNotes={company.notes || undefined} />;
+                case 'proposals':
+                  return <EntityProposalsSection entityType="company" entityId={id!} entityName={company.name} />;
+                case 'credit':
+                  return <EntityCreditProposalsSection entityType="company" entityId={id!} entityName={company.name} />;
+                default: return null;
+              }
+            }}
+          </EntitySubTabs>
         );
-      case 'tasks':
+      case 'data':
         return (
-          <EntityTasksSection
-            entityType="company"
-            entityId={id!}
-            entityName={company.name}
-          />
+          <EntitySubTabs
+            tabs={[
+              { id: 'details', label: 'Informações' },
+              { id: 'fields', label: 'Campos' },
+              { id: 'relationships', label: 'Relações' },
+              { id: 'audit', label: 'Auditoria' },
+            ]}
+          >
+            {(tab) => {
+              switch (tab) {
+                case 'details':
+                  return (
+                    <div className="space-y-6">
+                      {entityProfile && (
+                        <ProfileCustomFieldsSection
+                          entityType="company"
+                          profileType={entityProfile.profile_type}
+                          values={(company as any).profile_field_values || {}}
+                          onFieldChange={async (fieldName, value) => {
+                            const currentValues = (company as any).profile_field_values || {};
+                            await handleFieldChange('profile_field_values' as keyof Company, {
+                              ...currentValues,
+                              [fieldName]: value,
+                            });
+                          }}
+                        />
+                      )}
+                      <CompanyFirmographicsSection company={company} onFieldChange={handleFieldChange} />
+                      <AddressSection company={company} onFieldChange={handleFieldChange} />
+                      <SocialMediaSection company={company} onFieldChange={handleFieldChange} />
+                      <TagsSection company={company} onFieldChange={handleFieldChange} />
+                    </div>
+                  );
+                case 'fields':
+                  return (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      Campos personalizados em desenvolvimento.
+                    </div>
+                  );
+                case 'relationships':
+                  return <RelationshipsPanel recordId={id!} entityType="company" />;
+                case 'audit':
+                  return <CompanyAuditSection companyId={id!} />;
+                default: return null;
+              }
+            }}
+          </EntitySubTabs>
         );
-      case 'automations':
-        return (
-          <EntityAutomationSection
-            entityType="company"
-            entityId={id!}
-            entityName={company.name}
-          />
-        );
-      case 'opportunities':
-        return (
-          <EntityOpportunitiesSection
-            entityType="company"
-            entityId={id!}
-            entityName={company.name}
-            entityIndustry={company.industry || undefined}
-            entityNotes={company.notes || undefined}
-          />
-        );
-      case 'proposals':
-        return (
-          <EntityProposalsSection
-            entityType="company"
-            entityId={id!}
-            entityName={company.name}
-          />
-        );
-      case 'scheduling':
-        return (
-          <EntitySchedulingSection
-            entityType="company"
-            entityId={id!}
-            entityName={company.name}
-            entityEmail={company.email}
-            entityPhone={company.phone}
-          />
-        );
-      case 'team':
-        return (
-          <EntityTeamSection
-            entityType="company"
-            entityId={id!}
-            entityName={company.name}
-          />
-        );
-      case 'files':
-        return (
-          <EntityDocumentsSection entityType="company" entityId={id!} />
-        );
-      case 'audit':
-        return <CompanyAuditSection companyId={id!} />;
       default:
         return (
           <div className="text-center py-12 text-muted-foreground">
