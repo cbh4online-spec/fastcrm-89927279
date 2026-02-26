@@ -1,27 +1,22 @@
 
 
-# Adicionar Aba "Relacionamentos" para Empresas e Contactos
+# Adicionar Contador de Notas na Aba "Notas"
 
 ## Alterações
 
-### 1. `src/components/entity/EntityHorizontalTabs.tsx`
-- Adicionar `{ id: 'relationships', label: 'Relações', showFor: ['contact', 'company'] }` ao array `ALL_TABS`, posicionado antes de `data`
+### 1. `src/hooks/useEntityCounts.ts`
+- Adicionar `notes: number` ao interface `EntityCounts`
+- Adicionar query à tabela `entity_notes` filtrando por `entity_type` e `entity_id` (e `workspace_id` via contexto)
+- Incluir `notes: notesCount` no retorno
 
-### 2. `src/hooks/useWorkspaceLayoutConfig.ts`
-- Adicionar `'relationships'` aos `DEFAULT_SECTIONS` de `contact` e `company`
+### 2. `src/components/entity/EntityHorizontalTabs.tsx`
+- Adicionar `notes?: number` ao tipo `counts` nas props
+- O badge já é renderizado automaticamente pelo `getCount(tab.id)` — basta que `counts.notes` exista
 
-### 3. `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx`
-- Importar `RelationshipsPanel` de `@/components/objects/RelationshipsPanel`
-- Adicionar `case 'relationships'` no switch com `<RelationshipsPanel recordId={id!} entityType="contact" />`
-
-### 4. `src/components/companies/CompanyDetailWithSidebar.tsx`
-- Adicionar `case 'relationships'` como case de nível superior com `<RelationshipsPanel recordId={id!} entityType="company" />`
-- Remover a sub-tab `relationships` de dentro do `case 'data'` (já que passa a ser aba própria)
+Nenhuma alteração nos 3 ficheiros de detalhe (Lead, Contact, Company) pois já passam `counts` directamente do `useEntityCounts`.
 
 | Ficheiro | Acção |
 |----------|-------|
-| `EntityHorizontalTabs.tsx` | Adicionar tab `relationships` para contact/company |
-| `useWorkspaceLayoutConfig.ts` | Adicionar aos defaults de contact e company |
-| `ENIContactDetailWithSidebar.tsx` | Adicionar case `relationships` |
-| `CompanyDetailWithSidebar.tsx` | Promover relationships de sub-tab para tab principal |
+| `useEntityCounts.ts` | Contar notas da tabela `entity_notes` |
+| `EntityHorizontalTabs.tsx` | Adicionar `notes` ao tipo de counts |
 
