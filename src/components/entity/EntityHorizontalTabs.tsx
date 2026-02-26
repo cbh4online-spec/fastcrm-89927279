@@ -31,6 +31,7 @@ const ALL_TABS: TabItem[] = [
   { id: 'files', label: 'Ficheiros', showFor: ['lead', 'contact', 'company'] },
   { id: 'business', label: 'Negócios', showFor: ['lead', 'contact', 'company'] },
   { id: 'financial', label: 'Financeiro', showFor: ['contact', 'company'] },
+  { id: 'relationships', label: 'Relações', showFor: ['contact', 'company'] },
   { id: 'data', label: 'Dados', showFor: ['lead', 'contact', 'company'] },
   { id: 'contacts', label: 'Contactos', showFor: ['company'] },
   { id: 'student-journey', label: 'Student Journey', showFor: ['contact'] },

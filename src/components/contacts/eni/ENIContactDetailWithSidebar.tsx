@@ -57,6 +57,7 @@ import { AgentQueueStatus } from "@/components/ai-agents/AgentQueueStatus";
 import { EntityMemoryPanel } from "@/components/ai-agents/EntityMemoryPanel";
 import { ComposeEmailDialog, EmailHistorySection } from "@/components/email";
 import { EntityTimelineSection } from "@/components/timeline";
+import { RelationshipsPanel } from "@/components/objects/RelationshipsPanel";
 import { ContactOrderNotesSection } from "@/components/contacts/sections/ContactOrderNotesSection";
 import { ContactStudentJourneySection } from "@/components/contacts/sections/ContactStudentJourneySection";
 import { useContactStudentJourneyProfile } from "@/hooks/useContactStudentJourneyProfile";
@@ -370,6 +371,8 @@ export function ENIContactDetailWithSidebar() {
             entityName={contact.name}
           />
         );
+      case 'relationships':
+        return <RelationshipsPanel recordId={id!} entityType="contact" />;
       case 'files':
         return (
           <EntityDocumentsSection entityType="contact" entityId={id!} />
