@@ -6,6 +6,15 @@ import type { CalendarEvent, Calendar } from './useCalendars';
 
 const COMMUNITY_CALENDAR_ID = 'community-events';
 
+const CATEGORY_COLORS: Record<string, string> = {
+  networking: '#3B82F6',
+  jantar: '#EF4444',
+  workshop: '#8B5CF6',
+  webinar: '#06B6D4',
+  conferencia: '#F59E0B',
+  outro: '#6B7280',
+};
+
 export const COMMUNITY_CALENDAR: Calendar = {
   id: COMMUNITY_CALENDAR_ID,
   workspace_id: '',
@@ -84,7 +93,7 @@ export function useCommunityEventsForCalendar(dateRange?: { start: Date; end: Da
           opportunity_id: null,
           attendees: [],
           reminders: [],
-          metadata: { _communityEventId: evt.id },
+          metadata: { _communityEventId: evt.id, _categoryColor: CATEGORY_COLORS[evt.event_category] || CATEGORY_COLORS.outro },
           created_by: evt.created_by || '',
           created_at: evt.created_at,
           updated_at: evt.created_at,

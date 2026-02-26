@@ -62,7 +62,9 @@ export function CalendarListView({
   const [sortField, setSortField] = useState<SortField>('start_time');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
-  const getCalendarColor = (calendarId: string) => {
+  const getCalendarColor = (calendarId: string, event?: CalendarEvent) => {
+    const categoryColor = (event?.metadata as any)?._categoryColor;
+    if (categoryColor) return categoryColor;
     return calendars.find(c => c.id === calendarId)?.color || '#3B82F6';
   };
 
@@ -230,7 +232,7 @@ export function CalendarListView({
                         {/* Color bar */}
                         <div 
                           className="w-1 h-12 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: getCalendarColor(event.calendar_id) }}
+                          style={{ backgroundColor: getCalendarColor(event.calendar_id, event) }}
                         />
 
                         {/* Event details */}

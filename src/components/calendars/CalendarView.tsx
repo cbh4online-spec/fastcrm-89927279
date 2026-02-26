@@ -25,7 +25,9 @@ export function CalendarView({
   onCreateEvent,
   onEventClick,
 }: CalendarViewProps) {
-  const getCalendarColor = (calendarId: string) => {
+  const getCalendarColor = (calendarId: string, event?: CalendarEvent) => {
+    const categoryColor = (event?.metadata as any)?._categoryColor;
+    if (categoryColor) return categoryColor;
     return calendars.find(c => c.id === calendarId)?.color || '#3B82F6';
   };
 
@@ -79,7 +81,7 @@ export function CalendarView({
 interface MonthViewProps {
   currentDate: Date;
   events: CalendarEvent[];
-  getCalendarColor: (id: string) => string;
+  getCalendarColor: (id: string, event?: CalendarEvent) => string;
   onDayClick: (date: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
 }
@@ -137,7 +139,7 @@ function MonthView({ currentDate, events, getCalendarColor, onDayClick, onEventC
               </div>
               <div className="space-y-1">
                 {dayEvents.slice(0, 3).map(event => {
-                  const color = getCalendarColor(event.calendar_id);
+                  const color = getCalendarColor(event.calendar_id, event);
                   return (
                     <div
                       key={event.id}
@@ -173,7 +175,7 @@ function MonthView({ currentDate, events, getCalendarColor, onDayClick, onEventC
 interface WeekViewProps {
   currentDate: Date;
   events: CalendarEvent[];
-  getCalendarColor: (id: string) => string;
+  getCalendarColor: (id: string, event?: CalendarEvent) => string;
   onTimeClick: (date: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
 }
@@ -240,7 +242,7 @@ function WeekView({ currentDate, events, getCalendarColor, onTimeClick, onEventC
                     }}
                   >
                     {hourEvents.map(event => {
-                      const color = getCalendarColor(event.calendar_id);
+                      const color = getCalendarColor(event.calendar_id, event);
                       return (
                         <div
                           key={event.id}
@@ -274,7 +276,7 @@ function WeekView({ currentDate, events, getCalendarColor, onTimeClick, onEventC
 interface DayViewProps {
   currentDate: Date;
   events: CalendarEvent[];
-  getCalendarColor: (id: string) => string;
+  getCalendarColor: (id: string, event?: CalendarEvent) => string;
   onTimeClick: (date: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
 }
@@ -308,7 +310,7 @@ function DayView({ currentDate, events, getCalendarColor, onTimeClick, onEventCl
                 }}
               >
                 {hourEvents.map(event => {
-                  const color = getCalendarColor(event.calendar_id);
+                  const color = getCalendarColor(event.calendar_id, event);
                   return (
                     <div
                       key={event.id}
