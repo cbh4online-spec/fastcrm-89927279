@@ -26,6 +26,7 @@ const SECTION_LABELS: Record<MenuSection, string> = {
   'data': 'Dados',
   'contacts': 'Contactos',
   'student-journey': 'Student Journey',
+  'files': 'Ficheiros',
   // Legacy
   'notes': 'Notas',
   'messages': 'Mensagens',

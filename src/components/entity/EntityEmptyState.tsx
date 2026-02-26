@@ -107,6 +107,13 @@ const SECTION_CONFIG: Record<MenuSection, {
     suggestion: 'Cria um perfil para acompanhar a jornada educacional.',
     actionLabel: 'Criar Perfil',
   },
+  files: {
+    icon: FileText,
+    title: 'Sem ficheiros',
+    description: 'Nenhum ficheiro carregado.',
+    suggestion: 'Faz upload do primeiro ficheiro.',
+    actionLabel: 'Carregar Ficheiro',
+  },
   // Legacy sections (kept for backward compatibility)
   notes: {
     icon: StickyNote,

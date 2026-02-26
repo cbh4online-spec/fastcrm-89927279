@@ -10,8 +10,6 @@ import { Send, Pin, Trash2, MessageSquareText } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { EntitySubTabs } from './EntitySubTabs';
-import { EntityDocumentsSection } from './EntityDocumentsSection';
 import { MentionTextarea, renderNoteContent } from './MentionTextarea';
 
 interface EntityTeamSectionProps {
@@ -256,18 +254,5 @@ function TeamNotesPanel({ entityType, entityId }: { entityType: string; entityId
 }
 
 export function EntityTeamSection({ entityType, entityId, entityName }: Omit<EntityTeamSectionProps, 'showDocuments'>) {
-  const tabs = [
-    { id: 'notes', label: 'Notas Internas' },
-    { id: 'files', label: 'Ficheiros' },
-  ];
-
-  return (
-    <EntitySubTabs tabs={tabs}>
-      {(tab) => {
-        if (tab === 'notes') return <TeamNotesPanel entityType={entityType} entityId={entityId} />;
-        if (tab === 'files') return <EntityDocumentsSection entityType={entityType} entityId={entityId} />;
-        return null;
-      }}
-    </EntitySubTabs>
-  );
+  return <TeamNotesPanel entityType={entityType} entityId={entityId} />;
 }

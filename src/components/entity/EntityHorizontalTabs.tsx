@@ -27,6 +27,7 @@ const ALL_TABS: TabItem[] = [
   { id: 'communication', label: 'Comunicação', showFor: ['lead', 'contact', 'company'] },
   { id: 'activity', label: 'Atividade', showFor: ['lead', 'contact', 'company'] },
   { id: 'team', label: 'Equipa', showFor: ['lead', 'contact', 'company'] },
+  { id: 'files', label: 'Ficheiros', showFor: ['lead', 'contact', 'company'] },
   { id: 'business', label: 'Negócios', showFor: ['lead', 'contact', 'company'] },
   { id: 'financial', label: 'Financeiro', showFor: ['contact', 'company'] },
   { id: 'data', label: 'Dados', showFor: ['lead', 'contact', 'company'] },
