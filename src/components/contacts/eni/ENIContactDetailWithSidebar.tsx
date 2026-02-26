@@ -38,6 +38,7 @@ import { EntityHorizontalTabs } from "@/components/entity/EntityHorizontalTabs";
 import { EntityDetailsPanel } from "@/components/entity/EntityDetailsPanel";
 import { EntityHighlightsGrid } from "@/components/entity/EntityHighlightsGrid";
 import { EntitySubTabs } from "@/components/entity/EntitySubTabs";
+import { EntityTeamSection } from "@/components/entity/EntityTeamSection";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { MenuSection } from "@/types/entity";
 import { LinkedCompanyCard } from "@/components/contacts/LinkedCompanyCard";
@@ -348,6 +349,15 @@ export function ENIContactDetailWithSidebar() {
             }}
           </EntitySubTabs>
         );
+      case 'team':
+        return (
+          <EntityTeamSection
+            entityType="contact"
+            entityId={id!}
+            entityName={contact.name}
+            showDocuments={true}
+          />
+        );
       case 'data':
         return (
           <EntitySubTabs
@@ -386,7 +396,11 @@ export function ENIContactDetailWithSidebar() {
                     </div>
                   );
                 case 'fields':
-                  return <DocumentsSection contactId={id!} />;
+                  return (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      Campos personalizados em desenvolvimento.
+                    </div>
+                  );
                 case 'audit':
                   return <ContactAuditSection contactId={id!} />;
                 default: return null;

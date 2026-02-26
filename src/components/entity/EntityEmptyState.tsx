@@ -86,6 +86,13 @@ const SECTION_CONFIG: Record<MenuSection, {
     description: 'Preenche os dados para completar o perfil.',
     suggestion: 'Quanto mais informação, melhores os insights da IA.',
   },
+  team: {
+    icon: Users,
+    title: 'Sem notas da equipa',
+    description: 'Comunica com a equipa sobre este registo.',
+    suggestion: 'Adiciona uma nota interna ou partilha ficheiros.',
+    actionLabel: 'Adicionar Nota',
+  },
   contacts: {
     icon: Users,
     title: 'Sem contactos associados',

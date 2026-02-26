@@ -67,6 +67,7 @@ export type MenuSection =
   | 'timeline' 
   | 'communication'
   | 'activity'
+  | 'team'
   | 'business'
   | 'financial'
   | 'data'
