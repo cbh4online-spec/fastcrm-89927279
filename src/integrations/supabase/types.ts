@@ -20376,24 +20376,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "object_relationships_source_object_id_fkey"
-            columns: ["source_object_id"]
-            isOneToOne: false
-            referencedRelation: "custom_objects"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "object_relationships_source_record_id_fkey"
             columns: ["source_record_id"]
             isOneToOne: false
             referencedRelation: "object_records"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "object_relationships_target_object_id_fkey"
-            columns: ["target_object_id"]
-            isOneToOne: false
-            referencedRelation: "custom_objects"
             referencedColumns: ["id"]
           },
           {

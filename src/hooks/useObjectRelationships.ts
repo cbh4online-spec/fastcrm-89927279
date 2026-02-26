@@ -3,6 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 
+// Core object metadata for resolving __core_ prefixed IDs
+const CORE_OBJECT_META: Record<string, { name: string; icon: string; slug: string }> = {
+  __core_contacts: { name: "Contatos", icon: "Users", slug: "contacts" },
+  __core_companies: { name: "Empresas", icon: "Building2", slug: "companies" },
+  __core_deals: { name: "Negócios", icon: "Kanban", slug: "deals" },
+};
+
 export interface ObjectRelationship {
   id: string;
   workspace_id: string;
@@ -51,13 +58,23 @@ export function useObjectRelationships(recordId: string | null) {
         if (r.target_record_id !== recordId) recordIds.add(r.target_record_id);
       }
 
-      // Resolve object names
-      const { data: objects } = await (supabase
-        .from("custom_objects")
-        .select("id, name, icon, slug") as any)
-        .in("id", Array.from(objectIds));
+      // Separate core vs custom object IDs
+      const coreIds = Array.from(objectIds).filter(id => id.startsWith("__core_"));
+      const customIds = Array.from(objectIds).filter(id => !id.startsWith("__core_"));
 
-      const objectMap = new Map((objects || []).map((o: any) => [o.id, o]));
+      // Resolve custom object names
+      const objectMap = new Map<string, any>();
+      for (const cid of coreIds) {
+        const meta = CORE_OBJECT_META[cid];
+        if (meta) objectMap.set(cid, meta);
+      }
+      if (customIds.length > 0) {
+        const { data: objects } = await (supabase
+          .from("custom_objects")
+          .select("id, name, icon, slug") as any)
+          .in("id", customIds);
+        for (const o of (objects || [])) objectMap.set(o.id, o);
+      }
 
       // Resolve record data
       const { data: records } = await (supabase
