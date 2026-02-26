@@ -1,80 +1,46 @@
 
 
-# Notificações para Notas Internas da Equipa
+# Pastas nos Ficheiros + Revisão do Painel de Detalhes
 
-## Abordagem
+## 1. Pastas nos Ficheiros
 
-Criar um trigger PostgreSQL na tabela `entity_notes` que, ao inserir uma nota com `note_type = 'team'`, gera notificações em `admin_notifications` para todos os membros do workspace (exceto o autor). Adicionalmente, se a nota tiver `mentions`, gera notificações específicas para os mencionados com tipo diferenciado.
+### Migração SQL
+Adicionar coluna `folder` (TEXT, nullable, default NULL) à tabela `entity_documents`. Ficheiros na raiz têm `folder = NULL`, ficheiros dentro de uma pasta têm `folder = 'nome-da-pasta'`.
 
-## Alterações
+### Actualizar `EntityDocumentsSection.tsx`
+- Adicionar botão "Criar Pasta" ao lado de "Adicionar" no header
+- Dialog simples para criar pasta (campo nome)
+- Agrupar ficheiros por `folder`: mostrar pastas como linhas colapsáveis com ícone de pasta e contagem de ficheiros
+- Upload passa a permitir seleccionar pasta destino (dropdown opcional no dialog de upload)
+- Ficheiros sem pasta aparecem na raiz
+- Visual: ícone de pasta com chevron para expandir/colapsar, similar ao screenshot Attio
 
-### 1. Migração SQL — Trigger `notify_team_note`
-
-```sql
-CREATE OR REPLACE FUNCTION public.fn_notify_team_note()
-RETURNS TRIGGER AS $$
-DECLARE
-  member_record RECORD;
-  author_name TEXT;
-  entity_label TEXT;
-  mention_ids TEXT[];
-BEGIN
-  IF NEW.note_type = 'team' THEN
-    -- Get author name
-    SELECT full_name INTO author_name 
-    FROM public.profiles WHERE user_id = NEW.created_by;
-    author_name := COALESCE(author_name, 'Alguém');
-    
-    -- Get entity name for context
-    SELECT name INTO entity_label FROM public.contacts WHERE id = NEW.entity_id
-    UNION ALL SELECT name FROM public.leads WHERE id = NEW.entity_id
-    UNION ALL SELECT name FROM public.companies WHERE id = NEW.entity_id
-    LIMIT 1;
-    entity_label := COALESCE(entity_label, 'registo');
-
-    -- Get mentions array
-    mention_ids := COALESCE(NEW.mentions, '{}');
-
-    -- Notify all workspace members except author
-    FOR member_record IN
-      SELECT user_id FROM public.workspace_members 
-      WHERE workspace_id = NEW.workspace_id AND user_id != NEW.created_by
-    LOOP
-      INSERT INTO public.admin_notifications (
-        workspace_id, user_id, type, title, message, metadata
-      ) VALUES (
-        NEW.workspace_id,
-        member_record.user_id,
-        CASE WHEN member_record.user_id = ANY(mention_ids) THEN 'team_mention' ELSE 'team_note' END,
-        CASE WHEN member_record.user_id = ANY(mention_ids) 
-          THEN author_name || ' mencionou-te numa nota'
-          ELSE author_name || ' adicionou uma nota interna'
-        END,
-        'Sobre ' || entity_label || ': ' || LEFT(NEW.content, 100),
-        jsonb_build_object(
-          'entity_type', NEW.entity_type, 
-          'entity_id', NEW.entity_id,
-          'note_id', NEW.id,
-          'is_mention', member_record.user_id = ANY(mention_ids)
-        )
-      );
-    END LOOP;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+### Estrutura visual
+```text
+Files
+├── [+ Upload file]  [+ Create folder]
+├── 📁 iRepair Stop (1 ficheiro)         ▼
+│   └── 📄 iRepair Pitch Deck   Sep 24th 2025
+├── 📄 Contrato.pdf              Jan 12th 2026
 ```
 
-Trigger: `AFTER INSERT ON entity_notes`
+## 2. Painel de Detalhes — já alinhado
 
-### 2. Actualizar `NotificationsDropdown.tsx`
+O `EntityDetailsPanel` actual já segue a metodologia Attio:
+- Secções colapsáveis (`CollapsibleSection`) com chevron
+- Campos editáveis inline (`EditableFieldRow`) com ícones coloridos
+- Tags com cores distintas
+- Layout label + valor alinhado
 
-Adicionar ícones para os novos tipos `team_note` e `team_mention` no mapa `typeIcons`.
+Pequenas melhorias de alinhamento com o screenshot:
+- Adicionar secção "Datas" com `created_at` / `updated_at` formatados
+- Adicionar "Show all values" link quando há mais de 5 campos numa secção (progressive disclosure como Attio)
 
-### Ficheiros
+## Ficheiros
 
 | Ficheiro | Acção |
 |----------|-------|
-| Migração SQL | Trigger `fn_notify_team_note` + `AFTER INSERT ON entity_notes` |
-| `src/components/layout/NotificationsDropdown.tsx` | Ícones para `team_note` / `team_mention` |
+| Migração SQL | Adicionar coluna `folder` a `entity_documents` |
+| `src/components/entity/EntityDocumentsSection.tsx` | Pastas colapsáveis + criar pasta + upload com pasta destino |
+| `src/components/entity/EntityDetailsPanel.tsx` | Secção "Datas" + "Show all values" progressive disclosure |
 
