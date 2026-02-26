@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths } from 'date-fns';
 import { useCalendars, type Calendar, type CalendarEvent, type CreateCalendarData, type CreateEventData } from '@/hooks/useCalendars';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
+import { useCommunityEventsForCalendar, COMMUNITY_CALENDAR } from '@/hooks/useCommunityEventsForCalendar';
 import { CalendarSidebar } from '@/components/calendars/CalendarSidebar';
 import { CalendarGlobalView } from '@/components/calendars/CalendarGlobalView';
 import { CalendarCreateModal } from '@/components/calendars/CalendarCreateModal';
@@ -10,13 +11,17 @@ import { CalendarEventModal } from '@/components/calendars/CalendarEventModal';
 import { Loader2, LayoutDashboard, Clock, Briefcase, CalendarClock, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+const COMMUNITY_CALENDAR_ID = 'community-events';
+
 export default function CalendarsPage() {
+  const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
   const [editingCalendar, setEditingCalendar] = useState<Calendar | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [defaultEventDate, setDefaultEventDate] = useState<Date>(new Date());
+  const [showCommunityEvents, setShowCommunityEvents] = useState(true);
 
   const {
     calendars,
@@ -31,7 +36,6 @@ export default function CalendarsPage() {
     deselectAllCalendars,
   } = useCalendars();
 
-  // Calculate date range for events (current month + buffer)
   const dateRange = useMemo(() => {
     const monthStart = startOfMonth(subMonths(currentDate, 1));
     const monthEnd = endOfMonth(addMonths(currentDate, 1));
@@ -49,12 +53,43 @@ export default function CalendarsPage() {
     deleteEvent,
   } = useCalendarEvents(selectedCalendarIds, dateRange);
 
+  const { events: communityEvents } = useCommunityEventsForCalendar(dateRange);
+
+  // Merge events
+  const mergedEvents = useMemo(() => {
+    if (showCommunityEvents) {
+      return [...events, ...communityEvents];
+    }
+    return events;
+  }, [events, communityEvents, showCommunityEvents]);
+
+  // Merge calendars for sidebar
+  const allCalendars = useMemo(() => {
+    return [...calendars, COMMUNITY_CALENDAR];
+  }, [calendars]);
+
+  // Selected IDs including community
+  const allSelectedIds = useMemo(() => {
+    return showCommunityEvents
+      ? [...selectedCalendarIds, COMMUNITY_CALENDAR_ID]
+      : selectedCalendarIds;
+  }, [selectedCalendarIds, showCommunityEvents]);
+
+  const handleToggleCalendar = (id: string) => {
+    if (id === COMMUNITY_CALENDAR_ID) {
+      setShowCommunityEvents(prev => !prev);
+    } else {
+      toggleCalendarSelection(id);
+    }
+  };
+
   const handleCreateCalendar = () => {
     setEditingCalendar(null);
     setShowCalendarModal(true);
   };
 
   const handleEditCalendar = (calendar: Calendar) => {
+    if (calendar.id === COMMUNITY_CALENDAR_ID) return;
     setEditingCalendar(calendar);
     setShowCalendarModal(true);
   };
@@ -74,6 +109,12 @@ export default function CalendarsPage() {
   };
 
   const handleEventClick = (event: CalendarEvent) => {
+    // Community event → navigate to event detail
+    if (event.calendar_id === COMMUNITY_CALENDAR_ID) {
+      const realId = (event.metadata as any)?._communityEventId || event.id.replace('community-', '');
+      navigate(`/dashboard/events/${realId}`);
+      return;
+    }
     setEditingEvent(event);
     setShowEventModal(true);
   };
@@ -135,21 +176,22 @@ export default function CalendarsPage() {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
       <CalendarSidebar
-        calendars={calendars}
+        calendars={allCalendars}
         groups={groups}
-        selectedCalendarIds={selectedCalendarIds}
-        onToggleCalendar={toggleCalendarSelection}
+        selectedCalendarIds={allSelectedIds}
+        onToggleCalendar={handleToggleCalendar}
         onSelectAll={selectAllCalendars}
         onDeselectAll={deselectAllCalendars}
         onCreateCalendar={handleCreateCalendar}
         onEditCalendar={handleEditCalendar}
+        virtualCalendarIds={[COMMUNITY_CALENDAR_ID]}
       />
 
       <CalendarGlobalView
-        events={events}
-        calendars={calendars}
+        events={mergedEvents}
+        calendars={allCalendars}
         groups={groups}
-        selectedCalendarIds={selectedCalendarIds}
+        selectedCalendarIds={allSelectedIds}
         onCreateEvent={handleCreateEvent}
         onEventClick={handleEventClick}
       />

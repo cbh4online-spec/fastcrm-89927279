@@ -3,6 +3,7 @@ import { Calendar, Plus, ChevronDown, ChevronRight, Eye, EyeOff, Settings } from
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import type { Calendar as CalendarType, CalendarGroup } from '@/hooks/useCalendars';
@@ -16,6 +17,7 @@ interface CalendarSidebarProps {
   onDeselectAll: () => void;
   onCreateCalendar: () => void;
   onEditCalendar: (calendar: CalendarType) => void;
+  virtualCalendarIds?: string[];
 }
 
 const calendarTypeLabels = {
@@ -33,8 +35,9 @@ export function CalendarSidebar({
   onDeselectAll,
   onCreateCalendar,
   onEditCalendar,
+  virtualCalendarIds = [],
 }: CalendarSidebarProps) {
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['ungrouped', ...groups.map(g => g.id)]);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(['ungrouped', 'virtual', ...groups.map(g => g.id)]);
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups(prev =>
@@ -44,16 +47,20 @@ export function CalendarSidebar({
     );
   };
 
+  // Separate real and virtual calendars
+  const realCalendars = useMemo(() => calendars.filter(c => !virtualCalendarIds.includes(c.id)), [calendars, virtualCalendarIds]);
+  const virtualCalendars = useMemo(() => calendars.filter(c => virtualCalendarIds.includes(c.id)), [calendars, virtualCalendarIds]);
+
   const groupedCalendars = useMemo(() => {
-    return calendars.reduce((acc, calendar) => {
+    return realCalendars.reduce((acc, calendar) => {
       const groupId = calendar.group_id || 'ungrouped';
       if (!acc[groupId]) acc[groupId] = [];
       acc[groupId].push(calendar);
       return acc;
     }, {} as Record<string, CalendarType[]>);
-  }, [calendars]);
+  }, [realCalendars]);
 
-  const allSelected = calendars.filter(c => c.status === 'active').length === selectedCalendarIds.length;
+  const allSelected = realCalendars.filter(c => c.status === 'active').length === selectedCalendarIds.filter(id => !virtualCalendarIds.includes(id)).length;
 
   return (
     <div className="w-64 border-r border-border/50 bg-gradient-to-b from-card/80 to-card/60 backdrop-blur-sm p-4 flex flex-col h-full">
@@ -178,6 +185,45 @@ export function CalendarSidebar({
             </Collapsible>
           );
         })}
+
+        {/* Virtual calendars (Outros) */}
+        {virtualCalendars.length > 0 && (
+          <>
+            <Separator className="my-2" />
+            <Collapsible
+              open={expandedGroups.includes('virtual')}
+              onOpenChange={() => toggleGroup('virtual')}
+            >
+              <CollapsibleTrigger className="flex items-center gap-2 w-full text-left py-2 px-3 rounded-xl hover:bg-accent/50 transition-all duration-200 group">
+                <div className={cn(
+                  "transition-transform duration-200",
+                  expandedGroups.includes('virtual') ? "rotate-0" : "-rotate-90"
+                )}>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <span className="text-sm font-medium text-muted-foreground">Outros</span>
+                <Badge 
+                  variant="secondary" 
+                  className="ml-auto text-xs rounded-lg bg-muted/80"
+                >
+                  {virtualCalendars.length}
+                </Badge>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-4 space-y-1 mt-1">
+                {virtualCalendars.map(calendar => (
+                  <CalendarItem
+                    key={calendar.id}
+                    calendar={calendar}
+                    isSelected={selectedCalendarIds.includes(calendar.id)}
+                    onToggle={() => onToggleCalendar(calendar.id)}
+                    onEdit={() => onEditCalendar(calendar)}
+                    hideSettings
+                  />
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          </>
+        )}
       </div>
     </div>
   );
@@ -188,9 +234,10 @@ interface CalendarItemProps {
   isSelected: boolean;
   onToggle: () => void;
   onEdit: () => void;
+  hideSettings?: boolean;
 }
 
-function CalendarItem({ calendar, isSelected, onToggle, onEdit }: CalendarItemProps) {
+function CalendarItem({ calendar, isSelected, onToggle, onEdit, hideSettings }: CalendarItemProps) {
   return (
     <div
       className={cn(
@@ -216,14 +263,16 @@ function CalendarItem({ calendar, isSelected, onToggle, onEdit }: CalendarItemPr
           {calendarTypeLabels[calendar.calendar_type as keyof typeof calendarTypeLabels]}
         </span>
       </div>
-      <Button
-        size="icon"
-        variant="ghost"
-        className="h-7 w-7 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-background/80"
-        onClick={onEdit}
-      >
-        <Settings className="h-3.5 w-3.5" />
-      </Button>
+      {!hideSettings && (
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-background/80"
+          onClick={onEdit}
+        >
+          <Settings className="h-3.5 w-3.5" />
+        </Button>
+      )}
     </div>
   );
 }
