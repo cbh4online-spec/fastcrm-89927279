@@ -1,17 +1,27 @@
 
 
-# Unificar Notas dos Contactos com Leads/Empresas
+# Adicionar Aba "Relacionamentos" para Empresas e Contactos
 
-## Problema
-Os Contactos usam `ContactNotesSection` (simples textarea inline), enquanto Leads e Empresas usam `NotesSection` de `@/components/leads/sections/NotesSection.tsx` — componente rico com notas de voz, anexos, pinning e histórico.
+## Alterações
 
-## Alteração
+### 1. `src/components/entity/EntityHorizontalTabs.tsx`
+- Adicionar `{ id: 'relationships', label: 'Relações', showFor: ['contact', 'company'] }` ao array `ALL_TABS`, posicionado antes de `data`
 
-### `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx`
-- Substituir o import de `ContactNotesSection` pelo `NotesSection` de `@/components/leads/sections/NotesSection.tsx`
-- No `case 'notes'`, trocar `<ContactNotesSection contact={contact} onFieldChange={handleFieldChange} />` por `<NotesSection entityType="contact" entityId={id!} entityName={contact.name} />`
+### 2. `src/hooks/useWorkspaceLayoutConfig.ts`
+- Adicionar `'relationships'` aos `DEFAULT_SECTIONS` de `contact` e `company`
+
+### 3. `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx`
+- Importar `RelationshipsPanel` de `@/components/objects/RelationshipsPanel`
+- Adicionar `case 'relationships'` no switch com `<RelationshipsPanel recordId={id!} entityType="contact" />`
+
+### 4. `src/components/companies/CompanyDetailWithSidebar.tsx`
+- Adicionar `case 'relationships'` como case de nível superior com `<RelationshipsPanel recordId={id!} entityType="company" />`
+- Remover a sub-tab `relationships` de dentro do `case 'data'` (já que passa a ser aba própria)
 
 | Ficheiro | Acção |
 |----------|-------|
-| `ENIContactDetailWithSidebar.tsx` | Usar `NotesSection` (rico) em vez de `ContactNotesSection` (simples) |
+| `EntityHorizontalTabs.tsx` | Adicionar tab `relationships` para contact/company |
+| `useWorkspaceLayoutConfig.ts` | Adicionar aos defaults de contact e company |
+| `ENIContactDetailWithSidebar.tsx` | Adicionar case `relationships` |
+| `CompanyDetailWithSidebar.tsx` | Promover relationships de sub-tab para tab principal |
 
