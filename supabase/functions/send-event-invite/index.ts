@@ -15,6 +15,7 @@ interface EventInviteRequest {
   eventLink?: string | null;
   eventId: string;
   workspaceId: string;
+  rsvpId?: string;
 }
 
 Deno.serve(async (req) => {
@@ -32,7 +33,7 @@ Deno.serve(async (req) => {
     }
 
     const body: EventInviteRequest = await req.json();
-    const { email, name, eventTitle, eventDate, eventLocation, eventLink, eventId } = body;
+    const { email, name, eventTitle, eventDate, eventLocation, eventLink, eventId, rsvpId } = body;
 
     if (!email || !eventTitle || !eventDate) {
       throw new Error("Missing required fields: email, eventTitle, eventDate");
@@ -66,6 +67,24 @@ Deno.serve(async (req) => {
     const baseUrl = "https://fastcrm.metodopare.ai";
     const eventUrl = `${baseUrl}/dashboard/events/${eventId}`;
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "https://eumnfkccyvlyoyjchiwe.supabase.co";
+    const confirmUrl = rsvpId ? `${supabaseUrl}/functions/v1/event-rsvp-respond?rsvp_id=${rsvpId}&action=confirm` : "";
+    const declineUrl = rsvpId ? `${supabaseUrl}/functions/v1/event-rsvp-respond?rsvp_id=${rsvpId}&action=decline` : "";
+
+    const rsvpButtonsHtml = rsvpId ? `
+                <table role="presentation" style="width:100%;border-collapse:collapse;">
+                  <tr>
+                    <td align="center" style="padding:30px 0 10px;">
+                      <a href="${confirmUrl}" style="display:inline-block;padding:14px 28px;background-color:#22c55e;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;border-radius:8px;margin-right:12px;">
+                        ✅ Confirmar Presença
+                      </a>
+                      <a href="${declineUrl}" style="display:inline-block;padding:14px 28px;background-color:#71717a;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;border-radius:8px;">
+                        ❌ Recusar
+                      </a>
+                    </td>
+                  </tr>
+                </table>` : "";
+
     const emailHtml = `
     <!DOCTYPE html>
     <html lang="pt">
@@ -98,8 +117,9 @@ Deno.serve(async (req) => {
                     </table>
                   </td></tr>
                 </table>
+                ${rsvpButtonsHtml}
                 <table role="presentation" style="width:100%;border-collapse:collapse;">
-                  <tr><td align="center" style="padding:30px 0 10px;">
+                  <tr><td align="center" style="padding:20px 0 10px;">
                     <a href="${eventUrl}" style="display:inline-block;padding:14px 36px;background-color:#6366f1;color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;border-radius:8px;">
                       Ver Evento
                     </a>
