@@ -5,6 +5,7 @@ import {
   Building2,
   Target,
   CheckSquare,
+  Calendar,
   Megaphone,
   Zap,
   Brain,
@@ -41,6 +42,7 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Oportunidades", href: "/dashboard/opportunities", icon: Target, group: "CRM" },
   { name: "Tarefas", href: "/dashboard/tasks", icon: CheckSquare, group: "CRM" },
   { name: "Ciclo de Vida", href: "/dashboard/lifecycle", icon: GitBranch, group: "CRM" },
+  { name: "Eventos", href: "/dashboard/events", icon: Calendar, group: "CRM" },
 
   // Marketing
   { name: "Marketing", href: "/dashboard/marketing", icon: Megaphone, group: "Marketing", separator: true },
