@@ -66,6 +66,7 @@ import { OpportunitiesSection } from "@/components/leads/sections/OpportunitiesS
 import { ProposalsSection } from "@/components/leads/sections/ProposalsSection";
 import { EntityTimelineSection } from "@/components/timeline";
 import { EntitySchedulingSection } from "@/components/scheduling/EntitySchedulingSection";
+import { EmailHistorySection } from "@/components/email";
 import { AIDealInsightPanel } from "@/components/contacts/sections/AIDealInsightPanel";
 import { LeadScoresCard } from "@/components/leads/sections/LeadScoresCard";
 import { LeadLifecycleSection } from "@/components/leads/sections/LeadLifecycleSection";
@@ -231,14 +232,22 @@ export function LeadDetailWithSidebar() {
         return (
           <EntitySubTabs
             tabs={[
+              { id: 'emails', label: 'Emails' },
               { id: 'messages', label: 'Mensagens' },
               { id: 'scheduling', label: 'Agendamentos' },
             ]}
           >
-            {(tab) => tab === 'messages'
-              ? <ContactMessagesSection entityType="lead" entityId={id!} entityName={lead.name} entityEmail={lead.email} entityPhone={lead.phone} />
-              : <EntitySchedulingSection entityType="lead" entityId={id!} entityName={lead.name} entityEmail={lead.email} entityPhone={lead.phone} />
-            }
+            {(tab) => {
+              switch (tab) {
+                case 'emails':
+                  return <EmailHistorySection entityType="lead" entityId={id!} entityEmail={lead.email} />;
+                case 'messages':
+                  return <ContactMessagesSection entityType="lead" entityId={id!} entityName={lead.name} entityEmail={lead.email} entityPhone={lead.phone} />;
+                case 'scheduling':
+                  return <EntitySchedulingSection entityType="lead" entityId={id!} entityName={lead.name} entityEmail={lead.email} entityPhone={lead.phone} />;
+                default: return null;
+              }
+            }}
           </EntitySubTabs>
         );
       case 'activity':
