@@ -327,7 +327,7 @@ export function SmartContactsTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [activeTab, setActiveTab] = useState("contacts");
-  const [showFilterSidebar, setShowFilterSidebar] = useState(true);
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("created_desc");
@@ -547,7 +547,7 @@ export function SmartContactsTable() {
   const filtersActive = !!activeFilterId || Object.keys(filters).some(k => filters[k as keyof SmartContactsFilters]);
 
   return (
-    <div className="flex h-full -m-6">
+    <div className="flex flex-col lg:flex-row h-full">
       {/* Filter Sidebar */}
       <FilterSidebar
         filterGroups={filterGroups}
@@ -558,8 +558,8 @@ export function SmartContactsTable() {
         onClose={() => setShowFilterSidebar(false)}
       />
 
-      {/* Main Content - Nexus Style */}
-      <div className="flex-1 flex flex-col min-w-0 p-6 bg-gradient-to-br from-background via-background to-muted/20">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0 bg-gradient-to-br from-background via-background to-muted/20">
         {/* Page Header */}
         <PageHeader
           title="Contactos"

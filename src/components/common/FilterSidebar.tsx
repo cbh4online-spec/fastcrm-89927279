@@ -84,7 +84,7 @@ export function FilterSidebar({
 
   if (!isOpen) return null;
 
-  return (
+  const sidebarContent = (
     <div className={cn(
       "flex flex-col h-full w-64 bg-gradient-to-b from-card to-card/95 border-r border-border/50",
       className
@@ -218,6 +218,22 @@ export function FilterSidebar({
         </div>
       </ScrollArea>
     </div>
+  );
+
+  return (
+    <>
+      {/* Desktop: inline sidebar */}
+      <div className="hidden lg:block">
+        {sidebarContent}
+      </div>
+      {/* Mobile: overlay with backdrop */}
+      <div className="lg:hidden fixed inset-0 z-40 flex">
+        <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+        <div className="relative z-50 animate-fade-in">
+          {sidebarContent}
+        </div>
+      </div>
+    </>
   );
 }
 

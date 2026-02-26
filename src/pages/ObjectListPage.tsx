@@ -30,7 +30,7 @@ export default function ObjectListPage() {
     return (
       <DashboardLayout>
         <ScrollArea className="h-[calc(100vh-5rem)]">
-          <div className="p-4 md:p-6 space-y-4">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-bold">{config.labelPt}</h1>
@@ -64,7 +64,7 @@ export default function ObjectListPage() {
   return (
     <DashboardLayout>
       <ScrollArea className="h-[calc(100vh-5rem)]">
-        <div className="p-4 md:p-6">
+        <div>
           <AttioObjectListView
             objectId={customObj.id}
             objectSlug={customObj.slug}

@@ -51,7 +51,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         )}
         <div className={`flex-1 flex flex-col min-h-screen transition-all duration-200 ${collapsed ? "lg:pl-14" : "lg:pl-64"}`}>
           <TopBar onMenuClick={() => setSidebarOpen(true)} />
-          <main className="flex-1 animate-fade-in">
+          <main className="flex-1 animate-fade-in p-4 md:p-6">
             {children}
           </main>
           {showFAB && <MQPCFloatingButton />}
