@@ -101,7 +101,7 @@ export function Toolbar({
             )}
           >
             <SlidersHorizontal className="h-4 w-4" />
-            Filtros
+            <span className="hidden sm:inline">Filtros</span>
             {filtersActive && (
               <span className="ml-1 flex h-2 w-2 rounded-full bg-primary-foreground/60" />
             )}
@@ -116,13 +116,13 @@ export function Toolbar({
             className="gap-1 text-muted-foreground hover:text-destructive rounded-lg"
           >
             <X className="h-3 w-3" />
-            Limpar
+            <span className="hidden sm:inline">Limpar</span>
           </Button>
         )}
 
         {sortOptions && sortOptions.length > 0 && (
           <Select value={sortValue} onValueChange={onSortChange}>
-            <SelectTrigger className="w-[160px] h-8 text-sm rounded-lg border-border/50 bg-background/50">
+            <SelectTrigger className="w-[130px] sm:w-[160px] h-8 text-sm rounded-lg border-border/50 bg-background/50">
               <ArrowUpDown className="h-3 w-3 mr-2 text-muted-foreground" />
               <SelectValue placeholder="Ordenar" />
             </SelectTrigger>

@@ -109,7 +109,7 @@ export function SmartCompaniesTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [activeTab, setActiveTab] = useState("companies");
-  const [showFilterSidebar, setShowFilterSidebar] = useState(true);
+  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("created_desc");
@@ -189,10 +189,10 @@ export function SmartCompaniesTable() {
   const filtersActive = !!activeFilterId || Object.keys(filters).some(k => filters[k as keyof SmartCompaniesFilters]);
 
   return (
-    <div className="flex h-full -m-6">
+    <div className="flex flex-col lg:flex-row h-full">
       <FilterSidebar filterGroups={filterGroups} activeFilterId={activeFilterId} onFilterSelect={handleFilterSelect} onClearFilter={() => setActiveFilterId(undefined)} isOpen={showFilterSidebar} onClose={() => setShowFilterSidebar(false)} />
 
-      <div className="flex-1 flex flex-col min-w-0 p-6">
+      <div className="flex-1 flex flex-col min-w-0">
         <PageHeader title={t("companies")} count={totalCompanies} tabs={pageTabs} activeTab={activeTab} onTabChange={setActiveTab}
           actions={[
             { label: t("import"), icon: <Download className="h-4 w-4" />, onClick: () => toast.info(t("importCompanies")), variant: "outline" },
