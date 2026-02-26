@@ -45,6 +45,7 @@ import { EntityHorizontalTabs } from "@/components/entity/EntityHorizontalTabs";
 import { EntityDetailsPanel } from "@/components/entity/EntityDetailsPanel";
 import { EntityHighlightsGrid } from "@/components/entity/EntityHighlightsGrid";
 import { EntitySubTabs } from "@/components/entity/EntitySubTabs";
+import { EntityTeamSection } from "@/components/entity/EntityTeamSection";
 import { useEntityCounts } from "@/hooks/useEntityCounts";
 import { MenuSection } from "@/types/entity";
 import { EntityTasksSection } from "@/components/tasks";
@@ -273,6 +274,14 @@ export function LeadDetailWithSidebar() {
               }
             }}
           </EntitySubTabs>
+        );
+      case 'team':
+        return (
+          <EntityTeamSection
+            entityType="lead"
+            entityId={id!}
+            entityName={lead.name}
+          />
         );
       case 'data':
         return (
