@@ -63,6 +63,25 @@ export function useCommunityEventsForCalendar(dateRange?: { start: Date; end: Da
       const { data, error } = await query;
       if (error) throw error;
 
+      // Fetch RSVP counts for all events
+      const eventIds = (data || []).map(e => e.id);
+      let rsvpMap: Record<string, { confirmed: number; invited: number; total: number }> = {};
+      if (eventIds.length > 0) {
+        const { data: rsvps } = await supabase
+          .from('event_rsvps')
+          .select('event_id, status')
+          .in('event_id', eventIds);
+
+        if (rsvps) {
+          for (const r of rsvps) {
+            if (!rsvpMap[r.event_id]) rsvpMap[r.event_id] = { confirmed: 0, invited: 0, total: 0 };
+            rsvpMap[r.event_id].total++;
+            if (r.status === 'confirmed') rsvpMap[r.event_id].confirmed++;
+            if (r.status === 'invited') rsvpMap[r.event_id].invited++;
+          }
+        }
+      }
+
       const mapped: CalendarEvent[] = (data || []).map((evt) => {
         const startTime = evt.starts_at;
         const endTime = evt.ends_at || addHours(new Date(evt.starts_at), 1).toISOString();
@@ -93,7 +112,15 @@ export function useCommunityEventsForCalendar(dateRange?: { start: Date; end: Da
           opportunity_id: null,
           attendees: [],
           reminders: [],
-          metadata: { _communityEventId: evt.id, _categoryColor: CATEGORY_COLORS[evt.event_category] || CATEGORY_COLORS.outro },
+          metadata: {
+            _communityEventId: evt.id,
+            _categoryColor: CATEGORY_COLORS[evt.event_category] || CATEGORY_COLORS.outro,
+            _location: evt.location || null,
+            _price: evt.price || 0,
+            _currency: evt.currency || 'EUR',
+            _capacity: evt.capacity || null,
+            _rsvpCounts: rsvpMap[evt.id] || { confirmed: 0, invited: 0, total: 0 },
+          },
           created_by: evt.created_by || '',
           created_at: evt.created_at,
           updated_at: evt.created_at,
