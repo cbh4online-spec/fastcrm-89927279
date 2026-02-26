@@ -1,69 +1,28 @@
 
 
-# Notificações Automáticas de Transição de Lifecycle Stage
+# Tornar o Nome do Workspace Mais Visível na Sidebar
 
-## Contexto
+## Problema
 
-Já existe:
-- Tabela `admin_notifications` com realtime habilitado, RLS policies, e índices
-- Hook `useAdminNotifications` com subscrição realtime que invalida queries automaticamente
-- UI de notificações no `NotificationsDropdown` (actualmente usa dados demo estáticos)
-- Trigger `trg_contact_lifecycle` que transiciona automaticamente o `lifecycle_stage`
-- Trigger `trg_contact_audit` que regista alterações no `contact_audit_log`
+Na sidebar, o header mostra "FastCRM" como texto fixo (linha 82 do Sidebar.tsx). O nome real do workspace só aparece dentro do `WorkspaceSwitcher`, que é um botão pequeno com texto `text-sm` e cor `text-sidebar-foreground` — pouco destacado.
 
-## Solução
+## Alterações
 
-Criar um **trigger PostgreSQL AFTER UPDATE** na tabela `contacts` que detecta mudanças em `lifecycle_stage` e insere uma notificação na tabela `admin_notifications`. A UI já consome esta tabela via realtime.
+### 1. `src/components/layout/Sidebar.tsx` — Header com nome do workspace
 
-### Alterações
+- Substituir o texto fixo "FastCRM" pelo nome do workspace actual (`currentWorkspace?.name`)
+- Manter "FastCRM" como fallback se não houver workspace
+- Aumentar o tamanho do texto do nome para `text-base font-bold`
 
-#### 1. Migração SQL — Trigger `fn_notify_lifecycle_transition`
+### 2. `src/components/layout/WorkspaceSwitcher.tsx` — Melhorar visibilidade
 
-Função que executa `AFTER UPDATE` em `contacts`:
-- Verifica se `lifecycle_stage` mudou (`OLD.lifecycle_stage IS DISTINCT FROM NEW.lifecycle_stage`)
-- Insere registo em `admin_notifications` com:
-  - `type`: `'lifecycle_transition'`
-  - `title`: Nome do contacto + transição (ex: "João Silva avançou para Prospect")
-  - `message`: Detalhe da transição (ex: "Lead → Prospect")
-  - `metadata`: `{ contact_id, old_stage, new_stage }`
-  - `workspace_id`: do contacto
-
-```sql
-CREATE OR REPLACE FUNCTION public.fn_notify_lifecycle_transition()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF OLD.lifecycle_stage IS DISTINCT FROM NEW.lifecycle_stage THEN
-    INSERT INTO public.admin_notifications (workspace_id, type, title, message, metadata)
-    VALUES (
-      NEW.workspace_id,
-      'lifecycle_transition',
-      COALESCE(NEW.name, NEW.email, 'Contacto') || ' → ' || NEW.lifecycle_stage,
-      OLD.lifecycle_stage || ' → ' || NEW.lifecycle_stage,
-      jsonb_build_object('contact_id', NEW.id, 'old_stage', OLD.lifecycle_stage, 'new_stage', NEW.lifecycle_stage)
-    );
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-```
-
-#### 2. `src/components/layout/NotificationsDropdown.tsx`
-
-Substituir os dados demo estáticos pelo hook `useAdminNotifications`:
-- Consumir `useAdminNotifications()` em vez do estado local com `demoNotifications`
-- Mapear `type` para ícones (incluindo `lifecycle_transition` → ícone de GitBranch ou similar)
-- Usar `markAsRead` e `markAllAsRead` do hook
-- Manter o layout actual mas com dados reais e realtime
-
-#### 3. Mapeamento de tipos de notificação
-
-Adicionar ao `NotificationsDropdown` o ícone para o novo tipo:
-- `lifecycle_transition` → ícone `GitBranch` com cor verde
+- Aumentar o texto do nome do workspace de `text-sm` para `text-sm font-semibold` com cor mais forte (`text-sidebar-foreground` em vez de `text-sidebar-foreground`)
+- Garantir que o nome não fica truncado demasiado cedo (max-width adequado)
 
 ## Ficheiros
 
 | Ficheiro | Acção |
 |----------|-------|
-| Migração SQL | Criar trigger `fn_notify_lifecycle_transition` |
-| `src/components/layout/NotificationsDropdown.tsx` | Substituir dados demo por `useAdminNotifications` + suporte ao tipo `lifecycle_transition` |
+| `src/components/layout/Sidebar.tsx` | Mostrar nome do workspace no header em vez de "FastCRM" |
+| `src/components/layout/WorkspaceSwitcher.tsx` | Aumentar destaque do nome |
 
