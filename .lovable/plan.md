@@ -1,26 +1,40 @@
 
 
-# Consolidar informação financeira na página de Empresa
+# Adicionar KPIs financeiros no topo da tab Financeiro
 
-## Situação actual
+## Dados disponíveis
 
-Na empresa, a `FinancialSection` está no `overview`, e `payments`, `orders`, `history` são cases separados no switch. Não há agrupamento financeiro com subtabs como nos contactos.
+A tabela `invoices` contém: `status` (paid/unpaid/overdue/draft/sent), `total`, `due_date`, `contact_id`, `company_id`. Podemos calcular KPIs directamente a partir desta tabela.
 
-## Alterações em `src/components/companies/CompanyDetailWithSidebar.tsx`
+## Alterações
 
-1. **Importar `EntitySubTabs`** e `CommercialHistorySection` (já importado)
+### 1. Novo hook `src/hooks/useFinancialKPIs.ts`
 
-2. **Adicionar case `'financial'`** com `EntitySubTabs` contendo 4 subtabs:
-   - **Perfil**: `FinancialSection` (condições pagamento, crédito)
-   - **Pagamentos**: `AcquiredProductsSection`
-   - **Encomendas**: `CompanyOrderNotesSection`
-   - **Histórico**: `CommercialHistorySection`
+Query à tabela `invoices` filtrada por `contact_id` ou `company_id`, calculando:
+- **Total Faturado**: soma de `total` de todas as faturas (excluindo draft)
+- **Pendente**: soma de `total` onde `status` = 'unpaid' ou 'sent'
+- **Vencido**: soma de `total` onde `status` = 'overdue' ou (`status` != 'paid' e `due_date` < hoje)
+- **Pago**: soma de `total` onde `status` = 'paid'
+- **Nr. Faturas**: contagem total
+- **Taxa de Cobrança**: pago / faturado em percentagem
 
-3. **Remover `FinancialSection` do case `'overview'`** — fica apenas `IdentificationSection` + scores + lifecycle
+### 2. Novo componente `src/components/shared/FinancialKPIStrip.tsx`
 
-4. **Remover cases individuais** `'payments'`, `'orders'`, `'history'` — ficam consolidados dentro do `'financial'`
+Usa `KPIGrid` + `KPICard` do design system existente com 4-6 cards:
+- Total Faturado (variant: primary, ícone Euro)
+- Pago (variant: success, ícone CheckCircle)
+- Pendente (variant: warning, ícone Clock)
+- Vencido (variant: destructive, ícone AlertTriangle)
+
+### 3. Integrar nos dois ficheiros
+
+- **`ENIContactDetailWithSidebar.tsx`**: renderizar `<FinancialKPIStrip entityType="contact" entityId={id} />` acima do `EntitySubTabs` no case `'financial'`
+- **`CompanyDetailWithSidebar.tsx`**: renderizar `<FinancialKPIStrip entityType="company" entityId={id} />` acima do `EntitySubTabs` no case `'financial'`
 
 | Ficheiro | Acção |
 |----------|-------|
-| `CompanyDetailWithSidebar.tsx` | Importar EntitySubTabs; criar case financial com subtabs; remover FinancialSection do overview; remover cases payments/orders/history |
+| `src/hooks/useFinancialKPIs.ts` | Criar hook que agrega dados de invoices |
+| `src/components/shared/FinancialKPIStrip.tsx` | Criar strip de KPIs financeiros |
+| `ENIContactDetailWithSidebar.tsx` | Adicionar FinancialKPIStrip no topo do case financial |
+| `CompanyDetailWithSidebar.tsx` | Adicionar FinancialKPIStrip no topo do case financial |
 
