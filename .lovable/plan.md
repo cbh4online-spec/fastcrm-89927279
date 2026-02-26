@@ -1,41 +1,30 @@
 
 
-# Notificações automáticas de aniversário
-
-## Situação actual
-
-- `birth_date` existe em `contacts`, `leads` e `companies`
-- Template `contact-birthday` já existe em `entityAutomationTemplates.ts` mas não há backend que o execute
-- `contact_birthday` **não está** no tipo `AutomationTrigger` do `useAutomations.ts`
-- Não existe edge function nem cron job para verificar aniversários
+# Widget de Próximos Aniversários no Dashboard
 
 ## Alterações
 
-### 1. Edge function `supabase/functions/check-birthdays/index.ts`
+### 1. Novo hook `src/hooks/useUpcomingBirthdays.ts`
 
-Função que:
-- Consulta `contacts`, `leads` e `companies` onde `EXTRACT(MONTH FROM birth_date) = mês actual` AND `EXTRACT(DAY FROM birth_date) = dia actual`
-- Filtra por `deleted_at IS NULL`
-- Para cada match, insere notificação em `admin_notifications` com `type: 'birthday'`, título "🎂 Aniversário: {nome}" e metadata com entity type/id
-- Usa service role key (chamada por cron, sem user auth)
+Query a `contacts`, `leads` e `companies` onde `birth_date IS NOT NULL` e `deleted_at IS NULL`. No cliente, calcula os próximos aniversários nos próximos 30 dias comparando mês/dia com a data actual. Retorna lista ordenada por proximidade com: `name`, `entityType`, `entityId`, `birthDate`, `daysUntil`.
 
-### 2. DB function + cron job (via SQL insert tool)
+### 2. Novo componente `src/components/dashboard/UpcomingBirthdaysWidget.tsx`
 
-- Criar função SQL `check_birthdays_today()` que faz o mesmo em SQL puro (mais eficiente) ou agendar a edge function via `pg_cron` + `pg_net`
-- Cron: executa diariamente às 08:00 UTC
+Card na sidebar direita do dashboard (col-span-4) com:
+- Header: ícone `Cake` + título "Próximos Aniversários"
+- Lista dos próximos aniversários (max 5-6 items)
+- Cada item: avatar com iniciais, nome, tipo de entidade (badge), dias até ao aniversário
+- "Hoje" em destaque (badge verde) para aniversários do dia
+- Estado vazio e skeleton loading
+- Click navega para o detalhe da entidade
 
-### 3. Adicionar `contact_birthday` ao tipo `AutomationTrigger`
+### 3. Integrar no Dashboard
 
-Em `src/hooks/useAutomations.ts`, adicionar `"contact_birthday"` ao union type.
-
-### 4. Ícone de aniversário no `NotificationsDropdown`
-
-Em `src/components/layout/NotificationsDropdown.tsx`, adicionar `birthday: <Cake>` ao mapa `typeIcons`.
+Em `Dashboard.tsx`, adicionar `<UpcomingBirthdaysWidget />` na coluna direita (col-span-4), depois de `PLGSignalsFeed`.
 
 | Ficheiro | Acção |
 |----------|-------|
-| `supabase/functions/check-birthdays/index.ts` | Criar edge function que verifica aniversários do dia |
-| SQL (insert tool) | Criar cron job diário às 08:00 via pg_cron + pg_net |
-| `src/hooks/useAutomations.ts` | Adicionar `contact_birthday` ao tipo AutomationTrigger |
-| `src/components/layout/NotificationsDropdown.tsx` | Adicionar ícone Cake para tipo `birthday` |
+| `src/hooks/useUpcomingBirthdays.ts` | Criar hook que agrega aniversários dos próximos 30 dias |
+| `src/components/dashboard/UpcomingBirthdaysWidget.tsx` | Criar widget com lista de aniversários |
+| `src/pages/Dashboard.tsx` | Adicionar widget na sidebar direita |
 
