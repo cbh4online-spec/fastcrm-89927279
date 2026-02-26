@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Sparkles, Pencil } from "lucide-react";
 
 export interface AIAutofillResult {
   fieldId: string;
@@ -36,6 +37,14 @@ export function AIAutofillPreviewDialog({
   isApplying = false,
 }: AIAutofillPreviewDialogProps) {
   const [selected, setSelected] = useState<Set<string>>(() => new Set(results.map((r) => r.fieldId)));
+  const [editedValues, setEditedValues] = useState<Record<string, string>>(() =>
+    Object.fromEntries(results.map((r) => [r.fieldId, r.generatedValue]))
+  );
+
+  useEffect(() => {
+    setSelected(new Set(results.map((r) => r.fieldId)));
+    setEditedValues(Object.fromEntries(results.map((r) => [r.fieldId, r.generatedValue])));
+  }, [results]);
 
   const toggleField = (fieldId: string) => {
     setSelected((prev) => {
@@ -47,7 +56,9 @@ export function AIAutofillPreviewDialog({
   };
 
   const handleConfirm = () => {
-    const selectedResults = results.filter((r) => selected.has(r.fieldId));
+    const selectedResults = results
+      .filter((r) => selected.has(r.fieldId))
+      .map((r) => ({ ...r, generatedValue: editedValues[r.fieldId] ?? r.generatedValue }));
     onConfirm(selectedResults);
   };
 
@@ -62,15 +73,15 @@ export function AIAutofillPreviewDialog({
             Preview AI Autofill
           </DialogTitle>
           <DialogDescription>
-            Reveja os valores gerados pela IA antes de guardar. Desmarque os que não pretende aplicar.
+            Reveja e edite os valores gerados pela IA antes de guardar. Desmarque os que não pretende aplicar.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-2 max-h-[50vh] overflow-y-auto py-2">
           {results.map((result) => (
-            <label
+            <div
               key={result.fieldId}
-              className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/40 transition-colors cursor-pointer"
+              className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/40 transition-colors"
             >
               <Checkbox
                 checked={selected.has(result.fieldId)}
@@ -85,9 +96,18 @@ export function AIAutofillPreviewDialog({
                     Sugerido por IA
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground break-words">{result.generatedValue}</p>
+                <div className="flex items-center gap-1.5">
+                  <Pencil className="w-3 h-3 text-muted-foreground shrink-0" />
+                  <Input
+                    value={editedValues[result.fieldId] ?? result.generatedValue}
+                    onChange={(e) =>
+                      setEditedValues((prev) => ({ ...prev, [result.fieldId]: e.target.value }))
+                    }
+                    className="h-7 text-sm"
+                  />
+                </div>
               </div>
-            </label>
+            </div>
           ))}
         </div>
 
