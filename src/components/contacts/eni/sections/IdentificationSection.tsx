@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Phone, FileText, MessageSquare, Search } from "lucide-react";
+import { User, Mail, Phone, FileText, MessageSquare, Search, Cake } from "lucide-react";
 import { ENIContact, EntityType, ENTITY_TYPE_LABELS } from "../ENIContactTypes";
 import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 import { InlineNifField } from "@/components/custom-fields/InlineNifField";
@@ -164,6 +164,16 @@ export function IdentificationSection({
             placeholder={t('whatsappNumber')}
           />
         )}
+
+        {/* Birth Date */}
+        <InlineEditableField
+          label={t('birthDate')}
+          fieldId="birth_date"
+          fieldType="date"
+          value={contact.birth_date || ''}
+          onChange={(value) => onFieldChange('birth_date', value)}
+          icon={<Cake className="h-3.5 w-3.5" />}
+        />
       </CardContent>
     </Card>
   );

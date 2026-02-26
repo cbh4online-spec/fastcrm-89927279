@@ -53,6 +53,7 @@ export interface ENIContact {
   
   // Identification
   tax_id?: string | null;
+  birth_date?: string | null;
   commercial_name?: string | null;
   has_whatsapp?: boolean;
   whatsapp_number?: string | null;
