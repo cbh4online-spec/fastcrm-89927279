@@ -90,6 +90,7 @@ const triggerLabels: Record<AutomationTrigger, string> = {
   health_score_dropped: "Score Caiu",
   forecast_confidence_below_threshold: "Confiança Forecast Baixa",
   forecast_drop_percentage: "Forecast Caiu",
+  contact_birthday: "Aniversário",
 };
 
 const triggerColors: Record<AutomationTrigger, string> = {
@@ -135,6 +136,7 @@ const triggerColors: Record<AutomationTrigger, string> = {
   health_score_dropped: "bg-orange-500",
   forecast_confidence_below_threshold: "bg-amber-600",
   forecast_drop_percentage: "bg-red-600",
+  contact_birthday: "bg-pink-500",
 };
 
 

@@ -606,6 +606,7 @@ function getTriggerDescription(trigger: AutomationTrigger): string {
     health_score_dropped: "When health score drops significantly",
     forecast_confidence_below_threshold: "When forecast confidence drops below threshold",
     forecast_drop_percentage: "When forecast drops by a significant percentage",
+    contact_birthday: "When it's a contact's birthday",
   };
   return descriptions[trigger] || trigger;
 }

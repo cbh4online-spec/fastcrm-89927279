@@ -44,6 +44,7 @@ const triggerDescriptions: Record<AutomationTrigger, string> = {
   health_score_dropped: "Quando o score de saúde diminui significativamente",
   forecast_confidence_below_threshold: "Quando a confiança do forecast cai abaixo do limite",
   forecast_drop_percentage: "Quando o forecast cai uma percentagem significativa",
+  contact_birthday: "Quando é o aniversário de um contacto",
 };
 
 /**

@@ -47,7 +47,8 @@ export type AutomationTrigger =
   | "health_score_below_threshold"
   | "health_score_dropped"
   | "forecast_confidence_below_threshold"
-  | "forecast_drop_percentage";
+  | "forecast_drop_percentage"
+  | "contact_birthday";
 
 export type AutomationActionType =
   | "create_task"
