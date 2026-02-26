@@ -1,46 +1,35 @@
 
 
-# Pastas nos Ficheiros + Revisão do Painel de Detalhes
+# Separar Ficheiros da Equipa + Criar Aba Própria de Ficheiros
 
-## 1. Pastas nos Ficheiros
+## Problema Actual
+Os ficheiros estão embebidos dentro da aba "Equipa" como sub-tab. O utilizador quer que a aba "Equipa" tenha apenas notas internas e que exista uma aba dedicada "Ficheiros" nas tabs horizontais.
 
-### Migração SQL
-Adicionar coluna `folder` (TEXT, nullable, default NULL) à tabela `entity_documents`. Ficheiros na raiz têm `folder = NULL`, ficheiros dentro de uma pasta têm `folder = 'nome-da-pasta'`.
+## Alterações
 
-### Actualizar `EntityDocumentsSection.tsx`
-- Adicionar botão "Criar Pasta" ao lado de "Adicionar" no header
-- Dialog simples para criar pasta (campo nome)
-- Agrupar ficheiros por `folder`: mostrar pastas como linhas colapsáveis com ícone de pasta e contagem de ficheiros
-- Upload passa a permitir seleccionar pasta destino (dropdown opcional no dialog de upload)
-- Ficheiros sem pasta aparecem na raiz
-- Visual: ícone de pasta com chevron para expandir/colapsar, similar ao screenshot Attio
+### 1. Adicionar `'files'` ao `MenuSection` type
+- Adicionar `| 'files'` ao tipo `MenuSection` em `src/types/entity.ts`
 
-### Estrutura visual
-```text
-Files
-├── [+ Upload file]  [+ Create folder]
-├── 📁 iRepair Stop (1 ficheiro)         ▼
-│   └── 📄 iRepair Pitch Deck   Sep 24th 2025
-├── 📄 Contrato.pdf              Jan 12th 2026
-```
+### 2. Adicionar tab "Ficheiros" em `EntityHorizontalTabs.tsx`
+- Adicionar `{ id: 'files', label: 'Ficheiros', showFor: ['lead', 'contact', 'company'] }` ao array `ALL_TABS`, após `'team'`
 
-## 2. Painel de Detalhes — já alinhado
+### 3. Remover sub-tab de ficheiros de `EntityTeamSection.tsx`
+- Remover a sub-tab `'files'` — a aba Equipa passa a mostrar apenas as notas internas directamente (sem sub-tabs)
+- Remover import de `EntityDocumentsSection` e `EntitySubTabs`
 
-O `EntityDetailsPanel` actual já segue a metodologia Attio:
-- Secções colapsáveis (`CollapsibleSection`) com chevron
-- Campos editáveis inline (`EditableFieldRow`) com ícones coloridos
-- Tags com cores distintas
-- Layout label + valor alinhado
-
-Pequenas melhorias de alinhamento com o screenshot:
-- Adicionar secção "Datas" com `created_at` / `updated_at` formatados
-- Adicionar "Show all values" link quando há mais de 5 campos numa secção (progressive disclosure como Attio)
+### 4. Renderizar `EntityDocumentsSection` na nova aba em cada detail page
+- **`LeadDetailWithSidebar.tsx`**: adicionar `case 'files': return <EntityDocumentsSection ... />`
+- **`CompanyDetailWithSidebar.tsx`**: adicionar `case 'files': return <EntityDocumentsSection ... />`
+- **`ENIContactDetailWithSidebar.tsx`**: adicionar `case 'files': return <EntityDocumentsSection ... />`
 
 ## Ficheiros
 
 | Ficheiro | Acção |
 |----------|-------|
-| Migração SQL | Adicionar coluna `folder` a `entity_documents` |
-| `src/components/entity/EntityDocumentsSection.tsx` | Pastas colapsáveis + criar pasta + upload com pasta destino |
-| `src/components/entity/EntityDetailsPanel.tsx` | Secção "Datas" + "Show all values" progressive disclosure |
+| `src/types/entity.ts` | Adicionar `'files'` ao `MenuSection` |
+| `src/components/entity/EntityHorizontalTabs.tsx` | Nova tab "Ficheiros" |
+| `src/components/entity/EntityTeamSection.tsx` | Remover sub-tabs, mostrar só notas |
+| `src/components/crm/LeadDetailWithSidebar.tsx` | Render ficheiros na aba `files` |
+| `src/components/companies/CompanyDetailWithSidebar.tsx` | Render ficheiros na aba `files` |
+| `src/components/contacts/eni/ENIContactDetailWithSidebar.tsx` | Render ficheiros na aba `files` |
 
