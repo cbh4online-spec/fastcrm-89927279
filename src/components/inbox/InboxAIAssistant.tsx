@@ -16,7 +16,7 @@ import {
   Lightbulb,
   AlertCircle,
 } from "lucide-react";
-import { useCopilot, ReplySuggestion } from "@/hooks/useCopilot";
+import { useAskAI, ReplySuggestion } from "@/hooks/useAskAI";
 import { Message } from "@/hooks/useMessages";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -28,7 +28,7 @@ interface Props {
 }
 
 export function InboxAIAssistant({ messages, leadName, onInsertReply }: Props) {
-  const { isLoading, suggestReplies, summarizeConversation } = useCopilot();
+  const { isLoading, suggestReplies, summarizeConversation } = useAskAI();
   
   const [replies, setReplies] = useState<ReplySuggestion[] | null>(null);
   const [selectedReply, setSelectedReply] = useState<string | null>(null);
@@ -113,7 +113,7 @@ export function InboxAIAssistant({ messages, leadName, onInsertReply }: Props) {
         {/* Header */}
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium">Assistente AI</span>
+          <span className="text-sm font-medium">Ask FastCRM</span>
           <Badge variant="outline" className="text-[10px] ml-auto">
             Apenas Sugestões
           </Badge>

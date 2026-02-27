@@ -55,7 +55,7 @@ interface CopilotMessage {
   direction?: string;
 }
 
-export function useCopilot() {
+export function useAskAI() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -145,3 +145,6 @@ export function useCopilot() {
     suggestNextActions,
   };
 }
+
+/** @deprecated Use useAskAI instead */
+export const useCopilot = useAskAI;
