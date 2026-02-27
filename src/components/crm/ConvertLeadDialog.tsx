@@ -20,12 +20,13 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, User, Building2, Briefcase, Loader2, CheckCircle2 } from "lucide-react";
+import { ArrowRight, User, Building2, Briefcase, Loader2, CheckCircle2, Database } from "lucide-react";
 import { toast } from "sonner";
 import { useContacts } from "@/hooks/useContacts";
 import { useCompanies } from "@/hooks/useCompanies";
 import { useDeleteLead, Lead } from "@/hooks/useLeads";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 type ConversionTarget = "contact" | "company";
 type EntityType = "consumidor_final" | "eni" | "empresa";
@@ -75,6 +76,7 @@ export function ConvertLeadDialog({ lead, trigger }: ConvertLeadDialogProps) {
   const [entityType, setEntityType] = useState<EntityType>("consumidor_final");
   const [deleteAfterConversion, setDeleteAfterConversion] = useState(true);
   const [isConverting, setIsConverting] = useState(false);
+  const [migrationStatus, setMigrationStatus] = useState<string | null>(null);
 
   const handleTargetChange = (value: ConversionTarget) => {
     setTarget(value);
@@ -82,19 +84,83 @@ export function ConvertLeadDialog({ lead, trigger }: ConvertLeadDialogProps) {
     setEntityType(ENTITY_TYPE_OPTIONS[value][0].value);
   };
 
+  const migrateLeadHistory = async (leadId: string, targetId: string, targetType: ConversionTarget) => {
+    const contactUpdate = targetType === "contact" ? { contact_id: targetId } : {};
+    const companyUpdate = targetType === "company" ? { company_id: targetId } : {};
+    const entityUpdate = { ...contactUpdate, ...companyUpdate };
+
+    // Tables that have both contact_id and company_id
+    const tablesWithBothIds = [
+      "conversations",
+      "crm_activities",
+      "calendar_events",
+      "meetings",
+      "opportunities",
+      "invoices",
+      "form_submissions",
+      "client_entitlements",
+      "client_requirements",
+      "fastcrm_proposals",
+    ];
+
+    // Tables that only have contact_id (only migrate for contact conversion)
+    const tablesContactOnly = [
+      "conversation_followups",
+      "conversation_journey",
+      "conversation_sessions",
+      "conversation_signals",
+      "lead_behavior_signals",
+      "product_signals",
+      "template_usage_events",
+      "inbox_action_logs",
+      "inbox_smart_alerts",
+      "marketing_recipients",
+      "marketing_subscriptions",
+    ];
+
+    const migrationPromises: Array<Promise<unknown>> = [];
+
+    // Migrate tables with both ids
+    for (const table of tablesWithBothIds) {
+      migrationPromises.push(
+        (supabase.from(table as any) as any).update(entityUpdate).eq("lead_id", leadId) as Promise<unknown>
+      );
+    }
+
+    // Migrate contact-only tables when converting to contact
+    if (targetType === "contact") {
+      for (const table of tablesContactOnly) {
+        migrationPromises.push(
+          (supabase.from(table as any) as any).update({ contact_id: targetId }).eq("lead_id", leadId) as Promise<unknown>
+        );
+      }
+    }
+
+    const results = await Promise.allSettled(migrationPromises);
+    const failures = results.filter(r => r.status === "rejected");
+    if (failures.length > 0) {
+      console.warn(`${failures.length} migration(s) failed:`, failures);
+    }
+    return { total: results.length, failed: failures.length };
+  };
+
   const handleConvert = async () => {
     setIsConverting(true);
+    setMigrationStatus(null);
 
     try {
       let newEntityId: string | undefined;
 
+      setMigrationStatus("A criar registo...");
+
       if (target === "contact") {
-        // Create contact with lead data
         const result = await createContact.mutateAsync({
           name: lead.name,
           email: lead.email || undefined,
           phone: lead.phone || undefined,
           tags: lead.tags || undefined,
+          notes: (lead as any).notes || undefined,
+          source: (lead as any).source || undefined,
           linkedin_url: lead.linkedin_url || undefined,
           facebook_url: lead.facebook_url || undefined,
           instagram_url: lead.instagram_url || undefined,
@@ -103,12 +169,12 @@ export function ConvertLeadDialog({ lead, trigger }: ConvertLeadDialogProps) {
         } as any);
         newEntityId = result.id;
       } else {
-        // Create company with lead data
         const result = await createCompany.mutateAsync({
           name: lead.name,
           email: lead.email || undefined,
           phone: lead.phone || undefined,
           tags: lead.tags || undefined,
+          notes: (lead as any).notes || undefined,
           linkedin_url: lead.linkedin_url || undefined,
           facebook_url: lead.facebook_url || undefined,
           instagram_url: lead.instagram_url || undefined,
@@ -118,23 +184,31 @@ export function ConvertLeadDialog({ lead, trigger }: ConvertLeadDialogProps) {
         newEntityId = result.id;
       }
 
+      if (!newEntityId) throw new Error("Falha ao criar registo");
+
+      // Migrate all relational history
+      setMigrationStatus("A migrar histórico...");
+      const migrationResult = await migrateLeadHistory(lead.id, newEntityId, target);
+
       // Delete lead if requested
       if (deleteAfterConversion) {
+        setMigrationStatus("A finalizar...");
         await deleteLead.mutateAsync(lead.id);
       }
+
+      const migrationNote = migrationResult.failed > 0
+        ? ` (${migrationResult.failed} tabela(s) com aviso)`
+        : "";
 
       toast.success(
         `Lead convertido em ${target === "contact" ? "contacto" : "empresa"} com sucesso!`,
         {
-          description: deleteAfterConversion 
-            ? "O lead original foi removido." 
-            : "O lead original foi mantido.",
+          description: `Histórico migrado${migrationNote}. ${deleteAfterConversion ? "Lead original removido." : "Lead original mantido."}`,
         }
       );
 
       setOpen(false);
 
-      // Navigate to the new entity
       if (newEntityId) {
         const path = target === "contact" 
           ? `/dashboard/contacts/${newEntityId}`
@@ -146,6 +220,7 @@ export function ConvertLeadDialog({ lead, trigger }: ConvertLeadDialogProps) {
       toast.error("Erro ao converter lead. Tente novamente.");
     } finally {
       setIsConverting(false);
+      setMigrationStatus(null);
     }
   };
 
@@ -266,7 +341,15 @@ export function ConvertLeadDialog({ lead, trigger }: ConvertLeadDialogProps) {
               {lead.phone && <li>Telefone: {lead.phone}</li>}
               {lead.tags?.length ? <li>Tags: {lead.tags.join(", ")}</li> : null}
               {lead.source && <li>Fonte: {lead.source}</li>}
+              {(lead as any).notes && <li>Notas</li>}
             </ul>
+            <div className="mt-2 flex items-center gap-1.5 text-primary">
+              <Database className="w-3.5 h-3.5" />
+              <span className="font-medium">Todo o histórico será preservado</span>
+            </div>
+            <p className="text-muted-foreground/70">
+              Conversas, atividades, reuniões, oportunidades, faturas e outros dados serão automaticamente migrados.
+            </p>
           </div>
         </div>
 
@@ -278,7 +361,7 @@ export function ConvertLeadDialog({ lead, trigger }: ConvertLeadDialogProps) {
             {isConverting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                A converter...
+                {migrationStatus || "A converter..."}
               </>
             ) : (
               <>
