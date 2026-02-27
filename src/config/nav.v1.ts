@@ -44,6 +44,9 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Ciclo de Vida", href: "/dashboard/lifecycle", icon: GitBranch, group: "CRM" },
   { name: "Eventos", href: "/dashboard/events", icon: Calendar, group: "CRM" },
 
+  // Vendas
+  { name: "Notas Encomenda", href: "/dashboard/order-notes", icon: FileText, group: "Vendas", separator: true },
+
   // Marketing
   { name: "Marketing", href: "/dashboard/marketing", icon: Megaphone, group: "Marketing", separator: true },
 
