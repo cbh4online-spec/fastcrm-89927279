@@ -1,45 +1,56 @@
 
-# Adicionar Brief Executivo ao Dashboard
+
+# Fundir AI Copilot e Ask FastCRM numa unica marca
 
 ## Problema
-O widget de briefing executivo nunca foi adicionado ao Dashboard -- existe apenas na pagina de Estrategia (/dashboard/strategy). Por isso nao aparece.
 
-## Solucao
+Existem duas "marcas" de AI separadas no sistema:
+- **"AI Copilot"** / **"Assistente AI"** -- usado na Inbox e mensagens para sugerir respostas, classificar intencoes, etc.
+- **"Ask FastCRM"** -- usado como interface de query para pipeline e receita
 
-### 1. Criar novo componente `ExecutiveBriefWidget`
-Ficheiro: `src/components/dashboard/ExecutiveBriefWidget.tsx`
+Na realidade sao partes do mesmo motor de inteligencia e devem aparecer ao utilizador como uma so funcionalidade.
 
-Um card compacto que usa o hook `useStrategicBriefs` existente e mostra:
-- Titulo "Brief Executivo" com icone Brain
-- Timestamp relativo do ultimo brief (ex: "ha 2 dias")
-- Resumo executivo (3 linhas max com line-clamp)
-- Oportunidade (compacta, com icone verde)
-- Risco (compacto, com icone vermelho)
-- Botao "Ver completo" que navega para /dashboard/strategy
-- Botao "Atualizar" para regenerar o brief
-- Estado vazio com botao "Gerar Brief" se ainda nao existir nenhum
+## Diagnostico
 
-### 2. Adicionar ao Dashboard
-Ficheiro: `src/pages/Dashboard.tsx`
+| Componente | Estado | Accao |
+|---|---|---|
+| `src/components/copilot/InboxCopilot.tsx` | Orfao (nao e importado em nenhum lado) | Apagar |
+| `src/components/copilot/CrmCopilot.tsx` | Orfao (nao e importado em nenhum lado) | Apagar |
+| `src/components/inbox/InboxAIAssistant.tsx` | Activo -- mostra "Assistente AI" | Rebrandar para "Ask FastCRM" |
+| `src/components/inbox/InboxTemplateAIDraft.tsx` | Activo -- usa useCopilot | Manter (sem branding visivel) |
+| `src/components/messages/ContactMessagesSection.tsx` | Activo -- usa useCopilot | Manter (sem branding visivel) |
+| `src/hooks/useCopilot.ts` | Activo -- hook central | Renomear para `useAskAI` |
 
-Importar o `ExecutiveBriefWidget` e colocar na terceira coluna do grid, antes do `ForecastConfidenceCard`:
+## Alteracoes
 
-```text
-Coluna 3 (actualizada):
-  - ExecutiveBriefWidget   <-- NOVO
-  - ForecastConfidenceCard
-  - PipelineComparisonCard
-  - UpcomingBirthdaysWidget
-```
+### 1. Apagar componentes orfaos
+- Eliminar `src/components/copilot/InboxCopilot.tsx`
+- Eliminar `src/components/copilot/CrmCopilot.tsx`
+- Eliminar directoria `src/components/copilot/` (ficara vazia)
 
-## Ficheiros a alterar
+### 2. Renomear hook `useCopilot` para `useAskAI`
+- Renomear `src/hooks/useCopilot.ts` para `src/hooks/useAskAI.ts`
+- Exportar a mesma funcao como `useAskAI` (manter `useCopilot` como re-export para compatibilidade)
+- Actualizar imports em:
+  - `src/components/inbox/InboxAIAssistant.tsx`
+  - `src/components/inbox/InboxTemplateAIDraft.tsx`
+  - `src/components/messages/ContactMessagesSection.tsx`
+
+### 3. Rebrandar InboxAIAssistant
+No ficheiro `src/components/inbox/InboxAIAssistant.tsx`:
+- Mudar titulo de **"Assistente AI"** para **"Ask FastCRM"**
+- Manter icone Sparkles e toda a funcionalidade igual
+
+### 4. Ficheiros afectados
 
 | Ficheiro | Accao |
 |---|---|
-| `src/components/dashboard/ExecutiveBriefWidget.tsx` | Criar (novo componente compacto) |
-| `src/pages/Dashboard.tsx` | Importar e adicionar na coluna 3 do grid |
+| `src/components/copilot/InboxCopilot.tsx` | Apagar |
+| `src/components/copilot/CrmCopilot.tsx` | Apagar |
+| `src/hooks/useCopilot.ts` | Renomear para `useAskAI.ts`, manter re-export |
+| `src/components/inbox/InboxAIAssistant.tsx` | Actualizar import + rebrandar titulo |
+| `src/components/inbox/InboxTemplateAIDraft.tsx` | Actualizar import |
+| `src/components/messages/ContactMessagesSection.tsx` | Actualizar import |
 
-## Notas
-- Reutiliza o hook `useStrategicBriefs` que ja existe -- sem duplicacao de logica
-- O widget e compacto (line-clamp nos textos) para caber no grid de 3 colunas
-- Se nao houver brief gerado, mostra estado vazio com CTA para gerar o primeiro
+A edge function `ai-copilot` no backend mantem-se inalterada -- apenas o codigo frontend e unificado sob a marca "Ask FastCRM".
+
