@@ -1,0 +1,15 @@
+{
+  "title": "Ask FastCRM",
+  "subtitle": "Inteligencia de ingresos a tu disposición.",
+  "emptyTitle": "Pregunta sobre tus ingresos",
+  "emptyDescription": "Consulta tu pipeline, previsiones y negocios — y actúa sobre los resultados.",
+  "placeholder": "Pregunta sobre tus ingresos...",
+  "recent": "Recientes",
+  "suggested": "Sugeridos",
+  "chipsDealsAtRisk": "Negocios en riesgo",
+  "chipsNoActivity": "Sin actividad en 14 días",
+  "chipsNoNextStep": "Sin próximo paso",
+  "chipsClosingThisMonth": "Cierran este mes",
+  "chipsStuckInStage": "Estancados en fase",
+  "chipsHighValue": "Negocios de alto valor"
+}

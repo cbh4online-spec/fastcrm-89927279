@@ -10,15 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import { motion, AnimatePresence } from "framer-motion";
-
-const SUGGESTED_CHIPS = [
-  "Deals at risk",
-  "No activity in 14 days",
-  "No next step",
-  "Closing this month",
-  "Stuck in stage",
-  "High value deals",
-];
+import { useTranslation } from "react-i18next";
 
 const AUTOCOMPLETE_MAP: Record<string, string> = {
   "risk": "Which deals are at risk?",
@@ -47,6 +39,7 @@ interface AskFastCRMInlineProps {
 }
 
 export function AskFastCRMInline({ initialQuery, fullPage }: AskFastCRMInlineProps) {
+  const { t } = useTranslation('ask');
   const [input, setInput] = useState("");
   const { isLoading, result, ask, clear, executeAction, pendingAction, confirmPendingAction, cancelPendingAction, confirmAutomation, cancelAutomation, isConfirmingAutomation } = useAskFastCRM();
   const { data: recentQueries } = useRecentAskQueries();
@@ -55,6 +48,15 @@ export function AskFastCRMInline({ initialQuery, fullPage }: AskFastCRMInlinePro
   const initialQueryHandled = useRef(false);
 
   const debouncedInput = useDebounce(input, 150);
+
+  const suggestedChips = useMemo(() => [
+    t('chipsDealsAtRisk'),
+    t('chipsNoActivity'),
+    t('chipsNoNextStep'),
+    t('chipsClosingThisMonth'),
+    t('chipsStuckInStage'),
+    t('chipsHighValue'),
+  ], [t]);
 
   // Autocomplete suggestions
   const suggestions = useMemo(() => {
@@ -107,9 +109,9 @@ export function AskFastCRMInline({ initialQuery, fullPage }: AskFastCRMInlinePro
       <div className="flex items-center gap-2 p-4 border-b border-border/50">
         <Sparkles className="h-5 w-5 text-primary" />
         <div>
-          <h3 className="font-semibold text-sm">Ask FastCRM</h3>
+          <h3 className="font-semibold text-sm">{t('title')}</h3>
           <p className="text-xs text-muted-foreground">
-            Revenue intelligence at your command.
+            {t('subtitle')}
           </p>
         </div>
       </div>
@@ -144,10 +146,10 @@ export function AskFastCRMInline({ initialQuery, fullPage }: AskFastCRMInlinePro
             <Sparkles className="h-10 w-10 text-muted-foreground/20" />
             <div>
               <p className="text-sm font-medium text-foreground mb-1">
-                Ask about your revenue
+                {t('emptyTitle')}
               </p>
               <p className="text-xs text-muted-foreground max-w-xs">
-                Query your pipeline, forecast, and deals — then act on the results.
+                {t('emptyDescription')}
               </p>
             </div>
 
@@ -155,7 +157,7 @@ export function AskFastCRMInline({ initialQuery, fullPage }: AskFastCRMInlinePro
             {recentQueries && recentQueries.length > 0 && (
               <div className="space-y-2 w-full max-w-md">
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                  Recent
+                  {t('recent')}
                 </p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {recentQueries.map((q, i) => (
@@ -179,10 +181,10 @@ export function AskFastCRMInline({ initialQuery, fullPage }: AskFastCRMInlinePro
             {/* Suggested */}
             <div className="space-y-2 w-full max-w-md">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                Suggested
+                {t('suggested')}
               </p>
               <div className="flex flex-wrap gap-2 justify-center">
-                {SUGGESTED_CHIPS.map((chip) => (
+                {suggestedChips.map((chip) => (
                   <button
                     key={chip}
                     onClick={() => handleChip(chip)}
@@ -254,9 +256,9 @@ export function AskFastCRMInline({ initialQuery, fullPage }: AskFastCRMInlinePro
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about your revenue..."
+            placeholder={t('placeholder')}
             disabled={isLoading}
-            aria-label="Ask FastCRM"
+            aria-label={t('title')}
             className="flex-1"
           />
           <Button type="submit" size="icon" disabled={!input.trim() || isLoading}>
