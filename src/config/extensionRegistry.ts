@@ -87,6 +87,11 @@ export const EXTENSION_REGISTRY: ExtensionDefinition[] = [
     category: "Portal",
     objectTabs: [
       { key: "orders", label: "Notas Encomenda", icon: ShoppingCart, route: "/dashboard/order-notes" },
+      { key: "order-approvals", label: "Aprovações", icon: FileText, route: "/dashboard/order-approvals" },
+      { key: "client-users", label: "Clientes B2B", icon: Users, route: "/dashboard/client-users" },
+      { key: "b2b-products", label: "Produtos", icon: Store, route: "/dashboard/products" },
+      { key: "b2b-stock", label: "Stock B2B", icon: Store, route: "/dashboard/b2b-stock" },
+      { key: "b2b-config", label: "Config. Portal", icon: Building2, route: "/dashboard/b2b-portal" },
     ],
     intelligenceCapabilities: [
       { key: "b2b-analytics", label: "B2B Analytics", description: "Análise de padrões de compra B2B", icon: BarChart3 },
