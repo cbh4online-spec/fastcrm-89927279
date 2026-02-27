@@ -1,39 +1,58 @@
 
 
-# Diagnosticar e Corrigir Notas de Encomenda
+# Restaurar Portal B2B Completo na Navegacao
 
-## Problema Identificado
+## Problema
 
-Ao navegar para `/dashboard/order-notes`, a pagina redireciona para `/dashboard` (Dashboard principal) em vez de mostrar a pagina de Notas de Encomenda. Isto significa que o componente `OrderNotesPage` nunca chega a renderizar.
+O Portal B2B era um modulo completo com:
+- Notas de Encomenda (listagem, criacao, detalhe)
+- Aprovacoes de encomendas
+- Gestao de utilizadores cliente (Client Users)
+- Configuracoes do Portal B2B
+- Catalogo de produtos
+- Stock B2B
+- Portal do cliente (rotas /client/*)
 
-## Causa Provavel
+Todos estes componentes e rotas **existem** no codigo e funcionam. O problema e que so aparecem na sidebar quando o modulo `b2b-portal` esta instalado via Marketplace (`workspace_modules` + `marketplace_modules`). Se o modulo nao estiver activo na base de dados, os links desaparecem da sidebar.
 
-O link na sidebar so aparece se o modulo `b2b-portal` estiver instalado no workspace (e registado como extensao). Se o modulo nao estiver activo, o link desaparece da navegacao. Contudo, a rota existe em `App.tsx` e deveria funcionar por acesso directo via URL.
+## Solucao
 
-A questao do redirect para `/dashboard` pode estar relacionada com a ordem das rotas ou com um guard de autenticacao que falha silenciosamente.
+Adicionar todos os sub-itens do Portal B2B como itens fixos na navegacao `nav.v1.ts`, agrupados sob um novo grupo "Portal B2B", para que aparecam sempre — independentemente do estado da extensao no Marketplace.
 
-## Solucao Proposta
+Tambem expandir o registo no `extensionRegistry.ts` para incluir todos os tabs relevantes (nao apenas "Notas Encomenda").
 
-### 1. Adicionar link directo "Notas de Encomenda" na sidebar
+## Alteracoes
 
-Actualmente, "Notas Encomenda" so aparece se o modulo `b2b-portal` estiver instalado via extensoes. Para garantir que a funcionalidade esta sempre acessivel, adicionar um link fixo na navegacao principal da sidebar (tanto `Sidebar.tsx` como `SidebarV1.tsx`), semelhante a "Leads", "Contactos", etc.
+### 1. Expandir grupo "Vendas" em `nav.v1.ts` para "Portal B2B"
 
-Ficheiros a alterar:
-- `src/components/layout/Sidebar.tsx` — adicionar item de navegacao "Notas Encomenda" com icone `FileText` e rota `/dashboard/order-notes`
-- `src/components/layout/SidebarV1.tsx` — adicionar o mesmo item de navegacao
+Substituir o item unico "Notas Encomenda" no grupo "Vendas" por um grupo completo "Portal B2B" com todos os sub-modulos:
 
-### 2. Verificar e corrigir a navegacao no SidebarV1
+| Item | Rota | Icone |
+|---|---|---|
+| Notas Encomenda | /dashboard/order-notes | FileText |
+| Aprovacoes | /dashboard/order-approvals | CheckSquare |
+| Clientes B2B | /dashboard/client-users | Users |
+| Produtos | /dashboard/products | ShoppingBag |
+| Stock B2B | /dashboard/b2b-stock | Package |
+| Config. Portal | /dashboard/b2b-portal | Settings |
 
-Verificar onde os `navItems` sao definidos e adicionar o item "Notas Encomenda" na seccao de Vendas, garantindo que aparece independentemente de extensoes.
+### 2. Adicionar items equivalentes em `nav.v2.ts`
 
-### 3. Manter rota no extensionRegistry como complemento
+Adicionar pelo menos "Notas Encomenda" e "Aprovacoes" como items directos (o V2 e mais compacto).
 
-O registo no `extensionRegistry.ts` mantem-se para quem usa o Marketplace, mas a navegacao principal passa a ter o link sempre visivel.
+### 3. Expandir `extensionRegistry.ts`
 
-## Ficheiros a Alterar
+Adicionar mais `objectTabs` ao modulo `b2b-portal` para que, quando instalado via Marketplace, tambem mostre Aprovacoes, Clientes B2B, Produtos e Config. Portal.
+
+### 4. Remover duplicacao
+
+O item "Notas Encomenda" que foi adicionado isoladamente no grupo "Vendas" sera substituido pelo grupo "Portal B2B" completo, evitando duplicacao.
+
+## Ficheiros a alterar
 
 | Ficheiro | Accao |
 |---|---|
-| `src/components/layout/Sidebar.tsx` | Adicionar "Notas Encomenda" nos itens de navegacao fixos |
-| `src/components/layout/SidebarV1.tsx` | Adicionar "Notas Encomenda" nos itens de navegacao fixos |
+| `src/config/nav.v1.ts` | Substituir grupo "Vendas" por "Portal B2B" com 6 itens |
+| `src/config/nav.v2.ts` | Manter/ajustar item "Notas Encomenda", adicionar "Aprovacoes" |
+| `src/config/extensionRegistry.ts` | Expandir objectTabs do modulo b2b-portal |
 
