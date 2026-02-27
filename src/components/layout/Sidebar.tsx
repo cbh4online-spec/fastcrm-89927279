@@ -139,7 +139,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   // --- Render helpers ---
 
-  const renderLink = (item: { name: string; href: string; icon: any }, end?: boolean, indent = false) => {
+  const renderLink = (item: { name: string; href: string; icon: any; iconColor?: string }, end?: boolean, indent = false) => {
     const active = isActive(item.href, end);
     const Icon = item.icon;
     return (
@@ -156,7 +156,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 : "text-white/60 hover:bg-white/5 hover:text-white/90"
             )}
           >
-            <Icon className={cn("w-[18px] h-[18px] shrink-0", active && "text-primary")} />
+            <Icon className={cn("w-[18px] h-[18px] shrink-0", active ? "text-primary" : item.iconColor)} />
             <span className="truncate">{item.name}</span>
           </Link>
         </TooltipTrigger>
@@ -187,7 +187,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 : "text-white/50 hover:bg-white/5 hover:text-white/80"
             )}
           >
-            <Icon className="w-[18px] h-[18px] shrink-0" />
+            <Icon className={cn("w-[18px] h-[18px] shrink-0", hasActive ? "text-primary" : group.iconColor)} />
             <span className="truncate flex-1 text-left">{group.name}</span>
             <ChevronRight
               className={cn(
@@ -281,7 +281,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             >
               {/* Favorites */}
               {favoriteItems.length > 0 && (
-                <div className="pb-2 mb-2 border-b border-white/5">
+                <div className="pb-2 mb-2">
                   <div className="flex items-center gap-2 px-3 pt-1 pb-1.5">
                     <Star className="w-3 h-3 text-amber-400/70" />
                     <span className="text-[10px] uppercase tracking-wider text-white/30 font-semibold">
@@ -293,12 +293,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               )}
 
               {/* Core items */}
-              <div className="pb-2 mb-1 border-b border-white/5">
+              <div className="pb-2 mb-1">
                 {NAV_V2_CORE.map((item) => renderLink(item, item.end))}
               </div>
 
               {/* Collapsible groups */}
-              <div className="space-y-0.5 py-1">
+              <div className="space-y-0.5 pt-3 mt-3 border-t border-white/5">
                 {filteredGroups.map((group) => renderGroup(group))}
               </div>
 
