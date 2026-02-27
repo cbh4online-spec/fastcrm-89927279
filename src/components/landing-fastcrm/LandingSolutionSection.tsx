@@ -5,6 +5,7 @@ import { useRef } from "react";
 
 const pillarIcons = [Layers, Brain, Workflow, Puzzle];
 const pillarAnchors = ["#features", "#intelligence", "#features", "#pricing"];
+const pillarImages = ["solution-pipeline", "solution-analytics", "solution-automation", "solution-marketplace"];
 
 const cardVariants = {
   hidden: (i: number) => ({
@@ -89,36 +90,50 @@ export function LandingSolutionSection() {
               viewport={{ once: true, margin: "-30px" }}
               whileHover={{ y: -6, scale: 1.02 }}
               transition={{ duration: 0.3 }}
-              className="group relative p-7 rounded-2xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] hover:border-primary/40 hover:bg-[hsl(222,47%,8%)] transition-colors duration-300"
+              className="group relative rounded-2xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] hover:border-primary/40 hover:bg-[hsl(222,47%,8%)] transition-colors duration-300 overflow-hidden"
             >
-              <motion.div
-                className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-5 group-hover:bg-primary/20 transition-colors"
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.6 }}
-              >
-                <pillar.icon className="h-7 w-7 text-primary" />
-              </motion.div>
-              <p className="text-xs font-bold text-primary tracking-[0.15em] uppercase mb-2">{pillar.headline}</p>
-              <h3 className="font-black text-xl uppercase tracking-tight mb-3">{pillar.name}</h3>
-              <p className="text-sm text-[hsl(215,20%,65%)] leading-relaxed mb-5">{pillar.desc}</p>
-              <ul className="space-y-2.5 mb-5">
-                {pillar.features.map((feat, fi) => (
-                  <motion.li
-                    key={fi}
-                    className="flex items-start gap-2.5 text-sm text-[hsl(215,20%,65%)]"
-                    initial={{ opacity: 0, x: -10 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.15 + fi * 0.08, duration: 0.4 }}
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
-                    {feat}
-                  </motion.li>
-                ))}
-              </ul>
-              <a href={pillar.anchor} className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-primary hover:text-primary/80 transition-colors">
-                {t("solution.learnMore")}
-              </a>
+              {/* Card Image */}
+              <div className="relative aspect-video overflow-hidden">
+                <img
+                  src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/landing-assets/${pillarImages[i]}.png`}
+                  alt={pillar.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  loading="lazy"
+                  onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222,47%,6%)] via-[hsl(222,47%,6%)]/50 to-transparent" />
+              </div>
+
+              <div className="p-7">
+                <motion.div
+                  className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-5 group-hover:bg-primary/20 transition-colors"
+                  whileHover={{ rotate: 360 }}
+                  transition={{ duration: 0.6 }}
+                >
+                  <pillar.icon className="h-7 w-7 text-primary" />
+                </motion.div>
+                <p className="text-xs font-bold text-primary tracking-[0.15em] uppercase mb-2">{pillar.headline}</p>
+                <h3 className="font-black text-xl uppercase tracking-tight mb-3">{pillar.name}</h3>
+                <p className="text-sm text-[hsl(215,20%,65%)] leading-relaxed mb-5">{pillar.desc}</p>
+                <ul className="space-y-2.5 mb-5">
+                  {pillar.features.map((feat, fi) => (
+                    <motion.li
+                      key={fi}
+                      className="flex items-start gap-2.5 text-sm text-[hsl(215,20%,65%)]"
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.15 + fi * 0.08, duration: 0.4 }}
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
+                      {feat}
+                    </motion.li>
+                  ))}
+                </ul>
+                <a href={pillar.anchor} className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-primary hover:text-primary/80 transition-colors">
+                  {t("solution.learnMore")}
+                </a>
+              </div>
             </motion.div>
           ))}
         </div>
