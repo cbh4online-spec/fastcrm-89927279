@@ -10,15 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import { motion, AnimatePresence } from "framer-motion";
-
-const SUGGESTED_CHIPS = [
-  "Deals at risk",
-  "No activity in 14 days",
-  "No next step",
-  "Closing this month",
-  "Stuck in stage",
-  "High value deals",
-];
+import { useTranslation } from "react-i18next";
 
 const AUTOCOMPLETE_MAP: Record<string, string> = {
   "risk": "Which deals are at risk?",
@@ -33,17 +25,14 @@ const AUTOCOMPLETE_MAP: Record<string, string> = {
   "value": "Show highest value deals",
   "pipeline": "How is my pipeline?",
   "forecast": "What's blocking my forecast?",
-  // Automation suggestions — deals
   "remind": "Remind me if no activity for 7 days",
   "alert": "Alert me when deals are at risk",
   "auto-assign": "Auto-assign high value deals",
   "follow-up": "Create follow-up when deal enters Proposal",
   "notify": "Notify me if close date is in 3 days",
-  // Automation suggestions — contacts
   "contact reply": "Notify me if contact hasn't replied in 14 days",
   "new contact": "Create task when new contact is created",
   "assign contact": "Assign new contacts to SDR team",
-  // Automation suggestions — invoices
   "invoice": "Alert me when invoice is overdue",
   "overdue": "Alert me when invoice is overdue",
   "due date": "Notify me 3 days before invoice due date",
@@ -57,6 +46,7 @@ interface Props {
 }
 
 export function AskFastCRMDialog({ open, onOpenChange, initialQuery }: Props) {
+  const { t } = useTranslation('ask');
   const [input, setInput] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const { isLoading, result, ask, clear, executeAction, pendingAction, confirmPendingAction, cancelPendingAction, confirmAutomation, cancelAutomation, isConfirmingAutomation } = useAskFastCRM();
@@ -65,6 +55,15 @@ export function AskFastCRMDialog({ open, onOpenChange, initialQuery }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const debouncedInput = useDebounce(input, 150);
+
+  const suggestedChips = useMemo(() => [
+    t('chipsDealsAtRisk'),
+    t('chipsNoActivity'),
+    t('chipsNoNextStep'),
+    t('chipsClosingThisMonth'),
+    t('chipsStuckInStage'),
+    t('chipsHighValue'),
+  ], [t]);
 
   // Autocomplete suggestions
   const suggestions = useMemo(() => {
@@ -174,7 +173,7 @@ export function AskFastCRMDialog({ open, onOpenChange, initialQuery }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[560px] p-0 gap-0 overflow-hidden" onKeyDown={handleKeyDown}>
-        <DialogTitle className="sr-only">Ask FastCRM</DialogTitle>
+        <DialogTitle className="sr-only">{t('title')}</DialogTitle>
 
         {/* Input area */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50">
@@ -190,9 +189,9 @@ export function AskFastCRMDialog({ open, onOpenChange, initialQuery }: Props) {
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about your revenue..."
+              placeholder={t('placeholder')}
               disabled={isLoading}
-              aria-label="Ask FastCRM"
+              aria-label={t('title')}
               aria-autocomplete="list"
               aria-activedescendant={selectedIndex >= 0 ? `ask-suggestion-${selectedIndex}` : undefined}
               className="border-0 shadow-none focus-visible:ring-0 px-0 h-8 text-sm"
@@ -244,7 +243,7 @@ export function AskFastCRMDialog({ open, onOpenChange, initialQuery }: Props) {
               {recentQueries && recentQueries.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                    Recent
+                    {t('recent')}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {recentQueries.map((q, i) => (
@@ -268,10 +267,10 @@ export function AskFastCRMDialog({ open, onOpenChange, initialQuery }: Props) {
               {/* Suggested */}
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                  Suggested
+                  {t('suggested')}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {SUGGESTED_CHIPS.map((chip) => (
+                  {suggestedChips.map((chip) => (
                     <button
                       key={chip}
                       onClick={() => handleChip(chip)}

@@ -1,0 +1,15 @@
+{
+  "title": "Ask FastCRM",
+  "subtitle": "Inteligência de receita ao seu comando.",
+  "emptyTitle": "Pergunte sobre a sua receita",
+  "emptyDescription": "Consulte o pipeline, previsões e negócios — e actue sobre os resultados.",
+  "placeholder": "Pergunte sobre a sua receita...",
+  "recent": "Recentes",
+  "suggested": "Sugeridos",
+  "chipsDealsAtRisk": "Negócios em risco",
+  "chipsNoActivity": "Sem actividade há 14 dias",
+  "chipsNoNextStep": "Sem próximo passo",
+  "chipsClosingThisMonth": "A fechar este mês",
+  "chipsStuckInStage": "Parados na fase",
+  "chipsHighValue": "Negócios de alto valor"
+}

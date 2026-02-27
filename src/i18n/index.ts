@@ -17,6 +17,7 @@ import ptProducts from './locales/pt/products.json';
 import ptAuth from './locales/pt/auth.json';
 import ptReports from './locales/pt/reports.json';
 import ptMeetings from './locales/pt/meetings.json';
+import ptAsk from './locales/pt/ask.json';
 
 // EN
 import enCommon from './locales/en/common.json';
@@ -33,6 +34,7 @@ import enProducts from './locales/en/products.json';
 import enAuth from './locales/en/auth.json';
 import enReports from './locales/en/reports.json';
 import enMeetings from './locales/en/meetings.json';
+import enAsk from './locales/en/ask.json';
 
 // ES
 import esCommon from './locales/es/common.json';
@@ -49,6 +51,7 @@ import esProducts from './locales/es/products.json';
 import esAuth from './locales/es/auth.json';
 import esReports from './locales/es/reports.json';
 import esMeetings from './locales/es/meetings.json';
+import esAsk from './locales/es/ask.json';
 
 // FR
 import frCommon from './locales/fr/common.json';
@@ -65,6 +68,7 @@ import frProducts from './locales/fr/products.json';
 import frAuth from './locales/fr/auth.json';
 import frReports from './locales/fr/reports.json';
 import frMeetings from './locales/fr/meetings.json';
+import frAsk from './locales/fr/ask.json';
 
 export const supportedLanguages = [
   { code: 'pt', label: 'Português', flag: '🇵🇹' },
@@ -84,7 +88,7 @@ i18n
       caches: ['localStorage'],
       lookupLocalStorage: 'i18nextLng',
     },
-    ns: ['common', 'nav', 'dashboard', 'crm', 'settings', 'landing', 'inbox', 'automations', 'intelligence', 'invoices', 'products', 'auth', 'reports', 'meetings'],
+    ns: ['common', 'nav', 'dashboard', 'crm', 'settings', 'landing', 'inbox', 'automations', 'intelligence', 'invoices', 'products', 'auth', 'reports', 'meetings', 'ask'],
     defaultNS: 'common',
     interpolation: { escapeValue: false },
     resources: {
@@ -92,25 +96,25 @@ i18n
         common: ptCommon, nav: ptNav, dashboard: ptDashboard, crm: ptCrm,
         settings: ptSettings, landing: ptLanding, inbox: ptInbox,
         automations: ptAutomations, intelligence: ptIntelligence,
-        invoices: ptInvoices, products: ptProducts, auth: ptAuth, reports: ptReports, meetings: ptMeetings,
+        invoices: ptInvoices, products: ptProducts, auth: ptAuth, reports: ptReports, meetings: ptMeetings, ask: ptAsk,
       },
       en: {
         common: enCommon, nav: enNav, dashboard: enDashboard, crm: enCrm,
         settings: enSettings, landing: enLanding, inbox: enInbox,
         automations: enAutomations, intelligence: enIntelligence,
-        invoices: enInvoices, products: enProducts, auth: enAuth, reports: enReports, meetings: enMeetings,
+        invoices: enInvoices, products: enProducts, auth: enAuth, reports: enReports, meetings: enMeetings, ask: enAsk,
       },
       es: {
         common: esCommon, nav: esNav, dashboard: esDashboard, crm: esCrm,
         settings: esSettings, landing: esLanding, inbox: esInbox,
         automations: esAutomations, intelligence: esIntelligence,
-        invoices: esInvoices, products: esProducts, auth: esAuth, reports: esReports, meetings: esMeetings,
+        invoices: esInvoices, products: esProducts, auth: esAuth, reports: esReports, meetings: esMeetings, ask: esAsk,
       },
       fr: {
         common: frCommon, nav: frNav, dashboard: frDashboard, crm: frCrm,
         settings: frSettings, landing: frLanding, inbox: frInbox,
         automations: frAutomations, intelligence: frIntelligence,
-        invoices: frInvoices, products: frProducts, auth: frAuth, reports: frReports, meetings: frMeetings,
+        invoices: frInvoices, products: frProducts, auth: frAuth, reports: frReports, meetings: frMeetings, ask: frAsk,
       },
     },
   });

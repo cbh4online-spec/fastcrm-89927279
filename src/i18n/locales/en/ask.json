@@ -1,0 +1,15 @@
+{
+  "title": "Ask FastCRM",
+  "subtitle": "Revenue intelligence at your command.",
+  "emptyTitle": "Ask about your revenue",
+  "emptyDescription": "Query your pipeline, forecast, and deals — then act on the results.",
+  "placeholder": "Ask about your revenue...",
+  "recent": "Recent",
+  "suggested": "Suggested",
+  "chipsDealsAtRisk": "Deals at risk",
+  "chipsNoActivity": "No activity in 14 days",
+  "chipsNoNextStep": "No next step",
+  "chipsClosingThisMonth": "Closing this month",
+  "chipsStuckInStage": "Stuck in stage",
+  "chipsHighValue": "High value deals"
+}
