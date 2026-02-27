@@ -131,7 +131,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
             <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-2 ring-transparent hover:ring-primary/20 transition-all">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={user?.user_metadata?.avatar_url} />
-                <AvatarFallback className="bg-gradient-to-br from-primary to-violet-600 text-primary-foreground text-xs font-medium">
+                <AvatarFallback className="gradient-gold text-gold-foreground text-xs font-medium">
                   {initials}
                 </AvatarFallback>
               </Avatar>
@@ -141,7 +141,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
             <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg mx-1 mt-1">
               <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                 <AvatarImage src={user?.user_metadata?.avatar_url} />
-                <AvatarFallback className="bg-gradient-to-br from-primary to-violet-600 text-primary-foreground text-sm font-medium">
+                <AvatarFallback className="gradient-gold text-gold-foreground text-sm font-medium">
                   {initials}
                 </AvatarFallback>
               </Avatar>

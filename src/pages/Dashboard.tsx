@@ -71,9 +71,9 @@ export default function Dashboard() {
             <div className="space-y-1">
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold">{t('home')}</h1>
-                <Badge variant="outline" className="text-xs font-normal">FastCRM 2.0</Badge>
+                <Badge variant="outline" className="text-xs font-normal border-gold/30 text-gold">FastCRM OS</Badge>
               </div>
-              <p className="text-sm text-muted-foreground">{t('buildCRM')}</p>
+              <p className="text-sm text-muted-foreground">AI Revenue Operating System</p>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

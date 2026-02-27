@@ -72,6 +72,10 @@ export default {
           DEFAULT: "hsl(var(--info))",
           foreground: "hsl(var(--info-foreground))",
         },
+        gold: {
+          DEFAULT: "hsl(var(--gold))",
+          foreground: "hsl(var(--gold-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -111,6 +115,10 @@ export default {
           "0%, 100%": { boxShadow: "0 0 20px hsl(var(--primary) / 0.3)" },
           "50%": { boxShadow: "0 0 40px hsl(var(--primary) / 0.5)" },
         },
+        "glow-pulse-gold": {
+          "0%, 100%": { boxShadow: "0 0 20px hsl(var(--gold) / 0.2)" },
+          "50%": { boxShadow: "0 0 40px hsl(var(--gold) / 0.4)" },
+        },
         "shimmer": {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(200%)" },
@@ -125,6 +133,7 @@ export default {
         "slide-in-right": "slide-in-right 0.3s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+        "glow-pulse-gold": "glow-pulse-gold 2s ease-in-out infinite",
       },
     },
   },
