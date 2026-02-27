@@ -1,44 +1,67 @@
 
-# Reactivar todos os módulos no workspace METODOPARE
 
-## Situação actual
+# Disponibilizar módulos em falta no sidebar do METODOPARE
 
-O workspace **METODOPARE** (`d9e3d0ae-5893-41e9-97f3-7d7ce6a06f0f`) tem 26 módulos instalados, mas **16 estão cancelados**:
+## Diagnóstico
 
-| Módulo | Status Actual |
-|--------|--------------|
-| AI Assistants | canceled |
-| AI Copilot | canceled |
-| AI Document OCR | canceled |
-| AI Profiles | canceled |
-| AI Sales Coach | canceled |
-| AI Suggestions | canceled |
-| Bio OS | canceled |
-| Conversational Engine | canceled |
-| Email Marketing Pro | canceled |
-| FastClub (Comunidade) | canceled |
-| Google Local Services | canceled |
-| IMO AI | canceled |
-| Instagram Looter | canceled |
-| Knowledge Base AI | canceled |
-| WhatsApp Business API | canceled |
-| Zapier | canceled |
+Os 26 módulos estao **activos** na base de dados (`workspace_modules.status = 'active'`), mas **12 módulos nao aparecem no sidebar** porque nao estao registados no `EXTENSION_REGISTRY` (`src/config/extensionRegistry.ts`). O sidebar usa este registo para saber que entradas mostrar.
 
-Os seguintes **10 módulos já estão activos**: Portal B2B, Intermediação de Crédito, Finance Pack, Lead Enricher Pro, Marketplace C2C, Loja Online, Proposals Pack, Prospecção Profissional, SEO & Growth, Student Journey.
+As feature flags existentes (`ui.*` e `ext.*`) ja cobrem as funcionalidades core. O problema real e a falta de entradas no registo de extensoes.
 
-## Solução
+## Módulos em falta no Extension Registry
 
-### Passo 1: Migração SQL -- Reactivar módulos cancelados
-Executar um UPDATE na tabela `workspace_modules` para mudar o status de `canceled` para `active` em todos os módulos do workspace METODOPARE:
+| Módulo (slug) | Página existente | Rota |
+|---|---|---|
+| `ai-assistants` | Sim | `/dashboard/ai-assistants` |
+| `ai-copilot` | Integrado no Ask | `/dashboard/ask` |
+| `conversational-engine` | Sim | `/dashboard/conversational-engine` |
+| `knowledge-base` | Redirect para ai-assistants | `/dashboard/ai-assistants` |
+| `ai-suggestions` | Sim | `/dashboard/ai-suggestions` |
+| `ai-sales-coach` | Nao tem pagina dedicada | -- |
+| `ai-document-ocr` | Nao tem pagina dedicada | -- |
+| `ai-profiles` | Redirect para ai-assistants | `/dashboard/ai-assistants` |
+| `email-campaigns` | Nao tem pagina dedicada | -- |
+| `whatsapp-business` | Integrado no Inbox | `/dashboard/inbox` |
+| `imo-ai` | Nao tem pagina dedicada | -- |
+| `zapier-integration` | Nao tem pagina dedicada | -- |
 
-```sql
-UPDATE workspace_modules 
-SET status = 'active' 
-WHERE workspace_id = 'd9e3d0ae-5893-41e9-97f3-7d7ce6a06f0f' 
-  AND status = 'canceled';
-```
+## Solucao
 
-### Passo 2: Garantir feature flags necessárias
-Verificar e inserir feature flags que possam estar em falta para funcionalidades dependentes (ex: `ext.fastclub.enabled`, `ext.email_campaigns.enabled`, etc.), caso os módulos reactivados necessitem de flags adicionais para funcionar no sidebar.
+### Passo 1: Adicionar entradas ao Extension Registry
 
-Nenhuma alteração de código frontend é necessária -- o sistema já lê os módulos activos dinamicamente via `useWorkspaceModules` e reflecte no sidebar e nas guards.
+Actualizar `src/config/extensionRegistry.ts` para incluir os 12 módulos em falta, agrupados nas categorias correctas:
+
+- **IA**: ai-assistants, ai-copilot, conversational-engine, knowledge-base, ai-suggestions, ai-sales-coach, ai-document-ocr, ai-profiles, imo-ai
+- **Marketing**: email-campaigns
+- **Integracoes**: whatsapp-business, zapier-integration
+
+Cada entrada tera:
+- `moduleSlug` correspondente ao slug no marketplace
+- `objectTabs` com rota para a pagina existente (ou pagina placeholder para os que ainda nao tem)
+- `category` adequada (sera necessario adicionar "IA" e "Integracoes" ao tipo `ExtensionCategory`)
+
+### Passo 2: Adicionar categorias em falta
+
+Adicionar `"IA"` e `"Integracoes"` ao tipo `ExtensionCategory` e ao `categoryOrder` na funcao `getExtensionObjectTabsGrouped`.
+
+### Passo 3: Criar paginas placeholder para modulos sem pagina
+
+Criar paginas simples de placeholder para: `ai-sales-coach`, `ai-document-ocr`, `email-campaigns`, `imo-ai`, `zapier-integration`. Cada uma com layout basico, titulo e descricao "Em breve" + link ao Marketplace.
+
+### Passo 4: Adicionar rotas no App.tsx
+
+Registar as novas rotas para as paginas placeholder.
+
+## Ficheiros a alterar
+
+| Ficheiro | Alteracao |
+|---|---|
+| `src/config/extensionRegistry.ts` | Adicionar 12 modulos + novas categorias |
+| `src/pages/EmailCampaignsPage.tsx` | Nova pagina placeholder |
+| `src/pages/WhatsAppSettingsPage.tsx` | Nova pagina de settings WhatsApp |
+| `src/pages/AISalesCoachPage.tsx` | Nova pagina placeholder |
+| `src/pages/AIDocumentOCRPage.tsx` | Nova pagina placeholder |
+| `src/pages/IMOAIPage.tsx` | Nova pagina placeholder |
+| `src/pages/ZapierPage.tsx` | Nova pagina placeholder |
+| `src/App.tsx` | Adicionar rotas para novas paginas |
+
