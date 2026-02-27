@@ -120,19 +120,33 @@ export function ConvertLeadDialog({ lead, trigger }: ConvertLeadDialogProps) {
 
     const migrationPromises: Array<Promise<unknown>> = [];
 
+    // Helper to execute supabase query and convert to real Promise
+    const migrate = (table: string, updateData: Record<string, string>) => {
+      return new Promise<unknown>(async (resolve, reject) => {
+        try {
+          const { error } = await (supabase.from(table as any) as any)
+            .update(updateData)
+            .eq("lead_id", leadId);
+          if (error) {
+            console.warn(`Migration warning for ${table}:`, error.message);
+          }
+          resolve({ table, error });
+        } catch (e) {
+          console.warn(`Migration error for ${table}:`, e);
+          resolve({ table, error: e }); // resolve anyway to not block
+        }
+      });
+    };
+
     // Migrate tables with both ids
     for (const table of tablesWithBothIds) {
-      migrationPromises.push(
-        (supabase.from(table as any) as any).update(entityUpdate).eq("lead_id", leadId) as Promise<unknown>
-      );
+      migrationPromises.push(migrate(table, entityUpdate));
     }
 
     // Migrate contact-only tables when converting to contact
     if (targetType === "contact") {
       for (const table of tablesContactOnly) {
-        migrationPromises.push(
-          (supabase.from(table as any) as any).update({ contact_id: targetId }).eq("lead_id", leadId) as Promise<unknown>
-        );
+        migrationPromises.push(migrate(table, { contact_id: targetId }));
       }
     }
 
