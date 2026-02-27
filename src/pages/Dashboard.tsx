@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Target, Briefcase, Building2, Contact, CheckSquare } from "lucide-react";
+import { Plus, Target, Briefcase, Building2, Contact, CheckSquare, Brain, ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { RevenueHero } from "@/components/dashboard/RevenueHero";
@@ -26,6 +26,7 @@ import { UpcomingBirthdaysWidget } from "@/components/dashboard/UpcomingBirthday
 import { UpcomingEventsWidget } from "@/components/dashboard/UpcomingEventsWidget";
 import { ExecutiveBriefWidget } from "@/components/dashboard/ExecutiveBriefWidget";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useBusinessContext } from "@/hooks/useBusinessContext";
 
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
 import { CreateOpportunityDialog } from "@/components/crm/CreateOpportunityDialog";
@@ -40,6 +41,7 @@ export default function Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const createTask = useCreateTask();
   const { kpiData, isLoading: kpiLoading } = useDashboardData();
+  const { isConfigured: contextConfigured } = useBusinessContext();
 
   const [createLeadOpen, setCreateLeadOpen] = useState(false);
   const [createOpportunityOpen, setCreateOpportunityOpen] = useState(false);
@@ -104,6 +106,23 @@ export default function Dashboard() {
 
           {showWelcome && (
             <WelcomeOverlay segment={onboardingSegment} bundleActivated={onboardingBundle} onDismiss={() => setShowWelcome(false)} />
+          )}
+
+          {!contextConfigured && (
+            <div className="rounded-xl border border-gold/30 bg-gold/5 p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-gold/15 flex items-center justify-center">
+                  <Brain className="h-5 w-5 text-gold" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Configure o seu Revenue OS</p>
+                  <p className="text-xs text-muted-foreground">O sistema precisa de conhecer o seu negócio para operar com inteligência.</p>
+                </div>
+              </div>
+              <Button size="sm" onClick={() => navigate("/dashboard/context-os")} className="gap-1.5 bg-gold text-gold-foreground hover:bg-gold/90 shrink-0">
+                Configurar <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           )}
 
           <AskProactiveNudge onAskQuery={(q) => navigate(`/dashboard/ask?q=${encodeURIComponent(q)}`)} />
