@@ -1,76 +1,74 @@
 
 
-# Daily Revenue Brief — Resumo Executivo 24h
+# Redesenhar Dashboard — Revenue Operating System Layout
 
-## Abordagem
+## Problema Actual
+O dashboard tem um layout genérico: header simples, KPIs em faixa, e 3 colunas uniformes com widgets empilhados sem hierarquia visual clara. Não transmite a identidade "Revenue OS" nem prioriza informação actionable.
 
-Criar uma nova tabela `daily_briefs`, uma edge function dedicada (dados de 24h vs 7 dias do weekly), um hook `useDailyBriefs`, uma página dedicada e um widget compacto no dashboard.
+## Novo Layout
 
-## 1. Database — Nova tabela `daily_briefs`
-
-```sql
-CREATE TABLE public.daily_briefs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  summary TEXT,
-  hot_leads TEXT,
-  stuck_deals TEXT,
-  revenue_highlight TEXT,
-  action_suggestions TEXT[],
-  key_metrics JSONB DEFAULT '{}',
-  UNIQUE(workspace_id, (created_at::date))
-);
-
-ALTER TABLE public.daily_briefs ENABLE ROW LEVEL SECURITY;
--- RLS: members can view, admins can manage (same pattern as weekly_briefs)
+```text
+┌─────────────────────────────────────────────────────────┐
+│  ⚡ Revenue Operating System           [+ Novo] [Data]  │
+│  "Bom dia, João. 3 deals precisam de atenção."          │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  ┌── Revenue Hero (full-width, premium glass+gold) ──┐  │
+│  │ €247K expected  │ Stage: €180K │ Risk-adj: €210K   │  │
+│  │ Confidence: 72  │ +12% trend   │ 14 opportunities  │  │
+│  └────────────────────────────────────────────────────┘  │
+│                                                         │
+│  ┌─ KPIs (5 cards, redesigned with gold accents) ────┐  │
+│  │ Leads │ Opps │ Propostas │ Pendentes │ Receita     │  │
+│  └────────────────────────────────────────────────────┘  │
+│                                                         │
+│  ┌─── Intelligence Strip (2 cols) ───────────────────┐  │
+│  │ ┌─ AI Actions ──────┐  ┌─ Deals at Risk ────────┐ │  │
+│  │ │ Revenue Brain      │  │ Alertas prioritários   │ │  │
+│  │ │ (top 5 actions)    │  │ (top 5 risks)          │ │  │
+│  │ └───────────────────┘  └────────────────────────┘ │  │
+│  └────────────────────────────────────────────────────┘  │
+│                                                         │
+│  ┌─── Operational Grid (3 cols) ─────────────────────┐  │
+│  │ ┌ Pipeline   ┐ ┌ Forecast   ┐ ┌ Daily Brief    ┐ │  │
+│  │ │ Health     │ │ Trend Chart│ │ + Exec Brief   │ │  │
+│  │ └────────────┘ └────────────┘ └────────────────┘ │  │
+│  └────────────────────────────────────────────────────┘  │
+│                                                         │
+│  ┌─── Secondary (3 cols) ────────────────────────────┐  │
+│  │ PLG Signals │ Automations  │ Events+Birthdays     │  │
+│  │             │ + Comparison │                       │  │
+│  └────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
 ```
 
-`key_metrics` inclui: `leads_today`, `revenue_today`, `new_opportunities`, `tasks_completed`, `tasks_pending`, `deals_stalled`, `messages_today`.
+## Alterações
 
-## 2. Edge Function — `daily-revenue-brief`
+### `src/pages/Dashboard.tsx` — Reestruturar layout completo
+- **Header premium**: Substituir header genérico por headline com gradiente gold, saudação contextual (hora do dia + nome), e status line dinâmica ("X deals precisam de atenção, Y tarefas pendentes") usando dados de `useIntelligencePanel`
+- **Intelligence Strip**: Nova secção de 2 colunas que eleva `AIActionSuggestions` e `DealsAtRiskList` para logo abaixo dos KPIs — são os widgets mais actionable
+- **Operational Grid**: 3 colunas com `PipelineHealthCard`, `ForecastTrendChart`, e briefs (Daily + Executive combinados)
+- **Secondary Grid**: 3 colunas com `PLGSignalsFeed`, `DashboardAutomationSuggestions` + `PipelineComparisonCard`, e `UpcomingEventsWidget` + `UpcomingBirthdaysWidget`
+- Remover `ForecastConfidenceCard` standalone (dados já presentes no `RevenueHero`)
+- Manter `AskProactiveNudge` e Context OS banner
 
-Pipeline semelhante à `strategic-intelligence-brief` mas com janela de 24h:
-- 10 queries paralelas: leads criados hoje, deals ganhos/perdidos hoje, deals estagnados (>5 dias sem atividade), tasks completed/pending, messages hoje, oportunidades abertas com health score baixo
-- Prompt AI focado em "diário operacional" (vs "semanal estratégico")
-- Tool calling com campos: `summary`, `hot_leads`, `stuck_deals`, `revenue_highlight`, `action_suggestions`
-- Insert em `daily_briefs`
+### `src/components/dashboard/RevenueHero.tsx` — Upgrade visual premium
+- Aplicar estilo `glass-premium` com border gold
+- Gradiente de fundo dark+gold em vez do actual `primary/5`
+- Label "REVENUE FORECAST" com tracking wide e cor gold
+- Valores com tipografia maior e mais bold
+- Adicionar glow sutil no card
 
-## 3. Hook — `src/hooks/useDailyBrief.ts`
-
-- Query para último `daily_brief` do workspace
-- Função `generateDailyBrief()` que invoca a edge function
-- `isConfigured` / `todaysBrief` / `isGenerating`
-
-## 4. Página — `/dashboard/daily-brief`
-
-Layout premium com:
-- Header com data de hoje e botão "Gerar Brief"
-- 4 KPI cards (Leads Hoje, Receita Hoje, Deals Travados, Tarefas)
-- Secções: Resumo, Leads Quentes, Deals Travados, Sugestões de Ação
-- Timeline dos últimos 7 daily briefs
-
-## 5. Dashboard Widget — `DailyBriefWidget.tsx`
-
-Card compacto (substitui ou complementa o `ExecutiveBriefWidget`):
-- Resumo de 2 linhas + 3 mini-KPIs (leads, receita, stalled)
-- Botão "Gerar" / "Ver completo"
-
-## 6. Navegação
-
-- Adicionar "Daily Brief" na sidebar grupo "Estratégia" com ícone `Newspaper` e rota `/dashboard/daily-brief`
-- Rota em `App.tsx`
+### `src/components/dashboard/DashboardKPICards.tsx` — Acentos gold
+- Ícones com acentos gold nos cards primários
+- Border sutil gold no hover
+- Manter a grid 5 colunas existente
 
 ## Ficheiros
 
 | Ficheiro | Acção |
 |----------|-------|
-| Migration SQL | Criar tabela `daily_briefs` + RLS |
-| `supabase/functions/daily-revenue-brief/index.ts` | Edge function (24h data + AI) |
-| `src/hooks/useDailyBrief.ts` | Hook CRUD + react-query |
-| `src/pages/DailyBriefPage.tsx` | Página dedicada com KPIs + secções |
-| `src/components/dashboard/DailyBriefWidget.tsx` | Widget compacto para dashboard |
-| `src/config/nav.v1.ts` | Adicionar item Daily Brief |
-| `src/App.tsx` | Adicionar rota |
-| `src/pages/Dashboard.tsx` | Adicionar widget |
+| `src/pages/Dashboard.tsx` | Reestruturar layout com hierarquia visual e intelligence strip |
+| `src/components/dashboard/RevenueHero.tsx` | Visual premium glass+gold |
+| `src/components/dashboard/DashboardKPICards.tsx` | Acentos gold subtis |
 
