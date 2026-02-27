@@ -250,12 +250,13 @@ Deno.serve(async (req) => {
               const leadsToInsert: Array<Record<string, unknown>> = [];
 
               // Helper: extract social URLs from GHL custom fields
-              function extractSocialFromCustomFields(socialMedia?: { linkedIn?: string; facebook?: string; instagram?: string; twitter?: string }, fields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>): { instagram_url?: string; linkedin_url?: string; facebook_url?: string } {
+function extractSocialFromCustomFields(socialMedia?: { linkedIn?: string; facebook?: string; instagram?: string; twitter?: string }, fields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>): { instagram_url?: string; linkedin_url?: string; facebook_url?: string; twitter_url?: string } {
                 const result: Record<string, string> = {};
                 // Priority 1: native GHL socialMedia fields
                 if (socialMedia?.linkedIn) result.linkedin_url = socialMedia.linkedIn;
                 if (socialMedia?.facebook) result.facebook_url = socialMedia.facebook;
                 if (socialMedia?.instagram) result.instagram_url = socialMedia.instagram;
+                if (socialMedia?.twitter) result.twitter_url = socialMedia.twitter;
                 // Priority 2: custom fields (only fill if not already set)
                 if (fields) {
                   for (const f of fields) {
@@ -265,6 +266,7 @@ Deno.serve(async (req) => {
                     if (!result.instagram_url && key.includes("instagram")) result.instagram_url = val.startsWith("http") ? val : `https://instagram.com/${val}`;
                     if (!result.linkedin_url && key.includes("linkedin")) result.linkedin_url = val.startsWith("http") ? val : `https://linkedin.com/in/${val}`;
                     if (!result.facebook_url && key.includes("facebook")) result.facebook_url = val.startsWith("http") ? val : `https://facebook.com/${val}`;
+                    if (!result.twitter_url && key.includes("twitter")) result.twitter_url = val.startsWith("http") ? val : `https://x.com/${val}`;
                   }
                 }
                 return result;
@@ -324,6 +326,7 @@ Deno.serve(async (req) => {
                   instagram_url: socialUrls.instagram_url || null,
                   linkedin_url: socialUrls.linkedin_url || null,
                   facebook_url: socialUrls.facebook_url || null,
+                  twitter_url: socialUrls.twitter_url || null,
                 });
 
                 // Add to Set to prevent duplicates in future pages
@@ -513,11 +516,12 @@ Deno.serve(async (req) => {
       const leadsToInsert: Array<Record<string, unknown>> = [];
 
       // Helper: extract social URLs from GHL custom fields
-      function extractSocialFromCustomFieldsNS(socialMedia?: { linkedIn?: string; facebook?: string; instagram?: string; twitter?: string }, fields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>): { instagram_url?: string; linkedin_url?: string; facebook_url?: string } {
+      function extractSocialFromCustomFieldsNS(socialMedia?: { linkedIn?: string; facebook?: string; instagram?: string; twitter?: string }, fields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>): { instagram_url?: string; linkedin_url?: string; facebook_url?: string; twitter_url?: string } {
         const result: Record<string, string> = {};
         if (socialMedia?.linkedIn) result.linkedin_url = socialMedia.linkedIn;
         if (socialMedia?.facebook) result.facebook_url = socialMedia.facebook;
         if (socialMedia?.instagram) result.instagram_url = socialMedia.instagram;
+        if (socialMedia?.twitter) result.twitter_url = socialMedia.twitter;
         if (fields) {
           for (const f of fields) {
             const key = (f.field_key || f.key || f.id || "").toLowerCase();
@@ -526,6 +530,7 @@ Deno.serve(async (req) => {
             if (!result.instagram_url && key.includes("instagram")) result.instagram_url = val.startsWith("http") ? val : `https://instagram.com/${val}`;
             if (!result.linkedin_url && key.includes("linkedin")) result.linkedin_url = val.startsWith("http") ? val : `https://linkedin.com/in/${val}`;
             if (!result.facebook_url && key.includes("facebook")) result.facebook_url = val.startsWith("http") ? val : `https://facebook.com/${val}`;
+            if (!result.twitter_url && key.includes("twitter")) result.twitter_url = val.startsWith("http") ? val : `https://x.com/${val}`;
           }
         }
         return result;
@@ -569,6 +574,7 @@ Deno.serve(async (req) => {
           instagram_url: socialUrls.instagram_url || null,
           linkedin_url: socialUrls.linkedin_url || null,
           facebook_url: socialUrls.facebook_url || null,
+          twitter_url: socialUrls.twitter_url || null,
         });
 
         // Add to Set to prevent duplicates in future pages

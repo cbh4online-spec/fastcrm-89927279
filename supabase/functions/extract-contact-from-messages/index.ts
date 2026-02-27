@@ -26,6 +26,7 @@ interface ExtractedData {
   instagram_url?: string;
   linkedin_url?: string;
   facebook_url?: string;
+  twitter_url?: string;
   website?: string;
 }
 
@@ -69,6 +70,15 @@ function extractFromText(text: string): ExtractedData {
     const username = fbMatches[0][1];
     if (!["share", "sharer", "dialog", "photo"].includes(username)) {
       result.facebook_url = `https://facebook.com/${username}`;
+    }
+  }
+
+  // Extract Twitter/X
+  const twMatches = [...text.matchAll(TWITTER_REGEX)];
+  if (twMatches.length) {
+    const username = twMatches[0][1];
+    if (!["home", "explore", "search", "settings", "i"].includes(username)) {
+      result.twitter_url = `https://x.com/${username}`;
     }
   }
 
@@ -130,7 +140,7 @@ Deno.serve(async (req) => {
     // Get current lead data to check which fields are empty
     const { data: lead } = await supabase
       .from("leads")
-      .select("email, phone, instagram_url, linkedin_url, facebook_url, website")
+      .select("email, phone, instagram_url, linkedin_url, facebook_url, twitter_url, website")
       .eq("id", conv.lead_id)
       .single();
 
@@ -147,6 +157,7 @@ Deno.serve(async (req) => {
     if (!lead.instagram_url && extracted.instagram_url) updates.instagram_url = extracted.instagram_url;
     if (!lead.linkedin_url && extracted.linkedin_url) updates.linkedin_url = extracted.linkedin_url;
     if (!lead.facebook_url && extracted.facebook_url) updates.facebook_url = extracted.facebook_url;
+    if (!lead.twitter_url && extracted.twitter_url) updates.twitter_url = extracted.twitter_url;
     if (!lead.website && extracted.website) updates.website = extracted.website;
 
     if (Object.keys(updates).length === 0) {
@@ -228,7 +239,7 @@ async function handleBatch(supabase: ReturnType<typeof createClient>, workspaceI
 
     const { data: lead } = await supabase
       .from("leads")
-      .select("email, phone, instagram_url, linkedin_url, facebook_url, website")
+      .select("email, phone, instagram_url, linkedin_url, facebook_url, twitter_url, website")
       .eq("id", conv.lead_id)
       .single();
 
@@ -240,6 +251,7 @@ async function handleBatch(supabase: ReturnType<typeof createClient>, workspaceI
     if (!lead.instagram_url && extracted.instagram_url) updates.instagram_url = extracted.instagram_url;
     if (!lead.linkedin_url && extracted.linkedin_url) updates.linkedin_url = extracted.linkedin_url;
     if (!lead.facebook_url && extracted.facebook_url) updates.facebook_url = extracted.facebook_url;
+    if (!lead.twitter_url && extracted.twitter_url) updates.twitter_url = extracted.twitter_url;
     if (!lead.website && extracted.website) updates.website = extracted.website;
 
     if (Object.keys(updates).length > 0) {

@@ -59,14 +59,16 @@ interface GHLContactData {
   instagram_url?: string;
   linkedin_url?: string;
   facebook_url?: string;
+  twitter_url?: string;
 }
 
-function extractSocialFromCustomFields(socialMedia?: { linkedIn?: string; facebook?: string; instagram?: string; twitter?: string }, fields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>): { instagram_url?: string; linkedin_url?: string; facebook_url?: string } {
+function extractSocialFromCustomFields(socialMedia?: { linkedIn?: string; facebook?: string; instagram?: string; twitter?: string }, fields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>): { instagram_url?: string; linkedin_url?: string; facebook_url?: string; twitter_url?: string } {
   const result: Record<string, string> = {};
   // Priority 1: native GHL socialMedia fields
   if (socialMedia?.linkedIn) result.linkedin_url = socialMedia.linkedIn;
   if (socialMedia?.facebook) result.facebook_url = socialMedia.facebook;
   if (socialMedia?.instagram) result.instagram_url = socialMedia.instagram;
+  if (socialMedia?.twitter) result.twitter_url = socialMedia.twitter;
   // Priority 2: custom fields (only fill if not already set)
   if (fields) {
     for (const f of fields) {
@@ -76,6 +78,7 @@ function extractSocialFromCustomFields(socialMedia?: { linkedIn?: string; facebo
       if (!result.instagram_url && key.includes("instagram")) result.instagram_url = val.startsWith("http") ? val : `https://instagram.com/${val}`;
       if (!result.linkedin_url && key.includes("linkedin")) result.linkedin_url = val.startsWith("http") ? val : `https://linkedin.com/in/${val}`;
       if (!result.facebook_url && key.includes("facebook")) result.facebook_url = val.startsWith("http") ? val : `https://facebook.com/${val}`;
+      if (!result.twitter_url && key.includes("twitter")) result.twitter_url = val.startsWith("http") ? val : `https://x.com/${val}`;
     }
   }
   return result;
@@ -120,6 +123,7 @@ async function fetchGHLContact(apiKey: string, contactId: string): Promise<GHLCo
       instagram_url: socialUrls.instagram_url,
       linkedin_url: socialUrls.linkedin_url,
       facebook_url: socialUrls.facebook_url,
+      twitter_url: socialUrls.twitter_url,
     };
   } catch (err) {
     console.error(`[GHL Sync] Error fetching contact ${contactId}:`, err);
@@ -151,6 +155,7 @@ async function createLeadFromGHLContact(
     if (contactData.instagram_url) insertData.instagram_url = contactData.instagram_url;
     if (contactData.linkedin_url) insertData.linkedin_url = contactData.linkedin_url;
     if (contactData.facebook_url) insertData.facebook_url = contactData.facebook_url;
+    if (contactData.twitter_url) insertData.twitter_url = contactData.twitter_url;
 
     const { data: newLead, error } = await supabase
       .from("leads")
