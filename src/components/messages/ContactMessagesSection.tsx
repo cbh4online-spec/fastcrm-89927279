@@ -52,7 +52,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useTemplates, Template, TemplateGoal } from "@/hooks/useTemplates";
-import { useCopilot, ReplySuggestion } from "@/hooks/useCopilot";
+import { useAskAI, ReplySuggestion } from "@/hooks/useAskAI";
 import { TemplateFormDialog } from "@/components/communication/TemplateFormDialog";
 import { CommunicationTemplate, TemplateChannel } from "@/types/communicationTemplate";
 import { ComposeEmailDialog } from "@/components/email";
@@ -123,7 +123,7 @@ export function ContactMessagesSection({
   entityPhone,
 }: ContactMessagesSectionProps) {
   const { data: templates = [], isLoading: templatesLoading } = useTemplates({ isActive: true });
-  const { isLoading: aiLoading, suggestReplies } = useCopilot();
+  const { isLoading: aiLoading, suggestReplies } = useAskAI();
   
   const [activeTab, setActiveTab] = useState<'compose' | 'templates' | 'ai'>('compose');
   const [selectedChannel, setSelectedChannel] = useState<MessageChannel>('email');

@@ -24,7 +24,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useTemplates, Template, TemplateGoal } from "@/hooks/useTemplates";
-import { useCopilot } from "@/hooks/useCopilot";
+import { useAskAI } from "@/hooks/useAskAI";
 import { VariableContext, renderTemplate, validateTemplate } from "@/lib/templateVariables";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -50,7 +50,7 @@ const goalLabels: Record<TemplateGoal, string> = {
 
 export function InboxTemplateAIDraft({ entityData, conversationContext, onApply }: Props) {
   const { data: templates } = useTemplates({ isActive: true });
-  const { isLoading, suggestReplies } = useCopilot();
+  const { isLoading, suggestReplies } = useAskAI();
 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [aiDraft, setAiDraft] = useState<string | null>(null);
