@@ -156,6 +156,11 @@ import StoreCouponsPage from "./pages/StoreCouponsPage";
 import StoreAnalyticsPage from "./pages/StoreAnalyticsPage";
 import MobileQuickProductCreate from "./pages/MobileQuickProductCreate";
 import EventRsvpResponse from "./pages/EventRsvpResponse";
+import AISalesCoachPage from "./pages/AISalesCoachPage";
+import AIDocumentOCRPage from "./pages/AIDocumentOCRPage";
+import EmailCampaignsPage from "./pages/EmailCampaignsPage";
+import IMOAIPage from "./pages/IMOAIPage";
+import ZapierPage from "./pages/ZapierPage";
 
 // C2C Marketplace
 import C2CMarketplace from "./pages/c2c/C2CMarketplace";
@@ -467,6 +472,11 @@ function CRMRoutes() {
                 <Route path="/dashboard/events" element={<EventsManagementPage />} />
                 <Route path="/dashboard/events/:eventId" element={<EventDetailPage />} />
                 <Route path="/dashboard/lead-enricher" element={<LeadEnricher />} />
+                <Route path="/dashboard/ai-sales-coach" element={<AISalesCoachPage />} />
+                <Route path="/dashboard/ai-document-ocr" element={<AIDocumentOCRPage />} />
+                <Route path="/dashboard/email-campaigns" element={<EmailCampaignsPage />} />
+                <Route path="/dashboard/imo-ai" element={<IMOAIPage />} />
+                <Route path="/dashboard/zapier" element={<ZapierPage />} />
                 
                 {/* Order Notes Admin Routes */}
                 <Route path="/dashboard/order-notes" element={<OrderNotesPage />} />
