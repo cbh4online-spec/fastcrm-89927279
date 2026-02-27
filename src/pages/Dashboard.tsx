@@ -24,6 +24,7 @@ import { PipelineComparisonCard } from "@/components/dashboard/PipelineCompariso
 import { PLGSignalsFeed } from "@/components/dashboard/PLGSignalsFeed";
 import { UpcomingBirthdaysWidget } from "@/components/dashboard/UpcomingBirthdaysWidget";
 import { UpcomingEventsWidget } from "@/components/dashboard/UpcomingEventsWidget";
+import { ExecutiveBriefWidget } from "@/components/dashboard/ExecutiveBriefWidget";
 import { useDashboardData } from "@/hooks/useDashboardData";
 
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
@@ -124,6 +125,7 @@ export default function Dashboard() {
               <UpcomingEventsWidget />
             </div>
             <div className="space-y-4">
+              <ExecutiveBriefWidget />
               <ForecastConfidenceCard />
               <PipelineComparisonCard />
               <UpcomingBirthdaysWidget />
