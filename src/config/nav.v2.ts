@@ -23,6 +23,7 @@ export const NAV_V2_ITEMS = [
   { name: "Portal B2B", href: "/dashboard/order-notes", icon: FileText },
   { name: "Aprovações", href: "/dashboard/order-approvals", icon: FileText },
   { name: "Reports", href: "/dashboard/reports", icon: BarChart3 },
+  { name: "Strategy", href: "/dashboard/strategy", icon: Brain },
   { name: "Marketplace", href: "/dashboard/marketplace", icon: Layers, featureFlag: "marketplace" },
   { name: "Settings", href: "/settings", icon: Settings },
 ] as const;

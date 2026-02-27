@@ -62,6 +62,7 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Assistentes IA", href: "/dashboard/ai-assistants", icon: Brain, group: "Ferramentas" },
   { name: "Form Studio", href: "/dashboard/form-studio", icon: FileText, group: "Ferramentas" },
   { name: "Relatórios", href: "/dashboard/reports", icon: BarChart3, group: "Ferramentas" },
+  { name: "Estratégia", href: "/dashboard/strategy", icon: Brain, group: "Ferramentas" },
   { name: "Marketplace", href: "/dashboard/marketplace", icon: Layers, group: "Ferramentas" },
 
   // Settings
