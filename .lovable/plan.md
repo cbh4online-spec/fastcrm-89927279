@@ -1,38 +1,32 @@
 
 
-# Corrigir Filtragem V1: Mover Itens Base para Grupos Core
+# Adicionar Ícone de Puzzle nos Itens de Módulo
 
-## Problema
+## Alteração
 
-A filtragem por `moduleSlug` já está implementada no código, mas não produz efeito visível porque muitos itens em grupos como **Vendas**, **Marketing**, **Ferramentas** e **Relatórios** não têm `moduleSlug`, mantendo esses grupos sempre visíveis.
+Adicionar um mini ícone `Puzzle` (3×3) ao lado do nome nos itens que têm `moduleSlug`, para distinguir visualmente dos itens core.
 
-Exemplo: O grupo "Vendas" tem Pipeline, Agendamento e Produtos sem `moduleSlug` — logo o grupo nunca desaparece mesmo sem módulos.
+### `src/components/layout/SidebarV1.tsx`
 
-## Solução
+1. No render expandido dos `visibleNavItems` (linha ~253), após `<span className="flex-1">{item.name}</span>`, adicionar condicionalmente:
+```tsx
+{item.moduleSlug && <Puzzle className="w-3 h-3 text-muted-foreground/50" />}
+```
 
-Reestruturar `nav.v1.ts` para que itens base saiam dos seus grupos actuais e passem para grupos core (Principal ou CRM). Assim, os grupos que ficam só com itens de módulo desaparecem quando o módulo não está instalado.
+2. No tooltip do modo colapsado (linha ~238), adicionar o ícone de puzzle ao texto do tooltip:
+```tsx
+<TooltipContent side="right">
+  {item.name}{item.moduleSlug && " (módulo)"}
+</TooltipContent>
+```
 
-### Movimentação de itens em `src/config/nav.v1.ts`
+3. Nos favoritos expandidos (linha ~197), mesmo padrão — adicionar puzzle após o nome se `item.moduleSlug` existe.
 
-| Item actual | Grupo actual | Novo grupo | Razão |
-|---|---|---|---|
-| Pipeline | Vendas | CRM | Sempre visível |
-| Agendamento | Vendas | CRM | Sempre visível |
-| Produtos | Vendas | CRM | Sempre visível |
-| Marketing (base) | Marketing | Remover | Sem destino — era só label |
-| Funis | Marketing | Ferramentas | Sempre visível |
-| Visão Geral, KPIs, Metas, Previsões, Consumo | Relatórios | Mover para grupo "Relatórios" com itens todos sem moduleSlug — manter grupo visível (é core) |
-| Automações, Assistentes IA, AI Employees, Form Studio, Importações, Integrações, Marketplace | Ferramentas | Mover para grupo "Ferramentas" que fica sempre visível (core) |
+O ícone `Puzzle` já está importado no ficheiro (linha 6).
 
-**Resultado**: Após estas mudanças:
-- **Vendas** fica só com Propostas (`proposals`) e Faturas (`invoices`) → desaparece sem esses módulos
-- **Marketing** fica só com Email Marketing, Google Local, Bio OS → desaparece sem esses módulos  
-- **Estratégia** fica só com Brief (`strategy-brief`) → desaparece sem módulo
-- **Relatórios** e **Ferramentas** ficam como grupos core (sempre visíveis, têm itens sem moduleSlug)
-
-### Ficheiros a alterar
+### Ficheiro a alterar
 
 | Ficheiro | Acção |
 |---|---|
-| `src/config/nav.v1.ts` | Mover Pipeline/Agendamento/Produtos para CRM; remover item "Marketing" base; mover Funis para Ferramentas |
+| `src/components/layout/SidebarV1.tsx` | Adicionar `<Puzzle>` condicional em 3 pontos de renderização |
 
