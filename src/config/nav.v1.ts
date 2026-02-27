@@ -143,7 +143,8 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Bio OS", href: "/dashboard/bio", icon: Globe, group: "Marketing", moduleSlug: "bio-os" },
 
   // Estratégia (só módulos)
-  { name: "Brief Executivo", href: "/dashboard/strategy", icon: Brain, group: "Estratégia", separator: true, moduleSlug: "strategy-brief" },
+  { name: "Context OS", href: "/dashboard/context-os", icon: Brain, group: "Estratégia", separator: true },
+  { name: "Brief Executivo", href: "/dashboard/strategy", icon: Brain, group: "Estratégia", moduleSlug: "strategy-brief" },
 
   // Relatórios
   { name: "Visão Geral", href: "/dashboard/reports", icon: BarChart3, group: "Relatórios", separator: true },

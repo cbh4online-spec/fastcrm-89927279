@@ -3738,6 +3738,107 @@ export type Database = {
           },
         ]
       }
+      business_context: {
+        Row: {
+          active_strategies: string[] | null
+          annual_revenue_target: number | null
+          average_ticket: number | null
+          business_description: string | null
+          business_model: string | null
+          created_at: string | null
+          deals_target_monthly: number | null
+          follow_up_sla_hours: number | null
+          icp_company_size: string | null
+          icp_decision_maker: string | null
+          icp_description: string | null
+          icp_industries: string[] | null
+          icp_pain_points: string[] | null
+          id: string
+          last_updated_by: string | null
+          monthly_revenue_target: number | null
+          objections_common: string[] | null
+          offers: Json | null
+          onboarding_completed: boolean | null
+          pricing_model: string | null
+          quarterly_revenue_target: number | null
+          sales_cycle_days: number | null
+          sales_process_steps: string[] | null
+          scripts: Json | null
+          team_roles: string[] | null
+          team_size: number | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          active_strategies?: string[] | null
+          annual_revenue_target?: number | null
+          average_ticket?: number | null
+          business_description?: string | null
+          business_model?: string | null
+          created_at?: string | null
+          deals_target_monthly?: number | null
+          follow_up_sla_hours?: number | null
+          icp_company_size?: string | null
+          icp_decision_maker?: string | null
+          icp_description?: string | null
+          icp_industries?: string[] | null
+          icp_pain_points?: string[] | null
+          id?: string
+          last_updated_by?: string | null
+          monthly_revenue_target?: number | null
+          objections_common?: string[] | null
+          offers?: Json | null
+          onboarding_completed?: boolean | null
+          pricing_model?: string | null
+          quarterly_revenue_target?: number | null
+          sales_cycle_days?: number | null
+          sales_process_steps?: string[] | null
+          scripts?: Json | null
+          team_roles?: string[] | null
+          team_size?: number | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          active_strategies?: string[] | null
+          annual_revenue_target?: number | null
+          average_ticket?: number | null
+          business_description?: string | null
+          business_model?: string | null
+          created_at?: string | null
+          deals_target_monthly?: number | null
+          follow_up_sla_hours?: number | null
+          icp_company_size?: string | null
+          icp_decision_maker?: string | null
+          icp_description?: string | null
+          icp_industries?: string[] | null
+          icp_pain_points?: string[] | null
+          id?: string
+          last_updated_by?: string | null
+          monthly_revenue_target?: number | null
+          objections_common?: string[] | null
+          offers?: Json | null
+          onboarding_completed?: boolean | null
+          pricing_model?: string | null
+          quarterly_revenue_target?: number | null
+          sales_cycle_days?: number | null
+          sales_process_steps?: string[] | null
+          scripts?: Json | null
+          team_roles?: string[] | null
+          team_size?: number | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_context_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       c2c_categories: {
         Row: {
           created_at: string

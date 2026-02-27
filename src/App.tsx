@@ -142,6 +142,7 @@ import InstagramLooterPage from "./pages/dashboard/InstagramLooterPage";
 import SEOAdminPage from "./pages/dashboard/seo";
 import CreditIntermediation from "./pages/CreditIntermediation";
 import StrategyPage from "./pages/StrategyPage";
+import ContextOSPage from "./pages/ContextOSPage";
 import CustomerLifecyclePage from "./pages/CustomerLifecyclePage";
 import EventsManagementPage from "./components/events/EventsManagementPage";
 import EventDetailPage from "./components/events/EventDetailPage";
@@ -391,6 +392,7 @@ function CRMRoutes() {
                 <Route path="/objects/:type" element={<ObjectListPage />} />
                 <Route path="/objects/:type/:id" element={<ObjectDetailPage />} />
                 <Route path="/dashboard/intelligence" element={<IntelligencePage />} />
+                <Route path="/dashboard/context-os" element={<ContextOSPage />} />
                 <Route path="/dashboard/revenue" element={<RevenueOverviewPage />} />
                 <Route path="/dashboard/ask" element={<AskPage />} />
                 <Route path="/dashboard/tasks" element={<TasksPage />} />
