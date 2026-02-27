@@ -1,45 +1,59 @@
 
 
-# Preservar Histórico na Conversão Lead → Contacto/Empresa
+# Corrigir Persistência de Mensagens GHL e Email
 
-## Problema
-A `ConvertLeadDialog` apenas copia campos básicos (nome, email, tags) e depois opcionalmente elimina o lead. Não migra conversas, mensagens, atividades, oportunidades, notas, reuniões, etc. — todo o histórico é perdido.
+## Problemas Identificados
 
-## Solução
-Adicionar migração de dados relacionais no `handleConvert` — após criar o contacto/empresa, actualizar todas as tabelas que referenciam `lead_id` para apontar para o novo `contact_id` (ou `company_id`).
+### 1. Conversas duplicadas por formato inconsistente de `external_thread_id`
+O `cron-sync-messages` usa o ID GHL directo (ex: `DIZQJULRuNQPcMHSPJbQ`) enquanto o `ghl-sync-conversations` prefixa com `ghl_` (ex: `ghl_DIZQJULRuNQPcMHSPJbQ`). Isto cria duas conversas para o mesmo contacto -- uma com mensagens, outra vazia.
 
-## Tabelas a migrar (lead_id → contact_id)
+### 2. Limite de 1000 rows na query de deduplicação de mensagens
+O `ghl-sync-conversations` carrega TODAS as `ghl_message_id` existentes para o workspace numa só query. Se houver mais de 1000 mensagens, o Supabase trunca silenciosamente e mensagens novas são tratadas como duplicadas e saltadas.
 
-| Tabela | Impacto |
-|--------|---------|
-| `conversations` | Mensagens e threads |
-| `crm_activities` | Timeline de atividades |
-| `calendar_events` | Eventos agendados |
-| `meetings` | Reuniões |
-| `opportunities` | Oportunidades/deals |
-| `invoices` | Faturas |
-| `form_submissions` | Submissões de formulários |
-| `marketing_recipients` | Campanhas |
-| `marketing_subscriptions` | Subscrições marketing |
-| `conversation_followups` | Follow-ups pendentes |
-| `conversation_journey` | Jornada de conversa |
-| `conversation_sessions` | Sessões |
-| `conversation_signals` | Sinais detectados |
-| `lead_behavior_signals` | Sinais comportamentais |
-| `product_signals` | Sinais de produto |
-| `template_usage_events` | Uso de templates |
-| `client_entitlements` | Direitos do cliente |
-| `client_requirements` | Requisitos |
-| `inbox_action_logs` | Logs de acção inbox |
-| `inbox_smart_alerts` | Alertas inbox |
-| `fastcrm_proposals` | Propostas |
+### 3. `cron-sync-messages` só busca mensagens das últimas 2 horas
+Mensagens mais antigas nunca são sincronizadas pela cron. Se a sync falhar durante esse intervalo, essas mensagens perdem-se permanentemente.
 
-Para conversão em empresa, migrar para `company_id` onde a coluna existir.
+## Alterações
 
-## Alteração
+### `supabase/functions/ghl-sync-conversations/index.ts`
+1. **Normalizar `external_thread_id`**: Usar formato consistente `ghl_{id}`. Antes de criar conversa, verificar também pelo ID sem prefixo para evitar duplicações.
+2. **Paginar query de mensagens existentes**: Substituir a query única por loop paginado (1000 em 1000) para carregar TODAS as `ghl_message_id` existentes sem truncamento.
 
-### `src/components/crm/ConvertLeadDialog.tsx`
-Após criar o contacto/empresa e antes de eliminar o lead, executar queries de UPDATE em batch para todas as tabelas acima. Usar `Promise.allSettled` para não bloquear em caso de falha parcial. Adicionar indicação visual no stepper ("A migrar histórico...").
+### `supabase/functions/cron-sync-messages/index.ts`
+1. **Normalizar `external_thread_id`**: Usar `ghl_${ghlConvId}` em vez do ID raw, e na lookup verificar ambos os formatos.
+2. **Expandir janela temporal**: Aumentar de 2 horas para 24 horas para capturar mensagens que possam ter sido perdidas em invocações anteriores.
 
-Também copiar `notes` e `source` do lead para o novo contacto (actualmente não são copiados).
+### Migração SQL
+1. **Consolidar conversas duplicadas**: Mover mensagens das conversas com thread_id raw para as com prefixo `ghl_`, depois eliminar as vazias/duplicadas.
+2. **Normalizar thread_ids existentes**: UPDATE para adicionar prefixo `ghl_` a todos os `external_thread_id` que não o tenham.
+
+### `supabase/functions/email-fetch/index.ts`
+1. **Deduplicação por `email_message_id`**: Antes de inserir, verificar se já existe mensagem com o mesmo `email_message_id` para evitar duplicados em re-syncs.
+
+## Detalhe Técnico
+
+A paginação de mensagens existentes:
+```typescript
+const existingMessageIds = new Set<string>();
+let offset = 0;
+const PAGE_SIZE = 1000;
+while (true) {
+  const { data } = await supabase
+    .from("messages")
+    .select("ghl_message_id")
+    .eq("workspace_id", workspace_id)
+    .not("ghl_message_id", "is", null)
+    .range(offset, offset + PAGE_SIZE - 1);
+  if (!data || data.length === 0) break;
+  data.forEach(m => existingMessageIds.add(m.ghl_message_id));
+  if (data.length < PAGE_SIZE) break;
+  offset += PAGE_SIZE;
+}
+```
+
+A normalização de thread_id no lookup:
+```typescript
+let conversationId = convsByThreadId.get(`ghl_${ghlConvId}`)
+  || convsByThreadId.get(ghlConvId);
+```
 
