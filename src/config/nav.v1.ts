@@ -18,6 +18,36 @@ import {
   GitBranch,
   ShoppingBag,
   Package,
+  Newspaper,
+  Phone,
+  Mail,
+  Store,
+  ShoppingCart,
+  GraduationCap,
+  Instagram,
+  Globe,
+  Search,
+  Download,
+  Plug,
+  Bot,
+  MessageSquare,
+  Trophy,
+  TrendingUp,
+  Receipt,
+  Presentation,
+  CalendarCheck,
+  Hash,
+  MapPin,
+  Compass,
+  FolderOpen,
+  Rocket,
+  Eye,
+  UserCheck,
+  CreditCard,
+  Gauge,
+  TargetIcon,
+  LineChart,
+  PieChart,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -27,15 +57,20 @@ export interface NavV1Item {
   icon: LucideIcon;
   group: string;
   end?: boolean;
-  separator?: boolean; // show a thin line before this item
-  dynamic?: boolean; // dynamically loaded from database
+  separator?: boolean;
+  dynamic?: boolean;
 }
 
 export const NAV_V1_ITEMS: NavV1Item[] = [
-  // Geral
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Geral", end: true },
-  { name: "Ask FastCRM", href: "/dashboard/ask", icon: Sparkles, group: "Geral" },
-  { name: "Inbox", href: "/dashboard/inbox", icon: Inbox, group: "Geral" },
+  // Principal
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Principal", end: true },
+  { name: "Mural Interno", href: "/dashboard/feed", icon: Newspaper, group: "Principal" },
+  { name: "Coach IA", href: "/dashboard/ask", icon: Sparkles, group: "Principal" },
+
+  // Comunicação
+  { name: "WhatsApp", href: "/dashboard/inbox", icon: Phone, group: "Comunicação", separator: true },
+  { name: "Email", href: "/dashboard/email-campaigns", icon: Mail, group: "Comunicação" },
+  { name: "Templates", href: "/dashboard/communication/templates", icon: FileText, group: "Comunicação" },
 
   // CRM
   { name: "Leads", href: "/dashboard/leads", icon: Users, group: "CRM", separator: true },
@@ -46,26 +81,84 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Ciclo de Vida", href: "/dashboard/lifecycle", icon: GitBranch, group: "CRM" },
   { name: "Eventos", href: "/dashboard/events", icon: Calendar, group: "CRM" },
 
+  // Vendas
+  { name: "Pipeline", href: "/dashboard/opportunities", icon: TrendingUp, group: "Vendas", separator: true },
+  { name: "Propostas", href: "/dashboard/proposals", icon: Presentation, group: "Vendas" },
+  { name: "Faturas", href: "/dashboard/invoices", icon: Receipt, group: "Vendas" },
+  { name: "Agendamento", href: "/dashboard/scheduling", icon: CalendarCheck, group: "Vendas" },
+  { name: "Produtos", href: "/dashboard/products", icon: ShoppingBag, group: "Vendas" },
+
   // Portal B2B
   { name: "Notas Encomenda", href: "/dashboard/order-notes", icon: FileText, group: "Portal B2B", separator: true },
   { name: "Aprovações", href: "/dashboard/order-approvals", icon: CheckSquare, group: "Portal B2B" },
   { name: "Clientes B2B", href: "/dashboard/client-users", icon: Users, group: "Portal B2B" },
-  { name: "Produtos", href: "/dashboard/products", icon: ShoppingBag, group: "Portal B2B" },
+  { name: "Produtos B2B", href: "/dashboard/products", icon: ShoppingBag, group: "Portal B2B" },
   { name: "Stock B2B", href: "/dashboard/b2b-stock", icon: Package, group: "Portal B2B" },
   { name: "Config. Portal", href: "/dashboard/b2b-portal", icon: Settings, group: "Portal B2B" },
 
+  // Loja Online
+  { name: "Produtos", href: "/dashboard/store-products", icon: Store, group: "Loja Online", separator: true },
+  { name: "Encomendas", href: "/dashboard/store-orders", icon: ShoppingCart, group: "Loja Online" },
+  { name: "Categorias", href: "/dashboard/store-categories", icon: FolderOpen, group: "Loja Online" },
+
+  // Marketplace C2C
+  { name: "Marketplace", href: "/dashboard/c2c", icon: ShoppingCart, group: "Marketplace C2C", separator: true },
+  { name: "Área do Vendedor", href: "/dashboard/c2c/seller-area", icon: UserCheck, group: "Marketplace C2C" },
+  { name: "Meus Anúncios", href: "/dashboard/c2c/my-listings", icon: Megaphone, group: "Marketplace C2C" },
+  { name: "Mensagens C2C", href: "/dashboard/c2c/messages", icon: MessageSquare, group: "Marketplace C2C" },
+  { name: "Analytics", href: "/dashboard/c2c/analytics", icon: BarChart3, group: "Marketplace C2C" },
+  { name: "Impulsionar", href: "/dashboard/c2c/boost", icon: Rocket, group: "Marketplace C2C" },
+  { name: "Sponsors", href: "/dashboard/c2c/sponsors", icon: Eye, group: "Marketplace C2C" },
+  { name: "Vendedores", href: "/dashboard/c2c/sellers", icon: Users, group: "Marketplace C2C" },
+
+  // FastClub
+  { name: "Abrir FastClub", href: "/club/fastclub", icon: Trophy, group: "FastClub", separator: true },
+  { name: "Candidaturas", href: "/dashboard/fastclub/candidaturas", icon: FileText, group: "FastClub" },
+
   // Marketing
   { name: "Marketing", href: "/dashboard/marketing", icon: Megaphone, group: "Marketing", separator: true },
+  { name: "Email Marketing", href: "/dashboard/email-campaigns", icon: Mail, group: "Marketing" },
+  { name: "Google Local", href: "/dashboard/prospecting/google-local", icon: MapPin, group: "Marketing" },
+  { name: "Funis", href: "/dashboard/funnels", icon: GitBranch, group: "Marketing" },
+  { name: "Bio OS", href: "/dashboard/bio", icon: Globe, group: "Marketing" },
+
+  // Estratégia
+  { name: "Brief Executivo", href: "/dashboard/strategy", icon: Brain, group: "Estratégia", separator: true },
+
+  // Relatórios
+  { name: "Visão Geral", href: "/dashboard/reports", icon: BarChart3, group: "Relatórios", separator: true },
+  { name: "KPIs", href: "/dashboard/kpis", icon: Gauge, group: "Relatórios" },
+  { name: "Metas vs Resultados", href: "/dashboard/reports/goals", icon: Target, group: "Relatórios" },
+  { name: "Previsões", href: "/dashboard/reports/forecasts", icon: LineChart, group: "Relatórios" },
+  { name: "Consumo", href: "/dashboard/reports/consumption", icon: PieChart, group: "Relatórios" },
 
   // Ferramentas
   { name: "Automações", href: "/dashboard/automations", icon: Zap, group: "Ferramentas", separator: true },
   { name: "Assistentes IA", href: "/dashboard/ai-assistants", icon: Brain, group: "Ferramentas" },
+  { name: "AI Employees", href: "/dashboard/ai-employees", icon: Bot, group: "Ferramentas" },
+  { name: "Motor Conversacional", href: "/dashboard/conversational-engine", icon: MessageSquare, group: "Ferramentas" },
   { name: "Form Studio", href: "/dashboard/form-studio", icon: FileText, group: "Ferramentas" },
-  { name: "Relatórios", href: "/dashboard/reports", icon: BarChart3, group: "Ferramentas" },
-  { name: "Estratégia", href: "/dashboard/strategy", icon: Brain, group: "Ferramentas" },
+  { name: "SEO & Growth", href: "/dashboard/seo", icon: Search, group: "Ferramentas" },
+  { name: "Importações", href: "/dashboard/imports", icon: Download, group: "Ferramentas" },
+  { name: "Integrações", href: "/settings/integrations", icon: Plug, group: "Ferramentas" },
   { name: "Marketplace", href: "/dashboard/marketplace", icon: Layers, group: "Ferramentas" },
 
-  // Settings
+  // Student Journey
+  { name: "Painel", href: "/dashboard/student-journey", icon: GraduationCap, group: "Student Journey", separator: true },
+  { name: "Perfis", href: "/dashboard/student-journey/profiles", icon: Users, group: "Student Journey" },
+  { name: "Cursos", href: "/dashboard/student-journey/courses", icon: FileText, group: "Student Journey" },
+  { name: "Turmas", href: "/dashboard/student-journey/cohorts", icon: Users, group: "Student Journey" },
+
+  // Instagram Looter
+  { name: "Busca Global", href: "/dashboard/instagram-looter", icon: Instagram, group: "Instagram Looter", separator: true },
+  { name: "Hashtags", href: "/dashboard/instagram-looter/hashtags", icon: Hash, group: "Instagram Looter" },
+  { name: "Localização", href: "/dashboard/instagram-looter/location", icon: MapPin, group: "Instagram Looter" },
+  { name: "Explore", href: "/dashboard/instagram-looter/explore", icon: Compass, group: "Instagram Looter" },
+  { name: "Coleções", href: "/dashboard/instagram-looter/collections", icon: FolderOpen, group: "Instagram Looter" },
+  { name: "Leads", href: "/dashboard/instagram-looter/leads", icon: Users, group: "Instagram Looter" },
+  { name: "Configurações", href: "/dashboard/instagram-looter/settings", icon: Settings, group: "Instagram Looter" },
+
+  // Definições
   { name: "Definições", href: "/settings", icon: Settings, group: "Definições", separator: true },
 ];
 
