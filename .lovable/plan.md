@@ -1,64 +1,54 @@
 
 
-# Internacionalização + Imagens na Landing Page FastCRM
+# Gerar Imagens com IA para a Landing Page FastCRM
 
-## Problema identificado
+## Abordagem
 
-Quase todos os componentes da landing page tem texto hardcoded em inglês. Apenas `LandingFinalCTA` e `LandingFooter` usam `useTranslation("landing")`. Os restantes 9 componentes ignoram completamente o sistema i18n. Além disso, faltam imagens visuais nos cards e secções.
+Criar uma edge function dedicada `landing-generate-images` que gera 8 imagens via Lovable AI (gemini-2.5-flash-image), faz upload para um bucket `landing-assets` e devolve os URLs públicos. Depois, integrar essas imagens nos componentes.
+
+## Imagens a gerar (8 total)
+
+1. **Hero** — Dashboard CRM futurista com gráficos de receita, dark theme com tons azul/roxo
+2. **Solution Card 1** — Interface CRM com pipeline de deals e contacts
+3. **Solution Card 2** — Dashboard de analytics com gráficos e health scores
+4. **Solution Card 3** — Workflow de automação com nodes conectados
+5. **Solution Card 4** — Marketplace de extensões/plugins com cards
+6. **Positioning Founders** — Empreendedor solo a trabalhar num laptop
+7. **Positioning Teams** — Equipa colaborativa em reunião com dashboards
+8. **Positioning Leaders** — Líder executivo a analisar métricas de crescimento
 
 ## Alterações
 
-### 1. Adicionar i18n a todos os componentes (9 ficheiros)
+### 1. Criar bucket `landing-assets` (migração SQL)
+- Bucket público para servir imagens estáticas
 
-Cada componente passará a usar `useTranslation("landing")` com as chaves já existentes nos JSON de tradução:
+### 2. Criar edge function `landing-generate-images/index.ts`
+- Aceita um array de prompts com IDs
+- Gera cada imagem via `google/gemini-2.5-flash-image`
+- Upload para `landing-assets/{id}.png`
+- Devolve mapa `{id: publicUrl}`
 
-- **LandingHeroSection** — `t("hero.badge")`, `t("hero.subtitle")`, `t("hero.startFree")`, placeholders traduzidos
-- **LandingStickyHeader** — `t("hero.startFree")` para botões, labels de nav traduzidas
-- **LandingProblemSection** — `t("problem.title")`, `t("problem.q1")`...`t("problem.q4")`
-- **LandingSolutionSection** — `t("solution.title")`, `t("solution.pillar1Name")`, etc.
-- **LandingComparisonSection** — `t("comparison.title")`, `t("comparison.vsSpreadsheets")`, etc.
-- **LandingArchitectureSection** — `t("architecture.title")`, `t("architecture.founder")`, etc.
-- **LandingPositioningSection** — `t("positioning.title")`, `t("positioning.founders")`, etc.
-- **LandingPricingSection** — `t("pricing.title")`, `t("pricing.starter")`, features traduzidas
-- **LandingFAQSection** — `t("faq.q1")`...`t("faq.q8")`, `t("faq.a1")`...`t("faq.a8")`
-- **LandingFastClubSection** — `t("fastclub.badge")`, `t("fastclub.title")`, etc.
+### 3. Criar página admin `src/pages/GenerateLandingImages.tsx`
+- Botão "Gerar Imagens" que chama a edge function
+- Mostra progresso e preview das imagens geradas
+- Guarda os URLs no localStorage ou mostra para copiar
 
-### 2. Adicionar chaves de nav e placeholders ao i18n
+### 4. Actualizar `LandingHeroSection.tsx`
+- Adicionar imagem de dashboard mockup abaixo do formulário (usando o asset existente ou o gerado)
 
-Adicionar aos 4 ficheiros de tradução (`pt`, `en`, `es`, `fr`):
-- `hero.namePlaceholder`, `hero.emailPlaceholder`, `hero.freeNote`
-- `nav.features`, `nav.intelligence`, `nav.pricing`, `nav.faq`, `nav.fastclub`, `nav.signIn`
+### 5. Actualizar `LandingSolutionSection.tsx`
+- Adicionar imagem ilustrativa no topo de cada card (aspect-ratio 16:9, rounded, com overlay gradient)
 
-### 3. Gerar imagens ilustrativas para as secções
+### 6. Actualizar `LandingPositioningSection.tsx`
+- Adicionar imagem circular ou rounded acima do ícone em cada card
 
-Usar o modelo de IA de geração de imagens para criar visuais para:
-- **Solution cards** (4 imagens): CRM dashboard, analytics charts, automation workflow, marketplace
-- **Hero section**: dashboard mockup ou visual mais impactante
-- **Positioning/Architecture**: visuais de equipas ou personas
-
-As imagens serão guardadas em storage e referenciadas nos componentes.
-
-### 4. Adicionar traduções ES e FR para novas chaves
-
-Completar os ficheiros `es/landing.json` e `fr/landing.json` com as novas chaves de nav e placeholders.
-
-## Ficheiros a modificar
-1. `src/components/landing-fastcrm/LandingHeroSection.tsx`
-2. `src/components/landing-fastcrm/LandingStickyHeader.tsx`
-3. `src/components/landing-fastcrm/LandingProblemSection.tsx`
-4. `src/components/landing-fastcrm/LandingSolutionSection.tsx`
-5. `src/components/landing-fastcrm/LandingComparisonSection.tsx`
-6. `src/components/landing-fastcrm/LandingArchitectureSection.tsx`
-7. `src/components/landing-fastcrm/LandingPositioningSection.tsx`
-8. `src/components/landing-fastcrm/LandingPricingSection.tsx`
-9. `src/components/landing-fastcrm/LandingFAQSection.tsx`
-10. `src/components/landing-fastcrm/LandingFastClubSection.tsx`
-11. `src/i18n/locales/pt/landing.json`
-12. `src/i18n/locales/en/landing.json`
-13. `src/i18n/locales/es/landing.json`
-14. `src/i18n/locales/fr/landing.json`
-
-## Nota sobre imagens
-
-A geração de imagens via IA será feita como segunda fase, após a internacionalização estar completa, para não misturar concerns. As imagens geradas serão adicionadas aos cards de Solution, Hero e Positioning.
+## Ficheiros a criar/modificar
+1. **Criar** migração SQL — bucket `landing-assets`
+2. **Criar** `supabase/functions/landing-generate-images/index.ts`
+3. **Criar** `src/pages/GenerateLandingImages.tsx`
+4. **Modificar** `src/components/landing-fastcrm/LandingHeroSection.tsx`
+5. **Modificar** `src/components/landing-fastcrm/LandingSolutionSection.tsx`
+6. **Modificar** `src/components/landing-fastcrm/LandingPositioningSection.tsx`
+7. **Modificar** `supabase/config.toml` (adicionar função)
+8. **Modificar** `src/App.tsx` (rota admin para geração)
 
