@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Check, Brain } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Brain, ShieldCheck, Pencil, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BusinessContextUpdate, useBusinessContext } from "@/hooks/useBusinessContext";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 import { StepBusinessModel } from "./steps/StepBusinessModel";
 import { StepICP } from "./steps/StepICP";
@@ -30,8 +31,10 @@ interface WizardShellProps {
 
 export function WizardShell({ initialData }: WizardShellProps) {
   const [step, setStep] = useState(0);
+  const [completed, setCompleted] = useState(initialData?.onboarding_completed === true);
   const [formData, setFormData] = useState<BusinessContextUpdate>(initialData || {});
   const { upsert } = useBusinessContext();
+  const navigate = useNavigate();
 
   const progress = ((step + 1) / STEPS.length) * 100;
 
@@ -44,7 +47,10 @@ export function WizardShell({ initialData }: WizardShellProps) {
 
   const handleFinish = () => {
     upsert.mutate({ ...formData, onboarding_completed: true }, {
-      onSuccess: () => toast.success("Context OS configurado com sucesso!"),
+      onSuccess: () => {
+        toast.success("Context OS configurado com sucesso!");
+        setCompleted(true);
+      },
     });
   };
 
@@ -57,6 +63,64 @@ export function WizardShell({ initialData }: WizardShellProps) {
     <StepGoals key="goals" data={formData} onChange={updateFields} />,
     <StepTeam key="team" data={formData} onChange={updateFields} />,
   ];
+
+  if (completed) {
+    const businessModelLabels: Record<string, string> = {
+      saas: "SaaS", agency: "Agência", infoproduct: "Infoproduto",
+      consulting: "Consultoria", services: "Serviços", ecommerce: "E-commerce",
+    };
+    const offers = (formData.offers as any[]) || [];
+
+    return (
+      <div className="max-w-3xl mx-auto space-y-8">
+        <div className="text-center space-y-4 py-8">
+          <div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-gold/15 border-2 border-gold/30 mx-auto">
+            <ShieldCheck className="h-10 w-10 text-gold" />
+          </div>
+          <h1 className="text-2xl font-bold">Context OS Configurado</h1>
+          <p className="text-muted-foreground text-sm max-w-md mx-auto">
+            O sistema já conhece o seu negócio e está pronto para operar com inteligência.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {formData.business_model && (
+            <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+              <p className="text-xs text-muted-foreground">💼 Modelo</p>
+              <p className="font-medium">{businessModelLabels[formData.business_model] || formData.business_model}</p>
+            </div>
+          )}
+          {formData.icp_description && (
+            <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+              <p className="text-xs text-muted-foreground">🎯 ICP</p>
+              <p className="font-medium text-sm line-clamp-2">{formData.icp_description}</p>
+            </div>
+          )}
+          {offers.length > 0 && (
+            <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+              <p className="text-xs text-muted-foreground">💰 Ofertas</p>
+              <p className="font-medium">{offers.length} oferta{offers.length !== 1 ? "s" : ""} configurada{offers.length !== 1 ? "s" : ""}</p>
+            </div>
+          )}
+          {formData.monthly_revenue_target && (
+            <div className="rounded-xl border border-border bg-card p-4 space-y-1">
+              <p className="text-xs text-muted-foreground">📊 Meta Mensal</p>
+              <p className="font-medium">€{Number(formData.monthly_revenue_target).toLocaleString("pt-PT")}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-center gap-3 pt-4">
+          <Button variant="outline" className="gap-1.5" onClick={() => setCompleted(false)}>
+            <Pencil className="h-4 w-4" /> Editar Configuração
+          </Button>
+          <Button className="gap-1.5 bg-gold text-gold-foreground hover:bg-gold/90" onClick={() => navigate("/dashboard")}>
+            <LayoutDashboard className="h-4 w-4" /> Ir para Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
