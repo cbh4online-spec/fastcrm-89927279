@@ -1,52 +1,45 @@
 
+# Adicionar Brief Executivo ao Dashboard
 
-# Reorganizar Dashboard: KPIs em Destaque + Grid Compacto
+## Problema
+O widget de briefing executivo nunca foi adicionado ao Dashboard -- existe apenas na pagina de Estrategia (/dashboard/strategy). Por isso nao aparece.
 
-## Layout Actual vs Novo
+## Solucao
+
+### 1. Criar novo componente `ExecutiveBriefWidget`
+Ficheiro: `src/components/dashboard/ExecutiveBriefWidget.tsx`
+
+Um card compacto que usa o hook `useStrategicBriefs` existente e mostra:
+- Titulo "Brief Executivo" com icone Brain
+- Timestamp relativo do ultimo brief (ex: "ha 2 dias")
+- Resumo executivo (3 linhas max com line-clamp)
+- Oportunidade (compacta, com icone verde)
+- Risco (compacto, com icone vermelho)
+- Botao "Ver completo" que navega para /dashboard/strategy
+- Botao "Atualizar" para regenerar o brief
+- Estado vazio com botao "Gerar Brief" se ainda nao existir nenhum
+
+### 2. Adicionar ao Dashboard
+Ficheiro: `src/pages/Dashboard.tsx`
+
+Importar o `ExecutiveBriefWidget` e colocar na terceira coluna do grid, antes do `ForecastConfidenceCard`:
 
 ```text
-ACTUAL:                              NOVO:
-+---------------------------+        +---------------------------+
-| Header + "Novo"           |        | Header + "Novo"           |
-+---------------------------+        +---------------------------+
-| Ask Proactive Nudge       |        | Ask Proactive Nudge       |
-+---------------------------+        +---------------------------+
-| RevenueHero (full width)  |        | RevenueHero (full width)  |
-+---------------------------+        +---------------------------+
-|                           |        | KPI Cards (5 em linha)    |
-| 8 cols     | 4 cols       |        | Leads|Opps|Prop|Pend|Rev  |
-| Forecast   | Pipeline HP  |        +---------------------------+
-| Deals Risk | PLG Signals  |        | 3 colunas compactas       |
-| AI Actions | Events       |        | Forecast  |Pipeline|Confid|
-| Automation | Birthdays    |        | DealsRisk |PLG Sig |Compar|
-|            | Confidence   |        | AI Action |Events  |Bdays |
-|            | Comparison   |        | Automation|        |      |
-+---------------------------+        +---------------------------+
+Coluna 3 (actualizada):
+  - ExecutiveBriefWidget   <-- NOVO
+  - ForecastConfidenceCard
+  - PipelineComparisonCard
+  - UpcomingBirthdaysWidget
 ```
 
-## Alteracoes
+## Ficheiros a alterar
 
-### 1. Adicionar DashboardKPICards ao Dashboard
-
-O componente `DashboardKPICards` ja existe com 5 KPIs (Leads, Oportunidades Activas, Propostas Enviadas, Propostas Pendentes, Previsao de Receita) mas nao esta a ser usado na pagina principal. Sera adicionado logo apos o `RevenueHero`.
-
-Sera importado o hook `useDashboardData` para fornecer os dados dos KPIs.
-
-### 2. Reorganizar grid para 3 colunas compactas
-
-Substituir o layout actual de 8+4 colunas por uma grelha de 3 colunas iguais (`grid-cols-1 md:grid-cols-2 lg:grid-cols-3`), distribuindo os widgets de forma equilibrada:
-
-- **Coluna 1**: ForecastTrendChart, DealsAtRiskList, AIActionSuggestions, DashboardAutomationSuggestions
-- **Coluna 2**: PipelineHealthCard, PLGSignalsFeed, UpcomingEventsWidget
-- **Coluna 3**: ForecastConfidenceCard, PipelineComparisonCard, UpcomingBirthdaysWidget
-
-### 3. Reduzir espacamento
-
-Mudar o `gap` e `space-y` de 6 para 4 para um layout mais compacto e denso.
-
-## Ficheiro a alterar
-
-| Ficheiro | Alteracao |
+| Ficheiro | Accao |
 |---|---|
-| `src/pages/Dashboard.tsx` | Importar DashboardKPICards + useDashboardData, adicionar linha de KPIs, reorganizar grid para 3 colunas com gap reduzido |
+| `src/components/dashboard/ExecutiveBriefWidget.tsx` | Criar (novo componente compacto) |
+| `src/pages/Dashboard.tsx` | Importar e adicionar na coluna 3 do grid |
 
+## Notas
+- Reutiliza o hook `useStrategicBriefs` que ja existe -- sem duplicacao de logica
+- O widget e compacto (line-clamp nos textos) para caber no grid de 3 colunas
+- Se nao houver brief gerado, mostra estado vazio com CTA para gerar o primeiro
