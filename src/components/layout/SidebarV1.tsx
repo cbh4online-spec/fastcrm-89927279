@@ -59,14 +59,34 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
   const crmEndIndex = NAV_V1_ITEMS.findIndex((item, i) => 
     item.group === "CRM" && (i + 1 >= NAV_V1_ITEMS.length || NAV_V1_ITEMS[i + 1].group !== "CRM")
   );
-  const mergedNavItems = [
+  const mergedNavItemsRaw = [
     ...NAV_V1_ITEMS.slice(0, crmEndIndex + 1),
     ...dynamicItems,
     ...NAV_V1_ITEMS.slice(crmEndIndex + 1),
   ];
 
-  const allNavItems = [...mergedNavItems];
-  const favoriteItems = allNavItems.filter((item) => favorites.includes(item.href));
+  // Filter by installed modules and remove empty groups
+  const visibleNavItems = useMemo(() => {
+    // Filter items by moduleSlug
+    const filtered = mergedNavItemsRaw.filter(
+      (item) => !item.moduleSlug || installedModuleIds.includes(item.moduleSlug)
+    );
+
+    // Find groups that have no visible items (all items were filtered out)
+    const groupItemCounts = new Map<string, number>();
+    for (const item of filtered) {
+      groupItemCounts.set(item.group, (groupItemCounts.get(item.group) || 0) + 1);
+    }
+
+    // Remove separator-only groups (groups where the only remaining item is just a separator header)
+    // A group is empty if it has 0 items after filtering
+    return filtered.filter((item) => {
+      const count = groupItemCounts.get(item.group) || 0;
+      return count > 0;
+    });
+  }, [mergedNavItemsRaw, installedModuleIds]);
+
+  const favoriteItems = visibleNavItems.filter((item) => favorites.includes(item.href));
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -192,7 +212,7 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
           {/* Navigation */}
           <nav className={cn("flex-1 overflow-y-auto", isCollapsed ? "px-1 py-2" : "px-3 py-2")}>
             <div className="space-y-0.5">
-              {mergedNavItems.map((item) => {
+              {visibleNavItems.map((item) => {
                 const active = isActive(item.href, item.end);
                 const pinned = isFavorite(item.href);
 
