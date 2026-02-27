@@ -3,25 +3,41 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Lock, Shield, Users } from "lucide-react";
 
+const containerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.12, delayChildren: 0.15 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 40, scale: 0.95 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6, ease: [0.25, 0.4, 0.25, 1] as [number, number, number, number] } },
+};
+
 export function LandingFastClubSection() {
   return (
-    <section id="fastclub" className="relative py-28 lg:py-36">
+    <section id="fastclub" className="relative py-28 lg:py-36 overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-[150px]" />
       </div>
 
       <div className="relative max-w-5xl mx-auto px-6">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.7 }}
+          transition={{ duration: 0.8, ease: [0.25, 0.4, 0.25, 1] }}
           className="text-center mb-14"
         >
-          <div className="inline-flex items-center gap-2 rounded-full border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] px-4 py-1.5 text-xs font-medium text-[hsl(215,20%,75%)] tracking-wider uppercase mb-6">
+          <motion.div
+            className="inline-flex items-center gap-2 rounded-full border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] px-4 py-1.5 text-xs font-medium text-[hsl(215,20%,75%)] tracking-wider uppercase mb-6"
+            initial={{ opacity: 0, scale: 0.8 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
             <Lock className="h-3 w-3" />
             Private Capital Circle
-          </div>
+          </motion.div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black uppercase tracking-tight mb-5">
             O círculo privado do{" "}
             <span className="bg-gradient-to-r from-primary to-[hsl(250,83%,60%)] bg-clip-text text-transparent">
@@ -33,7 +49,13 @@ export function LandingFastClubSection() {
           </p>
         </motion.div>
 
-        <div className="grid sm:grid-cols-3 gap-4 mb-12">
+        <motion.div
+          className="grid sm:grid-cols-3 gap-4 mb-12"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-30px" }}
+        >
           {[
             {
               icon: Shield,
@@ -50,29 +72,31 @@ export function LandingFastClubSection() {
               title: "Confidencialidade Total",
               desc: "Dados protegidos, interações rastreáveis, sem exposição pública.",
             },
-          ].map((item, i) => (
+          ].map((item) => (
             <motion.div
               key={item.title}
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true, margin: "-30px" }}
-              transition={{ duration: 0.4, delay: i * 0.08 }}
+              variants={itemVariants}
+              whileHover={{ y: -6, scale: 1.03 }}
               className="group p-6 rounded-xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] hover:border-primary/40 transition-all duration-300"
             >
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+              <motion.div
+                className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors"
+                whileHover={{ rotate: 10, scale: 1.15 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
                 <item.icon className="h-5 w-5 text-primary" />
-              </div>
+              </motion.div>
               <h3 className="font-bold text-sm mb-1.5 uppercase tracking-wide">{item.title}</h3>
               <p className="text-xs text-[hsl(215,20%,65%)] leading-relaxed">{item.desc}</p>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.3 }}
+          transition={{ duration: 0.7, delay: 0.4, ease: [0.25, 0.4, 0.25, 1] }}
           className="text-center"
         >
           <Link to="/fastclub">

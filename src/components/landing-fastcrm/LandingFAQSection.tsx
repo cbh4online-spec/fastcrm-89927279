@@ -46,13 +46,21 @@ export function LandingFAQSection() {
     <section id="faq" className="relative py-28 lg:py-36">
       <div className="relative max-w-3xl mx-auto px-6">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.8, ease: [0.25, 0.4, 0.25, 1] }}
           className="text-center mb-12"
         >
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-4 block">FAQ</span>
+          <motion.span
+            className="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-4 block"
+            initial={{ opacity: 0, scale: 0.8 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            FAQ
+          </motion.span>
           <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tight mb-4">
             Frequently Asked Questions
           </h2>
@@ -65,10 +73,10 @@ export function LandingFAQSection() {
           {faqs.map((faq, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20, y: 10 }}
+              whileInView={{ opacity: 1, x: 0, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.05 }}
+              transition={{ delay: i * 0.07, duration: 0.5, ease: [0.25, 0.4, 0.25, 1] }}
             >
               <AccordionItem
                 value={`faq-${i}`}

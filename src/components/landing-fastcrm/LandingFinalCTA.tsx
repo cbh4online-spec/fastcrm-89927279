@@ -1,14 +1,18 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { useRef } from "react";
 
 export function LandingFinalCTA() {
   const { t } = useTranslation("landing");
   const [email, setEmail] = useState("");
   const navigate = useNavigate();
+  const ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const glowScale = useTransform(scrollYProgress, [0, 0.5, 1], [0.6, 1.3, 0.6]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,23 +20,46 @@ export function LandingFinalCTA() {
   };
 
   return (
-    <section className="relative py-32 lg:py-40">
+    <section ref={ref} className="relative py-32 lg:py-40 overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-primary/8 blur-[180px]" />
+        <motion.div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-primary/8 blur-[180px]"
+          style={{ scale: glowScale }}
+        />
       </div>
       <div className="relative max-w-3xl mx-auto px-6 text-center">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-100px" }} transition={{ duration: 0.7 }} className="space-y-8">
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black uppercase tracking-tight leading-[0.95]">
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.9, ease: [0.25, 0.4, 0.25, 1] }}
+          className="space-y-8"
+        >
+          <motion.h2
+            className="text-4xl sm:text-5xl lg:text-6xl font-black uppercase tracking-tight leading-[0.95]"
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: 0.1 }}
+          >
             {t("finalCta.title")}
-          </h2>
-          <p className="text-lg text-[hsl(215,20%,65%)] max-w-xl mx-auto">{t("finalCta.subtitle")}</p>
-          
-          <motion.form
-            onSubmit={handleSubmit}
+          </motion.h2>
+          <motion.p
+            className="text-lg text-[hsl(215,20%,65%)] max-w-xl mx-auto"
             initial={{ opacity: 0, y: 15 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            {t("finalCta.subtitle")}
+          </motion.p>
+          
+          <motion.form
+            onSubmit={handleSubmit}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.5 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-lg mx-auto pt-2"
           >
             <input
