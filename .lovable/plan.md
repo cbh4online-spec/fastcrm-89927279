@@ -1,78 +1,42 @@
 
 
-# Corrigir internacionalização do módulo Ask FastCRM
+# Traduzir autocomplete e limpar queries recentes em inglês
 
 ## Problema
-O módulo "Ask FastCRM" tem todas as strings hardcoded em inglês (títulos, placeholders, chips sugeridos, labels de secções, autocomplete). Não respeita a língua seleccionada pelo utilizador.
 
-## Strings a traduzir
+Duas fontes de texto em inglês no módulo Ask FastCRM:
 
-| String actual (EN) | Contexto |
-|---|---|
-| "Ask FastCRM" | Título do módulo |
-| "Revenue intelligence at your command." | Subtítulo |
-| "Ask about your revenue" | Placeholder vazio |
-| "Query your pipeline, forecast, and deals -- then act on the results." | Descrição |
-| "Ask about your revenue..." | Placeholder do input |
-| "Recent" | Label de secção |
-| "Suggested" | Label de secção |
-| "Deals at risk" | Chip sugerido |
-| "No activity in 14 days" | Chip sugerido |
-| "No next step" | Chip sugerido |
-| "Closing this month" | Chip sugerido |
-| "Stuck in stage" | Chip sugerido |
-| "High value deals" | Chip sugerido |
+1. **AUTOCOMPLETE_MAP** -- hardcoded em inglês em ambos `AskFastCRMInline.tsx` e `AskFastCRMDialog.tsx`. Quando o utilizador digita, as sugestões aparecem em inglês.
+2. **Queries recentes** -- guardadas na base de dados em inglês (antes da tradução ser implementada). Estas aparecem na secção "RECENTES".
 
 ## Solução
 
-### Passo 1: Adicionar namespace `ask` aos ficheiros i18n
+### Passo 1: Adicionar traduções do autocomplete aos ficheiros i18n
 
-Criar ficheiros de tradução `ask.json` para as 4 línguas (pt, en, es, fr) com todas as strings do módulo.
+Adicionar novas chaves ao namespace `ask` para as sugestões de autocomplete (ex: `autoRisk`, `autoClose`, `autoStuck`, `autoNoActivity`, `autoNextStep`, `autoHighValue`, `autoPipeline`, `autoForecast`, `autoRemind`, `autoAlert`, `autoFollowUp`, `autoNotify`, `autoInvoice`, `autoOverdue`, `autoAutoAssign`, `autoContactReply`, `autoNewContact`, `autoAssignContact`, `autoDueDate`).
 
-**pt/ask.json** (exemplo):
-```json
-{
-  "title": "Ask FastCRM",
-  "subtitle": "Inteligência de receita ao seu comando.",
-  "emptyTitle": "Pergunte sobre a sua receita",
-  "emptyDescription": "Consulte o pipeline, previsões e negócios — e actue sobre os resultados.",
-  "placeholder": "Pergunte sobre a sua receita...",
-  "recent": "Recentes",
-  "suggested": "Sugeridos",
-  "chipsDealsAtRisk": "Negócios em risco",
-  "chipsNoActivity": "Sem actividade há 14 dias",
-  "chipsNoNextStep": "Sem próximo passo",
-  "chipsClosingThisMonth": "A fechar este mês",
-  "chipsStuckInStage": "Parados na fase",
-  "chipsHighValue": "Negócios de alto valor"
-}
-```
+Ficheiros: `src/i18n/locales/{pt,en,es,fr}/ask.json`
 
-Equivalentes em en, es e fr.
+### Passo 2: Refactorizar AUTOCOMPLETE_MAP para usar traduções
 
-### Passo 2: Registar namespace no i18n/index.ts
+Em ambos os componentes (`AskFastCRMInline.tsx` e `AskFastCRMDialog.tsx`):
 
-Importar os 4 ficheiros `ask.json` e adicioná-los aos resources e ao array `ns`.
+- Mover o `AUTOCOMPLETE_MAP` para dentro do componente como `useMemo`, utilizando `t()` para as sugestões
+- Adicionar keywords em múltiplas línguas para cada entrada (ex: "risco" e "risk" ambos mapeiam para a mesma sugestão traduzida)
+- Isto garante que o utilizador pode digitar em qualquer língua e receber sugestões na língua seleccionada
 
-### Passo 3: Actualizar AskFastCRMInline.tsx
+### Passo 3: Limpar queries recentes em inglês (opcional via DB)
 
-- Importar `useTranslation` do react-i18next
-- Substituir todas as strings hardcoded por chamadas `t('ask:key')`
-- Tornar `SUGGESTED_CHIPS` num array derivado das traduções (usando `useMemo`)
+As queries recentes são históricas e ficaram guardadas em inglês. Opcionalmente, podemos limpar o histórico antigo com uma query SQL para remover as entradas em inglês do workspace, permitindo que o histórico se reconstrua com as novas traduções.
 
-### Passo 4: Actualizar AskFastCRMDialog.tsx
+## Ficheiros a alterar
 
-- Mesmas alterações que o Inline: usar `useTranslation` e substituir strings hardcoded
-
-## Ficheiros a criar/alterar
-
-| Ficheiro | Acção |
+| Ficheiro | Alteração |
 |---|---|
-| `src/i18n/locales/pt/ask.json` | Criar (traduções PT) |
-| `src/i18n/locales/en/ask.json` | Criar (traduções EN) |
-| `src/i18n/locales/es/ask.json` | Criar (traduções ES) |
-| `src/i18n/locales/fr/ask.json` | Criar (traduções FR) |
-| `src/i18n/index.ts` | Adicionar namespace `ask` |
-| `src/components/ask-fastcrm/AskFastCRMInline.tsx` | Usar i18n em vez de strings hardcoded |
-| `src/components/ask-fastcrm/AskFastCRMDialog.tsx` | Usar i18n em vez de strings hardcoded |
+| `src/i18n/locales/pt/ask.json` | Adicionar ~19 chaves de autocomplete em PT |
+| `src/i18n/locales/en/ask.json` | Adicionar ~19 chaves de autocomplete em EN |
+| `src/i18n/locales/es/ask.json` | Adicionar ~19 chaves de autocomplete em ES |
+| `src/i18n/locales/fr/ask.json` | Adicionar ~19 chaves de autocomplete em FR |
+| `src/components/ask-fastcrm/AskFastCRMInline.tsx` | Refactorizar AUTOCOMPLETE_MAP com i18n |
+| `src/components/ask-fastcrm/AskFastCRMDialog.tsx` | Refactorizar AUTOCOMPLETE_MAP com i18n |
 
