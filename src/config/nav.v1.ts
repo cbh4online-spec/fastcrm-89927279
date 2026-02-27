@@ -60,7 +60,26 @@ export interface NavV1Item {
   separator?: boolean;
   dynamic?: boolean;
   moduleSlug?: string;
+  iconColor?: string;
 }
+
+const GROUP_COLORS: Record<string, string> = {
+  "Principal": "text-violet-500",
+  "Comunicação": "text-blue-500",
+  "CRM": "text-emerald-500",
+  "Vendas": "text-amber-500",
+  "Portal B2B": "text-orange-500",
+  "Loja Online": "text-pink-500",
+  "Marketplace C2C": "text-rose-500",
+  "FastClub": "text-yellow-500",
+  "Marketing": "text-indigo-500",
+  "Estratégia": "text-cyan-500",
+  "Relatórios": "text-sky-500",
+  "Ferramentas": "text-slate-500",
+  "Student Journey": "text-teal-500",
+  "Instagram Looter": "text-fuchsia-500",
+  "Definições": "text-gray-500",
+};
 
 export const NAV_V1_ITEMS: NavV1Item[] = [
   // Principal
@@ -163,6 +182,13 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   // Definições
   { name: "Definições", href: "/settings", icon: Settings, group: "Definições", separator: true },
 ];
+
+// Apply group colors to all items
+NAV_V1_ITEMS.forEach((item) => {
+  if (!item.iconColor) {
+    item.iconColor = GROUP_COLORS[item.group] || "text-muted-foreground";
+  }
+});
 
 export function getNavV1Groups(): { group: string; items: NavV1Item[] }[] {
   const grouped = new Map<string, NavV1Item[]>();

@@ -3,8 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { NAV_V1_ITEMS, NavV1Item } from "@/config/nav.v1";
-import { X, Command, Search, Star, PanelLeftClose, PanelLeftOpen, Puzzle } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { X, Command, Search, Star, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useSidebarFavorites } from "@/hooks/useSidebarFavorites";
 import { useSidebarCollapse } from "@/hooks/useSidebarCollapse";
 import { useCustomObjects } from "@/hooks/useCustomObjects";
@@ -53,6 +52,7 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
     icon: getIconByName(obj.icon),
     group: "CRM",
     dynamic: true,
+    iconColor: "text-emerald-500",
   }));
 
   // Insert custom objects right after the CRM section items
@@ -67,19 +67,15 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
 
   // Filter by installed modules and remove empty groups
   const visibleNavItems = useMemo(() => {
-    // Filter items by moduleSlug
     const filtered = mergedNavItemsRaw.filter(
       (item) => !item.moduleSlug || installedModuleIds.includes(item.moduleSlug)
     );
 
-    // Find groups that have no visible items (all items were filtered out)
     const groupItemCounts = new Map<string, number>();
     for (const item of filtered) {
       groupItemCounts.set(item.group, (groupItemCounts.get(item.group) || 0) + 1);
     }
 
-    // Remove separator-only groups (groups where the only remaining item is just a separator header)
-    // A group is empty if it has 0 items after filtering
     return filtered.filter((item) => {
       const count = groupItemCounts.get(item.group) || 0;
       return count > 0;
@@ -87,6 +83,9 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
   }, [mergedNavItemsRaw, installedModuleIds]);
 
   const favoriteItems = visibleNavItems.filter((item) => favorites.includes(item.href));
+
+  // Track which group labels have been rendered
+  const renderedGroups = new Set<string>();
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -154,7 +153,7 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
 
           {/* Favoritos */}
           {favoriteItems.length > 0 && (
-            <div className={cn("border-b border-border", isCollapsed ? "px-1 pt-2 pb-1" : "px-3 pt-3 pb-1")}>
+            <div className={cn(isCollapsed ? "px-1 pt-2 pb-1" : "px-3 pt-3 pb-1")}>
               {!isCollapsed && (
                 <span className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Favoritos
@@ -176,7 +175,7 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
                               : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                           )}
                         >
-                          <item.icon className="w-4 h-4" />
+                          <item.icon className={cn("w-4 h-4", item.iconColor || "text-muted-foreground")} />
                         </Link>
                       </TooltipTrigger>
                       <TooltipContent side="right">{item.name}</TooltipContent>
@@ -187,15 +186,14 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
                         to={item.href}
                         onClick={onClose}
                         className={cn(
-                          "flex-1 flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                          "flex-1 flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm transition-colors",
                           active
-                            ? "bg-muted text-foreground"
+                            ? "bg-muted text-foreground font-medium"
                             : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                         )}
                       >
-                        <item.icon className={cn("w-4 h-4", active ? "text-foreground" : "text-muted-foreground")} />
+                        <item.icon className={cn("w-4 h-4", item.iconColor || "text-muted-foreground")} />
                         <span className="flex-1">{item.name}</span>
-                        {item.moduleSlug && <Puzzle className="w-3 h-3 text-muted-foreground/50" />}
                         <button
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.href); }}
                           className="p-0.5 rounded hover:bg-muted transition-colors"
@@ -216,10 +214,22 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
               {visibleNavItems.map((item) => {
                 const active = isActive(item.href, item.end);
                 const pinned = isFavorite(item.href);
+                const isFirstInGroup = !renderedGroups.has(item.group);
+                if (isFirstInGroup) renderedGroups.add(item.group);
 
                 return (
                   <div key={item.href}>
-                    {item.separator && <Separator className="my-2" />}
+                    {/* Group label instead of separator */}
+                    {isFirstInGroup && !isCollapsed && (
+                      <div className={cn("px-3 pt-4 pb-1", item.group === visibleNavItems[0]?.group && "pt-1")}>
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                          {item.group}
+                        </span>
+                      </div>
+                    )}
+                    {isFirstInGroup && isCollapsed && item.group !== visibleNavItems[0]?.group && (
+                      <div className="my-2 mx-1 border-t border-border/50" />
+                    )}
                     {isCollapsed ? (
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -233,10 +243,10 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
                                 : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                             )}
                           >
-                            <item.icon className="w-4 h-4" />
+                            <item.icon className={cn("w-4 h-4", item.iconColor || "text-muted-foreground")} />
                           </Link>
                         </TooltipTrigger>
-                        <TooltipContent side="right">{item.name}{item.moduleSlug && " (módulo)"}</TooltipContent>
+                        <TooltipContent side="right">{item.name}</TooltipContent>
                       </Tooltip>
                     ) : (
                       <div className="group flex items-center">
@@ -244,15 +254,14 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
                           to={item.href}
                           onClick={onClose}
                           className={cn(
-                            "flex-1 flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                            "flex-1 flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm transition-colors",
                             active
-                              ? "bg-muted text-foreground"
+                              ? "bg-muted text-foreground font-medium"
                               : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                           )}
                         >
-                          <item.icon className={cn("w-4 h-4", active ? "text-foreground" : "text-muted-foreground")} />
+                          <item.icon className={cn("w-4 h-4", item.iconColor || "text-muted-foreground")} />
                           <span className="flex-1">{item.name}</span>
-                          {item.moduleSlug && <Puzzle className="w-3 h-3 text-muted-foreground/50" />}
                           <button
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.href); }}
                             className={cn(
@@ -273,15 +282,14 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
             {/* Extension modules grouped by category */}
             {extensionGroups.length > 0 && extensionGroups.map((group) => (
               <div key={group.category} className="mt-2">
-                <Separator className="my-2" />
                 {!isCollapsed && (
-                  <div className="flex items-center gap-2 px-3 mb-1.5">
-                    <Puzzle className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <div className="px-3 pt-4 pb-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                       {group.category}
                     </span>
                   </div>
                 )}
+                {isCollapsed && <div className="my-2 mx-1 border-t border-border/50" />}
                 <div className="space-y-0.5">
                   {group.tabs.map((ext) => {
                     const active = isActive(ext.route!, false);
@@ -310,9 +318,9 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
                         to={ext.route!}
                         onClick={onClose}
                         className={cn(
-                          "flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                          "flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm transition-colors",
                           active
-                            ? "bg-muted text-foreground"
+                            ? "bg-muted text-foreground font-medium"
                             : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                         )}
                       >
@@ -324,8 +332,6 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
                 </div>
               </div>
             ))}
-
-            {/* Dynamic Records section removed — custom objects are now inline in CRM */}
           </nav>
 
           {/* Collapse Toggle — desktop only */}
