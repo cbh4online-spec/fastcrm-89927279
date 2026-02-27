@@ -12,32 +12,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 
-const AUTOCOMPLETE_MAP: Record<string, string> = {
-  "risk": "Which deals are at risk?",
-  "at risk": "Which deals are at risk?",
-  "close": "What will close this month?",
-  "closing": "What will close this month?",
-  "stuck": "Which deals are stuck in stage?",
-  "no act": "Deals with no activity in 14 days",
-  "inactive": "Deals with no activity in 14 days",
-  "next step": "Deals with no next step",
-  "high": "Show highest value deals",
-  "value": "Show highest value deals",
-  "pipeline": "How is my pipeline?",
-  "forecast": "What's blocking my forecast?",
-  "remind": "Remind me if no activity for 7 days",
-  "alert": "Alert me when deals are at risk",
-  "auto-assign": "Auto-assign high value deals",
-  "follow-up": "Create follow-up when deal enters Proposal",
-  "notify": "Notify me if close date is in 3 days",
-  "contact reply": "Notify me if contact hasn't replied in 14 days",
-  "new contact": "Create task when new contact is created",
-  "assign contact": "Assign new contacts to SDR team",
-  "invoice": "Alert me when invoice is overdue",
-  "overdue": "Alert me when invoice is overdue",
-  "due date": "Notify me 3 days before invoice due date",
-  "fatura": "Alertar-me quando fatura estiver vencida",
-};
+// AUTOCOMPLETE_MAP moved inside component as useMemo to support i18n
 
 interface Props {
   open: boolean;
@@ -65,19 +40,42 @@ export function AskFastCRMDialog({ open, onOpenChange, initialQuery }: Props) {
     t('chipsHighValue'),
   ], [t]);
 
+  const autocompleteMap = useMemo<Record<string, string>>(() => ({
+    "risk": t('autoRisk'), "risco": t('autoRisk'), "riesgo": t('autoRisk'), "risque": t('autoRisk'),
+    "at risk": t('autoRisk'), "em risco": t('autoRisk'), "en riesgo": t('autoRisk'), "à risque": t('autoRisk'),
+    "close": t('autoClose'), "closing": t('autoClose'), "fechar": t('autoClose'), "cerrar": t('autoClose'), "clôture": t('autoClose'),
+    "stuck": t('autoStuck'), "parado": t('autoStuck'), "estancado": t('autoStuck'), "bloqué": t('autoStuck'),
+    "no act": t('autoNoActivity'), "inactive": t('autoNoActivity'), "sem act": t('autoNoActivity'), "sin act": t('autoNoActivity'), "aucune act": t('autoNoActivity'),
+    "next step": t('autoNextStep'), "próximo passo": t('autoNextStep'), "próximo paso": t('autoNextStep'), "prochaine étape": t('autoNextStep'),
+    "high": t('autoHighValue'), "value": t('autoHighValue'), "valor": t('autoHighValue'), "valeur": t('autoHighValue'),
+    "pipeline": t('autoPipeline'),
+    "forecast": t('autoForecast'), "previsão": t('autoForecast'), "previsión": t('autoForecast'), "prévision": t('autoForecast'),
+    "remind": t('autoRemind'), "lembrar": t('autoRemind'), "recordar": t('autoRemind'), "rappeler": t('autoRemind'),
+    "alert": t('autoAlert'), "alertar": t('autoAlert'), "alerter": t('autoAlert'),
+    "follow-up": t('autoFollowUp'), "seguimento": t('autoFollowUp'), "seguimiento": t('autoFollowUp'), "suivi": t('autoFollowUp'),
+    "notify": t('autoNotify'), "notificar": t('autoNotify'), "notifier": t('autoNotify'),
+    "invoice": t('autoInvoice'), "fatura": t('autoInvoice'), "factura": t('autoInvoice'), "facture": t('autoInvoice'),
+    "overdue": t('autoInvoice'), "vencida": t('autoInvoice'), "vencido": t('autoInvoice'), "retard": t('autoInvoice'),
+    "auto-assign": t('autoAutoAssign'), "atribuir": t('autoAutoAssign'), "asignar": t('autoAutoAssign'), "assigner": t('autoAutoAssign'),
+    "contact reply": t('autoContactReply'), "contacto": t('autoContactReply'),
+    "new contact": t('autoNewContact'), "novo contacto": t('autoNewContact'), "nuevo contacto": t('autoNewContact'),
+    "assign contact": t('autoAssignContact'),
+    "due date": t('autoDueDate'), "vencimento": t('autoDueDate'), "échéance": t('autoDueDate'),
+  }), [t]);
+
   // Autocomplete suggestions
   const suggestions = useMemo(() => {
     if (debouncedInput.length < 2 || result || isLoading) return [];
     const q = debouncedInput.toLowerCase();
     const matches: string[] = [];
-    for (const [key, suggestion] of Object.entries(AUTOCOMPLETE_MAP)) {
+    for (const [key, suggestion] of Object.entries(autocompleteMap)) {
       if (key.includes(q) || q.includes(key)) {
         if (!matches.includes(suggestion)) matches.push(suggestion);
       }
       if (matches.length >= 3) break;
     }
     return matches;
-  }, [debouncedInput, result, isLoading]);
+  }, [debouncedInput, result, isLoading, autocompleteMap]);
 
   // Reset selected index when suggestions change
   useEffect(() => {
