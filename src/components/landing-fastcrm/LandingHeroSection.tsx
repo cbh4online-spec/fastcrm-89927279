@@ -139,6 +139,25 @@ export function LandingHeroSection() {
           </motion.p>
         </motion.div>
       </motion.div>
+
+      {/* Hero Dashboard Mockup */}
+      <motion.div
+        initial={{ opacity: 0, y: 60, scale: 0.9 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 1.2, delay: 1.5, ease: [0.25, 0.4, 0.25, 1] }}
+        className="relative mt-16 max-w-4xl mx-auto px-6"
+      >
+        <div className="relative rounded-2xl overflow-hidden border border-[hsl(217,33%,17%)] shadow-2xl">
+          <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222,47%,4%)] via-transparent to-transparent z-10 pointer-events-none" />
+          <img
+            src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/landing-assets/hero.png`}
+            alt="FastCRM Dashboard"
+            className="w-full aspect-video object-cover"
+            loading="eager"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
+        </div>
+      </motion.div>
     </section>
   );
 }

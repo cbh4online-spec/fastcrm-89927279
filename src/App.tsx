@@ -68,6 +68,7 @@ import AIEmployeeNewPage from "./pages/AIEmployeeNewPage";
 import AIEmployeeDetailPage from "./pages/AIEmployeeDetailPage";
 import MarketingHomepage from "./pages/MarketingHomepage";
 import FastCRMLanding from "./pages/FastCRMLanding";
+import GenerateLandingImages from "./pages/GenerateLandingImages";
 import VerticalLandingPage from "./pages/VerticalLandingPage";
 import ProposalView from "./pages/ProposalView";
 import CommunicationTemplates from "./pages/CommunicationTemplates";
@@ -380,6 +381,7 @@ function CRMRoutes() {
                 {/* Main Routes */}
                 <Route path="/" element={<FastCRMLanding />} />
                 <Route path="/fastcrm" element={<FastCRMLanding />} />
+                <Route path="/admin/generate-landing-images" element={<GenerateLandingImages />} />
                 <Route path="/proposal/:id" element={<ProposalView />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />

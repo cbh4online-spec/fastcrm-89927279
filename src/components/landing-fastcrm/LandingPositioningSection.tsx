@@ -5,6 +5,7 @@ import { useRef } from "react";
 
 const segmentIcons = [Rocket, Users, TrendingUp];
 const segmentKeys = ["founders", "teams", "leaders"];
+const segmentImages = ["positioning-founders", "positioning-teams", "positioning-leaders"];
 
 export function LandingPositioningSection() {
   const { t } = useTranslation("landing");
@@ -59,8 +60,18 @@ export function LandingPositioningSection() {
               viewport={{ once: true, margin: "-50px" }}
               transition={{ duration: 0.7, delay: i * 0.15, ease: [0.25, 0.4, 0.25, 1] }}
               whileHover={{ y: -8, scale: 1.04 }}
-              className="rounded-2xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] p-7 text-center hover:border-primary/30 transition-colors duration-300"
+              className="rounded-2xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] p-7 text-center hover:border-primary/30 transition-colors duration-300 overflow-hidden"
             >
+              {/* Segment Image */}
+              <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-5 border-2 border-primary/20">
+                <img
+                  src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/landing-assets/${segmentImages[i]}.png`}
+                  alt={segment.title}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+                />
+              </div>
               <motion.div
                 className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-5"
                 whileHover={{ rotate: 360 }}
