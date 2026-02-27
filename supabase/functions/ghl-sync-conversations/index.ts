@@ -46,7 +46,36 @@ async function triggerAutopilotForSyncedMessage(
 }
 
 // Helper: Fetch contact details from GHL API
-async function fetchGHLContact(apiKey: string, contactId: string): Promise<{name: string; email: string | null; phone: string | null; ghl_contact_id: string} | null> {
+interface GHLContactData {
+  name: string;
+  email: string | null;
+  phone: string | null;
+  ghl_contact_id: string;
+  website?: string;
+  company_name?: string;
+  address?: string;
+  city?: string;
+  postal_code?: string;
+  instagram_url?: string;
+  linkedin_url?: string;
+  facebook_url?: string;
+}
+
+function extractSocialFromCustomFields(fields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>): { instagram_url?: string; linkedin_url?: string; facebook_url?: string } {
+  const result: Record<string, string> = {};
+  if (!fields) return result;
+  for (const f of fields) {
+    const key = (f.field_key || f.key || f.id || "").toLowerCase();
+    const val = f.value;
+    if (!val) continue;
+    if (key.includes("instagram")) result.instagram_url = val.startsWith("http") ? val : `https://instagram.com/${val}`;
+    if (key.includes("linkedin")) result.linkedin_url = val.startsWith("http") ? val : `https://linkedin.com/in/${val}`;
+    if (key.includes("facebook")) result.facebook_url = val.startsWith("http") ? val : `https://facebook.com/${val}`;
+  }
+  return result;
+}
+
+async function fetchGHLContact(apiKey: string, contactId: string): Promise<GHLContactData | null> {
   try {
     const response = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
       method: "GET",
@@ -69,11 +98,22 @@ async function fetchGHLContact(apiKey: string, contactId: string): Promise<{name
     const lastName = contact.lastName || contact.last_name || "";
     const name = `${firstName} ${lastName}`.trim() || contact.name || `GHL Contact ${contactId.substring(0, 8)}`;
 
+    const addressParts = [contact.address1, contact.city, contact.state, contact.postalCode, contact.country].filter(Boolean);
+    const socialUrls = extractSocialFromCustomFields(contact.customFields);
+
     return {
       name,
       email: contact.email || null,
       phone: contact.phone || null,
       ghl_contact_id: contactId,
+      website: contact.website || undefined,
+      company_name: contact.companyName || undefined,
+      address: addressParts.length > 0 ? addressParts.join(", ") : undefined,
+      city: contact.city || undefined,
+      postal_code: contact.postalCode || undefined,
+      instagram_url: socialUrls.instagram_url,
+      linkedin_url: socialUrls.linkedin_url,
+      facebook_url: socialUrls.facebook_url,
     };
   } catch (err) {
     console.error(`[GHL Sync] Error fetching contact ${contactId}:`, err);
@@ -85,19 +125,30 @@ async function fetchGHLContact(apiKey: string, contactId: string): Promise<{name
 async function createLeadFromGHLContact(
   supabase: ReturnType<typeof createClient>,
   workspace_id: string,
-  contactData: {name: string; email: string | null; phone: string | null; ghl_contact_id: string}
+  contactData: GHLContactData
 ): Promise<{id: string} | null> {
   try {
+    const insertData: Record<string, unknown> = {
+      workspace_id,
+      name: contactData.name,
+      email: contactData.email,
+      phone: contactData.phone,
+      ghl_contact_id: contactData.ghl_contact_id,
+      source: "ghl_auto_sync",
+    };
+    // Add extra fields if available
+    if (contactData.website) insertData.website = contactData.website;
+    if (contactData.company_name) insertData.company_name = contactData.company_name;
+    if (contactData.address) insertData.address = contactData.address;
+    if (contactData.city) insertData.city = contactData.city;
+    if (contactData.postal_code) insertData.postal_code = contactData.postal_code;
+    if (contactData.instagram_url) insertData.instagram_url = contactData.instagram_url;
+    if (contactData.linkedin_url) insertData.linkedin_url = contactData.linkedin_url;
+    if (contactData.facebook_url) insertData.facebook_url = contactData.facebook_url;
+
     const { data: newLead, error } = await supabase
       .from("leads")
-      .insert({
-        workspace_id,
-        name: contactData.name,
-        email: contactData.email,
-        phone: contactData.phone,
-        ghl_contact_id: contactData.ghl_contact_id,
-        source: "ghl_auto_sync",
-      })
+      .insert(insertData)
       .select("id")
       .single();
 
