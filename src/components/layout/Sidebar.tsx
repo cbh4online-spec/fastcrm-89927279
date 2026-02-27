@@ -78,15 +78,28 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   const filteredGroups = useMemo(() => {
     return NAV_V2_GROUPS
-      .filter((g) => isFlagEnabled(g.featureFlag) && isModuleVisible(g.moduleSlug))
-      .map((g) => ({
-        ...g,
-        children: g.children.filter(
-          (c) => isFlagEnabled(c.featureFlag) && isModuleVisible(c.moduleSlug)
-        ),
-      }))
-      .filter((g) => g.children.length > 0);
-  }, [isFlagEnabled, isModuleVisible]);
+      .filter((g) => isFlagEnabled(g.featureFlag))
+      .map((g) => {
+        const groupHasSlug = !!g.moduleSlug;
+        const groupVisible = groupHasSlug ? installedModuleIds.includes(g.moduleSlug!) : true;
+
+        // If group has moduleSlug and it's not installed, hide entire group
+        if (groupHasSlug && !groupVisible) return null;
+
+        // Filter children: if group has moduleSlug, children inherit (always visible)
+        // If group has NO moduleSlug, each child must have its own moduleSlug installed
+        const visibleChildren = g.children.filter((c) => {
+          if (!isFlagEnabled(c.featureFlag)) return false;
+          if (groupHasSlug) return true; // inherit from group
+          // No group slug — child must have its own moduleSlug and it must be installed
+          return c.moduleSlug ? installedModuleIds.includes(c.moduleSlug) : false;
+        });
+
+        if (visibleChildren.length === 0) return null;
+        return { ...g, children: visibleChildren };
+      })
+      .filter(Boolean) as (NavV2Group & { children: NavV2GroupChild[] })[];
+  }, [isFlagEnabled, installedModuleIds]);
 
   const extensionGroups = useMemo(() => {
     return getExtensionObjectTabsGrouped(installedModuleIds);
