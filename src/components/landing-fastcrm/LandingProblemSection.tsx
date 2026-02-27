@@ -1,18 +1,23 @@
 import { motion, useScroll, useTransform } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { TrendingDown, Clock, Eye, DollarSign } from "lucide-react";
 import { useRef } from "react";
 
-const problems = [
-  { icon: DollarSign, text: "\"I don't know which deals will actually close.\"", color: "hsl(0, 84%, 60%)" },
-  { icon: TrendingDown, text: "\"My forecast is a guess — not a strategy.\"", color: "hsl(38, 92%, 50%)" },
-  { icon: Clock, text: "\"I spend more time updating my CRM than selling.\"", color: "hsl(250, 83%, 60%)" },
-  { icon: Eye, text: "\"I need proposals and invoicing but don't want another tool.\"", color: "hsl(340, 82%, 52%)" },
-];
+const problemIcons = [DollarSign, TrendingDown, Clock, Eye];
+const problemColors = ["hsl(0, 84%, 60%)", "hsl(38, 92%, 50%)", "hsl(250, 83%, 60%)", "hsl(340, 82%, 52%)"];
 
 export function LandingProblemSection() {
+  const { t } = useTranslation("landing");
   const sectionRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
   const bgY = useTransform(scrollYProgress, [0, 1], ["-5%", "5%"]);
+
+  const problems = [
+    { icon: problemIcons[0], text: t("problem.q1"), color: problemColors[0] },
+    { icon: problemIcons[1], text: t("problem.q2"), color: problemColors[1] },
+    { icon: problemIcons[2], text: t("problem.q3"), color: problemColors[2] },
+    { icon: problemIcons[3], text: t("problem.q4"), color: problemColors[3] },
+  ];
 
   return (
     <section id="problema" ref={sectionRef} className="relative py-28 lg:py-36 overflow-hidden">
@@ -35,20 +40,20 @@ export function LandingProblemSection() {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            The Problem
+            {t("problem.badge")}
           </motion.span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black uppercase tracking-tight mb-6">
-            Sound Familiar?
+            {t("problem.title")}
           </h2>
           <p className="text-lg text-[hsl(215,20%,65%)] max-w-2xl mx-auto mb-16">
-            Most CRMs store contacts. FastCRM tells you what to do with them.
+            {t("problem.subtitle")}
           </p>
         </motion.div>
 
         <div className="grid sm:grid-cols-2 gap-5">
           {problems.map((item, i) => (
             <motion.div
-              key={item.text}
+              key={i}
               initial={{ opacity: 0, x: i % 2 === 0 ? -40 : 40, y: 20 }}
               whileInView={{ opacity: 1, x: 0, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}

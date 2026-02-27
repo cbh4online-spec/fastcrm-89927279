@@ -1,17 +1,22 @@
 import { motion, useScroll, useTransform } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Rocket, Users, TrendingUp } from "lucide-react";
 import { useRef } from "react";
 
-const segments = [
-  { icon: Rocket, title: "SaaS Founders", desc: "Building their first structured sales motion with real intelligence." },
-  { icon: Users, title: "Growing Sales Teams", desc: "Moving beyond spreadsheets to pipeline visibility and deal insights." },
-  { icon: TrendingUp, title: "Revenue Leaders", desc: "Scaling revenue operations with forecasting, automations, and data." },
-];
+const segmentIcons = [Rocket, Users, TrendingUp];
+const segmentKeys = ["founders", "teams", "leaders"];
 
 export function LandingPositioningSection() {
+  const { t } = useTranslation("landing");
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const bgX = useTransform(scrollYProgress, [0, 1], ["-3%", "3%"]);
+
+  const segments = segmentKeys.map((key, i) => ({
+    icon: segmentIcons[i],
+    title: t(`positioning.${key}`),
+    desc: t(`positioning.${key}Desc`),
+  }));
 
   return (
     <section ref={ref} className="relative py-28 lg:py-36 overflow-hidden">
@@ -35,20 +40,20 @@ export function LandingPositioningSection() {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            Built For
+            {t("positioning.badge")}
           </motion.span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black uppercase tracking-tight mb-5">
-            Not For Everyone.
+            {t("positioning.title")}
           </h2>
           <p className="text-lg text-[hsl(215,20%,65%)] max-w-2xl mx-auto leading-relaxed">
-            FastCRM is for SaaS teams that care about revenue clarity — not contact storage.
+            {t("positioning.subtitle")}
           </p>
         </motion.div>
 
         <div className="grid sm:grid-cols-3 gap-6">
           {segments.map((segment, i) => (
             <motion.div
-              key={segment.title}
+              key={i}
               initial={{ opacity: 0, y: 60, scale: 0.9 }}
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
               viewport={{ once: true, margin: "-50px" }}

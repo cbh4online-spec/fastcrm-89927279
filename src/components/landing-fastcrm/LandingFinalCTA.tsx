@@ -67,7 +67,7 @@ export function LandingFinalCTA() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Your work email"
+              placeholder={t("finalCta.emailPlaceholder")}
               className="w-full sm:flex-1 h-14 px-5 rounded-xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)] text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
             />
             <Button

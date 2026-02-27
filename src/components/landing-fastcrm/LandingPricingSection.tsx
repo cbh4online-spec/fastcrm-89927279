@@ -1,74 +1,49 @@
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Check, Zap, Sparkles, Crown, ArrowRight, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { ONBOARDING_BUNDLES } from "@/config/extensionPacks";
 
-const plans = [
-  {
-    name: "Starter",
-    price: "€0",
-    subtitle: "For getting started",
-    color: "hsl(142, 76%, 36%)",
-    icon: Zap,
-    features: [
-      "1-3 users",
-      "CRM core (Objects + Inbox)",
-      "Basic health score",
-      "1 pipeline",
-      "3 automations",
-      "500 emails/month",
-    ],
-    cta: "Start Free",
-    ctaLink: "/auth",
-  },
-  {
-    name: "Growth",
-    price: "€49",
-    priceNote: "/mo",
-    subtitle: "For growing teams",
-    color: "hsl(221, 83%, 53%)",
-    icon: Sparkles,
-    highlighted: true,
-    badge: "Most popular",
-    features: [
-      "Up to 10 users",
-      "Multi-pipeline",
-      "Stage benchmarks",
-      "Advanced automation templates",
-      "Marketplace active",
-      "AI suggestions & insights",
-      "500 AI calls/month",
-      "5,000 emails/month",
-    ],
-    cta: "Start Free, Upgrade Later",
-    ctaLink: "/auth",
-  },
-  {
-    name: "Scale",
-    price: "€149",
-    priceNote: "/mo",
-    subtitle: "For scaling companies",
-    color: "hsl(250, 83%, 60%)",
-    icon: Crown,
-    badge: "Enterprise",
-    features: [
-      "Unlimited users",
-      "Advanced Intelligence",
-      "Advanced automations",
-      "API access",
-      "Advanced roles",
-      "Priority support",
-      "White-label branding",
-      "5,000 AI calls/month",
-    ],
-    cta: "Start Free, Upgrade Later",
-    ctaLink: "/auth",
-  },
-];
-
 export function LandingPricingSection() {
+  const { t } = useTranslation("landing");
+
+  const plans = [
+    {
+      nameKey: "starter",
+      price: "€0",
+      color: "hsl(142, 76%, 36%)",
+      icon: Zap,
+      featureKeys: ["f_users_1_3", "f_crm_core", "f_basic_health", "f_1_pipeline", "f_3_automations", "f_500_emails"],
+      ctaKey: "startFree",
+      ctaLink: "/auth",
+    },
+    {
+      nameKey: "growth",
+      price: "€49",
+      priceNote: true,
+      color: "hsl(221, 83%, 53%)",
+      icon: Sparkles,
+      highlighted: true,
+      badgeKey: "mostPopular",
+      featureKeys: ["f_10_users", "f_multi_pipeline", "f_stage_benchmarks", "f_adv_automation", "f_marketplace", "f_ai_suggestions", "f_500_ai", "f_5000_emails"],
+      ctaKey: "startFreeUpgrade",
+      ctaLink: "/auth",
+    },
+    {
+      nameKey: "scale",
+      price: "€149",
+      priceNote: true,
+      color: "hsl(250, 83%, 60%)",
+      icon: Crown,
+      badgeKey: "enterprise",
+      featureKeys: ["f_unlimited_users", "f_adv_intelligence", "f_adv_automations", "f_api_access", "f_adv_roles", "f_priority_support", "f_white_label", "f_5000_ai"],
+      ctaKey: "startFreeUpgrade",
+      ctaLink: "/auth",
+    },
+  ];
+
   return (
     <section id="pricing" className="py-24 md:py-32 relative">
       <div className="max-w-7xl mx-auto px-6 text-center mb-16">
@@ -78,24 +53,23 @@ export function LandingPricingSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-4 block">Pricing</span>
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-4 block">{t("pricing.badge")}</span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-black uppercase tracking-tight mb-4 text-[hsl(210,40%,98%)]">
-            Simple, transparent pricing.
+            {t("pricing.title")}
           </h2>
           <p className="text-lg text-[hsl(210,40%,98%)/0.6] max-w-xl mx-auto">
-            Start free. Scale as you grow. No surprises.
+            {t("pricing.subtitle")}
           </p>
         </motion.div>
       </div>
 
-      {/* Pricing Grid */}
       <div className="max-w-5xl mx-auto px-6 mb-20">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {plans.map((plan, i) => {
             const Icon = plan.icon;
             return (
               <motion.div
-                key={plan.name}
+                key={plan.nameKey}
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -106,7 +80,7 @@ export function LandingPricingSection() {
                     : "border-[hsl(210,40%,98%)/0.08] bg-[hsl(210,40%,98%)/0.03]"
                 }`}
               >
-                {plan.badge && (
+                {plan.badgeKey && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <Badge className={`text-xs px-3 py-1 ${
                       plan.highlighted 
@@ -114,7 +88,7 @@ export function LandingPricingSection() {
                         : "bg-[hsl(250,83%,60%)] text-white"
                     }`}>
                       {plan.highlighted && <Star className="w-3 h-3 mr-1" />}
-                      {plan.badge}
+                      {t(`pricing.${plan.badgeKey}`)}
                     </Badge>
                   </div>
                 )}
@@ -126,22 +100,22 @@ export function LandingPricingSection() {
                   >
                     <Icon className="h-5 w-5" />
                   </div>
-                  <h4 className="text-lg font-bold text-[hsl(210,40%,98%)] mb-1">{plan.name}</h4>
+                  <h4 className="text-lg font-bold text-[hsl(210,40%,98%)] mb-1">{t(`pricing.${plan.nameKey}`)}</h4>
                   <div className="flex items-baseline gap-1 mb-2">
                     <span className="text-3xl font-bold text-[hsl(210,40%,98%)]">{plan.price}</span>
                     {plan.priceNote && (
-                      <span className="text-sm text-[hsl(210,40%,98%)/0.5]">{plan.priceNote}</span>
+                      <span className="text-sm text-[hsl(210,40%,98%)/0.5]">{t("pricing.perMonth")}</span>
                     )}
                   </div>
-                  <p className="text-sm text-[hsl(210,40%,98%)/0.5]">{plan.subtitle}</p>
+                  <p className="text-sm text-[hsl(210,40%,98%)/0.5]">{t(`pricing.${plan.nameKey}Sub`)}</p>
                 </div>
 
                 <div className="flex-1 mb-6">
                   <ul className="space-y-2.5">
-                    {plan.features.map((f, fi) => (
+                    {plan.featureKeys.map((fk, fi) => (
                       <li key={fi} className="flex items-start gap-2.5 text-sm">
                         <Check className="h-4 w-4 shrink-0 mt-0.5" style={{ color: plan.color }} />
-                        <span className="text-[hsl(210,40%,98%)/0.75]">{f}</span>
+                        <span className="text-[hsl(210,40%,98%)/0.75]">{t(`pricing.${fk}`)}</span>
                       </li>
                     ))}
                   </ul>
@@ -155,7 +129,7 @@ export function LandingPricingSection() {
                         : "bg-[hsl(210,40%,98%)/0.1] text-[hsl(210,40%,98%)] hover:bg-[hsl(210,40%,98%)/0.15] border border-[hsl(210,40%,98%)/0.1]"
                     }`}
                   >
-                    {plan.cta}
+                    {t(`pricing.${plan.ctaKey}`)}
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                 </Link>
@@ -165,7 +139,6 @@ export function LandingPricingSection() {
         </div>
       </div>
 
-      {/* Extension Bundles */}
       <div className="max-w-5xl mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -175,10 +148,10 @@ export function LandingPricingSection() {
           className="text-center mb-10"
         >
           <h3 className="text-2xl font-bold text-[hsl(210,40%,98%)] mb-2">
-            Extend with bundles
+            {t("pricing.extendBundles")}
           </h3>
           <p className="text-sm text-[hsl(210,40%,98%)/0.5]">
-            Pre-configured extension packs. Save vs buying individually.
+            {t("pricing.extendBundlesSub")}
           </p>
         </motion.div>
 
@@ -198,10 +171,10 @@ export function LandingPricingSection() {
                   <h4 className="font-semibold text-sm text-[hsl(210,40%,98%)]">{bundle.name}</h4>
                   <div className="flex items-baseline gap-2">
                     <span className="text-lg font-bold text-[hsl(210,40%,98%)]">€{bundle.pricing.bundle_price}</span>
-                    <span className="text-xs text-[hsl(210,40%,98%)/0.4]">/mo</span>
+                    <span className="text-xs text-[hsl(210,40%,98%)/0.4]">{t("pricing.perMonth")}</span>
                     {bundle.pricing.discount_percent > 0 && (
                       <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
-                        Save {bundle.pricing.discount_percent}%
+                        {t("pricing.save", { percent: bundle.pricing.discount_percent })}
                       </Badge>
                     )}
                   </div>

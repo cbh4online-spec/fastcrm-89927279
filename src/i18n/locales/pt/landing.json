@@ -1,11 +1,23 @@
 {
+  "nav": {
+    "features": "Funcionalidades",
+    "intelligence": "Inteligência",
+    "pricing": "Preços",
+    "faq": "FAQ",
+    "fastclub": "FastClub",
+    "signIn": "Entrar"
+  },
   "hero": {
-    "badge": "Revenue Intelligence Platform",
-    "title1": "Construa o seu CRM.",
-    "title2": "Faça crescer a sua receita.",
-    "subtitle": "Veja a sua receita antes que aconteça. Health scores, deal intelligence e automações inteligentes — integrados em cada objeto.",
+    "badge": "Plataforma de Inteligência de Receita",
+    "title1": "Veja a sua",
+    "title2": "Receita",
+    "title3": "Antes que Aconteça",
+    "subtitle": "Health scores, deal intelligence e automações inteligentes — integrados em cada objeto. Pare de adivinhar. Comece a fechar.",
     "startFree": "Começar Grátis",
     "seeHow": "Ver como funciona",
+    "namePlaceholder": "O seu nome",
+    "emailPlaceholder": "O seu email profissional",
+    "freeNote": "Grátis para sempre até 2 utilizadores · Sem cartão de crédito",
     "dashboardTitle": "FastCRM — Dashboard",
     "activeLeads": "Leads Ativos",
     "inbox": "Caixa de Entrada",
@@ -20,6 +32,7 @@
     "aiSuggestionText": "Lead \"Acme Corp\" tem 87% de probabilidade de conversão. Recomendamos follow-up hoje."
   },
   "problem": {
+    "badge": "O Problema",
     "title": "Parece familiar?",
     "subtitle": "A maioria dos CRMs armazena contactos. O FastCRM diz-lhe o que fazer com eles.",
     "q1": "\"Não sei quais negócios vão realmente fechar.\"",
@@ -28,9 +41,11 @@
     "q4": "\"Preciso de propostas e faturação, mas não quero outra ferramenta.\""
   },
   "solution": {
+    "badge": "Plataforma",
     "title": "Tudo o que precisa para",
     "titleHighlight": "fechar mais negócios.",
     "subtitle": "Quatro pilares. Uma plataforma. Feita para equipas de receita que querem estrutura sem complexidade.",
+    "learnMore": "Saber mais →",
     "pillar1Headline": "Os seus dados, a sua estrutura.",
     "pillar1Name": "CRM Flexível Baseado em Objetos",
     "pillar1Desc": "Contactos, Empresas, Negócios como objetos flexíveis. Campos personalizados, vistas e pipelines que se adaptam à forma como vende.",
@@ -57,6 +72,7 @@
     "pillar4F3": "Extensões seguem o design do CRM — sem sensação de \"addon\""
   },
   "comparison": {
+    "badge": "Inteligência",
     "title": "Porquê",
     "titleHighlight": "FastCRM?",
     "subtitle": "Revenue intelligence, não revenue guessing.",
@@ -71,6 +87,7 @@
     "vsEnterpriseS": "FastCRM: setup em minutos, estenda apenas o que precisa."
   },
   "architecture": {
+    "badge": "Para Quem",
     "title": "Feito para",
     "titleHighlight": "equipas SaaS que vendem.",
     "subtitle": "Do primeiro negócio às operações de receita. O FastCRM adapta-se à sua fase.",
@@ -94,6 +111,7 @@
     "growingB4": "Cargos avançados e controlo de workspaces"
   },
   "positioning": {
+    "badge": "Para Quem",
     "title": "Não é para todos.",
     "subtitle": "O FastCRM é para equipas SaaS que valorizam clareza de receita — não armazenamento de contactos.",
     "founders": "Fundadores SaaS",
@@ -104,6 +122,7 @@
     "leadersDesc": "A escalar operações de receita com forecasting, automações e dados"
   },
   "pricing": {
+    "badge": "Preços",
     "title": "Preços simples e transparentes.",
     "subtitle": "Comece grátis. Escale à medida que cresce. Sem surpresas.",
     "starter": "Starter",
@@ -160,9 +179,11 @@
   "finalCta": {
     "title": "Veja a sua receita com clareza.",
     "subtitle": "Comece grátis. Sem cartão de crédito. O seu primeiro insight de negócio em menos de 2 minutos.",
-    "cta": "Começar Grátis"
+    "cta": "Começar Grátis",
+    "emailPlaceholder": "O seu email profissional"
   },
   "faq": {
+    "badge": "FAQ",
     "title": "Perguntas Frequentes",
     "subtitle": "Tudo o que precisa de saber antes de começar.",
     "q1": "O que está incluído no plano gratuito?",
@@ -183,7 +204,7 @@
     "a8": "O FastCRM integra nativamente com Stripe, WhatsApp Business, Instagram, provedores de email (SMTP/Zoho) e mais. O plano Scale inclui acesso API para integrações personalizadas."
   },
   "footer": {
-    "tagline": "Revenue Intelligence Platform",
+    "tagline": "Plataforma de Inteligência de Receita",
     "privacy": "Privacidade",
     "terms": "Termos",
     "gdpr": "RGPD",

@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import pricingBg from "@/assets/pricing-bg.jpg";
 
 export function LandingHeroSection() {
+  const { t } = useTranslation("landing");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const navigate = useNavigate();
@@ -55,7 +57,7 @@ export function LandingHeroSection() {
             className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-primary/30 bg-primary/5 text-sm font-semibold text-primary tracking-wide uppercase"
           >
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            AI Revenue Operating System
+            {t("hero.badge")}
           </motion.div>
 
           <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase leading-[0.95] tracking-tight">
@@ -65,7 +67,7 @@ export function LandingHeroSection() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.3, ease: [0.25, 0.4, 0.25, 1] }}
             >
-              See Your
+              {t("hero.title1")}
             </motion.span>
             <motion.span
               className="block bg-gradient-to-r from-primary to-[hsl(250,83%,60%)] bg-clip-text text-transparent"
@@ -73,7 +75,7 @@ export function LandingHeroSection() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.9, delay: 0.5, ease: [0.25, 0.4, 0.25, 1] }}
             >
-              Revenue
+              {t("hero.title2")}
             </motion.span>
             <motion.span
               className="block"
@@ -81,7 +83,7 @@ export function LandingHeroSection() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.7, ease: [0.25, 0.4, 0.25, 1] }}
             >
-              Before It Happens
+              {t("hero.title3")}
             </motion.span>
           </h1>
 
@@ -91,7 +93,7 @@ export function LandingHeroSection() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.9 }}
           >
-            Health scores, deal intelligence, and smart automations — built into every object. Stop guessing. Start closing.
+            {t("hero.subtitle")}
           </motion.p>
 
           <motion.form
@@ -106,7 +108,7 @@ export function LandingHeroSection() {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
+              placeholder={t("hero.namePlaceholder")}
               className="w-full sm:flex-1 h-14 px-5 rounded-xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)] text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
             />
             <input
@@ -114,7 +116,7 @@ export function LandingHeroSection() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Your work email"
+              placeholder={t("hero.emailPlaceholder")}
               className="w-full sm:flex-1 h-14 px-5 rounded-xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)] text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
             />
             <Button
@@ -122,7 +124,7 @@ export function LandingHeroSection() {
               size="lg"
               className="w-full sm:w-auto gradient-primary shadow-glow text-primary-foreground px-10 h-14 text-base font-bold uppercase tracking-wide gap-2"
             >
-              Start Free
+              {t("hero.startFree")}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </motion.form>
@@ -133,7 +135,7 @@ export function LandingHeroSection() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 1.3 }}
           >
-            Free forever for up to 2 users · No credit card required
+            {t("hero.freeNote")}
           </motion.p>
         </motion.div>
       </motion.div>
