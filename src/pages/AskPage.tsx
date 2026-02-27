@@ -4,6 +4,7 @@ import { AskFastCRMInline } from "@/components/ask-fastcrm/AskFastCRMInline";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Loader2 } from "lucide-react";
 import React from "react";
+import i18n from "@/i18n";
 
 class AskErrorBoundary extends React.Component<
   { children: React.ReactNode },

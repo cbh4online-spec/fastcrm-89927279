@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { AskResult, AskResultAction, AskResultItem, AutomationPreview } from "@/hooks/useAskFastCRM";
 import { AskAutomationPreview } from "./AskAutomationPreview";
 import { Button } from "@/components/ui/button";
@@ -13,22 +15,11 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
 const iconMap: Record<string, React.ElementType> = {
-  ListTodo,
-  Eye,
-  Zap,
-  Bookmark,
-  ArrowRight,
-  UserPlus,
+  ListTodo, Eye, Zap, Bookmark, ArrowRight, UserPlus,
 };
 
 const MAX_VISIBLE_ITEMS = 10;
 const MAX_VISIBLE_ACTIONS = 3;
-
-const EMPTY_CHIPS = [
-  { label: "No activity 7d", query: "Deals with no activity in 7 days" },
-  { label: "No activity 14d", query: "Deals with no activity in 14 days" },
-  { label: "No activity 30d", query: "Deals with no activity in 30 days" },
-];
 
 interface Props {
   result: AskResult;
@@ -45,6 +36,14 @@ interface Props {
 }
 
 export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouMean, pendingAction, onConfirmAction, onCancelAction, selectedItemIndex = -1, onConfirmAutomation, onCancelAutomation, isConfirmingAutomation }: Props) {
+  const { t } = useTranslation("ask");
+
+  const EMPTY_CHIPS = useMemo(() => [
+    { label: t("emptyChip7d"), query: t("emptyChipQuery7d") },
+    { label: t("emptyChip14d"), query: t("emptyChipQuery14d") },
+    { label: t("emptyChip30d"), query: t("emptyChipQuery30d") },
+  ], [t]);
+
   const TrendIcon =
     result.metric?.trend === "up"
       ? TrendingUp
@@ -59,6 +58,12 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
 
   const isEmptyResult = result.items.length === 0 && !result.did_you_mean?.length && !result.metric && !result.automation_preview;
   const isAutomationIntent = result.intent === "create_automation_rule" && !!result.automation_preview;
+
+  const healthLabel = (label: string) => {
+    if (label === "AT_RISK") return t("resultHealthRisk");
+    if (label === "WATCH") return t("resultHealthWatch");
+    return t("resultHealthOk");
+  };
 
   return (
     <motion.div
@@ -99,9 +104,8 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
             <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm text-foreground font-medium">
-                This will affect {pendingAction.payload?.deal_ids?.length || 0} items
+                {t("resultAffect", { count: pendingAction.payload?.deal_ids?.length || 0 })}
               </p>
-              {/* Preview first 5 items */}
               {result.items.length > 0 && (
                 <ul className="mt-1.5 space-y-0.5">
                   {result.items.slice(0, 5).map((item) => (
@@ -111,20 +115,20 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
                   ))}
                   {result.items.length > 5 && (
                     <li className="text-xs text-muted-foreground">
-                      …and {result.items.length - 5} more
+                      {t("resultAndMore", { count: result.items.length - 5 })}
                     </li>
                   )}
                 </ul>
               )}
               <p className="text-xs text-muted-foreground mt-1.5">
-                {pendingAction.label} — confirm to proceed.
+                {t("resultConfirmProceed", { label: pendingAction.label })}
               </p>
               <div className="flex gap-2 mt-2">
                 <Button size="sm" variant="default" onClick={onConfirmAction} className="gap-1.5">
-                  Confirm
+                  {t("resultConfirm")}
                 </Button>
                 <Button size="sm" variant="outline" onClick={onCancelAction}>
-                  Cancel
+                  {t("resultCancel")}
                 </Button>
               </div>
             </div>
@@ -141,9 +145,9 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
           transition={{ delay: 0.05, duration: 0.2 }}
         >
           <SearchX className="h-8 w-8 text-muted-foreground/30" />
-          <p className="text-sm text-muted-foreground">Nothing found for that query.</p>
+          <p className="text-sm text-muted-foreground">{t("resultEmpty")}</p>
           <div className="space-y-1.5">
-            <p className="text-xs text-muted-foreground">Try:</p>
+            <p className="text-xs text-muted-foreground">{t("resultTry")}</p>
             <div className="flex flex-wrap gap-2 justify-center">
               {EMPTY_CHIPS.map((chip) => (
                 <button
@@ -172,7 +176,7 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05, duration: 0.2 }}
         >
-          <p className="text-xs text-muted-foreground font-medium">Try one of these:</p>
+          <p className="text-xs text-muted-foreground font-medium">{t("resultTryOneOf")}</p>
           <div className="flex flex-wrap gap-2">
             {result.did_you_mean.map((text) => (
               <button
@@ -234,9 +238,7 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
               onClick={() => onItemClick?.(item)}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors",
-                selectedItemIndex === idx
-                  ? "bg-accent"
-                  : "hover:bg-muted/40"
+                selectedItemIndex === idx ? "bg-accent" : "hover:bg-muted/40"
               )}
               initial={{ opacity: 0, x: -4 }}
               animate={{ opacity: 1, x: 0 }}
@@ -252,7 +254,7 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
                     item.health_label === "HEALTHY" && "border-green-500/50 text-green-600"
                   )}
                 >
-                  {item.health_label === "AT_RISK" ? "Risk" : item.health_label === "WATCH" ? "Watch" : "Ok"}
+                  {healthLabel(item.health_label)}
                 </Badge>
               )}
               {item.stage && (
@@ -275,10 +277,10 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
           ))}
           {hasMoreItems && (
             <button
-              onClick={() => onAction({ id: "view_all", label: "View all", icon: "Eye", type: "navigate", payload: { link: "/dashboard/opportunities" } })}
+              onClick={() => onAction({ id: "view_all", label: t("resultViewAll", { count: result.items.length }), icon: "Eye", type: "navigate", payload: { link: "/dashboard/opportunities" } })}
               className="w-full px-3 py-2 text-sm text-primary hover:bg-muted/40 transition-colors text-center font-medium"
             >
-              View all ({result.items.length})
+              {t("resultViewAll", { count: result.items.length })}
             </button>
           )}
         </motion.div>
@@ -318,13 +320,7 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
           {visibleActions.map((action) => {
             const Icon = iconMap[action.icon] || Eye;
             return (
-              <Button
-                key={action.id}
-                variant="outline"
-                size="sm"
-                onClick={() => onAction(action)}
-                className="gap-1.5"
-              >
+              <Button key={action.id} variant="outline" size="sm" onClick={() => onAction(action)} className="gap-1.5">
                 <Icon className="h-3.5 w-3.5" />
                 {action.label}
               </Button>
@@ -335,7 +331,7 @@ export function AskFastCRMResultPanel({ result, onAction, onItemClick, onDidYouM
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-1.5">
                   <MoreHorizontal className="h-3.5 w-3.5" />
-                  More…
+                  {t("resultMore")}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">

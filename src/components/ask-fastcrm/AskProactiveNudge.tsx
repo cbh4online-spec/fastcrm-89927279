@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { X, Sparkles, AlertTriangle, Clock } from "lucide-react";
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function AskProactiveNudge({ onAskQuery }: Props) {
+  const { t } = useTranslation("ask");
   const { data: suggestions } = useProactiveAskSuggestions();
   const [dismissed, setDismissed] = useState<Set<string>>(() => {
     try {
@@ -63,7 +65,7 @@ export function AskProactiveNudge({ onAskQuery }: Props) {
                     onClick={() => onAskQuery(suggestion.askQuery)}
                   >
                     <Sparkles className="h-3.5 w-3.5" />
-                    Ask FastCRM
+                    {t("nudgeAskButton")}
                   </Button>
                   <Button
                     size="icon"
