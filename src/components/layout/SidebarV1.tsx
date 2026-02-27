@@ -195,6 +195,7 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
                       >
                         <item.icon className={cn("w-4 h-4", active ? "text-foreground" : "text-muted-foreground")} />
                         <span className="flex-1">{item.name}</span>
+                        {item.moduleSlug && <Puzzle className="w-3 h-3 text-muted-foreground/50" />}
                         <button
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.href); }}
                           className="p-0.5 rounded hover:bg-muted transition-colors"
@@ -235,7 +236,7 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
                             <item.icon className="w-4 h-4" />
                           </Link>
                         </TooltipTrigger>
-                        <TooltipContent side="right">{item.name}</TooltipContent>
+                        <TooltipContent side="right">{item.name}{item.moduleSlug && " (módulo)"}</TooltipContent>
                       </Tooltip>
                     ) : (
                       <div className="group flex items-center">
@@ -251,6 +252,7 @@ export function SidebarV1({ open, onClose }: SidebarV1Props) {
                         >
                           <item.icon className={cn("w-4 h-4", active ? "text-foreground" : "text-muted-foreground")} />
                           <span className="flex-1">{item.name}</span>
+                          {item.moduleSlug && <Puzzle className="w-3 h-3 text-muted-foreground/50" />}
                           <button
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(item.href); }}
                             className={cn(
