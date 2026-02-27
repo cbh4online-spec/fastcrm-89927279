@@ -143,6 +143,7 @@ import InstagramLooterPage from "./pages/dashboard/InstagramLooterPage";
 import SEOAdminPage from "./pages/dashboard/seo";
 import CreditIntermediation from "./pages/CreditIntermediation";
 import StrategyPage from "./pages/StrategyPage";
+import DailyBriefPage from "./pages/DailyBriefPage";
 import ContextOSPage from "./pages/ContextOSPage";
 import CustomerLifecyclePage from "./pages/CustomerLifecyclePage";
 import EventsManagementPage from "./components/events/EventsManagementPage";
@@ -474,6 +475,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/instagram-looter/:tab" element={<InstagramLooterPage />} />
                 <Route path="/dashboard/credit" element={<CreditIntermediation />} />
                 <Route path="/dashboard/strategy" element={<StrategyPage />} />
+                <Route path="/dashboard/daily-brief" element={<DailyBriefPage />} />
                 <Route path="/dashboard/lifecycle" element={<CustomerLifecyclePage />} />
                 <Route path="/dashboard/events" element={<EventsManagementPage />} />
                 <Route path="/dashboard/events/:eventId" element={<EventDetailPage />} />
