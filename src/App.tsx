@@ -105,6 +105,7 @@ import OrderNoteDetailPage from "./pages/OrderNoteDetailPage";
 import OrderApprovalsPage from "./pages/OrderApprovalsPage";
 import ClientUsersPage from "./pages/ClientUsersPage";
 import B2BPortalSettingsPage from "./pages/B2BPortalSettingsPage";
+import B2BStockPage from "./pages/B2BStockPage";
 import ReportsOverview from "./pages/ReportsOverview";
 import ReportsForecasts from "./pages/ReportsForecasts";
 import ReportsConsumption from "./pages/ReportsConsumption";
@@ -485,6 +486,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/order-approvals" element={<OrderApprovalsPage />} />
                 <Route path="/dashboard/client-users" element={<ClientUsersPage />} />
                 <Route path="/dashboard/b2b-portal" element={<B2BPortalSettingsPage />} />
+                <Route path="/dashboard/b2b-stock" element={<B2BStockPage />} />
                 <Route path="/dashboard/store-orders" element={<StoreOrdersPage />} />
                 <Route path="/dashboard/store-orders/:id" element={<StoreOrderDetailPage />} />
                 <Route path="/dashboard/store-settings" element={<StoreSettingsPage />} />
