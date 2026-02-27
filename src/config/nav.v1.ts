@@ -82,12 +82,14 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Ciclo de Vida", href: "/dashboard/lifecycle", icon: GitBranch, group: "CRM" },
   { name: "Eventos", href: "/dashboard/events", icon: Calendar, group: "CRM" },
 
-  // Vendas
-  { name: "Pipeline", href: "/dashboard/opportunities", icon: TrendingUp, group: "Vendas", separator: true },
-  { name: "Propostas", href: "/dashboard/proposals", icon: Presentation, group: "Vendas", moduleSlug: "proposals" },
+  // CRM (cont.) — itens base movidos de Vendas
+  { name: "Pipeline", href: "/dashboard/opportunities", icon: TrendingUp, group: "CRM" },
+  { name: "Agendamento", href: "/dashboard/scheduling", icon: CalendarCheck, group: "CRM" },
+  { name: "Produtos", href: "/dashboard/products", icon: ShoppingBag, group: "CRM" },
+
+  // Vendas (só módulos)
+  { name: "Propostas", href: "/dashboard/proposals", icon: Presentation, group: "Vendas", separator: true, moduleSlug: "proposals" },
   { name: "Faturas", href: "/dashboard/invoices", icon: Receipt, group: "Vendas", moduleSlug: "invoices" },
-  { name: "Agendamento", href: "/dashboard/scheduling", icon: CalendarCheck, group: "Vendas" },
-  { name: "Produtos", href: "/dashboard/products", icon: ShoppingBag, group: "Vendas" },
 
   // Portal B2B
   { name: "Notas Encomenda", href: "/dashboard/order-notes", icon: FileText, group: "Portal B2B", separator: true, moduleSlug: "b2b-portal" },
@@ -116,14 +118,12 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Abrir FastClub", href: "/club/fastclub", icon: Trophy, group: "FastClub", separator: true, moduleSlug: "fastclub" },
   { name: "Candidaturas", href: "/dashboard/fastclub/candidaturas", icon: FileText, group: "FastClub", moduleSlug: "fastclub" },
 
-  // Marketing
-  { name: "Marketing", href: "/dashboard/marketing", icon: Megaphone, group: "Marketing", separator: true },
-  { name: "Email Marketing", href: "/dashboard/email-campaigns", icon: Mail, group: "Marketing", moduleSlug: "email-campaigns" },
+  // Marketing (só módulos)
+  { name: "Email Marketing", href: "/dashboard/email-campaigns", icon: Mail, group: "Marketing", separator: true, moduleSlug: "email-campaigns" },
   { name: "Google Local", href: "/dashboard/prospecting/google-local", icon: MapPin, group: "Marketing", moduleSlug: "google-local-services" },
-  { name: "Funis", href: "/dashboard/funnels", icon: GitBranch, group: "Marketing" },
   { name: "Bio OS", href: "/dashboard/bio", icon: Globe, group: "Marketing", moduleSlug: "bio-os" },
 
-  // Estratégia
+  // Estratégia (só módulos)
   { name: "Brief Executivo", href: "/dashboard/strategy", icon: Brain, group: "Estratégia", separator: true, moduleSlug: "strategy-brief" },
 
   // Relatórios
@@ -138,6 +138,7 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Assistentes IA", href: "/dashboard/ai-assistants", icon: Brain, group: "Ferramentas" },
   { name: "AI Employees", href: "/dashboard/ai-employees", icon: Bot, group: "Ferramentas" },
   { name: "Motor Conversacional", href: "/dashboard/conversational-engine", icon: MessageSquare, group: "Ferramentas", moduleSlug: "conversational-engine" },
+  { name: "Funis", href: "/dashboard/funnels", icon: GitBranch, group: "Ferramentas" },
   { name: "Form Studio", href: "/dashboard/form-studio", icon: FileText, group: "Ferramentas" },
   { name: "SEO & Growth", href: "/dashboard/seo", icon: Search, group: "Ferramentas", moduleSlug: "seo-growth" },
   { name: "Importações", href: "/dashboard/imports", icon: Download, group: "Ferramentas" },
