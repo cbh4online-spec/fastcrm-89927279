@@ -6,12 +6,13 @@ import { ArrowRight } from "lucide-react";
 import pricingBg from "@/assets/pricing-bg.jpg";
 
 export function LandingHeroSection() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate(`/auth?email=${encodeURIComponent(email)}`);
+    navigate(`/auth?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`);
   };
 
   return (
@@ -62,6 +63,14 @@ export function LandingHeroSection() {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-lg mx-auto"
           >
+            <input
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your name"
+              className="w-full sm:flex-1 h-14 px-5 rounded-xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)] text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
+            />
             <input
               type="email"
               required

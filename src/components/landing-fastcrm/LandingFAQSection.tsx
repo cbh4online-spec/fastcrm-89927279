@@ -52,7 +52,8 @@ export function LandingFAQSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-4 block">FAQ</span>
+          <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tight mb-4">
             Frequently Asked Questions
           </h2>
           <p className="text-[hsl(215,20%,65%)]">

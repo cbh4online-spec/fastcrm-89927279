@@ -53,7 +53,8 @@ export function LandingArchitectureSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-5">
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-4 block">Built For</span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black uppercase tracking-tight mb-5">
             Built for{" "}
             <span className="bg-gradient-to-r from-primary to-[hsl(250,83%,60%)] bg-clip-text text-transparent">
               SaaS teams that sell.
@@ -72,7 +73,7 @@ export function LandingArchitectureSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="rounded-2xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] p-6"
+              className="rounded-2xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] p-6 hover:border-primary/40 hover:bg-[hsl(222,47%,8%)] transition-all duration-300"
             >
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
