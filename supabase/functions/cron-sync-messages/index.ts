@@ -70,16 +70,20 @@ interface GHLContactBasicData {
   facebook_url?: string;
 }
 
-function extractSocialFromCustomFields(fields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>): { instagram_url?: string; linkedin_url?: string; facebook_url?: string } {
+function extractSocialFromCustomFields(socialMedia?: { linkedIn?: string; facebook?: string; instagram?: string; twitter?: string }, fields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>): { instagram_url?: string; linkedin_url?: string; facebook_url?: string } {
   const result: Record<string, string> = {};
-  if (!fields) return result;
-  for (const f of fields) {
-    const key = (f.field_key || f.key || f.id || "").toLowerCase();
-    const val = f.value;
-    if (!val) continue;
-    if (key.includes("instagram")) result.instagram_url = val.startsWith("http") ? val : `https://instagram.com/${val}`;
-    if (key.includes("linkedin")) result.linkedin_url = val.startsWith("http") ? val : `https://linkedin.com/in/${val}`;
-    if (key.includes("facebook")) result.facebook_url = val.startsWith("http") ? val : `https://facebook.com/${val}`;
+  if (socialMedia?.linkedIn) result.linkedin_url = socialMedia.linkedIn;
+  if (socialMedia?.facebook) result.facebook_url = socialMedia.facebook;
+  if (socialMedia?.instagram) result.instagram_url = socialMedia.instagram;
+  if (fields) {
+    for (const f of fields) {
+      const key = (f.field_key || f.key || f.id || "").toLowerCase();
+      const val = f.value;
+      if (!val) continue;
+      if (!result.instagram_url && key.includes("instagram")) result.instagram_url = val.startsWith("http") ? val : `https://instagram.com/${val}`;
+      if (!result.linkedin_url && key.includes("linkedin")) result.linkedin_url = val.startsWith("http") ? val : `https://linkedin.com/in/${val}`;
+      if (!result.facebook_url && key.includes("facebook")) result.facebook_url = val.startsWith("http") ? val : `https://facebook.com/${val}`;
+    }
   }
   return result;
 }
@@ -103,7 +107,7 @@ async function fetchGHLContactBasic(apiKey: string, contactId: string): Promise<
     const contact = data.contact || data;
 
     const addressParts = [contact.address1, contact.city, contact.state, contact.postalCode, contact.country].filter(Boolean);
-    const socialUrls = extractSocialFromCustomFields(contact.customFields);
+    const socialUrls = extractSocialFromCustomFields(contact.socialMedia, contact.customFields);
 
     return {
       id: contact.id || contactId,

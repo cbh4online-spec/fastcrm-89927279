@@ -15,7 +15,7 @@ const corsHeaders = {
 const EMAIL_REGEX = /[\w.-]+@[\w.-]+\.\w{2,}/g;
 const PHONE_REGEX = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}/g;
 const INSTAGRAM_REGEX = /(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.]+)/gi;
-const LINKEDIN_REGEX = /linkedin\.com\/in\/([a-zA-Z0-9_-]+)/gi;
+const LINKEDIN_REGEX = /linkedin\.com\/(?:in|company)\/([a-zA-Z0-9_-]+)/gi;
 const FACEBOOK_REGEX = /facebook\.com\/([a-zA-Z0-9_.]+)/gi;
 const TWITTER_REGEX = /(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)/gi;
 const WEBSITE_REGEX = /https?:\/\/(?!(?:instagram|facebook|linkedin|twitter|x)\.com)[^\s<>"']+/gi;
@@ -53,10 +53,14 @@ function extractFromText(text: string): ExtractedData {
     }
   }
 
-  // Extract LinkedIn
+  // Extract LinkedIn (personal /in/ and company /company/)
   const liMatches = [...text.matchAll(LINKEDIN_REGEX)];
   if (liMatches.length) {
-    result.linkedin_url = `https://linkedin.com/in/${liMatches[0][1]}`;
+    // Preserve original URL path type (in or company)
+    const fullMatch = liMatches[0][0];
+    const slug = liMatches[0][1];
+    const isCompany = fullMatch.includes("/company/");
+    result.linkedin_url = isCompany ? `https://linkedin.com/company/${slug}` : `https://linkedin.com/in/${slug}`;
   }
 
   // Extract Facebook
