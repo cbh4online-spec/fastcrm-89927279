@@ -1,32 +1,53 @@
 
 
-# Adicionar Ícone de Puzzle nos Itens de Módulo
+# Redesign Visual da Sidebar V1 — Estilo Basepoint
 
-## Alteração
+## Referência
 
-Adicionar um mini ícone `Puzzle` (3×3) ao lado do nome nos itens que têm `moduleSlug`, para distinguir visualmente dos itens core.
+A imagem Basepoint mostra: fundo limpo, ícones com cores semânticas por categoria, labels de grupo subtis em cinza claro, espaçamento generoso, sem bordas pesadas nos itens, texto escuro simples.
 
-### `src/components/layout/SidebarV1.tsx`
+## Alterações
 
-1. No render expandido dos `visibleNavItems` (linha ~253), após `<span className="flex-1">{item.name}</span>`, adicionar condicionalmente:
-```tsx
-{item.moduleSlug && <Puzzle className="w-3 h-3 text-muted-foreground/50" />}
-```
+### 1. `src/config/nav.v1.ts` — Adicionar `iconColor` por grupo/item
 
-2. No tooltip do modo colapsado (linha ~238), adicionar o ícone de puzzle ao texto do tooltip:
-```tsx
-<TooltipContent side="right">
-  {item.name}{item.moduleSlug && " (módulo)"}
-</TooltipContent>
-```
+Adicionar `iconColor?: string` ao tipo `NavV1Item` com cores semânticas por grupo:
 
-3. Nos favoritos expandidos (linha ~197), mesmo padrão — adicionar puzzle após o nome se `item.moduleSlug` existe.
+| Grupo | Cor do ícone (Tailwind) |
+|---|---|
+| Principal | `text-violet-500` |
+| Comunicação | `text-blue-500` |
+| CRM | `text-emerald-500` |
+| Vendas | `text-amber-500` |
+| Portal B2B | `text-orange-500` |
+| Loja Online | `text-pink-500` |
+| Marketplace C2C | `text-rose-500` |
+| FastClub | `text-yellow-500` |
+| Marketing | `text-indigo-500` |
+| Estratégia | `text-cyan-500` |
+| Relatórios | `text-sky-500` |
+| Ferramentas | `text-slate-500` |
+| Student Journey | `text-teal-500` |
+| Instagram Looter | `text-fuchsia-500` |
+| Definições | `text-gray-500` |
 
-O ícone `Puzzle` já está importado no ficheiro (linha 6).
+Cada item herda a cor do seu grupo. Aplicar `iconColor` a todos os itens.
 
-### Ficheiro a alterar
+### 2. `src/components/layout/SidebarV1.tsx` — Aplicar cores e estilo Basepoint
+
+**Ícones coloridos**: Substituir a lógica actual de cor do ícone (`active ? "text-foreground" : "text-muted-foreground"`) por `item.iconColor` quando disponível, mantendo destaque no activo.
+
+**Labels de grupo**: Renderizar o nome do grupo como label subtil (uppercase, 11px, tracking-wider, text-muted-foreground) antes do primeiro item de cada grupo — semelhante à imagem (Records, Lists, Favorites).
+
+**Espaçamento**: Adicionar `mt-4` antes de cada label de grupo para separação visual clara. Remover os `<Separator>` actuais (linhas horizontais) — no estilo Basepoint não há linhas, só espaço.
+
+**Itens**: Manter `py-1.5`, remover `font-medium` dos itens não activos para texto mais leve. O item activo fica com `bg-muted font-medium`.
+
+**Remover ícone Puzzle**: Substituir pelo indicador de cor — itens de módulo já ficam visualmente distintos por pertencerem a grupos específicos com cores próprias.
+
+### Ficheiros a alterar
 
 | Ficheiro | Acção |
 |---|---|
-| `src/components/layout/SidebarV1.tsx` | Adicionar `<Puzzle>` condicional em 3 pontos de renderização |
+| `src/config/nav.v1.ts` | Adicionar `iconColor` a todos os itens |
+| `src/components/layout/SidebarV1.tsx` | Renderizar labels de grupo, aplicar `iconColor`, remover Separators, remover Puzzle icon |
 
