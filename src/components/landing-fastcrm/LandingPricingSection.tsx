@@ -78,7 +78,8 @@ export function LandingPricingSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-[hsl(210,40%,98%)]">
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-4 block">Pricing</span>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-black uppercase tracking-tight mb-4 text-[hsl(210,40%,98%)]">
             Simple, transparent pricing.
           </h2>
           <p className="text-lg text-[hsl(210,40%,98%)/0.6] max-w-xl mx-auto">
@@ -148,7 +149,7 @@ export function LandingPricingSection() {
 
                 <Link to={plan.ctaLink} className="w-full">
                   <Button
-                    className={`w-full font-semibold h-11 ${
+                    className={`w-full font-bold uppercase tracking-wide h-11 ${
                       plan.highlighted
                         ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:bg-[hsl(var(--primary)/0.9)]"
                         : "bg-[hsl(210,40%,98%)/0.1] text-[hsl(210,40%,98%)] hover:bg-[hsl(210,40%,98%)/0.15] border border-[hsl(210,40%,98%)/0.1]"

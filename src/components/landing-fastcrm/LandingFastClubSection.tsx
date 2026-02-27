@@ -22,7 +22,7 @@ export function LandingFastClubSection() {
             <Lock className="h-3 w-3" />
             Private Capital Circle
           </div>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-5">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black uppercase tracking-tight mb-5">
             O círculo privado do{" "}
             <span className="bg-gradient-to-r from-primary to-[hsl(250,83%,60%)] bg-clip-text text-transparent">
               ecossistema FastCRM.
@@ -62,7 +62,7 @@ export function LandingFastClubSection() {
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                 <item.icon className="h-5 w-5 text-primary" />
               </div>
-              <h3 className="font-semibold text-sm mb-1.5">{item.title}</h3>
+              <h3 className="font-bold text-sm mb-1.5 uppercase tracking-wide">{item.title}</h3>
               <p className="text-xs text-[hsl(215,20%,65%)] leading-relaxed">{item.desc}</p>
             </motion.div>
           ))}
@@ -78,7 +78,7 @@ export function LandingFastClubSection() {
           <Link to="/fastclub">
             <Button
               size="lg"
-              className="gradient-primary shadow-glow text-primary-foreground px-10 h-14 text-base font-semibold gap-2"
+              className="gradient-primary shadow-glow text-primary-foreground px-10 h-14 text-base font-bold uppercase tracking-wide gap-2"
             >
               Conhecer o Private Capital Circle
               <ArrowRight className="h-4 w-4" />

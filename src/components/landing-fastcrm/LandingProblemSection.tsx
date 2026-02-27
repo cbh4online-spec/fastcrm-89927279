@@ -37,7 +37,7 @@ export function LandingProblemSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
               transition={{ duration: 0.4, delay: i * 0.08 }}
-              className="flex items-center gap-5 p-6 rounded-2xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] text-left hover:border-[hsl(217,33%,25%)] transition-colors"
+              className="flex items-center gap-5 p-6 rounded-2xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] text-left hover:border-[hsl(217,33%,25%)] hover:bg-[hsl(222,47%,8%)] hover:scale-[1.02] transition-all duration-300"
               style={{ borderLeftWidth: 3, borderLeftColor: item.color }}
             >
               <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${item.color}15` }}>
