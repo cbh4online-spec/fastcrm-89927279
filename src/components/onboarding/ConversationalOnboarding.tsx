@@ -357,14 +357,14 @@ export function ConversationalOnboarding({ workspaceName, onComplete, onSkip }: 
   if (convoStep === "bundle" || convoStep === "bundle_activating") {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        {/* Header */}
-        <div className="border-b border-border px-4 py-3 flex items-center justify-between bg-card">
+        {/* Header — premium */}
+        <div className="border-b border-primary/20 px-4 py-3 flex items-center justify-between bg-gradient-to-r from-card via-card to-primary/5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
               <Sparkles className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-foreground">Configuração Inteligente</p>
+              <p className="text-sm font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Configuração Inteligente</p>
               <p className="text-xs text-muted-foreground">{workspaceName}</p>
             </div>
           </div>
@@ -390,7 +390,7 @@ export function ConversationalOnboarding({ workspaceName, onComplete, onSkip }: 
             </div>
 
             {recommendedBundle && (
-              <div className="p-5 rounded-xl border border-primary/20 bg-primary/5 space-y-4">
+              <div className="p-5 rounded-xl border border-primary/20 bg-primary/5 space-y-4 glass-premium">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{recommendedBundle.icon}</span>
                   <div>
@@ -478,14 +478,14 @@ export function ConversationalOnboarding({ workspaceName, onComplete, onSkip }: 
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <div className="border-b border-border px-4 py-3 flex items-center justify-between bg-card">
+      {/* Header — premium */}
+      <div className="border-b border-primary/20 px-4 py-3 flex items-center justify-between bg-gradient-to-r from-card via-card to-primary/5">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
             <Sparkles className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">Configuração Inteligente</p>
+            <p className="text-sm font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Configuração Inteligente</p>
             <p className="text-xs text-muted-foreground">{workspaceName}</p>
           </div>
         </div>

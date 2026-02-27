@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { OnboardingSegment } from "@/config/onboardingSegments";
+import { getSegmentProfile } from "@/config/onboardingSegments";
 
 interface ApplyStep {
   id: string;
@@ -33,6 +34,25 @@ interface ApplyingStepProps {
   onComplete: () => void;
 }
 
+// Map AI automation triggers to valid enum values
+const TRIGGER_MAP: Record<string, string> = {
+  "lead_created": "lead_created",
+  "new_lead": "lead_created",
+  "opportunity_stage_changed": "opportunity_stage_changed",
+  "stage_change": "opportunity_stage_changed",
+  "contact_created": "contact_created",
+  "lead_no_response": "lead_no_response",
+  "no_response": "lead_no_response",
+  "message_received": "message_received",
+  "first_message": "first_message_from_lead",
+  "scheduled": "scheduled_time",
+};
+
+function mapTrigger(trigger: string): string {
+  const lower = trigger.toLowerCase().replace(/\s+/g, "_");
+  return TRIGGER_MAP[lower] || "lead_created";
+}
+
 export function ApplyingStep({ config, answers, segment, durationMs, onComplete }: ApplyingStepProps) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
@@ -41,6 +61,7 @@ export function ApplyingStep({ config, answers, segment, durationMs, onComplete 
     { id: "fields", label: "A criar campos personalizados...", status: "pending" },
     { id: "forms", label: "A criar formulários...", status: "pending" },
     { id: "automations", label: "A registar automações sugeridas...", status: "pending" },
+    { id: "context", label: "A configurar Context OS...", status: "pending" },
     { id: "finalize", label: "A finalizar configuração...", status: "pending" },
   ]);
 
@@ -144,12 +165,65 @@ export function ApplyingStep({ config, answers, segment, durationMs, onComplete 
         }
         updateStep("forms", "done");
 
-        // Step 4: Automations
+        // Step 4: Create real automation suggestions
         updateStep("automations", "loading");
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        for (const automation of config.automations) {
+          try {
+            await supabase.from("automation_suggestions").insert({
+              workspace_id: currentWorkspace.id,
+              title: automation.name,
+              description: automation.description,
+              trigger_type: mapTrigger(automation.trigger),
+              trigger_config: { source: "onboarding" },
+              conditions: {},
+              actions: { steps: automation.actions.map((a) => ({ type: "action", label: a })) },
+              confidence: 0.8,
+              explanation: `Automação sugerida durante o onboarding baseada no teu processo de vendas.`,
+              status: "pending",
+            });
+          } catch (err) {
+            console.error("Error creating automation suggestion:", err);
+          }
+        }
         updateStep("automations", "done");
 
-        // Step 5: Finalize — persist all answers + segment
+        // Step 5: Auto-setup Context OS
+        updateStep("context", "loading");
+        try {
+          const teamSizeNum = answers.teamSize === "solo" ? 1 
+            : answers.teamSize === "2-5" ? 3 
+            : answers.teamSize === "6-20" ? 10 
+            : answers.teamSize === "20+" ? 25 
+            : null;
+
+          const segmentProfile = segment ? getSegmentProfile(segment) : null;
+
+          await supabase.from("business_context" as any).upsert({
+            workspace_id: currentWorkspace.id,
+            business_model: answers.revenueModel || answers.businessType,
+            business_description: answers.successDefinition,
+            sales_process_steps: answers.processDescription ? answers.processDescription.split(/[.,;]\s*/).filter(Boolean).slice(0, 10) : null,
+            active_strategies: answers.channels,
+            team_size: teamSizeNum,
+            pricing_model: answers.revenueModel || null,
+            onboarding_completed: true,
+            updated_at: new Date().toISOString(),
+          } as any, { onConflict: 'workspace_id' });
+
+          // Configure intelligence defaults based on segment
+          if (segmentProfile) {
+            await supabase.from("workspace_settings" as any).upsert({
+              workspace_id: currentWorkspace.id,
+              enable_benchmarks: segmentProfile.intelligenceDefaults.enableBenchmarks,
+              enable_forecast: segmentProfile.intelligenceDefaults.enableForecast,
+            } as any, { onConflict: 'workspace_id' });
+          }
+        } catch (err) {
+          console.error("Error setting up Context OS:", err);
+        }
+        updateStep("context", "done");
+
+        // Step 6: Finalize — persist answers + segment + trigger Daily Brief
         updateStep("finalize", "loading");
         
         await supabase.from("workspace_onboarding" as any).upsert({
@@ -168,6 +242,11 @@ export function ApplyingStep({ config, answers, segment, durationMs, onComplete 
           completed_at: new Date().toISOString(),
           skipped: false,
         } as any, { onConflict: 'workspace_id' });
+
+        // Fire-and-forget: generate first Daily Brief
+        supabase.functions.invoke("daily-revenue-brief", {
+          body: { workspace_id: currentWorkspace.id },
+        }).catch((err) => console.warn("Daily Brief auto-gen failed (non-blocking):", err));
         
         updateStep("finalize", "done");
 

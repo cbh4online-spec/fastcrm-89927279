@@ -24,6 +24,7 @@ import { UpcomingBirthdaysWidget } from "@/components/dashboard/UpcomingBirthday
 import { UpcomingEventsWidget } from "@/components/dashboard/UpcomingEventsWidget";
 import { ExecutiveBriefWidget } from "@/components/dashboard/ExecutiveBriefWidget";
 import { DailyBriefWidget } from "@/components/dashboard/DailyBriefWidget";
+import { PostOnboardingChecklist } from "@/components/dashboard/PostOnboardingChecklist";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useBusinessContext } from "@/hooks/useBusinessContext";
 import { useIntelligencePanel } from "@/hooks/useIntelligencePanel";
@@ -151,6 +152,8 @@ export default function Dashboard() {
 
           <AskProactiveNudge onAskQuery={(q) => navigate(`/dashboard/ask?q=${encodeURIComponent(q)}`)} />
 
+          {/* ── Post-Onboarding Checklist ── */}
+          <PostOnboardingChecklist />
           {/* ── Revenue Hero (full-width) ── */}
           <RevenueHero />
 
