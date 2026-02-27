@@ -24,6 +24,7 @@ interface GHLContact {
   state?: string;
   postalCode?: string;
   country?: string;
+  socialMedia?: { linkedIn?: string; facebook?: string; instagram?: string; twitter?: string };
   customFields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>;
 }
 
@@ -249,16 +250,22 @@ Deno.serve(async (req) => {
               const leadsToInsert: Array<Record<string, unknown>> = [];
 
               // Helper: extract social URLs from GHL custom fields
-              function extractSocialFromCustomFields(fields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>): { instagram_url?: string; linkedin_url?: string; facebook_url?: string } {
+              function extractSocialFromCustomFields(socialMedia?: { linkedIn?: string; facebook?: string; instagram?: string; twitter?: string }, fields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>): { instagram_url?: string; linkedin_url?: string; facebook_url?: string } {
                 const result: Record<string, string> = {};
-                if (!fields) return result;
-                for (const f of fields) {
-                  const key = (f.field_key || f.key || f.id || "").toLowerCase();
-                  const val = f.value;
-                  if (!val) continue;
-                  if (key.includes("instagram")) result.instagram_url = val.startsWith("http") ? val : `https://instagram.com/${val}`;
-                  if (key.includes("linkedin")) result.linkedin_url = val.startsWith("http") ? val : `https://linkedin.com/in/${val}`;
-                  if (key.includes("facebook")) result.facebook_url = val.startsWith("http") ? val : `https://facebook.com/${val}`;
+                // Priority 1: native GHL socialMedia fields
+                if (socialMedia?.linkedIn) result.linkedin_url = socialMedia.linkedIn;
+                if (socialMedia?.facebook) result.facebook_url = socialMedia.facebook;
+                if (socialMedia?.instagram) result.instagram_url = socialMedia.instagram;
+                // Priority 2: custom fields (only fill if not already set)
+                if (fields) {
+                  for (const f of fields) {
+                    const key = (f.field_key || f.key || f.id || "").toLowerCase();
+                    const val = f.value;
+                    if (!val) continue;
+                    if (!result.instagram_url && key.includes("instagram")) result.instagram_url = val.startsWith("http") ? val : `https://instagram.com/${val}`;
+                    if (!result.linkedin_url && key.includes("linkedin")) result.linkedin_url = val.startsWith("http") ? val : `https://linkedin.com/in/${val}`;
+                    if (!result.facebook_url && key.includes("facebook")) result.facebook_url = val.startsWith("http") ? val : `https://facebook.com/${val}`;
+                  }
                 }
                 return result;
               }
@@ -294,7 +301,7 @@ Deno.serve(async (req) => {
                 const fullAddress = addressParts.length > 0 ? addressParts.join(", ") : null;
 
                 // Extract social URLs from custom fields
-                const socialUrls = extractSocialFromCustomFields(contact.customFields);
+                const socialUrls = extractSocialFromCustomFields(contact.socialMedia, contact.customFields);
 
                 leadsToInsert.push({
                   workspace_id,
@@ -506,16 +513,20 @@ Deno.serve(async (req) => {
       const leadsToInsert: Array<Record<string, unknown>> = [];
 
       // Helper: extract social URLs from GHL custom fields
-      function extractSocialFromCustomFieldsNS(fields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>): { instagram_url?: string; linkedin_url?: string; facebook_url?: string } {
+      function extractSocialFromCustomFieldsNS(socialMedia?: { linkedIn?: string; facebook?: string; instagram?: string; twitter?: string }, fields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>): { instagram_url?: string; linkedin_url?: string; facebook_url?: string } {
         const result: Record<string, string> = {};
-        if (!fields) return result;
-        for (const f of fields) {
-          const key = (f.field_key || f.key || f.id || "").toLowerCase();
-          const val = f.value;
-          if (!val) continue;
-          if (key.includes("instagram")) result.instagram_url = val.startsWith("http") ? val : `https://instagram.com/${val}`;
-          if (key.includes("linkedin")) result.linkedin_url = val.startsWith("http") ? val : `https://linkedin.com/in/${val}`;
-          if (key.includes("facebook")) result.facebook_url = val.startsWith("http") ? val : `https://facebook.com/${val}`;
+        if (socialMedia?.linkedIn) result.linkedin_url = socialMedia.linkedIn;
+        if (socialMedia?.facebook) result.facebook_url = socialMedia.facebook;
+        if (socialMedia?.instagram) result.instagram_url = socialMedia.instagram;
+        if (fields) {
+          for (const f of fields) {
+            const key = (f.field_key || f.key || f.id || "").toLowerCase();
+            const val = f.value;
+            if (!val) continue;
+            if (!result.instagram_url && key.includes("instagram")) result.instagram_url = val.startsWith("http") ? val : `https://instagram.com/${val}`;
+            if (!result.linkedin_url && key.includes("linkedin")) result.linkedin_url = val.startsWith("http") ? val : `https://linkedin.com/in/${val}`;
+            if (!result.facebook_url && key.includes("facebook")) result.facebook_url = val.startsWith("http") ? val : `https://facebook.com/${val}`;
+          }
         }
         return result;
       }
@@ -536,7 +547,7 @@ Deno.serve(async (req) => {
 
         const addressParts = [contact.address1, contact.city, contact.state, contact.postalCode, contact.country].filter(Boolean);
         const fullAddress = addressParts.length > 0 ? addressParts.join(", ") : null;
-        const socialUrls = extractSocialFromCustomFieldsNS(contact.customFields);
+        const socialUrls = extractSocialFromCustomFieldsNS(contact.socialMedia, contact.customFields);
 
         leadsToInsert.push({
           workspace_id,
