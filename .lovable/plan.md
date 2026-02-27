@@ -1,68 +1,42 @@
 
 
-# Redesign da Landing Page FastCRM inspirada em robertocortez.pt
+# Redesign Landing Page FastCRM — Fase 2
 
-## Elementos de design a adoptar
+The previous redesign updated 8 files but 4 sections were left with the old typography style. Additionally, the already-updated sections can be pushed further to match the robertocortez.pt aesthetic.
 
-A página de referência tem um estilo visual distinto: tipografia bold/uppercase com grande impacto, hero full-bleed com imagem de fundo e formulário inline, cards de serviços com imagens, secções com labels pequenos acima dos títulos, e CTAs vermelhos de grande destaque. Vamos adaptar estes princípios ao contexto SaaS do FastCRM OS.
+## Changes needed
 
-## Alterações
+### 1. `LandingArchitectureSection.tsx` — Apply uppercase bold style
+- Add label badge "Built For" above headline
+- Change `font-bold` → `font-black uppercase tracking-tight`
+- Add hover effects on cards matching other sections
 
-### 1. `LandingHeroSection.tsx` — Redesign completo
-- Headline uppercase, extra-bold, tamanho maior (6xl-8xl)
-- Formulário de email inline no hero (nome + email + botão "Start Free") em vez de dois botões separados
-- Remover o mock dashboard à direita — substituir por uma imagem/visual de fundo full-bleed com overlay escuro (manter o `pricingBg` existente mas com mais opacidade)
-- Layout centrado ou left-aligned com mais peso visual
-- Badge "AI Revenue Operating System" mais proeminente
+### 2. `LandingPricingSection.tsx` — Stronger typography
+- Change headline to `font-black uppercase tracking-tight`
+- Add label badge "Pricing" above title
+- Make CTA buttons uppercase with tracking
 
-### 2. `LandingSolutionSection.tsx` — Cards com visual mais forte
-- Adicionar imagens ou ícones maiores nos cards (estilo dos cards de serviço do Roberto Cortez)
-- Labels pequenos acima dos títulos (já existem com `pillar.headline`, manter)
-- Botão "saber mais" em cada card que faz scroll para a secção relevante
+### 3. `LandingFastClubSection.tsx` — Consistent style
+- Change `font-bold` → `font-black uppercase tracking-tight` on headline
+- Make card titles and CTA button uppercase bold
+- Add tracking to button text
 
-### 3. `LandingProblemSection.tsx` — Tipografia mais impactante
-- Headline uppercase bold
-- Cards com mais destaque visual (bordas coloridas ou gradientes subtis)
+### 4. `LandingFAQSection.tsx` — Typography alignment
+- Change `font-bold` → `font-black uppercase tracking-tight` on headline
+- Add label badge "FAQ" above title
 
-### 4. `LandingComparisonSection.tsx` — Layout mais visual
-- Cards maiores com mais espaço
-- Tipografia uppercase nos títulos
+### 5. `LandingHeroSection.tsx` — Add name field to form
+- Add a "Your name" input before the email field (plan specified "nome + email + botão")
+- Pass name as query param to /auth
 
-### 5. `LandingPositioningSection.tsx` — Secção "Sobre" / "Para quem é"
-- Inspirar no estilo "Sobre mim" com foto — adaptar para "Built for revenue teams" com visual mais humano
-- Cards de segmento com mais destaque
+### 6. `LandingProblemSection.tsx` — Stronger card hover effects
+- Add `hover:bg-[hsl(222,47%,8%)]` and scale on hover for more impact
 
-### 6. `LandingFinalCTA.tsx` — CTA mais forte
-- Headline uppercase bold
-- Formulário de email inline (consistente com o hero)
-- Botão vermelho/primário de grande destaque
-
-### 7. `LandingStickyHeader.tsx` — Ajustes menores
-- Tipografia do logo mais bold/uppercase (estilo "ROBERTO CORTEZ")
-- Navegação mais espaçada
-
-### 8. `LandingFooter.tsx` — Simplificar
-- Estilo mais limpo, uma linha como na referência
-
-## Ficheiros a modificar
-
-1. `src/components/landing-fastcrm/LandingHeroSection.tsx`
-2. `src/components/landing-fastcrm/LandingSolutionSection.tsx`
-3. `src/components/landing-fastcrm/LandingProblemSection.tsx`
-4. `src/components/landing-fastcrm/LandingComparisonSection.tsx`
-5. `src/components/landing-fastcrm/LandingPositioningSection.tsx`
-6. `src/components/landing-fastcrm/LandingFinalCTA.tsx`
-7. `src/components/landing-fastcrm/LandingStickyHeader.tsx`
-8. `src/components/landing-fastcrm/LandingFooter.tsx`
-
-## Resumo visual
-
-```text
-ANTES                          DEPOIS
-─────                          ──────
-Hero: 2 colunas + mock UI  →   Hero: full-bleed, headline uppercase 8xl, form inline
-Sections: tipografia normal →   Sections: uppercase bold, labels acima títulos
-Cards: bordas subtis        →   Cards: maiores, mais impactantes, com CTAs
-CTA final: botão simples   →   CTA final: form inline + botão grande vermelho
-```
+## Files to modify
+1. `src/components/landing-fastcrm/LandingArchitectureSection.tsx`
+2. `src/components/landing-fastcrm/LandingPricingSection.tsx`
+3. `src/components/landing-fastcrm/LandingFastClubSection.tsx`
+4. `src/components/landing-fastcrm/LandingFAQSection.tsx`
+5. `src/components/landing-fastcrm/LandingHeroSection.tsx`
+6. `src/components/landing-fastcrm/LandingProblemSection.tsx`
 
