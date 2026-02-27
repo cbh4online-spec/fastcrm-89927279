@@ -9,11 +9,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Package, AlertTriangle, Plus, Minus, Loader2, Search } from "lucide-react";
+import { Package, AlertTriangle, Plus, Minus, Loader2, Search, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 export default function B2BStockPage() {
   const { currentWorkspace } = useWorkspace();
+  const navigate = useNavigate();
   const { inventory, isLoading, adjustStock, lowStockItems } = useProductInventory(currentWorkspace?.id);
   const [search, setSearch] = useState("");
   const [adjustDialogOpen, setAdjustDialogOpen] = useState(false);
@@ -47,11 +49,16 @@ export default function B2BStockPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Package className="h-6 w-6" /> Gestão de Stock B2B
-          </h1>
-          <p className="text-muted-foreground">Inventário, alertas de ruptura e movimentações</p>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Package className="h-6 w-6" /> Gestão de Stock B2B
+            </h1>
+            <p className="text-muted-foreground">Inventário, alertas de ruptura e movimentações</p>
+          </div>
         </div>
       </div>
 
