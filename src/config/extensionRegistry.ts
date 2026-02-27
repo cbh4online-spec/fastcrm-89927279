@@ -4,7 +4,7 @@
  * to Objects, Intelligence, and Automations pages.
  */
 
-import { LucideIcon, FileText, Receipt, Building2, ShoppingCart, GraduationCap, Landmark, Store, Users, Sparkles, Search, Globe, Instagram, BarChart3, Bot, Brain, MessageSquare, BookOpen, Lightbulb, Trophy, ScanText, Mail, Phone, Zap, Cpu } from "lucide-react";
+import { LucideIcon, FileText, Receipt, Building2, ShoppingCart, GraduationCap, Landmark, Store, Users, Sparkles, Search, Globe, Instagram, BarChart3, Bot, Brain, MessageSquare, BookOpen, Lightbulb, Trophy, ScanText, Mail, Phone, Zap, Cpu, FileBarChart } from "lucide-react";
 
 export interface ExtensionObjectTab {
   key: string;
@@ -190,6 +190,14 @@ export const EXTENSION_REGISTRY: ExtensionDefinition[] = [
     ],
   },
   // IA modules
+  {
+    moduleSlug: "strategy-brief",
+    name: "Brief Executivo",
+    category: "IA",
+    objectTabs: [
+      { key: "strategy-brief", label: "Briefing", icon: FileBarChart, route: "/dashboard/strategy" },
+    ],
+  },
   {
     moduleSlug: "ai-assistants",
     name: "AI Assistants",
