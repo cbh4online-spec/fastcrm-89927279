@@ -11,7 +11,7 @@ export function RevenueHero() {
 
   if (isLoading) {
     return (
-      <Card className="bg-gradient-to-br from-primary/5 via-background to-violet-500/5 border-primary/10">
+      <Card className="glass-premium border-primary/20 shadow-[0_0_30px_-10px_hsl(var(--primary)/0.15)]">
         <CardContent className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </CardContent>
@@ -21,7 +21,7 @@ export function RevenueHero() {
 
   if (!latestForecast) {
     return (
-      <Card className="bg-gradient-to-br from-primary/5 via-background to-violet-500/5 border-primary/10">
+      <Card className="glass-premium border-primary/20 shadow-[0_0_30px_-10px_hsl(var(--primary)/0.15)]">
         <CardContent className="py-8 text-center">
           <p className="text-sm text-muted-foreground">{t('noForecastAvailable')}</p>
         </CardContent>
@@ -44,13 +44,17 @@ export function RevenueHero() {
   const lowConfidence = fc != null && fc < 60;
 
   return (
-    <Card className="bg-gradient-to-br from-primary/5 via-background to-violet-500/5 border-primary/10">
-      <CardContent className="pt-6">
+    <Card className="glass-premium border-primary/20 shadow-[0_0_30px_-10px_hsl(var(--primary)/0.15)] relative overflow-hidden">
+      {/* Subtle gold glow */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-primary/4 pointer-events-none" />
+      <CardContent className="pt-6 relative">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <p className="text-sm text-muted-foreground mb-1">{t('revenueForecast')}</p>
+            <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-primary mb-2">
+              Revenue Forecast
+            </p>
             <div className="flex items-baseline gap-3 flex-wrap">
-              <span className="text-4xl font-bold tracking-tight">
+              <span className="text-5xl font-extrabold tracking-tight">
                 {formatCurrency(latestForecast.expected_case)}
               </span>
               {trend !== null && (
@@ -75,7 +79,7 @@ export function RevenueHero() {
                 </Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-2">
               {t('expectedCase')} • {latestForecast.opportunity_count} {t('opportunities')}
               {healthAdj != null && healthAdj > 0 && (
                 <span className="ml-2">• {t('riskAdjusted')}: {formatCurrency(healthAdj)}</span>
@@ -85,20 +89,20 @@ export function RevenueHero() {
 
           <div className="flex gap-6">
             <div className="text-right">
-              <p className="text-xs text-muted-foreground">{t('stageWeighted')}</p>
-              <p className="text-lg font-semibold text-primary">
+              <p className="text-[10px] font-medium tracking-wide uppercase text-muted-foreground">{t('stageWeighted')}</p>
+              <p className="text-xl font-bold text-primary">
                 {formatCurrency(stageWeighted ?? 0)}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-muted-foreground">{t('riskAdjusted')}</p>
-              <p className="text-lg font-semibold text-emerald-600">
+              <p className="text-[10px] font-medium tracking-wide uppercase text-muted-foreground">{t('riskAdjusted')}</p>
+              <p className="text-xl font-bold text-emerald-600">
                 {formatCurrency(healthAdj ?? 0)}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-muted-foreground">{t('gross')}</p>
-              <p className="text-lg font-semibold text-muted-foreground">
+              <p className="text-[10px] font-medium tracking-wide uppercase text-muted-foreground">{t('gross')}</p>
+              <p className="text-xl font-bold text-muted-foreground">
                 {formatCurrency(latestForecast.best_case)}
               </p>
             </div>

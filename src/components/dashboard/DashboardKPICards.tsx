@@ -60,7 +60,7 @@ function KPICard({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Card className="hover:shadow-md transition-all cursor-help group">
+          <Card className="hover:shadow-md hover:border-primary/20 transition-all cursor-help group">
             <CardContent className="p-4">
               <div className="flex items-start justify-between mb-3">
                 <div className={cn("p-2 rounded-lg", colorClasses[accentColor])}>
