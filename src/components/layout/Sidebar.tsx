@@ -68,12 +68,25 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     [flags, flagsLoading]
   );
 
+  const isModuleVisible = useCallback(
+    (moduleSlug?: string) => {
+      if (!moduleSlug) return true;
+      return installedModuleIds.includes(moduleSlug);
+    },
+    [installedModuleIds]
+  );
+
   const filteredGroups = useMemo(() => {
-    return NAV_V2_GROUPS.filter((g) => isFlagEnabled(g.featureFlag)).map((g) => ({
-      ...g,
-      children: g.children.filter((c) => isFlagEnabled(c.featureFlag)),
-    }));
-  }, [isFlagEnabled]);
+    return NAV_V2_GROUPS
+      .filter((g) => isFlagEnabled(g.featureFlag) && isModuleVisible(g.moduleSlug))
+      .map((g) => ({
+        ...g,
+        children: g.children.filter(
+          (c) => isFlagEnabled(c.featureFlag) && isModuleVisible(c.moduleSlug)
+        ),
+      }))
+      .filter((g) => g.children.length > 0);
+  }, [isFlagEnabled, isModuleVisible]);
 
   const extensionGroups = useMemo(() => {
     return getExtensionObjectTabsGrouped(installedModuleIds);
