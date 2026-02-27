@@ -602,6 +602,20 @@ Deno.serve(async (req) => {
           conversationId = newConv.id;
         }
 
+        // Deduplicate by email_message_id before inserting
+        const emailMsgId = msg.messageId || `<${msg.uid}@${connection.imap_host}>`;
+        const { data: existingMsg } = await supabaseClient
+          .from("messages")
+          .select("id")
+          .eq("workspace_id", workspaceId)
+          .eq("email_message_id", emailMsgId)
+          .maybeSingle();
+
+        if (existingMsg) {
+          console.log(`[Email Fetch] Skipping duplicate email: ${emailMsgId}`);
+          continue;
+        }
+
         // Insert message
         const { error: msgError } = await supabaseClient
           .from("messages")
@@ -611,7 +625,7 @@ Deno.serve(async (req) => {
             direction: isInbound ? "inbound" : "outbound",
             content: msg.body || msg.subject || "(Sem conteúdo)",
             sent_at: parseDateSafe(msg.date),
-            email_message_id: msg.messageId || `<${msg.uid}@${connection.imap_host}>`,
+            email_message_id: emailMsgId,
             email_in_reply_to: msg.inReplyTo || null,
             email_subject: msg.subject,
             sender_id: isInbound ? null : user.id,
