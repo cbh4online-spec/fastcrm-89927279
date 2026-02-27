@@ -17,6 +17,14 @@ interface GHLContact {
   tags?: string[];
   dateAdded?: string;
   locationId?: string;
+  website?: string;
+  companyName?: string;
+  address1?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+  customFields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>;
 }
 
 interface GHLContactsResponse {
@@ -238,19 +246,22 @@ Deno.serve(async (req) => {
               }
 
               // Prepare batch inserts - using local Set for deduplication (100% reliable)
-              const leadsToInsert: Array<{
-                workspace_id: string;
-                name: string;
-                email: string | null;
-                phone: string | null;
-                ghl_contact_id: string;
-                status: string;
-                source: string;
-                tags: string[];
-                ghl_synced_at: string;
-                ai_next_action_type: null;
-                ai_temperature: string;
-              }> = [];
+              const leadsToInsert: Array<Record<string, unknown>> = [];
+
+              // Helper: extract social URLs from GHL custom fields
+              function extractSocialFromCustomFields(fields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>): { instagram_url?: string; linkedin_url?: string; facebook_url?: string } {
+                const result: Record<string, string> = {};
+                if (!fields) return result;
+                for (const f of fields) {
+                  const key = (f.field_key || f.key || f.id || "").toLowerCase();
+                  const val = f.value;
+                  if (!val) continue;
+                  if (key.includes("instagram")) result.instagram_url = val.startsWith("http") ? val : `https://instagram.com/${val}`;
+                  if (key.includes("linkedin")) result.linkedin_url = val.startsWith("http") ? val : `https://linkedin.com/in/${val}`;
+                  if (key.includes("facebook")) result.facebook_url = val.startsWith("http") ? val : `https://facebook.com/${val}`;
+                }
+                return result;
+              }
 
               // DEBUG: Log first page contact IDs for comparison
               if (pageCount === 1) {
@@ -278,6 +289,13 @@ Deno.serve(async (req) => {
                   .join(" ")
                   .trim() || "Sem Nome";
 
+                // Build full address from GHL fields
+                const addressParts = [contact.address1, contact.city, contact.state, contact.postalCode, contact.country].filter(Boolean);
+                const fullAddress = addressParts.length > 0 ? addressParts.join(", ") : null;
+
+                // Extract social URLs from custom fields
+                const socialUrls = extractSocialFromCustomFields(contact.customFields);
+
                 leadsToInsert.push({
                   workspace_id,
                   name: fullName,
@@ -288,9 +306,17 @@ Deno.serve(async (req) => {
                   source: "ghl",
                   tags: contact.tags || [],
                   ghl_synced_at: new Date().toISOString(),
-                  // Explicitly set to avoid check constraint violations
                   ai_next_action_type: null,
                   ai_temperature: 'cold',
+                  // Additional GHL fields
+                  website: contact.website || null,
+                  company_name: contact.companyName || null,
+                  address: fullAddress,
+                  city: contact.city || null,
+                  postal_code: contact.postalCode || null,
+                  instagram_url: socialUrls.instagram_url || null,
+                  linkedin_url: socialUrls.linkedin_url || null,
+                  facebook_url: socialUrls.facebook_url || null,
                 });
 
                 // Add to Set to prevent duplicates in future pages
@@ -477,19 +503,22 @@ Deno.serve(async (req) => {
       }
 
       // Prepare batch inserts - using local Set for deduplication
-      const leadsToInsert: Array<{
-        workspace_id: string;
-        name: string;
-        email: string | null;
-        phone: string | null;
-        ghl_contact_id: string;
-        status: string;
-        source: string;
-        tags: string[];
-        ghl_synced_at: string;
-        ai_next_action_type: null;
-        ai_temperature: string;
-      }> = [];
+      const leadsToInsert: Array<Record<string, unknown>> = [];
+
+      // Helper: extract social URLs from GHL custom fields
+      function extractSocialFromCustomFieldsNS(fields?: Array<{ id?: string; field_key?: string; key?: string; value?: string }>): { instagram_url?: string; linkedin_url?: string; facebook_url?: string } {
+        const result: Record<string, string> = {};
+        if (!fields) return result;
+        for (const f of fields) {
+          const key = (f.field_key || f.key || f.id || "").toLowerCase();
+          const val = f.value;
+          if (!val) continue;
+          if (key.includes("instagram")) result.instagram_url = val.startsWith("http") ? val : `https://instagram.com/${val}`;
+          if (key.includes("linkedin")) result.linkedin_url = val.startsWith("http") ? val : `https://linkedin.com/in/${val}`;
+          if (key.includes("facebook")) result.facebook_url = val.startsWith("http") ? val : `https://facebook.com/${val}`;
+        }
+        return result;
+      }
 
       for (const contact of contacts) {
         result.total_processed++;
@@ -505,6 +534,10 @@ Deno.serve(async (req) => {
           .join(" ")
           .trim() || "Sem Nome";
 
+        const addressParts = [contact.address1, contact.city, contact.state, contact.postalCode, contact.country].filter(Boolean);
+        const fullAddress = addressParts.length > 0 ? addressParts.join(", ") : null;
+        const socialUrls = extractSocialFromCustomFieldsNS(contact.customFields);
+
         leadsToInsert.push({
           workspace_id,
           name: fullName,
@@ -515,9 +548,16 @@ Deno.serve(async (req) => {
           source: "ghl",
           tags: contact.tags || [],
           ghl_synced_at: new Date().toISOString(),
-          // Explicitly set to avoid check constraint violations
           ai_next_action_type: null,
           ai_temperature: 'cold',
+          website: contact.website || null,
+          company_name: contact.companyName || null,
+          address: fullAddress,
+          city: contact.city || null,
+          postal_code: contact.postalCode || null,
+          instagram_url: socialUrls.instagram_url || null,
+          linkedin_url: socialUrls.linkedin_url || null,
+          facebook_url: socialUrls.facebook_url || null,
         });
 
         // Add to Set to prevent duplicates in future pages
