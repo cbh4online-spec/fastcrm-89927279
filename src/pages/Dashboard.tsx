@@ -13,6 +13,7 @@ import { Plus, Target, Briefcase, Building2, Contact, CheckSquare } from "lucide
 import { useTranslation } from "react-i18next";
 
 import { RevenueHero } from "@/components/dashboard/RevenueHero";
+import { DashboardKPICards } from "@/components/dashboard/DashboardKPICards";
 import { ForecastTrendChart } from "@/components/dashboard/ForecastTrendChart";
 import { PipelineHealthCard } from "@/components/dashboard/PipelineHealthCard";
 import { DealsAtRiskList } from "@/components/dashboard/DealsAtRiskList";
@@ -23,6 +24,7 @@ import { PipelineComparisonCard } from "@/components/dashboard/PipelineCompariso
 import { PLGSignalsFeed } from "@/components/dashboard/PLGSignalsFeed";
 import { UpcomingBirthdaysWidget } from "@/components/dashboard/UpcomingBirthdaysWidget";
 import { UpcomingEventsWidget } from "@/components/dashboard/UpcomingEventsWidget";
+import { useDashboardData } from "@/hooks/useDashboardData";
 
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
 import { CreateOpportunityDialog } from "@/components/crm/CreateOpportunityDialog";
@@ -36,6 +38,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const createTask = useCreateTask();
+  const { kpiData, isLoading: kpiLoading } = useDashboardData();
 
   const [createLeadOpen, setCreateLeadOpen] = useState(false);
   const [createOpportunityOpen, setCreateOpportunityOpen] = useState(false);
@@ -62,7 +65,7 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       <ScrollArea className="h-[calc(100vh-5rem)]">
-        <div className="p-4 md:p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-3">
@@ -106,20 +109,24 @@ export default function Dashboard() {
 
           <RevenueHero />
 
-          <div className="grid grid-cols-12 gap-4 lg:gap-6">
-            <div className="col-span-12 lg:col-span-8 space-y-4">
+          <DashboardKPICards data={kpiData} isLoading={kpiLoading} />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-4">
               <ForecastTrendChart />
               <DealsAtRiskList />
               <AIActionSuggestions />
               <DashboardAutomationSuggestions />
             </div>
-            <div className="col-span-12 lg:col-span-4 space-y-4">
+            <div className="space-y-4">
               <PipelineHealthCard />
               <PLGSignalsFeed />
               <UpcomingEventsWidget />
-              <UpcomingBirthdaysWidget />
+            </div>
+            <div className="space-y-4">
               <ForecastConfidenceCard />
               <PipelineComparisonCard />
+              <UpcomingBirthdaysWidget />
             </div>
           </div>
         </div>
