@@ -67,6 +67,7 @@ export interface NavV2GroupChild {
   href: string;
   icon: LucideIcon;
   featureFlag?: string;
+  moduleSlug?: string;
 }
 
 export interface NavV2Group {
@@ -75,6 +76,7 @@ export interface NavV2Group {
   icon: LucideIcon;
   children: NavV2GroupChild[];
   featureFlag?: string;
+  moduleSlug?: string;
 }
 
 export type NavV2Entry = NavV2CoreItem | NavV2Group;
@@ -110,8 +112,8 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
     icon: TrendingUp,
     children: [
       { name: "Pipeline", href: "/dashboard/revenue", icon: TrendingUp },
-      { name: "Propostas", href: "/dashboard/proposals", icon: Presentation },
-      { name: "Faturas", href: "/dashboard/invoices", icon: Receipt },
+      { name: "Propostas", href: "/dashboard/proposals", icon: Presentation, moduleSlug: "proposals" },
+      { name: "Faturas", href: "/dashboard/invoices", icon: Receipt, moduleSlug: "invoices" },
       { name: "Agendamento", href: "/dashboard/scheduling", icon: Calendar },
       { name: "Produtos", href: "/dashboard/products", icon: Package },
     ],
@@ -120,6 +122,7 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
     type: "group",
     name: "Portal B2B",
     icon: FileText,
+    moduleSlug: "b2b-portal",
     children: [
       { name: "Notas Encomenda", href: "/dashboard/order-notes", icon: FileText },
       { name: "Aprovações", href: "/dashboard/order-approvals", icon: CheckSquare },
@@ -133,6 +136,7 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
     type: "group",
     name: "Loja Online",
     icon: Store,
+    moduleSlug: "online-store",
     children: [
       { name: "Produtos", href: "/dashboard/store-products", icon: Package },
       { name: "Encomendas", href: "/dashboard/store-orders", icon: ShoppingCart },
@@ -143,6 +147,7 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
     type: "group",
     name: "Marketplace C2C",
     icon: ShoppingCart,
+    moduleSlug: "marketplace-c2c",
     children: [
       { name: "Marketplace", href: "/dashboard/c2c", icon: LayoutGrid },
       { name: "Área Vendedor", href: "/dashboard/c2c/seller-area", icon: Store },
@@ -158,6 +163,7 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
     type: "group",
     name: "FastClub",
     icon: Trophy,
+    moduleSlug: "fastclub",
     children: [
       { name: "Abrir FastClub", href: "/club/fastclub", icon: Trophy },
       { name: "Candidaturas", href: "/dashboard/fastclub/candidaturas", icon: Award },
@@ -169,16 +175,17 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
     icon: Megaphone,
     children: [
       { name: "Marketing", href: "/dashboard/marketing", icon: Megaphone },
-      { name: "Email Marketing", href: "/dashboard/email-campaigns", icon: Mail },
-      { name: "Google Local", href: "/dashboard/prospecting/google-local", icon: Globe },
+      { name: "Email Marketing", href: "/dashboard/email-campaigns", icon: Mail, moduleSlug: "email-campaigns" },
+      { name: "Google Local", href: "/dashboard/prospecting/google-local", icon: Globe, moduleSlug: "google-local-services" },
       { name: "Funis", href: "/dashboard/funnels", icon: GitBranch },
-      { name: "Bio OS", href: "/dashboard/bio", icon: Globe },
+      { name: "Bio OS", href: "/dashboard/bio", icon: Globe, moduleSlug: "bio-os" },
     ],
   },
   {
     type: "group",
     name: "Estratégia",
     icon: Brain,
+    moduleSlug: "strategy-brief",
     children: [
       { name: "Brief Executivo", href: "/dashboard/strategy", icon: Brain },
     ],
@@ -203,10 +210,10 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
       { name: "Automações", href: "/dashboard/automations", icon: Zap },
       { name: "Intelligence", href: "/dashboard/intelligence", icon: Brain, featureFlag: "intelligence" },
       { name: "AI Employees", href: "/dashboard/ai-employees", icon: Bot },
-      { name: "SEO & Growth", href: "/dashboard/seo", icon: Search },
+      { name: "SEO & Growth", href: "/dashboard/seo", icon: Search, moduleSlug: "seo-growth" },
       { name: "Importações", href: "/dashboard/imports", icon: Download },
       { name: "Integrações", href: "/dashboard/integrations", icon: Plug },
-      { name: "Motor Conversacional", href: "/dashboard/conversational-engine", icon: MessageSquare },
+      { name: "Motor Conversacional", href: "/dashboard/conversational-engine", icon: MessageSquare, moduleSlug: "conversational-engine" },
       { name: "Marketplace", href: "/dashboard/marketplace", icon: Layers, featureFlag: "marketplace" },
     ],
   },
@@ -215,6 +222,7 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
     name: "Student Journey",
     icon: GraduationCap,
     featureFlag: "student_journey",
+    moduleSlug: "student-journey",
     children: [
       { name: "Painel", href: "/dashboard/student-journey", icon: GraduationCap },
       { name: "Perfis", href: "/dashboard/student-journey/profiles", icon: Users },
@@ -227,6 +235,7 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
     name: "Instagram Looter",
     icon: Instagram,
     featureFlag: "instagram_looter",
+    moduleSlug: "instagram-looter",
     children: [
       { name: "Busca Global", href: "/dashboard/instagram-looter", icon: Search },
       { name: "Hashtags", href: "/dashboard/instagram-looter/hashtags", icon: Hash },
