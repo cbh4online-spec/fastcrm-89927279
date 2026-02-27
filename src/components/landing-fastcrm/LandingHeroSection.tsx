@@ -1,143 +1,89 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, LayoutDashboard, MessageSquare, Brain, BarChart3 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import pricingBg from "@/assets/pricing-bg.jpg";
 
 export function LandingHeroSection() {
+  const [email, setEmail] = useState("");
+  const navigate = useNavigate();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    navigate(`/auth?email=${encodeURIComponent(email)}`);
+  };
+
   return (
-    <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden">
+    <section className="relative min-h-[100vh] flex items-center justify-center overflow-hidden">
       <div
-        className="absolute inset-0 opacity-25 pointer-events-none"
+        className="absolute inset-0 opacity-20 pointer-events-none"
         style={{
           backgroundImage: `url(${pricingBg})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-[hsl(220,20%,4%)/0.5] via-transparent to-[hsl(220,20%,4%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[hsl(222,47%,4%)]/70 via-[hsl(222,47%,4%)]/50 to-[hsl(222,47%,4%)] pointer-events-none" />
 
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full bg-primary/10 blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-[hsl(250,83%,60%)]/10 blur-[100px]" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[900px] h-[900px] rounded-full bg-primary/8 blur-[180px]" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20 lg:py-32">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
+      <div className="relative max-w-5xl mx-auto px-6 py-32 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="space-y-10"
+        >
+          <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-primary/30 bg-primary/5 text-sm font-semibold text-primary tracking-wide uppercase">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            AI Revenue Operating System
+          </div>
+
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase leading-[0.95] tracking-tight">
+            <span className="block">See Your</span>
+            <span className="block bg-gradient-to-r from-primary to-[hsl(250,83%,60%)] bg-clip-text text-transparent">
+              Revenue
+            </span>
+            <span className="block">Before It Happens</span>
+          </h1>
+
+          <p className="text-lg sm:text-xl text-[hsl(215,20%,65%)] max-w-2xl mx-auto leading-relaxed">
+            Health scores, deal intelligence, and smart automations — built into every object. Stop guessing. Start closing.
+          </p>
+
+          <motion.form
+            onSubmit={handleSubmit}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-            className="space-y-8"
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-lg mx-auto"
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-sm text-primary">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              Revenue Intelligence Platform
-            </div>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Your work email"
+              className="w-full sm:flex-1 h-14 px-5 rounded-xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] text-[hsl(210,40%,98%)] placeholder:text-[hsl(215,20%,45%)] text-base focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
+            />
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full sm:w-auto gradient-primary shadow-glow text-primary-foreground px-10 h-14 text-base font-bold uppercase tracking-wide gap-2"
+            >
+              Start Free
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </motion.form>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold leading-[1.15] tracking-tight">
-              <span className="block">Build your CRM.</span>
-              <span className="block bg-gradient-to-r from-primary to-[hsl(250,83%,60%)] bg-clip-text text-transparent">
-                Grow your revenue.
-              </span>
-            </h1>
-
-            <p className="text-lg text-[hsl(215,20%,65%)] max-w-xl leading-relaxed">
-              See your revenue before it happens. Health scores, deal intelligence, and smart automations — built into every object.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link to="/auth">
-                <Button
-                  size="lg"
-                  className="gradient-primary shadow-glow text-primary-foreground px-8 h-12 text-base font-semibold gap-2"
-                >
-                  Start Free
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-              <a href="#features">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-[hsl(217,33%,17%)] bg-transparent text-[hsl(210,40%,98%)] hover:bg-[hsl(217,33%,17%)] px-8 h-12 text-base gap-2"
-                >
-                  <Play className="h-4 w-4" />
-                  See how it works
-                </Button>
-              </a>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-            className="relative hidden lg:block"
-          >
-            <div className="relative rounded-2xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] p-1 shadow-2xl">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-[hsl(217,33%,17%)]">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-[hsl(0,84%,60%)]" />
-                  <div className="w-3 h-3 rounded-full bg-[hsl(38,92%,50%)]" />
-                  <div className="w-3 h-3 rounded-full bg-[hsl(142,76%,36%)]" />
-                </div>
-                <span className="text-xs text-[hsl(215,20%,65%)] ml-2">FastCRM — Dashboard</span>
-              </div>
-
-              <div className="p-6 space-y-4">
-                <div className="grid grid-cols-4 gap-3">
-                  {[
-                    { label: "Active Leads", value: "847", icon: LayoutDashboard },
-                    { label: "Inbox", value: "23", icon: MessageSquare },
-                    { label: "AI Insights", value: "12", icon: Brain },
-                    { label: "Conversion", value: "34%", icon: BarChart3 },
-                  ].map((stat) => (
-                    <div
-                      key={stat.label}
-                      className="rounded-lg border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,8%)] p-3"
-                    >
-                      <stat.icon className="h-4 w-4 text-primary mb-1" />
-                      <div className="text-lg font-bold">{stat.value}</div>
-                      <div className="text-[10px] text-[hsl(215,20%,65%)]">{stat.label}</div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="rounded-lg border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,8%)] p-4">
-                  <div className="text-xs font-semibold text-[hsl(215,20%,65%)] mb-3">Sales Pipeline</div>
-                  <div className="flex gap-2">
-                    {["New", "Qualified", "Proposal", "Close"].map((stage, i) => (
-                      <div key={stage} className="flex-1">
-                        <div className="text-[10px] text-[hsl(215,20%,65%)] mb-1">{stage}</div>
-                        <div
-                          className="h-2 rounded-full"
-                          style={{
-                            background: `hsl(221, 83%, ${53 + i * 8}%)`,
-                            width: `${100 - i * 15}%`,
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 flex items-start gap-3">
-                  <Brain className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                  <div>
-                    <div className="text-xs font-semibold text-primary mb-0.5">AI Suggestion</div>
-                    <div className="text-[11px] text-[hsl(215,20%,65%)]">
-                      Lead "Acme Corp" has 87% conversion probability. Recommend follow-up today.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="absolute -inset-4 bg-primary/5 rounded-3xl blur-2xl -z-10" />
-          </motion.div>
-        </div>
+          <p className="text-xs text-[hsl(215,20%,45%)]">
+            Free forever for up to 2 users · No credit card required
+          </p>
+        </motion.div>
       </div>
     </section>
   );

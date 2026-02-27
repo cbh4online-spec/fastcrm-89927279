@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Zap, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { LanguageSelector } from "@/components/ui/LanguageSelector";
 
@@ -34,37 +34,34 @@ export function LandingStickyHeader() {
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="flex items-center gap-2.5 cursor-pointer"
+          className="flex items-center gap-2 cursor-pointer"
         >
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <Zap className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="text-lg font-bold tracking-tight">FastCRM</span>
+          <span className="text-xl font-black tracking-tight uppercase">
+            FAST<span className="text-primary">CRM</span>
+          </span>
         </button>
 
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-[hsl(215,20%,75%)]">
+        <nav className="hidden md:flex items-center gap-8 text-sm font-semibold uppercase tracking-wide text-[hsl(215,20%,65%)]">
           {navLinks.map((link) => (
-            <a key={link.href} href={link.href} className="hover:text-white transition-colors duration-200">
+            <a key={link.href} href={link.href} className="hover:text-[hsl(210,40%,98%)] transition-colors duration-200">
               {link.label}
             </a>
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
-          <LanguageSelector className="text-[hsl(210,40%,98%)] hover:bg-[hsl(217,33%,17%)]" />
-        </div>
         <div className="flex items-center gap-3">
+          <LanguageSelector className="text-[hsl(210,40%,98%)] hover:bg-[hsl(217,33%,17%)]" />
           <Link to="/auth" className="hidden md:inline-flex">
             <Button
               variant="ghost"
               size="sm"
-              className="text-[hsl(210,40%,98%)] hover:bg-[hsl(217,33%,17%)]"
+              className="text-[hsl(210,40%,98%)] hover:bg-[hsl(217,33%,17%)] font-semibold uppercase tracking-wide text-xs"
             >
               Sign In
             </Button>
           </Link>
           <Link to="/auth" className="hidden md:inline-flex">
-            <Button size="sm" className="gradient-primary shadow-glow text-primary-foreground">
+            <Button size="sm" className="gradient-primary shadow-glow text-primary-foreground font-bold uppercase tracking-wide text-xs">
               Start Free
             </Button>
           </Link>
@@ -87,7 +84,7 @@ export function LandingStickyHeader() {
                     key={link.href}
                     href={link.href}
                     onClick={() => setMobileOpen(false)}
-                    className="px-4 py-3 text-sm font-medium text-[hsl(215,20%,75%)] hover:text-white hover:bg-[hsl(217,33%,17%)] rounded-md transition-colors duration-200"
+                    className="px-4 py-3 text-sm font-semibold uppercase tracking-wide text-[hsl(215,20%,65%)] hover:text-[hsl(210,40%,98%)] hover:bg-[hsl(217,33%,17%)] rounded-md transition-colors duration-200"
                   >
                     {link.label}
                   </a>
@@ -103,7 +100,7 @@ export function LandingStickyHeader() {
                   </Button>
                 </Link>
                 <Link to="/auth" onClick={() => setMobileOpen(false)}>
-                  <Button className="w-full gradient-primary shadow-glow text-primary-foreground">
+                  <Button className="w-full gradient-primary shadow-glow text-primary-foreground font-bold uppercase">
                     Start Free
                   </Button>
                 </Link>

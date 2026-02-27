@@ -20,15 +20,16 @@ export function LandingProblemSection() {
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-6">
-            Sound familiar?
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-4 block">The Problem</span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black uppercase tracking-tight mb-6">
+            Sound Familiar?
           </h2>
           <p className="text-lg text-[hsl(215,20%,65%)] max-w-2xl mx-auto mb-16">
             Most CRMs store contacts. FastCRM tells you what to do with them.
           </p>
         </motion.div>
 
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid sm:grid-cols-2 gap-5">
           {problems.map((item, i) => (
             <motion.div
               key={item.text}
@@ -36,12 +37,13 @@ export function LandingProblemSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
               transition={{ duration: 0.4, delay: i * 0.08 }}
-              className="flex items-center gap-4 p-5 rounded-xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] text-left"
+              className="flex items-center gap-5 p-6 rounded-2xl border border-[hsl(217,33%,17%)] bg-[hsl(222,47%,6%)] text-left hover:border-[hsl(217,33%,25%)] transition-colors"
+              style={{ borderLeftWidth: 3, borderLeftColor: item.color }}
             >
-              <div className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${item.color}15` }}>
-                <item.icon className="h-5 w-5" style={{ color: item.color }} />
+              <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${item.color}15` }}>
+                <item.icon className="h-6 w-6" style={{ color: item.color }} />
               </div>
-              <span className="text-sm font-medium">{item.text}</span>
+              <span className="text-base font-semibold">{item.text}</span>
             </motion.div>
           ))}
         </div>
