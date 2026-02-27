@@ -4,7 +4,7 @@
  * to Objects, Intelligence, and Automations pages.
  */
 
-import { LucideIcon, FileText, Receipt, Building2, ShoppingCart, GraduationCap, Landmark, Store, Users, Sparkles, Search, Globe, Instagram, BarChart3 } from "lucide-react";
+import { LucideIcon, FileText, Receipt, Building2, ShoppingCart, GraduationCap, Landmark, Store, Users, Sparkles, Search, Globe, Instagram, BarChart3, Bot, Brain, MessageSquare, BookOpen, Lightbulb, Trophy, ScanText, Mail, Phone, Zap, Cpu } from "lucide-react";
 
 export interface ExtensionObjectTab {
   key: string;
@@ -30,7 +30,7 @@ export interface ExtensionAutomationTemplate {
   trigger: string;
 }
 
-export type ExtensionCategory = "Vendas" | "Comércio" | "Prospecção" | "Marketing" | "Educação" | "Portal" | "Comunidade";
+export type ExtensionCategory = "Vendas" | "Comércio" | "Prospecção" | "Marketing" | "Educação" | "Portal" | "Comunidade" | "IA" | "Integrações";
 
 export interface ExtensionDefinition {
   moduleSlug: string;
@@ -189,6 +189,105 @@ export const EXTENSION_REGISTRY: ExtensionDefinition[] = [
       { key: "community", label: "Comunidade", icon: Users, route: "/club/fastclub" },
     ],
   },
+  // IA modules
+  {
+    moduleSlug: "ai-assistants",
+    name: "AI Assistants",
+    category: "IA",
+    objectTabs: [
+      { key: "ai-assistants", label: "AI Assistants", icon: Bot, route: "/dashboard/ai-assistants" },
+    ],
+  },
+  {
+    moduleSlug: "ai-copilot",
+    name: "AI Copilot",
+    category: "IA",
+    objectTabs: [
+      { key: "ai-copilot", label: "AI Copilot", icon: Sparkles, route: "/dashboard/ask" },
+    ],
+  },
+  {
+    moduleSlug: "conversational-engine",
+    name: "Conversational Engine",
+    category: "IA",
+    objectTabs: [
+      { key: "conversational-engine", label: "Motor Conversacional", icon: MessageSquare, route: "/dashboard/conversational-engine" },
+    ],
+  },
+  {
+    moduleSlug: "knowledge-base",
+    name: "Knowledge Base",
+    category: "IA",
+    objectTabs: [
+      { key: "knowledge-base", label: "Base de Conhecimento", icon: BookOpen, route: "/dashboard/ai-assistants" },
+    ],
+  },
+  {
+    moduleSlug: "ai-suggestions",
+    name: "AI Suggestions",
+    category: "IA",
+    objectTabs: [
+      { key: "ai-suggestions", label: "Sugestões IA", icon: Lightbulb, route: "/dashboard/ai-suggestions" },
+    ],
+  },
+  {
+    moduleSlug: "ai-sales-coach",
+    name: "AI Sales Coach",
+    category: "IA",
+    objectTabs: [
+      { key: "ai-sales-coach", label: "Sales Coach", icon: Trophy, route: "/dashboard/ai-sales-coach" },
+    ],
+  },
+  {
+    moduleSlug: "ai-document-ocr",
+    name: "AI Document OCR",
+    category: "IA",
+    objectTabs: [
+      { key: "ai-document-ocr", label: "Document OCR", icon: ScanText, route: "/dashboard/ai-document-ocr" },
+    ],
+  },
+  {
+    moduleSlug: "ai-profiles",
+    name: "AI Profiles",
+    category: "IA",
+    objectTabs: [
+      { key: "ai-profiles", label: "AI Profiles", icon: Brain, route: "/dashboard/ai-assistants" },
+    ],
+  },
+  {
+    moduleSlug: "imo-ai",
+    name: "IMO AI",
+    category: "IA",
+    objectTabs: [
+      { key: "imo-ai", label: "IMO AI", icon: Cpu, route: "/dashboard/imo-ai" },
+    ],
+  },
+  // Marketing
+  {
+    moduleSlug: "email-campaigns",
+    name: "Email Marketing",
+    category: "Marketing",
+    objectTabs: [
+      { key: "email-campaigns", label: "Email Campaigns", icon: Mail, route: "/dashboard/email-campaigns" },
+    ],
+  },
+  // Integrações
+  {
+    moduleSlug: "whatsapp-business",
+    name: "WhatsApp Business",
+    category: "Integrações",
+    objectTabs: [
+      { key: "whatsapp-business", label: "WhatsApp", icon: Phone, route: "/dashboard/inbox" },
+    ],
+  },
+  {
+    moduleSlug: "zapier-integration",
+    name: "Zapier",
+    category: "Integrações",
+    objectTabs: [
+      { key: "zapier-integration", label: "Zapier", icon: Zap, route: "/dashboard/zapier" },
+    ],
+  },
 ];
 
 /**
@@ -204,7 +303,7 @@ export function getExtensionObjectTabs(installedModuleIds: string[]): ExtensionO
  * Get extension object tabs grouped by category for installed modules.
  */
 export function getExtensionObjectTabsGrouped(installedModuleIds: string[]): { category: ExtensionCategory; tabs: ExtensionObjectTab[] }[] {
-  const categoryOrder: ExtensionCategory[] = ["Vendas", "Comércio", "Prospecção", "Marketing", "Educação", "Portal", "Comunidade"];
+  const categoryOrder: ExtensionCategory[] = ["Vendas", "Comércio", "Prospecção", "Marketing", "IA", "Integrações", "Educação", "Portal", "Comunidade"];
   const grouped = new Map<ExtensionCategory, ExtensionObjectTab[]>();
 
   for (const ext of EXTENSION_REGISTRY) {
