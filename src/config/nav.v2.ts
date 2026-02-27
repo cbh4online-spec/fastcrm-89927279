@@ -89,33 +89,26 @@ export const NAV_V2_CORE: NavV2CoreItem[] = [
   { type: "item", name: "Inbox", href: "/dashboard/inbox", icon: Inbox },
   { type: "item", name: "Ask", href: "/dashboard/ask", icon: Sparkles },
   { type: "item", name: "Reports", href: "/dashboard/reports", icon: BarChart3 },
+  { type: "item", name: "Leads", href: "/dashboard/leads", icon: UserSearch },
+  { type: "item", name: "Contactos", href: "/dashboard/contacts", icon: Users },
+  { type: "item", name: "Empresas", href: "/dashboard/companies", icon: Building2 },
+  { type: "item", name: "Oportunidades", href: "/dashboard/opportunities", icon: Target },
+  { type: "item", name: "Pipeline", href: "/dashboard/revenue", icon: TrendingUp },
+  { type: "item", name: "Tarefas", href: "/dashboard/tasks", icon: CheckSquare },
+  { type: "item", name: "Agendamento", href: "/dashboard/scheduling", icon: Calendar },
+  { type: "item", name: "Produtos", href: "/dashboard/products", icon: Package },
 ];
 
-// --- Collapsible groups ---
+// --- Collapsible groups (ALL require moduleSlug — hidden when no matching module installed) ---
 
 export const NAV_V2_GROUPS: NavV2Group[] = [
-  {
-    type: "group",
-    name: "CRM",
-    icon: Users,
-    children: [
-      { name: "Leads", href: "/dashboard/leads", icon: UserSearch },
-      { name: "Contactos", href: "/dashboard/contacts", icon: Users },
-      { name: "Empresas", href: "/dashboard/companies", icon: Building2 },
-      { name: "Oportunidades", href: "/dashboard/opportunities", icon: Target },
-      { name: "Objects", href: "/objects", icon: Box, featureFlag: "objects" },
-    ],
-  },
   {
     type: "group",
     name: "Vendas",
     icon: TrendingUp,
     children: [
-      { name: "Pipeline", href: "/dashboard/revenue", icon: TrendingUp },
       { name: "Propostas", href: "/dashboard/proposals", icon: Presentation, moduleSlug: "proposals" },
       { name: "Faturas", href: "/dashboard/invoices", icon: Receipt, moduleSlug: "invoices" },
-      { name: "Agendamento", href: "/dashboard/scheduling", icon: Calendar },
-      { name: "Produtos", href: "/dashboard/products", icon: Package },
     ],
   },
   {
@@ -174,10 +167,8 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
     name: "Marketing",
     icon: Megaphone,
     children: [
-      { name: "Marketing", href: "/dashboard/marketing", icon: Megaphone },
       { name: "Email Marketing", href: "/dashboard/email-campaigns", icon: Mail, moduleSlug: "email-campaigns" },
       { name: "Google Local", href: "/dashboard/prospecting/google-local", icon: Globe, moduleSlug: "google-local-services" },
-      { name: "Funis", href: "/dashboard/funnels", icon: GitBranch },
       { name: "Bio OS", href: "/dashboard/bio", icon: Globe, moduleSlug: "bio-os" },
     ],
   },
@@ -192,29 +183,11 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
   },
   {
     type: "group",
-    name: "Relatórios",
-    icon: BarChart3,
-    children: [
-      { name: "Visão Geral", href: "/dashboard/reports", icon: BarChart3 },
-      { name: "KPIs", href: "/dashboard/kpis", icon: Target },
-      { name: "Metas vs Resultados", href: "/dashboard/reports/goals", icon: TrendingUp },
-      { name: "Previsões", href: "/dashboard/reports/forecasts", icon: TrendingUp },
-      { name: "Consumo", href: "/dashboard/reports/consumption", icon: Receipt },
-    ],
-  },
-  {
-    type: "group",
     name: "Ferramentas",
     icon: Zap,
     children: [
-      { name: "Automações", href: "/dashboard/automations", icon: Zap },
-      { name: "Intelligence", href: "/dashboard/intelligence", icon: Brain, featureFlag: "intelligence" },
-      { name: "AI Employees", href: "/dashboard/ai-employees", icon: Bot },
       { name: "SEO & Growth", href: "/dashboard/seo", icon: Search, moduleSlug: "seo-growth" },
-      { name: "Importações", href: "/dashboard/imports", icon: Download },
-      { name: "Integrações", href: "/dashboard/integrations", icon: Plug },
       { name: "Motor Conversacional", href: "/dashboard/conversational-engine", icon: MessageSquare, moduleSlug: "conversational-engine" },
-      { name: "Marketplace", href: "/dashboard/marketplace", icon: Layers, featureFlag: "marketplace" },
     ],
   },
   {
