@@ -1,79 +1,76 @@
 
 
-# Command Center — AI Revenue Command Hub
+# Daily Revenue Brief — Resumo Executivo 24h
 
-## Contexto
+## Abordagem
 
-Existe já uma página `/dashboard/ask` com `AskFastCRMInline` — uma interface de query simples (input texto + chips sugeridos + resultados). O PRD pede um **Command Center** premium: hub central com slash commands (`/resumir pipeline`, `/prioridades`), input de texto e voz, upload, e visual dark+gold. A página actual será **substituída** pelo Command Center, mantendo a funcionalidade Ask existente como parte do hub.
+Criar uma nova tabela `daily_briefs`, uma edge function dedicada (dados de 24h vs 7 dias do weekly), um hook `useDailyBriefs`, uma página dedicada e um widget compacto no dashboard.
 
-## Arquitectura
+## 1. Database — Nova tabela `daily_briefs`
 
-### Página `/dashboard/command-center` (nova rota principal)
+```sql
+CREATE TABLE public.daily_briefs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  summary TEXT,
+  hot_leads TEXT,
+  stuck_deals TEXT,
+  revenue_highlight TEXT,
+  action_suggestions TEXT[],
+  key_metrics JSONB DEFAULT '{}',
+  UNIQUE(workspace_id, (created_at::date))
+);
 
-Layout premium full-page com 3 zonas:
-
-```text
-┌─────────────────────────────────────────────┐
-│  ⚡ Revenue Command Center                  │
-│  "Your Sales AI Agent"                      │
-├─────────────────────────────────────────────┤
-│                                             │
-│  ┌─────────────────────────────────────┐    │
-│  │ 💬 Input Zone (texto + voice + /)   │    │
-│  └─────────────────────────────────────┘    │
-│                                             │
-│  ┌── Quick Commands ──────────────────┐    │
-│  │ /resumir pipeline  /prioridades    │    │
-│  │ /analisar lead     /prever receita │    │
-│  │ /criar follow-up   /gerar proposta │    │
-│  └────────────────────────────────────┘    │
-│                                             │
-│  ┌── Output Zone ─────────────────────┐    │
-│  │ Resultados Ask / Respostas AI       │    │
-│  │ Cards, métricas, ações             │    │
-│  └────────────────────────────────────┘    │
-│                                             │
-│  ┌── Recent ──────────────────────────┐    │
-│  │ Últimas queries                     │    │
-│  └────────────────────────────────────┘    │
-└─────────────────────────────────────────────┘
+ALTER TABLE public.daily_briefs ENABLE ROW LEVEL SECURITY;
+-- RLS: members can view, admins can manage (same pattern as weekly_briefs)
 ```
 
-### Funcionalidades
+`key_metrics` inclui: `leads_today`, `revenue_today`, `new_opportunities`, `tasks_completed`, `tasks_pending`, `deals_stalled`, `messages_today`.
 
-1. **Slash Commands** — Menu dropdown ao digitar `/`:
-   - `/resumir pipeline` → chama `summarizeConversation` ou edge function dedicada
-   - `/prioridades` → chama `suggestNextActions` com dados do workspace
-   - `/analisar lead [nome]` → busca lead e classifica
-   - `/prever receita` → navega para forecast ou mostra inline
-   - `/criar follow-up` → cria tarefa rápida
-   - `/gerar proposta` → navega para propostas
+## 2. Edge Function — `daily-revenue-brief`
 
-2. **Voice Input** — Botão microfone que usa Web Speech API (browser nativo) para transcrever e submeter como texto
+Pipeline semelhante à `strategic-intelligence-brief` mas com janela de 24h:
+- 10 queries paralelas: leads criados hoje, deals ganhos/perdidos hoje, deals estagnados (>5 dias sem atividade), tasks completed/pending, messages hoje, oportunidades abertas com health score baixo
+- Prompt AI focado em "diário operacional" (vs "semanal estratégico")
+- Tool calling com campos: `summary`, `hot_leads`, `stuck_deals`, `revenue_highlight`, `action_suggestions`
+- Insert em `daily_briefs`
 
-3. **Text Input** — Reutiliza `useAskFastCRM` para queries normais, com slash command detection adicional
+## 3. Hook — `src/hooks/useDailyBrief.ts`
 
-4. **Quick Command Cards** — Grid de atalhos visuais clicáveis
+- Query para último `daily_brief` do workspace
+- Função `generateDailyBrief()` que invoca a edge function
+- `isConfigured` / `todaysBrief` / `isGenerating`
 
-5. **Output Zone** — Reutiliza `AskFastCRMResultPanel` para resultados estruturados + área de resposta de slash commands
+## 4. Página — `/dashboard/daily-brief`
+
+Layout premium com:
+- Header com data de hoje e botão "Gerar Brief"
+- 4 KPI cards (Leads Hoje, Receita Hoje, Deals Travados, Tarefas)
+- Secções: Resumo, Leads Quentes, Deals Travados, Sugestões de Ação
+- Timeline dos últimos 7 daily briefs
+
+## 5. Dashboard Widget — `DailyBriefWidget.tsx`
+
+Card compacto (substitui ou complementa o `ExecutiveBriefWidget`):
+- Resumo de 2 linhas + 3 mini-KPIs (leads, receita, stalled)
+- Botão "Gerar" / "Ver completo"
+
+## 6. Navegação
+
+- Adicionar "Daily Brief" na sidebar grupo "Estratégia" com ícone `Newspaper` e rota `/dashboard/daily-brief`
+- Rota em `App.tsx`
 
 ## Ficheiros
 
 | Ficheiro | Acção |
 |----------|-------|
-| `src/pages/CommandCenterPage.tsx` | Nova página premium com layout Command Center |
-| `src/components/command-center/CommandInput.tsx` | Input com detecção de `/`, voice button, submit |
-| `src/components/command-center/SlashCommandMenu.tsx` | Dropdown de slash commands ao digitar `/` |
-| `src/components/command-center/QuickCommandGrid.tsx` | Grid de atalhos visuais |
-| `src/components/command-center/CommandOutput.tsx` | Zona de output (Ask results + slash command responses) |
-| `src/hooks/useSlashCommands.ts` | Lógica de parsing e execução de slash commands |
-| `src/config/nav.v1.ts` | Renomear "Coach IA" → "Command Center" com ícone `Terminal` |
-| `src/App.tsx` | Adicionar rota `/dashboard/command-center`, redirect `/dashboard/ask` |
-
-## Notas Técnicas
-
-- Voice input usa `webkitSpeechRecognition` / `SpeechRecognition` (API nativa do browser, sem dependências)
-- Slash commands executam hooks existentes (`useAskFastCRM`, `useAskAI`, `useIntelligencePanel`)
-- O visual premium usa `glass-premium`, `glow-gold`, gradientes dourados do design system existente
-- A rota `/dashboard/ask` faz redirect para `/dashboard/command-center` para não quebrar links existentes
+| Migration SQL | Criar tabela `daily_briefs` + RLS |
+| `supabase/functions/daily-revenue-brief/index.ts` | Edge function (24h data + AI) |
+| `src/hooks/useDailyBrief.ts` | Hook CRUD + react-query |
+| `src/pages/DailyBriefPage.tsx` | Página dedicada com KPIs + secções |
+| `src/components/dashboard/DailyBriefWidget.tsx` | Widget compacto para dashboard |
+| `src/config/nav.v1.ts` | Adicionar item Daily Brief |
+| `src/App.tsx` | Adicionar rota |
+| `src/pages/Dashboard.tsx` | Adicionar widget |
 
