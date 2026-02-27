@@ -16,6 +16,8 @@ import {
   BarChart3,
   Layers,
   GitBranch,
+  ShoppingBag,
+  Package,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -44,8 +46,13 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Ciclo de Vida", href: "/dashboard/lifecycle", icon: GitBranch, group: "CRM" },
   { name: "Eventos", href: "/dashboard/events", icon: Calendar, group: "CRM" },
 
-  // Vendas
-  { name: "Notas Encomenda", href: "/dashboard/order-notes", icon: FileText, group: "Vendas", separator: true },
+  // Portal B2B
+  { name: "Notas Encomenda", href: "/dashboard/order-notes", icon: FileText, group: "Portal B2B", separator: true },
+  { name: "Aprovações", href: "/dashboard/order-approvals", icon: CheckSquare, group: "Portal B2B" },
+  { name: "Clientes B2B", href: "/dashboard/client-users", icon: Users, group: "Portal B2B" },
+  { name: "Produtos", href: "/dashboard/products", icon: ShoppingBag, group: "Portal B2B" },
+  { name: "Stock B2B", href: "/dashboard/b2b-stock", icon: Package, group: "Portal B2B" },
+  { name: "Config. Portal", href: "/dashboard/b2b-portal", icon: Settings, group: "Portal B2B" },
 
   // Marketing
   { name: "Marketing", href: "/dashboard/marketing", icon: Megaphone, group: "Marketing", separator: true },
