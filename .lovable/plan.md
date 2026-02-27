@@ -1,82 +1,109 @@
 
 
-# Fase 1: Design System — Dark + Gold Premium
+# Base Layer (Context OS) — Memória Permanente do Negócio
 
 ## Contexto
 
-O FastCRM usa `next-themes` (class-based) com tema light como padrão. As variáveis CSS estão em `src/index.css` com `:root` (light) e `.dark` (dark). O toggle de tema existe em `AppearanceSettings.tsx`.
+O sistema actual tem `workspace_settings` apenas com `ip_restrictions_enabled`. Não existe nenhuma infra para armazenar contexto de negócio (ICP, ofertas, pricing, funil, scripts, metas, SLA, processo comercial). O onboarding actual cria workspace + onboarding conversacional mas não persiste contexto estratégico estruturado.
 
-A transformação visual requer alterar o **dark mode** para usar dourado como cor de acento primária e torná-lo o tema **padrão**, mantendo light mode como opção.
+## Arquitectura
 
-## Alterações
+### 1. Nova tabela `business_context`
 
-### 1. `src/index.css` — Redesign do Dark Mode para "AI Revenue OS"
+```sql
+CREATE TABLE public.business_context (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  -- Business Identity
+  business_model TEXT,           -- 'saas', 'agency', 'infoproduct', 'consulting', 'services', 'ecommerce'
+  business_description TEXT,
+  -- ICP
+  icp_description TEXT,
+  icp_industries TEXT[],
+  icp_company_size TEXT,
+  icp_decision_maker TEXT,
+  icp_pain_points TEXT[],
+  -- Offers & Pricing
+  offers JSONB DEFAULT '[]',     -- [{name, price, type, description}]
+  pricing_model TEXT,            -- 'recurring', 'one_time', 'hybrid', 'usage_based'
+  average_ticket NUMERIC,
+  -- Sales Process
+  sales_process_steps TEXT[],
+  sales_cycle_days INTEGER,
+  objections_common TEXT[],
+  scripts JSONB DEFAULT '[]',   -- [{name, content, stage}]
+  follow_up_sla_hours INTEGER DEFAULT 24,
+  -- Goals
+  monthly_revenue_target NUMERIC,
+  quarterly_revenue_target NUMERIC,
+  annual_revenue_target NUMERIC,
+  deals_target_monthly INTEGER,
+  -- Team
+  team_size INTEGER,
+  team_roles TEXT[],
+  -- Active Strategies
+  active_strategies TEXT[],
+  -- Metadata
+  onboarding_completed BOOLEAN DEFAULT false,
+  last_updated_by UUID,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(workspace_id)
+);
 
-**Dark mode (`.dark`):**
-- **Background**: Preto mais profundo (`222 47% 3%` → quase preto puro)
-- **Card**: Superfícies ligeiramente elevadas com tom mais quente (`230 15% 7%`)
-- **Primary**: Trocar azul por dourado (`43 96% 56%` — HSL do #F5A623-ish gold)
-- **Primary-foreground**: Preto (`0 0% 0%`) para contraste
-- **Ring**: Dourado
-- **Muted**: Tons cinza escuro mais neutros
-- **Accent**: Dourado subtil (`43 30% 12%`)
-- **Border**: Mais subtil, escuro (`230 15% 12%`)
-- **Sidebar**: Background mais escuro, accent dourado
-- **Gradients**: Substituir azul→violeta por dourado→âmbar
-- **Shadow-glow**: Glow dourado (`0 0 30px hsl(43 96% 56% / 0.3)`)
+ALTER TABLE public.business_context ENABLE ROW LEVEL SECURITY;
 
-**Adicionar tokens novos:**
-- `--gold`: `43 96% 56%` (dourado primário)
-- `--gold-foreground`: `0 0% 0%`
-- `--gradient-gold`: `linear-gradient(135deg, hsl(43 96% 56%) 0%, hsl(35 95% 45%) 100%)`
+CREATE POLICY "Members can view" ON public.business_context
+  FOR SELECT TO authenticated
+  USING (workspace_id IN (SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()));
 
-**Light mode (`:root`):**
-- Manter essencialmente igual mas ajustar `--primary` para um tom dourado/âmbar escuro para consistência de marca
+CREATE POLICY "Admins can manage" ON public.business_context
+  FOR ALL TO authenticated
+  USING (workspace_id IN (SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid() AND role IN ('owner','admin')))
+  WITH CHECK (workspace_id IN (SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid() AND role IN ('owner','admin')));
 
-**Novas utilities:**
-- `.gradient-gold` — gradiente dourado
-- `.glow-gold` — box-shadow dourado subtil
-- `.glass-premium` — glass effect com tint dourado
+CREATE POLICY "Super admin bypass" ON public.business_context
+  FOR ALL TO authenticated
+  USING (public.is_super_admin(auth.uid()));
+```
 
-### 2. `tailwind.config.ts` — Adicionar cores gold ao tema
+### 2. Página `/dashboard/context-os` — Setup Estratégico
 
-- Adicionar `gold` ao objeto `colors` com DEFAULT e foreground
-- Adicionar keyframe `glow-pulse-gold` com pulsação dourada
-- Adicionar animação correspondente
+Wizard multi-step premium (dark+gold) com 7 secções:
 
-### 3. `src/App.tsx` ou entry point — Definir dark como tema padrão
+| Step | Título | Campos |
+|------|--------|--------|
+| 1 | Modelo de Negócio | business_model, business_description |
+| 2 | ICP | icp_description, industries, company_size, decision_maker, pain_points |
+| 3 | Ofertas & Pricing | offers (dinâmico), pricing_model, average_ticket |
+| 4 | Processo Comercial | sales_process_steps, sales_cycle_days, follow_up_sla_hours |
+| 5 | Objeções & Scripts | objections_common, scripts (dinâmico) |
+| 6 | Metas de Receita | monthly/quarterly/annual targets, deals_target_monthly |
+| 7 | Equipa | team_size, team_roles, active_strategies |
 
-- Configurar `next-themes` `ThemeProvider` com `defaultTheme="dark"` (ou onde o provider estiver montado)
+Cada step com progress bar dourada, auto-save, e botão "AI Assist" para preencher com sugestões.
 
-### 4. `src/components/layout/TopBar.tsx` — Rebranding subtil
+### 3. Hook `useBusinessContext`
 
-- Badge "FastCRM 2.0" → "FastCRM OS" (no Dashboard.tsx)
-- Ajustar avatar fallback gradient para usar dourado
+CRUD para `business_context` com cache react-query. Inclui `isConfigured` boolean para saber se o onboarding foi completado.
 
-### 5. `src/components/layout/SidebarV1.tsx` — Identidade visual premium
+### 4. Sidebar — Nova entrada "Context OS"
 
-- Logo/Brand area: Adicionar subtítulo "AI Revenue OS" em texto dourado pequeno
-- Ajustar o item activo para usar highlight dourado em vez de azul
+Adicionar item na sidebar V1 (grupo "Estratégia") com ícone `Brain` e cor `text-cyan-500`, rota `/dashboard/context-os`.
 
-### 6. `src/pages/Dashboard.tsx` — Badge e branding
+### 5. Dashboard — Indicador de setup
 
-- Trocar `FastCRM 2.0` por `FastCRM OS`
-- Subtítulo: "AI Revenue Operating System"
+Se `!isConfigured`, mostrar um card premium no topo do dashboard: "Configure o seu Revenue OS — O sistema precisa de conhecer o seu negócio para operar com inteligência."
 
-## Ficheiros a alterar
+## Ficheiros
 
 | Ficheiro | Acção |
-|---|---|
-| `src/index.css` | Redesign completo do dark mode (gold), novos tokens e utilities |
-| `tailwind.config.ts` | Adicionar cor gold, keyframes e animação gold glow |
-| `src/pages/Dashboard.tsx` | Badge FastCRM OS, subtítulo |
-| `src/components/layout/TopBar.tsx` | Avatar gradient dourado |
-| `src/components/layout/SidebarV1.tsx` | Subtítulo "AI Revenue OS", item activo dourado |
-
-## Notas Técnicas
-
-- O `next-themes` já está configurado com `darkMode: ["class"]` no tailwind.config
-- O provider do tema precisa ser localizado para mudar o `defaultTheme` para `"dark"`
-- Todas as referências a `from-primary to-violet-600` nos gradients ficarão automaticamente douradas ao mudar `--primary`
-- As cores semânticas dos ícones da sidebar (violet, emerald, amber etc.) mantêm-se inalteradas — só o primary muda
+|----------|-------|
+| Migration SQL | Criar tabela `business_context` + RLS |
+| `src/hooks/useBusinessContext.ts` | Hook CRUD + react-query |
+| `src/pages/ContextOSPage.tsx` | Página com wizard multi-step |
+| `src/components/context-os/` | ~8 componentes (steps + wizard shell) |
+| `src/config/nav.v1.ts` | Adicionar item Context OS |
+| `src/App.tsx` | Adicionar rota |
+| `src/pages/Dashboard.tsx` | Card de setup incompleto |
 
