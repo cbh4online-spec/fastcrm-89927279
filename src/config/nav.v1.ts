@@ -146,6 +146,7 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   // Estratégia (só módulos)
   { name: "Context OS", href: "/dashboard/context-os", icon: Brain, group: "Estratégia", separator: true },
   { name: "Brief Executivo", href: "/dashboard/strategy", icon: Brain, group: "Estratégia", moduleSlug: "strategy-brief" },
+  { name: "Daily Brief", href: "/dashboard/daily-brief", icon: Newspaper, group: "Estratégia" },
 
   // Relatórios
   { name: "Visão Geral", href: "/dashboard/reports", icon: BarChart3, group: "Relatórios", separator: true },

@@ -25,6 +25,7 @@ import { PLGSignalsFeed } from "@/components/dashboard/PLGSignalsFeed";
 import { UpcomingBirthdaysWidget } from "@/components/dashboard/UpcomingBirthdaysWidget";
 import { UpcomingEventsWidget } from "@/components/dashboard/UpcomingEventsWidget";
 import { ExecutiveBriefWidget } from "@/components/dashboard/ExecutiveBriefWidget";
+import { DailyBriefWidget } from "@/components/dashboard/DailyBriefWidget";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useBusinessContext } from "@/hooks/useBusinessContext";
 
@@ -145,6 +146,7 @@ export default function Dashboard() {
             </div>
             <div className="space-y-4">
               <ExecutiveBriefWidget />
+              <DailyBriefWidget />
               <ForecastConfidenceCard />
               <PipelineComparisonCard />
               <UpcomingBirthdaysWidget />

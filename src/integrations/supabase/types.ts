@@ -10797,6 +10797,50 @@ export type Database = {
           },
         ]
       }
+      daily_briefs: {
+        Row: {
+          action_suggestions: string[] | null
+          created_at: string | null
+          hot_leads: string | null
+          id: string
+          key_metrics: Json | null
+          revenue_highlight: string | null
+          stuck_deals: string | null
+          summary: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action_suggestions?: string[] | null
+          created_at?: string | null
+          hot_leads?: string | null
+          id?: string
+          key_metrics?: Json | null
+          revenue_highlight?: string | null
+          stuck_deals?: string | null
+          summary?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action_suggestions?: string[] | null
+          created_at?: string | null
+          hot_leads?: string | null
+          id?: string
+          key_metrics?: Json | null
+          revenue_highlight?: string | null
+          stuck_deals?: string | null
+          summary?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_briefs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_priorities: {
         Row: {
           ai_generated: boolean | null
