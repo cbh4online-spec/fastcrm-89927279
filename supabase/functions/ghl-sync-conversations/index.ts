@@ -369,7 +369,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Load existing conversations
+    // Load existing conversations (check both ghl_ prefixed and raw IDs)
     const { data: existingConversations } = await supabase
       .from("conversations")
       .select("id, external_thread_id")
@@ -380,19 +380,30 @@ Deno.serve(async (req) => {
     for (const conv of existingConversations || []) {
       if (conv.external_thread_id) {
         conversationsByThreadId.set(conv.external_thread_id, conv.id);
+        // Also map the raw ID (without ghl_ prefix) to the same conversation
+        if (conv.external_thread_id.startsWith("ghl_")) {
+          conversationsByThreadId.set(conv.external_thread_id.replace("ghl_", ""), conv.id);
+        }
       }
     }
 
-    // Load existing message GHL IDs
-    const { data: existingMessages } = await supabase
-      .from("messages")
-      .select("ghl_message_id")
-      .eq("workspace_id", workspace_id)
-      .not("ghl_message_id", "is", null);
-
-    const existingMessageIds = new Set<string>(
-      (existingMessages || []).map(m => m.ghl_message_id).filter(Boolean)
-    );
+    // Load existing message GHL IDs with pagination to avoid 1000-row limit
+    const existingMessageIds = new Set<string>();
+    let offset = 0;
+    const PAGE_SIZE = 1000;
+    while (true) {
+      const { data } = await supabase
+        .from("messages")
+        .select("ghl_message_id")
+        .eq("workspace_id", workspace_id)
+        .not("ghl_message_id", "is", null)
+        .range(offset, offset + PAGE_SIZE - 1);
+      if (!data || data.length === 0) break;
+      data.forEach(m => { if (m.ghl_message_id) existingMessageIds.add(m.ghl_message_id); });
+      if (data.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
+    console.log(`[GHL Sync] Loaded ${existingMessageIds.size} existing message IDs (paginated)`);
 
     if (stream) {
       const encoder = new TextEncoder();

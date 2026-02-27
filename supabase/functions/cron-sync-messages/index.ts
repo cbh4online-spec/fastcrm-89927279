@@ -216,12 +216,12 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalS
       const ghlData = await ghlResponse.json();
       const conversations = ghlData.conversations || [];
 
-      // Expanded window: 2 hours instead of 30 minutes
-      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      // Expanded window: 24 hours to catch messages missed in previous invocations
+      const windowAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const recentConversations = conversations.filter((conv: { lastMessageDate?: string; dateUpdated?: string }) => {
         const lastDate = conv.lastMessageDate || conv.dateUpdated;
         if (!lastDate) return false;
-        return new Date(lastDate) > twoHoursAgo;
+        return new Date(lastDate) > windowAgo;
       });
 
       console.log(`[Cron Sync] Workspace ${workspace_id}: ${conversations.length} total, ${recentConversations.length} recent conversations`);
@@ -293,8 +293,9 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalS
         }
 
         // Deduplicate: check by thread_id (with/without ghl_ prefix) then by lead+channel
-        let conversationId = convsByThreadId.get(ghlConvId)
-          || convsByThreadId.get(`ghl_${ghlConvId}`)
+        const normalizedThreadId = `ghl_${ghlConvId}`;
+        let conversationId = convsByThreadId.get(normalizedThreadId)
+          || convsByThreadId.get(ghlConvId)
           || convsByLeadChannel.get(`${leadId}:${channel}`);
 
         if (!conversationId) {
@@ -304,7 +305,7 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalS
               workspace_id,
               lead_id: leadId,
               channel,
-              external_thread_id: ghlConvId,
+              external_thread_id: normalizedThreadId,
               last_message_at: normalizeTimestamp(ghlConv.lastMessageDate) || new Date().toISOString(),
               last_message_preview: ghlConv.lastMessageBody?.substring(0, 100),
               status: "open",
@@ -317,7 +318,7 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalS
               const { data: existing } = await supabase
                 .from("conversations")
                 .select("id")
-                .eq("external_thread_id", ghlConvId)
+                .eq("external_thread_id", normalizedThreadId)
                 .eq("workspace_id", workspace_id)
                 .single();
               conversationId = existing?.id;
@@ -327,7 +328,7 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalS
           } else {
             conversationId = newConv?.id;
             conversationsCreated++;
-            convsByThreadId.set(ghlConvId, conversationId!);
+            convsByThreadId.set(normalizedThreadId, conversationId!);
             convsByLeadChannel.set(`${leadId}:${channel}`, conversationId!);
           }
         }
@@ -368,7 +369,7 @@ async function syncAllWorkspaces(supabaseUrl: string, serviceKey: string, totalS
 
           const recentMessages = messages.filter((msg) => {
             const msgDate = msg.dateAdded ? new Date(msg.dateAdded) : null;
-            return msgDate && msgDate > twoHoursAgo;
+            return msgDate && msgDate > windowAgo;
           });
 
           console.log(`[Cron Sync] Conv ${ghlConvId}: ${messages.length} total messages, ${recentMessages.length} recent`);
