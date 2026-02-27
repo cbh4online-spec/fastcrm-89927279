@@ -1,11 +1,23 @@
 {
+  "nav": {
+    "features": "Features",
+    "intelligence": "Intelligence",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "fastclub": "FastClub",
+    "signIn": "Sign In"
+  },
   "hero": {
     "badge": "Revenue Intelligence Platform",
-    "title1": "Build your CRM.",
-    "title2": "Grow your revenue.",
-    "subtitle": "See your revenue before it happens. Health scores, deal intelligence, and smart automations — built into every object.",
+    "title1": "See Your",
+    "title2": "Revenue",
+    "title3": "Before It Happens",
+    "subtitle": "Health scores, deal intelligence, and smart automations — built into every object. Stop guessing. Start closing.",
     "startFree": "Start Free",
     "seeHow": "See how it works",
+    "namePlaceholder": "Your name",
+    "emailPlaceholder": "Your work email",
+    "freeNote": "Free forever for up to 2 users · No credit card required",
     "dashboardTitle": "FastCRM — Dashboard",
     "activeLeads": "Active Leads",
     "inbox": "Inbox",
@@ -20,6 +32,7 @@
     "aiSuggestionText": "Lead \"Acme Corp\" has 87% conversion probability. Recommend follow-up today."
   },
   "problem": {
+    "badge": "The Problem",
     "title": "Sound familiar?",
     "subtitle": "Most CRMs store contacts. FastCRM tells you what to do with them.",
     "q1": "\"I don't know which deals will actually close.\"",
@@ -28,9 +41,11 @@
     "q4": "\"I need proposals and invoicing but don't want another tool.\""
   },
   "solution": {
+    "badge": "Platform",
     "title": "Everything you need to",
     "titleHighlight": "close more deals.",
     "subtitle": "Four pillars. One platform. Built for revenue teams that want structure without complexity.",
+    "learnMore": "Learn more →",
     "pillar1Headline": "Your data, your structure.",
     "pillar1Name": "Flexible Object-Based CRM",
     "pillar1Desc": "Contacts, Companies, Deals as flexible objects. Custom fields, views, and pipelines that adapt to how you sell.",
@@ -57,6 +72,7 @@
     "pillar4F3": "Extensions follow your CRM design — no \"bolted-on\" feel"
   },
   "comparison": {
+    "badge": "Intelligence",
     "title": "Why",
     "titleHighlight": "FastCRM?",
     "subtitle": "Revenue intelligence, not revenue guessing.",
@@ -71,6 +87,7 @@
     "vsEnterpriseS": "FastCRM: set up in minutes, extend only what you need."
   },
   "architecture": {
+    "badge": "Built For",
     "title": "Built for",
     "titleHighlight": "SaaS teams that sell.",
     "subtitle": "From first deal to revenue operations. FastCRM adapts to your stage.",
@@ -94,6 +111,7 @@
     "growingB4": "Advanced roles and workspace controls"
   },
   "positioning": {
+    "badge": "Built For",
     "title": "Not for everyone.",
     "subtitle": "FastCRM is for SaaS teams that care about revenue clarity — not contact storage.",
     "founders": "SaaS Founders",
@@ -104,6 +122,7 @@
     "leadersDesc": "Scaling revenue operations with forecasting, automations, and data"
   },
   "pricing": {
+    "badge": "Pricing",
     "title": "Simple, transparent pricing.",
     "subtitle": "Start free. Scale as you grow. No surprises.",
     "starter": "Starter",
@@ -160,9 +179,11 @@
   "finalCta": {
     "title": "See your revenue clearly.",
     "subtitle": "Start free. No credit card required. Your first deal insight in under 2 minutes.",
-    "cta": "Start Free"
+    "cta": "Start Free",
+    "emailPlaceholder": "Your work email"
   },
   "faq": {
+    "badge": "FAQ",
     "title": "Frequently Asked Questions",
     "subtitle": "Everything you need to know before getting started.",
     "q1": "What's included in the free plan?",

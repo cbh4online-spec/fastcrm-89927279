@@ -1,20 +1,22 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { LanguageSelector } from "@/components/ui/LanguageSelector";
 
-const navLinks = [
-  { href: "#features", label: "Features" },
-  { href: "#intelligence", label: "Intelligence" },
-  { href: "#pricing", label: "Pricing" },
-  { href: "#faq", label: "FAQ" },
-  { href: "#fastclub", label: "FastClub" },
+const navKeys = [
+  { href: "#features", key: "nav.features" },
+  { href: "#intelligence", key: "nav.intelligence" },
+  { href: "#pricing", key: "nav.pricing" },
+  { href: "#faq", key: "nav.faq" },
+  { href: "#fastclub", key: "nav.fastclub" },
 ];
 
 export function LandingStickyHeader() {
+  const { t } = useTranslation("landing");
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { scrollY } = useScroll();
@@ -42,9 +44,9 @@ export function LandingStickyHeader() {
         </button>
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-semibold uppercase tracking-wide text-[hsl(215,20%,65%)]">
-          {navLinks.map((link) => (
+          {navKeys.map((link) => (
             <a key={link.href} href={link.href} className="hover:text-[hsl(210,40%,98%)] transition-colors duration-200">
-              {link.label}
+              {t(link.key)}
             </a>
           ))}
         </nav>
@@ -57,12 +59,12 @@ export function LandingStickyHeader() {
               size="sm"
               className="text-[hsl(210,40%,98%)] hover:bg-[hsl(217,33%,17%)] font-semibold uppercase tracking-wide text-xs"
             >
-              Sign In
+              {t("nav.signIn")}
             </Button>
           </Link>
           <Link to="/auth" className="hidden md:inline-flex">
             <Button size="sm" className="gradient-primary shadow-glow text-primary-foreground font-bold uppercase tracking-wide text-xs">
-              Start Free
+              {t("hero.startFree")}
             </Button>
           </Link>
 
@@ -79,14 +81,14 @@ export function LandingStickyHeader() {
             >
               <SheetTitle className="sr-only">Navigation menu</SheetTitle>
               <nav className="flex flex-col gap-1 mt-8">
-                {navLinks.map((link) => (
+                {navKeys.map((link) => (
                   <a
                     key={link.href}
                     href={link.href}
                     onClick={() => setMobileOpen(false)}
                     className="px-4 py-3 text-sm font-semibold uppercase tracking-wide text-[hsl(215,20%,65%)] hover:text-[hsl(210,40%,98%)] hover:bg-[hsl(217,33%,17%)] rounded-md transition-colors duration-200"
                   >
-                    {link.label}
+                    {t(link.key)}
                   </a>
                 ))}
               </nav>
@@ -96,12 +98,12 @@ export function LandingStickyHeader() {
                     variant="ghost"
                     className="w-full text-[hsl(210,40%,98%)] hover:bg-[hsl(217,33%,17%)]"
                   >
-                    Sign In
+                    {t("nav.signIn")}
                   </Button>
                 </Link>
                 <Link to="/auth" onClick={() => setMobileOpen(false)}>
                   <Button className="w-full gradient-primary shadow-glow text-primary-foreground font-bold uppercase">
-                    Start Free
+                    {t("hero.startFree")}
                   </Button>
                 </Link>
               </div>

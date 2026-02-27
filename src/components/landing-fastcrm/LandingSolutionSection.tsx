@@ -1,41 +1,10 @@
 import { motion, useScroll, useTransform } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Layers, Brain, Workflow, Puzzle } from "lucide-react";
 import { useRef } from "react";
 
-const pillars = [
-  {
-    icon: Layers,
-    headline: "Your data, your structure.",
-    name: "Flexible Object-Based CRM",
-    desc: "Contacts, Companies, Deals as flexible objects. Custom fields, views, and pipelines that adapt to how you sell.",
-    features: ["Custom objects and fields that match your process", "Saved views and filters for every team member", "Multiple pipelines for different products or segments"],
-    anchor: "#features",
-  },
-  {
-    icon: Brain,
-    headline: "Know what to do next.",
-    name: "Revenue Intelligence Built In",
-    desc: "Health scores, stage benchmarks, and deal insights — not just dashboards.",
-    features: ["Deal health scoring on every opportunity", "Stage benchmarks that flag stalled deals", "Win/loss analysis powered by your own data"],
-    anchor: "#intelligence",
-  },
-  {
-    icon: Workflow,
-    headline: "From follow-up to full workflow.",
-    name: "Automations That Scale",
-    desc: "Start with simple reminders. Scale to complex, multi-step automations as your team grows.",
-    features: ["Trigger, condition, action — visual builder", "Pre-built templates for common workflows", "Smart suggestions based on deal patterns"],
-    anchor: "#features",
-  },
-  {
-    icon: Puzzle,
-    headline: "Activate what you need.",
-    name: "Extend with Marketplace",
-    desc: "Official extensions for proposals, invoicing, and B2B revenue. One click to activate, zero friction.",
-    features: ["Curated extension packs and bundles", "One-click activation with instant provisioning", "Extensions follow your CRM design — no \"bolted-on\" feel"],
-    anchor: "#pricing",
-  },
-];
+const pillarIcons = [Layers, Brain, Workflow, Puzzle];
+const pillarAnchors = ["#features", "#intelligence", "#features", "#pricing"];
 
 const cardVariants = {
   hidden: (i: number) => ({
@@ -58,9 +27,19 @@ const cardVariants = {
 };
 
 export function LandingSolutionSection() {
+  const { t } = useTranslation("landing");
   const sectionRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
   const glowScale = useTransform(scrollYProgress, [0, 0.5, 1], [0.8, 1.2, 0.8]);
+
+  const pillars = [1, 2, 3, 4].map((n, i) => ({
+    icon: pillarIcons[i],
+    headline: t(`solution.pillar${n}Headline`),
+    name: t(`solution.pillar${n}Name`),
+    desc: t(`solution.pillar${n}Desc`),
+    features: [t(`solution.pillar${n}F1`), t(`solution.pillar${n}F2`), t(`solution.pillar${n}F3`)],
+    anchor: pillarAnchors[i],
+  }));
 
   return (
     <section id="features" ref={sectionRef} className="relative py-28 lg:py-36 overflow-hidden">
@@ -86,23 +65,23 @@ export function LandingSolutionSection() {
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
           >
-            Platform
+            {t("solution.badge")}
           </motion.span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black uppercase tracking-tight mb-5">
-            Everything You Need To{" "}
+            {t("solution.title")}{" "}
             <span className="bg-gradient-to-r from-primary to-[hsl(250,83%,60%)] bg-clip-text text-transparent">
-              Close More Deals.
+              {t("solution.titleHighlight")}
             </span>
           </h2>
           <p className="text-lg text-[hsl(215,20%,65%)] max-w-2xl mx-auto">
-            Four pillars. One platform. Built for revenue teams that want structure without complexity.
+            {t("solution.subtitle")}
           </p>
         </motion.div>
 
         <div className="grid md:grid-cols-2 gap-6" style={{ perspective: "1000px" }}>
           {pillars.map((pillar, i) => (
             <motion.div
-              key={pillar.name}
+              key={i}
               custom={i}
               variants={cardVariants}
               initial="hidden"
@@ -125,7 +104,7 @@ export function LandingSolutionSection() {
               <ul className="space-y-2.5 mb-5">
                 {pillar.features.map((feat, fi) => (
                   <motion.li
-                    key={feat}
+                    key={fi}
                     className="flex items-start gap-2.5 text-sm text-[hsl(215,20%,65%)]"
                     initial={{ opacity: 0, x: -10 }}
                     whileInView={{ opacity: 1, x: 0 }}
@@ -138,7 +117,7 @@ export function LandingSolutionSection() {
                 ))}
               </ul>
               <a href={pillar.anchor} className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-primary hover:text-primary/80 transition-colors">
-                Learn more →
+                {t("solution.learnMore")}
               </a>
             </motion.div>
           ))}
