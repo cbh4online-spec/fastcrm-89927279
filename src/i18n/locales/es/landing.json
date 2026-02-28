@@ -191,6 +191,24 @@
     "q8": "¿Puedo integrar con herramientas que ya uso?",
     "a8": "FastCRM integra nativamente con Stripe, WhatsApp Business, Instagram, proveedores de email (SMTP/Zoho) y más. El plan Scale incluye acceso API para integraciones personalizadas."
   },
+  "testimonials": {
+    "badge": "Prueba Social",
+    "title": "Equipos que ya aceleran ingresos",
+    "subtitle": "Descubre cómo empresas como la tuya transformaron su pipeline con FastCRM.",
+    "t1Quote": "FastCRM cambió completamente la forma en que gestionamos nuestro pipeline. En 2 semanas, teníamos visibilidad total.",
+    "t1Name": "Ana Rodrigues",
+    "t1Title": "Head of Sales",
+    "t1Company": "TechFlow",
+    "t2Quote": "Por fin un CRM que nos dice qué hacer, no solo dónde guardar contactos. Los health scores son un game-changer.",
+    "t2Name": "Miguel Santos",
+    "t2Title": "Co-Founder",
+    "t2Company": "ScaleUp.io",
+    "t3Quote": "Pasamos de hojas de cálculo a revenue intelligence en menos de una hora. El equipo lo adoptó inmediatamente.",
+    "t3Name": "Sofia Costa",
+    "t3Title": "Revenue Operations",
+    "t3Company": "DataBridge",
+    "trustedBy": "Empresas que confían en FastCRM"
+  },
   "footer": {
     "tagline": "Plataforma de Inteligencia de Ingresos",
     "privacy": "Privacidad",
