@@ -1,54 +1,36 @@
 
 
-# Gerar Imagens com IA para a Landing Page FastCRM
+# Adicionar Secção de Testimonials/Social Proof à Landing Page
 
-## Abordagem
+## O que será criado
 
-Criar uma edge function dedicada `landing-generate-images` que gera 8 imagens via Lovable AI (gemini-2.5-flash-image), faz upload para um bucket `landing-assets` e devolve os URLs públicos. Depois, integrar essas imagens nos componentes.
-
-## Imagens a gerar (8 total)
-
-1. **Hero** — Dashboard CRM futurista com gráficos de receita, dark theme com tons azul/roxo
-2. **Solution Card 1** — Interface CRM com pipeline de deals e contacts
-3. **Solution Card 2** — Dashboard de analytics com gráficos e health scores
-4. **Solution Card 3** — Workflow de automação com nodes conectados
-5. **Solution Card 4** — Marketplace de extensões/plugins com cards
-6. **Positioning Founders** — Empreendedor solo a trabalhar num laptop
-7. **Positioning Teams** — Equipa colaborativa em reunião com dashboards
-8. **Positioning Leaders** — Líder executivo a analisar métricas de crescimento
-
-## Alterações
-
-### 1. Criar bucket `landing-assets` (migração SQL)
-- Bucket público para servir imagens estáticas
-
-### 2. Criar edge function `landing-generate-images/index.ts`
-- Aceita um array de prompts com IDs
-- Gera cada imagem via `google/gemini-2.5-flash-image`
-- Upload para `landing-assets/{id}.png`
-- Devolve mapa `{id: publicUrl}`
-
-### 3. Criar página admin `src/pages/GenerateLandingImages.tsx`
-- Botão "Gerar Imagens" que chama a edge function
-- Mostra progresso e preview das imagens geradas
-- Guarda os URLs no localStorage ou mostra para copiar
-
-### 4. Actualizar `LandingHeroSection.tsx`
-- Adicionar imagem de dashboard mockup abaixo do formulário (usando o asset existente ou o gerado)
-
-### 5. Actualizar `LandingSolutionSection.tsx`
-- Adicionar imagem ilustrativa no topo de cada card (aspect-ratio 16:9, rounded, com overlay gradient)
-
-### 6. Actualizar `LandingPositioningSection.tsx`
-- Adicionar imagem circular ou rounded acima do ícone em cada card
+Uma nova secção `LandingTestimonialsSection` com:
+- Título e subtítulo traduzidos via i18n
+- 3 testimonials com quote, nome, cargo, empresa e avatar placeholder
+- Barra de logos de empresas (usando logos placeholder estilizados com texto)
+- Animações framer-motion consistentes com o resto da landing (staggered reveals, hover effects)
+- Rating com estrelas em cada testimonial
 
 ## Ficheiros a criar/modificar
-1. **Criar** migração SQL — bucket `landing-assets`
-2. **Criar** `supabase/functions/landing-generate-images/index.ts`
-3. **Criar** `src/pages/GenerateLandingImages.tsx`
-4. **Modificar** `src/components/landing-fastcrm/LandingHeroSection.tsx`
-5. **Modificar** `src/components/landing-fastcrm/LandingSolutionSection.tsx`
-6. **Modificar** `src/components/landing-fastcrm/LandingPositioningSection.tsx`
-7. **Modificar** `supabase/config.toml` (adicionar função)
-8. **Modificar** `src/App.tsx` (rota admin para geração)
+
+### 1. Criar `src/components/landing-fastcrm/LandingTestimonialsSection.tsx`
+- 3 cards de testimonial com quote, autor, cargo, empresa, rating (5 estrelas)
+- Barra inferior com 5-6 logos de empresas fictícias (estilizados como texto/badges)
+- Animações: staggered card reveals, parallax background, hover scale
+- Usa `useTranslation("landing")` para todos os textos
+
+### 2. Actualizar ficheiros i18n (4 ficheiros)
+Adicionar chaves `testimonials.*` a `pt/landing.json`, `en/landing.json`, `es/landing.json`, `fr/landing.json`:
+- `testimonials.badge`, `testimonials.title`, `testimonials.subtitle`
+- `testimonials.t1Quote`, `testimonials.t1Name`, `testimonials.t1Title`, `testimonials.t1Company` (x3)
+- `testimonials.trustedBy`
+
+### 3. Actualizar `src/pages/FastCRMLanding.tsx`
+- Importar e inserir `LandingTestimonialsSection` entre `LandingPositioningSection` e `LandingPricingSection`
+
+## Testimonials de exemplo (PT)
+
+1. **"O FastCRM mudou completamente a forma como gerimos o nosso pipeline. Em 2 semanas, já tínhamos visibilidade total."** — Ana Rodrigues, Head of Sales, TechFlow
+2. **"Finalmente um CRM que nos diz o que fazer, não apenas onde guardar contactos. Os health scores são game-changer."** — Miguel Santos, Co-Founder, ScaleUp.io
+3. **"Passámos de folhas de cálculo para revenue intelligence em menos de uma hora. A equipa adoptou imediatamente."** — Sofia Costa, Revenue Operations, DataBridge
 
