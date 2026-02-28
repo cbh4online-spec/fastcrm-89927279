@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
@@ -17,7 +16,7 @@ const IMAGE_PROMPTS: Record<string, string> = {
   "positioning-leaders": "Generate a photorealistic image of a business leader/executive analyzing growth metrics on a large monitor in a corner office. City skyline visible through windows. Blue/purple ambient tones. Confident and focused. High quality photo style.",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
