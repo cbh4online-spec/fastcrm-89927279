@@ -215,5 +215,10 @@
     "terms": "Conditions",
     "gdpr": "RGPD",
     "allRightsReserved": "Tous droits réservés."
+  },
+  "integrations": {
+    "badge": "INTÉGRATIONS",
+    "title": "Connectez-vous à tout",
+    "subtitle": "FastCRM s'intègre nativement avec les outils que vous utilisez déjà. Paiements, communication, marketing et productivité — tout en un seul endroit."
   }
 }
