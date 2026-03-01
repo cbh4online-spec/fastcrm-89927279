@@ -1,26 +1,50 @@
 
-# Corrigir Geração de Imagens da Landing Page
+# Adicionar Secção de Logos de Integrações à Landing Page
 
-## Problemas identificados
+## O que será criado
 
-1. **Função não registada no `config.toml`** — A edge function `landing-generate-images` não está listada no ficheiro de configuração. Isto significa que JWT verification está activo por defeito, e chamadas sem autenticação (como as feitas pela página admin) são rejeitadas.
+Uma nova secção `LandingIntegrationsSection` com logos/ícones das integrações do FastCRM, posicionada entre a `LandingSolutionSection` e a `LandingComparisonSection`.
 
-2. **Import deprecado** — A função usa `import { serve } from "https://deno.land/std@0.168.0/http/server.ts"` em vez do `Deno.serve` nativo, que é o padrão actual.
+## Integrações a incluir
 
-3. **Timeout potencial** — A geração de 8 imagens sequencialmente pode exceder o tempo limite da função. Cada imagem leva ~10-20s.
+- **Pagamentos**: Stripe
+- **Comunicação**: WhatsApp, Gmail, Google Calendar
+- **CRM/Marketing**: Zoho, GoHighLevel (GHL), HubSpot
+- **Social**: Instagram, Facebook
+- **Produtividade**: Google Sheets, Slack, Zapier
+- **E-commerce**: Shopify
+- **Outros**: Twilio, Mailchimp, Calendly
 
-## Alterações
+Total: ~16 logos, organizados numa grelha animada com scroll infinito horizontal (marquee effect).
 
-### 1. Registar a função no `config.toml`
-Adicionar entrada `[functions.landing-generate-images]` com `verify_jwt = false` para permitir chamadas sem autenticação (é uma ferramenta admin interna).
+## Design
 
-### 2. Actualizar `supabase/functions/landing-generate-images/index.ts`
-- Substituir `import { serve }` deprecado por `Deno.serve` nativo
-- A página admin já chama imagem a imagem (1 por request), o que evita timeout
+- Fundo escuro consistente com o resto da landing
+- Título + subtítulo traduzidos (badge "INTEGRAÇÕES")
+- Duas filas de logos em marquee (direções opostas) para efeito visual dinâmico
+- Cada logo: ícone SVG inline ou texto estilizado dentro de um card glassmorphism (border subtle, bg semi-transparente)
+- Hover effect: escala + brilho + cor da marca
+- Animação framer-motion para entrada + CSS animation para marquee contínuo
 
-### 3. Re-deploy da função
-Após as alterações, a função será automaticamente re-deployed.
+## Ficheiros a criar/modificar
 
-## Ficheiros a modificar
-1. `supabase/config.toml` — adicionar registo da função
-2. `supabase/functions/landing-generate-images/index.ts` — corrigir import deprecado
+### 1. Criar `src/components/landing-fastcrm/LandingIntegrationsSection.tsx`
+- Componente com marquee duplo de logos de integrações
+- Ícones SVG inline para cada integração (simples, monocromáticos no estado normal, coloridos no hover)
+- Animações framer-motion para reveal + CSS keyframes para marquee
+
+### 2. Actualizar ficheiros i18n (4 ficheiros)
+Adicionar chaves `integrations.*` a `pt/landing.json`, `en/landing.json`, `es/landing.json`, `fr/landing.json`:
+- `integrations.badge` — "Integrações" / "Integrations" / etc.
+- `integrations.title` — "Conecte-se a tudo" / "Connect to everything"
+- `integrations.subtitle` — descrição breve
+
+### 3. Actualizar `src/pages/FastCRMLanding.tsx`
+- Importar e inserir `LandingIntegrationsSection` entre `LandingSolutionSection` e `LandingComparisonSection`
+
+## Secção Técnica
+
+- Logos serão SVG paths inline (sem dependências externas de imagens)
+- Marquee implementado com CSS `@keyframes` e `animation` (duplicação dos items para loop contínuo)
+- Cada integração terá: `name`, `icon` (SVG path), `color` (cor da marca para hover)
+- Responsive: 1 fila em mobile, 2 filas em desktop
