@@ -1,50 +1,32 @@
 
-# Adicionar Secção de Logos de Integrações à Landing Page
 
-## O que será criado
+# Prevenir Produtos Duplicados na Loja Online
 
-Uma nova secção `LandingIntegrationsSection` com logos/ícones das integrações do FastCRM, posicionada entre a `LandingSolutionSection` e a `LandingComparisonSection`.
+## Diagnóstico
 
-## Integrações a incluir
+Existem 3 pontos de criação de produtos:
 
-- **Pagamentos**: Stripe
-- **Comunicação**: WhatsApp, Gmail, Google Calendar
-- **CRM/Marketing**: Zoho, GoHighLevel (GHL), HubSpot
-- **Social**: Instagram, Facebook
-- **Produtividade**: Google Sheets, Slack, Zapier
-- **E-commerce**: Shopify
-- **Outros**: Twilio, Mailchimp, Calendly
+1. **`CreateProductDialog`** (formulário completo via `useCreateProduct`) — **sem verificação de duplicados**
+2. **`StoreQuickProductDialog`** (criação rápida na loja) — **já tem verificação** por SKU e nome
+3. **`MQPCWizard`** → edge function `product-quick-create` — **sem verificação de duplicados**
 
-Total: ~16 logos, organizados numa grelha animada com scroll infinito horizontal (marquee effect).
+## Plano
 
-## Design
+### 1. Adicionar verificação de duplicados ao `useCreateProduct` (`src/hooks/useProducts.ts`)
+Antes do `insert`, verificar se já existe produto com o mesmo SKU (se preenchido) ou mesmo nome no workspace. Lançar erro descritivo se encontrar.
 
-- Fundo escuro consistente com o resto da landing
-- Título + subtítulo traduzidos (badge "INTEGRAÇÕES")
-- Duas filas de logos em marquee (direções opostas) para efeito visual dinâmico
-- Cada logo: ícone SVG inline ou texto estilizado dentro de um card glassmorphism (border subtle, bg semi-transparente)
-- Hover effect: escala + brilho + cor da marca
-- Animação framer-motion para entrada + CSS animation para marquee contínuo
+### 2. Adicionar verificação de duplicados à edge function `product-quick-create`
+Após validação do body (passo 5) e antes do insert (passo 8), verificar duplicados por SKU e nome no workspace. Retornar erro 409 (Conflict) com mensagem clara.
 
-## Ficheiros a criar/modificar
+### 3. Adicionar índice único parcial na base de dados
+Criar índice único em `products(workspace_id, LOWER(sku))` onde `sku IS NOT NULL` — garantia a nível de DB de que não existem SKUs duplicados no mesmo workspace. O nome é mais difícil de restringir com índice (podem existir variantes), por isso fica apenas como validação aplicacional.
 
-### 1. Criar `src/components/landing-fastcrm/LandingIntegrationsSection.tsx`
-- Componente com marquee duplo de logos de integrações
-- Ícones SVG inline para cada integração (simples, monocromáticos no estado normal, coloridos no hover)
-- Animações framer-motion para reveal + CSS keyframes para marquee
+### 4. Mostrar feedback no `CreateProductDialog`
+Adicionar estado `duplicateWarning` e exibir alerta antes de submeter, semelhante ao que já existe no `StoreQuickProductDialog`.
 
-### 2. Actualizar ficheiros i18n (4 ficheiros)
-Adicionar chaves `integrations.*` a `pt/landing.json`, `en/landing.json`, `es/landing.json`, `fr/landing.json`:
-- `integrations.badge` — "Integrações" / "Integrations" / etc.
-- `integrations.title` — "Conecte-se a tudo" / "Connect to everything"
-- `integrations.subtitle` — descrição breve
+## Ficheiros a modificar
+1. `src/hooks/useProducts.ts` — adicionar check de duplicados no `useCreateProduct`
+2. `supabase/functions/product-quick-create/index.ts` — adicionar check antes do insert
+3. **Migração SQL** — criar índice único parcial em `products(workspace_id, lower(sku))`
+4. `src/components/products/CreateProductDialog.tsx` — mostrar warning de duplicado
 
-### 3. Actualizar `src/pages/FastCRMLanding.tsx`
-- Importar e inserir `LandingIntegrationsSection` entre `LandingSolutionSection` e `LandingComparisonSection`
-
-## Secção Técnica
-
-- Logos serão SVG paths inline (sem dependências externas de imagens)
-- Marquee implementado com CSS `@keyframes` e `animation` (duplicação dos items para loop contínuo)
-- Cada integração terá: `name`, `icon` (SVG path), `color` (cor da marca para hover)
-- Responsive: 1 fila em mobile, 2 filas em desktop
