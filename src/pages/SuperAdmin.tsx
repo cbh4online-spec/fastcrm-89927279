@@ -20,6 +20,7 @@ import {
   ActivityLogsSection,
   FeatureRegistrySection,
   RolloutDashboardSection,
+  PricingManagementSection,
 } from "@/components/super-admin";
 import { AdminSettingsPanel } from "@/components/admin/AdminSettingsPanel";
 import { UserRolesPanel } from "@/components/admin/UserRolesPanel";
@@ -87,7 +88,9 @@ export default function SuperAdmin() {
       case "plans":
         return <PlansSection />;
       case "limits":
-        return <PlansSection />; // Same component, different focus
+        return <PlansSection />;
+      case "pricing-management":
+        return <PricingManagementSection />;
       case "ai-usage":
         return <AIUsageSection />;
       case "subscriptions":
