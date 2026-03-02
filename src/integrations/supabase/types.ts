@@ -21961,6 +21961,63 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_pricing_config: {
+        Row: {
+          config_key: string
+          config_type: string
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          display_order: number | null
+          features: Json | null
+          highlights: Json | null
+          id: string
+          is_active: boolean | null
+          is_highlighted: boolean | null
+          metadata: Json | null
+          name: string
+          price_monthly: number | null
+          price_yearly: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          config_key: string
+          config_type?: string
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          display_order?: number | null
+          features?: Json | null
+          highlights?: Json | null
+          id?: string
+          is_active?: boolean | null
+          is_highlighted?: boolean | null
+          metadata?: Json | null
+          name: string
+          price_monthly?: number | null
+          price_yearly?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          config_key?: string
+          config_type?: string
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          display_order?: number | null
+          features?: Json | null
+          highlights?: Json | null
+          id?: string
+          is_active?: boolean | null
+          is_highlighted?: boolean | null
+          metadata?: Json | null
+          name?: string
+          price_monthly?: number | null
+          price_yearly?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       post_comments: {
         Row: {
           attachments: Json | null

@@ -376,3 +376,6 @@ verify_jwt = false
 [functions.landing-generate-images]
 verify_jwt = false
 
+[functions.pricing-ai-assistant]
+verify_jwt = false
+

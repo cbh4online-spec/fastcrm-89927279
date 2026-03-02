@@ -77,6 +77,7 @@ const navigation: NavSection[] = [
     icon: PackageIcon,
     items: [
       { id: "plans", label: "Planos", icon: CreditCard },
+      { id: "pricing-management", label: "Pricing & Módulos", icon: TrendingUp },
       { id: "limits", label: "Limites & Features", icon: Gauge },
       { id: "ai-usage", label: "Uso de IA", icon: Brain },
     ],
