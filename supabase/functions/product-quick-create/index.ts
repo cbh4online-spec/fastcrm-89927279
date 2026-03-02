@@ -126,6 +126,33 @@ Deno.serve(async (req) => {
       return errorResponse(400, "VALIDATION_ERROR", "product.status must be draft or active");
     }
 
+    // 5b. Check for duplicate SKU
+    const productSku = product.sku?.trim();
+    if (productSku) {
+      const { data: skuDup } = await adminClient
+        .from("products")
+        .select("id, name")
+        .eq("workspace_id", workspaceId)
+        .ilike("sku", productSku)
+        .limit(1);
+      if (skuDup && skuDup.length > 0) {
+        return errorResponse(409, "DUPLICATE_SKU", `Já existe um produto com o SKU "${productSku}": "${skuDup[0].name}"`);
+      }
+    }
+
+    // 5c. Check for duplicate name
+    {
+      const { data: nameDup } = await adminClient
+        .from("products")
+        .select("id, name")
+        .eq("workspace_id", workspaceId)
+        .ilike("name", name)
+        .limit(1);
+      if (nameDup && nameDup.length > 0) {
+        return errorResponse(409, "DUPLICATE_NAME", `Já existe um produto com o nome "${name}"`);
+      }
+    }
+
     // 6. Resolve category name
     const { data: categoryData } = await adminClient
       .from("product_categories")

@@ -112,6 +112,32 @@ export function useCreateProduct() {
         throw new Error("Workspace ou utilizador não encontrado");
       }
 
+      // Check for duplicate SKU
+      if (input.sku?.trim()) {
+        const { data: skuDup } = await supabase
+          .from("products")
+          .select("id, name")
+          .eq("workspace_id", currentWorkspace.id)
+          .ilike("sku", input.sku.trim())
+          .limit(1);
+        if (skuDup && skuDup.length > 0) {
+          throw new Error(`Já existe um produto com o SKU "${input.sku.trim()}": "${skuDup[0].name}"`);
+        }
+      }
+
+      // Check for duplicate name
+      if (input.name?.trim()) {
+        const { data: nameDup } = await supabase
+          .from("products")
+          .select("id, name")
+          .eq("workspace_id", currentWorkspace.id)
+          .ilike("name", input.name.trim())
+          .limit(1);
+        if (nameDup && nameDup.length > 0) {
+          throw new Error(`Já existe um produto com o nome "${input.name.trim()}"`);
+        }
+      }
+
       // Ensure category exists in product_categories table
       await ensureCategoryExists(input.category, currentWorkspace.id);
 
