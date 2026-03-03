@@ -110,6 +110,31 @@ export function useCreatePOsFromNeeds(workspaceId: string | undefined) {
   });
 }
 
+export function useUpdateNeedSupplier(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ needId, supplierId, unitPrice }: { needId: string; supplierId: string; unitPrice: number }) => {
+      const { error } = await supabase
+        .from("procurement_needs")
+        .update({
+          recommended_supplier_id: supplierId,
+          suggested_unit_price: unitPrice,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("id", needId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["procurement-needs-board", workspaceId] });
+      toast.success("Fornecedor atualizado");
+    },
+    onError: (err: any) => {
+      toast.error("Erro ao atualizar fornecedor: " + (err.message || "Erro desconhecido"));
+    },
+  });
+}
+
 export function useCreateRFQFromNeeds(workspaceId: string | undefined) {
   const queryClient = useQueryClient();
 

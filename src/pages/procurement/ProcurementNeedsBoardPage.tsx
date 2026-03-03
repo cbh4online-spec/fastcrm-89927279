@@ -4,7 +4,7 @@ import { NeedsBoardHeader } from "@/components/procurement/needs/NeedsBoardHeade
 import { NeedsBoardTable } from "@/components/procurement/needs/NeedsBoardTable";
 import { NeedsBoardFilters } from "@/components/procurement/needs/NeedsBoardFilters";
 import { NeedDetailDrawer } from "@/components/procurement/needs/NeedDetailDrawer";
-import { useProcurementNeedsBoard, useRecomputeNeeds, useUpdateNeedStatus, useCreatePOsFromNeeds, useCreateRFQFromNeeds, ProcurementNeed } from "@/hooks/useProcurementNeeds";
+import { useProcurementNeedsBoard, useRecomputeNeeds, useUpdateNeedStatus, useCreatePOsFromNeeds, useCreateRFQFromNeeds, useUpdateNeedSupplier, ProcurementNeed } from "@/hooks/useProcurementNeeds";
 import { useState, useMemo } from "react";
 
 export default function ProcurementNeedsBoardPage() {
@@ -15,6 +15,7 @@ export default function ProcurementNeedsBoardPage() {
   const updateStatus = useUpdateNeedStatus(workspaceId);
   const createPOs = useCreatePOsFromNeeds(workspaceId);
   const createRFQ = useCreateRFQFromNeeds(workspaceId);
+  const updateSupplier = useUpdateNeedSupplier(workspaceId);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [detailNeed, setDetailNeed] = useState<ProcurementNeed | null>(null);
@@ -45,6 +46,10 @@ export default function ProcurementNeedsBoardPage() {
 
     return result;
   }, [needs, filter, searchQuery]);
+
+  const handleChooseSupplier = (needId: string, supplierId: string, unitPrice: number) => {
+    updateSupplier.mutate({ needId, supplierId, unitPrice });
+  };
 
   const handleBulkCreatePO = () => {
     if (!selectedIds.length) return;
@@ -111,12 +116,14 @@ export default function ProcurementNeedsBoardPage() {
           onViewDetail={setDetailNeed}
           onIgnore={handleIgnore}
           onCreatePO={(id) => createPOs.mutate([id])}
+          onChooseSupplier={handleChooseSupplier}
         />
         <NeedDetailDrawer
           need={detailNeed}
           onClose={() => setDetailNeed(null)}
           onIgnore={handleIgnore}
           onCreatePO={(id) => createPOs.mutate([id])}
+          onChooseSupplier={handleChooseSupplier}
         />
       </div>
     </DashboardLayout>
