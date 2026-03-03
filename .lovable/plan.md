@@ -1,34 +1,56 @@
 
 
-# Corrigir Cálculo de Margens na Vista Interna da Proposta
+# Histórico de Alterações do RFQ
 
-## Problema Identificado
+## Plano
 
-No `ProposalInternalView.tsx`, existem dois bugs no cálculo de margens:
+### 1. Migration — Tabela `rfq_audit_log` + Trigger
 
-1. **Margem usa `item.total_price` (valor guardado na DB)** em vez de `item.unit_price * item.quantity`. Quando o utilizador edita o preço ou quantidade nos inputs, o `total_price` não se atualiza, resultando em margens calculadas com valores desatualizados.
+Criar tabela `rfq_audit_log` seguindo o padrão de `contact_audit_log`:
 
-2. **Coluna "Custo" mostra custo total** (`(directCost + opCost) * qty`) enquanto a coluna "Preço" mostra preço unitário — inconsistência visual que confunde a leitura.
+```sql
+CREATE TABLE public.rfq_audit_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  rfq_id uuid NOT NULL REFERENCES public.rfqs(id) ON DELETE CASCADE,
+  changed_by uuid,
+  changed_at timestamptz NOT NULL DEFAULT now(),
+  field_name text NOT NULL,
+  old_value jsonb,
+  new_value jsonb
+);
+```
 
-## Correções
+- Índices em `(workspace_id)`, `(rfq_id, changed_at DESC)`
+- RLS: SELECT para workspace members
+- Trigger `fn_rfq_audit_trigger()` BEFORE UPDATE nos campos: `title`, `status`, `due_date`, `notes`, `currency`, `payment_terms`, `delivery_location`, `quote_validity_days`, `incoterm`, `buyer_name`, `buyer_email`, `project_id`
+- Adicionar coluna `updated_by uuid` à tabela `rfqs` para rastrear quem fez a alteração
 
-**Ficheiro: `src/components/proposals/ProposalInternalView.tsx`**
+### 2. Hook `useRFQAuditLog`
 
-### A. Recalcular subtotal/margem dinamicamente (linhas 97-109)
-- Substituir `item.total_price` por `item.unit_price * item.quantity` nos cálculos de `itemsTotal`
-- Garantir que totais e margens refletem os valores atuais dos inputs
+Novo ficheiro `src/hooks/useRFQAuditLog.ts` — query simples que busca logs por `rfq_id`, ordenados por `changed_at DESC`, limite 200.
 
-### B. Corrigir cálculo por item (linhas 299-303)
-- `itemSubtotal = item.unit_price * item.quantity` (em vez de `item.total_price`)
-- `itemMargin = itemSubtotal - itemCost`
-- `itemMarginPct = itemSubtotal > 0 ? (itemMargin / itemSubtotal) * 100 : 0`
+### 3. Componente `RFQAuditTrail`
 
-### C. Coluna "Custo" mostrar custo unitário (linha 361)
-- Mostrar `(directCost + opCost)` por unidade (consistente com coluna "Preço" que é unitário)
-- Manter o cálculo total para a margem
+Novo ficheiro `src/components/procurement/RFQAuditTrail.tsx` — componente timeline (padrão do `OrderAuditTrail`) com:
+- Scroll area, timeline visual com dots
+- Badge por campo alterado com label PT
+- Valor antigo → novo para campos chave (status, título, etc.)
+- Busca do email do utilizador via profiles
 
-### D. Subtotal na tabela (linha 370)
-- Usar `item.unit_price * item.quantity` em vez de `item.total_price`
+### 4. Integrar no `RFQDetailPage.tsx`
 
-Um único ficheiro a editar.
+- Adicionar `RFQAuditTrail` no fundo da página de detalhe do RFQ
+- Passar `rfq.id` como prop
+
+### 5. Atualizar `useUpdateRFQ`
+
+- Passar `updated_by: auth.uid()` no update para que o trigger saiba quem alterou
+
+### Ficheiros
+- **Migration SQL** (1 ficheiro)
+- `src/hooks/useRFQAuditLog.ts` (novo)
+- `src/components/procurement/RFQAuditTrail.tsx` (novo)
+- `src/pages/procurement/RFQDetailPage.tsx` (editar)
+- `src/hooks/useRFQ.ts` (editar `useUpdateRFQ`)
 
