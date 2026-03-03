@@ -23,8 +23,8 @@ serve(async (req) => {
     }
 
     const { project_id, supplier_ids, workspace_id, title, due_date, need_ids } = await req.json();
-    if (!workspace_id || !supplier_ids?.length) {
-      return new Response(JSON.stringify({ error: "workspace_id and supplier_ids required" }), {
+    if (!workspace_id) {
+      return new Response(JSON.stringify({ error: "workspace_id required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -79,7 +79,6 @@ serve(async (req) => {
 
     if (rfqErr) throw rfqErr;
 
-    if (rfqErr) throw rfqErr;
 
     // Create RFQ items from needs
     const rfqItemsData = needs.map((n: any) => ({
@@ -94,16 +93,18 @@ serve(async (req) => {
     const { error: itemsErr } = await supabase.from("rfq_items").insert(rfqItemsData);
     if (itemsErr) throw itemsErr;
 
-    // Create RFQ suppliers
-    const rfqSuppliersData = supplier_ids.map((sid: string) => ({
-      workspace_id,
-      rfq_id: rfq.id,
-      supplier_id: sid,
-      status: "invited",
-    }));
+    // Create RFQ suppliers (only if supplier_ids provided)
+    if (supplier_ids?.length) {
+      const rfqSuppliersData = supplier_ids.map((sid: string) => ({
+        workspace_id,
+        rfq_id: rfq.id,
+        supplier_id: sid,
+        status: "invited",
+      }));
 
-    const { error: suppErr } = await supabase.from("rfq_suppliers").insert(rfqSuppliersData);
-    if (suppErr) throw suppErr;
+      const { error: suppErr } = await supabase.from("rfq_suppliers").insert(rfqSuppliersData);
+      if (suppErr) throw suppErr;
+    }
 
     return new Response(JSON.stringify({ rfq_id: rfq.id, items_count: needs.length, suppliers_count: supplier_ids.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

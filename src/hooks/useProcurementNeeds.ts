@@ -105,7 +105,8 @@ export function useCreatePOsFromNeeds(workspaceId: string | undefined) {
       toast.success(`${data?.count || 0} Ordem(ns) de Compra criada(s)`);
     },
     onError: (err: any) => {
-      toast.error("Erro ao criar OC: " + (err.message || "Erro desconhecido"));
+      const msg = err?.context?.json?.error || err?.message || "Erro desconhecido";
+      toast.error("Erro ao criar OC: " + msg);
     },
   });
 }
@@ -160,7 +161,11 @@ export function useCreateRFQFromNeeds(workspaceId: string | undefined) {
           due_date: dueDate || null,
         },
       });
-      if (error) throw error;
+      if (error) {
+        const errorBody = await error?.context?.json?.().catch(() => null);
+        throw new Error(errorBody?.error || error.message || "Erro desconhecido");
+      }
+      if (data?.error) throw new Error(data.error);
       return data;
     },
     onSuccess: () => {
