@@ -46,7 +46,7 @@ serve(async (req) => {
       .select("product_id, quantity, order_note_id, order_notes!inner(status, created_at, opportunity_id)")
       .eq("workspace_id", workspace_id)
       .not("product_id", "is", null)
-      .in("order_notes.status", ["approved", "submitted"]);
+      .in("order_notes.status", ["approved", "submitted", "in_preparation"]);
 
     // 3) Collect demand from procurement project items (open projects)
     const { data: projectItems } = await supabase
