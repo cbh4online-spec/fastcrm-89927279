@@ -26257,36 +26257,42 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          line_number: number | null
           need_id: string | null
           preferred_supplier_id: string | null
           product_id: string | null
           qty: number
           rfq_id: string
           spec_notes: string | null
+          unit: string
           variant_id: string | null
           workspace_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          line_number?: number | null
           need_id?: string | null
           preferred_supplier_id?: string | null
           product_id?: string | null
           qty?: number
           rfq_id: string
           spec_notes?: string | null
+          unit?: string
           variant_id?: string | null
           workspace_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          line_number?: number | null
           need_id?: string | null
           preferred_supplier_id?: string | null
           product_id?: string | null
           qty?: number
           rfq_id?: string
           spec_notes?: string | null
+          unit?: string
           variant_id?: string | null
           workspace_id?: string
         }
@@ -26335,10 +26341,66 @@ export type Database = {
           },
         ]
       }
+      rfq_quote_audit_log: {
+        Row: {
+          changed_at: string
+          field_changed: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          rfq_quote_id: string | null
+          supplier_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          changed_at?: string
+          field_changed: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          rfq_quote_id?: string | null
+          supplier_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          changed_at?: string
+          field_changed?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          rfq_quote_id?: string | null
+          supplier_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_quote_audit_log_rfq_quote_id_fkey"
+            columns: ["rfq_quote_id"]
+            isOneToOne: false
+            referencedRelation: "rfq_quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_quote_audit_log_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_quote_audit_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rfq_quotes: {
         Row: {
           created_at: string
           currency: string
+          discount_percent: number
           id: string
           is_selected: boolean
           lead_time_days: number | null
@@ -26347,13 +26409,16 @@ export type Database = {
           pack_size: number | null
           rfq_id: string
           rfq_item_id: string
+          submitted_via_portal: boolean
           supplier_id: string
           unit_price: number
+          vat_percent: number
           workspace_id: string
         }
         Insert: {
           created_at?: string
           currency?: string
+          discount_percent?: number
           id?: string
           is_selected?: boolean
           lead_time_days?: number | null
@@ -26362,13 +26427,16 @@ export type Database = {
           pack_size?: number | null
           rfq_id: string
           rfq_item_id: string
+          submitted_via_portal?: boolean
           supplier_id: string
           unit_price?: number
+          vat_percent?: number
           workspace_id: string
         }
         Update: {
           created_at?: string
           currency?: string
+          discount_percent?: number
           id?: string
           is_selected?: boolean
           lead_time_days?: number | null
@@ -26377,8 +26445,10 @@ export type Database = {
           pack_size?: number | null
           rfq_id?: string
           rfq_item_id?: string
+          submitted_via_portal?: boolean
           supplier_id?: string
           unit_price?: number
+          vat_percent?: number
           workspace_id?: string
         }
         Relationships: [
@@ -26416,6 +26486,9 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          portal_token: string | null
+          portal_token_expires_at: string | null
+          responded_at: string | null
           rfq_id: string
           sent_at: string | null
           status: string
@@ -26425,6 +26498,9 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          portal_token?: string | null
+          portal_token_expires_at?: string | null
+          responded_at?: string | null
           rfq_id: string
           sent_at?: string | null
           status?: string
@@ -26434,6 +26510,9 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          portal_token?: string | null
+          portal_token_expires_at?: string | null
+          responded_at?: string | null
           rfq_id?: string
           sent_at?: string | null
           status?: string
@@ -26466,36 +26545,63 @@ export type Database = {
       }
       rfqs: {
         Row: {
+          buyer_email: string | null
+          buyer_name: string | null
           created_at: string
           created_by: string | null
+          currency: string
+          delivery_location: string | null
           due_date: string | null
           id: string
+          incoterm: string | null
           notes: string | null
+          payment_terms: string | null
+          pdf_url: string | null
           project_id: string | null
+          quote_validity_days: number
+          rfq_number: string | null
           status: string
           title: string
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          buyer_email?: string | null
+          buyer_name?: string | null
           created_at?: string
           created_by?: string | null
+          currency?: string
+          delivery_location?: string | null
           due_date?: string | null
           id?: string
+          incoterm?: string | null
           notes?: string | null
+          payment_terms?: string | null
+          pdf_url?: string | null
           project_id?: string | null
+          quote_validity_days?: number
+          rfq_number?: string | null
           status?: string
           title: string
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          buyer_email?: string | null
+          buyer_name?: string | null
           created_at?: string
           created_by?: string | null
+          currency?: string
+          delivery_location?: string | null
           due_date?: string | null
           id?: string
+          incoterm?: string | null
           notes?: string | null
+          payment_terms?: string | null
+          pdf_url?: string | null
           project_id?: string | null
+          quote_validity_days?: number
+          rfq_number?: string | null
           status?: string
           title?: string
           updated_at?: string

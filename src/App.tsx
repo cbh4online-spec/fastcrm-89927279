@@ -182,6 +182,7 @@ import ProcurementProjectDetailPage from "./pages/procurement/ProcurementProject
 import RFQsPage from "./pages/procurement/RFQsPage";
 import RFQDetailPage from "./pages/procurement/RFQDetailPage";
 import ProcurementNeedsBoardPage from "./pages/procurement/ProcurementNeedsBoardPage";
+import SupplierPortalPage from "./pages/procurement/SupplierPortalPage";
 
 // C2C Marketplace
 import C2CMarketplace from "./pages/c2c/C2CMarketplace";
@@ -620,6 +621,9 @@ const App = () => (
               <Route path="/c2c/:workspaceSlug/sponsor" element={<C2CSponsorPortal />} />
               <Route path="/c2c/:workspaceSlug/invite/:token" element={<C2CSellerInviteActivation />} />
               <Route path="/c2c/:workspaceSlug/seller/:sellerId" element={<C2CPublicSellerProfile />} />
+
+              {/* Supplier Portal (public, token-based) */}
+              <Route path="/supplier-portal/:token" element={<SupplierPortalPage />} />
               
               {/* Public FastClub Landing */}
               <Route path="/fastclub" element={<FastClubLandingPage />} />
