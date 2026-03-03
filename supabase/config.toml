@@ -379,3 +379,8 @@ verify_jwt = false
 [functions.pricing-ai-assistant]
 verify_jwt = false
 
+[functions.procurement-suggest-suppliers]
+verify_jwt = false
+
+[functions.procurement-receive-items]
+verify_jwt = false

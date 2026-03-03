@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { usePurchaseOrders } from "@/hooks/useProcurement";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
@@ -33,22 +35,33 @@ export function GoodsReceiptForm({ open, onOpenChange, workspaceId, onSave }: Pr
           order_item_id: item.id,
           quantity_received: 0,
           description: item.description,
-          max: item.quantity - item.received_quantity,
+          max: item.quantity - (item.received_quantity || 0),
         })));
       }
     }
   }, [selectedPO, orders]);
 
   const handleSubmit = async () => {
-    if (!selectedPO) return;
+    if (!selectedPO || !workspaceId) return;
     const validItems = receiptItems.filter(i => i.quantity_received > 0);
     if (!validItems.length) return;
     setSaving(true);
-    await onSave({
-      purchase_order_id: selectedPO,
-      notes: notes || undefined,
-      items: validItems.map(({ order_item_id, quantity_received }) => ({ order_item_id, quantity_received })),
-    });
+    try {
+      // Use edge function for atomic receipt + stock + cost update
+      const { data, error } = await supabase.functions.invoke("procurement-receive-items", {
+        body: {
+          workspace_id: workspaceId,
+          purchase_order_id: selectedPO,
+          items: validItems.map(({ order_item_id, quantity_received }) => ({ order_item_id, quantity_received })),
+          notes: notes || undefined,
+        },
+      });
+      if (error) throw error;
+      toast.success("Receção registada");
+      onOpenChange(false);
+    } catch (e) {
+      toast.error("Erro ao registar receção");
+    }
     setSaving(false);
     setSelectedPO("");
     setNotes("");
