@@ -1,38 +1,37 @@
 
 
-# Corrigir Margens — cost_snapshot desatualizado
+# Adicionar Link para Loja Online nos Itens da Proposta
 
 ## Problema
-
-O item "Instalação, Configuração e formação" tem `cost_snapshot = 1400€` na tabela `proposal_items`, mas o custo real do produto (`direct_cost`) é **650€**. Isto resulta numa margem de -65% quando deveria ser +24%.
-
-O `cost_snapshot` é capturado no momento da criação da proposta e nunca mais é atualizado, mesmo que o custo do produto mude.
+Quando um produto está publicado na loja online (status "active"), não há forma rápida de o visualizar a partir da proposta.
 
 ## Solução
 
-### 1. Adicionar botão "Atualizar Custos" na vista interna
+### 1. Expandir dados passados ao `ProposalInternalView`
 
-**Ficheiro: `src/components/proposals/ProposalInternalView.tsx`**
+**`src/components/proposals/ProposalDetailContent.tsx`** — No mapeamento de items (linha ~975), adicionar `product_id` e `product_status`:
+```typescript
+product_id: item.product_id,
+product_status: item.product?.status,
+```
 
-- Adicionar um botão junto ao cabeçalho "Itens da Proposta" que permite re-sincronizar os `cost_snapshot` e `operational_cost_snapshot` com os valores atuais dos produtos
-- Ao clicar, busca os custos atuais de cada produto e atualiza os `proposal_items`
+**`src/hooks/useProposals.ts`** — Adicionar `status` ao select do produto na query de proposal items:
+```
+product:products(id, name, base_price, direct_cost, operational_cost, images, primary_image_index, status)
+```
 
-### 2. Criar mutation para atualizar snapshots
+Atualizar interface `ProposalItem.product` para incluir `status?: string`.
 
-**Ficheiro: `src/hooks/useProposals.ts`**
+### 2. Adicionar link na tabela de itens
 
-- Nova mutation `useRefreshCostSnapshots` que:
-  1. Busca os `proposal_items` com os respetivos `product_id`
-  2. Busca os custos atuais dos produtos (`direct_cost`, `operational_cost`)
-  3. Atualiza cada `proposal_item` com os novos valores de `cost_snapshot` e `operational_cost_snapshot`
-  4. Invalida a query de proposal items
-
-### 3. Corrigir dados existentes (one-time fix)
-
-- Executar uma migration que atualiza os `cost_snapshot` de todos os `proposal_items` com os valores atuais dos produtos, para corrigir snapshots errados já existentes
+**`src/components/proposals/ProposalInternalView.tsx`**:
+- Atualizar a interface para aceitar `product_id` e `product_status` nos items
+- Importar `useWorkspace` e `getPublicBaseUrl`
+- Junto ao nome de cada item, se `product_status === "active"` e existe `product_id`, mostrar um ícone `ExternalLink` que abre `/store/{workspace.slug}/product/{product_id}` numa nova tab
+- Ícone pequeno (h-3.5 w-3.5) com tooltip "Ver na loja online"
 
 ### Ficheiros a editar
-- `src/components/proposals/ProposalInternalView.tsx` — botão "Atualizar Custos"
-- `src/hooks/useProposals.ts` — mutation `useRefreshCostSnapshots`
-- Migration SQL — fix one-time dos snapshots existentes
+- `src/hooks/useProposals.ts` — adicionar `status` ao select e interface
+- `src/components/proposals/ProposalDetailContent.tsx` — passar `product_id` e `product_status`
+- `src/components/proposals/ProposalInternalView.tsx` — mostrar link para loja
 
