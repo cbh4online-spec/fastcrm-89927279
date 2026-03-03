@@ -181,6 +181,7 @@ import ProcurementProjectsPage from "./pages/procurement/ProcurementProjectsPage
 import ProcurementProjectDetailPage from "./pages/procurement/ProcurementProjectDetailPage";
 import RFQsPage from "./pages/procurement/RFQsPage";
 import RFQDetailPage from "./pages/procurement/RFQDetailPage";
+import ProcurementNeedsBoardPage from "./pages/procurement/ProcurementNeedsBoardPage";
 
 // C2C Marketplace
 import C2CMarketplace from "./pages/c2c/C2CMarketplace";
@@ -515,6 +516,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/procurement/projects/:id" element={<ProcurementProjectDetailPage />} />
                 <Route path="/dashboard/procurement/rfqs" element={<RFQsPage />} />
                 <Route path="/dashboard/procurement/rfqs/:id" element={<RFQDetailPage />} />
+                <Route path="/dashboard/procurement/needs" element={<ProcurementNeedsBoardPage />} />
                 
                 {/* Order Notes Admin Routes */}
                 <Route path="/dashboard/order-notes" element={<OrderNotesPage />} />

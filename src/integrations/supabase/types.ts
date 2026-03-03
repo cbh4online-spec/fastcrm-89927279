@@ -22580,40 +22580,82 @@ export type Database = {
       procurement_needs: {
         Row: {
           created_at: string
+          demand_sources_json: Json | null
+          demand_total: number
+          earliest_due_date: string | null
+          estimated_value: number | null
           id: string
+          last_computed_at: string | null
+          priority_score: number | null
           product_id: string | null
-          project_id: string
+          project_id: string | null
           project_item_id: string | null
           qty_available: number
           qty_needed: number
           qty_to_buy: number
+          recommended_supplier_id: string | null
+          shortage: number
           status: string
+          stock_allocated: number
+          stock_available: number
+          stock_on_hand: number
+          suggested_unit_price: number | null
+          suggestion_json: Json | null
+          updated_at: string | null
           variant_id: string | null
           workspace_id: string
         }
         Insert: {
           created_at?: string
+          demand_sources_json?: Json | null
+          demand_total?: number
+          earliest_due_date?: string | null
+          estimated_value?: number | null
           id?: string
+          last_computed_at?: string | null
+          priority_score?: number | null
           product_id?: string | null
-          project_id: string
+          project_id?: string | null
           project_item_id?: string | null
           qty_available?: number
           qty_needed?: number
           qty_to_buy?: number
+          recommended_supplier_id?: string | null
+          shortage?: number
           status?: string
+          stock_allocated?: number
+          stock_available?: number
+          stock_on_hand?: number
+          suggested_unit_price?: number | null
+          suggestion_json?: Json | null
+          updated_at?: string | null
           variant_id?: string | null
           workspace_id: string
         }
         Update: {
           created_at?: string
+          demand_sources_json?: Json | null
+          demand_total?: number
+          earliest_due_date?: string | null
+          estimated_value?: number | null
           id?: string
+          last_computed_at?: string | null
+          priority_score?: number | null
           product_id?: string | null
-          project_id?: string
+          project_id?: string | null
           project_item_id?: string | null
           qty_available?: number
           qty_needed?: number
           qty_to_buy?: number
+          recommended_supplier_id?: string | null
+          shortage?: number
           status?: string
+          stock_allocated?: number
+          stock_available?: number
+          stock_on_hand?: number
+          suggested_unit_price?: number | null
+          suggestion_json?: Json | null
+          updated_at?: string | null
           variant_id?: string | null
           workspace_id?: string
         }
@@ -22644,6 +22686,13 @@ export type Database = {
             columns: ["project_item_id"]
             isOneToOne: false
             referencedRelation: "procurement_project_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procurement_needs_recommended_supplier_id_fkey"
+            columns: ["recommended_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
           {
@@ -28508,6 +28557,68 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "sponsor_applications_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_allocations: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string | null
+          qty_allocated: number
+          source_id: string
+          source_type: string
+          variant_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          qty_allocated?: number
+          source_id: string
+          source_type: string
+          variant_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          qty_allocated?: number
+          source_id?: string
+          source_type?: string
+          variant_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_allocations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_allocations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_allocations_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_allocations_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
