@@ -1,33 +1,33 @@
 
 
-# Dashboard Resumo de RFQs com Indicadores de Deadlines
+# Envio Automático de Email 48h Antes do Deadline de RFQ
 
-## Objetivo
-Criar uma nova página `/dashboard/procurement/rfqs-dashboard` com KPIs, timeline de deadlines, e listagem visual de RFQs organizados por urgência.
+## Abordagem
+
+Criar uma edge function cron que corre periodicamente, deteta RFQs com deadline a ≤48h, e envia emails de lembrete aos fornecedores via Resend. Usa o template `rfq_reminder` já existente no `rfq-send`.
 
 ## Alterações
 
-### 1. Nova página `src/pages/procurement/RFQsDashboardPage.tsx`
-- **KPI Strip** (4 cards usando `KPICard` do design system):
-  - Total RFQs ativas | Cotações recebidas | Expiradas | A expirar em 7 dias
-- **Timeline de Deadlines** — lista vertical ordenada por `due_date` com indicadores visuais:
-  - Vermelho pulsante: expirado
-  - Laranja: ≤3 dias
-  - Amarelo: ≤7 dias
-  - Verde: >7 dias
-- **Gráfico Donut** — distribuição por estado (Recharts `PieChart`)
-- **Tabela de RFQs urgentes** — top 10 por proximidade de deadline, com badge colorido e link para detalhe
-- Dados via `useRFQs` existente, processamento client-side com `useMemo`
+### 1. Nova edge function `rfq-deadline-reminder/index.ts`
+- Consulta RFQs com `status` em (`sent`, `receiving_quotes`) e `due_date` entre agora e agora+48h
+- Para cada RFQ, busca fornecedores associados (com email e portal token)
+- Envia email de lembrete via Resend usando o template visual já definido em `rfq-send` (reutilizar o HTML do `rfq_reminder`)
+- Regista em `admin_notifications` que o lembrete foi enviado
+- Marca na `rfq_suppliers` um campo `reminder_sent_at` para evitar envios duplicados (apenas envia se `reminder_sent_at` IS NULL)
+- Usa `RESEND_API_KEY` (já configurado) e `SUPABASE_SERVICE_ROLE_KEY`
 
-### 2. Registo da rota em `src/App.tsx`
-- Import do componente
-- Nova `Route` em `/dashboard/procurement/rfqs-dashboard`
+### 2. Migração DB
+- Adicionar coluna `reminder_sent_at timestamptz` à tabela `rfq_suppliers` (nullable, default null) — controlo de idempotência
 
-### 3. Navegação no menu procurement
-- Adicionar link ao sidebar/menu de procurement (se existente)
+### 3. Cron job (pg_cron)
+- Agendar execução a cada hora: `0 * * * *`
+- Chamar a edge function `rfq-deadline-reminder` via `net.http_post`
+
+### 4. Config (`supabase/config.toml`)
+- Não editar (auto-gerido), a function será deployed automaticamente
 
 ### Ficheiros
-- **Criar**: `src/pages/procurement/RFQsDashboardPage.tsx`
-- **Editar**: `src/App.tsx` (import + rota)
-- **Editar**: ficheiro de navegação procurement (sidebar links)
+- **Criar**: `supabase/functions/rfq-deadline-reminder/index.ts`
+- **Migração**: adicionar `reminder_sent_at` a `rfq_suppliers`
+- **SQL (insert)**: criar cron job via `pg_cron` + `pg_net`
 
