@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS platform_pricing_config_type_key_unique ON public.platform_pricing_config (config_type, config_key);
