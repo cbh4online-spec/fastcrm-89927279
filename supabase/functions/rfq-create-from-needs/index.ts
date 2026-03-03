@@ -22,20 +22,27 @@ serve(async (req) => {
       userId = user?.id || null;
     }
 
-    const { project_id, supplier_ids, workspace_id, title, due_date } = await req.json();
-    if (!project_id || !workspace_id || !supplier_ids?.length) {
-      return new Response(JSON.stringify({ error: "project_id, workspace_id and supplier_ids required" }), {
+    const { project_id, supplier_ids, workspace_id, title, due_date, need_ids } = await req.json();
+    if (!workspace_id || !supplier_ids?.length) {
+      return new Response(JSON.stringify({ error: "workspace_id and supplier_ids required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Get open needs for this project
-    const { data: needs } = await supabase
+    // Get open needs - filter by project or need_ids
+    let needsQuery = supabase
       .from("procurement_needs")
       .select("*, products:product_id(name)")
-      .eq("project_id", project_id)
       .eq("workspace_id", workspace_id)
-      .eq("status", "open");
+      .in("status", ["open", "rfq_in_progress"]);
+
+    if (need_ids?.length) {
+      needsQuery = needsQuery.in("id", need_ids);
+    } else if (project_id) {
+      needsQuery = needsQuery.eq("project_id", project_id);
+    }
+
+    const { data: needs } = await needsQuery;
 
     if (!needs?.length) {
       return new Response(JSON.stringify({ error: "No open procurement needs" }), {
@@ -43,26 +50,34 @@ serve(async (req) => {
       });
     }
 
-    // Get project name for RFQ title
-    const { data: project } = await supabase
-      .from("procurement_projects")
-      .select("name")
-      .eq("id", project_id)
-      .single();
+    let rfqTitle = title;
+    if (!rfqTitle && project_id) {
+      const { data: project } = await supabase
+        .from("procurement_projects")
+        .select("name")
+        .eq("id", project_id)
+        .single();
+      rfqTitle = `RFQ - ${project?.name || "Necessidades"}`;
+    }
+    if (!rfqTitle) {
+      rfqTitle = `RFQ - Necessidades de Compra ${new Date().toLocaleDateString("pt-PT")}`;
+    }
 
     // Create RFQ
     const { data: rfq, error: rfqErr } = await supabase
       .from("rfqs")
       .insert({
         workspace_id,
-        project_id,
-        title: title || `RFQ - ${project?.name || project_id.slice(0, 8)}`,
+        project_id: project_id || null,
+        title: rfqTitle,
         status: "draft",
         due_date: due_date || null,
         created_by: userId,
       })
       .select()
       .single();
+
+    if (rfqErr) throw rfqErr;
 
     if (rfqErr) throw rfqErr;
 
