@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import {
   Package, Brain, Zap, FileText, Database, Search,
   Sparkles, Code, Globe, Layers, Check, Clock, FlaskConical,
-  BookOpen, Download, FileJson, FileDown,
+  BookOpen, Download, FileJson, FileDown, RefreshCw,
 } from "lucide-react";
 import { exportTechnicalJSON, exportTechnicalPDF, exportCommercialPDF, exportB2BModulePDF } from "@/utils/featureRegistryExport";
 import { toast } from "sonner";
@@ -54,9 +54,20 @@ export function FeatureRegistrySection() {
     setSelectedCategory,
     searchQuery,
     setSearchQuery,
+    forceRefresh,
   } = useFeatureRegistry();
 
   const [selectedModule, setSelectedModule] = useState<FeatureModule | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleForceRefresh = () => {
+    setIsRefreshing(true);
+    forceRefresh();
+    setTimeout(() => {
+      setIsRefreshing(false);
+      toast.success("Registry atualizado");
+    }, 500);
+  };
 
   return (
     <div className="space-y-6">
@@ -105,6 +116,10 @@ export function FeatureRegistrySection() {
             className="pl-9"
           />
         </div>
+        <Button variant="outline" className="gap-2" onClick={handleForceRefresh} disabled={isRefreshing}>
+          <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+          Atualizar
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="gap-2">
