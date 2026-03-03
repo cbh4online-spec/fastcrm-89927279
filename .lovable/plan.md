@@ -1,20 +1,20 @@
 
 
-# Remover moduleSlug de Propostas e Faturas
+# Fix: Registar Edge Functions no config.toml
 
-Editar `src/config/nav.v1.ts`, linhas 113-114: remover `moduleSlug: "proposals"` e `moduleSlug: "invoices"` para que estes itens apareçam sempre na sidebar sem depender do Marketplace.
+## Problema
+As edge functions `procurement-needs-recompute` e `procurement-needs-create-pos` existem no código mas **não estão registadas** no `supabase/config.toml`, por isso não são deployed — resultando no erro "Failed to send a request to the Edge Function".
 
-**Antes:**
-```ts
-{ name: "Propostas", href: "/dashboard/proposals", icon: Presentation, group: "Vendas", separator: true, moduleSlug: "proposals" },
-{ name: "Faturas", href: "/dashboard/invoices", icon: Receipt, group: "Vendas", moduleSlug: "invoices" },
+## Solução
+Adicionar ao `supabase/config.toml`:
+
+```toml
+[functions.procurement-needs-recompute]
+verify_jwt = false
+
+[functions.procurement-needs-create-pos]
+verify_jwt = false
 ```
 
-**Depois:**
-```ts
-{ name: "Propostas", href: "/dashboard/proposals", icon: Presentation, group: "Vendas", separator: true },
-{ name: "Faturas", href: "/dashboard/invoices", icon: Receipt, group: "Vendas" },
-```
-
-Alteração de 1 ficheiro, 2 linhas.
+Alteração de 1 ficheiro, 6 linhas adicionadas.
 
