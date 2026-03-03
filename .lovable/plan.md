@@ -1,35 +1,26 @@
 
 
-# Melhorar Rodapé "Efetuado com FastCRM" nos Emails e Portal
+# Tornar Campos do RFQ Editáveis em Todos os Estados
 
-## Estado Atual
-Todos os templates de email já têm `Enviado por ${companyName} via FastCRM` — mas é uma simples linha de texto cinza, sem destaque visual.
+## Problema
+Os campos (Data Limite, Cond. Pagamento, Local Entrega, Incoterm, Validade Proposta, Moeda) só são editáveis quando o RFQ está em `draft`. Em qualquer outro estado (`sent`, `receiving_quotes`, etc.) mostram texto estático.
 
-## Plano
+## Solução
+Remover a restrição `isDraft` dos campos editáveis no `RFQDetailPage.tsx`, permitindo edição inline em **qualquer estado** (exceto `awarded` e `closed`, onde o RFQ já está finalizado).
 
-Substituir o rodapé simples por um **footer branded** consistente em todos os templates de email e no portal do fornecedor:
+### Alterações
 
-### Design do Footer (HTML email)
-```
-─────────────────────────────
-  ⚡ Efetuado com FastCRM OS
-  fastcrm.lovable.app
-─────────────────────────────
-```
-- Separador horizontal (`<hr>`)
-- Logo textual "⚡ FastCRM OS" em bold
-- Texto "Efetuado com FastCRM OS — AI Revenue Operating System"
-- Link para `fastcrm.lovable.app`
-- Estilo: centrado, cor `#a1a1aa`, font-size 11px
+**Ficheiro: `src/pages/procurement/RFQDetailPage.tsx`**
 
-### Ficheiros a Editar
+1. Substituir a condição `isDraft` por uma nova variável `isEditable` que permite edição em todos os estados exceto `awarded` e `closed`:
+   ```typescript
+   const isEditable = !["awarded", "closed"].includes(rfq.status);
+   ```
 
-1. **`supabase/functions/rfq-send/index.ts`** — Substituir as 4 linhas de footer (`Enviado por...`) nos templates `rfq_sent`, `rfq_reminder`, `rfq_thank_you`, `rfq_awarded` pelo novo bloco HTML branded
+2. Substituir todas as referências a `isDraft` nos campos editáveis (Data Limite, Cond. Pagamento, Local Entrega, Incoterm, Validade Proposta, Moeda) por `isEditable`.
 
-2. **`supabase/functions/rfq-deadline-reminder/index.ts`** — Mesmo tratamento no `buildReminderHTML`
+Isto afeta ~6 blocos condicionais no card de informações do RFQ (linhas 231-338), onde `isDraft ?` passa a `isEditable ?`.
 
-3. **`src/pages/SupplierPortalPage.tsx`** (se existir footer) — Adicionar "Efetuado com FastCRM OS" no rodapé da página do portal do fornecedor
-
-### Abordagem
-Extrair o footer HTML para uma função `buildFooterHTML(companyName)` reutilizável em cada edge function, garantindo consistência.
+### Hook `useUpdateRFQ`
+Já funciona para qualquer estado — não precisa de alterações.
 
