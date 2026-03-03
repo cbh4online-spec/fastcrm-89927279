@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, FileText } from "lucide-react";
+import { Loader2, FileText, ArrowLeft } from "lucide-react";
 import { format, isPast, parseISO } from "date-fns";
 import { Toolbar } from "@/components/common/Toolbar";
 
@@ -85,9 +85,14 @@ export default function RFQsPage() {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <FileText className="h-6 w-6" /> Pedidos de Cotação (RFQ)
-        </h1>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <FileText className="h-6 w-6" /> Pedidos de Cotação (RFQ)
+          </h1>
+        </div>
       </div>
 
       <Toolbar
