@@ -69,6 +69,7 @@ const GROUP_COLORS: Record<string, string> = {
   "Comunicação": "text-blue-500",
   "CRM": "text-emerald-500",
   "Vendas": "text-amber-500",
+  "Compras": "text-teal-600",
   "Portal B2B": "text-orange-500",
   "Loja Online": "text-pink-500",
   "Marketplace C2C": "text-rose-500",
@@ -110,6 +111,14 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   // Vendas (só módulos)
   { name: "Propostas", href: "/dashboard/proposals", icon: Presentation, group: "Vendas", separator: true, moduleSlug: "proposals" },
   { name: "Faturas", href: "/dashboard/invoices", icon: Receipt, group: "Vendas", moduleSlug: "invoices" },
+
+  // Compras (Procurement)
+  { name: "Dashboard Compras", href: "/dashboard/procurement", icon: BarChart3, group: "Compras", separator: true, moduleSlug: "procurement" },
+  { name: "Fornecedores", href: "/dashboard/procurement/suppliers", icon: Building2, group: "Compras", moduleSlug: "procurement" },
+  { name: "Requisições", href: "/dashboard/procurement/requests", icon: FileText, group: "Compras", moduleSlug: "procurement" },
+  { name: "Ordens de Compra", href: "/dashboard/procurement/orders", icon: ShoppingCart, group: "Compras", moduleSlug: "procurement" },
+  { name: "Receção", href: "/dashboard/procurement/receipts", icon: Package, group: "Compras", moduleSlug: "procurement" },
+  { name: "Faturas Fornecedor", href: "/dashboard/procurement/invoices", icon: CreditCard, group: "Compras", moduleSlug: "procurement" },
 
   // Portal B2B
   { name: "Notas Encomenda", href: "/dashboard/order-notes", icon: FileText, group: "Portal B2B", separator: true, moduleSlug: "b2b-portal" },
