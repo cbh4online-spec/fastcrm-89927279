@@ -123,6 +123,7 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Importar Preços", href: "/dashboard/procurement/price-import", icon: FileSpreadsheet, group: "Compras", moduleSlug: "procurement" },
   { name: "Projetos Compras", href: "/dashboard/procurement/projects", icon: FolderOpen, group: "Compras", moduleSlug: "procurement" },
   { name: "RFQs", href: "/dashboard/procurement/rfqs", icon: FileText, group: "Compras", moduleSlug: "procurement" },
+  { name: "Dashboard RFQs", href: "/dashboard/procurement/rfqs-dashboard", icon: BarChart3, group: "Compras", moduleSlug: "procurement" },
 
   // Portal B2B
   { name: "Notas Encomenda", href: "/dashboard/order-notes", icon: FileText, group: "Portal B2B", separator: true, moduleSlug: "b2b-portal" },
