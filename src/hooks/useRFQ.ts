@@ -151,6 +151,26 @@ export function useAddRFQQuote() {
   });
 }
 
+export function useAddRFQSupplier() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { workspace_id: string; rfq_id: string; supplier_id: string }) => {
+      const { error } = await supabase.from("rfq_suppliers").insert({
+        workspace_id: input.workspace_id,
+        rfq_id: input.rfq_id,
+        supplier_id: input.supplier_id,
+        status: "invited",
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["rfq-suppliers", vars.rfq_id] });
+      toast.success("Fornecedor adicionado ao RFQ!");
+    },
+    onError: (e) => toast.error(`Erro: ${e.message}`),
+  });
+}
+
 export function useAwardRFQ() {
   const qc = useQueryClient();
   return useMutation({

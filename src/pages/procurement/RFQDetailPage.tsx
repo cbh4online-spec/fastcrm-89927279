@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useRFQDetail, useSendRFQ, useAddRFQQuote, useAwardRFQ } from "@/hooks/useRFQ";
+import { useRFQDetail, useSendRFQ, useAddRFQQuote, useAwardRFQ, useAddRFQSupplier } from "@/hooks/useRFQ";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useSuppliers } from "@/hooks/useProcurement";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,11 +19,15 @@ export default function RFQDetailPage() {
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const { rfq, items, suppliers, quotes, isLoading } = useRFQDetail(id);
+  const { data: allSuppliers = [] } = useSuppliers(currentWorkspace?.id);
   const sendRFQ = useSendRFQ();
   const addQuote = useAddRFQQuote();
   const awardRFQ = useAwardRFQ();
+  const addSupplier = useAddRFQSupplier();
 
   const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
+  const [selectedSupplierId, setSelectedSupplierId] = useState("");
   const [quoteForm, setQuoteForm] = useState({ rfq_item_id: "", supplier_id: "", unit_price: "", lead_time_days: "", min_order_qty: "", notes: "" });
   const [selectedQuoteIds, setSelectedQuoteIds] = useState<string[]>([]);
 
@@ -111,16 +116,27 @@ export default function RFQDetailPage() {
 
       {/* Suppliers */}
       <Card>
-        <CardHeader><CardTitle>Fornecedores Convidados</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Fornecedores Convidados</CardTitle>
+          {!["awarded", "closed"].includes(rfq.status) && (
+            <Button variant="outline" size="sm" onClick={() => { setSelectedSupplierId(""); setShowAddSupplierModal(true); }}>
+              <Plus className="mr-2 h-4 w-4" /> Adicionar Fornecedor
+            </Button>
+          )}
+        </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {suppliers.map((s: any) => (
-              <Badge key={s.id} variant="outline" className="text-sm py-1 px-3">
-                {s.suppliers?.name || "—"} — <span className="text-muted-foreground">{s.status}</span>
-                {s.sent_at && <span className="ml-1 text-xs text-muted-foreground">({new Date(s.sent_at).toLocaleDateString()})</span>}
-              </Badge>
-            ))}
-          </div>
+          {suppliers.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground">Nenhum fornecedor adicionado.</div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {suppliers.map((s: any) => (
+                <Badge key={s.id} variant="outline" className="text-sm py-1 px-3">
+                  {s.suppliers?.name || "—"} — <span className="text-muted-foreground">{s.status}</span>
+                  {s.sent_at && <span className="ml-1 text-xs text-muted-foreground">({new Date(s.sent_at).toLocaleDateString()})</span>}
+                </Badge>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -231,6 +247,41 @@ export default function RFQDetailPage() {
             <Button onClick={handleAddQuote} disabled={!quoteForm.rfq_item_id || !quoteForm.supplier_id || !quoteForm.unit_price || addQuote.isPending}>
               {addQuote.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Add Supplier Modal */}
+      <Dialog open={showAddSupplierModal} onOpenChange={setShowAddSupplierModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Adicionar Fornecedor ao RFQ</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>Fornecedor</Label>
+              <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
+                <SelectTrigger><SelectValue placeholder="Selecionar fornecedor" /></SelectTrigger>
+                <SelectContent>
+                  {allSuppliers
+                    .filter((s: any) => !suppliers.some((rs: any) => rs.supplier_id === s.id))
+                    .map((s: any) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddSupplierModal(false)}>Cancelar</Button>
+            <Button
+              disabled={!selectedSupplierId || addSupplier.isPending}
+              onClick={async () => {
+                if (!currentWorkspace?.id || !rfq) return;
+                await addSupplier.mutateAsync({ workspace_id: currentWorkspace.id, rfq_id: rfq.id, supplier_id: selectedSupplierId });
+                setShowAddSupplierModal(false);
+              }}
+            >
+              {addSupplier.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Adicionar
             </Button>
           </DialogFooter>
         </DialogContent>
