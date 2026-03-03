@@ -315,9 +315,18 @@ export default function SupplierPortalPage() {
 
       {/* Footer */}
       <div className="border-t mt-12">
-        <div className="max-w-5xl mx-auto px-4 py-6 text-center">
-          <p className="text-xs text-muted-foreground">
-            Portal de fornecedores — FastCRM. Este link é pessoal e não deve ser partilhado.
+        <div className="max-w-5xl mx-auto px-4 py-6 text-center space-y-1">
+          <p className="text-xs text-muted-foreground font-semibold">
+            ⚡ Efetuado com FastCRM OS
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            AI Revenue Operating System •{" "}
+            <a href="https://fastcrm.lovable.app" className="underline hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">
+              fastcrm.lovable.app
+            </a>
+          </p>
+          <p className="text-[10px] text-muted-foreground mt-2">
+            Este link é pessoal e não deve ser partilhado.
           </p>
         </div>
       </div>
