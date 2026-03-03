@@ -1,43 +1,45 @@
 
 
-# Corrigir Necessidades de Compra com Notas de Encomenda
+# Diagnóstico: Dois menus "Vendas" duplicados
 
-## Problema Confirmado
+## Problema
 
-Os dados atuais ainda mostram duplicação. Exemplo concreto:
-- Produto `f9fadc7e` (Access Point): `demand_total = 18` com fontes `proposal(9) + order_note(9)` — deveria ser **9** (apenas order_note)
-- Proposta `d8f9f8f3` tem `opportunity_id = 58f94492` que é coberto pela order note, mas os seus itens NÃO estão a ser filtrados
+Na sidebar V2 (`nav.v2.ts`), os itens de vendas estão divididos em dois locais:
 
-A lógica de deduplicação no código está correta, mas a **versão deployed da edge function** não tinha este código na última execução (14:49). Foi re-deployed no passo anterior mas o recálculo ainda não foi executado.
+1. **NAV_V2_CORE** (itens top-level, sempre visíveis):
+   - Pipeline (`/dashboard/revenue`)
+   - Oportunidades (`/dashboard/opportunities`)
 
-## Alterações Necessárias
+2. **NAV_V2_GROUPS** — grupo "Vendas" (colapsável):
+   - Propostas (moduleSlug: `proposals`)
+   - Faturas (moduleSlug: `invoices`)
 
-### 1. Atualizar filtro de estados das Notas de Encomenda
+Na sidebar V1 (`nav.v1.ts`), "Notas de Encomenda" aparece duplicada:
+- No grupo **"Vendas"** (linha 112): `/dashboard/order-notes`
+- No grupo **"Portal B2B"** (linha 129): `/dashboard/order-notes` (mesmo href)
 
-**`supabase/functions/procurement-needs-recompute/index.ts`** — linha 49:
-- Atual: `["approved", "submitted"]`  
-- Novo: `["approved", "submitted", "in_preparation"]`
+## Solução Proposta
 
-### 2. Trigger automático no estado da Nota de Encomenda
+### 1. Unificar o grupo "Vendas" na V2
 
-Criar uma **edge function auxiliar** ou **database trigger** que invoca o recálculo automaticamente quando uma order_note muda para um estado relevante (`submitted`, `approved`, `in_preparation`) ou sai de um estado relevante (`cancelled`, `rejected`).
+Mover Propostas e Faturas para os itens core (junto com Pipeline e Oportunidades), **eliminando o grupo colapsável "Vendas"** que só tem 2 itens. Ou, alternativamente, mover Pipeline e Oportunidades para dentro do grupo "Vendas" para que tudo fique num só lugar.
 
-Abordagem: trigger PostgreSQL + `pg_net` para chamar a edge function automaticamente:
-- Criar trigger `after update on order_notes` que verifica mudança de status
-- Usar `pg_net.http_post` para invocar `procurement-needs-recompute`
+**Abordagem recomendada**: Consolidar tudo no grupo "Vendas" colapsável, removendo Pipeline/Oportunidades dos core items e adicionando-os ao grupo:
 
-### 3. Re-deploy e recalcular
+```
+Vendas (grupo colapsável):
+  - Pipeline
+  - Oportunidades  
+  - Propostas
+  - Faturas
+  - Notas de Encomenda
+```
 
-- Re-deploy da edge function com o filtro corrigido
-- O recálculo será feito automaticamente após o deploy
+### 2. Remover duplicação de "Notas de Encomenda" na V1
 
-## Ficheiros a editar
-- `supabase/functions/procurement-needs-recompute/index.ts` — adicionar `in_preparation` ao filtro
-- **Migration SQL** — criar trigger para auto-recompute via `pg_net`
+Na V1, remover "Notas de Encomenda" do grupo "Vendas" (já está no "Portal B2B") — ou vice-versa, dependendo da preferência.
 
-## Resultado Esperado
-- Access Point: `demand_total = 9` (apenas order_note)
-- Instalação: `demand_total = 1` (apenas order_note)
-- Propostas com opportunity coberto por NE: ignoradas automaticamente
-- Recálculo automático quando NE muda de estado
+### Ficheiros a editar
+- `src/config/nav.v2.ts` — consolidar itens de vendas num único local
+- `src/config/nav.v1.ts` — remover entrada duplicada de Notas de Encomenda
 
