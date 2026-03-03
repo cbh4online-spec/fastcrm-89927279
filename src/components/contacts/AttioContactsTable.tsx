@@ -4,7 +4,7 @@ import { useSmartContacts, useAnalyzeContact, useBulkAnalyzeContacts, SmartConta
 import { useBulkAnalyzeEntityLinkedIn } from "@/hooks/useEntitySocialMediaAnalysis";
 import { useContacts } from "@/hooks/useContacts";
 import { CreateContactDialog } from "./CreateContactDialog";
-import { DuplicateManagementDialog } from "./DuplicateManagementDialog";
+import { UnifiedDuplicateDialog } from "@/components/crm/UnifiedDuplicateDialog";
 import { AttioViewSelector } from "./AttioViewSelector";
 import { AttioFilterBar, SortOption } from "./AttioFilterBar";
 import { BulkActionsBar } from "@/components/crm/unified/BulkActionsBar";
@@ -390,7 +390,7 @@ export function AttioContactsTable() {
       )}
 
       <CreateContactDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
-      <DuplicateManagementDialog open={isDuplicatesOpen} onOpenChange={setIsDuplicatesOpen} />
+      <UnifiedDuplicateDialog open={isDuplicatesOpen} onOpenChange={setIsDuplicatesOpen} entityType="contacts" />
     </div>
   );
 }

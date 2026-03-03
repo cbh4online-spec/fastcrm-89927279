@@ -5,7 +5,7 @@ import { SmartListsPanel } from "@/components/objects/SmartListsPanel";
 import { useBulkAnalyzeEntityLinkedIn } from "@/hooks/useEntitySocialMediaAnalysis";
 import { useContacts } from "@/hooks/useContacts";
 import { CreateContactDialog } from "./CreateContactDialog";
-import { DuplicateManagementDialog } from "./DuplicateManagementDialog";
+import { UnifiedDuplicateDialog } from "@/components/crm/UnifiedDuplicateDialog";
 import { BulkActionsBar } from "@/components/crm/unified/BulkActionsBar";
 import { BulkEditField } from "@/components/crm/unified/BulkEditDialog";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -931,7 +931,7 @@ export function SmartContactsTable() {
         )}
 
         <CreateContactDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
-        <DuplicateManagementDialog open={isDuplicatesOpen} onOpenChange={setIsDuplicatesOpen} />
+        <UnifiedDuplicateDialog open={isDuplicatesOpen} onOpenChange={setIsDuplicatesOpen} entityType="contacts" />
       </div>
     </div>
   );

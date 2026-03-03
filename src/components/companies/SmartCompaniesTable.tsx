@@ -16,6 +16,7 @@ import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/compon
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Sparkles, Trash2, Building2, RefreshCw, Download, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Activity, Clock, Users, Factory, Briefcase, Linkedin } from "lucide-react";
+import { UnifiedDuplicateDialog } from "@/components/crm/UnifiedDuplicateDialog";
 import { TableSkeleton, SearchEmptyState, EmptyState } from "@/components/design-system";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -105,6 +106,7 @@ export function SmartCompaniesTable() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isDuplicatesOpen, setIsDuplicatesOpen] = useState(false);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -209,6 +211,7 @@ export function SmartCompaniesTable() {
           rightActions={
             <div className="flex items-center gap-2">
               <ColumnSelector columns={COMPANY_COLUMNS} visibleColumns={visibleColumns} columnOrder={columnOrder} onVisibleColumnsChange={setVisibleColumns} onColumnOrderChange={setColumnOrder} />
+              <Button variant="outline" size="sm" onClick={() => setIsDuplicatesOpen(true)} className="gap-2"><Users className="w-4 h-4" />Duplicados</Button>
               <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2"><RefreshCw className="w-4 h-4" />{t("refresh")}</Button>
             </div>
           }
@@ -325,6 +328,7 @@ export function SmartCompaniesTable() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <UnifiedDuplicateDialog open={isDuplicatesOpen} onOpenChange={setIsDuplicatesOpen} entityType="companies" />
       </div>
     </div>
   );
