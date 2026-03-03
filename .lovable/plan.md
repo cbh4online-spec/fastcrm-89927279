@@ -1,109 +1,143 @@
 
 
-# Supplier Price Importer — Plano de Implementação
+# Venda Ganha → RFQ → PO — Plano de Implementação
 
 ## Resumo
 
-Criar um importador de tabelas de preços de fornecedores com stepper de 4 passos, suporte a 6 modos de pricing, matching automático com produtos, e commit atómico para `supplier_products`. Inclui 2 novas tabelas, extensão a `supplier_products`, 3 edge functions, storage bucket, e UI completa.
+Criar o fluxo completo: proposta aceite gera projeto + necessidades de compra, permite criar RFQs multi-fornecedor, comparar cotações, adjudicar e gerar POs automaticamente. Tudo ligado a produtos existentes e ao módulo de compras.
 
 ---
 
-## 1. Migração SQL
+## 1. Migração SQL (7 novas tabelas + extensão a 2 existentes)
 
-### 1.1 Criar `supplier_price_imports`
-- `id`, `workspace_id`, `supplier_id` FK, `file_url`, `file_name`, `file_type` (xlsx/csv)
-- `pricing_mode` text (NET_PRICE_ONLY, RRP_ONLY, NET_AND_RRP, DISCOUNT_GLOBAL, DISCOUNT_BY_CATEGORY, MARGIN_RULE)
-- `currency` default EUR, `global_discount_percent` nullable, `margin_percent` nullable, `base_price_field` text nullable
-- `price_is_per_pack` boolean default false
-- `mapping_json` jsonb, `stats_json` jsonb, `category_discounts_json` jsonb nullable
-- `status` text (uploaded, parsed, validated, committed, failed)
-- `created_by` uuid, `created_at` timestamptz
-- RLS: workspace members only
+### Novas tabelas
 
-### 1.2 Criar `supplier_price_import_rows`
-- `id`, `workspace_id`, `import_id` FK (cascade delete), `row_index` int
-- `raw_json` jsonb, `normalized_json` jsonb
-- `match_status` text (matched, unmatched, needs_review)
-- `product_id` nullable FK, `variant_id` nullable FK
-- `computed_unit_price` numeric nullable, `computed_rrp_price` numeric nullable
-- `error_text` text nullable
-- RLS: workspace members only
-- Index on `(import_id, match_status)`
+**`procurement_projects`** — Projeto/entrega originado de proposta
+- `id`, `workspace_id`, `source_type` (proposal), `source_id` (proposal_id), `name`, `status` (active/waiting_procurement/in_progress/delivered/closed), `created_by`, `created_at`
 
-### 1.3 Extensão a `supplier_products`
-```sql
-ADD rrp_price numeric nullable
-ADD price_source text nullable  -- net, rrp, computed, discount
-ADD import_id uuid nullable REFERENCES supplier_price_imports(id)
-ADD barcode text nullable
-ADD category text nullable
-```
+**`procurement_project_items`** — Itens do projeto com snapshot de stock
+- `id`, `workspace_id`, `project_id` FK, `product_id` FK, `variant_id` nullable, `qty_sold`, `qty_required`, `qty_in_stock_at_creation`, `qty_to_buy`, `procurement_status` (none/rfq_sent/quoted/ordered/partially_received/received), `created_at`
 
-### 1.4 Storage bucket
-```sql
-INSERT INTO storage.buckets (id, name, public) VALUES ('supplier-price-files', 'supplier-price-files', false);
-```
-Com RLS policy para workspace members.
+**`procurement_needs`** — Necessidades de compra calculadas
+- `id`, `workspace_id`, `project_id` FK, `project_item_id` FK, `product_id` FK, `variant_id` nullable, `qty_needed`, `qty_available`, `qty_to_buy`, `status` (open/rfq_in_progress/ordered/resolved), `created_at`
+
+**`rfqs`** — Pedidos de cotação
+- `id`, `workspace_id`, `project_id` FK nullable, `title`, `status` (draft/sent/receiving_quotes/evaluated/awarded/closed), `due_date`, `created_by`, `created_at`
+
+**`rfq_items`** — Itens do RFQ
+- `id`, `workspace_id`, `rfq_id` FK, `product_id` FK, `variant_id` nullable, `qty`, `spec_notes`, `need_id` FK nullable, `preferred_supplier_id` FK nullable
+
+**`rfq_suppliers`** — Fornecedores convidados
+- `id`, `workspace_id`, `rfq_id` FK, `supplier_id` FK, `status` (invited/responded/declined), `sent_at` nullable
+
+**`rfq_quotes`** — Respostas por fornecedor e item
+- `id`, `workspace_id`, `rfq_id` FK, `rfq_item_id` FK, `supplier_id` FK, `unit_price`, `currency` default EUR, `lead_time_days`, `min_order_qty`, `pack_size`, `notes`, `is_selected` bool default false, `created_at`
+
+### Extensão a tabelas existentes
+
+**`purchase_orders`**: ADD `project_id` uuid nullable, ADD `rfq_id` uuid nullable
+**`purchase_order_items`**: ADD `rfq_quote_id` uuid nullable
+
+### RLS + Indexes
+- Todas as novas tabelas com `workspace_id` e RLS workspace members
+- Indexes em `procurement_project_items(project_id)`, `procurement_needs(project_id, status)`, `rfq_items(rfq_id)`, `rfq_quotes(rfq_id, supplier_id)`
 
 ---
 
-## 2. Edge Functions
+## 2. Edge Functions (5)
 
-### 2.1 `supplier-import-parse`
-- Input: `{ import_id }`
-- Download ficheiro do Storage, parse CSV (standard) ou XLSX (usando SheetJS/xlsx npm)
-- Retorna colunas detectadas + 20 sample rows
-- Guarda status `parsed`
+### `project-from-won-proposal`
+- Input: `{ proposal_id, workspace_id }`
+- Valida proposal.status = "accepted"
+- Busca proposal_items com product_id
+- Cria `procurement_projects` + `procurement_project_items` (snapshot stock)
+- Calcula `qty_to_buy = max(0, qty_sold - stock_quantity)`
+- Cria `procurement_needs` para items com qty_to_buy > 0
+- Define project.status = "waiting_procurement" se houver needs
 
-### 2.2 `supplier-import-validate`
-- Input: `{ import_id, mapping_json, pricing_mode, global_discount_percent, margin_percent, base_price_field, price_is_per_pack, category_discounts_json }`
-- Para cada row: normaliza campos via mapping, calcula `computed_unit_price` e `computed_rrp_price` conforme pricing_mode
-- Matching com produtos: 1) barcode/EAN, 2) supplier_sku match em supplier_products, 3) product_name exact match
-- Insere rows em `supplier_price_import_rows` com match_status
-- Retorna stats (total, matched, unmatched, errors)
+### `rfq-create-from-needs`
+- Input: `{ project_id, supplier_ids[], workspace_id }`
+- Cria `rfqs` + `rfq_items` (a partir de procurement_needs open)
+- Cria `rfq_suppliers` para cada fornecedor
+- Status = draft
 
-### 2.3 `supplier-import-commit`
-- Input: `{ import_id }`
-- Lê rows validadas com match_status=matched
-- UPSERT em `supplier_products` por (workspace_id, supplier_id, product_id, variant_id)
-- Actualiza: unit_price, rrp_price, pack_size, min_order_qty, lead_time_days, last_price_date, import_id, barcode, category, price_source, supplier_sku
-- Batch de 250 rows
-- Actualiza import status → committed + stats_json
+### `rfq-send`
+- Input: `{ rfq_id }`
+- Marca `rfq_suppliers.sent_at`, `rfq_suppliers.status = invited`
+- Atualiza `rfq.status = sent`
+- Atualiza `procurement_needs.status = rfq_in_progress`
+- (Email envio futuro — por agora só marca estado)
+
+### `rfq-award-and-create-pos`
+- Input: `{ rfq_id, selected_quote_ids[] }`
+- Para cada quote selecionada: `is_selected = true`
+- Agrupa por supplier_id → cria 1 PO por fornecedor
+- PO items com `product_id`, `unit_price`, `qty`, `rfq_quote_id`
+- Liga PO a `project_id` e `rfq_id`
+- Atualiza `procurement_needs.status = ordered`
+- Atualiza `rfq.status = awarded`
+
+### `procurement-sync-on-receive`
+- Input: `{ purchase_order_id }`
+- Verifica se PO tem `project_id`
+- Atualiza `procurement_project_items.procurement_status` conforme received_qty
+- Atualiza `procurement_needs.status = resolved` quando fully received
+- Atualiza `procurement_projects.status` quando tudo received
 
 ---
 
 ## 3. UI / Componentes
 
-### 3.1 Nova página: `src/pages/procurement/SupplierPriceImportPage.tsx`
-- Rota: `/dashboard/procurement/price-import`
-- Nav entry no grupo Compras
+### Hook: `useRFQ.ts`
+- CRUD para rfqs, rfq_items, rfq_suppliers, rfq_quotes
+- `createFromNeeds`, `send`, `awardAndCreatePOs`
+- Query rfq_quotes com join supplier name
 
-### 3.2 Componente principal: `SupplierPriceImportWizard`
-4 steps:
-1. **Upload** — Selecionar fornecedor, ficheiro, pricing_mode, moeda, opções (desconto global, margem, base_price_field, price_is_per_pack). Upload para Storage. Chama `supplier-import-parse`.
-2. **Column Mapping** — Reutilizar padrão visual do `ColumnMappingStep` existente mas com campos de pricing (supplier_sku, barcode, product_name, net_price, rrp_price, discount_percent, pack_size, min_order_qty, lead_time_days, category, notes). Chama `supplier-import-validate`.
-3. **Preview** — Tabela com 20 rows, badges matched/unmatched/error, preço calculado. `MatchResolverRow` inline para unmatched (pesquisar produto ou quick create).
-4. **Confirm** — Resumo stats + botão commit. Chama `supplier-import-commit`. Progress bar.
+### Hook: `useProcurementProjects.ts`
+- CRUD para procurement_projects + project_items + needs
+- `createFromProposal` (chama edge function)
 
-### 3.3 Sub-componentes
-- `PricingRulesPanel` — UI para pricing_mode options (desconto, margem, base field, pack toggle)
-- `ImportPreviewTable` — Tabela com erros por linha, match badges
-- `MatchResolverRow` — Inline: autocomplete produto existente ou botão "Criar produto"
-- `PriceImportHistory` — Lista de importações anteriores com stats
+### Componentes novos
 
-### 3.4 Hook: `useSupplierPriceImport`
-- Upload file to storage
-- Invoke parse/validate/commit edge functions
-- Query import rows for preview
-- Update match (product_id) on individual rows
+**`ProposalWonProcurementModal`** — Modal que aparece quando proposta = accepted, pergunta se quer criar projeto + necessidades. Botão "Criar Projeto".
+
+**`ProcurementProjectDetail`** — Página/componente com:
+- Lista project_items (qty_sold, stock, qty_to_buy, procurement_status)
+- Botão "Criar RFQ" para items com needs open
+- Separador RFQs associados
+
+**`RFQBuilderForm`** — Formulário:
+- Items auto-preenchidos de procurement_needs
+- Multi-select de fornecedores (sugestão automática de supplier_products top 3)
+- Due date, notas
+
+**`RFQComparisonTable`** — Tabela comparativa:
+- Linhas = items, Colunas = fornecedores
+- Células = unit_price, lead_time
+- Highlight melhor preço (verde)
+- Checkbox "Selecionar" por quote
+- Botão "Adjudicar e Gerar PO"
+
+**`RFQQuoteEntryForm`** — Formulário para inserir respostas de fornecedores (unit_price, lead_time, MOQ, notes)
+
+### Páginas
+
+**`/dashboard/procurement/projects`** — Lista de procurement projects
+**`/dashboard/procurement/projects/:id`** — Detalhe com items + needs + RFQs
+**`/dashboard/procurement/rfqs`** — Lista de RFQs
+**`/dashboard/procurement/rfqs/:id`** — Detalhe RFQ com comparison table
+
+### Integração na proposta
+- No `useProposals.ts` ou `ProposalDetailContent.tsx`: quando status muda para "accepted", mostrar modal `ProposalWonProcurementModal`
+
+### Navegação
+- Adicionar "Projetos" e "RFQs" ao grupo Compras no `nav.v1.ts`
 
 ---
 
-## 4. Routing & Navigation
+## 4. i18n
 
-- Adicionar rota em `App.tsx`: `/dashboard/procurement/price-import`
-- Adicionar entrada no `nav.v1.ts` no grupo Compras: "Importar Preços"
-- i18n keys em PT/EN/ES/FR
+Novas chaves em PT/EN/ES/FR para: `project`, `procurementNeeds`, `rfq`, `createRFQ`, `sendRFQ`, `quotes`, `award`, `comparison`, `qtyToBuy`, `qtyInStock`, `selectWinner`, `generatePO`, etc.
 
 ---
 
@@ -111,28 +145,26 @@ Com RLS policy para workspace members.
 
 | Acção | Ficheiro |
 |-------|---------|
-| Criar | Migração SQL (2 tabelas + extensão supplier_products + bucket + RLS) |
-| Criar | `supabase/functions/supplier-import-parse/index.ts` |
-| Criar | `supabase/functions/supplier-import-validate/index.ts` |
-| Criar | `supabase/functions/supplier-import-commit/index.ts` |
-| Criar | `src/pages/procurement/SupplierPriceImportPage.tsx` |
-| Criar | `src/components/procurement/price-import/SupplierPriceImportWizard.tsx` |
-| Criar | `src/components/procurement/price-import/PricingRulesPanel.tsx` |
-| Criar | `src/components/procurement/price-import/ImportPreviewTable.tsx` |
-| Criar | `src/components/procurement/price-import/MatchResolverRow.tsx` |
-| Criar | `src/components/procurement/price-import/PriceImportHistory.tsx` |
-| Criar | `src/hooks/useSupplierPriceImport.ts` |
-| Modificar | `supabase/config.toml` — registar 3 EFs |
-| Modificar | `src/App.tsx` — rota |
-| Modificar | `src/config/nav.v1.ts` — nav entry |
-| Modificar | i18n (pt/en/es/fr procurement namespace) |
-
----
-
-## Notas técnicas
-
-- XLSX parsing: no edge function usar `npm:xlsx` (já no deno.json como dep do frontend); no frontend fazer parse local e enviar JSON como alternativa para ficheiros grandes
-- Matching fuzzy por nome **não** é automático — apenas suggestion. Automático apenas por barcode e supplier_sku exact match
-- Cada edge function tem CORS headers + `verify_jwt = false`
-- Batch de 250 no commit para evitar timeouts de 60s
+| Criar | Migração SQL (7 tabelas + extensões + RLS + indexes) |
+| Criar | `supabase/functions/project-from-won-proposal/index.ts` |
+| Criar | `supabase/functions/rfq-create-from-needs/index.ts` |
+| Criar | `supabase/functions/rfq-send/index.ts` |
+| Criar | `supabase/functions/rfq-award-and-create-pos/index.ts` |
+| Criar | `supabase/functions/procurement-sync-on-receive/index.ts` |
+| Criar | `src/hooks/useRFQ.ts` |
+| Criar | `src/hooks/useProcurementProjects.ts` |
+| Criar | `src/components/procurement/ProposalWonProcurementModal.tsx` |
+| Criar | `src/components/procurement/ProcurementProjectDetail.tsx` |
+| Criar | `src/components/procurement/RFQBuilderForm.tsx` |
+| Criar | `src/components/procurement/RFQComparisonTable.tsx` |
+| Criar | `src/components/procurement/RFQQuoteEntryForm.tsx` |
+| Criar | `src/pages/procurement/ProcurementProjectsPage.tsx` |
+| Criar | `src/pages/procurement/ProcurementProjectDetailPage.tsx` |
+| Criar | `src/pages/procurement/RFQsPage.tsx` |
+| Criar | `src/pages/procurement/RFQDetailPage.tsx` |
+| Modificar | `src/components/proposals/ProposalDetailContent.tsx` — trigger modal on accepted |
+| Modificar | `src/App.tsx` — 4 novas rotas |
+| Modificar | `src/config/nav.v1.ts` — 2 novos items nav |
+| Modificar | `supabase/config.toml` — 5 novas EFs |
+| Modificar | i18n (pt/en/es/fr) procurement namespace |
 
