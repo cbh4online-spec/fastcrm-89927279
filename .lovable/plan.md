@@ -1,57 +1,58 @@
 
 
-## Ferramenta de Gestão de Duplicados para Leads, Contactos e Empresas
+## Corrigir Prospecção: Auto-gerar mensagens e adicionar envio em massa para follow-ups
 
-### Estado Atual
+### Problemas Identificados
 
-- **Contactos**: Já têm `DuplicateManagementDialog` completo com deteção (email, telefone, nome similar) e merge funcional via `useContactDuplicateGroups` + `useContactMerge`.
-- **Leads**: Sem ferramenta de gestão de duplicados.
-- **Empresas**: Têm deteção preventiva na criação (`useCompanyDuplicates`) mas sem painel de gestão/merge.
+1. **Mensagens não são pré-geradas nos follow-ups**: O `prospecting-outreach-processor` apenas muda o status para "ready" mas NÃO gera a mensagem. O campo `message` fica `null`.
+2. **Envio é 1 a 1**: O `PendingOutreachPanel` só tem botão individual "Enviar agora" sem opção de envio em massa.
+3. **Fluxo manual excessivo**: Cada clique copia mensagem + abre Instagram individualmente sem possibilidade de processar vários de uma vez.
 
-### Plano
+### Correções Planeadas
 
-#### 1. Criar hook `useLeadDuplicateGroups`
-- Ficheiro: `src/hooks/useLeadDuplicateGroups.ts`
-- Mesmo padrão do `useContactDuplicateGroups`: agrupa leads por email igual, telefone igual e nome similar (≥85%)
-- Consulta a tabela `leads` filtrada por workspace
-- Conta relações (oportunidades, propostas, conversas)
+#### 1. Atualizar Edge Function `prospecting-outreach-processor` para auto-gerar mensagens
 
-#### 2. Criar hook `useLeadMerge`
-- Ficheiro: `src/hooks/useLeadMerge.ts`
-- Funde tags, notas, preenche campos vazios do primário com dados dos duplicados
-- Migra referências (oportunidades, propostas, conversas, etc.)
-- Elimina leads duplicados
+Quando um item da fila fica "due", o processor vai:
+- Buscar dados do perfil (`professional_prospecting_profiles`) incluindo bio, profissão, etc.
+- Buscar configuração do workspace (oferta, dores) via `lead_enricher_settings`
+- Chamar `generate-prospecting-message` com `sequenceStep` correto (2 ou 3)
+- Guardar `message` e `message_plain` no registo da `prospecting_outreach_queue`
+- Só depois marcar como "ready"
 
-#### 3. Criar hook `useCompanyDuplicateGroups`
-- Ficheiro: `src/hooks/useCompanyDuplicateGroups.ts`
-- Agrupa empresas por: domínio website igual, NIF igual, email domain igual, nome similar (≥80%)
-- Conta relações (contactos, oportunidades, faturas, propostas)
+#### 2. Refazer o `PendingOutreachPanel` com funcionalidade bulk
 
-#### 4. Criar hook `useCompanyMerge`
-- Ficheiro: `src/hooks/useCompanyMerge.ts`
-- Funde dados, migra contactos associados, oportunidades, faturas e propostas para a empresa principal
-- Elimina empresas duplicadas
+- Adicionar botão **"Enviar Todos"** que abre um fluxo bulk semelhante ao `BulkOutreachDialog`
+- Mostrar preview da mensagem em cada card (já existe parcialmente mas `message` era null)
+- Adicionar botão de **rejeitar** individual
+- Para itens sem mensagem gerada (legado), gerar on-demand ao clicar "Enviar"
 
-#### 5. Criar componente unificado `UnifiedDuplicateDialog`
-- Ficheiro: `src/components/crm/UnifiedDuplicateDialog.tsx`
-- Componente reutilizável que recebe `entityType: "contacts" | "leads" | "companies"` e renderiza o painel de duplicados com cards, seleção do registo principal via RadioGroup, botão de merge e diálogo de confirmação
-- Reutiliza o design visual já existente no `DuplicateManagementDialog` dos contactos
-- Adapta labels e ícones conforme o tipo de entidade
+#### 3. Criar componente `BulkFollowupPanel` inline no `PendingOutreachPanel`
 
-#### 6. Integrar na página de Leads (`SmartLeadsTable`)
-- Adicionar botão "Gerir Duplicados" na toolbar
-- Abrir o `UnifiedDuplicateDialog` com `entityType="leads"`
+Em vez de abrir um dialog separado, o painel expande para modo bulk:
+- Lista todos os follow-ups pendentes com mensagem visível
+- Botão "Copiar e Abrir DM" sequencial (perfil a perfil, como o BulkOutreachDialog)
+- Botão "Já enviei" / "Rejeitar" por perfil
+- Progresso visual
+- Ao confirmar envio, atualiza `outreach_step` no perfil
 
-#### 7. Integrar na página de Empresas (`SmartCompaniesTable`)
-- Adicionar botão "Gerir Duplicados" na toolbar/menu
-- Abrir o `UnifiedDuplicateDialog` com `entityType="companies"`
+#### 4. Gerar mensagens em falta no frontend (fallback)
 
-#### 8. Atualizar o diálogo existente de Contactos
-- Substituir `DuplicateManagementDialog` pelo `UnifiedDuplicateDialog` com `entityType="contacts"` para manter consistência
+Para follow-ups que chegaram ao status "ready" sem mensagem (dados antigos), o `PendingOutreachPanel` vai:
+- Detetar items com `message === null`
+- Ao abrir o painel bulk, gerar mensagens para esses items via `generate-prospecting-message`
+- Mostrar spinner durante geração
+
+### Ficheiros a Criar/Editar
+
+| Ficheiro | Ação |
+|---|---|
+| `supabase/functions/prospecting-outreach-processor/index.ts` | Editar: adicionar geração automática de mensagem via AI |
+| `src/components/professional-prospecting/PendingOutreachPanel.tsx` | Reescrever: bulk send, preview mensagens, rejeitar, progresso |
 
 ### Resultado
-- Botão "Gerir Duplicados" disponível nas 3 entidades (Leads, Contactos, Empresas)
-- Deteção automática por email, telefone, NIF, domínio e similaridade de nome
-- Seleção do registo principal com visualização de relações
-- Merge com migração de todas as referências e confirmação antes de eliminar
+
+- Follow-ups chegam ao painel **já com mensagem gerada**
+- Utilizador clica **"Enviar Todos"** e processa sequencialmente (copiar → abrir DM → confirmar → próximo)
+- Sem necessidade de abrir ecrãs separados
+- Fallback para gerar mensagem on-demand para dados antigos
 
