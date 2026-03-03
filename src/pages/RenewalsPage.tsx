@@ -14,6 +14,7 @@ import { format, differenceInDays } from "date-fns";
 import { pt } from "date-fns/locale";
 import { CreateRenewalDialog } from "@/components/renewals/CreateRenewalDialog";
 import { Progress } from "@/components/ui/progress";
+import { RenewalAlerts } from "@/components/renewals/RenewalAlerts";
 
 export default function RenewalsPage() {
   const navigate = useNavigate();
@@ -99,6 +100,9 @@ export default function RenewalsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Alerts Panel */}
+      <RenewalAlerts />
 
       {/* Filters */}
       <div className="flex items-center gap-3">

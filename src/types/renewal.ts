@@ -2,6 +2,7 @@
 
 export type RenewalSourceType = 'proposal' | 'order' | 'opportunity' | 'manual';
 export type RenewalContractStatus = 'active' | 'paused' | 'cancelled' | 'expired';
+export type RenewalRiskLevel = 'low' | 'medium' | 'high';
 export type RenewalBillingType = 'invoice' | 'stripe' | 'external';
 export type RenewalIntervalType = 'monthly' | 'quarterly' | 'semi_annual' | 'yearly' | 'custom';
 export type RenewalItemType = 'domain' | 'software_license' | 'hours_pack' | 'retainer' | 'subscription';
@@ -31,6 +32,12 @@ export interface RenewalContract {
   notes: string | null;
   health_score: number;
   total_mrr: number;
+  risk_level: RenewalRiskLevel;
+  reasons_json: {
+    reasons?: string[];
+    suggested_action?: string;
+    updated_at?: string;
+  } | null;
   created_at: string;
   updated_at: string;
   // Relations (populated on queries)
