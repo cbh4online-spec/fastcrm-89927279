@@ -1,30 +1,38 @@
 
 
-# Corrigir Duplicação de Quantidades no Cálculo de Procurement Needs
+# Corrigir Margens — cost_snapshot desatualizado
 
 ## Problema
 
-O motor `procurement-needs-recompute` agrega procura de **propostas** (won/accepted/paid) e **notas de encomenda** (approved/submitted) separadamente. Quando uma proposta é aceite E uma nota de encomenda é criada para a mesma oportunidade, os mesmos produtos são contados **duas vezes**.
+O item "Instalação, Configuração e formação" tem `cost_snapshot = 1400€` na tabela `proposal_items`, mas o custo real do produto (`direct_cost`) é **650€**. Isto resulta numa margem de -65% quando deveria ser +24%.
 
-Confirmado na base de dados: existem propostas e notas de encomenda ligadas à mesma `opportunity_id`, duplicando a procura.
+O `cost_snapshot` é capturado no momento da criação da proposta e nunca mais é atualizado, mesmo que o custo do produto mude.
 
 ## Solução
 
-**Ficheiro: `supabase/functions/procurement-needs-recompute/index.ts`**
+### 1. Adicionar botão "Atualizar Custos" na vista interna
 
-Quando ambos os documentos (proposta + nota de encomenda) existem para a mesma oportunidade, a **nota de encomenda tem prioridade** (é o documento operacional que confirma a venda). A proposta é ignorada para efeito de cálculo de procura.
+**Ficheiro: `src/components/proposals/ProposalInternalView.tsx`**
 
-### Lógica de deduplicação:
+- Adicionar um botão junto ao cabeçalho "Itens da Proposta" que permite re-sincronizar os `cost_snapshot` e `operational_cost_snapshot` com os valores atuais dos produtos
+- Ao clicar, busca os custos atuais de cada produto e atualiza os `proposal_items`
 
-1. Ao processar **order notes**, recolher os `opportunity_id` de todas as notas de encomenda ativas
-2. Ao processar **proposals**, verificar se a proposta tem `opportunity_id` que já foi coberto por uma nota de encomenda — se sim, saltar esses itens
-3. Propostas sem `opportunity_id` ou cujo `opportunity_id` não tem nota de encomenda associada continuam a contar normalmente
+### 2. Criar mutation para atualizar snapshots
 
-### Alterações concretas:
+**Ficheiro: `src/hooks/useProposals.ts`**
 
-- Adicionar `opportunity_id` ao select das propostas (já existe na tabela)
-- Criar um `Set<string>` com os `opportunity_id` das order notes processadas
-- No loop de proposal items, filtrar: `if (proposal.opportunity_id && coveredOpportunities.has(proposal.opportunity_id)) continue;`
+- Nova mutation `useRefreshCostSnapshots` que:
+  1. Busca os `proposal_items` com os respetivos `product_id`
+  2. Busca os custos atuais dos produtos (`direct_cost`, `operational_cost`)
+  3. Atualiza cada `proposal_item` com os novos valores de `cost_snapshot` e `operational_cost_snapshot`
+  4. Invalida a query de proposal items
 
-Um único ficheiro a editar. Sem alterações de schema.
+### 3. Corrigir dados existentes (one-time fix)
+
+- Executar uma migration que atualiza os `cost_snapshot` de todos os `proposal_items` com os valores atuais dos produtos, para corrigir snapshots errados já existentes
+
+### Ficheiros a editar
+- `src/components/proposals/ProposalInternalView.tsx` — botão "Atualizar Custos"
+- `src/hooks/useProposals.ts` — mutation `useRefreshCostSnapshots`
+- Migration SQL — fix one-time dos snapshots existentes
 
