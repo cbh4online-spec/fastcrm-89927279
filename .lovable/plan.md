@@ -1,148 +1,143 @@
 
 
-# Procurement V2 — Produtos + Sugestão de Fornecedor
-
-## Estado actual vs. V2
-
-O módulo V1 tem: `suppliers`, `purchase_requests/items`, `purchase_orders/items`, `goods_receipts/items`, `supplier_invoices`, `inventory_movements`. As tabelas existentes **não** têm `variant_id`, campos de sugestão de fornecedor, nem a tabela `supplier_products`. Os `products` não têm `default_supplier_id`, `avg_cost`, `last_cost`, `last_purchase_date`.
+# Auditoria Técnica — Módulo de Compras FastCRM
 
 ---
 
-## 1. Migração SQL
+## 1. JA IMPLEMENTADO
 
-### 1.1 Extensão a `products`
+| Area | Detalhe |
+|------|---------|
+| **Tabelas core** | `suppliers`, `purchase_requests`, `purchase_request_items`, `purchase_orders`, `purchase_order_items`, `goods_receipts`, `goods_receipt_items`, `supplier_invoices`, `supplier_products`, `inventory_movements` — todas existem com RLS por workspace |
+| **Campos V2 em purchase_request_items** | `variant_id`, `suggested_supplier_id`, `suggested_unit_price`, `suggestion_json`, `chosen_supplier_id`, `chosen_unit_price` — todos presentes no schema |
+| **Campos V2 em purchase_order_items** | `variant_id` presente |
+| **Campos V2 em suppliers** | `default_payment_terms_days`, `rating_manual` presentes |
+| **Campos V2 em inventory_movements** | `unit_cost`, `variant_id` presentes |
+| **supplier_products** | Tabela completa com `unit_price`, `lead_time_days`, `min_order_qty`, `pack_size`, `is_preferred`, `quality_score`, `reliability_score`, unique index, RLS |
+| **Edge Function: procurement-suggest-suppliers** | Implementada com scoring determinístico (35% preço, 20% lead, 15% pref, 15% reliability, 15% quality) + AI tiebreaker via Gemini |
+| **Edge Function: procurement-receive-items** | Implementada — cria receipt, items, actualiza PO status |
+| **config.toml** | Ambas EFs registadas com `verify_jwt = false` |
+| **Hook useProcurement.ts** | CRUD completo para suppliers, requests, orders, receipts, invoices, supplier_products, suggest suppliers, KPIs |
+| **UI PurchaseRequestForm** | Product autocomplete, suggest supplier button, SupplierSuggestionCard com top 3, choose/set default |
+| **UI GoodsReceiptForm** | Usa edge function `procurement-receive-items` |
+| **UI SupplierProductsPage** | Catálogo editável com CRUD |
+| **Trigger po_number** | Auto-geração PO-YYYY-XXXXX |
+| **i18n** | PT, EN, ES, FR com namespace `procurement` |
+
+---
+
+## 2. PARCIALMENTE IMPLEMENTADO
+
+| Area | Problema |
+|------|---------|
+| **Trigger V2 (process_goods_receipt_item_v2)** | O código SQL existe na migração mas **usa colunas erradas** para `inventory_movements`: escreve `movement_type`, `quantity`, `reference_type`, `reference_id` mas a tabela real tem `type`, `qty`, `source`, `ref_id`. O trigger **FALHA silenciosamente** ou dá erro na execução |
+| **Campos em products** | A migração V2 tentou adicionar `avg_cost`, `last_cost`, `default_supplier_id`, `last_purchase_date`, `reorder_point`, `reorder_qty` mas **NENHUM destes campos existe** no schema actual (types.ts confirma). A migração provavelmente falhou |
+| **PurchaseOrderForm** | Formulário V1 — usa descrição livre, sem `product_id` picker, sem `variant_id`, não ligado a produtos |
+| **usePurchaseRequests.create** | Não envia `variant_id`, `suggested_supplier_id`, `suggestion_json`, `chosen_supplier_id`, `chosen_unit_price` para a DB — campos descartados no insert |
+| **GoodsReceiptForm callback** | Chama edge function mas depois não invalida queries correctamente (usa `onSave` callback do pai que faz insert directo redundante) |
+
+---
+
+## 3. NÃO IMPLEMENTADO
+
+| Area | Impacto |
+|------|---------|
+| **Edge Function: procurement-create-po-from-request** | Não existe. Não há forma de converter Request aprovada em PO(s) agrupadas por fornecedor |
+| **Conversão Request → PO na UI** | Botão "Gerar PO" após aprovação não existe |
+| **avg_cost / last_cost / last_purchase_date** na tabela products | Colunas não existem — custo médio não é calculado nem armazenado |
+| **default_supplier_id** na tabela products | Coluna não existe — sugestão de fornecedor padrão não persiste |
+| **reorder_point / reorder_qty** na tabela products | Colunas não existem — sem alertas de reposição |
+| **Índices de performance** | `supplier_products` sem índice em `(product_id)`, `(supplier_id)`. POs sem índice em `(workspace_id, status)` |
+| **Audit trail / timeline** | Sem componente PurchaseTimeline, sem log de alterações de estado |
+| **ApprovalWorkflow component** | Referenciado no plano, nunca criado |
+| **PDF de PO** | Mencionado no plano, não implementado |
+| **Role-based access** | RLS é só workspace membership — Agent pode aprovar requests (deveria ser só Owner/Admin) |
+
+---
+
+## 4. BUGS POTENCIAIS (CRÍTICOS)
+
+### BUG 1 — Trigger V2 vai crashar na receção
+O trigger `process_goods_receipt_item_v2` faz:
 ```sql
-ALTER TABLE products ADD COLUMN IF NOT EXISTS default_supplier_id uuid REFERENCES suppliers(id);
-ALTER TABLE products ADD COLUMN IF NOT EXISTS avg_cost numeric DEFAULT 0;
-ALTER TABLE products ADD COLUMN IF NOT EXISTS last_cost numeric DEFAULT 0;
-ALTER TABLE products ADD COLUMN IF NOT EXISTS last_purchase_date date;
-ALTER TABLE products ADD COLUMN IF NOT EXISTS reorder_point int;
-ALTER TABLE products ADD COLUMN IF NOT EXISTS reorder_qty int;
+INSERT INTO inventory_movements (workspace_id, product_id, movement_type, quantity, unit_cost, reference_type, reference_id)
+```
+Mas as colunas reais são: `type`, `qty`, `source`, `ref_id`. **Resultado: erro PostgreSQL na receção, transação falha, stock não actualiza.**
+
+### BUG 2 — Campos em products não existem
+O trigger V2 faz `UPDATE products SET avg_cost = ..., last_cost = ..., last_purchase_date = ...` mas essas colunas não existem. **A migração V1 das extensões a products falhou silenciosamente.**
+
+### BUG 3 — Dois triggers concorrentes no mesmo evento
+Existe `process_goods_receipt_item` (V1) e `process_goods_receipt_item_v2` (V2) — o V2 faz DROP do V1, mas se o V2 falhou a instalar, o V1 pode estar activo. O V1 **não calcula avg_cost** nem `last_cost`.
+
+### BUG 4 — usePurchaseRequests.create descarta campos V2
+O hook envia items com `product_id`, `description`, `quantity`, `estimated_unit_price` mas ignora `variant_id`, `suggested_supplier_id`, `suggestion_json`, `chosen_supplier_id`, `chosen_unit_price` — dados da sugestão perdem-se.
+
+### BUG 5 — GoodsReceiptForm duplo-insert
+O componente chama a edge function E depois o `onSave` do pai que faz `create(values)` — potencial inserção duplicada de receipt.
+
+### BUG 6 — Race condition na receção
+A edge function e o trigger correm em paralelo sem transacção única. Receções simultâneas podem corromper `received_quantity` e `stock_quantity`.
+
+### BUG 7 — PurchaseOrderForm sem product_id
+Cria items com `description` livre — sem referência a produto. Quebra o princípio "produtos são fonte de verdade".
+
+---
+
+## 5. RECOMENDAÇÕES PRIORITÁRIAS (Ordem de execução)
+
+1. **Migração SQL correctiva** — Adicionar colunas em falta a `products` + corrigir trigger V2 com nomes de colunas correctos
+2. **Fix usePurchaseRequests.create** — Enviar todos os campos V2 (variant_id, chosen_supplier_id, etc.)
+3. **Fix GoodsReceiptForm** — Remover insert directo duplicado, usar apenas edge function
+4. **Criar procurement-create-po-from-request** — Edge function que agrupa items por chosen_supplier_id e cria POs
+5. **Refazer PurchaseOrderForm** — Product picker em vez de descrição livre
+6. **Adicionar índices** — `supplier_products(product_id)`, `supplier_products(supplier_id)`, `purchase_orders(workspace_id, status)`
+7. **Corrigir race condition** — Usar `SELECT ... FOR UPDATE` no trigger ou edge function para serializar receções
+8. **Role-based approval** — Verificar role (owner/admin) antes de permitir approve/reject
+
+---
+
+## 6. LISTA EXACTA DE ACÇÕES TÉCNICAS
+
+### Migração SQL
+```
+1. ALTER TABLE products ADD COLUMN IF NOT EXISTS default_supplier_id uuid REFERENCES suppliers(id)
+2. ALTER TABLE products ADD COLUMN IF NOT EXISTS avg_cost numeric DEFAULT 0
+3. ALTER TABLE products ADD COLUMN IF NOT EXISTS last_cost numeric DEFAULT 0
+4. ALTER TABLE products ADD COLUMN IF NOT EXISTS last_purchase_date date
+5. ALTER TABLE products ADD COLUMN IF NOT EXISTS reorder_point int
+6. ALTER TABLE products ADD COLUMN IF NOT EXISTS reorder_qty int
+7. CREATE OR REPLACE FUNCTION process_goods_receipt_item_v2() — com colunas correctas: type, qty, source, ref_id
+8. CREATE INDEX idx_supplier_products_product ON supplier_products(product_id)
+9. CREATE INDEX idx_supplier_products_supplier ON supplier_products(supplier_id)
+10. CREATE INDEX idx_purchase_orders_ws_status ON purchase_orders(workspace_id, status)
+11. CREATE INDEX idx_purchase_order_items_order ON purchase_order_items(order_id)
 ```
 
-### 1.2 Nova tabela `supplier_products` (catálogo fornecedor x produto)
-- `id`, `workspace_id`, `supplier_id` FK, `product_id` FK, `variant_id` FK nullable
-- `supplier_sku`, `unit_price` numeric, `currency` default EUR, `min_order_qty` default 1, `pack_size` default 1
-- `lead_time_days` int nullable, `last_price_date` date, `is_preferred` bool default false
-- `quality_score` numeric(2,1) nullable, `reliability_score` numeric(2,1) nullable, `notes`
-- UNIQUE(workspace_id, supplier_id, product_id, variant_id)
-- RLS: workspace members
-
-### 1.3 Extensão a `purchase_request_items`
-```sql
-ADD variant_id uuid REFERENCES product_variants(id);
-ADD suggested_supplier_id uuid REFERENCES suppliers(id);
-ADD suggested_unit_price numeric;
-ADD suggestion_json jsonb;
-ADD chosen_supplier_id uuid REFERENCES suppliers(id);
-ADD chosen_unit_price numeric;
+### Edge Functions
+```
+12. Criar supabase/functions/procurement-create-po-from-request/index.ts
+13. Registar em config.toml
 ```
 
-### 1.4 Extensão a `purchase_order_items`
-```sql
-ADD variant_id uuid REFERENCES product_variants(id);
+### Hooks (useProcurement.ts)
+```
+14. Fix usePurchaseRequests.create — incluir variant_id, suggested_supplier_id, suggestion_json, chosen_supplier_id, chosen_unit_price no insert
+15. Fix usePurchaseOrders.create — adicionar product_id e variant_id ao item input
+16. Adicionar hook useConvertRequestToPO que chama a nova edge function
 ```
 
-### 1.5 Extensão a `suppliers`
-```sql
-ADD default_payment_terms_days int DEFAULT 30;
-ADD rating_manual numeric(2,1);
+### Components
+```
+17. Fix GoodsReceiptForm — remover callback onSave duplicado, usar apenas edge function + invalidar queries manualmente
+18. Refazer PurchaseOrderForm — product picker com autocomplete, variant_id, remover descrição livre
+19. Adicionar botão "Gerar PO" na PurchaseRequestsPage para requests aprovadas
+20. Criar PurchaseTimeline component (audit trail visual)
 ```
 
-### 1.6 Extensão a `inventory_movements`
-Adicionar `unit_cost` numeric nullable e `variant_id` uuid nullable.
-
-### 1.7 Trigger: receção actualiza avg_cost + last_cost
-Substituir/melhorar o trigger existente `process_goods_receipt_item` para:
-- Calcular `avg_cost = (stock * avg_cost + qty * unit_price) / (stock + qty)`
-- Definir `last_cost = unit_price` e `last_purchase_date = today`
-
----
-
-## 2. Edge Function: `procurement-suggest-suppliers`
-
-Input: `{ workspace_id, items: [{ product_id, variant_id?, requested_qty }] }`
-
-Lógica:
-1. Buscar `supplier_products` para cada item
-2. Para cada fornecedor candidato, calcular score 0-100:
-   - Preço (35%): normalizar — melhor preço = 100
-   - Lead time (20%): normalizar — menor = 100
-   - Preferred (15%): `is_preferred` = 100, senão 0; + bónus +10 se `product.default_supplier_id` match
-   - Reliability (15%): `reliability_score * 20`
-   - Quality (15%): `quality_score * 20`
-3. Ordenar por score desc, retornar top 3 com motivo
-4. Se empate (diff < 5 pontos entre top 2) ou dados incompletos → chamar Lovable AI (Gemini 3 Flash) para desempatar com explicação textual
-
-Output: `{ item_suggestions: [{ product_id, top3: [{ supplier_id, supplier_name, score, unit_price, lead_time, reason }], recommended_supplier_id, suggested_unit_price }] }`
-
----
-
-## 3. Edge Function: `procurement-receive-items`
-
-Substituir a lógica client-side de receção por edge function que:
-1. Regista `goods_receipt` + `goods_receipt_items`
-2. Actualiza `purchase_order_items.received_quantity`
-3. Cria `inventory_movements` (type: `purchase_in`, com `unit_cost`)
-4. Actualiza `products.stock_quantity`, `avg_cost`, `last_cost`, `last_purchase_date`
-5. Actualiza status da PO: se todos recebidos → `received`, senão `partial`
-
----
-
-## 4. UI — Formulário de Requisição V2
-
-Refazer `PurchaseRequestForm.tsx`:
-- Item picker com **autocomplete de produtos** (pesquisa por nome/SKU)
-- Campo `variant_id` (se produto tem variantes)
-- Botão **"Propor Fornecedor"** por item → chama edge function → mostra card com top 3 ranked
-- Cada sugestão mostra: nome, preço, lead time, score, badge "Recomendado"
-- Botão "Escolher este" define `chosen_supplier_id` e `chosen_unit_price`
-- Opção "Definir como fornecedor padrão" (actualiza `products.default_supplier_id`)
-
----
-
-## 5. Nova página: Supplier Products (Catálogo)
-
-`src/pages/procurement/SupplierProductsPage.tsx`:
-- Tabela editável inline: produto, fornecedor, preço, lead time, MOQ, pack size, preferido, scores
-- Filtro por fornecedor ou produto
-- Botão "Adicionar relação produto-fornecedor"
-
----
-
-## 6. Actualizar Receção (GoodsReceiptsPage)
-
-Usar a nova edge function `procurement-receive-items` em vez de inserts directos, para garantir actualização atómica de stock + custos.
-
----
-
-## 7. Hook `useProcurement.ts` — Extensões
-
-- `useSupplierProducts(workspaceId)` — CRUD para `supplier_products`
-- `useSuggestSuppliers(workspaceId)` — chama edge function
-- Actualizar `useGoodsReceipts` para usar edge function de receção
-
----
-
-## 8. i18n
-
-Adicionar chaves para: `suggestSupplier`, `supplierProducts`, `score`, `leadTime`, `preferred`, `recommended`, `chooseThis`, `setAsDefault`, `catalogPrice`, etc.
-
----
-
-## Ficheiros a criar/modificar
-
-| Acção | Ficheiro |
-|-------|---------|
-| Criar | Migração SQL (alter tables + supplier_products + trigger melhorado) |
-| Criar | `supabase/functions/procurement-suggest-suppliers/index.ts` |
-| Criar | `supabase/functions/procurement-receive-items/index.ts` |
-| Criar | `src/pages/procurement/SupplierProductsPage.tsx` |
-| Modificar | `src/hooks/useProcurement.ts` — adicionar supplier products + suggest + receive via EF |
-| Modificar | `src/components/procurement/PurchaseRequestForm.tsx` — product picker + suggest UI |
-| Modificar | `src/components/procurement/GoodsReceiptForm.tsx` — usar edge function |
-| Modificar | `src/config/nav.v1.ts` — adicionar rota "Catálogo Fornecedores" |
-| Modificar | `src/App.tsx` — rota supplier-products |
-| Modificar | `supabase/config.toml` — registar 2 novas edge functions |
-| Modificar | i18n files (pt/en/es/fr) |
+### Segurança
+```
+21. Adicionar verificação de role (owner/admin) na action approve/reject de requests
+22. Adicionar FOR UPDATE no trigger para prevenir race conditions
+```
 
