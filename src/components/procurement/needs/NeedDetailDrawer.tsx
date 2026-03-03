@@ -2,6 +2,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { SupplierSuggestionCard } from "@/components/procurement/SupplierSuggestionCard";
 import { ProcurementNeed } from "@/hooks/useProcurementNeeds";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -12,6 +13,7 @@ interface NeedDetailDrawerProps {
   onClose: () => void;
   onIgnore: (id: string) => void;
   onCreatePO: (id: string) => void;
+  onChooseSupplier?: (needId: string, supplierId: string, unitPrice: number) => void;
 }
 
 const SOURCE_ICONS: Record<string, any> = {
@@ -26,11 +28,20 @@ const SOURCE_LABELS: Record<string, string> = {
   project: "Projeto",
 };
 
-export function NeedDetailDrawer({ need, onClose, onIgnore, onCreatePO }: NeedDetailDrawerProps) {
+export function NeedDetailDrawer({ need, onClose, onIgnore, onCreatePO, onChooseSupplier }: NeedDetailDrawerProps) {
   if (!need) return null;
 
   const sources = need.demand_sources_json || [];
   const ranking = need.suggestion_json?.ranking || [];
+
+  const suggestions = ranking.map((s: any) => ({
+    supplier_id: s.supplier_id,
+    supplier_name: s.supplier_name,
+    score: s.score,
+    unit_price: s.unit_price,
+    lead_time: s.lead_time ?? null,
+    reason: s.is_preferred ? "Fornecedor preferido" : `Score: ${s.score}/100`,
+  }));
 
   return (
     <Sheet open={!!need} onOpenChange={() => onClose()}>
@@ -96,28 +107,16 @@ export function NeedDetailDrawer({ need, onClose, onIgnore, onCreatePO }: NeedDe
 
           <Separator />
 
-          {/* Supplier ranking */}
+          {/* Supplier ranking - using SupplierSuggestionCard */}
           <div>
             <h3 className="text-sm font-semibold mb-3">Fornecedores Recomendados</h3>
-            {ranking.length > 0 ? (
-              <div className="space-y-2">
-                {ranking.map((s: any, i: number) => (
-                  <div key={i} className={`flex items-center justify-between p-2 rounded border text-sm ${i === 0 ? "bg-primary/5 border-primary/20" : ""}`}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-muted-foreground">#{i + 1}</span>
-                      <span>{s.supplier_name}</span>
-                      {s.is_preferred && <Badge variant="secondary" className="text-[10px]">Preferido</Badge>}
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">€{s.unit_price?.toFixed(2)}</p>
-                      <p className="text-[10px] text-muted-foreground">Score: {s.score}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Sem fornecedores no catálogo para este produto</p>
-            )}
+            <SupplierSuggestionCard
+              suggestions={suggestions}
+              aiExplanation={need.suggestion_json?.ai_explanation}
+              onChoose={(supplierId, unitPrice) => {
+                onChooseSupplier?.(need.id, supplierId, unitPrice);
+              }}
+            />
           </div>
 
           <Separator />

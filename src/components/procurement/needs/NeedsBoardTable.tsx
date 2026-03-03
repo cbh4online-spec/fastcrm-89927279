@@ -3,7 +3,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Eye, ShoppingCart, XCircle } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { MoreHorizontal, Eye, ShoppingCart, XCircle, ChevronDown, Star, Clock, Trophy } from "lucide-react";
 import { ProcurementNeed } from "@/hooks/useProcurementNeeds";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
@@ -17,6 +18,7 @@ interface NeedsBoardTableProps {
   onViewDetail: (need: ProcurementNeed) => void;
   onIgnore: (id: string) => void;
   onCreatePO: (id: string) => void;
+  onChooseSupplier?: (needId: string, supplierId: string, unitPrice: number) => void;
 }
 
 const STATUS_BADGES: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
@@ -53,8 +55,65 @@ function SourceBadges({ sources }: { sources: any[] }) {
   );
 }
 
+function SupplierPopover({ need, onChoose }: { need: ProcurementNeed; onChoose?: (needId: string, supplierId: string, unitPrice: number) => void }) {
+  const ranking: any[] = need.suggestion_json?.ranking || [];
+
+  if (!ranking.length) {
+    return <span className="text-xs text-muted-foreground">Sem fornecedor</span>;
+  }
+
+  const top = ranking[0];
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" className="h-auto p-1 -ml-1 text-left font-normal hover:bg-accent/50" size="sm">
+          <div className="flex items-center gap-1">
+            <div>
+              <p className="text-sm font-medium">{need.suppliers?.name || top.supplier_name}</p>
+              {(need.suggested_unit_price || top.unit_price) && (
+                <p className="text-xs text-muted-foreground">€{(need.suggested_unit_price || top.unit_price)?.toFixed(2)}/un</p>
+              )}
+            </div>
+            {ranking.length > 1 && <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />}
+          </div>
+        </Button>
+      </PopoverTrigger>
+      {ranking.length > 0 && (
+        <PopoverContent className="w-72 p-2" align="start">
+          <p className="text-xs font-semibold text-muted-foreground mb-2">Top {Math.min(ranking.length, 3)} fornecedores</p>
+          <div className="space-y-1.5">
+            {ranking.slice(0, 3).map((s: any, i: number) => (
+              <div
+                key={s.supplier_id}
+                className={`flex items-center justify-between p-2 rounded-md border text-sm cursor-pointer hover:bg-accent/50 transition-colors ${
+                  s.supplier_id === need.recommended_supplier_id ? "bg-primary/5 border-primary/30" : ""
+                }`}
+                onClick={() => onChoose?.(need.id, s.supplier_id, s.unit_price)}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-xs font-bold text-muted-foreground">#{i + 1}</span>
+                  {i === 0 && <Trophy className="h-3 w-3 text-primary shrink-0" />}
+                  <span className="truncate">{s.supplier_name}</span>
+                </div>
+                <div className="text-right shrink-0 ml-2">
+                  <p className="font-medium">€{s.unit_price?.toFixed(2)}</p>
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    {s.lead_time != null && <span className="flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" />{s.lead_time}d</span>}
+                    <span className="flex items-center gap-0.5"><Star className="h-2.5 w-2.5" />{s.score}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </PopoverContent>
+      )}
+    </Popover>
+  );
+}
+
 export function NeedsBoardTable({
-  needs, isLoading, selectedIds, onSelectionChange, onViewDetail, onIgnore, onCreatePO,
+  needs, isLoading, selectedIds, onSelectionChange, onViewDetail, onIgnore, onCreatePO, onChooseSupplier,
 }: NeedsBoardTableProps) {
   const allSelected = needs.length > 0 && selectedIds.length === needs.length;
 
@@ -141,16 +200,7 @@ export function NeedsBoardTable({
                   <SourceBadges sources={need.demand_sources_json} />
                 </TableCell>
                 <TableCell>
-                  {need.suppliers?.name ? (
-                    <div>
-                      <p className="text-sm">{need.suppliers.name}</p>
-                      {need.suggested_unit_price && (
-                        <p className="text-xs text-muted-foreground">€{need.suggested_unit_price.toFixed(2)}/un</p>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Sem fornecedor</span>
-                  )}
+                  <SupplierPopover need={need} onChoose={onChooseSupplier} />
                 </TableCell>
                 <TableCell>
                   <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
