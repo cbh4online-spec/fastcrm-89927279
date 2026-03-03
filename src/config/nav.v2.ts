@@ -1,6 +1,7 @@
 import { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
+  RotateCcw,
   Newspaper,
   Inbox,
   Sparkles,
@@ -114,6 +115,7 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
       { name: "Propostas", href: "/dashboard/proposals", icon: Presentation, iconColor: "text-amber-500" },
       { name: "Faturas", href: "/dashboard/invoices", icon: Receipt, iconColor: "text-amber-500" },
       { name: "Notas Encomenda", href: "/dashboard/order-notes", icon: FileText, iconColor: "text-amber-500" },
+      { name: "Renovações", href: "/dashboard/renewals", icon: RotateCcw, iconColor: "text-amber-500" },
     ],
   },
   {
