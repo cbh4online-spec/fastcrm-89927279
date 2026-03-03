@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useRFQDetail, useSendRFQ, useAddRFQQuote, useAwardRFQ, useAddRFQSupplier, useUpdateRFQ } from "@/hooks/useRFQ";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useSuppliers } from "@/hooks/useProcurement";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +29,7 @@ export default function RFQDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
+  const { isSuperAdmin, isAdmin } = useUserRole();
   const { rfq, items, suppliers, quotes, workspace, isLoading } = useRFQDetail(id);
   const { data: allSuppliers = [] } = useSuppliers(currentWorkspace?.id);
   const sendRFQ = useSendRFQ();
@@ -35,6 +37,9 @@ export default function RFQDetailPage() {
   const awardRFQ = useAwardRFQ();
   const addSupplier = useAddRFQSupplier();
   const updateRFQ = useUpdateRFQ();
+
+  const workspaceRole = currentWorkspace?.role;
+  const hasEditPermission = isSuperAdmin || isAdmin || workspaceRole === "owner" || workspaceRole === "admin";
 
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
@@ -128,14 +133,14 @@ export default function RFQDetailPage() {
     }
   });
 
-  const canSend = rfq.status === "draft";
+  const canSend = rfq.status === "draft" && hasEditPermission;
   const canAddQuotes = ["sent", "receiving_quotes"].includes(rfq.status);
-  const canAward = quotes.length > 0 && !["awarded", "closed"].includes(rfq.status);
+  const canAward = quotes.length > 0 && !["awarded", "closed"].includes(rfq.status) && hasEditPermission;
 
   const rfqData = rfq as any;
   const wsData = workspace as any;
   const isDraft = rfq.status === "draft";
-  const isEditable = !["awarded", "closed"].includes(rfq.status);
+  const isEditable = !["awarded", "closed"].includes(rfq.status) && hasEditPermission;
   const projectData = rfqData.procurement_projects;
 
   const handleInlineUpdate = (field: string, value: any) => {
@@ -158,6 +163,9 @@ export default function RFQDetailPage() {
           </div>
            <div className="flex items-center gap-2 mt-1">
              <Badge variant="secondary">{rfq.status}</Badge>
+             {!hasEditPermission && !["awarded", "closed"].includes(rfq.status) && (
+               <Badge variant="outline" className="text-xs border-muted-foreground/30">Apenas leitura</Badge>
+             )}
              {rfq.due_date && (
                <Badge variant={new Date(rfq.due_date) < new Date() ? "destructive" : "outline"} className="text-xs">
                  <CalendarIcon className="mr-1 h-3 w-3" />
@@ -358,7 +366,7 @@ export default function RFQDetailPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Fornecedores Convidados</CardTitle>
-          {!["awarded", "closed"].includes(rfq.status) && (
+          {!["awarded", "closed"].includes(rfq.status) && hasEditPermission && (
             <Button variant="outline" size="sm" onClick={() => { setSelectedSupplierId(""); setShowAddSupplierModal(true); }}>
               <Plus className="mr-2 h-4 w-4" /> Adicionar Fornecedor
             </Button>
