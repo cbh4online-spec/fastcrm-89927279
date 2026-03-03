@@ -95,5 +95,21 @@
   "searchProduct": "Search product...",
   "save": "Save",
   "score": "Score",
-  "converted": "Converted"
+  "converted": "Converted",
+  "importPrices": "Import Prices",
+  "priceImport": "Price Import",
+  "uploadPriceTable": "Upload Price Table",
+  "columnMapping": "Column Mapping",
+  "preview": "Preview",
+  "confirm": "Confirm",
+  "pricingMode": "Pricing Mode",
+  "matched": "Matched",
+  "unmatched": "Unmatched",
+  "needsReview": "Needs Review",
+  "commitImport": "Commit Import",
+  "importCompleted": "Import Completed",
+  "created": "Created",
+  "updated": "Updated",
+  "errors": "Errors",
+  "newImport": "New Import"
 }

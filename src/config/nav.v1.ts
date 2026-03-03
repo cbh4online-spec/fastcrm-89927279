@@ -49,6 +49,7 @@ import {
   TargetIcon,
   LineChart,
   PieChart,
+  FileSpreadsheet,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -120,6 +121,7 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Receção", href: "/dashboard/procurement/receipts", icon: Package, group: "Compras", moduleSlug: "procurement" },
   { name: "Faturas Fornecedor", href: "/dashboard/procurement/invoices", icon: CreditCard, group: "Compras", moduleSlug: "procurement" },
   { name: "Catálogo Fornecedores", href: "/dashboard/procurement/catalog", icon: Layers, group: "Compras", moduleSlug: "procurement" },
+  { name: "Importar Preços", href: "/dashboard/procurement/price-import", icon: FileSpreadsheet, group: "Compras", moduleSlug: "procurement" },
 
   // Portal B2B
   { name: "Notas Encomenda", href: "/dashboard/order-notes", icon: FileText, group: "Portal B2B", separator: true, moduleSlug: "b2b-portal" },
