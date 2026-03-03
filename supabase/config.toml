@@ -387,3 +387,12 @@ verify_jwt = false
 
 [functions.procurement-create-po-from-request]
 verify_jwt = false
+
+[functions.supplier-import-parse]
+verify_jwt = false
+
+[functions.supplier-import-validate]
+verify_jwt = false
+
+[functions.supplier-import-commit]
+verify_jwt = false

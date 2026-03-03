@@ -52,5 +52,10 @@
   "score": "Puntuación",
   "converted": "Convertida",
   "generatePO": "Generar Orden de Compra",
-  "selectProduct": "Seleccionar producto"
+  "selectProduct": "Seleccionar producto",
+  "importPrices": "Importar Precios",
+  "matched": "Asociado",
+  "unmatched": "Sin asociar",
+  "importCompleted": "Importación Completada",
+  "newImport": "Nueva Importación"
 }

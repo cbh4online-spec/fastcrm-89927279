@@ -47,5 +47,10 @@
   "score": "Score",
   "converted": "Convertie",
   "generatePO": "Générer Bon de Commande",
-  "selectProduct": "Sélectionner produit"
+  "selectProduct": "Sélectionner produit",
+  "importPrices": "Importer Prix",
+  "matched": "Associé",
+  "unmatched": "Non associé",
+  "importCompleted": "Importation Terminée",
+  "newImport": "Nouvelle Importation"
 }

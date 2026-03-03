@@ -30421,20 +30421,187 @@ export type Database = {
           },
         ]
       }
+      supplier_price_import_rows: {
+        Row: {
+          computed_rrp_price: number | null
+          computed_unit_price: number | null
+          created_at: string
+          error_text: string | null
+          id: string
+          import_id: string
+          match_status: string
+          normalized_json: Json | null
+          product_id: string | null
+          raw_json: Json | null
+          row_index: number
+          variant_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          computed_rrp_price?: number | null
+          computed_unit_price?: number | null
+          created_at?: string
+          error_text?: string | null
+          id?: string
+          import_id: string
+          match_status?: string
+          normalized_json?: Json | null
+          product_id?: string | null
+          raw_json?: Json | null
+          row_index?: number
+          variant_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          computed_rrp_price?: number | null
+          computed_unit_price?: number | null
+          created_at?: string
+          error_text?: string | null
+          id?: string
+          import_id?: string
+          match_status?: string
+          normalized_json?: Json | null
+          product_id?: string | null
+          raw_json?: Json | null
+          row_index?: number
+          variant_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_price_import_rows_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_price_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_price_import_rows_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "supplier_price_import_rows_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_price_import_rows_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_price_import_rows_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_price_imports: {
+        Row: {
+          base_price_field: string | null
+          category_discounts_json: Json | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          file_name: string | null
+          file_type: string | null
+          file_url: string | null
+          global_discount_percent: number | null
+          id: string
+          mapping_json: Json | null
+          margin_percent: number | null
+          price_is_per_pack: boolean
+          pricing_mode: string
+          stats_json: Json | null
+          status: string
+          supplier_id: string
+          workspace_id: string
+        }
+        Insert: {
+          base_price_field?: string | null
+          category_discounts_json?: Json | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
+          global_discount_percent?: number | null
+          id?: string
+          mapping_json?: Json | null
+          margin_percent?: number | null
+          price_is_per_pack?: boolean
+          pricing_mode?: string
+          stats_json?: Json | null
+          status?: string
+          supplier_id: string
+          workspace_id: string
+        }
+        Update: {
+          base_price_field?: string | null
+          category_discounts_json?: Json | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
+          global_discount_percent?: number | null
+          id?: string
+          mapping_json?: Json | null
+          margin_percent?: number | null
+          price_is_per_pack?: boolean
+          pricing_mode?: string
+          stats_json?: Json | null
+          status?: string
+          supplier_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_price_imports_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_price_imports_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_products: {
         Row: {
+          barcode: string | null
+          category: string | null
           created_at: string
           currency: string
           id: string
+          import_id: string | null
           is_preferred: boolean
           last_price_date: string | null
           lead_time_days: number | null
           min_order_qty: number
           notes: string | null
           pack_size: number
+          price_source: string | null
           product_id: string
           quality_score: number | null
           reliability_score: number | null
+          rrp_price: number | null
           supplier_id: string
           supplier_sku: string | null
           unit_price: number
@@ -30443,18 +30610,23 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          barcode?: string | null
+          category?: string | null
           created_at?: string
           currency?: string
           id?: string
+          import_id?: string | null
           is_preferred?: boolean
           last_price_date?: string | null
           lead_time_days?: number | null
           min_order_qty?: number
           notes?: string | null
           pack_size?: number
+          price_source?: string | null
           product_id: string
           quality_score?: number | null
           reliability_score?: number | null
+          rrp_price?: number | null
           supplier_id: string
           supplier_sku?: string | null
           unit_price?: number
@@ -30463,18 +30635,23 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          barcode?: string | null
+          category?: string | null
           created_at?: string
           currency?: string
           id?: string
+          import_id?: string | null
           is_preferred?: boolean
           last_price_date?: string | null
           lead_time_days?: number | null
           min_order_qty?: number
           notes?: string | null
           pack_size?: number
+          price_source?: string | null
           product_id?: string
           quality_score?: number | null
           reliability_score?: number | null
+          rrp_price?: number | null
           supplier_id?: string
           supplier_sku?: string | null
           unit_price?: number
@@ -30483,6 +30660,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "supplier_products_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_price_imports"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "supplier_products_product_id_fkey"
             columns: ["product_id"]
