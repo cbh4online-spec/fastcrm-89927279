@@ -35,6 +35,22 @@ export function useRFQDetail(rfqId: string | undefined) {
     enabled: !!rfqId,
   });
 
+  // Fetch workspace info for buyer details
+  const workspace = useQuery({
+    queryKey: ["rfq-workspace", rfq.data?.workspace_id],
+    queryFn: async () => {
+      if (!rfq.data?.workspace_id) return null;
+      const { data, error } = await supabase
+        .from("workspaces")
+        .select("id, name, company_name, tax_id, billing_address, phone")
+        .eq("id", rfq.data.workspace_id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!rfq.data?.workspace_id,
+  });
+
   const items = useQuery({
     queryKey: ["rfq-items", rfqId],
     queryFn: async () => {
@@ -84,6 +100,7 @@ export function useRFQDetail(rfqId: string | undefined) {
     items: items.data || [],
     suppliers: suppliers.data || [],
     quotes: quotes.data || [],
+    workspace: workspace.data,
     isLoading: rfq.isLoading,
   };
 }
@@ -118,6 +135,7 @@ export function useSendRFQ() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["rfqs"] });
       qc.invalidateQueries({ queryKey: ["rfq"] });
+      qc.invalidateQueries({ queryKey: ["rfq-suppliers"] });
       toast.success("RFQ enviado aos fornecedores!");
     },
     onError: (e) => toast.error(`Erro: ${e.message}`),
@@ -130,6 +148,7 @@ export function useAddRFQQuote() {
     mutationFn: async (input: {
       workspace_id: string; rfq_id: string; rfq_item_id: string; supplier_id: string;
       unit_price: number; lead_time_days?: number; min_order_qty?: number; notes?: string;
+      discount_percent?: number; vat_percent?: number;
     }) => {
       const { error } = await supabase.from("rfq_quotes").insert({
         workspace_id: input.workspace_id,
@@ -140,6 +159,8 @@ export function useAddRFQQuote() {
         lead_time_days: input.lead_time_days,
         min_order_qty: input.min_order_qty,
         notes: input.notes,
+        discount_percent: input.discount_percent || 0,
+        vat_percent: input.vat_percent || 23,
       } as any);
       if (error) throw error;
     },

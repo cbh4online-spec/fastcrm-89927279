@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useRFQDetail, useSendRFQ, useAddRFQQuote, useAwardRFQ, useAddRFQSupplier } from "@/hooks/useRFQ";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useSuppliers } from "@/hooks/useProcurement";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,14 +13,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Send, Plus, Trophy, Loader2, FileDown } from "lucide-react";
-import jsPDF from "jspdf";
+import { Separator } from "@/components/ui/separator";
+import { ArrowLeft, Send, Plus, Trophy, Loader2, FileDown, Building2, Calendar, Globe, CreditCard, MapPin, Clock } from "lucide-react";
+import { toast } from "sonner";
 
 export default function RFQDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
-  const { rfq, items, suppliers, quotes, isLoading } = useRFQDetail(id);
+  const { rfq, items, suppliers, quotes, workspace, isLoading } = useRFQDetail(id);
   const { data: allSuppliers = [] } = useSuppliers(currentWorkspace?.id);
   const sendRFQ = useSendRFQ();
   const addQuote = useAddRFQQuote();
@@ -29,8 +31,9 @@ export default function RFQDetailPage() {
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
-  const [quoteForm, setQuoteForm] = useState({ rfq_item_id: "", supplier_id: "", unit_price: "", lead_time_days: "", min_order_qty: "", notes: "" });
+  const [quoteForm, setQuoteForm] = useState({ rfq_item_id: "", supplier_id: "", unit_price: "", lead_time_days: "", min_order_qty: "", notes: "", discount_percent: "0", vat_percent: "23" });
   const [selectedQuoteIds, setSelectedQuoteIds] = useState<string[]>([]);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
 
   if (isLoading) {
     return <div className="flex items-center justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
@@ -53,9 +56,11 @@ export default function RFQDetailPage() {
       lead_time_days: quoteForm.lead_time_days ? Number(quoteForm.lead_time_days) : undefined,
       min_order_qty: quoteForm.min_order_qty ? Number(quoteForm.min_order_qty) : undefined,
       notes: quoteForm.notes || undefined,
+      discount_percent: Number(quoteForm.discount_percent) || 0,
+      vat_percent: Number(quoteForm.vat_percent) || 23,
     });
     setShowQuoteModal(false);
-    setQuoteForm({ rfq_item_id: "", supplier_id: "", unit_price: "", lead_time_days: "", min_order_qty: "", notes: "" });
+    setQuoteForm({ rfq_item_id: "", supplier_id: "", unit_price: "", lead_time_days: "", min_order_qty: "", notes: "", discount_percent: "0", vat_percent: "23" });
   };
 
   const handleAward = () => {
@@ -63,12 +68,40 @@ export default function RFQDetailPage() {
     awardRFQ.mutate({ rfq_id: rfq.id, selected_quote_ids: selectedQuoteIds });
   };
 
+  const handleGeneratePDF = async () => {
+    setGeneratingPDF(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("rfq-generate-pdf", {
+        body: { rfq_id: rfq.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.pdf_url) {
+        // Download the PDF
+        const { data: fileData, error: dlError } = await supabase.storage
+          .from("rfq-pdfs")
+          .download(data.pdf_url);
+        if (dlError) throw dlError;
+        const url = URL.createObjectURL(fileData);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `RFQ-${(rfq as any).rfq_number || rfq.title || "export"}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success("PDF gerado com sucesso!");
+      }
+    } catch (e: any) {
+      toast.error(`Erro ao gerar PDF: ${e.message}`);
+    } finally {
+      setGeneratingPDF(false);
+    }
+  };
+
   // Build comparison matrix
   const supplierIds = [...new Set(quotes.map((q: any) => q.supplier_id))];
   const supplierNames: Record<string, string> = {};
   quotes.forEach((q: any) => { if (q.suppliers?.name) supplierNames[q.supplier_id] = q.suppliers.name; });
 
-  // Find best price per item
   const bestPriceByItem: Record<string, number> = {};
   items.forEach((item: any) => {
     const itemQuotes = quotes.filter((q: any) => q.rfq_item_id === item.id);
@@ -81,80 +114,35 @@ export default function RFQDetailPage() {
   const canAddQuotes = ["sent", "receiving_quotes"].includes(rfq.status);
   const canAward = quotes.length > 0 && !["awarded", "closed"].includes(rfq.status);
 
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
-    let y = 20;
-
-    // Header
-    doc.setFontSize(18);
-    doc.text(rfq.title || "RFQ", 14, y);
-    y += 10;
-    doc.setFontSize(11);
-    doc.text(`Estado: ${rfq.status}`, 14, y);
-    if (rfq.due_date) {
-      doc.text(`Prazo: ${rfq.due_date}`, 100, y);
-    }
-    y += 12;
-
-    // Suppliers
-    doc.setFontSize(13);
-    doc.text("Fornecedores Convidados", 14, y);
-    y += 8;
-    doc.setFontSize(10);
-    if (suppliers.length === 0) {
-      doc.text("Nenhum fornecedor adicionado.", 14, y);
-      y += 6;
-    } else {
-      suppliers.forEach((s: any) => {
-        doc.text(`• ${s.suppliers?.name || "—"} (${s.status})`, 14, y);
-        y += 6;
-      });
-    }
-    y += 6;
-
-    // Items table
-    doc.setFontSize(13);
-    doc.text("Itens", 14, y);
-    y += 8;
-    doc.setFontSize(10);
-
-    // Table header
-    doc.setFont("helvetica", "bold");
-    doc.text("Produto", 14, y);
-    doc.text("SKU", 90, y);
-    doc.text("Qtd", 160, y);
-    y += 2;
-    doc.line(14, y, 196, y);
-    y += 5;
-    doc.setFont("helvetica", "normal");
-
-    items.forEach((item: any) => {
-      if (y > 270) { doc.addPage(); y = 20; }
-      doc.text(String(item.products?.name || "—"), 14, y);
-      doc.text(String(item.products?.sku || "—"), 90, y);
-      doc.text(String(item.qty ?? ""), 160, y);
-      y += 6;
-    });
-
-    doc.save(`RFQ-${(rfq.title || "export").replace(/\s+/g, "-")}.pdf`);
-  };
+  const rfqData = rfq as any;
+  const wsData = workspace as any;
 
   return (
     <div className="space-y-6 p-6">
+      {/* Top bar */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/procurement/rfqs")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold">{rfq.title}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold">{rfq.title}</h1>
+            {rfqData.rfq_number && (
+              <Badge variant="outline" className="text-xs font-mono">{rfqData.rfq_number}</Badge>
+            )}
+          </div>
           <div className="flex items-center gap-2 mt-1">
             <Badge variant="secondary">{rfq.status}</Badge>
             {rfq.due_date && <span className="text-sm text-muted-foreground">Prazo: {rfq.due_date}</span>}
+            {rfqData.currency && rfqData.currency !== "EUR" && (
+              <Badge variant="outline">{rfqData.currency}</Badge>
+            )}
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportPDF}>
-            <FileDown className="mr-2 h-4 w-4" /> Exportar PDF
+          <Button variant="outline" onClick={handleGeneratePDF} disabled={generatingPDF}>
+            {generatingPDF ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+            Exportar PDF
           </Button>
           {canSend && (
             <Button onClick={handleSend} disabled={sendRFQ.isPending}>
@@ -176,6 +164,77 @@ export default function RFQDetailPage() {
         </div>
       </div>
 
+      {/* Enterprise Header Info */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {wsData?.company_name && (
+              <div className="flex items-start gap-2">
+                <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Empresa</p>
+                  <p className="text-sm font-medium">{wsData.company_name}</p>
+                  {wsData.tax_id && <p className="text-xs text-muted-foreground">NIF: {wsData.tax_id}</p>}
+                </div>
+              </div>
+            )}
+            {(rfqData.buyer_name || rfqData.buyer_email) && (
+              <div className="flex items-start gap-2">
+                <Globe className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Comprador</p>
+                  {rfqData.buyer_name && <p className="text-sm font-medium">{rfqData.buyer_name}</p>}
+                  {rfqData.buyer_email && <p className="text-xs text-muted-foreground">{rfqData.buyer_email}</p>}
+                </div>
+              </div>
+            )}
+            {rfqData.payment_terms && (
+              <div className="flex items-start gap-2">
+                <CreditCard className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Cond. Pagamento</p>
+                  <p className="text-sm font-medium">{rfqData.payment_terms}</p>
+                </div>
+              </div>
+            )}
+            {rfqData.delivery_location && (
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Local Entrega</p>
+                  <p className="text-sm font-medium">{rfqData.delivery_location}</p>
+                </div>
+              </div>
+            )}
+            {rfqData.incoterm && (
+              <div className="flex items-start gap-2">
+                <Globe className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Incoterm</p>
+                  <p className="text-sm font-medium">{rfqData.incoterm}</p>
+                </div>
+              </div>
+            )}
+            {rfqData.quote_validity_days && (
+              <div className="flex items-start gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Validade Proposta</p>
+                  <p className="text-sm font-medium">{rfqData.quote_validity_days} dias</p>
+                </div>
+              </div>
+            )}
+            <div className="flex items-start gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="text-xs text-muted-foreground">Moeda</p>
+                <p className="text-sm font-medium">{rfqData.currency || "EUR"}</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Suppliers */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -190,14 +249,32 @@ export default function RFQDetailPage() {
           {suppliers.length === 0 ? (
             <div className="text-center py-4 text-muted-foreground">Nenhum fornecedor adicionado.</div>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {suppliers.map((s: any) => (
-                <Badge key={s.id} variant="outline" className="text-sm py-1 px-3">
-                  {s.suppliers?.name || "—"} — <span className="text-muted-foreground">{s.status}</span>
-                  {s.sent_at && <span className="ml-1 text-xs text-muted-foreground">({new Date(s.sent_at).toLocaleDateString()})</span>}
-                </Badge>
-              ))}
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fornecedor</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Enviado em</TableHead>
+                  <TableHead>Respondido em</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {suppliers.map((s: any) => (
+                  <TableRow key={s.id}>
+                    <TableCell className="font-medium">{s.suppliers?.name || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{s.suppliers?.email || "—"}</TableCell>
+                    <TableCell><Badge variant="secondary">{s.status}</Badge></TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {s.sent_at ? new Date(s.sent_at).toLocaleDateString("pt-PT") : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {s.responded_at ? new Date(s.responded_at).toLocaleDateString("pt-PT") : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
@@ -212,17 +289,23 @@ export default function RFQDetailPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">#</TableHead>
                   <TableHead>Produto</TableHead>
                   <TableHead>SKU</TableHead>
                   <TableHead className="text-right">Quantidade</TableHead>
+                  <TableHead>Unidade</TableHead>
+                  <TableHead>Notas</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((item: any) => (
+                {items.map((item: any, idx: number) => (
                   <TableRow key={item.id}>
+                    <TableCell className="text-muted-foreground">{item.line_number || idx + 1}</TableCell>
                     <TableCell className="font-medium">{item.products?.name || "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{item.products?.sku || "—"}</TableCell>
                     <TableCell className="text-right">{item.qty}</TableCell>
+                    <TableCell className="text-muted-foreground">{item.unit || "un"}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{item.spec_notes || "—"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -261,16 +344,19 @@ export default function RFQDetailPage() {
                       const q = quotes.find((qq: any) => qq.rfq_item_id === item.id && qq.supplier_id === sid);
                       if (!q) return <TableCell key={sid} className="text-center text-muted-foreground">—</TableCell>;
                       const isBest = Number(q.unit_price) === bestPriceByItem[item.id];
+                      const discount = Number(q.discount_percent) || 0;
+                      const finalPrice = Number(q.unit_price) * (1 - discount / 100);
                       return (
                         <TableCell key={sid} className="text-center">
                           <div className={`space-y-1 ${isBest ? "bg-green-50 dark:bg-green-950 rounded p-1" : ""}`}>
-                            <div className="font-medium">{Number(q.unit_price).toFixed(2)} €</div>
+                            <div className="font-medium">{finalPrice.toFixed(2)} €</div>
+                            {discount > 0 && <div className="text-xs text-muted-foreground">-{discount}%</div>}
                             {q.lead_time_days && <div className="text-xs text-muted-foreground">{q.lead_time_days}d entrega</div>}
+                            {q.submitted_via_portal && <Badge variant="outline" className="text-[10px]">Portal</Badge>}
                             <Checkbox
                               checked={selectedQuoteIds.includes(q.id)}
                               onCheckedChange={(checked) => {
                                 setSelectedQuoteIds(prev => {
-                                  // Remove any existing quote for this item
                                   const otherItemQuoteIds = quotes
                                     .filter((qq: any) => qq.rfq_item_id === item.id && qq.id !== q.id)
                                     .map((qq: any) => qq.id);
@@ -324,6 +410,16 @@ export default function RFQDetailPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
+                <Label>Desconto %</Label>
+                <Input type="number" step="0.1" value={quoteForm.discount_percent} onChange={e => setQuoteForm(p => ({ ...p, discount_percent: e.target.value }))} />
+              </div>
+              <div>
+                <Label>IVA %</Label>
+                <Input type="number" step="1" value={quoteForm.vat_percent} onChange={e => setQuoteForm(p => ({ ...p, vat_percent: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
                 <Label>Lead Time (dias)</Label>
                 <Input type="number" value={quoteForm.lead_time_days} onChange={e => setQuoteForm(p => ({ ...p, lead_time_days: e.target.value }))} />
               </div>
@@ -342,6 +438,7 @@ export default function RFQDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       {/* Add Supplier Modal */}
       <Dialog open={showAddSupplierModal} onOpenChange={setShowAddSupplierModal}>
         <DialogContent className="sm:max-w-md">
