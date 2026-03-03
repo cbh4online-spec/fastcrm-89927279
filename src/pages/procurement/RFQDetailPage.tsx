@@ -140,6 +140,35 @@ export default function RFQDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Items */}
+      <Card>
+        <CardHeader><CardTitle>Itens do RFQ</CardTitle></CardHeader>
+        <CardContent>
+          {items.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground">Nenhum item neste RFQ.</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Produto</TableHead>
+                  <TableHead>SKU</TableHead>
+                  <TableHead className="text-right">Quantidade</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((item: any) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.products?.name || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{item.products?.sku || "—"}</TableCell>
+                    <TableCell className="text-right">{item.qty}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Comparison Table */}
       <Card>
         <CardHeader><CardTitle>Comparação de Cotações</CardTitle></CardHeader>
