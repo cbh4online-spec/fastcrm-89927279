@@ -1,9 +1,14 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { FEATURE_REGISTRY, MODULE_CATEGORIES, type FeatureModule, type ModuleCategory } from "@/types/featureRegistry";
 
 export function useFeatureRegistry() {
   const [selectedCategory, setSelectedCategory] = useState<ModuleCategory | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const forceRefresh = useCallback(() => {
+    setRefreshKey((k) => k + 1);
+  }, []);
 
   const filteredModules = useMemo(() => {
     let modules = FEATURE_REGISTRY;
@@ -24,7 +29,8 @@ export function useFeatureRegistry() {
     }
 
     return modules;
-  }, [selectedCategory, searchQuery]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory, searchQuery, refreshKey]);
 
   const stats = useMemo(() => {
     const allModules = FEATURE_REGISTRY;
@@ -41,7 +47,8 @@ export function useFeatureRegistry() {
       pages: allPages.length,
       tables: allTables.size,
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
   const categoryStats = useMemo(() => {
     return MODULE_CATEGORIES.map((cat) => {
@@ -52,7 +59,8 @@ export function useFeatureRegistry() {
         featureCount: modules.flatMap((m) => m.features).length,
       };
     });
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
   return {
     modules: filteredModules,
@@ -63,5 +71,6 @@ export function useFeatureRegistry() {
     setSelectedCategory,
     searchQuery,
     setSearchQuery,
+    forceRefresh,
   };
 }
