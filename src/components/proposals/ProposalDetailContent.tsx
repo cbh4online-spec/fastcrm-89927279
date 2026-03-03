@@ -982,6 +982,8 @@ export function ProposalDetailContent({
                         is_enabled: item.is_enabled,
                         cost_snapshot: item.cost_snapshot,
                         operational_cost_snapshot: item.operational_cost_snapshot,
+                        product_id: item.product_id,
+                        product_status: item.product?.status,
                       }))}
                       onItemToggle={handleItemToggle}
                       onQuantityChange={handleItemQuantityChange}

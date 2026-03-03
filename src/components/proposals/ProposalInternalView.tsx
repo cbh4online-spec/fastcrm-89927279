@@ -42,6 +42,8 @@ import type { PreviewItem } from "./ProposalPreview";
 import { PAYMENT_CONDITIONS } from "./proposalConstants";
 import { QuickTaskDialog } from "@/components/crm/unified/QuickTaskDialog";
 import { useRefreshCostSnapshots } from "@/hooks/useProposals";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import {
   Table,
   TableBody,
@@ -59,6 +61,8 @@ interface ProposalInternalViewProps {
     is_enabled?: boolean;
     cost_snapshot?: number | null;
     operational_cost_snapshot?: number | null;
+    product_id?: string | null;
+    product_status?: string | null;
   })[];
   onItemToggle?: (itemId: string, enabled: boolean) => void;
   onQuantityChange?: (itemId: string, quantity: number) => void;
@@ -82,6 +86,7 @@ export function ProposalInternalView({
   onCostsRefreshed,
 }: ProposalInternalViewProps) {
   const navigate = useNavigate();
+  const { currentWorkspace } = useWorkspace();
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const refreshCosts = useRefreshCostSnapshots();
   
@@ -344,12 +349,30 @@ export function ProposalInternalView({
                       />
                     </TableCell>
                     <TableCell className="max-w-0">
-                      <p className={cn(
-                        "font-medium truncate",
-                        !isEnabled && "line-through text-muted-foreground"
-                      )}>
-                        {item.name}
-                      </p>
+                      <div className="flex items-center gap-1">
+                        <p className={cn(
+                          "font-medium truncate",
+                          !isEnabled && "line-through text-muted-foreground"
+                        )}>
+                          {item.name}
+                        </p>
+                        {item.product_status === "active" && item.product_id && currentWorkspace?.slug && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <a
+                                href={`${getPublicBaseUrl()}/store/${currentWorkspace.slug}/product/${item.product_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-muted-foreground hover:text-primary flex-shrink-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </a>
+                            </TooltipTrigger>
+                            <TooltipContent>Ver na loja online</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
                       {item.description && (
                         <p className={cn(
                           "text-sm text-muted-foreground line-clamp-2",
