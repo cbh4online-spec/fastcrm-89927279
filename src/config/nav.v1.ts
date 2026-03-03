@@ -99,19 +99,18 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Leads", href: "/dashboard/leads", icon: Users, group: "CRM", separator: true },
   { name: "Contactos", href: "/dashboard/contacts", icon: Contact, group: "CRM" },
   { name: "Empresas", href: "/dashboard/companies", icon: Building2, group: "CRM" },
-  { name: "Oportunidades", href: "/dashboard/opportunities", icon: Target, group: "CRM" },
   { name: "Tarefas", href: "/dashboard/tasks", icon: CheckSquare, group: "CRM" },
   { name: "Ciclo de Vida", href: "/dashboard/lifecycle", icon: GitBranch, group: "CRM" },
   { name: "Eventos", href: "/dashboard/events", icon: Calendar, group: "CRM" },
-
-  // CRM (cont.) — itens base movidos de Vendas
-  { name: "Pipeline", href: "/dashboard/opportunities", icon: TrendingUp, group: "CRM" },
   { name: "Agendamento", href: "/dashboard/scheduling", icon: CalendarCheck, group: "CRM" },
   { name: "Produtos", href: "/dashboard/products", icon: ShoppingBag, group: "CRM" },
 
-  // Vendas (só módulos)
-  { name: "Propostas", href: "/dashboard/proposals", icon: Presentation, group: "Vendas", separator: true },
+  // Vendas (itens base — sempre visíveis)
+  { name: "Oportunidades", href: "/dashboard/opportunities", icon: Target, group: "Vendas", separator: true },
+  { name: "Pipeline", href: "/dashboard/opportunities", icon: TrendingUp, group: "Vendas" },
+  { name: "Propostas", href: "/dashboard/proposals", icon: Presentation, group: "Vendas" },
   { name: "Faturas", href: "/dashboard/invoices", icon: Receipt, group: "Vendas" },
+  { name: "Notas de Encomenda", href: "/dashboard/order-notes", icon: FileText, group: "Vendas" },
 
   // Compras (Procurement)
   { name: "Dashboard Compras", href: "/dashboard/procurement", icon: BarChart3, group: "Compras", separator: true, moduleSlug: "procurement" },
