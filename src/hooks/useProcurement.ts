@@ -191,7 +191,7 @@ export function usePurchaseOrders(workspaceId: string | undefined) {
       if (!workspaceId) return [];
       const { data, error } = await supabase
         .from("purchase_orders")
-        .select("*, supplier:suppliers(id, name), items:purchase_order_items(*)")
+        .select("*, supplier:suppliers(id, name), items:purchase_order_items(*), rfqs:rfq_id(id, title, rfq_number), procurement_projects:project_id(id, name)")
         .eq("workspace_id", workspaceId)
         .order("created_at", { ascending: false });
       if (error) throw error;

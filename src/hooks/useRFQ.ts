@@ -206,7 +206,7 @@ export function useAwardRFQ() {
       qc.invalidateQueries({ queryKey: ["rfq"] });
       qc.invalidateQueries({ queryKey: ["purchase-orders"] });
       qc.invalidateQueries({ queryKey: ["procurement-needs"] });
-      toast.success(`${data?.count || 0} Ordem(ns) de Compra criada(s)!`);
+      qc.invalidateQueries({ queryKey: ["rfq-generated-pos"] });
     },
     onError: (e) => toast.error(`Erro: ${e.message}`),
   });
