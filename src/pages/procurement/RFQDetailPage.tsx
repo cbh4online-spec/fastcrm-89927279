@@ -122,6 +122,7 @@ export default function RFQDetailPage() {
   const rfqData = rfq as any;
   const wsData = workspace as any;
   const isDraft = rfq.status === "draft";
+  const isEditable = !["awarded", "closed"].includes(rfq.status);
   const projectData = rfqData.procurement_projects;
 
   const handleInlineUpdate = (field: string, value: any) => {
@@ -228,7 +229,7 @@ export default function RFQDetailPage() {
                <CalendarIcon className="h-4 w-4 text-muted-foreground mt-0.5" />
                <div>
                  <p className="text-xs text-muted-foreground">Data Limite</p>
-                 {isDraft ? (
+                  {isEditable ? (
                    <Popover>
                      <PopoverTrigger asChild>
                        <Button variant="ghost" size="sm" className={cn("h-auto p-0 text-sm font-medium hover:underline", !rfq.due_date && "text-muted-foreground")}>
@@ -257,7 +258,7 @@ export default function RFQDetailPage() {
                <CreditCard className="h-4 w-4 text-muted-foreground mt-0.5" />
                <div>
                  <p className="text-xs text-muted-foreground">Cond. Pagamento</p>
-                 {isDraft ? (
+                  {isEditable ? (
                    <Input
                      className="h-7 text-sm w-32"
                      defaultValue={rfqData.payment_terms || ""}
@@ -273,7 +274,7 @@ export default function RFQDetailPage() {
                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                <div>
                  <p className="text-xs text-muted-foreground">Local Entrega</p>
-                 {isDraft ? (
+                  {isEditable ? (
                    <Input
                      className="h-7 text-sm w-32"
                      defaultValue={rfqData.delivery_location || ""}
@@ -289,7 +290,7 @@ export default function RFQDetailPage() {
                <Globe className="h-4 w-4 text-muted-foreground mt-0.5" />
                <div>
                  <p className="text-xs text-muted-foreground">Incoterm</p>
-                 {isDraft ? (
+                  {isEditable ? (
                    <Input
                      className="h-7 text-sm w-24"
                      defaultValue={rfqData.incoterm || ""}
@@ -305,7 +306,7 @@ export default function RFQDetailPage() {
                <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
                <div>
                  <p className="text-xs text-muted-foreground">Validade Proposta</p>
-                 {isDraft ? (
+                  {isEditable ? (
                    <div className="flex items-center gap-1">
                      <Input
                        type="number"
@@ -325,7 +326,7 @@ export default function RFQDetailPage() {
                <Globe className="h-4 w-4 text-muted-foreground mt-0.5" />
                <div>
                  <p className="text-xs text-muted-foreground">Moeda</p>
-                 {isDraft ? (
+                 {isEditable ? (
                    <Input
                      className="h-7 text-sm w-16"
                      defaultValue={rfqData.currency || "EUR"}
