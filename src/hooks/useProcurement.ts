@@ -359,6 +359,70 @@ export function useSupplierInvoices(workspaceId: string | undefined) {
   return { ...query, create: create.mutateAsync, updateStatus: updateStatus.mutateAsync };
 }
 
+// ============ SUPPLIER PRODUCTS ============
+export function useSupplierProducts(workspaceId: string | undefined) {
+  const qc = useQueryClient();
+  const query = useQuery({
+    queryKey: ["supplier-products", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return [];
+      const { data, error } = await supabase
+        .from("supplier_products")
+        .select("*, supplier:suppliers(id, name), product:products(id, name, sku)")
+        .eq("workspace_id", workspaceId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!workspaceId,
+  });
+
+  const create = useMutation({
+    mutationFn: async (values: any) => {
+      const { error } = await supabase.from("supplier_products").insert({
+        workspace_id: workspaceId!,
+        ...values,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["supplier-products"] }); toast.success("Entrada de catálogo criada"); },
+    onError: () => toast.error("Erro ao criar entrada"),
+  });
+
+  const update = useMutation({
+    mutationFn: async ({ id, ...values }: any) => {
+      const { error } = await supabase.from("supplier_products").update({ ...values, updated_at: new Date().toISOString() }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["supplier-products"] }); toast.success("Entrada atualizada"); },
+    onError: () => toast.error("Erro ao atualizar"),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("supplier_products").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["supplier-products"] }); toast.success("Entrada removida"); },
+    onError: () => toast.error("Erro ao remover"),
+  });
+
+  return { ...query, create: create.mutateAsync, update: update.mutateAsync, remove: remove.mutateAsync };
+}
+
+// ============ SUGGEST SUPPLIERS ============
+export function useSuggestSuppliers() {
+  return useMutation({
+    mutationFn: async ({ workspaceId, items }: { workspaceId: string; items: { product_id: string; variant_id?: string; requested_qty: number }[] }) => {
+      const { data, error } = await supabase.functions.invoke("procurement-suggest-suppliers", {
+        body: { workspace_id: workspaceId, items },
+      });
+      if (error) throw error;
+      return data as { item_suggestions: any[] };
+    },
+  });
+}
+
 // ============ PROCUREMENT KPIS ============
 export function useProcurementKPIs(workspaceId: string | undefined) {
   return useQuery({

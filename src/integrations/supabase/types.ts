@@ -15540,6 +15540,8 @@ export type Database = {
           ref_id: string | null
           source: string
           type: string
+          unit_cost: number | null
+          variant_id: string | null
           workspace_id: string
         }
         Insert: {
@@ -15552,6 +15554,8 @@ export type Database = {
           ref_id?: string | null
           source?: string
           type: string
+          unit_cost?: number | null
+          variant_id?: string | null
           workspace_id: string
         }
         Update: {
@@ -15564,6 +15568,8 @@ export type Database = {
           ref_id?: string | null
           source?: string
           type?: string
+          unit_cost?: number | null
+          variant_id?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -15579,6 +15585,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
           {
@@ -25054,6 +25067,7 @@ export type Database = {
           quantity: number
           received_quantity: number
           unit_price: number
+          variant_id: string | null
         }
         Insert: {
           description: string
@@ -25063,6 +25077,7 @@ export type Database = {
           quantity?: number
           received_quantity?: number
           unit_price?: number
+          variant_id?: string | null
         }
         Update: {
           description?: string
@@ -25072,6 +25087,7 @@ export type Database = {
           quantity?: number
           received_quantity?: number
           unit_price?: number
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -25093,6 +25109,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -25166,30 +25189,55 @@ export type Database = {
       }
       purchase_request_items: {
         Row: {
+          chosen_supplier_id: string | null
+          chosen_unit_price: number | null
           description: string
           estimated_unit_price: number | null
           id: string
           product_id: string | null
           quantity: number
           request_id: string
+          suggested_supplier_id: string | null
+          suggested_unit_price: number | null
+          suggestion_json: Json | null
+          variant_id: string | null
         }
         Insert: {
+          chosen_supplier_id?: string | null
+          chosen_unit_price?: number | null
           description: string
           estimated_unit_price?: number | null
           id?: string
           product_id?: string | null
           quantity?: number
           request_id: string
+          suggested_supplier_id?: string | null
+          suggested_unit_price?: number | null
+          suggestion_json?: Json | null
+          variant_id?: string | null
         }
         Update: {
+          chosen_supplier_id?: string | null
+          chosen_unit_price?: number | null
           description?: string
           estimated_unit_price?: number | null
           id?: string
           product_id?: string | null
           quantity?: number
           request_id?: string
+          suggested_supplier_id?: string | null
+          suggested_unit_price?: number | null
+          suggestion_json?: Json | null
+          variant_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_request_items_chosen_supplier_id_fkey"
+            columns: ["chosen_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "purchase_request_items_product_id_fkey"
             columns: ["product_id"]
@@ -25209,6 +25257,20 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "purchase_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_request_items_suggested_supplier_id_fkey"
+            columns: ["suggested_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_request_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -30334,11 +30396,111 @@ export type Database = {
           },
         ]
       }
+      supplier_products: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          is_preferred: boolean
+          last_price_date: string | null
+          lead_time_days: number | null
+          min_order_qty: number
+          notes: string | null
+          pack_size: number
+          product_id: string
+          quality_score: number | null
+          reliability_score: number | null
+          supplier_id: string
+          supplier_sku: string | null
+          unit_price: number
+          updated_at: string
+          variant_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          id?: string
+          is_preferred?: boolean
+          last_price_date?: string | null
+          lead_time_days?: number | null
+          min_order_qty?: number
+          notes?: string | null
+          pack_size?: number
+          product_id: string
+          quality_score?: number | null
+          reliability_score?: number | null
+          supplier_id: string
+          supplier_sku?: string | null
+          unit_price?: number
+          updated_at?: string
+          variant_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          is_preferred?: boolean
+          last_price_date?: string | null
+          lead_time_days?: number | null
+          min_order_qty?: number
+          notes?: string | null
+          pack_size?: number
+          product_id?: string
+          quality_score?: number | null
+          reliability_score?: number | null
+          supplier_id?: string
+          supplier_sku?: string | null
+          unit_price?: number
+          updated_at?: string
+          variant_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "supplier_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_products_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_products_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_products_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           address: string | null
           category: string | null
           created_at: string
+          default_payment_terms_days: number | null
           email: string | null
           iban: string | null
           id: string
@@ -30346,6 +30508,7 @@ export type Database = {
           notes: string | null
           payment_terms: string | null
           phone: string | null
+          rating_manual: number | null
           status: string
           updated_at: string
           vat_number: string | null
@@ -30355,6 +30518,7 @@ export type Database = {
           address?: string | null
           category?: string | null
           created_at?: string
+          default_payment_terms_days?: number | null
           email?: string | null
           iban?: string | null
           id?: string
@@ -30362,6 +30526,7 @@ export type Database = {
           notes?: string | null
           payment_terms?: string | null
           phone?: string | null
+          rating_manual?: number | null
           status?: string
           updated_at?: string
           vat_number?: string | null
@@ -30371,6 +30536,7 @@ export type Database = {
           address?: string | null
           category?: string | null
           created_at?: string
+          default_payment_terms_days?: number | null
           email?: string | null
           iban?: string | null
           id?: string
@@ -30378,6 +30544,7 @@ export type Database = {
           notes?: string | null
           payment_terms?: string | null
           phone?: string | null
+          rating_manual?: number | null
           status?: string
           updated_at?: string
           vat_number?: string | null
