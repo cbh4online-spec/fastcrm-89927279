@@ -168,6 +168,14 @@ import EmailCampaignsPage from "./pages/EmailCampaignsPage";
 import IMOAIPage from "./pages/IMOAIPage";
 import ZapierPage from "./pages/ZapierPage";
 
+// Procurement
+import ProcurementDashboardPage from "./pages/procurement/ProcurementDashboardPage";
+import SuppliersPage from "./pages/procurement/SuppliersPage";
+import PurchaseRequestsPage from "./pages/procurement/PurchaseRequestsPage";
+import PurchaseOrdersPage from "./pages/procurement/PurchaseOrdersPage";
+import GoodsReceiptsPage from "./pages/procurement/GoodsReceiptsPage";
+import SupplierInvoicesPage from "./pages/procurement/SupplierInvoicesPage";
+
 // C2C Marketplace
 import C2CMarketplace from "./pages/c2c/C2CMarketplace";
 import C2CListingDetail from "./pages/c2c/C2CListingDetail";
@@ -487,6 +495,14 @@ function CRMRoutes() {
                 <Route path="/dashboard/email-campaigns" element={<EmailCampaignsPage />} />
                 <Route path="/dashboard/imo-ai" element={<IMOAIPage />} />
                 <Route path="/dashboard/zapier" element={<ZapierPage />} />
+                
+                {/* Procurement Routes */}
+                <Route path="/dashboard/procurement" element={<ProcurementDashboardPage />} />
+                <Route path="/dashboard/procurement/suppliers" element={<SuppliersPage />} />
+                <Route path="/dashboard/procurement/requests" element={<PurchaseRequestsPage />} />
+                <Route path="/dashboard/procurement/orders" element={<PurchaseOrdersPage />} />
+                <Route path="/dashboard/procurement/receipts" element={<GoodsReceiptsPage />} />
+                <Route path="/dashboard/procurement/invoices" element={<SupplierInvoicesPage />} />
                 
                 {/* Order Notes Admin Routes */}
                 <Route path="/dashboard/order-notes" element={<OrderNotesPage />} />

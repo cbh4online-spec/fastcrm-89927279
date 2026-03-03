@@ -14270,6 +14270,84 @@ export type Database = {
           },
         ]
       }
+      goods_receipt_items: {
+        Row: {
+          id: string
+          order_item_id: string
+          quantity_received: number
+          receipt_id: string
+        }
+        Insert: {
+          id?: string
+          order_item_id: string
+          quantity_received?: number
+          receipt_id: string
+        }
+        Update: {
+          id?: string
+          order_item_id?: string
+          quantity_received?: number
+          receipt_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_receipt_items_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_items_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receipts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goods_receipts: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          purchase_order_id: string
+          received_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          purchase_order_id: string
+          received_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          purchase_order_id?: string
+          received_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_receipts_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       growth_settings: {
         Row: {
           base_url: string | null
@@ -24967,6 +25045,234 @@ export type Database = {
           },
         ]
       }
+      purchase_order_items: {
+        Row: {
+          description: string
+          id: string
+          order_id: string
+          product_id: string | null
+          quantity: number
+          received_quantity: number
+          unit_price: number
+        }
+        Insert: {
+          description: string
+          id?: string
+          order_id: string
+          product_id?: string | null
+          quantity?: number
+          received_quantity?: number
+          unit_price?: number
+        }
+        Update: {
+          description?: string
+          id?: string
+          order_id?: string
+          product_id?: string | null
+          quantity?: number
+          received_quantity?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expected_delivery: string | null
+          id: string
+          notes: string | null
+          po_number: string | null
+          request_id: string | null
+          status: string
+          supplier_id: string
+          total_amount: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expected_delivery?: string | null
+          id?: string
+          notes?: string | null
+          po_number?: string | null
+          request_id?: string | null
+          status?: string
+          supplier_id: string
+          total_amount?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expected_delivery?: string | null
+          id?: string
+          notes?: string | null
+          po_number?: string | null
+          request_id?: string | null
+          status?: string
+          supplier_id?: string
+          total_amount?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_request_items: {
+        Row: {
+          description: string
+          estimated_unit_price: number | null
+          id: string
+          product_id: string | null
+          quantity: number
+          request_id: string
+        }
+        Insert: {
+          description: string
+          estimated_unit_price?: number | null
+          id?: string
+          product_id?: string | null
+          quantity?: number
+          request_id: string
+        }
+        Update: {
+          description?: string
+          estimated_unit_price?: number | null
+          id?: string
+          product_id?: string | null
+          quantity?: number
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_request_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "purchase_request_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_request_items_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          cost_center: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          status: string
+          supplier_id: string | null
+          total_estimated: number | null
+          urgency: string
+          workspace_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          cost_center?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          supplier_id?: string | null
+          total_estimated?: number | null
+          urgency?: string
+          workspace_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          cost_center?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          supplier_id?: string | null
+          total_estimated?: number | null
+          urgency?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_requests_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rag_historical_outcomes: {
         Row: {
           company_size: string | null
@@ -29961,6 +30267,132 @@ export type Database = {
           },
         ]
       }
+      supplier_invoices: {
+        Row: {
+          created_at: string
+          due_date: string | null
+          file_url: string | null
+          id: string
+          invoice_date: string | null
+          invoice_number: string | null
+          ocr_data_json: Json | null
+          purchase_order_id: string | null
+          status: string
+          supplier_id: string
+          total: number | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_date?: string | null
+          file_url?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          ocr_data_json?: Json | null
+          purchase_order_id?: string | null
+          status?: string
+          supplier_id: string
+          total?: number | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string | null
+          file_url?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          ocr_data_json?: Json | null
+          purchase_order_id?: string | null
+          status?: string
+          supplier_id?: string
+          total?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_invoices_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_invoices_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_invoices_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          category: string | null
+          created_at: string
+          email: string | null
+          iban: string | null
+          id: string
+          name: string
+          notes: string | null
+          payment_terms: string | null
+          phone: string | null
+          status: string
+          updated_at: string
+          vat_number: string | null
+          workspace_id: string
+        }
+        Insert: {
+          address?: string | null
+          category?: string | null
+          created_at?: string
+          email?: string | null
+          iban?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          payment_terms?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+          vat_number?: string | null
+          workspace_id: string
+        }
+        Update: {
+          address?: string | null
+          category?: string | null
+          created_at?: string
+          email?: string | null
+          iban?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          payment_terms?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+          vat_number?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_incidents: {
         Row: {
           created_at: string
@@ -34284,6 +34716,10 @@ export type Database = {
       }
       is_workspace_member: {
         Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
+      is_workspace_member_procurement: {
+        Args: { ws_id: string }
         Returns: boolean
       }
       log_admin_action: {
