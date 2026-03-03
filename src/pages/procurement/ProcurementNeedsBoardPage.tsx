@@ -6,6 +6,16 @@ import { NeedsBoardFilters } from "@/components/procurement/needs/NeedsBoardFilt
 import { NeedDetailDrawer } from "@/components/procurement/needs/NeedDetailDrawer";
 import { useProcurementNeedsBoard, useRecomputeNeeds, useUpdateNeedStatus, useCreatePOsFromNeeds, useCreateRFQFromNeeds, useUpdateNeedSupplier, ProcurementNeed } from "@/hooks/useProcurementNeeds";
 import { useState, useMemo } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function ProcurementNeedsBoardPage() {
   const { currentWorkspace } = useWorkspace();
@@ -21,6 +31,8 @@ export default function ProcurementNeedsBoardPage() {
   const [detailNeed, setDetailNeed] = useState<ProcurementNeed | null>(null);
   const [filter, setFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showRFQWarning, setShowRFQWarning] = useState(false);
+  const [itemsMissingSupplier, setItemsMissingSupplier] = useState(0);
 
   const filteredNeeds = useMemo(() => {
     let result = needs;
@@ -56,9 +68,20 @@ export default function ProcurementNeedsBoardPage() {
     createPOs.mutate(selectedIds, { onSuccess: () => setSelectedIds([]) });
   };
 
+  const proceedCreateRFQ = () => {
+    createRFQ.mutate({ needIds: selectedIds }, { onSuccess: () => setSelectedIds([]) });
+  };
+
   const handleBulkCreateRFQ = () => {
     if (!selectedIds.length) return;
-    createRFQ.mutate({ needIds: selectedIds }, { onSuccess: () => setSelectedIds([]) });
+    const selectedNeeds = needs.filter(n => selectedIds.includes(n.id));
+    const missing = selectedNeeds.filter(n => !n.recommended_supplier_id).length;
+    if (missing > 0) {
+      setItemsMissingSupplier(missing);
+      setShowRFQWarning(true);
+    } else {
+      proceedCreateRFQ();
+    }
   };
 
   const handleIgnore = (needId: string) => {
@@ -125,6 +148,23 @@ export default function ProcurementNeedsBoardPage() {
           onCreatePO={(id) => createPOs.mutate([id])}
           onChooseSupplier={handleChooseSupplier}
         />
+
+        <AlertDialog open={showRFQWarning} onOpenChange={setShowRFQWarning}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Itens sem fornecedor recomendado</AlertDialogTitle>
+              <AlertDialogDescription>
+                {itemsMissingSupplier} dos {selectedIds.length} itens selecionados não têm fornecedor recomendado. A RFQ será criada sem fornecedores pré-selecionados para esses itens. Deseja continuar?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => { setShowRFQWarning(false); proceedCreateRFQ(); }}>
+                Continuar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
