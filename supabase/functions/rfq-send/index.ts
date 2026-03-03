@@ -24,6 +24,17 @@ function buildEmailHTML(template: string, data: any): string {
   const deadline = rfq?.due_date || "—";
   const itemCount = data.itemCount || 0;
 
+  const brandedFooter = `
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:32px 0 16px;">
+    <div style="text-align:center;">
+      <p style="color:#a1a1aa;font-size:11px;margin:0;">
+        ⚡ Efetuado com <strong>FastCRM OS</strong><br>
+        AI Revenue Operating System<br>
+        <a href="https://fastcrm.lovable.app" style="color:#a1a1aa;text-decoration:underline;">fastcrm.lovable.app</a>
+      </p>
+    </div>`;
+
+
   if (template === "rfq_sent") {
     return `<div style="${baseStyle}">
       <h2 style="color:#18181b;margin-bottom:8px;">Pedido de Cotação</h2>
@@ -43,7 +54,7 @@ function buildEmailHTML(template: string, data: any): string {
       </div>
       <p style="color:#71717a;font-size:12px;">Este link é pessoal e expira em 30 dias. Não partilhe com terceiros.</p>
       <hr style="border:none;border-top:1px solid #e4e4e7;margin:20px 0;">
-      <p style="color:#a1a1aa;font-size:11px;">Enviado por ${companyName} via FastCRM</p>
+      ${brandedFooter}
     </div>`;
   }
 
@@ -55,7 +66,7 @@ function buildEmailHTML(template: string, data: any): string {
       <div style="text-align:center;margin:32px 0;">
         <a href="${portalUrl}" style="${btnStyle}">Responder Agora →</a>
       </div>
-      <p style="color:#a1a1aa;font-size:11px;">Enviado por ${companyName} via FastCRM</p>
+      ${brandedFooter}
     </div>`;
   }
 
@@ -65,7 +76,7 @@ function buildEmailHTML(template: string, data: any): string {
       <p>Estimado(a) ${supplierName || "Fornecedor"},</p>
       <p>Agradecemos o envio da sua proposta para <strong>"${rfqTitle}"</strong>. A sua cotação está em análise.</p>
       <p>Entraremos em contacto após a avaliação das propostas recebidas.</p>
-      <p style="color:#a1a1aa;font-size:11px;">Enviado por ${companyName} via FastCRM</p>
+      ${brandedFooter}
     </div>`;
   }
 
@@ -75,7 +86,7 @@ function buildEmailHTML(template: string, data: any): string {
       <p>Estimado(a) ${supplierName || "Fornecedor"},</p>
       <p>Temos o prazer de informar que a sua proposta para <strong>"${rfqTitle}"</strong> foi selecionada.</p>
       <p>Será contactado(a) brevemente com os detalhes da ordem de compra.</p>
-      <p style="color:#a1a1aa;font-size:11px;">Enviado por ${companyName} via FastCRM</p>
+      ${brandedFooter}
     </div>`;
   }
 
