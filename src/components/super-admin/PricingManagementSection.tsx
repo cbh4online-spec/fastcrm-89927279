@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Sparkles, Save, Plus, Trash2, DollarSign, Package, Gift, Brain } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Sparkles, Save, Plus, Trash2, DollarSign, Package, Gift, Brain, RefreshCw, Star, Upload } from "lucide-react";
 import { toast } from "sonner";
 import {
   usePlatformPricingConfigs,
@@ -16,7 +17,10 @@ import {
   useDeletePricingConfig,
   type PlatformPricingConfig,
 } from "@/hooks/usePlatformPricing";
+import { useMarketplaceModulesAdmin, type MarketplaceModuleAdmin, type ModulePricing } from "@/hooks/useMarketplaceModulesAdmin";
+import { EXTENSION_PACKS } from "@/config/extensionPacks";
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 
 function useAIAssistant() {
   const [loading, setLoading] = useState(false);
@@ -176,6 +180,92 @@ function PlanEditor({ config, onSave }: { config: PlatformPricingConfig; onSave:
   );
 }
 
+// ─── Marketplace Module Card ───
+function MarketplaceModuleCard({ mod, onUpdate, parsePricing }: {
+  mod: MarketplaceModuleAdmin;
+  onUpdate: (updates: Record<string, unknown>) => void;
+  parsePricing: (p: Json) => ModulePricing;
+}) {
+  const pricing = parsePricing(mod.pricing);
+  const [basePrice, setBasePrice] = useState(pricing.base_price ?? 0);
+  const [trialDays, setTrialDays] = useState(pricing.trial_days ?? 0);
+  const [status, setStatus] = useState(mod.status);
+  const [isFeatured, setIsFeatured] = useState(mod.is_featured ?? false);
+  const [tagline, setTagline] = useState(mod.tagline);
+
+  const handleSave = () => {
+    const newPricing = { ...pricing, base_price: basePrice, trial_days: trialDays };
+    onUpdate({
+      pricing: newPricing as unknown as Json,
+      status,
+      is_featured: isFeatured,
+      tagline,
+    });
+  };
+
+  return (
+    <Card className={isFeatured ? "ring-2 ring-primary/50" : ""}>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{mod.icon}</span>
+            <div>
+              <CardTitle className="text-sm">{mod.name}</CardTitle>
+              <CardDescription className="text-xs">{mod.category} · v{mod.version}</CardDescription>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <Badge variant={status === "published" ? "default" : "secondary"} className="text-xs">
+              {status === "published" ? "Publicado" : status}
+            </Badge>
+            {isFeatured && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div>
+          <Label className="text-xs text-muted-foreground">Tagline</Label>
+          <Input value={tagline} onChange={(e) => setTagline(e.target.value)} className="h-7 text-sm" />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label className="text-xs">Preço Base (€)</Label>
+            <Input type="number" value={basePrice} onChange={(e) => setBasePrice(Number(e.target.value))} className="h-7 text-sm" />
+          </div>
+          <div>
+            <Label className="text-xs">Trial (dias)</Label>
+            <Input type="number" value={trialDays} onChange={(e) => setTrialDays(Number(e.target.value))} className="h-7 text-sm" />
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="h-7 w-28 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="published">Publicado</SelectItem>
+                <SelectItem value="draft">Rascunho</SelectItem>
+                <SelectItem value="archived">Arquivado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={isFeatured} onCheckedChange={setIsFeatured} />
+            <Label className="text-xs">Destaque</Label>
+          </div>
+        </div>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>{mod.installs_count ?? 0} instalações</span>
+          <Button size="sm" className="h-7 text-xs" onClick={handleSave}>
+            <Save className="h-3 w-3 mr-1" /> Guardar
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Main Section ───
 export function PricingManagementSection() {
   const { data: allConfigs, isLoading } = usePlatformPricingConfigs();
@@ -183,9 +273,9 @@ export function PricingManagementSection() {
   const createConfig = useCreatePricingConfig();
   const deleteConfig = useDeletePricingConfig();
   const { callAI, loading: aiLoading } = useAIAssistant();
+  const { modules: marketplaceModules, isLoading: modulesLoading, updateModule, syncToLandingPage, parsePricing } = useMarketplaceModulesAdmin();
 
   const plans = allConfigs?.filter((c) => c.config_type === "plan") ?? [];
-  const modules = allConfigs?.filter((c) => c.config_type === "module") ?? [];
   const bundles = allConfigs?.filter((c) => c.config_type === "bundle") ?? [];
 
   const handleUpdatePlan = (id: string) => (updates: Partial<PlatformPricingConfig>) => {
@@ -193,7 +283,7 @@ export function PricingManagementSection() {
   };
 
   const handleSuggestPrices = async () => {
-    const result = await callAI("suggest_prices", { plans, modules });
+    const result = await callAI("suggest_prices", { plans, modules: marketplaceModules });
     if (result?.suggestions) {
       toast.success("Sugestões de preços recebidas! Revise e aplique.");
       // Show suggestions in a simple way
@@ -221,22 +311,25 @@ export function PricingManagementSection() {
     });
   };
 
-  const handleCreateModule = () => {
-    createConfig.mutate({
-      config_type: "module",
-      config_key: `module-${Date.now()}`,
-      name: "Novo Módulo",
-      description: "Descrição do módulo",
-      price_monthly: 0,
-      price_yearly: 0,
-      currency: "EUR",
-      features: [] as any,
-      highlights: [] as any,
-      metadata: {} as any,
-      display_order: modules.length + 1,
-      is_active: true,
-      is_highlighted: false,
-    });
+  const handleImportExtensionPacks = () => {
+    for (const pack of EXTENSION_PACKS) {
+      createConfig.mutate({
+        config_type: "bundle",
+        config_key: pack.id,
+        name: pack.name,
+        description: pack.description,
+        price_monthly: pack.priceMonthly ?? 0,
+        price_yearly: (pack.priceMonthly ?? 0) * 10,
+        currency: "EUR",
+        features: pack.modules as unknown as Json,
+        highlights: [] as unknown as Json,
+        metadata: { icon: pack.icon, color: pack.color, requiredPlan: pack.requiredPlan } as unknown as Json,
+        display_order: 0,
+        is_active: true,
+        is_highlighted: false,
+      });
+    }
+    toast.success(`${EXTENSION_PACKS.length} packs importados!`);
   };
 
   if (isLoading) {
@@ -281,46 +374,41 @@ export function PricingManagementSection() {
         </TabsContent>
 
         <TabsContent value="modules" className="mt-6">
-          <div className="flex justify-end mb-4">
-            <Button onClick={handleCreateModule} size="sm"><Plus className="h-4 w-4 mr-1" /> Novo Módulo</Button>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-muted-foreground">
+              {marketplaceModules.length} módulos do Marketplace · Edite preços e sincronize para a Landing Page
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => syncToLandingPage.mutate(marketplaceModules)}
+                disabled={syncToLandingPage.isPending}
+              >
+                {syncToLandingPage.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Upload className="h-3 w-3 mr-1" />}
+                Sincronizar para Landing Page
+              </Button>
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {modules.map((mod) => (
-              <Card key={mod.id}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm">{mod.name}</CardTitle>
-                    <div className="flex gap-1">
-                      <Badge variant={mod.is_active ? "default" : "secondary"} className="text-xs">
-                        {mod.is_active ? "Ativo" : "Inativo"}
-                      </Badge>
-                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => deleteConfig.mutate(mod.id)}>
-                        <Trash2 className="h-3 w-3 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-xs text-muted-foreground">{mod.description}</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-xs">Mensal</Label>
-                      <Input type="number" defaultValue={mod.price_monthly} className="h-7 text-sm"
-                        onBlur={(e) => updateConfig.mutate({ id: mod.id, price_monthly: Number(e.target.value) })} />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Anual</Label>
-                      <Input type="number" defaultValue={mod.price_yearly} className="h-7 text-sm"
-                        onBlur={(e) => updateConfig.mutate({ id: mod.id, price_yearly: Number(e.target.value) })} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          {modules.length === 0 && (
+          {modulesLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {marketplaceModules.map((mod) => (
+                <MarketplaceModuleCard
+                  key={mod.id}
+                  mod={mod}
+                  parsePricing={parsePricing}
+                  onUpdate={(updates) => updateModule.mutate({ id: mod.id, ...updates })}
+                />
+              ))}
+            </div>
+          )}
+          {!modulesLoading && marketplaceModules.length === 0 && (
             <Card className="p-8 text-center text-muted-foreground">
-              Nenhum módulo configurado. Clique "Novo Módulo" para adicionar.
+              Nenhum módulo encontrado no Marketplace.
             </Card>
           )}
         </TabsContent>
@@ -328,7 +416,7 @@ export function PricingManagementSection() {
         <TabsContent value="bundles" className="mt-6">
           <div className="flex justify-end mb-4 gap-2">
             <Button onClick={async () => {
-              const result = await callAI("create_promotion", { plans, modules, bundles });
+              const result = await callAI("create_promotion", { plans, modules: marketplaceModules, bundles });
               if (result) {
                 toast.success(`Promoção sugerida: ${result.name || "Ver detalhes"}`, { duration: 10000 });
                 toast.info(result.description || JSON.stringify(result), { duration: 15000 });
@@ -336,6 +424,9 @@ export function PricingManagementSection() {
             }} variant="outline" size="sm" disabled={aiLoading}>
               {aiLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Brain className="h-3 w-3 mr-1" />}
               IA: Criar Promoção
+            </Button>
+            <Button onClick={handleImportExtensionPacks} variant="outline" size="sm">
+              <Package className="h-3 w-3 mr-1" /> Importar Extension Packs
             </Button>
             <Button onClick={handleCreateBundle} size="sm"><Plus className="h-4 w-4 mr-1" /> Novo Bundle</Button>
           </div>
