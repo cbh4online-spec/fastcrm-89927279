@@ -1,22 +1,19 @@
 
 
-# Add Suppliers to RFQ After Creation
+# Warning When Creating RFQ Without Recommended Suppliers
 
 ## Plan
 
-### 1. New hook: `useAddRFQSupplier` in `src/hooks/useRFQ.ts`
-- Insert into `rfq_suppliers` table with `workspace_id`, `rfq_id`, `supplier_id`, `status: "invited"`
-- Invalidate `rfq-suppliers` query on success
-- Filter out already-added suppliers in the UI
+In `src/pages/procurement/ProcurementNeedsBoardPage.tsx`, update `handleBulkCreateRFQ`:
+- Before calling `createRFQ.mutate`, check how many of the selected needs lack a `recommended_supplier_id`
+- If some lack suppliers, show a **confirmation dialog** (using AlertDialog) warning the user: "X dos Y itens selecionados não têm fornecedor recomendado. A RFQ será criada sem fornecedores pré-selecionados para esses itens. Continuar?"
+- If all have suppliers, proceed directly
 
-### 2. Update `RFQDetailPage.tsx`
-- Import `useSuppliers` from `useProcurement` to get all workspace suppliers
-- Add "Adicionar Fornecedor" button in the Suppliers card header
-- Show a Dialog with a Select dropdown of available suppliers (excluding already-added ones)
-- On confirm, call the new mutation
-- Allow adding suppliers when RFQ is in `draft` or `sent` status
+### Implementation
+- Add state `showRFQWarning: boolean` and store the count of needs without suppliers
+- Add an `AlertDialog` component to the page JSX
+- On confirm, proceed with `createRFQ.mutate`; on cancel, close dialog
 
-### Files
-- `src/hooks/useRFQ.ts` — add `useAddRFQSupplier` mutation
-- `src/pages/procurement/RFQDetailPage.tsx` — add supplier dialog + button
+### File
+- `src/pages/procurement/ProcurementNeedsBoardPage.tsx` — add warning dialog logic
 
