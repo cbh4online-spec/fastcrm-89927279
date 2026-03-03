@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ArrowLeft, Send, Plus, Trophy, Loader2, FileDown, Building2, Calendar as CalendarIcon, Globe, CreditCard, MapPin, Clock, Pencil, FolderOpen, FileText } from "lucide-react";
 import RFQComparisonDashboard from "@/components/procurement/RFQComparisonDashboard";
+import { RFQAuditTrail } from "@/components/procurement/RFQAuditTrail";
 import { toast } from "sonner";
 
 export default function RFQDetailPage() {
@@ -444,6 +445,9 @@ export default function RFQDetailPage() {
 
       {/* Generated POs Section */}
       {rfq.status === "awarded" && <GeneratedPOsCard rfqId={rfq.id} />}
+
+      {/* Audit Trail */}
+      <RFQAuditTrail rfqId={rfq.id} />
 
       {/* Add Quote Modal */}
       <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>

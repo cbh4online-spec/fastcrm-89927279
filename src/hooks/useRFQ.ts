@@ -216,9 +216,10 @@ export function useUpdateRFQ() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ rfqId, updates }: { rfqId: string; updates: Record<string, any> }) => {
+      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase
         .from("rfqs")
-        .update({ ...updates, updated_at: new Date().toISOString() } as any)
+        .update({ ...updates, updated_at: new Date().toISOString(), updated_by: user?.id } as any)
         .eq("id", rfqId);
       if (error) throw error;
     },

@@ -26253,6 +26253,54 @@ export type Database = {
           },
         ]
       }
+      rfq_audit_log: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          field_name: string
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          rfq_id: string
+          workspace_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          field_name: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          rfq_id: string
+          workspace_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          field_name?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          rfq_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_audit_log_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "rfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_audit_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rfq_items: {
         Row: {
           created_at: string
@@ -26566,6 +26614,7 @@ export type Database = {
           status: string
           title: string
           updated_at: string
+          updated_by: string | null
           workspace_id: string
         }
         Insert: {
@@ -26587,6 +26636,7 @@ export type Database = {
           status?: string
           title: string
           updated_at?: string
+          updated_by?: string | null
           workspace_id: string
         }
         Update: {
@@ -26608,6 +26658,7 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+          updated_by?: string | null
           workspace_id?: string
         }
         Relationships: [
