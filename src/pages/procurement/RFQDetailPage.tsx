@@ -468,7 +468,7 @@ export default function RFQDetailPage() {
                 <SelectTrigger><SelectValue placeholder="Selecionar item" /></SelectTrigger>
                 <SelectContent>
                   {items.map((item: any) => (
-                    <SelectItem key={item.id} value={item.id}>{item.products?.name || "Produto"} (Qtd: {item.qty})</SelectItem>
+                    <SelectItem key={item.id} value={item.id}>{item.products?.name || "Produto"} {item.products?.sku ? `[${item.products.sku}]` : ""} (Qtd: {item.qty})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
