@@ -19,6 +19,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ArrowLeft, Send, Plus, Trophy, Loader2, FileDown, Building2, Calendar as CalendarIcon, Globe, CreditCard, MapPin, Clock, Pencil, FolderOpen, FileText } from "lucide-react";
+import RFQComparisonDashboard from "@/components/procurement/RFQComparisonDashboard";
 import { toast } from "sonner";
 
 export default function RFQDetailPage() {
@@ -420,68 +421,15 @@ export default function RFQDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Comparison Table */}
-      <Card>
-        <CardHeader><CardTitle>Comparação de Cotações</CardTitle></CardHeader>
-        <CardContent className="overflow-x-auto">
-          {!quotes.length ? (
-            <div className="text-center py-8 text-muted-foreground">Sem cotações registadas.</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="sticky left-0 bg-background">Produto</TableHead>
-                  <TableHead className="sticky left-0 bg-background">Qtd</TableHead>
-                  {supplierIds.map(sid => (
-                    <TableHead key={sid} className="text-center min-w-[160px]">
-                      {supplierNames[sid] || sid.slice(0, 8)}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((item: any) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="sticky left-0 bg-background font-medium">
-                      {item.products?.name || "—"}
-                    </TableCell>
-                    <TableCell className="sticky left-0 bg-background">{item.qty}</TableCell>
-                    {supplierIds.map(sid => {
-                      const q = quotes.find((qq: any) => qq.rfq_item_id === item.id && qq.supplier_id === sid);
-                      if (!q) return <TableCell key={sid} className="text-center text-muted-foreground">—</TableCell>;
-                      const isBest = Number(q.unit_price) === bestPriceByItem[item.id];
-                      const discount = Number(q.discount_percent) || 0;
-                      const finalPrice = Number(q.unit_price) * (1 - discount / 100);
-                      return (
-                        <TableCell key={sid} className="text-center">
-                          <div className={`space-y-1 ${isBest ? "bg-green-50 dark:bg-green-950 rounded p-1" : ""}`}>
-                            <div className="font-medium">{finalPrice.toFixed(2)} €</div>
-                            {discount > 0 && <div className="text-xs text-muted-foreground">-{discount}%</div>}
-                            {q.lead_time_days && <div className="text-xs text-muted-foreground">{q.lead_time_days}d entrega</div>}
-                            {q.submitted_via_portal && <Badge variant="outline" className="text-[10px]">Portal</Badge>}
-                            <Checkbox
-                              checked={selectedQuoteIds.includes(q.id)}
-                              onCheckedChange={(checked) => {
-                                setSelectedQuoteIds(prev => {
-                                  const otherItemQuoteIds = quotes
-                                    .filter((qq: any) => qq.rfq_item_id === item.id && qq.id !== q.id)
-                                    .map((qq: any) => qq.id);
-                                  const filtered = prev.filter(id => !otherItemQuoteIds.includes(id));
-                                  return checked ? [...filtered, q.id] : filtered.filter(id => id !== q.id);
-                                });
-                              }}
-                            />
-                          </div>
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      {/* Comparison Dashboard */}
+      <RFQComparisonDashboard
+        quotes={quotes}
+        items={items}
+        supplierIds={supplierIds}
+        supplierNames={supplierNames}
+        selectedQuoteIds={selectedQuoteIds}
+        setSelectedQuoteIds={setSelectedQuoteIds}
+      />
 
       {/* Add Quote Modal */}
       <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
