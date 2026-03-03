@@ -96,7 +96,7 @@ export function ProposalInternalView({
   
   // Calculate totals only for enabled items
   const enabledItems = items.filter(item => item.is_enabled !== false);
-  const itemsTotal = enabledItems.reduce((sum, item) => sum + item.total_price, 0);
+  const itemsTotal = enabledItems.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
   const disabledCount = items.length - enabledItems.length;
   
   // Calculate total cost and margin
@@ -298,9 +298,11 @@ export function ProposalInternalView({
                 const isEnabled = item.is_enabled !== false;
                 const itemDirectCost = item.cost_snapshot ?? 0;
                 const itemOpCost = item.operational_cost_snapshot ?? 0;
-                const itemCost = (itemDirectCost + itemOpCost) * item.quantity;
-                const itemMargin = item.total_price - itemCost;
-                const itemMarginPct = item.total_price > 0 ? (itemMargin / item.total_price) * 100 : 0;
+                const itemUnitCost = itemDirectCost + itemOpCost;
+                const itemCost = itemUnitCost * item.quantity;
+                const itemSubtotal = item.unit_price * item.quantity;
+                const itemMargin = itemSubtotal - itemCost;
+                const itemMarginPct = itemSubtotal > 0 ? (itemMargin / itemSubtotal) * 100 : 0;
                 
                 return (
                   <TableRow 
@@ -358,7 +360,7 @@ export function ProposalInternalView({
                       />
                     </TableCell>
                     <TableCell className={cn("text-right text-muted-foreground whitespace-nowrap", !isEnabled && "line-through")}>
-                      {formatCurrency(itemCost, proposal.currency)}
+                      {formatCurrency(itemUnitCost, proposal.currency)}
                     </TableCell>
                     <TableCell className={cn(
                       "text-right font-medium whitespace-nowrap",
@@ -368,7 +370,7 @@ export function ProposalInternalView({
                       {formatCurrency(itemMargin, proposal.currency)} ({itemMarginPct.toFixed(0)}%)
                     </TableCell>
                     <TableCell className={cn("text-right font-medium whitespace-nowrap", !isEnabled && "line-through text-muted-foreground")}>
-                      {formatCurrency(item.total_price, proposal.currency)}
+                      {formatCurrency(itemSubtotal, proposal.currency)}
                     </TableCell>
                   </TableRow>
                 );
