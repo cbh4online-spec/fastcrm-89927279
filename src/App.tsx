@@ -177,6 +177,10 @@ import GoodsReceiptsPage from "./pages/procurement/GoodsReceiptsPage";
 import SupplierInvoicesPage from "./pages/procurement/SupplierInvoicesPage";
 import SupplierProductsPage from "./pages/procurement/SupplierProductsPage";
 import SupplierPriceImportPage from "./pages/procurement/SupplierPriceImportPage";
+import ProcurementProjectsPage from "./pages/procurement/ProcurementProjectsPage";
+import ProcurementProjectDetailPage from "./pages/procurement/ProcurementProjectDetailPage";
+import RFQsPage from "./pages/procurement/RFQsPage";
+import RFQDetailPage from "./pages/procurement/RFQDetailPage";
 
 // C2C Marketplace
 import C2CMarketplace from "./pages/c2c/C2CMarketplace";
@@ -507,6 +511,10 @@ function CRMRoutes() {
                 <Route path="/dashboard/procurement/invoices" element={<SupplierInvoicesPage />} />
                 <Route path="/dashboard/procurement/catalog" element={<SupplierProductsPage />} />
                 <Route path="/dashboard/procurement/price-import" element={<SupplierPriceImportPage />} />
+                <Route path="/dashboard/procurement/projects" element={<ProcurementProjectsPage />} />
+                <Route path="/dashboard/procurement/projects/:id" element={<ProcurementProjectDetailPage />} />
+                <Route path="/dashboard/procurement/rfqs" element={<RFQsPage />} />
+                <Route path="/dashboard/procurement/rfqs/:id" element={<RFQDetailPage />} />
                 
                 {/* Order Notes Admin Routes */}
                 <Route path="/dashboard/order-notes" element={<OrderNotesPage />} />
