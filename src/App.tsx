@@ -168,6 +168,10 @@ import EmailCampaignsPage from "./pages/EmailCampaignsPage";
 import IMOAIPage from "./pages/IMOAIPage";
 import ZapierPage from "./pages/ZapierPage";
 
+// Renewals
+import RenewalsPage from "./pages/RenewalsPage";
+import RenewalDetailPage from "./pages/RenewalDetailPage";
+
 // Procurement
 import ProcurementDashboardPage from "./pages/procurement/ProcurementDashboardPage";
 import SuppliersPage from "./pages/procurement/SuppliersPage";
@@ -455,6 +459,8 @@ function CRMRoutes() {
                 <Route path="/dashboard/payments" element={<Payments />} />
                 <Route path="/dashboard/invoices" element={<Invoices />} />
                 <Route path="/dashboard/invoices/:id" element={<InvoiceDetail />} />
+                <Route path="/dashboard/renewals" element={<RenewalsPage />} />
+                <Route path="/dashboard/renewals/:id" element={<RenewalDetailPage />} />
                 <Route path="/dashboard/knowledge-base" element={<Navigate to="/dashboard/ai-assistants" replace />} />
                 <Route path="/dashboard/ai-profiles" element={<Navigate to="/dashboard/ai-assistants" replace />} />
                 <Route path="/dashboard/ai-assistants" element={<AIAssistants />} />

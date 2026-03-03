@@ -25857,6 +25857,295 @@ export type Database = {
           },
         ]
       }
+      renewal_contracts: {
+        Row: {
+          auto_renew: boolean
+          billing_type: Database["public"]["Enums"]["renewal_billing_type"]
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          currency: string
+          health_score: number
+          id: string
+          next_renewal_date: string | null
+          notes: string | null
+          owner_user_id: string | null
+          payment_terms_days: number | null
+          renewal_interval: Database["public"]["Enums"]["renewal_interval_type"]
+          source_id: string | null
+          source_type: Database["public"]["Enums"]["renewal_source_type"]
+          start_date: string
+          status: Database["public"]["Enums"]["renewal_contract_status"]
+          total_mrr: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auto_renew?: boolean
+          billing_type?: Database["public"]["Enums"]["renewal_billing_type"]
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          currency?: string
+          health_score?: number
+          id?: string
+          next_renewal_date?: string | null
+          notes?: string | null
+          owner_user_id?: string | null
+          payment_terms_days?: number | null
+          renewal_interval?: Database["public"]["Enums"]["renewal_interval_type"]
+          source_id?: string | null
+          source_type?: Database["public"]["Enums"]["renewal_source_type"]
+          start_date?: string
+          status?: Database["public"]["Enums"]["renewal_contract_status"]
+          total_mrr?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auto_renew?: boolean
+          billing_type?: Database["public"]["Enums"]["renewal_billing_type"]
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          currency?: string
+          health_score?: number
+          id?: string
+          next_renewal_date?: string | null
+          notes?: string | null
+          owner_user_id?: string | null
+          payment_terms_days?: number | null
+          renewal_interval?: Database["public"]["Enums"]["renewal_interval_type"]
+          source_id?: string | null
+          source_type?: Database["public"]["Enums"]["renewal_source_type"]
+          start_date?: string
+          status?: Database["public"]["Enums"]["renewal_contract_status"]
+          total_mrr?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "renewal_contracts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewal_contracts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewal_contracts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      renewal_events: {
+        Row: {
+          contract_id: string
+          created_at: string
+          event_type: Database["public"]["Enums"]["renewal_event_type"]
+          id: string
+          payload_json: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          event_type: Database["public"]["Enums"]["renewal_event_type"]
+          id?: string
+          payload_json?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          event_type?: Database["public"]["Enums"]["renewal_event_type"]
+          id?: string
+          payload_json?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "renewal_events_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "renewal_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewal_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      renewal_items: {
+        Row: {
+          contract_id: string
+          created_at: string
+          end_date: string | null
+          grace_period_days: number
+          id: string
+          item_type: Database["public"]["Enums"]["renewal_item_type"]
+          meta_json: Json | null
+          name: string
+          next_renewal_date: string | null
+          pricing_model: Database["public"]["Enums"]["renewal_pricing_model"]
+          product_id: string | null
+          qty: number
+          renewal_interval: Database["public"]["Enums"]["renewal_interval_type"]
+          status: Database["public"]["Enums"]["renewal_item_status"]
+          unit_price: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          end_date?: string | null
+          grace_period_days?: number
+          id?: string
+          item_type?: Database["public"]["Enums"]["renewal_item_type"]
+          meta_json?: Json | null
+          name: string
+          next_renewal_date?: string | null
+          pricing_model?: Database["public"]["Enums"]["renewal_pricing_model"]
+          product_id?: string | null
+          qty?: number
+          renewal_interval?: Database["public"]["Enums"]["renewal_interval_type"]
+          status?: Database["public"]["Enums"]["renewal_item_status"]
+          unit_price?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          end_date?: string | null
+          grace_period_days?: number
+          id?: string
+          item_type?: Database["public"]["Enums"]["renewal_item_type"]
+          meta_json?: Json | null
+          name?: string
+          next_renewal_date?: string | null
+          pricing_model?: Database["public"]["Enums"]["renewal_pricing_model"]
+          product_id?: string | null
+          qty?: number
+          renewal_interval?: Database["public"]["Enums"]["renewal_interval_type"]
+          status?: Database["public"]["Enums"]["renewal_item_status"]
+          unit_price?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "renewal_items_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "renewal_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewal_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "renewal_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewal_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      renewal_usage_ledger: {
+        Row: {
+          amount: number
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          renewal_item_id: string
+          source_id: string | null
+          source_type: string | null
+          unit: string
+          usage_type: Database["public"]["Enums"]["renewal_usage_type"]
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          contract_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          renewal_item_id: string
+          source_id?: string | null
+          source_type?: string | null
+          unit?: string
+          usage_type?: Database["public"]["Enums"]["renewal_usage_type"]
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          renewal_item_id?: string
+          source_id?: string | null
+          source_type?: string | null
+          unit?: string
+          usage_type?: Database["public"]["Enums"]["renewal_usage_type"]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "renewal_usage_ledger_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "renewal_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewal_usage_ledger_renewal_item_id_fkey"
+            columns: ["renewal_item_id"]
+            isOneToOne: false
+            referencedRelation: "renewal_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewal_usage_ledger_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       report_dashboards: {
         Row: {
           created_at: string | null
@@ -36321,6 +36610,44 @@ export type Database = {
         | "pathology"
         | "indication"
         | "protocol"
+      renewal_billing_type: "invoice" | "stripe" | "external"
+      renewal_contract_status: "active" | "paused" | "cancelled" | "expired"
+      renewal_event_type:
+        | "created"
+        | "renewal_due"
+        | "renewed"
+        | "invoice_sent"
+        | "payment_received"
+        | "overdue"
+        | "consumption_logged"
+        | "paused"
+        | "cancelled"
+      renewal_interval_type:
+        | "monthly"
+        | "quarterly"
+        | "semi_annual"
+        | "yearly"
+        | "custom"
+      renewal_item_status:
+        | "active"
+        | "pending_renewal"
+        | "overdue"
+        | "cancelled"
+        | "expired"
+      renewal_item_type:
+        | "domain"
+        | "software_license"
+        | "hours_pack"
+        | "retainer"
+        | "subscription"
+      renewal_pricing_model:
+        | "fixed"
+        | "per_seat"
+        | "per_unit"
+        | "usage"
+        | "hybrid"
+      renewal_source_type: "proposal" | "order" | "opportunity" | "manual"
+      renewal_usage_type: "hours" | "credits" | "seats_addon"
       session_status: "active" | "completed" | "abandoned" | "handed_off"
       sso_token_status: "pending" | "active" | "used" | "expired" | "revoked"
       stock_status: "available" | "limited" | "backorder" | "out_of_stock"
@@ -36722,6 +37049,49 @@ export const Constants = {
         "indication",
         "protocol",
       ],
+      renewal_billing_type: ["invoice", "stripe", "external"],
+      renewal_contract_status: ["active", "paused", "cancelled", "expired"],
+      renewal_event_type: [
+        "created",
+        "renewal_due",
+        "renewed",
+        "invoice_sent",
+        "payment_received",
+        "overdue",
+        "consumption_logged",
+        "paused",
+        "cancelled",
+      ],
+      renewal_interval_type: [
+        "monthly",
+        "quarterly",
+        "semi_annual",
+        "yearly",
+        "custom",
+      ],
+      renewal_item_status: [
+        "active",
+        "pending_renewal",
+        "overdue",
+        "cancelled",
+        "expired",
+      ],
+      renewal_item_type: [
+        "domain",
+        "software_license",
+        "hours_pack",
+        "retainer",
+        "subscription",
+      ],
+      renewal_pricing_model: [
+        "fixed",
+        "per_seat",
+        "per_unit",
+        "usage",
+        "hybrid",
+      ],
+      renewal_source_type: ["proposal", "order", "opportunity", "manual"],
+      renewal_usage_type: ["hours", "credits", "seats_addon"],
       session_status: ["active", "completed", "abandoned", "handed_off"],
       sso_token_status: ["pending", "active", "used", "expired", "revoked"],
       stock_status: ["available", "limited", "backorder", "out_of_stock"],
