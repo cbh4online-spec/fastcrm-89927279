@@ -33,6 +33,7 @@ import {
   Copy,
   CheckSquare,
   TrendingUp,
+  RefreshCw,
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -40,6 +41,7 @@ import type { Proposal } from "@/types/proposal";
 import type { PreviewItem } from "./ProposalPreview";
 import { PAYMENT_CONDITIONS } from "./proposalConstants";
 import { QuickTaskDialog } from "@/components/crm/unified/QuickTaskDialog";
+import { useRefreshCostSnapshots } from "@/hooks/useProposals";
 import {
   Table,
   TableBody,
@@ -61,6 +63,7 @@ interface ProposalInternalViewProps {
   onItemToggle?: (itemId: string, enabled: boolean) => void;
   onQuantityChange?: (itemId: string, quantity: number) => void;
   onPriceChange?: (itemId: string, price: number) => void;
+  onCostsRefreshed?: () => void;
 }
 
 function formatCurrency(value: number, currency: string = "EUR"): string {
@@ -76,9 +79,11 @@ export function ProposalInternalView({
   onItemToggle,
   onQuantityChange,
   onPriceChange,
+  onCostsRefreshed,
 }: ProposalInternalViewProps) {
   const navigate = useNavigate();
   const [showTaskDialog, setShowTaskDialog] = useState(false);
+  const refreshCosts = useRefreshCostSnapshots();
   
   const clientName = proposal.company?.name || proposal.contact?.name || proposal.opportunity?.lead?.name;
   const clientEmail = proposal.company?.email || proposal.contact?.email || proposal.opportunity?.lead?.email;
@@ -270,7 +275,26 @@ export function ProposalInternalView({
       {/* Items Table */}
       <Card className="overflow-hidden">
         <div className="bg-muted/50 px-4 py-3 border-b flex items-center justify-between">
-          <h3 className="font-semibold">Itens da Proposta</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold">Itens da Proposta</h3>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  disabled={refreshCosts.isPending}
+                  onClick={async () => {
+                    await refreshCosts.mutateAsync(proposal.id);
+                    onCostsRefreshed?.();
+                  }}
+                >
+                  <RefreshCw className={cn("h-3.5 w-3.5", refreshCosts.isPending && "animate-spin")} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Atualizar custos com valores atuais dos produtos</TooltipContent>
+            </Tooltip>
+          </div>
           <div className="flex items-center gap-2">
             {disabledCount > 0 && (
               <Badge variant="secondary" className="text-muted-foreground">

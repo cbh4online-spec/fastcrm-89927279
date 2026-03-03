@@ -837,3 +837,57 @@ export function useQuickStatusChange() {
     },
   });
 }
+
+// ============ Refresh Cost Snapshots ============
+
+export function useRefreshCostSnapshots() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (proposalId: string) => {
+      // 1. Get proposal items with product_id
+      const { data: items, error: itemsError } = await supabase
+        .from("proposal_items")
+        .select("id, product_id")
+        .eq("proposal_id", proposalId)
+        .not("product_id", "is", null);
+
+      if (itemsError) throw itemsError;
+      if (!items || items.length === 0) return;
+
+      // 2. Get current product costs
+      const productIds = items.map(i => i.product_id!);
+      const { data: products, error: productsError } = await supabase
+        .from("products")
+        .select("id, direct_cost, operational_cost")
+        .in("id", productIds);
+
+      if (productsError) throw productsError;
+
+      const costMap = new Map(products?.map(p => [p.id, p]) || []);
+
+      // 3. Update each item's snapshots
+      for (const item of items) {
+        const product = costMap.get(item.product_id!);
+        if (!product) continue;
+
+        const { error } = await supabase
+          .from("proposal_items")
+          .update({
+            cost_snapshot: product.direct_cost ?? 0,
+            operational_cost_snapshot: product.operational_cost ?? 0,
+          })
+          .eq("id", item.id);
+
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_data, proposalId) => {
+      queryClient.invalidateQueries({ queryKey: ["proposal-items", proposalId] });
+      toast.success("Custos atualizados com sucesso");
+    },
+    onError: (error) => {
+      toast.error(`Erro ao atualizar custos: ${error.message}`);
+    },
+  });
+}
