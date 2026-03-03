@@ -1,23 +1,35 @@
 
 
-# Auto-generate RFQ Number
+# Adicionar Projeto/Proposta e Data Limite ao RFQ
 
-## Problem
-The `rfq_number` column exists but is never populated. The creation edge function (`rfq-create-from-needs`) inserts RFQs without setting `rfq_number`.
+## Problema
+O formulário de criação de RFQ e a página de detalhe não permitem:
+1. Referir o número da proposta associada ao projeto
+2. Definir a data limite de resposta (due_date)
+3. Editar estes campos na página de detalhe
 
-## Solution
+## Alterações
 
-Create a **database trigger** that auto-generates `rfq_number` on INSERT into `rfqs`, using a sequential format like `RFQ-2026-0001` (year + zero-padded sequence per workspace).
+### 1. Modal de Criação de RFQ (`ProcurementProjectDetailPage.tsx`)
+- Adicionar campo **"Data Limite de Resposta"** com datepicker
+- Passar `due_date` ao `useCreateRFQFromNeeds`
+- Mostrar o nome do projeto e número da proposta de origem (vem de `procurement_projects.source_id` + `source_type`)
 
-### Database Migration
-- Create a sequence-based function `generate_rfq_number()` that:
-  - Counts existing RFQs for the workspace in the current year
-  - Sets `rfq_number = 'RFQ-YYYY-NNNN'`
-- Create a `BEFORE INSERT` trigger on `rfqs` that calls this function
+### 2. Página de Detalhe RFQ (`RFQDetailPage.tsx`)
+- No header enterprise, mostrar **Projeto** (nome do projeto associado via `project_id`) e **Proposta** (source_id do projeto, se `source_type = 'proposal'`)
+- Mostrar a **Data Limite** de forma mais destacada (já existe `rfq.due_date` mas está discreto)
+- Permitir **editar inline** os campos `due_date`, `payment_terms`, `delivery_location`, `incoterm`, `currency`, `quote_validity_days` quando o RFQ está em estado `draft`
 
-### No frontend changes needed
-The UI already displays `rfqData.rfq_number` when present (line 130-132 of `RFQDetailPage.tsx`).
+### 3. Hook `useRFQ.ts`
+- No `useRFQDetail`, expandir a query do RFQ para incluir dados do projeto de compras: `procurement_projects:project_id(name, source_id, source_type)`
+- Adicionar mutation `useUpdateRFQ` para edição inline dos campos enterprise
 
-### Backfill existing RFQs
-Run a data update to set `rfq_number` for any existing RFQs that have it as NULL.
+### 4. Necessidades Board (`ProcurementNeedsBoardPage.tsx`)
+- Verificar se o fluxo de criação de RFQ a partir do board também passa `due_date` — adicionar campo se necessário
+
+### Resumo de ficheiros alterados
+- `src/pages/procurement/ProcurementProjectDetailPage.tsx` — datepicker no modal
+- `src/pages/procurement/RFQDetailPage.tsx` — mostrar projeto/proposta, edição inline
+- `src/hooks/useRFQ.ts` — expandir query + nova mutation
+- `src/hooks/useProcurementNeeds.ts` — verificar passagem de due_date no createRFQ
 
