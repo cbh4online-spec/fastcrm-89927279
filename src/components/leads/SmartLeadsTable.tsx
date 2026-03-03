@@ -23,11 +23,12 @@ import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/compon
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Sparkles, Trash2, RefreshCw, Download, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Clock, UserX, MessageSquare, Target, Activity, Linkedin, ExternalLink, MoreHorizontal, Reply, Settings2, Archive, Building2 } from "lucide-react";
+import { Plus, Sparkles, Trash2, RefreshCw, Download, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Clock, UserX, MessageSquare, Target, Activity, Linkedin, ExternalLink, MoreHorizontal, Reply, Settings2, Archive, Building2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { EmptyState, SearchEmptyState, LoadingSpinner, TableSkeleton } from "@/components/design-system";
 import { EntityAutomationsSection } from "@/components/automations/EntityAutomationsSection";
+import { UnifiedDuplicateDialog } from "@/components/crm/UnifiedDuplicateDialog";
 import { useTranslation } from "react-i18next";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -136,6 +137,7 @@ export function SmartLeadsTable() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isDuplicatesOpen, setIsDuplicatesOpen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -306,6 +308,7 @@ export function SmartLeadsTable() {
           rightActions={
             <div className="flex items-center gap-2">
               <ColumnSelector columns={LEAD_COLUMNS} visibleColumns={visibleColumns} columnOrder={columnOrder} onVisibleColumnsChange={setVisibleColumns} onColumnOrderChange={setColumnOrder} />
+              <Button variant="outline" size="sm" onClick={() => setIsDuplicatesOpen(true)} className="gap-2"><Users className="w-4 h-4" />Duplicados</Button>
               <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2"><RefreshCw className="w-4 h-4" />{t("refresh")}</Button>
             </div>
           }
@@ -440,6 +443,7 @@ export function SmartLeadsTable() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <UnifiedDuplicateDialog open={isDuplicatesOpen} onOpenChange={setIsDuplicatesOpen} entityType="leads" />
       </div>
     </div>
   );
