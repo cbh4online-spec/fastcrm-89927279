@@ -1,32 +1,26 @@
 
 
-# Melhorar Sugestão de Fornecedor nas Necessidades de Compra
+# Fix: RFQ Creation from Procurement Needs
 
-## Situação Atual
-A edge function `procurement-needs-recompute` já calcula e armazena o ranking de fornecedores em `suggestion_json.ranking` e `recommended_supplier_id`. No entanto, a UI mostra apenas o nome do fornecedor recomendado de forma estática — sem dropdown dos top 3 nem possibilidade de escolher outro.
+## Root Cause
+Two problems in the hook `useCreateRFQFromNeeds` (line 151):
 
-## Plano
+1. **Empty supplier_ids**: The hook extracts `recommended_supplier_id` from selected needs, but if needs don't have a recommended supplier assigned, `supplierIds` is an empty array. The edge function then returns 400 because of the check `!supplier_ids?.length`.
 
-### 1. Coluna "Fornecedor" na tabela com dropdown top 3
-No `NeedsBoardTable.tsx`, substituir o texto estático do fornecedor por um **Popover/DropdownMenu** que:
-- Mostra o fornecedor recomendado (#1) com preço
-- Ao clicar, abre lista dos top 3 do `suggestion_json.ranking` com score, preço e lead time
-- Permite "Escolher este" para atualizar o `recommended_supplier_id` da need
+2. **Edge function should handle empty suppliers gracefully**: When creating an RFQ from needs without pre-assigned suppliers, the function should still create the RFQ (suppliers can be added later).
 
-Adicionar callback `onChooseSupplier(needId, supplierId, unitPrice)` às props da tabela.
+## Plan
 
-### 2. Hook: mutation para atualizar fornecedor escolhido
-No `useProcurementNeeds.ts`, adicionar `useUpdateNeedSupplier` que faz update de `recommended_supplier_id` e `suggested_unit_price` na tabela `procurement_needs`.
+### 1. Update Edge Function `rfq-create-from-needs`
+- Make `supplier_ids` optional -- allow creating an RFQ with 0 suppliers (they can be invited later)
+- Change validation from `!supplier_ids?.length` to just `!workspace_id`
+- Only insert into `rfq_suppliers` if `supplier_ids` has entries
 
-### 3. Drawer: integrar SupplierSuggestionCard
-No `NeedDetailDrawer.tsx`, substituir a lista manual de fornecedores pelo componente `SupplierSuggestionCard` existente, passando o ranking do `suggestion_json` e os callbacks de escolha.
+### 2. Update Hook `useCreateRFQFromNeeds`
+- Pass `supplier_ids` even if empty (let the edge function decide)
+- Improve error extraction to surface the actual error message from the function response
 
-### 4. Page: ligar tudo
-No `ProcurementNeedsBoardPage.tsx`, instanciar a mutation e passar o handler `onChooseSupplier` à tabela.
-
-## Ficheiros a alterar
-- `src/components/procurement/needs/NeedsBoardTable.tsx` — dropdown fornecedor top 3
-- `src/components/procurement/needs/NeedDetailDrawer.tsx` — usar `SupplierSuggestionCard`
-- `src/hooks/useProcurementNeeds.ts` — adicionar `useUpdateNeedSupplier`
-- `src/pages/procurement/ProcurementNeedsBoardPage.tsx` — ligar mutation
+### Files
+- `supabase/functions/rfq-create-from-needs/index.ts` -- relax supplier_ids validation
+- `src/hooks/useProcurementNeeds.ts` -- pass supplier_ids without blocking on empty
 
