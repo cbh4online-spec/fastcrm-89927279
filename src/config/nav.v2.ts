@@ -95,8 +95,6 @@ export const NAV_V2_CORE: NavV2CoreItem[] = [
   { type: "item", name: "Leads", href: "/dashboard/leads", icon: UserSearch, iconColor: "text-emerald-500" },
   { type: "item", name: "Contactos", href: "/dashboard/contacts", icon: Users, iconColor: "text-emerald-500" },
   { type: "item", name: "Empresas", href: "/dashboard/companies", icon: Building2, iconColor: "text-emerald-500" },
-  { type: "item", name: "Oportunidades", href: "/dashboard/opportunities", icon: Target, iconColor: "text-emerald-500" },
-  { type: "item", name: "Pipeline", href: "/dashboard/revenue", icon: TrendingUp, iconColor: "text-amber-500" },
   { type: "item", name: "Tarefas", href: "/dashboard/tasks", icon: CheckSquare, iconColor: "text-emerald-500" },
   { type: "item", name: "Agendamento", href: "/dashboard/scheduling", icon: Calendar, iconColor: "text-emerald-500" },
   { type: "item", name: "Produtos", href: "/dashboard/products", icon: Package, iconColor: "text-emerald-500" },
@@ -111,8 +109,11 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
     icon: TrendingUp,
     iconColor: "text-amber-500",
     children: [
-      { name: "Propostas", href: "/dashboard/proposals", icon: Presentation, moduleSlug: "proposals", iconColor: "text-amber-500" },
-      { name: "Faturas", href: "/dashboard/invoices", icon: Receipt, moduleSlug: "invoices", iconColor: "text-amber-500" },
+      { name: "Pipeline", href: "/dashboard/revenue", icon: TrendingUp, iconColor: "text-amber-500" },
+      { name: "Oportunidades", href: "/dashboard/opportunities", icon: Target, iconColor: "text-amber-500" },
+      { name: "Propostas", href: "/dashboard/proposals", icon: Presentation, iconColor: "text-amber-500" },
+      { name: "Faturas", href: "/dashboard/invoices", icon: Receipt, iconColor: "text-amber-500" },
+      { name: "Notas Encomenda", href: "/dashboard/order-notes", icon: FileText, iconColor: "text-amber-500" },
     ],
   },
   {
