@@ -11,7 +11,8 @@ export type AlertType =
   | "opportunity_stalled"
   | "high_intent_waiting"
   | "followup_overdue"
-  | "proposal_expiring";
+  | "proposal_expiring"
+  | "rfq_deadline_approaching";
 
 export type AlertSeverity = "low" | "medium" | "high" | "critical";
 
@@ -102,6 +103,12 @@ export const ALERT_CONFIGS: Record<
     color: "text-indigo-600 dark:text-indigo-400",
     bgColor: "bg-indigo-50 dark:bg-indigo-900/20",
     borderColor: "border-indigo-200 dark:border-indigo-800",
+  },
+  rfq_deadline_approaching: {
+    icon: "📦",
+    color: "text-red-600 dark:text-red-400",
+    bgColor: "bg-red-50 dark:bg-red-900/20",
+    borderColor: "border-red-200 dark:border-red-800",
   },
 };
 
@@ -342,6 +349,14 @@ export function detectAlerts(context: {
     last_contact_at: string | null;
     status: string;
   }>;
+  rfqs?: Array<{
+    id: string;
+    title: string;
+    rfq_number: string | null;
+    due_date: string | null;
+    status: string;
+    project_id: string | null;
+  }>;
 }): Array<Omit<SmartAlert, "id" | "workspace_id" | "created_at" | "updated_at" | "is_read" | "is_dismissed" | "is_actioned" | "actioned_at" | "actioned_by">> {
   const alerts: Array<Omit<SmartAlert, "id" | "workspace_id" | "created_at" | "updated_at" | "is_read" | "is_dismissed" | "is_actioned" | "actioned_at" | "actioned_by">> = [];
   const now = new Date();
@@ -480,6 +495,46 @@ export function detectAlerts(context: {
         action_url: `/dashboard/opportunities?id=${opp.id}`,
         context_data: { daysSinceUpdate, opportunityTitle: opp.title, value: opp.value },
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+    }
+  });
+
+  // 5. RFQ deadline approaching
+  context.rfqs?.forEach((rfq) => {
+    if (!rfq.due_date) return;
+    if (!["draft", "sent", "receiving_quotes"].includes(rfq.status)) return;
+
+    const daysUntilDue = differenceInDays(new Date(rfq.due_date), now);
+    const label = rfq.rfq_number ? `RFQ ${rfq.rfq_number}` : rfq.title;
+
+    let severity: AlertSeverity | null = null;
+    if (daysUntilDue < 0) {
+      severity = "critical";
+    } else if (daysUntilDue <= 3) {
+      severity = "high";
+    } else if (daysUntilDue <= 7) {
+      severity = "medium";
+    }
+
+    if (severity) {
+      const desc =
+        daysUntilDue < 0
+          ? `"${label}" expirou há ${Math.abs(daysUntilDue)} dia(s)`
+          : `"${label}" expira em ${daysUntilDue} dia(s)`;
+
+      alerts.push({
+        conversation_id: null,
+        lead_id: null,
+        opportunity_id: null,
+        proposal_id: null,
+        alert_type: "rfq_deadline_approaching",
+        severity,
+        title: daysUntilDue < 0 ? `RFQ expirada` : `RFQ expira em breve`,
+        description: desc,
+        action_label: "Ver RFQ",
+        action_url: `/dashboard/procurement/rfqs/${rfq.id}`,
+        context_data: { daysUntilDue, rfqTitle: rfq.title, rfqNumber: rfq.rfq_number },
+        expires_at: daysUntilDue < 0 ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() : rfq.due_date,
       });
     }
   });
