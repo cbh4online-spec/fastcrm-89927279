@@ -23855,6 +23855,7 @@ export type Database = {
       }
       products: {
         Row: {
+          avg_cost: number | null
           b2b_published: boolean | null
           barcode: string | null
           base_price: number
@@ -23875,6 +23876,7 @@ export type Database = {
           created_by: string
           created_channel: string | null
           currency: string
+          default_supplier_id: string | null
           delivery_estimate: string | null
           delivery_mode: string | null
           delivery_notes: string | null
@@ -23890,6 +23892,8 @@ export type Database = {
           labor_hours: number | null
           labor_included_in_price: boolean | null
           labor_notes: string | null
+          last_cost: number | null
+          last_purchase_date: string | null
           line: string | null
           low_stock_threshold: number
           metadata: Json | null
@@ -23903,6 +23907,8 @@ export type Database = {
           product_type: string
           recommended_frequency: string | null
           recurring_fee: number | null
+          reorder_point: number | null
+          reorder_qty: number | null
           search_keywords: string | null
           setup_fee: number | null
           sheet_published: boolean | null
@@ -23934,6 +23940,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          avg_cost?: number | null
           b2b_published?: boolean | null
           barcode?: string | null
           base_price?: number
@@ -23954,6 +23961,7 @@ export type Database = {
           created_by: string
           created_channel?: string | null
           currency?: string
+          default_supplier_id?: string | null
           delivery_estimate?: string | null
           delivery_mode?: string | null
           delivery_notes?: string | null
@@ -23969,6 +23977,8 @@ export type Database = {
           labor_hours?: number | null
           labor_included_in_price?: boolean | null
           labor_notes?: string | null
+          last_cost?: number | null
+          last_purchase_date?: string | null
           line?: string | null
           low_stock_threshold?: number
           metadata?: Json | null
@@ -23982,6 +23992,8 @@ export type Database = {
           product_type?: string
           recommended_frequency?: string | null
           recurring_fee?: number | null
+          reorder_point?: number | null
+          reorder_qty?: number | null
           search_keywords?: string | null
           setup_fee?: number | null
           sheet_published?: boolean | null
@@ -24013,6 +24025,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          avg_cost?: number | null
           b2b_published?: boolean | null
           barcode?: string | null
           base_price?: number
@@ -24033,6 +24046,7 @@ export type Database = {
           created_by?: string
           created_channel?: string | null
           currency?: string
+          default_supplier_id?: string | null
           delivery_estimate?: string | null
           delivery_mode?: string | null
           delivery_notes?: string | null
@@ -24048,6 +24062,8 @@ export type Database = {
           labor_hours?: number | null
           labor_included_in_price?: boolean | null
           labor_notes?: string | null
+          last_cost?: number | null
+          last_purchase_date?: string | null
           line?: string | null
           low_stock_threshold?: number
           metadata?: Json | null
@@ -24061,6 +24077,8 @@ export type Database = {
           product_type?: string
           recommended_frequency?: string | null
           recurring_fee?: number | null
+          reorder_point?: number | null
+          reorder_qty?: number | null
           search_keywords?: string | null
           setup_fee?: number | null
           sheet_published?: boolean | null
@@ -24092,6 +24110,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "products_default_supplier_id_fkey"
+            columns: ["default_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_store_category_id_fkey"
             columns: ["store_category_id"]

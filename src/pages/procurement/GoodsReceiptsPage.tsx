@@ -12,7 +12,7 @@ import { format } from "date-fns";
 export default function GoodsReceiptsPage() {
   const { t } = useTranslation("procurement");
   const { currentWorkspace } = useWorkspace();
-  const { data: receipts = [], isLoading, create } = useGoodsReceipts(currentWorkspace?.id);
+  const { data: receipts = [], isLoading } = useGoodsReceipts(currentWorkspace?.id);
   const [showForm, setShowForm] = useState(false);
 
   return (
@@ -58,10 +58,7 @@ export default function GoodsReceiptsPage() {
           open={showForm}
           onOpenChange={setShowForm}
           workspaceId={currentWorkspace?.id}
-          onSave={async (values) => {
-            await create(values);
-            setShowForm(false);
-          }}
+          onSave={async () => { setShowForm(false); }}
         />
       </div>
     </DashboardLayout>

@@ -1,11 +1,11 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useTranslation } from "react-i18next";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { usePurchaseRequests } from "@/hooks/useProcurement";
+import { usePurchaseRequests, useConvertRequestToPO } from "@/hooks/useProcurement";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Check, X } from "lucide-react";
+import { Plus, Check, X, FileOutput, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { PurchaseRequestForm } from "@/components/procurement/PurchaseRequestForm";
 
@@ -21,13 +21,27 @@ const statusColors: Record<string, string> = {
   pending: "outline",
   approved: "default",
   rejected: "destructive",
+  converted: "secondary",
 };
 
 export default function PurchaseRequestsPage() {
   const { t } = useTranslation("procurement");
   const { currentWorkspace } = useWorkspace();
   const { data: requests = [], isLoading, create, approve, reject } = usePurchaseRequests(currentWorkspace?.id);
+  const convertMutation = useConvertRequestToPO();
   const [showForm, setShowForm] = useState(false);
+  const [convertingId, setConvertingId] = useState<string | null>(null);
+
+  const handleConvert = async (requestId: string) => {
+    if (!currentWorkspace?.id) return;
+    setConvertingId(requestId);
+    try {
+      await convertMutation.mutateAsync({ workspaceId: currentWorkspace.id, requestId });
+    } catch {
+      // error handled by hook
+    }
+    setConvertingId(null);
+  };
 
   return (
     <DashboardLayout>
@@ -77,6 +91,21 @@ export default function PurchaseRequestsPage() {
                           <X className="h-3 w-3 mr-1" />{t("reject")}
                         </Button>
                       </>
+                    )}
+                    {r.status === "approved" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={convertingId === r.id}
+                        onClick={() => handleConvert(r.id)}
+                      >
+                        {convertingId === r.id ? (
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        ) : (
+                          <FileOutput className="h-3 w-3 mr-1" />
+                        )}
+                        {t("generatePO")}
+                      </Button>
                     )}
                   </TableCell>
                 </TableRow>

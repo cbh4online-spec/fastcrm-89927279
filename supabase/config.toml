@@ -384,3 +384,6 @@ verify_jwt = false
 
 [functions.procurement-receive-items]
 verify_jwt = false
+
+[functions.procurement-create-po-from-request]
+verify_jwt = false
