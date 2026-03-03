@@ -3,8 +3,10 @@ import { useConversations } from "@/hooks/useConversations";
 import { useProposals } from "@/hooks/useProposals";
 import { useOpportunities } from "@/hooks/useOpportunities";
 import { useLeads } from "@/hooks/useLeads";
+import { useRFQs } from "@/hooks/useRFQ";
 import { useCreateAlert, detectAlerts, AlertType } from "@/hooks/useSmartAlerts";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export function useAlertDetection() {
   const { currentWorkspace } = useWorkspace();
@@ -12,6 +14,7 @@ export function useAlertDetection() {
   const { data: proposals } = useProposals();
   const { data: opportunities } = useOpportunities();
   const { data: leads } = useLeads();
+  const { data: rfqs } = useRFQs(currentWorkspace?.id);
   const createAlert = useCreateAlert();
   
   const lastRunRef = useRef<number>(0);
@@ -24,7 +27,7 @@ export function useAlertDetection() {
     if (now - lastRunRef.current < MIN_INTERVAL) return;
     
     // Only run if we have data
-    if (!conversations?.length && !proposals?.length && !opportunities?.length && !leads?.length) {
+    if (!conversations?.length && !proposals?.length && !opportunities?.length && !leads?.length && !rfqs?.length) {
       return;
     }
 
@@ -66,12 +69,22 @@ export function useAlertDetection() {
       status: l.status,
     }));
 
+    const rfqData = rfqs?.map((r: any) => ({
+      id: r.id,
+      title: r.title,
+      rfq_number: r.rfq_number,
+      due_date: r.due_date,
+      status: r.status,
+      project_id: r.project_id,
+    }));
+
     // Detect alerts
     const detectedAlerts = detectAlerts({
       conversations: conversationData,
       proposals: proposalData,
       opportunities: opportunityData,
       leads: leadData,
+      rfqs: rfqData,
     });
 
     // Create alerts (the hook handles deduplication)
@@ -90,6 +103,17 @@ export function useAlertDetection() {
         context_data: alert.context_data as Record<string, unknown>,
         expires_at: alert.expires_at,
       });
+
+      // Also create admin notification for RFQ deadlines
+      if (alert.alert_type === "rfq_deadline_approaching" && currentWorkspace) {
+        supabase.from("admin_notifications").insert({
+          workspace_id: currentWorkspace.id,
+          type: "rfq_deadline",
+          title: alert.title,
+          message: alert.description,
+          metadata: alert.context_data as Record<string, unknown>,
+        } as any).then(() => {});
+      }
     });
   }, [
     currentWorkspace?.id,
@@ -97,5 +121,6 @@ export function useAlertDetection() {
     proposals?.length,
     opportunities?.length,
     leads?.length,
+    rfqs?.length,
   ]);
 }
