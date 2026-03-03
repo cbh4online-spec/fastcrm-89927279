@@ -35,7 +35,7 @@ serve(async (req) => {
     // 1) Collect demand from proposals (won/accepted/paid)
     const { data: proposalItems } = await supabase
       .from("proposal_items")
-      .select("product_id, quantity, proposal_id, proposals!inner(status, expires_at, contact_id)")
+      .select("product_id, quantity, proposal_id, proposals!inner(status, expires_at, contact_id, opportunity_id)")
       .eq("workspace_id", workspace_id)
       .not("product_id", "is", null)
       .in("proposals.status", ["won", "accepted", "paid"]);
@@ -43,7 +43,7 @@ serve(async (req) => {
     // 2) Collect demand from order notes (approved/submitted)
     const { data: orderNoteItems } = await supabase
       .from("order_note_items")
-      .select("product_id, quantity, order_note_id, order_notes!inner(status, created_at)")
+      .select("product_id, quantity, order_note_id, order_notes!inner(status, created_at, opportunity_id)")
       .eq("workspace_id", workspace_id)
       .not("product_id", "is", null)
       .in("order_notes.status", ["approved", "submitted"]);
@@ -78,9 +78,21 @@ serve(async (req) => {
       demandMap.set(productId, existing);
     };
 
-    // Process proposal items
+    // Collect opportunity_ids covered by order notes (to deduplicate against proposals)
+    const coveredOpportunities = new Set<string>();
+    for (const item of (orderNoteItems || [])) {
+      const orderNote = (item as any).order_notes;
+      if (orderNote?.opportunity_id) {
+        coveredOpportunities.add(orderNote.opportunity_id);
+      }
+    }
+
+    // Process proposal items (skip if opportunity already covered by an order note)
     for (const item of (proposalItems || [])) {
       const proposal = (item as any).proposals;
+      if (proposal?.opportunity_id && coveredOpportunities.has(proposal.opportunity_id)) {
+        continue; // order note takes priority — skip to avoid double-counting
+      }
       addDemand(item.product_id!, item.quantity, {
         type: "proposal",
         id: item.proposal_id,
