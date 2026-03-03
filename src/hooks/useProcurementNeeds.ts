@@ -130,6 +130,7 @@ export function useCreateRFQFromNeeds(workspaceId: string | undefined) {
           workspace_id: workspaceId,
           project_id: null,
           supplier_ids: supplierIds,
+          need_ids: needIds,
           title: title || `RFQ - Necessidades de Compra ${new Date().toLocaleDateString("pt-PT")}`,
           due_date: dueDate || null,
         },
