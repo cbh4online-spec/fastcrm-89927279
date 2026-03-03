@@ -26,7 +26,7 @@ export function useRFQDetail(rfqId: string | undefined) {
       if (!rfqId) return null;
       const { data, error } = await supabase
         .from("rfqs")
-        .select("*, procurement_projects:project_id(name)")
+        .select("*, procurement_projects:project_id(name, source_id, source_type)")
         .eq("id", rfqId)
         .single();
       if (error) throw error;
@@ -207,6 +207,25 @@ export function useAwardRFQ() {
       qc.invalidateQueries({ queryKey: ["purchase-orders"] });
       qc.invalidateQueries({ queryKey: ["procurement-needs"] });
       toast.success(`${data?.count || 0} Ordem(ns) de Compra criada(s)!`);
+    },
+    onError: (e) => toast.error(`Erro: ${e.message}`),
+  });
+}
+
+export function useUpdateRFQ() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ rfqId, updates }: { rfqId: string; updates: Record<string, any> }) => {
+      const { error } = await supabase
+        .from("rfqs")
+        .update({ ...updates, updated_at: new Date().toISOString() } as any)
+        .eq("id", rfqId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["rfq", vars.rfqId] });
+      qc.invalidateQueries({ queryKey: ["rfqs"] });
+      toast.success("RFQ atualizado!");
     },
     onError: (e) => toast.error(`Erro: ${e.message}`),
   });

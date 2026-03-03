@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useRFQDetail, useSendRFQ, useAddRFQQuote, useAwardRFQ, useAddRFQSupplier } from "@/hooks/useRFQ";
+import { useRFQDetail, useSendRFQ, useAddRFQQuote, useAwardRFQ, useAddRFQSupplier, useUpdateRFQ } from "@/hooks/useRFQ";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useSuppliers } from "@/hooks/useProcurement";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +14,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Send, Plus, Trophy, Loader2, FileDown, Building2, Calendar, Globe, CreditCard, MapPin, Clock } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { ArrowLeft, Send, Plus, Trophy, Loader2, FileDown, Building2, Calendar as CalendarIcon, Globe, CreditCard, MapPin, Clock, Pencil, FolderOpen, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 export default function RFQDetailPage() {
@@ -27,6 +31,7 @@ export default function RFQDetailPage() {
   const addQuote = useAddRFQQuote();
   const awardRFQ = useAwardRFQ();
   const addSupplier = useAddRFQSupplier();
+  const updateRFQ = useUpdateRFQ();
 
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
@@ -116,6 +121,12 @@ export default function RFQDetailPage() {
 
   const rfqData = rfq as any;
   const wsData = workspace as any;
+  const isDraft = rfq.status === "draft";
+  const projectData = rfqData.procurement_projects;
+
+  const handleInlineUpdate = (field: string, value: any) => {
+    updateRFQ.mutate({ rfqId: rfq.id, updates: { [field]: value } });
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -131,13 +142,18 @@ export default function RFQDetailPage() {
               <Badge variant="outline" className="text-xs font-mono">{rfqData.rfq_number}</Badge>
             )}
           </div>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge variant="secondary">{rfq.status}</Badge>
-            {rfq.due_date && <span className="text-sm text-muted-foreground">Prazo: {rfq.due_date}</span>}
-            {rfqData.currency && rfqData.currency !== "EUR" && (
-              <Badge variant="outline">{rfqData.currency}</Badge>
-            )}
-          </div>
+           <div className="flex items-center gap-2 mt-1">
+             <Badge variant="secondary">{rfq.status}</Badge>
+             {rfq.due_date && (
+               <Badge variant={new Date(rfq.due_date) < new Date() ? "destructive" : "outline"} className="text-xs">
+                 <CalendarIcon className="mr-1 h-3 w-3" />
+                 Prazo: {new Date(rfq.due_date).toLocaleDateString("pt-PT")}
+               </Badge>
+             )}
+             {rfqData.currency && rfqData.currency !== "EUR" && (
+               <Badge variant="outline">{rfqData.currency}</Badge>
+             )}
+           </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleGeneratePDF} disabled={generatingPDF}>
@@ -166,73 +182,162 @@ export default function RFQDetailPage() {
 
       {/* Enterprise Header Info */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {wsData?.company_name && (
-              <div className="flex items-start gap-2">
-                <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Empresa</p>
-                  <p className="text-sm font-medium">{wsData.company_name}</p>
-                  {wsData.tax_id && <p className="text-xs text-muted-foreground">NIF: {wsData.tax_id}</p>}
-                </div>
-              </div>
-            )}
-            {(rfqData.buyer_name || rfqData.buyer_email) && (
-              <div className="flex items-start gap-2">
-                <Globe className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Comprador</p>
-                  {rfqData.buyer_name && <p className="text-sm font-medium">{rfqData.buyer_name}</p>}
-                  {rfqData.buyer_email && <p className="text-xs text-muted-foreground">{rfqData.buyer_email}</p>}
-                </div>
-              </div>
-            )}
-            {rfqData.payment_terms && (
-              <div className="flex items-start gap-2">
-                <CreditCard className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Cond. Pagamento</p>
-                  <p className="text-sm font-medium">{rfqData.payment_terms}</p>
-                </div>
-              </div>
-            )}
-            {rfqData.delivery_location && (
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Local Entrega</p>
-                  <p className="text-sm font-medium">{rfqData.delivery_location}</p>
-                </div>
-              </div>
-            )}
-            {rfqData.incoterm && (
-              <div className="flex items-start gap-2">
-                <Globe className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Incoterm</p>
-                  <p className="text-sm font-medium">{rfqData.incoterm}</p>
-                </div>
-              </div>
-            )}
-            {rfqData.quote_validity_days && (
-              <div className="flex items-start gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Validade Proposta</p>
-                  <p className="text-sm font-medium">{rfqData.quote_validity_days} dias</p>
-                </div>
-              </div>
-            )}
-            <div className="flex items-start gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="text-xs text-muted-foreground">Moeda</p>
-                <p className="text-sm font-medium">{rfqData.currency || "EUR"}</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
+         <CardContent className="pt-6">
+           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+             {/* Project & Proposal */}
+             {projectData?.name && (
+               <div className="flex items-start gap-2">
+                 <FolderOpen className="h-4 w-4 text-muted-foreground mt-0.5" />
+                 <div>
+                   <p className="text-xs text-muted-foreground">Projeto</p>
+                   <p className="text-sm font-medium">{projectData.name}</p>
+                 </div>
+               </div>
+             )}
+             {projectData?.source_type === "proposal" && projectData?.source_id && (
+               <div className="flex items-start gap-2">
+                 <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
+                 <div>
+                   <p className="text-xs text-muted-foreground">Proposta</p>
+                   <p className="text-sm font-medium">{projectData.source_id}</p>
+                 </div>
+               </div>
+             )}
+             {wsData?.company_name && (
+               <div className="flex items-start gap-2">
+                 <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
+                 <div>
+                   <p className="text-xs text-muted-foreground">Empresa</p>
+                   <p className="text-sm font-medium">{wsData.company_name}</p>
+                   {wsData.tax_id && <p className="text-xs text-muted-foreground">NIF: {wsData.tax_id}</p>}
+                 </div>
+               </div>
+             )}
+             {(rfqData.buyer_name || rfqData.buyer_email) && (
+               <div className="flex items-start gap-2">
+                 <Globe className="h-4 w-4 text-muted-foreground mt-0.5" />
+                 <div>
+                   <p className="text-xs text-muted-foreground">Comprador</p>
+                   {rfqData.buyer_name && <p className="text-sm font-medium">{rfqData.buyer_name}</p>}
+                   {rfqData.buyer_email && <p className="text-xs text-muted-foreground">{rfqData.buyer_email}</p>}
+                 </div>
+               </div>
+             )}
+             {/* Due Date - editable in draft */}
+             <div className="flex items-start gap-2">
+               <CalendarIcon className="h-4 w-4 text-muted-foreground mt-0.5" />
+               <div>
+                 <p className="text-xs text-muted-foreground">Data Limite</p>
+                 {isDraft ? (
+                   <Popover>
+                     <PopoverTrigger asChild>
+                       <Button variant="ghost" size="sm" className={cn("h-auto p-0 text-sm font-medium hover:underline", !rfq.due_date && "text-muted-foreground")}>
+                         {rfq.due_date ? new Date(rfq.due_date).toLocaleDateString("pt-PT") : "Definir..."}
+                         <Pencil className="ml-1 h-3 w-3" />
+                       </Button>
+                     </PopoverTrigger>
+                     <PopoverContent className="w-auto p-0" align="start">
+                       <Calendar
+                         mode="single"
+                         selected={rfq.due_date ? new Date(rfq.due_date) : undefined}
+                         onSelect={(date) => handleInlineUpdate("due_date", date ? format(date, "yyyy-MM-dd") : null)}
+                         disabled={(date) => date < new Date()}
+                         initialFocus
+                         className={cn("p-3 pointer-events-auto")}
+                       />
+                     </PopoverContent>
+                   </Popover>
+                 ) : (
+                   <p className="text-sm font-medium">{rfq.due_date ? new Date(rfq.due_date).toLocaleDateString("pt-PT") : "—"}</p>
+                 )}
+               </div>
+             </div>
+             {/* Payment Terms - editable in draft */}
+             <div className="flex items-start gap-2">
+               <CreditCard className="h-4 w-4 text-muted-foreground mt-0.5" />
+               <div>
+                 <p className="text-xs text-muted-foreground">Cond. Pagamento</p>
+                 {isDraft ? (
+                   <Input
+                     className="h-7 text-sm w-32"
+                     defaultValue={rfqData.payment_terms || ""}
+                     onBlur={(e) => { if (e.target.value !== (rfqData.payment_terms || "")) handleInlineUpdate("payment_terms", e.target.value || null); }}
+                   />
+                 ) : (
+                   <p className="text-sm font-medium">{rfqData.payment_terms || "—"}</p>
+                 )}
+               </div>
+             </div>
+             {/* Delivery Location - editable in draft */}
+             <div className="flex items-start gap-2">
+               <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+               <div>
+                 <p className="text-xs text-muted-foreground">Local Entrega</p>
+                 {isDraft ? (
+                   <Input
+                     className="h-7 text-sm w-32"
+                     defaultValue={rfqData.delivery_location || ""}
+                     onBlur={(e) => { if (e.target.value !== (rfqData.delivery_location || "")) handleInlineUpdate("delivery_location", e.target.value || null); }}
+                   />
+                 ) : (
+                   <p className="text-sm font-medium">{rfqData.delivery_location || "—"}</p>
+                 )}
+               </div>
+             </div>
+             {/* Incoterm - editable in draft */}
+             <div className="flex items-start gap-2">
+               <Globe className="h-4 w-4 text-muted-foreground mt-0.5" />
+               <div>
+                 <p className="text-xs text-muted-foreground">Incoterm</p>
+                 {isDraft ? (
+                   <Input
+                     className="h-7 text-sm w-24"
+                     defaultValue={rfqData.incoterm || ""}
+                     onBlur={(e) => { if (e.target.value !== (rfqData.incoterm || "")) handleInlineUpdate("incoterm", e.target.value || null); }}
+                   />
+                 ) : (
+                   <p className="text-sm font-medium">{rfqData.incoterm || "—"}</p>
+                 )}
+               </div>
+             </div>
+             {/* Quote Validity - editable in draft */}
+             <div className="flex items-start gap-2">
+               <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
+               <div>
+                 <p className="text-xs text-muted-foreground">Validade Proposta</p>
+                 {isDraft ? (
+                   <div className="flex items-center gap-1">
+                     <Input
+                       type="number"
+                       className="h-7 text-sm w-16"
+                       defaultValue={rfqData.quote_validity_days || ""}
+                       onBlur={(e) => { const v = Number(e.target.value); if (v !== (rfqData.quote_validity_days || 0)) handleInlineUpdate("quote_validity_days", v || null); }}
+                     />
+                     <span className="text-xs text-muted-foreground">dias</span>
+                   </div>
+                 ) : (
+                   <p className="text-sm font-medium">{rfqData.quote_validity_days ? `${rfqData.quote_validity_days} dias` : "—"}</p>
+                 )}
+               </div>
+             </div>
+             {/* Currency */}
+             <div className="flex items-start gap-2">
+               <Globe className="h-4 w-4 text-muted-foreground mt-0.5" />
+               <div>
+                 <p className="text-xs text-muted-foreground">Moeda</p>
+                 {isDraft ? (
+                   <Input
+                     className="h-7 text-sm w-16"
+                     defaultValue={rfqData.currency || "EUR"}
+                     onBlur={(e) => { if (e.target.value !== (rfqData.currency || "EUR")) handleInlineUpdate("currency", e.target.value || "EUR"); }}
+                   />
+                 ) : (
+                   <p className="text-sm font-medium">{rfqData.currency || "EUR"}</p>
+                 )}
+               </div>
+             </div>
+           </div>
+         </CardContent>
       </Card>
 
       {/* Suppliers */}
