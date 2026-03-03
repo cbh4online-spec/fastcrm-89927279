@@ -1,22 +1,15 @@
 
-# Renewals Engine — 3 Camadas
 
-## ✅ Estado: COMPLETO
+## Corrigir visibilidade do formulário de eventos
 
-### Camada 1 — Dados Certos (DONE)
-- ✅ 4 tabelas DB com RLS + enums + índices
-- ✅ Types, hooks (CRUD completo), pages (lista + detalhe com 5 tabs)
-- ✅ Trigger `total_mrr` automático (recalcula MRR quando items mudam)
-- ✅ Edge functions registadas no `config.toml`
-- ✅ Integração "Propostas Ganhas" — CTA "Criar Renovação" em propostas aceites
-- ✅ Campos `risk_level` e `reasons_json` adicionados
+O problema é que o `CalendarEventModal` tem muitos campos e o conteúdo ultrapassa a altura visível do ecrã sem scroll.
 
-### Camada 2 — Cron + Alertas (DONE)
-- ✅ `renewals-scheduler` melhorado com `admin_notifications` + usage thresholds
-- ✅ Alertas para: renovações (30/15/7/1/0 dias), overdue, packs baixos (<20%), packs a expirar (15 dias)
-- ✅ Painel "Renewals Alerts" com 4 cards (Overdue, Próx. 7 dias, Pack Baixo, A Expirar) + lista detalhada
+### Correção
 
-### Camada 3 — IA (DONE)
-- ✅ `renewals-health-score` melhorado: score + risk_level + top 3 reasons + suggested_action
-- ✅ `renewals-ai-suggestions` (Gemini 3 Flash): sugestões acionáveis (upsell, risk_mitigation, downgrade, optimization)
-- ✅ UI de Health Score, Risk Level e Sugestões IA no detalhe do contrato
+**Ficheiro:** `src/components/calendars/CalendarEventModal.tsx`
+
+- Adicionar `max-h-[90vh] overflow-y-auto` ao `DialogContent` (linha 214) para permitir scroll quando o conteúdo excede a altura do viewport
+- Mudar de `sm:max-w-[500px]` para `sm:max-w-lg` para consistência com outros dialogs do projeto
+
+Isto é uma correção de 1 linha que resolve o problema de visibilidade imediatamente.
+
