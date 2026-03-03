@@ -1,37 +1,33 @@
 
 
-# Adicionar Link para Loja Online nos Itens da Proposta
+# Corrigir Dados Duplicados — Recalcular Necessidades de Compra
 
 ## Problema
-Quando um produto está publicado na loja online (status "active"), não há forma rápida de o visualizar a partir da proposta.
+
+Os dados na tabela de Necessidades de Compra continuam duplicados porque a correção de deduplicação (proposta vs nota de encomenda) foi **implementada no código** mas os dados **não foram recalculados**. Exemplo:
+
+- Access Point RG-RAP1261: mostra `demand_total = 18` (9 da proposta + 9 da nota de encomenda), quando deveria ser **9** (apenas a nota de encomenda conta)
+- Instalação: mostra `demand_total = 2` (1+1), deveria ser **1**
+
+O `demand_sources_json` confirma a duplicação: contém entradas `proposal` e `order_note` para a mesma oportunidade.
 
 ## Solução
 
-### 1. Expandir dados passados ao `ProposalInternalView`
+### 1. Verificar e corrigir a edge function
 
-**`src/components/proposals/ProposalDetailContent.tsx`** — No mapeamento de items (linha ~975), adicionar `product_id` e `product_status`:
-```typescript
-product_id: item.product_id,
-product_status: item.product?.status,
-```
+**Ficheiro: `supabase/functions/procurement-needs-recompute/index.ts`**
 
-**`src/hooks/useProposals.ts`** — Adicionar `status` ao select do produto na query de proposal items:
-```
-product:products(id, name, base_price, direct_cost, operational_cost, images, primary_image_index, status)
-```
+Verificar se o código de deduplicação está correto — confirmar que:
+- As `order_notes` recolhem os `opportunity_id`
+- As `proposals` cujo `opportunity_id` já está coberto por uma order note são ignoradas
 
-Atualizar interface `ProposalItem.product` para incluir `status?: string`.
+Pode ser necessário verificar que o campo `opportunity_id` está sendo corretamente extraído nos selects de `proposal_items` e `order_note_items`.
 
-### 2. Adicionar link na tabela de itens
+### 2. Re-deploy e executar
 
-**`src/components/proposals/ProposalInternalView.tsx`**:
-- Atualizar a interface para aceitar `product_id` e `product_status` nos items
-- Importar `useWorkspace` e `getPublicBaseUrl`
-- Junto ao nome de cada item, se `product_status === "active"` e existe `product_id`, mostrar um ícone `ExternalLink` que abre `/store/{workspace.slug}/product/{product_id}` numa nova tab
-- Ícone pequeno (h-3.5 w-3.5) com tooltip "Ver na loja online"
+- Re-deploy da edge function (caso necessário ajustes)
+- O utilizador precisa de clicar no botão "Recalcular" na interface para regenerar os dados com a lógica correta
 
-### Ficheiros a editar
-- `src/hooks/useProposals.ts` — adicionar `status` ao select e interface
-- `src/components/proposals/ProposalDetailContent.tsx` — passar `product_id` e `product_status`
-- `src/components/proposals/ProposalInternalView.tsx` — mostrar link para loja
+### Ficheiros a verificar/editar
+- `supabase/functions/procurement-needs-recompute/index.ts`
 
