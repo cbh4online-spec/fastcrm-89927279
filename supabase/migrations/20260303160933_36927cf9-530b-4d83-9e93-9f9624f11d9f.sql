@@ -1,0 +1,1 @@
+ALTER TABLE public.rfq_suppliers ADD COLUMN reminder_sent_at timestamptz DEFAULT NULL;
