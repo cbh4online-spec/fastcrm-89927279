@@ -1,12 +1,33 @@
 
 
-# Phase 2 Already Implemented
+# Dashboard Resumo de RFQs com Indicadores de Deadlines
 
-After reviewing the codebase, Phase 2 is **already fully built and deployed**:
+## Objetivo
+Criar uma nova página `/dashboard/procurement/rfqs-dashboard` com KPIs, timeline de deadlines, e listagem visual de RFQs organizados por urgência.
 
-1. **Edge Function `rfq-generate-pdf/index.ts`** -- Complete enterprise PDF with header, buyer info, suppliers table, items table, quotes section, footer with pagination. Uploads to `rfq-pdfs` storage bucket.
+## Alterações
 
-2. **RFQ Detail Page integration** -- `RFQDetailPage.tsx` already calls `supabase.functions.invoke("rfq-generate-pdf")` and handles download.
+### 1. Nova página `src/pages/procurement/RFQsDashboardPage.tsx`
+- **KPI Strip** (4 cards usando `KPICard` do design system):
+  - Total RFQs ativas | Cotações recebidas | Expiradas | A expirar em 7 dias
+- **Timeline de Deadlines** — lista vertical ordenada por `due_date` com indicadores visuais:
+  - Vermelho pulsante: expirado
+  - Laranja: ≤3 dias
+  - Amarelo: ≤7 dias
+  - Verde: >7 dias
+- **Gráfico Donut** — distribuição por estado (Recharts `PieChart`)
+- **Tabela de RFQs urgentes** — top 10 por proximidade de deadline, com badge colorido e link para detalhe
+- Dados via `useRFQs` existente, processamento client-side com `useMemo`
 
-No changes needed. You can test it by opening an RFQ detail page and clicking "Exportar PDF".
+### 2. Registo da rota em `src/App.tsx`
+- Import do componente
+- Nova `Route` em `/dashboard/procurement/rfqs-dashboard`
+
+### 3. Navegação no menu procurement
+- Adicionar link ao sidebar/menu de procurement (se existente)
+
+### Ficheiros
+- **Criar**: `src/pages/procurement/RFQsDashboardPage.tsx`
+- **Editar**: `src/App.tsx` (import + rota)
+- **Editar**: ficheiro de navegação procurement (sidebar links)
 
