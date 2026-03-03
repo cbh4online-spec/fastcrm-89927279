@@ -1,19 +1,18 @@
 
 
-# Warning When Creating RFQ Without Recommended Suppliers
+# Fix: Show RFQ Items on Detail Page
+
+## Problem
+The RFQ detail page is missing an **Items section**. The page only shows "Fornecedores Convidados" and "Comparação de Cotações", but never displays the actual RFQ items (products and quantities). This makes the page appear empty when there are no suppliers or quotes yet.
 
 ## Plan
 
-In `src/pages/procurement/ProcurementNeedsBoardPage.tsx`, update `handleBulkCreateRFQ`:
-- Before calling `createRFQ.mutate`, check how many of the selected needs lack a `recommended_supplier_id`
-- If some lack suppliers, show a **confirmation dialog** (using AlertDialog) warning the user: "X dos Y itens selecionados não têm fornecedor recomendado. A RFQ será criada sem fornecedores pré-selecionados para esses itens. Continuar?"
-- If all have suppliers, proceed directly
+In `src/pages/procurement/RFQDetailPage.tsx`, add a new Card between the Suppliers card and the Comparison card that lists the RFQ items in a simple table:
 
-### Implementation
-- Add state `showRFQWarning: boolean` and store the count of needs without suppliers
-- Add an `AlertDialog` component to the page JSX
-- On confirm, proceed with `createRFQ.mutate`; on cancel, close dialog
+- **Columns**: Produto, SKU, Quantidade
+- **Data source**: `items` array from `useRFQDetail` (already fetched)
+- Show product name from `item.products?.name` and SKU from `item.products?.sku`
 
 ### File
-- `src/pages/procurement/ProcurementNeedsBoardPage.tsx` — add warning dialog logic
+- `src/pages/procurement/RFQDetailPage.tsx` -- add Items card after the Suppliers card (after line 141)
 
