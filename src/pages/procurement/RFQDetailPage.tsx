@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Send, Plus, Trophy, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, Plus, Trophy, Loader2, FileDown } from "lucide-react";
+import jsPDF from "jspdf";
 
 export default function RFQDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -80,6 +81,64 @@ export default function RFQDetailPage() {
   const canAddQuotes = ["sent", "receiving_quotes"].includes(rfq.status);
   const canAward = quotes.length > 0 && !["awarded", "closed"].includes(rfq.status);
 
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    let y = 20;
+
+    // Header
+    doc.setFontSize(18);
+    doc.text(rfq.title || "RFQ", 14, y);
+    y += 10;
+    doc.setFontSize(11);
+    doc.text(`Estado: ${rfq.status}`, 14, y);
+    if (rfq.due_date) {
+      doc.text(`Prazo: ${rfq.due_date}`, 100, y);
+    }
+    y += 12;
+
+    // Suppliers
+    doc.setFontSize(13);
+    doc.text("Fornecedores Convidados", 14, y);
+    y += 8;
+    doc.setFontSize(10);
+    if (suppliers.length === 0) {
+      doc.text("Nenhum fornecedor adicionado.", 14, y);
+      y += 6;
+    } else {
+      suppliers.forEach((s: any) => {
+        doc.text(`• ${s.suppliers?.name || "—"} (${s.status})`, 14, y);
+        y += 6;
+      });
+    }
+    y += 6;
+
+    // Items table
+    doc.setFontSize(13);
+    doc.text("Itens", 14, y);
+    y += 8;
+    doc.setFontSize(10);
+
+    // Table header
+    doc.setFont("helvetica", "bold");
+    doc.text("Produto", 14, y);
+    doc.text("SKU", 90, y);
+    doc.text("Qtd", 160, y);
+    y += 2;
+    doc.line(14, y, 196, y);
+    y += 5;
+    doc.setFont("helvetica", "normal");
+
+    items.forEach((item: any) => {
+      if (y > 270) { doc.addPage(); y = 20; }
+      doc.text(String(item.products?.name || "—"), 14, y);
+      doc.text(String(item.products?.sku || "—"), 90, y);
+      doc.text(String(item.qty ?? ""), 160, y);
+      y += 6;
+    });
+
+    doc.save(`RFQ-${(rfq.title || "export").replace(/\s+/g, "-")}.pdf`);
+  };
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-4">
@@ -94,6 +153,9 @@ export default function RFQDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportPDF}>
+            <FileDown className="mr-2 h-4 w-4" /> Exportar PDF
+          </Button>
           {canSend && (
             <Button onClick={handleSend} disabled={sendRFQ.isPending}>
               {sendRFQ.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
