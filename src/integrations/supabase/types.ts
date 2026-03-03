@@ -22577,6 +22577,202 @@ export type Database = {
           },
         ]
       }
+      procurement_needs: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string | null
+          project_id: string
+          project_item_id: string | null
+          qty_available: number
+          qty_needed: number
+          qty_to_buy: number
+          status: string
+          variant_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          project_id: string
+          project_item_id?: string | null
+          qty_available?: number
+          qty_needed?: number
+          qty_to_buy?: number
+          status?: string
+          variant_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          project_id?: string
+          project_item_id?: string | null
+          qty_available?: number
+          qty_needed?: number
+          qty_to_buy?: number
+          status?: string
+          variant_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "procurement_needs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "procurement_needs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procurement_needs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "procurement_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procurement_needs_project_item_id_fkey"
+            columns: ["project_item_id"]
+            isOneToOne: false
+            referencedRelation: "procurement_project_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procurement_needs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      procurement_project_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          procurement_status: string
+          product_id: string | null
+          project_id: string
+          qty_in_stock_at_creation: number
+          qty_required: number
+          qty_sold: number
+          qty_to_buy: number
+          variant_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          procurement_status?: string
+          product_id?: string | null
+          project_id: string
+          qty_in_stock_at_creation?: number
+          qty_required?: number
+          qty_sold?: number
+          qty_to_buy?: number
+          variant_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          procurement_status?: string
+          product_id?: string | null
+          project_id?: string
+          qty_in_stock_at_creation?: number
+          qty_required?: number
+          qty_sold?: number
+          qty_to_buy?: number
+          variant_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "procurement_project_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "procurement_project_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procurement_project_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "procurement_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procurement_project_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      procurement_projects: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          source_id: string | null
+          source_type: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          source_id?: string | null
+          source_type?: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          source_id?: string | null
+          source_type?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "procurement_projects_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_attributes: {
         Row: {
           attribute_type: Database["public"]["Enums"]["product_attribute_type"]
@@ -25091,6 +25287,7 @@ export type Database = {
           product_id: string | null
           quantity: number
           received_quantity: number
+          rfq_quote_id: string | null
           unit_price: number
           variant_id: string | null
         }
@@ -25101,6 +25298,7 @@ export type Database = {
           product_id?: string | null
           quantity?: number
           received_quantity?: number
+          rfq_quote_id?: string | null
           unit_price?: number
           variant_id?: string | null
         }
@@ -25111,6 +25309,7 @@ export type Database = {
           product_id?: string | null
           quantity?: number
           received_quantity?: number
+          rfq_quote_id?: string | null
           unit_price?: number
           variant_id?: string | null
         }
@@ -25137,6 +25336,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "purchase_order_items_rfq_quote_id_fkey"
+            columns: ["rfq_quote_id"]
+            isOneToOne: false
+            referencedRelation: "rfq_quotes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "purchase_order_items_variant_id_fkey"
             columns: ["variant_id"]
             isOneToOne: false
@@ -25153,7 +25359,9 @@ export type Database = {
           id: string
           notes: string | null
           po_number: string | null
+          project_id: string | null
           request_id: string | null
+          rfq_id: string | null
           status: string
           supplier_id: string
           total_amount: number | null
@@ -25167,7 +25375,9 @@ export type Database = {
           id?: string
           notes?: string | null
           po_number?: string | null
+          project_id?: string | null
           request_id?: string | null
+          rfq_id?: string | null
           status?: string
           supplier_id: string
           total_amount?: number | null
@@ -25181,7 +25391,9 @@ export type Database = {
           id?: string
           notes?: string | null
           po_number?: string | null
+          project_id?: string | null
           request_id?: string | null
+          rfq_id?: string | null
           status?: string
           supplier_id?: string
           total_amount?: number | null
@@ -25190,10 +25402,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "purchase_orders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "procurement_projects"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "purchase_orders_request_id_fkey"
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "purchase_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "rfqs"
             referencedColumns: ["id"]
           },
           {
@@ -25971,6 +26197,271 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "revenue_forecasts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfq_items: {
+        Row: {
+          created_at: string
+          id: string
+          need_id: string | null
+          preferred_supplier_id: string | null
+          product_id: string | null
+          qty: number
+          rfq_id: string
+          spec_notes: string | null
+          variant_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          need_id?: string | null
+          preferred_supplier_id?: string | null
+          product_id?: string | null
+          qty?: number
+          rfq_id: string
+          spec_notes?: string | null
+          variant_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          need_id?: string | null
+          preferred_supplier_id?: string | null
+          product_id?: string | null
+          qty?: number
+          rfq_id?: string
+          spec_notes?: string | null
+          variant_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_items_need_id_fkey"
+            columns: ["need_id"]
+            isOneToOne: false
+            referencedRelation: "procurement_needs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_items_preferred_supplier_id_fkey"
+            columns: ["preferred_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "rfq_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_items_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "rfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfq_quotes: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          is_selected: boolean
+          lead_time_days: number | null
+          min_order_qty: number | null
+          notes: string | null
+          pack_size: number | null
+          rfq_id: string
+          rfq_item_id: string
+          supplier_id: string
+          unit_price: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          id?: string
+          is_selected?: boolean
+          lead_time_days?: number | null
+          min_order_qty?: number | null
+          notes?: string | null
+          pack_size?: number | null
+          rfq_id: string
+          rfq_item_id: string
+          supplier_id: string
+          unit_price?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          is_selected?: boolean
+          lead_time_days?: number | null
+          min_order_qty?: number | null
+          notes?: string | null
+          pack_size?: number | null
+          rfq_id?: string
+          rfq_item_id?: string
+          supplier_id?: string
+          unit_price?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_quotes_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "rfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_quotes_rfq_item_id_fkey"
+            columns: ["rfq_item_id"]
+            isOneToOne: false
+            referencedRelation: "rfq_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_quotes_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_quotes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfq_suppliers: {
+        Row: {
+          created_at: string
+          id: string
+          rfq_id: string
+          sent_at: string | null
+          status: string
+          supplier_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rfq_id: string
+          sent_at?: string | null
+          status?: string
+          supplier_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rfq_id?: string
+          sent_at?: string | null
+          status?: string
+          supplier_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_suppliers_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "rfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_suppliers_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_suppliers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfqs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          id: string
+          notes: string | null
+          project_id: string | null
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfqs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "procurement_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfqs_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

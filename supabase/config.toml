@@ -396,3 +396,18 @@ verify_jwt = false
 
 [functions.supplier-import-commit]
 verify_jwt = false
+
+[functions.project-from-won-proposal]
+verify_jwt = false
+
+[functions.rfq-create-from-needs]
+verify_jwt = false
+
+[functions.rfq-send]
+verify_jwt = false
+
+[functions.rfq-award-and-create-pos]
+verify_jwt = false
+
+[functions.procurement-sync-on-receive]
+verify_jwt = false

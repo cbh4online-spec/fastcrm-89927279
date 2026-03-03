@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { ProposalWonProcurementModal } from "@/components/procurement/ProposalWonProcurementModal";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -172,6 +173,7 @@ export function ProposalsList() {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [taskProposal, setTaskProposal] = useState<Proposal | null>(null);
   const [convertOrderId, setConvertOrderId] = useState<string | null>(null);
+  const [procurementModalProposal, setProcurementModalProposal] = useState<{ id: string; title: string } | null>(null);
 
   // New state for reorganized UI
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -259,6 +261,12 @@ export function ProposalsList() {
 
   const handleStatusChange = async (proposalId: string, status: ProposalStatus) => {
     await quickStatusChange.mutateAsync({ id: proposalId, status });
+    if (status === "accepted") {
+      const prop = proposals?.find(p => p.id === proposalId);
+      if (prop) {
+        setProcurementModalProposal({ id: proposalId, title: prop.title });
+      }
+    }
   };
 
   const handleOpenTaskDialog = (proposal: Proposal) => {
@@ -832,6 +840,15 @@ export function ProposalsList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {procurementModalProposal && (
+        <ProposalWonProcurementModal
+          open={!!procurementModalProposal}
+          onOpenChange={(open) => { if (!open) setProcurementModalProposal(null); }}
+          proposalId={procurementModalProposal.id}
+          proposalTitle={procurementModalProposal.title}
+          workspaceId={proposals?.[0]?.workspace_id || ""}
+        />
+      )}
     </div>
   );
 }
