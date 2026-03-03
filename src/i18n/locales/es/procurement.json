@@ -49,5 +49,8 @@
   "selectProduct": "Seleccionar producto",
   "searchProduct": "Buscar producto...",
   "save": "Guardar",
-  "score": "Puntuación"
+  "score": "Puntuación",
+  "converted": "Convertida",
+  "generatePO": "Generar Orden de Compra",
+  "selectProduct": "Seleccionar producto"
 }

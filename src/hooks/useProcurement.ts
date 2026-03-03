@@ -66,9 +66,15 @@ export function useSuppliers(workspaceId: string | undefined) {
 // ============ PURCHASE REQUESTS ============
 interface PurchaseRequestItemInput {
   product_id?: string;
+  variant_id?: string;
   description: string;
   quantity: number;
   estimated_unit_price?: number;
+  suggested_supplier_id?: string;
+  suggested_unit_price?: number;
+  suggestion_json?: any;
+  chosen_supplier_id?: string;
+  chosen_unit_price?: number;
 }
 
 export function usePurchaseRequests(workspaceId: string | undefined) {
@@ -120,9 +126,15 @@ export function usePurchaseRequests(workspaceId: string | undefined) {
           .insert(items.map((i) => ({
             request_id: req.id,
             product_id: i.product_id,
+            variant_id: i.variant_id || null,
             description: i.description,
             quantity: i.quantity,
             estimated_unit_price: i.estimated_unit_price,
+            suggested_supplier_id: i.suggested_supplier_id || null,
+            suggested_unit_price: i.suggested_unit_price || null,
+            suggestion_json: i.suggestion_json || null,
+            chosen_supplier_id: i.chosen_supplier_id || null,
+            chosen_unit_price: i.chosen_unit_price || null,
           })));
         if (ie) throw ie;
       }
@@ -165,6 +177,7 @@ export function usePurchaseRequests(workspaceId: string | undefined) {
 // ============ PURCHASE ORDERS ============
 interface PurchaseOrderItemInput {
   product_id?: string;
+  variant_id?: string;
   description: string;
   quantity: number;
   unit_price: number;
@@ -217,6 +230,7 @@ export function usePurchaseOrders(workspaceId: string | undefined) {
           .insert(items.map((i) => ({
             order_id: po.id,
             product_id: i.product_id,
+            variant_id: i.variant_id || null,
             description: i.description,
             quantity: i.quantity,
             unit_price: i.unit_price,
@@ -259,40 +273,31 @@ export function useGoodsReceipts(workspaceId: string | undefined) {
     enabled: !!workspaceId,
   });
 
+  // Note: receipts are now created via edge function in GoodsReceiptForm
+  // This create is kept for backward compatibility but should not be used directly
   const create = useMutation({
     mutationFn: async ({ purchase_order_id, items, notes }: {
       purchase_order_id: string;
       items: { order_item_id: string; quantity_received: number }[];
       notes?: string;
     }) => {
-      const { data: user } = await supabase.auth.getUser();
-      const { data: receipt, error } = await supabase
-        .from("goods_receipts")
-        .insert({
+      // Use edge function for atomic receipt + stock + cost update
+      const { data, error } = await supabase.functions.invoke("procurement-receive-items", {
+        body: {
           workspace_id: workspaceId!,
           purchase_order_id,
-          received_by: user.user?.id,
+          items,
           notes,
-        })
-        .select()
-        .single();
+        },
+      });
       if (error) throw error;
-      if (items?.length) {
-        const { error: ie } = await supabase
-          .from("goods_receipt_items")
-          .insert(items.map((i) => ({
-            receipt_id: receipt.id,
-            order_item_id: i.order_item_id,
-            quantity_received: i.quantity_received,
-          })));
-        if (ie) throw ie;
-      }
-      return receipt;
+      return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["goods-receipts"] });
       qc.invalidateQueries({ queryKey: ["purchase-orders"] });
       qc.invalidateQueries({ queryKey: ["product-inventory"] });
+      qc.invalidateQueries({ queryKey: ["procurement-kpis"] });
       toast.success("Receção registada");
     },
     onError: () => toast.error("Erro ao registar receção"),
@@ -420,6 +425,26 @@ export function useSuggestSuppliers() {
       if (error) throw error;
       return data as { item_suggestions: any[] };
     },
+  });
+}
+
+// ============ CONVERT REQUEST TO PO ============
+export function useConvertRequestToPO() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ workspaceId, requestId }: { workspaceId: string; requestId: string }) => {
+      const { data, error } = await supabase.functions.invoke("procurement-create-po-from-request", {
+        body: { workspace_id: workspaceId, request_id: requestId },
+      });
+      if (error) throw error;
+      return data as { purchase_order_ids: string[]; count: number };
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["purchase-requests"] });
+      qc.invalidateQueries({ queryKey: ["purchase-orders"] });
+      toast.success(`${data.count} ordem(ns) de compra criada(s)`);
+    },
+    onError: () => toast.error("Erro ao converter requisição em ordem de compra"),
   });
 }
 

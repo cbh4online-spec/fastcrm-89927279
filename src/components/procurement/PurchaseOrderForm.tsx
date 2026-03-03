@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { useSuppliers } from "@/hooks/useProcurement";
 import { Plus, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface Props {
   open: boolean;
@@ -16,15 +18,42 @@ interface Props {
   onSave: (values: any) => Promise<void>;
 }
 
+interface OrderItem {
+  product_id: string;
+  product_name: string;
+  variant_id?: string;
+  quantity: number;
+  unit_price: number;
+}
+
 export function PurchaseOrderForm({ open, onOpenChange, workspaceId, onSave }: Props) {
   const { t } = useTranslation("procurement");
   const { data: suppliers = [] } = useSuppliers(workspaceId);
+
+  const { data: products = [] } = useQuery({
+    queryKey: ["products-list-po", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return [];
+      const { data } = await supabase.from("products").select("id, name, sku, base_price").eq("workspace_id", workspaceId).order("name");
+      return data || [];
+    },
+    enabled: !!workspaceId,
+  });
+
   const [form, setForm] = useState({ supplier_id: "", expected_delivery: "", notes: "" });
-  const [items, setItems] = useState([{ description: "", quantity: 1, unit_price: 0 }]);
+  const [items, setItems] = useState<OrderItem[]>([{ product_id: "", product_name: "", quantity: 1, unit_price: 0 }]);
   const [saving, setSaving] = useState(false);
 
-  const addItem = () => setItems([...items, { description: "", quantity: 1, unit_price: 0 }]);
+  const addItem = () => setItems([...items, { product_id: "", product_name: "", quantity: 1, unit_price: 0 }]);
   const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
+
+  const handleProductSelect = (i: number, productId: string) => {
+    const product = (products as any[]).find(p => p.id === productId);
+    const updated = [...items];
+    updated[i] = { ...updated[i], product_id: productId, product_name: product?.name || "" };
+    setItems(updated);
+  };
+
   const updateItem = (i: number, field: string, value: any) => {
     const updated = [...items];
     (updated[i] as any)[field] = value;
@@ -34,17 +63,23 @@ export function PurchaseOrderForm({ open, onOpenChange, workspaceId, onSave }: P
   const total = items.reduce((s, i) => s + i.quantity * i.unit_price, 0);
 
   const handleSubmit = async () => {
-    if (!form.supplier_id || !items[0]?.description) return;
+    if (!form.supplier_id || !items[0]?.product_id) return;
     setSaving(true);
     await onSave({
       supplier_id: form.supplier_id,
       expected_delivery: form.expected_delivery || undefined,
       notes: form.notes || undefined,
       total_amount: total,
-      items: items.filter(i => i.description),
+      items: items.filter(i => i.product_id).map(i => ({
+        product_id: i.product_id,
+        variant_id: i.variant_id || undefined,
+        description: i.product_name,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+      })),
     });
     setSaving(false);
-    setItems([{ description: "", quantity: 1, unit_price: 0 }]);
+    setItems([{ product_id: "", product_name: "", quantity: 1, unit_price: 0 }]);
     setForm({ supplier_id: "", expected_delivery: "", notes: "" });
   };
 
@@ -75,7 +110,12 @@ export function PurchaseOrderForm({ open, onOpenChange, workspaceId, onSave }: P
             </div>
             {items.map((item, i) => (
               <div key={i} className="grid grid-cols-[1fr_80px_100px_32px] gap-2 mb-2">
-                <Input placeholder={t("description")} value={item.description} onChange={(e) => updateItem(i, "description", e.target.value)} />
+                <Select value={item.product_id} onValueChange={(v) => handleProductSelect(i, v)}>
+                  <SelectTrigger><SelectValue placeholder={t("selectProduct")} /></SelectTrigger>
+                  <SelectContent>
+                    {(products as any[]).map(p => <SelectItem key={p.id} value={p.id}>{p.name} {p.sku ? `(${p.sku})` : ""}</SelectItem>)}
+                  </SelectContent>
+                </Select>
                 <Input type="number" placeholder={t("quantity")} value={item.quantity} onChange={(e) => updateItem(i, "quantity", Number(e.target.value))} />
                 <Input type="number" placeholder="€" value={item.unit_price} onChange={(e) => updateItem(i, "unit_price", Number(e.target.value))} />
                 {items.length > 1 && <Button size="icon" variant="ghost" onClick={() => removeItem(i)}><Trash2 className="h-3 w-3" /></Button>}

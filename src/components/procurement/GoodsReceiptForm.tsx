@@ -6,9 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
-import { usePurchaseOrders } from "@/hooks/useProcurement";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { usePurchaseOrders, useGoodsReceipts } from "@/hooks/useProcurement";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Props {
   open: boolean;
@@ -17,9 +16,11 @@ interface Props {
   onSave: (values: any) => Promise<void>;
 }
 
-export function GoodsReceiptForm({ open, onOpenChange, workspaceId, onSave }: Props) {
+export function GoodsReceiptForm({ open, onOpenChange, workspaceId }: Props) {
   const { t } = useTranslation("procurement");
   const { data: orders = [] } = usePurchaseOrders(workspaceId);
+  const { create: createReceipt } = useGoodsReceipts(workspaceId);
+  const qc = useQueryClient();
   const [selectedPO, setSelectedPO] = useState("");
   const [notes, setNotes] = useState("");
   const [receiptItems, setReceiptItems] = useState<{ order_item_id: string; quantity_received: number; description: string; max: number }[]>([]);
@@ -47,20 +48,14 @@ export function GoodsReceiptForm({ open, onOpenChange, workspaceId, onSave }: Pr
     if (!validItems.length) return;
     setSaving(true);
     try {
-      // Use edge function for atomic receipt + stock + cost update
-      const { data, error } = await supabase.functions.invoke("procurement-receive-items", {
-        body: {
-          workspace_id: workspaceId,
-          purchase_order_id: selectedPO,
-          items: validItems.map(({ order_item_id, quantity_received }) => ({ order_item_id, quantity_received })),
-          notes: notes || undefined,
-        },
+      await createReceipt({
+        purchase_order_id: selectedPO,
+        items: validItems.map(({ order_item_id, quantity_received }) => ({ order_item_id, quantity_received })),
+        notes: notes || undefined,
       });
-      if (error) throw error;
-      toast.success("Receção registada");
       onOpenChange(false);
-    } catch (e) {
-      toast.error("Erro ao registar receção");
+    } catch {
+      // error handled by hook
     }
     setSaving(false);
     setSelectedPO("");

@@ -44,5 +44,8 @@
   "selectProduct": "Sélectionner produit",
   "searchProduct": "Rechercher produit...",
   "save": "Enregistrer",
-  "score": "Score"
+  "score": "Score",
+  "converted": "Convertie",
+  "generatePO": "Générer Bon de Commande",
+  "selectProduct": "Sélectionner produit"
 }
