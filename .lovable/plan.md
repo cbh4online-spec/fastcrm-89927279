@@ -1,143 +1,138 @@
 
 
-# Auditoria Técnica — Módulo de Compras FastCRM
+# Supplier Price Importer — Plano de Implementação
+
+## Resumo
+
+Criar um importador de tabelas de preços de fornecedores com stepper de 4 passos, suporte a 6 modos de pricing, matching automático com produtos, e commit atómico para `supplier_products`. Inclui 2 novas tabelas, extensão a `supplier_products`, 3 edge functions, storage bucket, e UI completa.
 
 ---
 
-## 1. JA IMPLEMENTADO
+## 1. Migração SQL
 
-| Area | Detalhe |
-|------|---------|
-| **Tabelas core** | `suppliers`, `purchase_requests`, `purchase_request_items`, `purchase_orders`, `purchase_order_items`, `goods_receipts`, `goods_receipt_items`, `supplier_invoices`, `supplier_products`, `inventory_movements` — todas existem com RLS por workspace |
-| **Campos V2 em purchase_request_items** | `variant_id`, `suggested_supplier_id`, `suggested_unit_price`, `suggestion_json`, `chosen_supplier_id`, `chosen_unit_price` — todos presentes no schema |
-| **Campos V2 em purchase_order_items** | `variant_id` presente |
-| **Campos V2 em suppliers** | `default_payment_terms_days`, `rating_manual` presentes |
-| **Campos V2 em inventory_movements** | `unit_cost`, `variant_id` presentes |
-| **supplier_products** | Tabela completa com `unit_price`, `lead_time_days`, `min_order_qty`, `pack_size`, `is_preferred`, `quality_score`, `reliability_score`, unique index, RLS |
-| **Edge Function: procurement-suggest-suppliers** | Implementada com scoring determinístico (35% preço, 20% lead, 15% pref, 15% reliability, 15% quality) + AI tiebreaker via Gemini |
-| **Edge Function: procurement-receive-items** | Implementada — cria receipt, items, actualiza PO status |
-| **config.toml** | Ambas EFs registadas com `verify_jwt = false` |
-| **Hook useProcurement.ts** | CRUD completo para suppliers, requests, orders, receipts, invoices, supplier_products, suggest suppliers, KPIs |
-| **UI PurchaseRequestForm** | Product autocomplete, suggest supplier button, SupplierSuggestionCard com top 3, choose/set default |
-| **UI GoodsReceiptForm** | Usa edge function `procurement-receive-items` |
-| **UI SupplierProductsPage** | Catálogo editável com CRUD |
-| **Trigger po_number** | Auto-geração PO-YYYY-XXXXX |
-| **i18n** | PT, EN, ES, FR com namespace `procurement` |
+### 1.1 Criar `supplier_price_imports`
+- `id`, `workspace_id`, `supplier_id` FK, `file_url`, `file_name`, `file_type` (xlsx/csv)
+- `pricing_mode` text (NET_PRICE_ONLY, RRP_ONLY, NET_AND_RRP, DISCOUNT_GLOBAL, DISCOUNT_BY_CATEGORY, MARGIN_RULE)
+- `currency` default EUR, `global_discount_percent` nullable, `margin_percent` nullable, `base_price_field` text nullable
+- `price_is_per_pack` boolean default false
+- `mapping_json` jsonb, `stats_json` jsonb, `category_discounts_json` jsonb nullable
+- `status` text (uploaded, parsed, validated, committed, failed)
+- `created_by` uuid, `created_at` timestamptz
+- RLS: workspace members only
 
----
+### 1.2 Criar `supplier_price_import_rows`
+- `id`, `workspace_id`, `import_id` FK (cascade delete), `row_index` int
+- `raw_json` jsonb, `normalized_json` jsonb
+- `match_status` text (matched, unmatched, needs_review)
+- `product_id` nullable FK, `variant_id` nullable FK
+- `computed_unit_price` numeric nullable, `computed_rrp_price` numeric nullable
+- `error_text` text nullable
+- RLS: workspace members only
+- Index on `(import_id, match_status)`
 
-## 2. PARCIALMENTE IMPLEMENTADO
-
-| Area | Problema |
-|------|---------|
-| **Trigger V2 (process_goods_receipt_item_v2)** | O código SQL existe na migração mas **usa colunas erradas** para `inventory_movements`: escreve `movement_type`, `quantity`, `reference_type`, `reference_id` mas a tabela real tem `type`, `qty`, `source`, `ref_id`. O trigger **FALHA silenciosamente** ou dá erro na execução |
-| **Campos em products** | A migração V2 tentou adicionar `avg_cost`, `last_cost`, `default_supplier_id`, `last_purchase_date`, `reorder_point`, `reorder_qty` mas **NENHUM destes campos existe** no schema actual (types.ts confirma). A migração provavelmente falhou |
-| **PurchaseOrderForm** | Formulário V1 — usa descrição livre, sem `product_id` picker, sem `variant_id`, não ligado a produtos |
-| **usePurchaseRequests.create** | Não envia `variant_id`, `suggested_supplier_id`, `suggestion_json`, `chosen_supplier_id`, `chosen_unit_price` para a DB — campos descartados no insert |
-| **GoodsReceiptForm callback** | Chama edge function mas depois não invalida queries correctamente (usa `onSave` callback do pai que faz insert directo redundante) |
-
----
-
-## 3. NÃO IMPLEMENTADO
-
-| Area | Impacto |
-|------|---------|
-| **Edge Function: procurement-create-po-from-request** | Não existe. Não há forma de converter Request aprovada em PO(s) agrupadas por fornecedor |
-| **Conversão Request → PO na UI** | Botão "Gerar PO" após aprovação não existe |
-| **avg_cost / last_cost / last_purchase_date** na tabela products | Colunas não existem — custo médio não é calculado nem armazenado |
-| **default_supplier_id** na tabela products | Coluna não existe — sugestão de fornecedor padrão não persiste |
-| **reorder_point / reorder_qty** na tabela products | Colunas não existem — sem alertas de reposição |
-| **Índices de performance** | `supplier_products` sem índice em `(product_id)`, `(supplier_id)`. POs sem índice em `(workspace_id, status)` |
-| **Audit trail / timeline** | Sem componente PurchaseTimeline, sem log de alterações de estado |
-| **ApprovalWorkflow component** | Referenciado no plano, nunca criado |
-| **PDF de PO** | Mencionado no plano, não implementado |
-| **Role-based access** | RLS é só workspace membership — Agent pode aprovar requests (deveria ser só Owner/Admin) |
-
----
-
-## 4. BUGS POTENCIAIS (CRÍTICOS)
-
-### BUG 1 — Trigger V2 vai crashar na receção
-O trigger `process_goods_receipt_item_v2` faz:
+### 1.3 Extensão a `supplier_products`
 ```sql
-INSERT INTO inventory_movements (workspace_id, product_id, movement_type, quantity, unit_cost, reference_type, reference_id)
+ADD rrp_price numeric nullable
+ADD price_source text nullable  -- net, rrp, computed, discount
+ADD import_id uuid nullable REFERENCES supplier_price_imports(id)
+ADD barcode text nullable
+ADD category text nullable
 ```
-Mas as colunas reais são: `type`, `qty`, `source`, `ref_id`. **Resultado: erro PostgreSQL na receção, transação falha, stock não actualiza.**
 
-### BUG 2 — Campos em products não existem
-O trigger V2 faz `UPDATE products SET avg_cost = ..., last_cost = ..., last_purchase_date = ...` mas essas colunas não existem. **A migração V1 das extensões a products falhou silenciosamente.**
-
-### BUG 3 — Dois triggers concorrentes no mesmo evento
-Existe `process_goods_receipt_item` (V1) e `process_goods_receipt_item_v2` (V2) — o V2 faz DROP do V1, mas se o V2 falhou a instalar, o V1 pode estar activo. O V1 **não calcula avg_cost** nem `last_cost`.
-
-### BUG 4 — usePurchaseRequests.create descarta campos V2
-O hook envia items com `product_id`, `description`, `quantity`, `estimated_unit_price` mas ignora `variant_id`, `suggested_supplier_id`, `suggestion_json`, `chosen_supplier_id`, `chosen_unit_price` — dados da sugestão perdem-se.
-
-### BUG 5 — GoodsReceiptForm duplo-insert
-O componente chama a edge function E depois o `onSave` do pai que faz `create(values)` — potencial inserção duplicada de receipt.
-
-### BUG 6 — Race condition na receção
-A edge function e o trigger correm em paralelo sem transacção única. Receções simultâneas podem corromper `received_quantity` e `stock_quantity`.
-
-### BUG 7 — PurchaseOrderForm sem product_id
-Cria items com `description` livre — sem referência a produto. Quebra o princípio "produtos são fonte de verdade".
+### 1.4 Storage bucket
+```sql
+INSERT INTO storage.buckets (id, name, public) VALUES ('supplier-price-files', 'supplier-price-files', false);
+```
+Com RLS policy para workspace members.
 
 ---
 
-## 5. RECOMENDAÇÕES PRIORITÁRIAS (Ordem de execução)
+## 2. Edge Functions
 
-1. **Migração SQL correctiva** — Adicionar colunas em falta a `products` + corrigir trigger V2 com nomes de colunas correctos
-2. **Fix usePurchaseRequests.create** — Enviar todos os campos V2 (variant_id, chosen_supplier_id, etc.)
-3. **Fix GoodsReceiptForm** — Remover insert directo duplicado, usar apenas edge function
-4. **Criar procurement-create-po-from-request** — Edge function que agrupa items por chosen_supplier_id e cria POs
-5. **Refazer PurchaseOrderForm** — Product picker em vez de descrição livre
-6. **Adicionar índices** — `supplier_products(product_id)`, `supplier_products(supplier_id)`, `purchase_orders(workspace_id, status)`
-7. **Corrigir race condition** — Usar `SELECT ... FOR UPDATE` no trigger ou edge function para serializar receções
-8. **Role-based approval** — Verificar role (owner/admin) antes de permitir approve/reject
+### 2.1 `supplier-import-parse`
+- Input: `{ import_id }`
+- Download ficheiro do Storage, parse CSV (standard) ou XLSX (usando SheetJS/xlsx npm)
+- Retorna colunas detectadas + 20 sample rows
+- Guarda status `parsed`
+
+### 2.2 `supplier-import-validate`
+- Input: `{ import_id, mapping_json, pricing_mode, global_discount_percent, margin_percent, base_price_field, price_is_per_pack, category_discounts_json }`
+- Para cada row: normaliza campos via mapping, calcula `computed_unit_price` e `computed_rrp_price` conforme pricing_mode
+- Matching com produtos: 1) barcode/EAN, 2) supplier_sku match em supplier_products, 3) product_name exact match
+- Insere rows em `supplier_price_import_rows` com match_status
+- Retorna stats (total, matched, unmatched, errors)
+
+### 2.3 `supplier-import-commit`
+- Input: `{ import_id }`
+- Lê rows validadas com match_status=matched
+- UPSERT em `supplier_products` por (workspace_id, supplier_id, product_id, variant_id)
+- Actualiza: unit_price, rrp_price, pack_size, min_order_qty, lead_time_days, last_price_date, import_id, barcode, category, price_source, supplier_sku
+- Batch de 250 rows
+- Actualiza import status → committed + stats_json
 
 ---
 
-## 6. LISTA EXACTA DE ACÇÕES TÉCNICAS
+## 3. UI / Componentes
 
-### Migração SQL
-```
-1. ALTER TABLE products ADD COLUMN IF NOT EXISTS default_supplier_id uuid REFERENCES suppliers(id)
-2. ALTER TABLE products ADD COLUMN IF NOT EXISTS avg_cost numeric DEFAULT 0
-3. ALTER TABLE products ADD COLUMN IF NOT EXISTS last_cost numeric DEFAULT 0
-4. ALTER TABLE products ADD COLUMN IF NOT EXISTS last_purchase_date date
-5. ALTER TABLE products ADD COLUMN IF NOT EXISTS reorder_point int
-6. ALTER TABLE products ADD COLUMN IF NOT EXISTS reorder_qty int
-7. CREATE OR REPLACE FUNCTION process_goods_receipt_item_v2() — com colunas correctas: type, qty, source, ref_id
-8. CREATE INDEX idx_supplier_products_product ON supplier_products(product_id)
-9. CREATE INDEX idx_supplier_products_supplier ON supplier_products(supplier_id)
-10. CREATE INDEX idx_purchase_orders_ws_status ON purchase_orders(workspace_id, status)
-11. CREATE INDEX idx_purchase_order_items_order ON purchase_order_items(order_id)
-```
+### 3.1 Nova página: `src/pages/procurement/SupplierPriceImportPage.tsx`
+- Rota: `/dashboard/procurement/price-import`
+- Nav entry no grupo Compras
 
-### Edge Functions
-```
-12. Criar supabase/functions/procurement-create-po-from-request/index.ts
-13. Registar em config.toml
-```
+### 3.2 Componente principal: `SupplierPriceImportWizard`
+4 steps:
+1. **Upload** — Selecionar fornecedor, ficheiro, pricing_mode, moeda, opções (desconto global, margem, base_price_field, price_is_per_pack). Upload para Storage. Chama `supplier-import-parse`.
+2. **Column Mapping** — Reutilizar padrão visual do `ColumnMappingStep` existente mas com campos de pricing (supplier_sku, barcode, product_name, net_price, rrp_price, discount_percent, pack_size, min_order_qty, lead_time_days, category, notes). Chama `supplier-import-validate`.
+3. **Preview** — Tabela com 20 rows, badges matched/unmatched/error, preço calculado. `MatchResolverRow` inline para unmatched (pesquisar produto ou quick create).
+4. **Confirm** — Resumo stats + botão commit. Chama `supplier-import-commit`. Progress bar.
 
-### Hooks (useProcurement.ts)
-```
-14. Fix usePurchaseRequests.create — incluir variant_id, suggested_supplier_id, suggestion_json, chosen_supplier_id, chosen_unit_price no insert
-15. Fix usePurchaseOrders.create — adicionar product_id e variant_id ao item input
-16. Adicionar hook useConvertRequestToPO que chama a nova edge function
-```
+### 3.3 Sub-componentes
+- `PricingRulesPanel` — UI para pricing_mode options (desconto, margem, base field, pack toggle)
+- `ImportPreviewTable` — Tabela com erros por linha, match badges
+- `MatchResolverRow` — Inline: autocomplete produto existente ou botão "Criar produto"
+- `PriceImportHistory` — Lista de importações anteriores com stats
 
-### Components
-```
-17. Fix GoodsReceiptForm — remover callback onSave duplicado, usar apenas edge function + invalidar queries manualmente
-18. Refazer PurchaseOrderForm — product picker com autocomplete, variant_id, remover descrição livre
-19. Adicionar botão "Gerar PO" na PurchaseRequestsPage para requests aprovadas
-20. Criar PurchaseTimeline component (audit trail visual)
-```
+### 3.4 Hook: `useSupplierPriceImport`
+- Upload file to storage
+- Invoke parse/validate/commit edge functions
+- Query import rows for preview
+- Update match (product_id) on individual rows
 
-### Segurança
-```
-21. Adicionar verificação de role (owner/admin) na action approve/reject de requests
-22. Adicionar FOR UPDATE no trigger para prevenir race conditions
-```
+---
+
+## 4. Routing & Navigation
+
+- Adicionar rota em `App.tsx`: `/dashboard/procurement/price-import`
+- Adicionar entrada no `nav.v1.ts` no grupo Compras: "Importar Preços"
+- i18n keys em PT/EN/ES/FR
+
+---
+
+## 5. Ficheiros a criar/modificar
+
+| Acção | Ficheiro |
+|-------|---------|
+| Criar | Migração SQL (2 tabelas + extensão supplier_products + bucket + RLS) |
+| Criar | `supabase/functions/supplier-import-parse/index.ts` |
+| Criar | `supabase/functions/supplier-import-validate/index.ts` |
+| Criar | `supabase/functions/supplier-import-commit/index.ts` |
+| Criar | `src/pages/procurement/SupplierPriceImportPage.tsx` |
+| Criar | `src/components/procurement/price-import/SupplierPriceImportWizard.tsx` |
+| Criar | `src/components/procurement/price-import/PricingRulesPanel.tsx` |
+| Criar | `src/components/procurement/price-import/ImportPreviewTable.tsx` |
+| Criar | `src/components/procurement/price-import/MatchResolverRow.tsx` |
+| Criar | `src/components/procurement/price-import/PriceImportHistory.tsx` |
+| Criar | `src/hooks/useSupplierPriceImport.ts` |
+| Modificar | `supabase/config.toml` — registar 3 EFs |
+| Modificar | `src/App.tsx` — rota |
+| Modificar | `src/config/nav.v1.ts` — nav entry |
+| Modificar | i18n (pt/en/es/fr procurement namespace) |
+
+---
+
+## Notas técnicas
+
+- XLSX parsing: no edge function usar `npm:xlsx` (já no deno.json como dep do frontend); no frontend fazer parse local e enviar JSON como alternativa para ficheiros grandes
+- Matching fuzzy por nome **não** é automático — apenas suggestion. Automático apenas por barcode e supplier_sku exact match
+- Cada edge function tem CORS headers + `verify_jwt = false`
+- Batch de 250 no commit para evitar timeouts de 60s
 
