@@ -1,33 +1,43 @@
 
 
-# Corrigir Dados Duplicados — Recalcular Necessidades de Compra
+# Corrigir Necessidades de Compra com Notas de Encomenda
 
-## Problema
+## Problema Confirmado
 
-Os dados na tabela de Necessidades de Compra continuam duplicados porque a correção de deduplicação (proposta vs nota de encomenda) foi **implementada no código** mas os dados **não foram recalculados**. Exemplo:
+Os dados atuais ainda mostram duplicação. Exemplo concreto:
+- Produto `f9fadc7e` (Access Point): `demand_total = 18` com fontes `proposal(9) + order_note(9)` — deveria ser **9** (apenas order_note)
+- Proposta `d8f9f8f3` tem `opportunity_id = 58f94492` que é coberto pela order note, mas os seus itens NÃO estão a ser filtrados
 
-- Access Point RG-RAP1261: mostra `demand_total = 18` (9 da proposta + 9 da nota de encomenda), quando deveria ser **9** (apenas a nota de encomenda conta)
-- Instalação: mostra `demand_total = 2` (1+1), deveria ser **1**
+A lógica de deduplicação no código está correta, mas a **versão deployed da edge function** não tinha este código na última execução (14:49). Foi re-deployed no passo anterior mas o recálculo ainda não foi executado.
 
-O `demand_sources_json` confirma a duplicação: contém entradas `proposal` e `order_note` para a mesma oportunidade.
+## Alterações Necessárias
 
-## Solução
+### 1. Atualizar filtro de estados das Notas de Encomenda
 
-### 1. Verificar e corrigir a edge function
+**`supabase/functions/procurement-needs-recompute/index.ts`** — linha 49:
+- Atual: `["approved", "submitted"]`  
+- Novo: `["approved", "submitted", "in_preparation"]`
 
-**Ficheiro: `supabase/functions/procurement-needs-recompute/index.ts`**
+### 2. Trigger automático no estado da Nota de Encomenda
 
-Verificar se o código de deduplicação está correto — confirmar que:
-- As `order_notes` recolhem os `opportunity_id`
-- As `proposals` cujo `opportunity_id` já está coberto por uma order note são ignoradas
+Criar uma **edge function auxiliar** ou **database trigger** que invoca o recálculo automaticamente quando uma order_note muda para um estado relevante (`submitted`, `approved`, `in_preparation`) ou sai de um estado relevante (`cancelled`, `rejected`).
 
-Pode ser necessário verificar que o campo `opportunity_id` está sendo corretamente extraído nos selects de `proposal_items` e `order_note_items`.
+Abordagem: trigger PostgreSQL + `pg_net` para chamar a edge function automaticamente:
+- Criar trigger `after update on order_notes` que verifica mudança de status
+- Usar `pg_net.http_post` para invocar `procurement-needs-recompute`
 
-### 2. Re-deploy e executar
+### 3. Re-deploy e recalcular
 
-- Re-deploy da edge function (caso necessário ajustes)
-- O utilizador precisa de clicar no botão "Recalcular" na interface para regenerar os dados com a lógica correta
+- Re-deploy da edge function com o filtro corrigido
+- O recálculo será feito automaticamente após o deploy
 
-### Ficheiros a verificar/editar
-- `supabase/functions/procurement-needs-recompute/index.ts`
+## Ficheiros a editar
+- `supabase/functions/procurement-needs-recompute/index.ts` — adicionar `in_preparation` ao filtro
+- **Migration SQL** — criar trigger para auto-recompute via `pg_net`
+
+## Resultado Esperado
+- Access Point: `demand_total = 9` (apenas order_note)
+- Instalação: `demand_total = 1` (apenas order_note)
+- Propostas com opportunity coberto por NE: ignoradas automaticamente
+- Recálculo automático quando NE muda de estado
 
