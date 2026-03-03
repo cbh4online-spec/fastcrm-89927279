@@ -8,11 +8,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Plus, Send, Loader2, Package, FileText } from "lucide-react";
+import { ArrowLeft, Plus, Send, Loader2, Package, FileText, CalendarIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 
 const statusColors: Record<string, string> = {
@@ -40,6 +44,7 @@ export default function ProcurementProjectDetailPage() {
   const [showRFQModal, setShowRFQModal] = useState(false);
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
   const [rfqTitle, setRfqTitle] = useState("");
+  const [rfqDueDate, setRfqDueDate] = useState<Date | undefined>(undefined);
 
   const projectRFQs = (rfqs || []).filter((r: any) => r.project_id === id);
   const openNeeds = needs.filter((n: any) => n.status === "open");
@@ -51,10 +56,12 @@ export default function ProcurementProjectDetailPage() {
       workspace_id: currentWorkspace.id,
       supplier_ids: selectedSuppliers,
       title: rfqTitle || undefined,
+      due_date: rfqDueDate ? format(rfqDueDate, "yyyy-MM-dd") : undefined,
     });
     setShowRFQModal(false);
     setSelectedSuppliers([]);
     setRfqTitle("");
+    setRfqDueDate(undefined);
   };
 
   if (isLoading) {
@@ -203,6 +210,33 @@ export default function ProcurementProjectDetailPage() {
             <div>
               <Label>Título (opcional)</Label>
               <Input value={rfqTitle} onChange={(e) => setRfqTitle(e.target.value)} placeholder={`RFQ - ${project.name}`} />
+            </div>
+            {project.source_type === "proposal" && project.source_id && (
+              <div className="rounded-md bg-muted p-3 text-sm">
+                <span className="text-muted-foreground">Proposta de origem:</span>{" "}
+                <span className="font-medium">{project.source_id}</span>
+              </div>
+            )}
+            <div>
+              <Label>Data Limite de Resposta</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !rfqDueDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {rfqDueDate ? format(rfqDueDate, "dd/MM/yyyy") : "Selecionar data..."}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={rfqDueDate}
+                    onSelect={setRfqDueDate}
+                    disabled={(date) => date < new Date()}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <div>
               <Label>Itens ({openNeeds.length} necessidades em aberto)</Label>
