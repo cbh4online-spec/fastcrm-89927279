@@ -109,7 +109,7 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Pipeline", href: "/dashboard/opportunities", icon: TrendingUp, group: "Vendas", separator: true },
   { name: "Propostas", href: "/dashboard/proposals", icon: Presentation, group: "Vendas" },
   { name: "Faturas", href: "/dashboard/invoices", icon: Receipt, group: "Vendas" },
-  { name: "Notas de Encomenda", href: "/dashboard/order-notes", icon: FileText, group: "Vendas" },
+  
 
   // Compras (Procurement)
   { name: "Dashboard Compras", href: "/dashboard/procurement", icon: BarChart3, group: "Compras", separator: true, moduleSlug: "procurement" },
