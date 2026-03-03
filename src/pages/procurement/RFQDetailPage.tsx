@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useRFQDetail, useSendRFQ, useAddRFQQuote, useAwardRFQ, useAddRFQSupplier, useUpdateRFQ } from "@/hooks/useRFQ";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useSuppliers } from "@/hooks/useProcurement";
@@ -71,7 +72,17 @@ export default function RFQDetailPage() {
 
   const handleAward = () => {
     if (!selectedQuoteIds.length) return;
-    awardRFQ.mutate({ rfq_id: rfq.id, selected_quote_ids: selectedQuoteIds });
+    awardRFQ.mutate({ rfq_id: rfq.id, selected_quote_ids: selectedQuoteIds }, {
+      onSuccess: (data) => {
+        toast.success(`${data?.count || 0} Ordem(ns) de Compra criada(s)!`, {
+          action: {
+            label: "Ver Ordens de Compra",
+            onClick: () => navigate("/dashboard/procurement/orders"),
+          },
+          duration: 8000,
+        });
+      },
+    });
   };
 
   const handleGeneratePDF = async () => {
@@ -431,6 +442,9 @@ export default function RFQDetailPage() {
         setSelectedQuoteIds={setSelectedQuoteIds}
       />
 
+      {/* Generated POs Section */}
+      {rfq.status === "awarded" && <GeneratedPOsCard rfqId={rfq.id} />}
+
       {/* Add Quote Modal */}
       <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
         <DialogContent className="sm:max-w-md">
@@ -529,5 +543,68 @@ export default function RFQDetailPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function GeneratedPOsCard({ rfqId }: { rfqId: string }) {
+  const navigate = useNavigate();
+  const { data: pos = [], isLoading } = useQuery({
+    queryKey: ["rfq-generated-pos", rfqId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("purchase_orders")
+        .select("id, po_number, total_amount, status, supplier:suppliers(name)")
+        .eq("rfq_id", rfqId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!rfqId,
+  });
+
+  if (isLoading || pos.length === 0) return null;
+
+  const statusColors: Record<string, string> = {
+    draft: "secondary", sent: "outline", confirmed: "default",
+    partial: "outline", received: "default", closed: "secondary", cancelled: "destructive",
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center gap-2">
+        <Trophy className="h-5 w-5 text-amber-500" />
+        <CardTitle>Ordens de Compra Geradas</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nº PO</TableHead>
+              <TableHead>Fornecedor</TableHead>
+              <TableHead>Valor</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {(pos as any[]).map((po) => (
+              <TableRow key={po.id}>
+                <TableCell className="font-mono font-medium">{po.po_number || "—"}</TableCell>
+                <TableCell>{po.supplier?.name || "—"}</TableCell>
+                <TableCell>€{(Number(po.total_amount) || 0).toFixed(2)}</TableCell>
+                <TableCell>
+                  <Badge variant={statusColors[po.status] as any}>{po.status}</Badge>
+                </TableCell>
+                <TableCell>
+                  <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/procurement/orders")}>
+                    Ver
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }

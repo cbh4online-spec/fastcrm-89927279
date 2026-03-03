@@ -5,8 +5,9 @@ import { usePurchaseOrders } from "@/hooks/useProcurement";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus } from "lucide-react";
+import { Plus, Trophy } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PurchaseOrderForm } from "@/components/procurement/PurchaseOrderForm";
 
 const statusColors: Record<string, string> = {
@@ -24,6 +25,7 @@ export default function PurchaseOrdersPage() {
   const { currentWorkspace } = useWorkspace();
   const { data: orders = [], isLoading, create } = usePurchaseOrders(currentWorkspace?.id);
   const [showForm, setShowForm] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <DashboardLayout>
@@ -47,6 +49,8 @@ export default function PurchaseOrdersPage() {
                 <TableHead>{t("supplier")}</TableHead>
                 <TableHead>{t("totalAmount")}</TableHead>
                 <TableHead>{t("status")}</TableHead>
+                <TableHead>RFQ</TableHead>
+                <TableHead>{t("projects")}</TableHead>
                 <TableHead>{t("items")}</TableHead>
                 <TableHead>{t("expectedDelivery")}</TableHead>
               </TableRow>
@@ -54,11 +58,38 @@ export default function PurchaseOrdersPage() {
             <TableBody>
               {(orders as any[]).map((o) => (
                 <TableRow key={o.id}>
-                  <TableCell className="font-medium font-mono">{o.po_number || "—"}</TableCell>
+                  <TableCell className="font-medium font-mono">
+                    <div className="flex items-center gap-1.5">
+                      {o.rfq_id && <Trophy className="h-3.5 w-3.5 text-amber-500" />}
+                      {o.po_number || "—"}
+                    </div>
+                  </TableCell>
                   <TableCell>{o.supplier?.name || "—"}</TableCell>
                   <TableCell>€{(Number(o.total_amount) || 0).toFixed(2)}</TableCell>
                   <TableCell>
                     <Badge variant={statusColors[o.status] as any}>{t(o.status)}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {o.rfqs ? (
+                      <Badge
+                        variant="outline"
+                        className="cursor-pointer hover:bg-accent text-xs"
+                        onClick={() => navigate(`/dashboard/procurement/rfqs/${o.rfq_id}`)}
+                      >
+                        {o.rfqs.rfq_number || o.rfqs.title || "RFQ"}
+                      </Badge>
+                    ) : "—"}
+                  </TableCell>
+                  <TableCell>
+                    {o.procurement_projects ? (
+                      <Badge
+                        variant="outline"
+                        className="cursor-pointer hover:bg-accent text-xs"
+                        onClick={() => navigate(`/dashboard/procurement/projects`)}
+                      >
+                        {o.procurement_projects.name}
+                      </Badge>
+                    ) : "—"}
                   </TableCell>
                   <TableCell>{o.items?.length || 0}</TableCell>
                   <TableCell>{o.expected_delivery || "—"}</TableCell>
