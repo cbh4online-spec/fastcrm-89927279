@@ -26488,6 +26488,7 @@ export type Database = {
           id: string
           portal_token: string | null
           portal_token_expires_at: string | null
+          reminder_sent_at: string | null
           responded_at: string | null
           rfq_id: string
           sent_at: string | null
@@ -26500,6 +26501,7 @@ export type Database = {
           id?: string
           portal_token?: string | null
           portal_token_expires_at?: string | null
+          reminder_sent_at?: string | null
           responded_at?: string | null
           rfq_id: string
           sent_at?: string | null
@@ -26512,6 +26514,7 @@ export type Database = {
           id?: string
           portal_token?: string | null
           portal_token_expires_at?: string | null
+          reminder_sent_at?: string | null
           responded_at?: string | null
           rfq_id?: string
           sent_at?: string | null
