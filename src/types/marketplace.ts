@@ -17,7 +17,8 @@ export type ModuleCategory =
   | "automation"       // Automação
   | "ai"               // Inteligência Artificial
   | "integrations"     // Integrações
-  | "education";       // Educação
+  | "education"        // Educação
+  | "operations";      // Operações
 
 // Internal implementation types (NEVER shown to customer)
 export type ModuleInternalType = 
@@ -303,6 +304,13 @@ export const CATEGORY_INFO: Record<ModuleCategory, CategoryInfo> = {
     description: "Gestão educacional e jornada do aluno",
     icon: "GraduationCap",
     color: "text-teal-500"
+  },
+  operations: {
+    id: "operations",
+    name: "Operações",
+    description: "Gestão de compras e cadeia de abastecimento",
+    icon: "Settings",
+    color: "text-teal-600"
   }
 };
 
@@ -1541,5 +1549,54 @@ export const SAMPLE_MODULES: MarketplaceModule[] = [
     created_at: "2026-02-16T00:00:00Z",
     updated_at: "2026-02-16T00:00:00Z",
     published_at: "2026-02-16T00:00:00Z"
+  },
+  {
+    id: "procurement",
+    slug: "procurement",
+    name: "Purchase & Procurement",
+    tagline: "Gestão completa de compras: fornecedores, requisições, ordens de compra e receção",
+    description: "Motor de compras end-to-end integrado no CRM. Gerencie fornecedores, crie requisições internas com workflow de aprovação, gere ordens de compra automáticas, registe receções com atualização de stock em tempo real e controle faturas de fornecedor.",
+    category: "operations",
+    icon: "ShoppingCart",
+    target_audience: "PMEs com operações de compra recorrentes, equipas de procurement e gestão de stock",
+    expected_results: [
+      "Ciclo de compra 60% mais rápido",
+      "Stock atualizado automaticamente na receção",
+      "Aprovações centralizadas com rastreabilidade total"
+    ],
+    use_cases: [
+      "Gestão de fornecedores e condições de pagamento",
+      "Requisições internas com aprovação",
+      "Ordens de compra com numeração automática",
+      "Receção de mercadoria com sincronização de stock",
+      "Controlo de faturas de fornecedor"
+    ],
+    internal_type: "native_feature",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "products", read: true, write: true, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: false,
+      can_send_whatsapp: false,
+      can_create_activities: true,
+      can_trigger_automations: true
+    },
+    pricing: {
+      type: "free",
+      base_price: 0,
+      currency: "EUR"
+    },
+    publisher: "FastCRM",
+    is_featured: true,
+    is_new: true,
+    rating: undefined,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2026-03-03T00:00:00Z",
+    updated_at: "2026-03-03T00:00:00Z",
+    published_at: "2026-03-03T00:00:00Z"
   }
 ];

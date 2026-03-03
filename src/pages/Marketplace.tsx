@@ -77,7 +77,7 @@ export default function Marketplace() {
       all: SAMPLE_MODULES.length,
       prospecting: 0, real_estate: 0, customer_service: 0, sales: 0,
       marketing: 0, finance: 0, analytics: 0, communication: 0,
-      automation: 0, ai: 0, integrations: 0, education: 0,
+      automation: 0, ai: 0, integrations: 0, education: 0, operations: 0,
     };
     SAMPLE_MODULES.forEach(m => { counts[m.category]++; });
     return counts;
