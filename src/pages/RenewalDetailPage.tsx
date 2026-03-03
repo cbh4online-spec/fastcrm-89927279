@@ -20,6 +20,7 @@ import { pt } from "date-fns/locale";
 import { useState } from "react";
 import { LogUsageDialog } from "@/components/renewals/LogUsageDialog";
 import { CreateRenewalItemDialog } from "@/components/renewals/CreateRenewalItemDialog";
+import { RenewalAISuggestions } from "@/components/renewals/RenewalAISuggestions";
 import { toast } from "sonner";
 
 export default function RenewalDetailPage() {
@@ -144,25 +145,33 @@ export default function RenewalDetailPage() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm">Detalhes</CardTitle></CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Empresa</span><span className="font-medium">{contract.company?.name || "—"}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Contacto</span><span>{contract.contact?.name || "—"}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Billing</span><span>{RENEWAL_BILLING_LABELS[contract.billing_type]}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Início</span><span>{format(new Date(contract.start_date), "dd/MM/yyyy")}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Moeda</span><span>{contract.currency}</span></div>
-                {contract.payment_terms_days && (
-                  <div className="flex justify-between"><span className="text-muted-foreground">Prazo Pagamento</span><span>{contract.payment_terms_days} dias</span></div>
-                )}
-              </CardContent>
-            </Card>
-            {contract.notes && (
+            <div className="space-y-4">
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm">Notas</CardTitle></CardHeader>
-                <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{contract.notes}</p></CardContent>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Detalhes</CardTitle></CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Empresa</span><span className="font-medium">{contract.company?.name || "—"}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Contacto</span><span>{contract.contact?.name || "—"}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Billing</span><span>{RENEWAL_BILLING_LABELS[contract.billing_type]}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Início</span><span>{format(new Date(contract.start_date), "dd/MM/yyyy")}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Moeda</span><span>{contract.currency}</span></div>
+                  {contract.payment_terms_days && (
+                    <div className="flex justify-between"><span className="text-muted-foreground">Prazo Pagamento</span><span>{contract.payment_terms_days} dias</span></div>
+                  )}
+                </CardContent>
               </Card>
-            )}
+              {contract.notes && (
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm">Notas</CardTitle></CardHeader>
+                  <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{contract.notes}</p></CardContent>
+                </Card>
+              )}
+            </div>
+            <RenewalAISuggestions
+              contractId={contract.id}
+              riskLevel={(contract as any).risk_level}
+              reasonsJson={(contract as any).reasons_json}
+              healthScore={contract.health_score}
+            />
           </div>
         </TabsContent>
 

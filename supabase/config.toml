@@ -411,3 +411,12 @@ verify_jwt = false
 
 [functions.procurement-sync-on-receive]
 verify_jwt = false
+
+[functions.renewals-scheduler]
+verify_jwt = false
+
+[functions.renewals-health-score]
+verify_jwt = false
+
+[functions.renewals-ai-suggestions]
+verify_jwt = false

@@ -45,6 +45,7 @@ import { ProposalViewToggle } from "./ProposalViewToggle";
 import { ProposalInternalView } from "./ProposalInternalView";
 import { ProposalClientDocument } from "./ProposalClientDocument";
 import { ProposalDocumentPreviewDialog } from "./ProposalDocumentPreviewDialog";
+import { ProposalToRenewalCTA } from "./ProposalToRenewalCTA";
 import { VoiceProposalAssistant, type VoiceScopeResult, type VoiceTimelineResult, type VoiceConditionsResult, type VoiceReferencesResult } from "./VoiceProposalAssistant";
 import { PAYMENT_CONDITIONS, type ClientType } from "./proposalConstants";
 import {
@@ -879,6 +880,21 @@ export function ProposalDetailContent({
                           <ExternalLink className="h-4 w-4" />
                         </Button>
                       </>
+                    )}
+                    {proposal.status === "accepted" && (
+                      <ProposalToRenewalCTA 
+                        proposal={proposal as any} 
+                        proposalItems={proposalItems?.map(i => ({
+                          id: i.id,
+                          name: i.name,
+                          quantity: i.quantity,
+                          unit_price: i.unit_price,
+                          cost_price: (i as any).cost_price,
+                          description: i.description,
+                          product_id: i.product_id,
+                          product: i.product,
+                        })) || []}
+                      />
                     )}
                   </>
                 ) : (

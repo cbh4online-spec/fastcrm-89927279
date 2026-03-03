@@ -25871,7 +25871,9 @@ export type Database = {
           notes: string | null
           owner_user_id: string | null
           payment_terms_days: number | null
+          reasons_json: Json | null
           renewal_interval: Database["public"]["Enums"]["renewal_interval_type"]
+          risk_level: Database["public"]["Enums"]["renewal_risk_level"] | null
           source_id: string | null
           source_type: Database["public"]["Enums"]["renewal_source_type"]
           start_date: string
@@ -25893,7 +25895,9 @@ export type Database = {
           notes?: string | null
           owner_user_id?: string | null
           payment_terms_days?: number | null
+          reasons_json?: Json | null
           renewal_interval?: Database["public"]["Enums"]["renewal_interval_type"]
+          risk_level?: Database["public"]["Enums"]["renewal_risk_level"] | null
           source_id?: string | null
           source_type?: Database["public"]["Enums"]["renewal_source_type"]
           start_date?: string
@@ -25915,7 +25919,9 @@ export type Database = {
           notes?: string | null
           owner_user_id?: string | null
           payment_terms_days?: number | null
+          reasons_json?: Json | null
           renewal_interval?: Database["public"]["Enums"]["renewal_interval_type"]
+          risk_level?: Database["public"]["Enums"]["renewal_risk_level"] | null
           source_id?: string | null
           source_type?: Database["public"]["Enums"]["renewal_source_type"]
           start_date?: string
@@ -36646,6 +36652,7 @@ export type Database = {
         | "per_unit"
         | "usage"
         | "hybrid"
+      renewal_risk_level: "low" | "medium" | "high"
       renewal_source_type: "proposal" | "order" | "opportunity" | "manual"
       renewal_usage_type: "hours" | "credits" | "seats_addon"
       session_status: "active" | "completed" | "abandoned" | "handed_off"
@@ -37090,6 +37097,7 @@ export const Constants = {
         "usage",
         "hybrid",
       ],
+      renewal_risk_level: ["low", "medium", "high"],
       renewal_source_type: ["proposal", "order", "opportunity", "manual"],
       renewal_usage_type: ["hours", "credits", "seats_addon"],
       session_status: ["active", "completed", "abandoned", "handed_off"],
