@@ -51,6 +51,11 @@ import {
   LayoutGrid,
   Star,
   Ticket,
+  Truck,
+  ScanBarcode,
+  FileSpreadsheet,
+  FolderKanban,
+  ArrowDownToLine,
 } from "lucide-react";
 
 // --- Types ---
@@ -178,6 +183,27 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
     children: [
       { name: "Abrir FastClub", href: "/club/fastclub", icon: Trophy, iconColor: "text-yellow-500" },
       { name: "Candidaturas", href: "/dashboard/fastclub/candidaturas", icon: Award, iconColor: "text-yellow-500" },
+    ],
+  },
+  {
+    type: "group",
+    name: "Compras",
+    icon: Truck,
+    moduleSlug: "procurement",
+    iconColor: "text-emerald-600",
+    children: [
+      { name: "Dashboard Compras", href: "/dashboard/procurement", icon: LayoutDashboard, iconColor: "text-emerald-600" },
+      { name: "Necessidades", href: "/dashboard/procurement/needs", icon: ClipboardList, iconColor: "text-emerald-600" },
+      { name: "Fornecedores", href: "/dashboard/procurement/suppliers", icon: Building2, iconColor: "text-emerald-600" },
+      { name: "Requisições", href: "/dashboard/procurement/requests", icon: FileText, iconColor: "text-emerald-600" },
+      { name: "Ordens de Compra", href: "/dashboard/procurement/orders", icon: ShoppingCart, iconColor: "text-emerald-600" },
+      { name: "Receção", href: "/dashboard/procurement/receipts", icon: ArrowDownToLine, iconColor: "text-emerald-600" },
+      { name: "Faturas Fornecedor", href: "/dashboard/procurement/invoices", icon: Receipt, iconColor: "text-emerald-600" },
+      { name: "Catálogo", href: "/dashboard/procurement/catalog", icon: Package, iconColor: "text-emerald-600" },
+      { name: "Importar Preços", href: "/dashboard/procurement/price-import", icon: FileSpreadsheet, iconColor: "text-emerald-600" },
+      { name: "Projetos", href: "/dashboard/procurement/projects", icon: FolderKanban, iconColor: "text-emerald-600" },
+      { name: "RFQs", href: "/dashboard/procurement/rfqs", icon: ScanBarcode, iconColor: "text-emerald-600" },
+      { name: "Dashboard RFQs", href: "/dashboard/procurement/rfqs-dashboard", icon: BarChart3, iconColor: "text-emerald-600" },
     ],
   },
   {
