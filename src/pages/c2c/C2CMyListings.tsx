@@ -175,7 +175,7 @@ export default function C2CMyListings() {
                     <div
                       key={listing.id}
                       className="flex items-start gap-4 p-4 rounded-xl border bg-card hover:shadow-sm transition-shadow cursor-pointer"
-                      onClick={() => navigate(`/dashboard/c2c/listing/${listing.id}`)}
+                      onClick={() => navigate(`/dashboard/c2c/${listing.id}`)}
                     >
                       {/* Image */}
                       <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
