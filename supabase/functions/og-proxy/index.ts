@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const BASE_URL = "https://fastcrm.lovable.app";
+const BASE_URL = "https://fastcrm.metodopare.ai";
 const FALLBACK_IMAGE = `${BASE_URL}/og-image.png`;
 
 // Static vertical SEO data
@@ -43,7 +43,6 @@ function isCrawler(userAgent: string | null): boolean {
 }
 
 function buildOgHtml(title: string, description: string, image: string, url: string): string {
-  // Escape HTML entities
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   return `<!DOCTYPE html>
 <html lang="pt">
@@ -101,7 +100,6 @@ Deno.serve(async (req) => {
       );
 
       if (type === "bio") {
-        // slug format: workspaceSlug/pageSlug
         const parts = slug.split("/");
         if (parts.length === 2) {
           const [wsSlug, pageSlug] = parts;
@@ -144,7 +142,7 @@ Deno.serve(async (req) => {
         const { data: ws } = await supabase.from("workspaces").select("id").eq("slug", slug).single();
         if (ws) {
           const { data: store } = await supabase
-            .from("workspace_store_settings")
+            .from("store_settings")
             .select("store_name, store_description, logo_url")
             .eq("workspace_id", ws.id)
             .single();
@@ -170,6 +168,57 @@ Deno.serve(async (req) => {
             if (product.image_url) pageImage = product.image_url;
           }
           pageUrl = `${BASE_URL}/store/${wsSlug}/product/${productId}`;
+        }
+      } else if (type === "c2c") {
+        // C2C Marketplace — slug is workspace slug (e.g. "metodopare")
+        const { data: ws } = await supabase.from("workspaces").select("id, name").eq("slug", slug).single();
+        if (ws) {
+          const { data: store } = await supabase
+            .from("store_settings")
+            .select("store_name, store_description, logo_url")
+            .eq("workspace_id", ws.id)
+            .maybeSingle();
+          const storeName = store?.store_name || ws.name;
+          pageTitle = `${storeName} — Marketplace C2C`;
+          pageDescription = store?.store_description || `Explora o marketplace de ${storeName}. Compra e vende entre utilizadores reais com segurança.`;
+          if (store?.logo_url) pageImage = store.logo_url;
+        }
+        pageUrl = `${BASE_URL}/c2c/${slug}`;
+      } else if (type === "c2c-seller") {
+        // C2C Seller Profile — slug format: "workspaceSlug/sellerId"
+        const parts = slug.split("/");
+        if (parts.length === 2) {
+          const [wsSlug, sellerId] = parts;
+          const { data: seller } = await supabase
+            .from("c2c_sellers")
+            .select("display_name, bio")
+            .eq("user_id", sellerId)
+            .eq("status", "approved")
+            .maybeSingle();
+          if (seller) {
+            pageTitle = `${seller.display_name || "Vendedor"} — Marketplace C2C`;
+            pageDescription = seller.bio || `Vê o perfil e os anúncios de ${seller.display_name || "este vendedor"} no marketplace.`;
+          }
+          pageUrl = `${BASE_URL}/c2c/${wsSlug}/seller/${sellerId}`;
+        }
+      } else if (type === "c2c-listing") {
+        // C2C Listing — slug format: "workspaceSlug/listingId"
+        const parts = slug.split("/");
+        if (parts.length === 2) {
+          const [wsSlug, listingId] = parts;
+          const { data: listing } = await supabase
+            .from("c2c_listings")
+            .select("title, description, price, images")
+            .eq("id", listingId)
+            .maybeSingle();
+          if (listing) {
+            const priceStr = listing.price ? ` — ${Number(listing.price).toFixed(2)}€` : "";
+            pageTitle = `${listing.title || "Anúncio"}${priceStr}`;
+            pageDescription = listing.description || `Vê este anúncio no marketplace C2C.`;
+            const images = listing.images as string[] | null;
+            if (images && images.length > 0) pageImage = images[0];
+          }
+          pageUrl = `${BASE_URL}/c2c/${wsSlug}/listing/${listingId}`;
         }
       }
     }
