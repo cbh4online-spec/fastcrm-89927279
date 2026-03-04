@@ -27,8 +27,9 @@ export interface ImpactMapNodeData {
   driftSeverity?: string;
   driftScore?: number;
   staleDays?: number;
-  isImpacted: boolean;
-  isSource: boolean;
+  isImpacted?: boolean;
+  isSource?: boolean;
+  isStale?: boolean;
   onSimulate: (id: string) => void;
   onSelect: (id: string) => void;
   [key: string]: unknown;
@@ -45,8 +46,9 @@ function ImpactMapNodeComponent({ id, data }: NodeProps) {
         'relative rounded-xl border px-4 py-3 min-w-[180px] max-w-[220px] cursor-pointer transition-all duration-300',
         cfg.bg, cfg.border,
         d.isSource && 'ring-2 ring-primary shadow-lg shadow-primary/20',
-        d.isImpacted && !d.isSource && 'ring-2 ring-red-500 shadow-lg shadow-red-500/30 animate-pulse',
-        !d.isImpacted && !d.isSource && 'hover:shadow-md hover:scale-[1.02]',
+        d.isImpacted && !d.isSource && 'ring-2 ring-destructive shadow-lg shadow-destructive/30 animate-pulse',
+        d.isStale && !d.isImpacted && 'ring-2 ring-chart-4 shadow-lg shadow-chart-4/20',
+        !d.isImpacted && !d.isSource && !d.isStale && 'hover:shadow-md hover:scale-[1.02]',
       )}
       onClick={() => d.onSelect(id)}
       onDoubleClick={() => d.onSimulate(id)}

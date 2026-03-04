@@ -291,6 +291,48 @@ const actions: Action[] = [
     keywords: ['alerts', 'alertas', 'inbox'],
     run: async (ctx) => ctx.navigate?.('/dashboard/alerts'),
   },
+  {
+    id: 'navigate.impact_map',
+    title: 'Ir para Impact Map',
+    group: 'Navigate',
+    keywords: ['impact', 'map', 'mapa', 'impacto', 'dependências'],
+    run: async (ctx) => ctx.navigate?.('/dashboard/impact-map'),
+  },
+  {
+    id: 'kernel.decisions',
+    title: 'Ver decisões pendentes do Kernel',
+    group: 'Analyze',
+    keywords: ['decisions', 'decisões', 'kernel', 'pendentes'],
+    run: async (ctx) => ctx.navigate?.('/dashboard/command-center?tab=decisions'),
+  },
+  {
+    id: 'kernel.process_events',
+    title: 'Processar eventos do Kernel',
+    group: 'Automate',
+    keywords: ['kernel', 'events', 'processar', 'eventos'],
+    run: async (ctx) => {
+      toast.info('A processar eventos do Kernel...');
+      const { error } = await supabase.functions.invoke('kernel-process-events', {
+        body: { workspace_id: ctx.workspaceId },
+      });
+      if (error) toast.error('Erro ao processar eventos');
+      else toast.success('Eventos processados');
+    },
+  },
+  {
+    id: 'kernel.compute_drift',
+    title: 'Recalcular Drift do Workspace (Kernel)',
+    group: 'Analyze',
+    keywords: ['kernel', 'drift', 'workspace', 'recalcular'],
+    run: async (ctx) => {
+      toast.info('A recalcular drift...');
+      const { error } = await supabase.functions.invoke('kernel-compute-drift', {
+        body: { workspace_id: ctx.workspaceId },
+      });
+      if (error) toast.error('Erro ao calcular drift');
+      else toast.success('Drift do workspace recalculado');
+    },
+  },
 ];
 // ── Public API ──
 export function getActions(): Action[] {
