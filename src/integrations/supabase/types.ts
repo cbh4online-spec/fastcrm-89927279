@@ -26923,6 +26923,7 @@ export type Database = {
           submitted_at: string | null
           submitted_via_portal: boolean
           supplier_id: string
+          supplier_ref: string | null
           unit_price: number
           updated_at: string | null
           vat_percent: number
@@ -26944,6 +26945,7 @@ export type Database = {
           submitted_at?: string | null
           submitted_via_portal?: boolean
           supplier_id: string
+          supplier_ref?: string | null
           unit_price?: number
           updated_at?: string | null
           vat_percent?: number
@@ -26965,6 +26967,7 @@ export type Database = {
           submitted_at?: string | null
           submitted_via_portal?: boolean
           supplier_id?: string
+          supplier_ref?: string | null
           unit_price?: number
           updated_at?: string | null
           vat_percent?: number

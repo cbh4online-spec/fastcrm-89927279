@@ -78,7 +78,7 @@ serve(async (req) => {
     // Get existing quotes for this supplier
     const { data: existingQuotes, error: quotesErr } = await supabase
       .from("rfq_quotes")
-      .select("*")
+      .select("*, supplier_ref")
       .eq("rfq_id", rfq_id)
       .eq("supplier_id", supplier_id)
       .eq("workspace_id", rfq.workspace_id);
@@ -109,6 +109,7 @@ serve(async (req) => {
         min_order_qty: quote?.min_order_qty ?? null,
         pack_size: quote?.pack_size ?? null,
         notes: quote?.notes ?? "",
+        supplier_ref: quote?.supplier_ref ?? "",
         status: quote?.status ?? "draft",
         has_existing_quote: !!quote,
       };

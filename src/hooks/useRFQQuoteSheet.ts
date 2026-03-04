@@ -18,8 +18,10 @@ export interface QuoteSheetRow {
   min_order_qty: number | null;
   pack_size: number | null;
   notes: string;
+  supplier_ref: string;
   status: string;
   has_existing_quote: boolean;
+  excluded?: boolean;
 }
 
 export interface QuoteSheetData {
