@@ -1,38 +1,32 @@
 
 
-# Corrigir OG Meta Tags para Partilhas de Links C2C
+# Corrigir Partilha de Links C2C — Usar og-proxy em Vez de URLs Diretos
 
 ## Problema
-Quando se partilha `https://fastcrm.metodopare.ai/c2c/metodopare` no WhatsApp/Facebook, aparece a imagem e descrição genérica do FastCRM porque:
-1. A edge function `og-proxy` usa o domínio antigo (`fastcrm.lovable.app`)
-2. A `og-proxy` não tem handler para páginas C2C (`type === "c2c"`)
-3. O `C2CPublicMarketplace` não tem `<Helmet>` com OG tags
-4. Os crawlers (WhatsApp, Facebook) não executam JavaScript — precisam de OG tags no HTML inicial
+Quando se partilha `https://fastcrm.metodopare.ai/c2c/metodopare` diretamente, os crawlers (WhatsApp, Facebook) recebem o `index.html` genérico com OG tags do FastCRM genérico. A edge function `og-proxy` já existe e gera OG tags corretos, mas os componentes de partilha usam URLs diretos em vez de passar pelo og-proxy.
 
 ## Solução
+Substituir todos os URLs de partilha nas páginas C2C para usar `getShareUrl()` (que aponta para o og-proxy). O og-proxy serve OG tags corretos aos crawlers e redireciona utilizadores reais para a página.
 
-### 1. Atualizar domínio na `og-proxy`
-**Ficheiro: `supabase/functions/og-proxy/index.ts`**
-- Alterar `BASE_URL` de `https://fastcrm.lovable.app` para `https://fastcrm.metodopare.ai`
+## Alterações
 
-### 2. Adicionar handler C2C na `og-proxy`
-Adicionar caso `type === "c2c"` que:
-- Recebe slug do workspace (ex: `metodopare`)
-- Consulta `workspaces` para obter `name`
-- Consulta `workspace_store_settings` para `store_name`, `store_description`, `logo_url`
-- Gera título: `"{store_name} — Marketplace C2C"` e descrição adequada
-- URL de redirect: `https://fastcrm.metodopare.ai/c2c/{slug}`
+### 1. `src/pages/c2c/C2CListingDetail.tsx`
+- Importar `getShareUrl` 
+- Mudar `url={window.location.href}` para `url={getShareUrl("c2c-listing", workspaceSlug + "/" + listingId)}`
 
-### 3. Adicionar `<Helmet>` ao `C2CPublicMarketplace`
-Para que o client-side também tenha OG tags (quando o browser acede diretamente):
-- Adicionar `react-helmet-async` com `og:title`, `og:description`, `og:image`, `og:url`
-- Usar dados do workspace carregado
+### 2. `src/pages/c2c/C2CMyListings.tsx`
+- Importar `getShareUrl`
+- Mudar `listingUrl` de URL direto para `getShareUrl("c2c-listing", workspaceSlug + "/" + listing.id)`
 
-### 4. Adicionar handler para seller profiles e listings
-Adicionar casos `type === "c2c-seller"` e `type === "c2c-listing"` para partilhas de perfis de vendedor e anúncios individuais.
+### 3. `src/pages/c2c/C2CPublicMarketplace.tsx`
+- O `shareUrl` já é calculado com `getShareUrl("c2c", ...)` mas precisa de ser usado nos componentes de partilha da página (atualmente não é passado a nenhum `ShareButtons` visível — verificar se há botões de partilha na página e garantir que usam `shareUrl`)
 
-### Ficheiros a alterar
-- `supabase/functions/og-proxy/index.ts` — domínio + handlers C2C
-- `src/pages/c2c/C2CPublicMarketplace.tsx` — adicionar `<Helmet>`
-- `src/pages/c2c/C2CPublicSellerProfile.tsx` — adicionar `<Helmet>`
+### 4. `src/pages/c2c/C2CPublicSellerProfile.tsx`
+- Se existirem botões de partilha, usar `getShareUrl("c2c-seller", workspaceSlug + "/" + sellerId)`
+
+### 5. `src/components/c2c/ShareButtons.tsx`
+- Sem alterações necessárias — o componente já recebe `url` como prop
+
+## Resultado
+Os links partilhados passarão pelo og-proxy, que serve OG tags com título, descrição e imagem do marketplace/listing específico, em vez da imagem genérica do FastCRM.
 
