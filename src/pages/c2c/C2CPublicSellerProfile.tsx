@@ -2,7 +2,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
+import { getShareUrl } from "@/utils/getShareUrl";
 import { supabase } from "@/integrations/supabase/client";
+import { ShareButtons } from "@/components/c2c/ShareButtons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ListingCard } from "@/components/c2c/ListingCard";
@@ -169,7 +171,8 @@ export default function C2CPublicSellerProfile() {
               {seller?.bio && (
                 <p className="text-sm text-muted-foreground mb-2">{seller.bio}</p>
               )}
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+              <ShareButtons url={getShareUrl("c2c-seller", (workspaceSlug || "") + "/" + (sellerId || ""))} title={ogTitle} />
+              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-2">
                 {reviewData && reviewData.count > 0 && (
                   <span className="flex items-center gap-1">
                     <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
