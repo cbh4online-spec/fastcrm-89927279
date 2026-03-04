@@ -1835,6 +1835,41 @@ export type Database = {
           },
         ]
       }
+      alert_policy: {
+        Row: {
+          cooldown_hours: number
+          created_at: string
+          max_risk_per_day: number
+          max_warn_per_day: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          cooldown_hours?: number
+          created_at?: string
+          max_risk_per_day?: number
+          max_warn_per_day?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          cooldown_hours?: number
+          created_at?: string
+          max_risk_per_day?: number
+          max_warn_per_day?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_policy_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ask_fastcrm_query_logs: {
         Row: {
           action_executed: string | null
@@ -9209,9 +9244,11 @@ export type Database = {
           action_suggestion_json: Json
           created_at: string
           id: string
+          last_shown_at: string | null
           message: string
           related_block_id: string | null
           severity: string
+          snooze_until: string | null
           source_event_id: string | null
           status: string
           title: string
@@ -9223,9 +9260,11 @@ export type Database = {
           action_suggestion_json?: Json
           created_at?: string
           id?: string
+          last_shown_at?: string | null
           message: string
           related_block_id?: string | null
           severity?: string
+          snooze_until?: string | null
           source_event_id?: string | null
           status?: string
           title: string
@@ -9237,9 +9276,11 @@ export type Database = {
           action_suggestion_json?: Json
           created_at?: string
           id?: string
+          last_shown_at?: string | null
           message?: string
           related_block_id?: string | null
           severity?: string
+          snooze_until?: string | null
           source_event_id?: string | null
           status?: string
           title?: string
@@ -9367,6 +9408,8 @@ export type Database = {
         Row: {
           block_id: string
           change_summary: string | null
+          change_type: string
+          changed_fields: string[] | null
           created_at: string | null
           created_by: string | null
           id: string
@@ -9380,6 +9423,8 @@ export type Database = {
         Insert: {
           block_id: string
           change_summary?: string | null
+          change_type?: string
+          changed_fields?: string[] | null
           created_at?: string | null
           created_by?: string | null
           id?: string
@@ -9393,6 +9438,8 @@ export type Database = {
         Update: {
           block_id?: string
           change_summary?: string | null
+          change_type?: string
+          changed_fields?: string[] | null
           created_at?: string | null
           created_by?: string | null
           id?: string
@@ -9493,7 +9540,9 @@ export type Database = {
       }
       context_dependencies: {
         Row: {
+          auto_detected: boolean
           created_at: string
+          created_by: string | null
           id: string
           relation: string
           rule_json: Json
@@ -9503,7 +9552,9 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          auto_detected?: boolean
           created_at?: string
+          created_by?: string | null
           id?: string
           relation: string
           rule_json?: Json
@@ -9513,7 +9564,9 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          auto_detected?: boolean
           created_at?: string
+          created_by?: string | null
           id?: string
           relation?: string
           rule_json?: Json
@@ -17162,6 +17215,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ip_restrictions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          last_error: string | null
+          max_attempts: number
+          payload_json: Json | null
+          run_after: string
+          status: string
+          type: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          max_attempts?: number
+          payload_json?: Json | null
+          run_after?: string
+          status?: string
+          type: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          max_attempts?: number
+          payload_json?: Json | null
+          run_after?: string
+          status?: string
+          type?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -33330,6 +33433,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "system_incidents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_metrics_daily: {
+        Row: {
+          alerts_generated: number
+          alerts_resolved: number
+          commands_executed: number
+          created_at: string
+          drift_blocks_critical: number
+          drift_blocks_risk: number
+          drift_blocks_warn: number
+          health_score: number
+          id: string
+          metric_date: string
+          tasks_completed: number
+          tasks_created_system: number
+          workspace_id: string
+        }
+        Insert: {
+          alerts_generated?: number
+          alerts_resolved?: number
+          commands_executed?: number
+          created_at?: string
+          drift_blocks_critical?: number
+          drift_blocks_risk?: number
+          drift_blocks_warn?: number
+          health_score?: number
+          id?: string
+          metric_date: string
+          tasks_completed?: number
+          tasks_created_system?: number
+          workspace_id: string
+        }
+        Update: {
+          alerts_generated?: number
+          alerts_resolved?: number
+          commands_executed?: number
+          created_at?: string
+          drift_blocks_critical?: number
+          drift_blocks_risk?: number
+          drift_blocks_warn?: number
+          health_score?: number
+          id?: string
+          metric_date?: string
+          tasks_completed?: number
+          tasks_created_system?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_metrics_daily_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

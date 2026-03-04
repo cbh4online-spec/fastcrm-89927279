@@ -47,5 +47,17 @@ export function useContextAlerts() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['context-alerts', workspaceId] }),
   });
 
-  return { alerts, isLoading, unreadCount, markRead, resolve };
+  const snooze = useMutation({
+    mutationFn: async ({ alertId, hours }: { alertId: string; hours: number }) => {
+      const snoozeUntil = new Date(Date.now() + hours * 3600000).toISOString();
+      const { error } = await supabase
+        .from('context_alerts')
+        .update({ snooze_until: snoozeUntil, status: 'read', updated_at: new Date().toISOString() } as any)
+        .eq('id', alertId);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['context-alerts', workspaceId] }),
+  });
+
+  return { alerts, isLoading, unreadCount, markRead, resolve, snooze };
 }

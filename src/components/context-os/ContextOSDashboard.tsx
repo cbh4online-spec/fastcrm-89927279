@@ -7,10 +7,12 @@ import { ContextActionsPanel } from "./ContextActionsPanel";
 import { ContextAlertsPanel } from "./ContextAlertsPanel";
 import { ContextEventLog } from "./ContextEventLog";
 import { ContextDriftBadge } from "./ContextDriftBadge";
+import { SystemHealthBadge } from "./SystemHealthBadge";
+import { SystemMetricsPanel } from "./SystemMetricsPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { AlertTriangle, Edit3, Loader2, Database, Zap, Bell, Activity, RefreshCw } from "lucide-react";
+import { AlertTriangle, Edit3, Loader2, Database, Zap, Bell, Activity, RefreshCw, BarChart3 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -51,6 +53,7 @@ export function ContextOSDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <SystemHealthBadge />
           <Button
             size="sm"
             variant="outline"
@@ -83,6 +86,9 @@ export function ContextOSDashboard() {
           </TabsTrigger>
           <TabsTrigger value="events" className="gap-1.5 text-xs">
             <Activity className="h-3.5 w-3.5" /> Eventos
+          </TabsTrigger>
+          <TabsTrigger value="metrics" className="gap-1.5 text-xs">
+            <BarChart3 className="h-3.5 w-3.5" /> Métricas
           </TabsTrigger>
         </TabsList>
 
@@ -217,6 +223,10 @@ export function ContextOSDashboard() {
 
         <TabsContent value="events">
           <ContextEventLog />
+        </TabsContent>
+
+        <TabsContent value="metrics">
+          <SystemMetricsPanel />
         </TabsContent>
       </Tabs>
 

@@ -42,7 +42,7 @@ export function useCreateVersion() {
   const { currentWorkspace } = useWorkspace();
 
   return useMutation({
-    mutationFn: async ({ block, changeSummary }: { block: ContextBlock; changeSummary?: string }) => {
+    mutationFn: async ({ block, changeSummary, changeType, changedFields }: { block: ContextBlock; changeSummary?: string; changeType?: string; changedFields?: string[] }) => {
       // Get current version count
       const { count } = await supabase
         .from("context_block_versions" as any)
@@ -68,6 +68,8 @@ export function useCreateVersion() {
           snapshot_tags: block.tags || [],
           snapshot_status: block.status,
           change_summary: changeSummary || null,
+          change_type: changeType || 'minor',
+          changed_fields: changedFields || null,
           created_by: userData.user?.id || null,
         } as any);
       if (error) throw error;

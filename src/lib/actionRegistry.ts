@@ -240,8 +240,58 @@ const actions: Action[] = [
       else toast.success('Sugestões IA recebidas');
     },
   },
-];
 
+  // ── Automate (system jobs) ──
+  {
+    id: 'jobs.process',
+    title: 'Processar jobs pendentes',
+    group: 'Automate',
+    keywords: ['jobs', 'processar', 'queue', 'fila'],
+    run: async (ctx) => {
+      toast.info('A processar jobs...');
+      const { error } = await supabase.functions.invoke('process-jobs', {});
+      if (error) toast.error('Erro ao processar jobs');
+      else toast.success('Jobs processados');
+    },
+  },
+  {
+    id: 'metrics.compute',
+    title: 'Calcular métricas do sistema',
+    group: 'Analyze',
+    keywords: ['metrics', 'métricas', 'health', 'saúde', 'telemetria'],
+    run: async (ctx) => {
+      toast.info('A calcular métricas...');
+      const { error } = await supabase.functions.invoke('compute-metrics', {
+        body: { workspace_id: ctx.workspaceId },
+      });
+      if (error) toast.error('Erro ao calcular métricas');
+      else toast.success('Métricas calculadas');
+    },
+  },
+  {
+    id: 'alerts.cleanup',
+    title: 'Limpar alertas antigos (>30 dias)',
+    group: 'Governance',
+    keywords: ['alertas', 'limpar', 'cleanup', 'antigos'],
+    run: async (ctx) => {
+      toast.info('A limpar alertas...');
+      const { error } = await supabase.from('jobs' as any).insert({
+        workspace_id: ctx.workspaceId,
+        type: 'cleanup_alerts',
+        payload_json: { workspace_id: ctx.workspaceId },
+      } as any);
+      if (error) toast.error('Erro ao agendar limpeza');
+      else toast.success('Job de limpeza criado');
+    },
+  },
+  {
+    id: 'navigate.alerts',
+    title: 'Ir para Alertas',
+    group: 'Navigate',
+    keywords: ['alerts', 'alertas', 'inbox'],
+    run: async (ctx) => ctx.navigate?.('/dashboard/alerts'),
+  },
+];
 // ── Public API ──
 export function getActions(): Action[] {
   return actions;

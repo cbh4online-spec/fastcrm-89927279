@@ -73,6 +73,7 @@ import VerticalLandingPage from "./pages/VerticalLandingPage";
 import ProposalView from "./pages/ProposalView";
 import CommunicationTemplates from "./pages/CommunicationTemplates";
 import Sequences from "./pages/Sequences";
+import AlertsPage from "./pages/AlertsPage";
 
 // Client Portal
 import { CartProvider } from "@/contexts/CartContext";
@@ -426,6 +427,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/ask" element={<Navigate to="/dashboard/command-center" replace />} />
                 <Route path="/dashboard/command-center" element={<CommandCenterPage />} />
                 <Route path="/dashboard/tasks" element={<TasksPage />} />
+                <Route path="/dashboard/alerts" element={<AlertsPage />} />
                 
                 {/* Settings redirect to /settings */}
                 <Route path="/dashboard/settings" element={<Navigate to="/settings" replace />} />
