@@ -1,8 +1,12 @@
 import { useState, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
+import { getShareUrl } from "@/utils/getShareUrl";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -325,9 +329,16 @@ export default function C2CPublicMarketplace() {
 
   const { data: workspace, isLoading: wsLoading } = usePublicWorkspace(workspaceSlug);
   const workspaceId = workspace?.id;
+  const { data: storeSettings } = usePublicStoreSettings(workspaceId || "");
   const { data: listings = [], isLoading } = usePublicListings(workspaceId, filters);
   const { data: categories = [] } = usePublicCategories(workspaceId);
   const { data: sponsoredIds = [] } = useC2CSponsoredListings(workspaceId);
+
+  const ogTitle = storeSettings?.store_name ? `${storeSettings.store_name} — Marketplace C2C` : `${workspace?.name || "Marketplace"} — C2C`;
+  const ogDescription = storeSettings?.store_description || `Explora o marketplace de ${workspace?.name || ""}. Compra e vende entre utilizadores reais.`;
+  const ogImage = storeSettings?.logo_url || `${getPublicBaseUrl()}/og-image.png`;
+  const ogUrl = `${getPublicBaseUrl()}/c2c/${workspaceSlug}`;
+  const shareUrl = getShareUrl("c2c", workspaceSlug || "");
 
   const featuredListings = useMemo(() => listings.filter((l) => l.is_featured), [listings]);
   const recentListings = useMemo(() =>
@@ -372,6 +383,18 @@ export default function C2CPublicMarketplace() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>{ogTitle}</title>
+        <meta property="og:title" content={ogTitle} />
+        <meta property="og:description" content={ogDescription} />
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:url" content={ogUrl} />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={ogTitle} />
+        <meta name="twitter:description" content={ogDescription} />
+        <meta name="twitter:image" content={ogImage} />
+      </Helmet>
       {/* Top bar */}
       <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-md border-b shadow-sm">
         <div className="container mx-auto px-4 py-3">

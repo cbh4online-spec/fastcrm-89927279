@@ -1,5 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { Helmet } from "react-helmet-async";
+import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -128,8 +130,22 @@ export default function C2CPublicSellerProfile() {
     );
   }
 
+  const ogTitle = `${seller?.display_name || "Vendedor"} — Marketplace C2C`;
+  const ogDescription = seller?.bio || `Vê o perfil e os anúncios de ${seller?.display_name || "este vendedor"} no marketplace.`;
+  const ogUrl = `${getPublicBaseUrl()}/c2c/${workspaceSlug}/seller/${sellerId}`;
+
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>{ogTitle}</title>
+        <meta property="og:title" content={ogTitle} />
+        <meta property="og:description" content={ogDescription} />
+        <meta property="og:url" content={ogUrl} />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={ogTitle} />
+        <meta name="twitter:description" content={ogDescription} />
+      </Helmet>
       <div className="container mx-auto px-4 py-6 max-w-5xl">
         <Button variant="ghost" size="sm" onClick={() => navigate(`/c2c/${workspaceSlug}`)} className="mb-4 -ml-2">
           <ArrowLeft className="h-4 w-4 mr-1" /> Voltar ao Marketplace
