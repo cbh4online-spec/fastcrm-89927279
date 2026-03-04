@@ -16,6 +16,8 @@ const RELATIONS = [
   { value: 'mentions', label: 'Menciona' },
   { value: 'drives', label: 'Influencia' },
   { value: 'generated_from', label: 'Gerado a partir de' },
+  { value: 'depends_on', label: 'Depende de' },
+  { value: 'references', label: 'Referencia' },
 ];
 
 export function ContextDependenciesTab({ blockId }: Props) {
@@ -97,6 +99,7 @@ export function ContextDependenciesTab({ blockId }: Props) {
                 <ArrowRight className="h-3 w-3 text-primary shrink-0" />
                 <span className="flex-1 truncate">{target?.title ?? d.target_block_id}</span>
                 <span className="text-muted-foreground">{d.relation}</span>
+                {d.auto_detected && <span className="text-[9px] px-1 py-0.5 rounded bg-blue-500/10 text-blue-500 border border-blue-500/20">auto</span>}
                 <span className="font-mono text-muted-foreground">{d.strength}%</span>
                 <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeDependency.mutate(d.id)}>
                   <Trash2 className="h-3 w-3 text-destructive" />
@@ -117,6 +120,7 @@ export function ContextDependenciesTab({ blockId }: Props) {
                 <ArrowRight className="h-3 w-3 text-amber-500 shrink-0 rotate-180" />
                 <span className="flex-1 truncate">{source?.title ?? d.source_block_id}</span>
                 <span className="text-muted-foreground">{d.relation}</span>
+                {d.auto_detected && <span className="text-[9px] px-1 py-0.5 rounded bg-blue-500/10 text-blue-500 border border-blue-500/20">auto</span>}
                 <span className="font-mono text-muted-foreground">{d.strength}%</span>
                 <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeDependency.mutate(d.id)}>
                   <Trash2 className="h-3 w-3 text-destructive" />
