@@ -276,6 +276,80 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ===== GENERATE 360° VIEWS =====
+    if (mode === "generate-360") {
+      const referenceImage = image;
+      if (!referenceImage) throw new Error("Imagem de referência necessária");
+
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const sb = createClient(supabaseUrl, supabaseKey);
+
+      const angles = [
+        { angle: "front", label: "front view, facing the camera directly" },
+        { angle: "front-right", label: "front-right view, rotated about 45 degrees to the right" },
+        { angle: "right", label: "right side view, rotated 90 degrees showing the right side" },
+        { angle: "back-right", label: "back-right view, rotated about 135 degrees" },
+        { angle: "back", label: "back view, rotated 180 degrees showing the rear" },
+        { angle: "back-left", label: "back-left view, rotated about 225 degrees" },
+        { angle: "left", label: "left side view, rotated 270 degrees showing the left side" },
+        { angle: "front-left", label: "front-left view, rotated about 315 degrees" },
+      ];
+
+      const batchId = crypto.randomUUID();
+      const imageUrls: string[] = [];
+
+      for (const { angle, label } of angles) {
+        const prompt = `Based on this product image, generate the EXACT same product from a ${label}. Keep the same product, same colors, same proportions, same style. Clean white background, professional product photography, consistent studio lighting. No text, no watermarks. The product should look identical but viewed from the ${label}.`;
+
+        const aiRes = await fetch(AI_URL, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            model: "google/gemini-3-pro-image-preview",
+            messages: [{
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                { type: "image_url", image_url: { url: referenceImage } },
+              ],
+            }],
+            modalities: ["image", "text"],
+          }),
+        });
+
+        if (!aiRes.ok) {
+          if (aiRes.status === 429) throw new Error("RATE_LIMITED");
+          if (aiRes.status === 402) throw new Error("PAYMENT_REQUIRED");
+          console.error(`360 gen error for ${angle}:`, aiRes.status);
+          continue;
+        }
+
+        const aiData = await aiRes.json();
+        const imgUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        if (!imgUrl) { console.error(`No image for ${angle}`); continue; }
+
+        const base64Data = imgUrl.replace(/^data:image\/\w+;base64,/, "");
+        const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+        const filePath = `360-views/${batchId}/${angle}.png`;
+
+        const { error: uploadError } = await sb.storage
+          .from("c2c-photos")
+          .upload(filePath, binaryData, { contentType: "image/png", upsert: true });
+
+        if (uploadError) { console.error(`Upload error ${angle}:`, uploadError); continue; }
+
+        const { data: publicUrlData } = sb.storage.from("c2c-photos").getPublicUrl(filePath);
+        imageUrls.push(publicUrlData.publicUrl);
+      }
+
+      if (imageUrls.length === 0) throw new Error("Não foi possível gerar vistas 360°");
+
+      return new Response(JSON.stringify({ success: true, images: imageUrls }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ===== GENERATE IMAGE =====
     if (mode === "generate-image") {
       const count = Math.min(Math.max(1, Number(reqCount) || 1), 3);

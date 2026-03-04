@@ -25,6 +25,55 @@ const conditionLabels: Record<string, string> = {
   for_parts: "Para peças",
 };
 
+function SpinViewer({ images }: { images: string[] }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dragStart, setDragStart] = useState<number | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const baseIndexRef = useRef(0);
+
+  const handleStart = (clientX: number) => {
+    setDragStart(clientX);
+    baseIndexRef.current = currentIndex;
+  };
+
+  const handleMove = (clientX: number) => {
+    if (dragStart === null || !containerRef.current) return;
+    const width = containerRef.current.offsetWidth;
+    const delta = clientX - dragStart;
+    const sensitivity = width / images.length;
+    const indexDelta = Math.round(delta / sensitivity);
+    let newIndex = (baseIndexRef.current - indexDelta) % images.length;
+    if (newIndex < 0) newIndex += images.length;
+    setCurrentIndex(newIndex);
+  };
+
+  const handleEnd = () => setDragStart(null);
+
+  return (
+    <div
+      ref={containerRef}
+      className="w-full h-full overflow-hidden cursor-grab active:cursor-grabbing relative select-none"
+      onMouseDown={(e) => handleStart(e.clientX)}
+      onMouseMove={(e) => handleMove(e.clientX)}
+      onMouseUp={handleEnd}
+      onMouseLeave={handleEnd}
+      onTouchStart={(e) => handleStart(e.touches[0].clientX)}
+      onTouchMove={(e) => handleMove(e.touches[0].clientX)}
+      onTouchEnd={handleEnd}
+    >
+      <img
+        src={images[currentIndex]}
+        alt={`360° vista ${currentIndex + 1}`}
+        className="w-full h-full object-contain select-none"
+        draggable={false}
+      />
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-background/80 rounded-full px-3 py-1 text-xs text-muted-foreground flex items-center gap-1">
+        <RotateCw className="h-3 w-3" /> Arrasta para rodar ({currentIndex + 1}/{images.length})
+      </div>
+    </div>
+  );
+}
+
 function PanoramaViewer({ src }: { src: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragStart, setDragStart] = useState<number | null>(null);
@@ -152,20 +201,15 @@ export default function C2CListingDetail() {
                 </TabsContent>
 
                 <TabsContent value="360" className="mt-3">
-                  {photos360.length > 0 && (
+                  {photos360.length > 1 ? (
+                    <div className="aspect-square rounded-xl overflow-hidden bg-muted">
+                      <SpinViewer images={photos360} />
+                    </div>
+                  ) : photos360.length === 1 ? (
                     <div className="aspect-video rounded-xl overflow-hidden bg-muted">
                       <PanoramaViewer src={photos360[0]} />
                     </div>
-                  )}
-                  {photos360.length > 1 && (
-                    <div className="flex gap-2 overflow-x-auto mt-3">
-                      {photos360.map((photo, i) => (
-                        <div key={i} className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border">
-                          <img src={photo} alt="" className="w-full h-full object-cover" />
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  ) : null}
                 </TabsContent>
 
                 <TabsContent value="video" className="mt-3">

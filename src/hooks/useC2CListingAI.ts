@@ -115,6 +115,20 @@ export function useGenerateListingImage() {
   });
 }
 
+export function useGenerate360() {
+  return useMutation({
+    mutationFn: async ({ image, title, description }: { image: string; title?: string; description?: string }) => {
+      const { data, error } = await supabase.functions.invoke("ai-c2c-listing-assistant", {
+        body: { mode: "generate-360", image, title, description },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data.images as string[];
+    },
+    onError: handleAIError,
+  });
+}
+
 export function useGenerateCategoryImage() {
   const queryClient = useQueryClient();
   return useMutation({

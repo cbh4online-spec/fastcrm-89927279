@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateC2CListing, useC2CCategories } from "@/hooks/useC2CListings";
-import { useAnalyzePhoto, useGenerateTitle, useGenerateDescription, useSuggestPrice, useSuggestCategory, useGenerateListingImage } from "@/hooks/useC2CListingAI";
+import { useAnalyzePhoto, useGenerateTitle, useGenerateDescription, useSuggestPrice, useSuggestCategory, useGenerateListingImage, useGenerate360 } from "@/hooks/useC2CListingAI";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { ArrowLeft, ImagePlus, X, Sparkles, TrendingUp, Loader2, Wand2, Zap, Camera, Video, RotateCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,6 +56,7 @@ export default function C2CCreateListing() {
   const suggestPrice = useSuggestPrice();
   const suggestCategory = useSuggestCategory();
   const generateImage = useGenerateListingImage();
+  const generate360 = useGenerate360();
 
   // Auto-trigger AI analysis when first photo is uploaded and title is empty
   useEffect(() => {
@@ -66,7 +67,7 @@ export default function C2CCreateListing() {
     prevPhotosLen.current = photos.length;
   }, [photos]);
 
-  const isAnyAILoading = analyzePhoto.isPending || generateTitle.isPending || generateDescription.isPending || suggestPrice.isPending || suggestCategory.isPending || generateImage.isPending;
+  const isAnyAILoading = analyzePhoto.isPending || generateTitle.isPending || generateDescription.isPending || suggestPrice.isPending || suggestCategory.isPending || generateImage.isPending || generate360.isPending;
 
   // Progress calculation
   const progress = useMemo(() => {
@@ -391,8 +392,43 @@ export default function C2CCreateListing() {
               {/* 360° Tab */}
               <TabsContent value="360" className="mt-3">
                 <p className="text-xs text-muted-foreground mb-3">
-                  Carrega imagens panorâmicas ou 360° do teu produto para uma experiência imersiva.
+                  Gera automaticamente vistas 360° a partir de uma foto ou carrega manualmente.
                 </p>
+
+                {/* AI Generate 360 button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const refImage = photos[0];
+                    if (!refImage) {
+                      toast.error("Carrega pelo menos uma foto primeiro.");
+                      return;
+                    }
+                    generate360.mutate(
+                      { image: refImage, title, description },
+                      {
+                        onSuccess: (images) => {
+                          setPhotos360(images);
+                          toast.success(`${images.length} vistas 360° geradas com IA!`);
+                        },
+                      }
+                    );
+                  }}
+                  disabled={generate360.isPending || !photos.length}
+                  className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5 mb-3"
+                >
+                  {generate360.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  Gerar 360° com IA
+                </Button>
+
+                {generate360.isPending && (
+                  <div className="mb-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 animate-pulse">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-sm font-medium text-primary">A gerar 8 vistas 360° com IA (pode demorar ~60s)...</span>
+                  </div>
+                )}
+
                 <div className="flex flex-wrap gap-3">
                   {photos360.map((photo, i) => (
                     <div key={i} className="relative w-24 h-24 rounded-lg overflow-hidden border">
@@ -411,7 +447,7 @@ export default function C2CCreateListing() {
                   <label className="w-24 h-24 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors gap-1">
                     <input type="file" accept="image/*" multiple className="hidden" onChange={handlePhoto360Upload} disabled={uploading} />
                     <RotateCw className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-[10px] text-muted-foreground">360°</span>
+                    <span className="text-[10px] text-muted-foreground">Manual</span>
                   </label>
                 </div>
               </TabsContent>
