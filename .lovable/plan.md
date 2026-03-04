@@ -1,104 +1,86 @@
 
 
-# Plano: Sistema de Afiliados e Referenciação para Marketplace C2C
+# Plano: Barcode Scan Entry para FastCRM
 
 ## Contexto
 
-O Marketplace C2C já possui infraestrutura completa: `c2c_sellers`, `c2c_listings`, `c2c_commissions`, `c2c_offers`, `c2c_reviews`, `c2c_messages`, `c2c_notifications`, `c2c_reports`, `c2c_sponsored_listings`, `c2c_categories`. O que falta é o sistema de **afiliados**, **referenciação** e **payouts**.
+A tabela `products` já tem campo `barcode` (text, nullable). Não existe índice unique por workspace. Não existe nenhuma biblioteca de scanning nem componente de scanner no projeto.
 
 ---
 
 ## 1. Base de Dados (1 migração)
 
-### Novas tabelas
+Criar índice único parcial para evitar duplicados de barcode no mesmo workspace:
 
-| Tabela | Finalidade |
-|---|---|
-| `c2c_affiliate_programs` | Configuração do programa de afiliados por workspace |
-| `c2c_affiliates` | Utilizadores inscritos como afiliados |
-| `c2c_affiliate_links` | Links gerados por afiliado (listing, seller, home) |
-| `c2c_affiliate_clicks` | Tracking de cliques com fingerprint/ip hash |
-| `c2c_affiliate_attributions` | Atribuição de comissão por venda |
-| `c2c_referral_programs` | Configuração do programa de referenciação por workspace |
-| `c2c_referrals` | Convites enviados (código/email) |
-| `c2c_referral_attributions` | Recompensas por referenciação qualificada |
-| `c2c_payouts` | Pagamentos a afiliados/sellers/referrers |
-| `c2c_order_events` | Auditoria de eventos por order (existing c2c_commissions serves as orders) |
-| `c2c_platform_fees` | Configuração de taxas da plataforma |
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS products_workspace_barcode_unique_idx
+  ON public.products (workspace_id, barcode)
+  WHERE barcode IS NOT NULL AND barcode <> '';
+```
 
-Todas com `workspace_id` (NOT NULL, FK workspaces), RLS multi-tenant, e indexes.
-
-### RLS
-
-- Afiliados: vêem apenas os seus dados (`user_id = auth.uid()`)
-- Clicks: insert público (anon/authenticated), select só afiliado dono ou admin
-- Attributions/Payouts: select por user_id, manage por admin workspace
-- Programs/Fees: select por workspace members, manage por admin/owner
+Não são necessárias novas tabelas — o campo `barcode` já existe em `products` e `supplier_products`.
 
 ---
 
-## 2. Edge Functions (4)
+## 2. Dependências NPM
 
-### A) `marketplace-track-click`
-- Input: `affiliate_code` ou `referral_code`, `target_type`, `target_id`, `user_agent`, `referrer_url`
-- Grava `c2c_affiliate_clicks` com `ip_hash`, `user_agent_hash`, `session_id`
-- Retorna redirect URL + session_id (cookie)
-- `verify_jwt = false` (público)
-
-### B) `marketplace-attribute-sale`
-- Chamada pelo webhook de pagamento (c2c-webhook) quando `c2c_purchase` é pago
-- Verifica cookie_window (affiliate) e referral trigger
-- Anti-fraude: bloqueia self-referral/self-affiliate
-- Cria `c2c_affiliate_attributions` (status=held, hold_until=now+hold_days)
-- Cria `c2c_referral_attributions` se aplicável
-- Cria `c2c_order_events` (event_type=attributed)
-
-### C) `marketplace-process-payouts`
-- Cron ou manual: processa attributions com `hold_until < now()` e `status=held` → approved
-- Agrega por user_id + período → cria `c2c_payouts` (status=queued)
-- Se refund/chargeback detectado → reverte attributions
-
-### D) `marketplace-payout-execute`
-- Para payouts queued: marca como processing/paid (manual tracking)
-- Exporta relatório CSV para pagamento IBAN
+Instalar `html5-qrcode` — biblioteca leve que suporta EAN-13, UPC-A, Code 128, QR e usa a câmara nativa via MediaDevices API. Funciona em PWA/mobile.
 
 ---
 
-## 3. UI — Novas Páginas
+## 3. Edge Functions (2)
 
-### A) Centro de Afiliados (`/dashboard/c2c/affiliates`)
-- Inscrição como afiliado (se programa ativo)
-- Gerar links/códigos por listing ou geral
-- Dashboard: cliques, conversões, comissões (pending/held/approved/paid)
-- Tabela de histórico com export CSV
+### A) `barcode-lookup` (nova)
+- Input: `workspace_id`, `barcode`
+- Procura em `products` por barcode exact match no workspace
+- Retorna: `{ found, product_id, name, sku, barcode, images, stock_on_hand, base_price }` ou `{ found: false }`
+- `verify_jwt = false` (valida JWT no código)
 
-### B) Centro de Referências (`/dashboard/c2c/referrals`)
-- Gerar link/código de convite
-- Enviar convite por email (campo)
-- Estado dos convites (invited/signed_up/qualified/rewarded)
-- Recompensas acumuladas
-
-### C) Admin Afiliados & Referências (`/dashboard/c2c/affiliate-admin`)
-- Configurar programa afiliados (comissão %, cookie window, hold days)
-- Configurar programa referências (reward type/value, trigger)
-- Lista de afiliados + stats
-- Lista de payouts + aprovar/rejeitar
-- Anti-fraude: top IPs, self-referrals detectados
+### B) `barcode-external-lookup` (nova, opcional)
+- Input: `barcode`
+- Consulta Open Food Facts API (gratuita) ou UPCitemdb para obter nome, marca, imagem
+- Retorna: `{ name, brand, image_url, category }` ou vazio
+- Usado apenas no quick-create para pré-preencher dados
 
 ---
 
-## 4. Navegação
+## 4. Componente Scanner Reutilizável
 
-Adicionar ao grupo "Marketplace C2C" em `nav.v1.ts` e `nav.v2.ts`:
-- "Afiliados" → `/dashboard/c2c/affiliates`
-- "Referências" → `/dashboard/c2c/referrals`
-- "Admin Afiliados" → `/dashboard/c2c/affiliate-admin`
+### `src/components/barcode/BarcodeScannerModal.tsx`
+- Modal com 2 modos:
+  - **Camera mode** (mobile): usa `html5-qrcode` com viewfinder e botão de flash
+  - **Input mode** (desktop): campo de texto focado que captura input de scanner físico (stream rápido + Enter)
+- Cooldown de 1s para evitar leituras duplicadas
+- Vibração ao ler (navigator.vibrate)
+- Props: `onScan(barcode: string)`, `open`, `onOpenChange`
+
+### `src/components/barcode/BarcodeResultPanel.tsx`
+- Após scan, mostra:
+  - Se encontrado: card do produto (nome, imagem, stock) + botões "Adicionar +1", "Editar qty", "Abrir produto"
+  - Se não encontrado: botão "Criar produto rápido" que abre o MQPCWizard/quick-create com barcode pré-preenchido
+
+### `src/hooks/useBarcodeLookup.ts`
+- Hook que chama `barcode-lookup` edge function
+- Retorna `{ lookup, isLoading, result }`
 
 ---
 
-## 5. Integração com c2c-webhook existente
+## 5. Integrações por Módulo (botão Scan em cada zona)
 
-No `c2c-webhook/index.ts`, no bloco `c2c_purchase`, adicionar chamada a `marketplace-attribute-sale` para processar atribuições de afiliado/referência automaticamente após pagamento.
+### A) Produtos (`ProductsList` / formulário de criação)
+- Botão scan no header da lista → ao encontrar, navega para o produto; se não existir, abre quick-create com barcode
+
+### B) Stock / Inventário (`B2BStockPage`)
+- Botão scan → ao encontrar, abre dialog de ajuste de stock com produto pré-selecionado
+
+### C) Receção de Compras (`GoodsReceiptForm`)
+- Botão scan junto aos items → incrementa qty recebida do item correspondente ou alerta se produto não está na PO
+
+### D) Loja Online Admin (`StoreProductsAdminPage`)
+- Botão scan → cria produto draft com barcode pré-preenchido
+
+### E) RFQ Items (formulário de RFQ)
+- Botão scan → adiciona item ao RFQ por barcode lookup
 
 ---
 
@@ -106,19 +88,23 @@ No `c2c-webhook/index.ts`, no bloco `c2c_purchase`, adicionar chamada a `marketp
 
 | Ficheiro | Ação |
 |---|---|
-| Migração SQL | Criar 11 tabelas + RLS + indexes |
-| `supabase/functions/marketplace-track-click/index.ts` | Criar |
-| `supabase/functions/marketplace-attribute-sale/index.ts` | Criar |
-| `supabase/functions/marketplace-process-payouts/index.ts` | Criar |
-| `supabase/functions/marketplace-payout-execute/index.ts` | Criar |
-| `src/hooks/useC2CAffiliates.ts` | Hooks para affiliate CRUD + stats |
-| `src/hooks/useC2CReferrals.ts` | Hooks para referral CRUD + stats |
-| `src/hooks/useC2CPayouts.ts` | Hooks para payouts admin |
-| `src/pages/c2c/C2CAffiliateCenter.tsx` | Página afiliados |
-| `src/pages/c2c/C2CReferralCenter.tsx` | Página referências |
-| `src/pages/c2c/C2CAffiliateAdmin.tsx` | Página admin |
-| `src/App.tsx` | Registar 3 novas rotas |
-| `src/config/nav.v1.ts` | Adicionar 3 itens menu |
-| `src/config/nav.v2.ts` | Adicionar 3 children |
-| `supabase/functions/c2c-webhook/index.ts` | Integrar atribuição |
+| Migração SQL | Criar unique index `products_workspace_barcode_unique_idx` |
+| `supabase/functions/barcode-lookup/index.ts` | Criar |
+| `supabase/functions/barcode-external-lookup/index.ts` | Criar |
+| `supabase/config.toml` | Registar 2 novas functions |
+| `src/components/barcode/BarcodeScannerModal.tsx` | Criar — scanner camera + input mode |
+| `src/components/barcode/BarcodeResultPanel.tsx` | Criar — resultado + ações |
+| `src/hooks/useBarcodeLookup.ts` | Criar — hook de lookup |
+| `src/components/products/ProductsList.tsx` | Adicionar botão scan |
+| `src/pages/B2BStockPage.tsx` | Adicionar botão scan |
+| `src/components/procurement/GoodsReceiptForm.tsx` | Adicionar botão scan |
+| `src/components/procurement/PurchaseOrderForm.tsx` | Adicionar botão scan |
+
+---
+
+## 7. Segurança
+
+- Edge functions validam JWT e workspace membership
+- Índice unique impede duplicados de barcode por workspace
+- RLS existente em `products` já filtra por workspace_id
 
