@@ -155,8 +155,12 @@ export default function RFQDetailPage() {
     <div className="space-y-6 p-6">
       {/* Top bar */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/procurement/rfqs")}>
-          <ArrowLeft className="h-4 w-4" />
+        <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/procurement")}>
+          <ArrowLeft className="h-4 w-4 mr-1" /> Dashboard
+        </Button>
+        <span className="text-muted-foreground">/</span>
+        <Button variant="ghost" size="sm" className="text-muted-foreground px-1" onClick={() => navigate("/dashboard/procurement/rfqs")}>
+          RFQs
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
