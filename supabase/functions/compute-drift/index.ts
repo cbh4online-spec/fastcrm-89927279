@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       .from("context_blocks")
       .select("id, block_type, last_verified_at, last_changed_at, created_at")
       .eq("workspace_id", workspace_id)
-      .eq("status", "active");
+      .eq("status", "approved");
     if (bErr) throw bErr;
     if (!blocks?.length) return new Response(JSON.stringify({ computed: 0 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
