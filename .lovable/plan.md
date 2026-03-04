@@ -1,68 +1,53 @@
 
 
-# Gerar Imagens IA + Suporte Multi-Media no C2C
+# Imagens 3D no Carrossel de Categorias C2C
 
-## Resumo
-Adicionar ao formulário de criação de anúncio C2C a capacidade de gerar imagens com IA a partir do título, suportar múltiplas imagens, imagens 360° e vídeo.
+## Contexto
+Atualmente, o carrossel de categorias usa emojis (`cat.icon || "📦"`). O objetivo é substituir por imagens 3D geradas por IA, tornando o visual mais profissional e apelativo.
 
 ## Alterações
 
-### 1. Nova funcionalidade: Gerar imagem com IA (Edge Function)
-**Ficheiro: `supabase/functions/ai-c2c-listing-assistant/index.ts`**
-- Adicionar modo `generate-image` que usa o modelo `google/gemini-3-pro-image-preview` 
-- Recebe `title`, `description`, `condition` e gera uma imagem do produto
-- Retorna imagem em base64 que é depois uploaded ao storage `c2c-photos`
-- Possibilidade de gerar múltiplas imagens (ex: ângulos diferentes) num só pedido
-
-### 2. Hook para gerar imagem IA
-**Ficheiro: `src/hooks/useC2CListingAI.ts`**
-- Adicionar `useGenerateListingImage()` que chama o modo `generate-image`
-- Retorna base64, converte para blob e faz upload ao `c2c-photos`
-
-### 3. Expandir tipos de media no formulário
-**Ficheiro: `src/pages/c2c/C2CCreateListing.tsx`**
-- Separar a secção de fotos em tabs/secções: **Fotos**, **360°**, **Vídeo**
-- **Fotos**: manter upload atual + botão "Gerar com IA" que usa título para criar imagens
-- **360°**: upload de imagem panorâmica/360° (aceitar ficheiros de imagem panorâmica)
-- **Vídeo**: upload de vídeo curto (aceitar `video/*`, limite ~50MB)
-- Adicionar estados: `photos360: string[]` e `videos: string[]`
-- Botão "Gerar com IA" ao lado do upload de fotos — gera 1-3 imagens com base no título
-
-### 4. Schema: Adicionar campos ao c2c_listings
-**Migração SQL:**
+### 1. Migração SQL — Adicionar `image_url` à tabela `c2c_categories`
 ```sql
-ALTER TABLE c2c_listings 
-  ADD COLUMN IF NOT EXISTS photos_360 text[] DEFAULT '{}',
-  ADD COLUMN IF NOT EXISTS videos text[] DEFAULT '{}';
+ALTER TABLE c2c_categories ADD COLUMN IF NOT EXISTS image_url text;
 ```
 
-### 5. Galeria multi-media no detalhe do anúncio
-**Ficheiro: `src/pages/c2c/C2CListingDetail.tsx`**
-- Expandir galeria para mostrar tabs: Fotos | 360° | Vídeo
-- Fotos 360°: renderizar com CSS transform pan (drag para rodar)
-- Vídeos: renderizar com `<video>` player nativo
+### 2. Edge Function — Gerar imagens 3D para categorias
+Criar uma nova edge function `ai-category-image` (ou adicionar modo ao `ai-c2c-listing-assistant`) que:
+- Recebe o nome da categoria
+- Usa `google/gemini-3-pro-image-preview` para gerar uma imagem 3D isométrica do ícone da categoria (ex: "3D isometric icon of electronics category, white background, minimal")
+- Faz upload ao bucket `c2c-photos` e retorna o URL público
+- Pode ser chamada em bulk para gerar todas as categorias de uma vez
 
-### 6. Storage bucket para vídeos
-**Migração SQL:**
-```sql
-INSERT INTO storage.buckets (id, name, public) 
-VALUES ('c2c-videos', 'c2c-videos', true)
-ON CONFLICT DO NOTHING;
+### 3. Hook — Gerar imagem da categoria
+Adicionar ao `useC2CListings.ts` (ou novo hook) uma mutation `useGenerateCategoryImage` que chama a edge function e atualiza o `image_url` na tabela `c2c_categories`.
 
-CREATE POLICY "c2c videos upload" ON storage.objects
-FOR INSERT TO authenticated
-WITH CHECK (bucket_id = 'c2c-videos');
+### 4. UI — Atualizar `CategoryCarousel` em ambas as páginas
+**Ficheiros:** `C2CMarketplace.tsx` e `C2CPublicMarketplace.tsx`
 
-CREATE POLICY "c2c videos read" ON storage.objects
-FOR SELECT TO public
-USING (bucket_id = 'c2c-videos');
+Substituir:
+```tsx
+<span className="text-2xl">{cat.icon || "📦"}</span>
 ```
+Por:
+```tsx
+{cat.image_url ? (
+  <img src={cat.image_url} alt={cat.name} className="w-12 h-12 object-contain" />
+) : (
+  <span className="text-2xl">{cat.icon || "📦"}</span>
+)}
+```
+
+### 5. Botão admin para gerar imagens em bulk
+Na página de gestão de categorias (se existir) ou no dashboard C2C, adicionar um botão "Gerar imagens 3D" que percorre todas as categorias sem `image_url` e gera as imagens via IA.
+
+### 6. Auto-geração na criação de categoria
+Quando uma nova categoria é criada, chamar automaticamente a geração de imagem 3D em background.
 
 ## Ficheiros a alterar
-- `supabase/functions/ai-c2c-listing-assistant/index.ts` — modo `generate-image`
-- `src/hooks/useC2CListingAI.ts` — hook `useGenerateListingImage`
-- `src/pages/c2c/C2CCreateListing.tsx` — UI multi-media + botão gerar IA
-- `src/pages/c2c/C2CListingDetail.tsx` — galeria multi-media
-- `src/hooks/useC2CListings.ts` — atualizar interface C2CListing
-- Migração SQL: colunas `photos_360`, `videos` + bucket `c2c-videos`
+- Migração SQL: coluna `image_url`
+- `supabase/functions/ai-c2c-listing-assistant/index.ts` — modo `generate-category-image`
+- `src/pages/c2c/C2CMarketplace.tsx` — CategoryCarousel com imagem
+- `src/pages/c2c/C2CPublicMarketplace.tsx` — CategoryCarousel com imagem
+- `src/hooks/useC2CListings.ts` — mutation para gerar imagem de categoria
 
