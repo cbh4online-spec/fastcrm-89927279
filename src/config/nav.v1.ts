@@ -51,6 +51,7 @@ import {
   LineChart,
   PieChart,
   FileSpreadsheet,
+  Ticket,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -139,6 +140,9 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Produtos", href: "/dashboard/store-products", icon: Store, group: "Loja Online", separator: true, moduleSlug: "online-store" },
   { name: "Encomendas", href: "/dashboard/store-orders", icon: ShoppingCart, group: "Loja Online", moduleSlug: "online-store" },
   { name: "Categorias", href: "/dashboard/store-categories", icon: FolderOpen, group: "Loja Online", moduleSlug: "online-store" },
+  { name: "Cupões", href: "/dashboard/store-coupons", icon: Ticket, group: "Loja Online", moduleSlug: "online-store" },
+  { name: "Analytics", href: "/dashboard/store-analytics", icon: BarChart3, group: "Loja Online", moduleSlug: "online-store" },
+  { name: "Definições Loja", href: "/dashboard/store-settings", icon: Settings, group: "Loja Online", moduleSlug: "online-store" },
 
   // Marketplace C2C
   { name: "Marketplace", href: "/dashboard/c2c", icon: ShoppingCart, group: "Marketplace C2C", separator: true, moduleSlug: "marketplace-c2c" },

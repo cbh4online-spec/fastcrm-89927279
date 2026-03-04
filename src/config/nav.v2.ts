@@ -50,6 +50,7 @@ import {
   ClipboardList,
   LayoutGrid,
   Star,
+  Ticket,
 } from "lucide-react";
 
 // --- Types ---
@@ -143,6 +144,9 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
       { name: "Produtos", href: "/dashboard/store-products", icon: Package, iconColor: "text-pink-500" },
       { name: "Encomendas", href: "/dashboard/store-orders", icon: ShoppingCart, iconColor: "text-pink-500" },
       { name: "Categorias", href: "/dashboard/store-categories", icon: Tag, iconColor: "text-pink-500" },
+      { name: "Cupões", href: "/dashboard/store-coupons", icon: Ticket, iconColor: "text-pink-500" },
+      { name: "Analytics", href: "/dashboard/store-analytics", icon: BarChart3, iconColor: "text-pink-500" },
+      { name: "Definições", href: "/dashboard/store-settings", icon: Settings, iconColor: "text-pink-500" },
     ],
   },
   {
