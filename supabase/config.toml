@@ -429,3 +429,12 @@ verify_jwt = false
 
 [functions.rfq-submit-quote-sheet]
 verify_jwt = false
+
+[functions.rfq-quote-ocr-parse]
+verify_jwt = false
+
+[functions.rfq-quote-update-match]
+verify_jwt = false
+
+[functions.rfq-quote-apply]
+verify_jwt = false
