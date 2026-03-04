@@ -23,6 +23,7 @@ import { format } from "date-fns";
 import { ArrowLeft, Send, Plus, Trophy, Loader2, FileDown, Building2, Calendar as CalendarIcon, Globe, CreditCard, MapPin, Clock, Pencil, FolderOpen, FileText } from "lucide-react";
 import RFQComparisonDashboard from "@/components/procurement/RFQComparisonDashboard";
 import { RFQAuditTrail } from "@/components/procurement/RFQAuditTrail";
+import RFQQuoteSheetDialog from "@/components/procurement/RFQQuoteSheetDialog";
 import { toast } from "sonner";
 
 export default function RFQDetailPage() {
@@ -47,6 +48,7 @@ export default function RFQDetailPage() {
   const [quoteForm, setQuoteForm] = useState({ rfq_item_id: "", supplier_id: "", unit_price: "", lead_time_days: "", min_order_qty: "", notes: "", discount_percent: "0", vat_percent: "23" });
   const [selectedQuoteIds, setSelectedQuoteIds] = useState<string[]>([]);
   const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [showQuoteSheet, setShowQuoteSheet] = useState(false);
 
   if (isLoading) {
     return <div className="flex items-center justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
@@ -189,9 +191,14 @@ export default function RFQDetailPage() {
             </Button>
           )}
           {canAddQuotes && (
-            <Button variant="outline" onClick={() => setShowQuoteModal(true)}>
-              <Plus className="mr-2 h-4 w-4" /> Registar Cotação
-            </Button>
+            <>
+              <Button onClick={() => setShowQuoteSheet(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Registar Cotação (Tabela)
+              </Button>
+              <Button variant="outline" onClick={() => setShowQuoteModal(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Cotação Individual
+              </Button>
+            </>
           )}
           {canAward && selectedQuoteIds.length > 0 && (
             <Button onClick={handleAward} disabled={awardRFQ.isPending} className="bg-green-600 hover:bg-green-700">
@@ -518,6 +525,14 @@ export default function RFQDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Quote Sheet Dialog */}
+      <RFQQuoteSheetDialog
+        open={showQuoteSheet}
+        onOpenChange={setShowQuoteSheet}
+        rfqId={rfq.id}
+        suppliers={suppliers}
+      />
 
       {/* Add Supplier Modal */}
       <Dialog open={showAddSupplierModal} onOpenChange={setShowAddSupplierModal}>

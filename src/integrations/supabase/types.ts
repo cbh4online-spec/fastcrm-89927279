@@ -26752,9 +26752,12 @@ export type Database = {
           pack_size: number | null
           rfq_id: string
           rfq_item_id: string
+          status: string
+          submitted_at: string | null
           submitted_via_portal: boolean
           supplier_id: string
           unit_price: number
+          updated_at: string | null
           vat_percent: number
           workspace_id: string
         }
@@ -26770,9 +26773,12 @@ export type Database = {
           pack_size?: number | null
           rfq_id: string
           rfq_item_id: string
+          status?: string
+          submitted_at?: string | null
           submitted_via_portal?: boolean
           supplier_id: string
           unit_price?: number
+          updated_at?: string | null
           vat_percent?: number
           workspace_id: string
         }
@@ -26788,9 +26794,12 @@ export type Database = {
           pack_size?: number | null
           rfq_id?: string
           rfq_item_id?: string
+          status?: string
+          submitted_at?: string | null
           submitted_via_portal?: boolean
           supplier_id?: string
           unit_price?: number
+          updated_at?: string | null
           vat_percent?: number
           workspace_id?: string
         }
