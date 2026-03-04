@@ -25,6 +25,10 @@ export function useKernelDecisions() {
   });
 
   const openDecisions = decisions?.filter(d => d.status === 'open') ?? [];
+  const approvalQueue = decisions?.filter(d => {
+    const policy = d.policy as any;
+    return d.status === 'open' && policy?.mode === 'approve';
+  }) ?? [];
 
   const acceptDecision = useMutation({
     mutationFn: async (decisionId: string) => {
@@ -54,6 +58,20 @@ export function useKernelDecisions() {
     },
   });
 
+  const archiveDecision = useMutation({
+    mutationFn: async (decisionId: string) => {
+      const { error } = await supabase
+        .from('kernel_decisions')
+        .update({ status: 'archived', resolved_at: new Date().toISOString() })
+        .eq('id', decisionId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kernel-decisions'] });
+      toast.success('Decisão arquivada');
+    },
+  });
+
   const executeDecision = useMutation({
     mutationFn: async (decisionId: string) => {
       if (!workspaceId) throw new Error('No workspace');
@@ -69,5 +87,5 @@ export function useKernelDecisions() {
     },
   });
 
-  return { decisions, openDecisions, isLoading, acceptDecision, rejectDecision, executeDecision };
+  return { decisions, openDecisions, approvalQueue, isLoading, acceptDecision, rejectDecision, archiveDecision, executeDecision };
 }

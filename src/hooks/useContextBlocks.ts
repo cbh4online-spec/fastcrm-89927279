@@ -138,15 +138,31 @@ export function useUpsertContextField() {
   const { currentWorkspace } = useWorkspace();
 
   return useMutation({
-    mutationFn: async ({ fieldId, value }: { fieldId: string; value: any }) => {
+    mutationFn: async ({ fieldId, value, blockId }: { fieldId: string; value: any; blockId?: string }) => {
       const { error } = await supabase
         .from("context_fields" as any)
         .update({ field_value: value, updated_at: new Date().toISOString() } as any)
         .eq("id", fieldId);
       if (error) throw error;
+      return { fieldId, blockId };
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["context-blocks", currentWorkspace?.id] });
+
+      // Emit kernel event for context block update
+      if (currentWorkspace?.id && variables.blockId) {
+        import('@/lib/kernelEmitter').then(({ emitKernelEvent }) => {
+          emitKernelEvent({
+            workspace_id: currentWorkspace!.id,
+            type: 'CONTEXT.BLOCK_UPDATED',
+            entity_kind: 'context_block',
+            entity_id: variables.blockId!,
+            payload: { field_id: variables.fieldId },
+            source_module: 'strategy-context-os',
+            idempotency_key: `ctx-field-${variables.fieldId}-${Date.now()}`,
+          });
+        });
+      }
     },
     onError: (err: Error) => toast.error("Erro ao guardar campo: " + err.message),
   });

@@ -9,13 +9,14 @@ import { KernelDecisionsPanel } from "@/components/kernel/KernelDecisionsPanel";
 import { KernelActionsLog } from "@/components/kernel/KernelActionsLog";
 import { DriftOverview } from "@/components/kernel/DriftOverview";
 import { KernelEventsTimeline } from "@/components/kernel/KernelEventsTimeline";
+import { KernelApprovalQueue } from "@/components/kernel/KernelApprovalQueue";
 import { useSlashCommands, SlashCommand } from "@/hooks/useSlashCommands";
 import { useAskFastCRM } from "@/hooks/useAskFastCRM";
 import { useRecentAskQueries } from "@/hooks/useRecentAskQueries";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useKernelDecisions } from "@/hooks/useKernelDecisions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Terminal, Clock, Zap, Database, Brain, Activity, Radio } from "lucide-react";
+import { Loader2, Terminal, Clock, Zap, Database, Brain, Activity, Radio, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +26,7 @@ export default function CommandCenterPage() {
   const slash = useSlashCommands();
   const ask = useAskFastCRM();
   const { data: recentQueries } = useRecentAskQueries();
-  const { openDecisions } = useKernelDecisions();
+  const { openDecisions, approvalQueue } = useKernelDecisions();
   const [cmdkOpen, setCmdkOpen] = useState(false);
 
   useEffect(() => {
@@ -85,6 +86,14 @@ export default function CommandCenterPage() {
                 {(openDecisions?.length ?? 0) > 0 && (
                   <Badge variant="destructive" className="h-4 min-w-4 px-1 text-[9px] ml-1">
                     {openDecisions.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="approvals" className="gap-1.5 text-xs data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-500 relative">
+                <ShieldCheck className="h-3.5 w-3.5" /> Aprovações
+                {(approvalQueue?.length ?? 0) > 0 && (
+                  <Badge variant="destructive" className="h-4 min-w-4 px-1 text-[9px] ml-1">
+                    {approvalQueue.length}
                   </Badge>
                 )}
               </TabsTrigger>
@@ -200,6 +209,20 @@ export default function CommandCenterPage() {
               </p>
             </motion.div>
             <KernelDecisionsPanel />
+          </TabsContent>
+
+          <TabsContent value="approvals" className="space-y-6">
+            <motion.div className="text-center space-y-2" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-medium mb-2">
+                <ShieldCheck className="h-3 w-3" />
+                Approval Queue
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">Fila de Aprovação</h1>
+              <p className="text-sm text-muted-foreground">
+                Decisões que requerem aprovação manual antes de serem executadas
+              </p>
+            </motion.div>
+            <KernelApprovalQueue />
           </TabsContent>
 
           <TabsContent value="context">

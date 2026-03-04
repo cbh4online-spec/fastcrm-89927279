@@ -12,11 +12,16 @@ import { SystemMetricsPanel } from "./SystemMetricsPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { AlertTriangle, Edit3, Loader2, Database, Zap, Bell, Activity, RefreshCw, BarChart3 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertTriangle, Edit3, Loader2, Database, Zap, Bell, Activity, RefreshCw, BarChart3, Network, Link2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useContextAlerts } from "@/hooks/useContextAlerts";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export function ContextOSDashboard() {
   const { data: blocks, isLoading } = useContextBlocks();
@@ -24,7 +29,35 @@ export function ContextOSDashboard() {
   const missingFields = useMissingFields(blocks);
   const { getDriftForBlock, recompute } = useContextDrift();
   const { unreadCount } = useContextAlerts();
+  const { currentWorkspace } = useWorkspace();
   const [selectedBlock, setSelectedBlock] = useState<ContextBlock | null>(null);
+
+  // Fetch context_bindings
+  const { data: bindings } = useQuery({
+    queryKey: ['context-bindings', currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
+      const { data } = await supabase
+        .from('context_bindings')
+        .select('*')
+        .eq('workspace_id', currentWorkspace.id);
+      return data ?? [];
+    },
+    enabled: !!currentWorkspace?.id,
+  });
+
+  // Run Impact mutation
+  const runImpact = useMutation({
+    mutationFn: async () => {
+      if (!currentWorkspace?.id) throw new Error('No workspace');
+      const { error } = await supabase.functions.invoke('kernel-compute-impact', {
+        body: { workspace_id: currentWorkspace.id },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => toast.success('Impacto calculado'),
+    onError: (err: Error) => toast.error('Erro: ' + err.message),
+  });
 
   if (isLoading) {
     return (
@@ -57,6 +90,16 @@ export function ContextOSDashboard() {
           <Button
             size="sm"
             variant="outline"
+            onClick={() => runImpact.mutate()}
+            disabled={runImpact.isPending}
+            className="gap-1.5 text-xs"
+          >
+            <Network className={cn("h-3.5 w-3.5", runImpact.isPending && "animate-spin")} />
+            Run Impact
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() => recompute.mutate()}
             disabled={recompute.isPending}
             className="gap-1.5 text-xs"
@@ -72,6 +115,9 @@ export function ContextOSDashboard() {
         <TabsList className="bg-muted/30 border border-border/50">
           <TabsTrigger value="blocks" className="gap-1.5 text-xs">
             <Database className="h-3.5 w-3.5" /> Blocos
+          </TabsTrigger>
+          <TabsTrigger value="bindings" className="gap-1.5 text-xs">
+            <Link2 className="h-3.5 w-3.5" /> Bindings
           </TabsTrigger>
           <TabsTrigger value="actions" className="gap-1.5 text-xs">
             <Zap className="h-3.5 w-3.5" /> Actions
@@ -208,6 +254,40 @@ export function ContextOSDashboard() {
               );
             })}
           </div>
+        </TabsContent>
+
+        <TabsContent value="bindings" className="space-y-4">
+          <div className="text-sm text-muted-foreground mb-4">
+            Mapeamento de blocos de contexto para assets operacionais
+          </div>
+          {(!bindings || bindings.length === 0) ? (
+            <Card className="border-dashed border-border/50">
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <Link2 className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">Sem bindings registados</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {bindings.map((b: any) => {
+                const block = blocks?.find(bl => bl.id === b.block_id);
+                return (
+                  <Card key={b.id} className="border-border/50">
+                    <CardContent className="py-3">
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="font-medium text-foreground">
+                          {block ? BLOCK_META[block.block_type as keyof typeof BLOCK_META]?.icon : '📦'} {block?.title ?? b.block_id}
+                        </span>
+                        <span className="text-muted-foreground">→</span>
+                        <Badge variant="outline" className="text-[10px]">{b.asset_kind}</Badge>
+                        <span className="text-muted-foreground font-mono truncate max-w-[120px]">{b.asset_id}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="actions">

@@ -12,8 +12,10 @@ function clamp(v: number, min: number, max: number) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const startTime = Date.now();
+
   try {
-    const { workspace_id } = await req.json();
+    const { workspace_id, correlation_id } = await req.json();
     if (!workspace_id) throw new Error("workspace_id required");
 
     const supabase = createClient(
@@ -44,18 +46,26 @@ Deno.serve(async (req) => {
       .eq("workspace_id", workspace_id)
       .in("severity", ["risk", "critical"]);
 
+    // 4. Deadletter count as additional drift signal
+    const { count: deadletterCount } = await supabase
+      .from("kernel_event_deadletter")
+      .select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspace_id);
+
     // Compute workspace-level drift
     const staleCount = staleImpacts?.length ?? 0;
     const decisionCount = openDecisions ?? 0;
     const criticalDrift = contextDrift?.filter(d => d.severity === "critical").length ?? 0;
     const riskDrift = contextDrift?.filter(d => d.severity === "risk").length ?? 0;
+    const dlCount = deadletterCount ?? 0;
 
     const workspaceScore = clamp(
       Math.round(
         (staleCount * 5) +
         (decisionCount * 3) +
         (criticalDrift * 10) +
-        (riskDrift * 5)
+        (riskDrift * 5) +
+        (dlCount * 2)
       ),
       0,
       100
@@ -66,6 +76,7 @@ Deno.serve(async (req) => {
     if (decisionCount > 0) reasons.push({ type: "open_decisions", count: decisionCount });
     if (criticalDrift > 0) reasons.push({ type: "critical_context_drift", count: criticalDrift });
     if (riskDrift > 0) reasons.push({ type: "risk_context_drift", count: riskDrift });
+    if (dlCount > 0) reasons.push({ type: "deadletter_events", count: dlCount });
 
     // Upsert workspace-level drift
     await supabase.from("drift_scores").upsert(
@@ -104,10 +115,20 @@ Deno.serve(async (req) => {
         workspace_id,
         type: "kernel_drift",
         title: `Drift do workspace em ${workspaceScore}%`,
-        message: `${staleCount} impactos pendentes, ${decisionCount} decisões abertas`,
+        message: `${staleCount} impactos pendentes, ${decisionCount} decisões abertas, ${dlCount} eventos em deadletter`,
         severity: workspaceScore >= 80 ? "critical" : "risk",
       });
     }
+
+    // Log observability
+    supabase.from("system_function_runs").insert({
+      workspace_id,
+      function_name: "kernel-compute-drift",
+      module_id: "kernel",
+      status: "success",
+      latency_ms: Date.now() - startTime,
+      request_id: correlation_id ?? null,
+    }).then(() => {});
 
     return new Response(
       JSON.stringify({ workspace_score: workspaceScore, reasons, assets_updated: staleImpacts?.length ?? 0 }),

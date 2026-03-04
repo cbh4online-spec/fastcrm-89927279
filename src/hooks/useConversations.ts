@@ -93,8 +93,24 @@ export function useConversations(filters?: ConversationFilters) {
           table: 'conversations',
           filter: `workspace_id=eq.${currentWorkspace.id}`,
         },
-        () => {
+        (payload) => {
           queryClient.invalidateQueries({ queryKey: ['conversations'] });
+
+          // Emit kernel event for new/updated conversations
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const row = payload.new as any;
+            import('@/lib/kernelEmitter').then(({ emitKernelEvent }) => {
+              emitKernelEvent({
+                workspace_id: currentWorkspace!.id,
+                type: payload.eventType === 'INSERT' ? 'CONVERSATION.RECEIVED' : 'CONVERSATION.UPDATED',
+                entity_kind: 'conversation',
+                entity_id: row.id,
+                payload: { channel: row.channel, status: row.status, lead_id: row.lead_id },
+                source_module: 'comm-inbox',
+                idempotency_key: `conv-${row.id}-${payload.eventType}-${row.updated_at}`,
+              });
+            });
+          }
         }
       )
       .subscribe();
