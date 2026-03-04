@@ -100,3 +100,17 @@ export function useSuggestCategory() {
     onError: handleAIError,
   });
 }
+
+export function useGenerateListingImage() {
+  return useMutation({
+    mutationFn: async ({ title, description, condition, count }: { title?: string; description?: string; condition?: string; count?: number }) => {
+      const { data, error } = await supabase.functions.invoke("ai-c2c-listing-assistant", {
+        body: { mode: "generate-image", title, description, condition, count: count || 1 },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data.images as string[];
+    },
+    onError: handleAIError,
+  });
+}

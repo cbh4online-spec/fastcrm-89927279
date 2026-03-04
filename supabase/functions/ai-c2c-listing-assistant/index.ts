@@ -1,3 +1,4 @@
+import { createClient } from "@supabase/supabase-js";
 
 
 const corsHeaders = {
@@ -15,7 +16,7 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const { mode, image, title, description, categories, condition, price } = await req.json();
+    const { mode, image, title, description, categories, condition, price, count: reqCount } = await req.json();
 
     const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
     const headers = {
@@ -222,6 +223,68 @@ Deno.serve(async (req) => {
         });
       }
       throw new Error("No tool call");
+    }
+
+    // ===== GENERATE IMAGE =====
+    if (mode === "generate-image") {
+      const count = Math.min(Math.max(1, Number(reqCount) || 1), 3);
+      const prompt = `Generate a realistic product photo for a C2C marketplace listing. The product is: "${title || "unknown product"}". ${description ? `Description: ${description}.` : ""} ${condition ? `Condition: ${condition}.` : ""} Show the product on a clean white/neutral background, professional product photography style, high quality, well-lit. Single product, no text overlays.`;
+
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const sb = createClient(supabaseUrl, supabaseKey);
+
+      const images: string[] = [];
+      const angles = ["front view", "slight angle view", "detail close-up view"];
+
+      for (let i = 0; i < count; i++) {
+        const anglePrompt = count > 1 ? `${prompt} Show from ${angles[i] || "different angle"}.` : prompt;
+        
+        const aiRes = await fetch(AI_URL, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            model: "google/gemini-3-pro-image-preview",
+            messages: [{ role: "user", content: anglePrompt }],
+            modalities: ["image", "text"],
+          }),
+        });
+
+        if (!aiRes.ok) {
+          if (aiRes.status === 429) throw new Error("RATE_LIMITED");
+          if (aiRes.status === 402) throw new Error("PAYMENT_REQUIRED");
+          const errText = await aiRes.text();
+          console.error(`AI image gen error:`, aiRes.status, errText);
+          continue;
+        }
+
+        const aiData = await aiRes.json();
+        const imageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        if (!imageUrl) continue;
+
+        // Upload to c2c-photos storage
+        const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, "");
+        const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+        const filePath = `ai-generated/${crypto.randomUUID()}.png`;
+
+        const { error: uploadError } = await sb.storage
+          .from("c2c-photos")
+          .upload(filePath, binaryData, { contentType: "image/png", upsert: true });
+
+        if (uploadError) {
+          console.error("Upload error:", uploadError);
+          continue;
+        }
+
+        const { data: publicUrlData } = sb.storage.from("c2c-photos").getPublicUrl(filePath);
+        images.push(publicUrlData.publicUrl);
+      }
+
+      if (images.length === 0) throw new Error("Não foi possível gerar imagens");
+
+      return new Response(JSON.stringify({ success: true, images }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     return new Response(JSON.stringify({ error: "Invalid mode" }), {

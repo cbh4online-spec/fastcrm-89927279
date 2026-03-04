@@ -14,6 +14,8 @@ export interface C2CListing {
   currency: string;
   condition: "new" | "like_new" | "used" | "for_parts";
   photos: string[];
+  photos_360: string[];
+  videos: string[];
   location: string | null;
   status: "active" | "sold" | "paused" | "removed" | "flagged";
   views_count: number;
