@@ -20,11 +20,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { ArrowLeft, Send, Plus, Trophy, Loader2, FileDown, Building2, Calendar as CalendarIcon, Globe, CreditCard, MapPin, Clock, Pencil, FolderOpen, FileText } from "lucide-react";
+import { ArrowLeft, Send, Plus, Trophy, Loader2, FileDown, Building2, Calendar as CalendarIcon, Globe, CreditCard, MapPin, Clock, Pencil, FolderOpen, FileText, Upload } from "lucide-react";
 import RFQComparisonDashboard from "@/components/procurement/RFQComparisonDashboard";
 import { RFQAuditTrail } from "@/components/procurement/RFQAuditTrail";
 import RFQQuoteSheetDialog from "@/components/procurement/RFQQuoteSheetDialog";
 import { toast } from "sonner";
+import RFQQuoteImportWizard from "@/components/procurement/RFQQuoteImportWizard";
 
 export default function RFQDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -49,6 +50,7 @@ export default function RFQDetailPage() {
   const [selectedQuoteIds, setSelectedQuoteIds] = useState<string[]>([]);
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [showQuoteSheet, setShowQuoteSheet] = useState(false);
+  const [showQuoteImport, setShowQuoteImport] = useState(false);
 
   if (isLoading) {
     return <div className="flex items-center justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
@@ -194,6 +196,9 @@ export default function RFQDetailPage() {
             <>
               <Button onClick={() => setShowQuoteSheet(true)}>
                 <Plus className="mr-2 h-4 w-4" /> Registar Cotação (Tabela)
+              </Button>
+              <Button variant="secondary" onClick={() => setShowQuoteImport(true)}>
+                <Upload className="mr-2 h-4 w-4" /> Importar Cotação (PDF/OCR)
               </Button>
               <Button variant="outline" onClick={() => setShowQuoteModal(true)}>
                 <Plus className="mr-2 h-4 w-4" /> Cotação Individual
@@ -532,6 +537,16 @@ export default function RFQDetailPage() {
         onOpenChange={setShowQuoteSheet}
         rfqId={rfq.id}
         suppliers={suppliers}
+      />
+
+      {/* Quote Import Wizard */}
+      <RFQQuoteImportWizard
+        open={showQuoteImport}
+        onOpenChange={setShowQuoteImport}
+        rfqId={rfq.id}
+        workspaceId={currentWorkspace?.id || ""}
+        suppliers={suppliers}
+        rfqItems={items}
       />
 
       {/* Add Supplier Modal */}

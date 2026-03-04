@@ -26739,6 +26739,173 @@ export type Database = {
           },
         ]
       }
+      rfq_quote_import_lines: {
+        Row: {
+          computed_unit_price: number | null
+          currency: string | null
+          description: string | null
+          discount_percent: number | null
+          error_text: string | null
+          id: string
+          import_id: string
+          lead_time_days: number | null
+          line_no: number
+          line_total: number | null
+          match_method: string | null
+          match_rfq_item_id: string | null
+          match_score: number | null
+          match_status: string | null
+          moq: number | null
+          normalized_json: Json | null
+          pack_size: number | null
+          parse_confidence: number | null
+          quantity: number | null
+          raw_text: string | null
+          unit_price: number | null
+          vat_percent: number | null
+          workspace_id: string
+        }
+        Insert: {
+          computed_unit_price?: number | null
+          currency?: string | null
+          description?: string | null
+          discount_percent?: number | null
+          error_text?: string | null
+          id?: string
+          import_id: string
+          lead_time_days?: number | null
+          line_no?: number
+          line_total?: number | null
+          match_method?: string | null
+          match_rfq_item_id?: string | null
+          match_score?: number | null
+          match_status?: string | null
+          moq?: number | null
+          normalized_json?: Json | null
+          pack_size?: number | null
+          parse_confidence?: number | null
+          quantity?: number | null
+          raw_text?: string | null
+          unit_price?: number | null
+          vat_percent?: number | null
+          workspace_id: string
+        }
+        Update: {
+          computed_unit_price?: number | null
+          currency?: string | null
+          description?: string | null
+          discount_percent?: number | null
+          error_text?: string | null
+          id?: string
+          import_id?: string
+          lead_time_days?: number | null
+          line_no?: number
+          line_total?: number | null
+          match_method?: string | null
+          match_rfq_item_id?: string | null
+          match_score?: number | null
+          match_status?: string | null
+          moq?: number | null
+          normalized_json?: Json | null
+          pack_size?: number | null
+          parse_confidence?: number | null
+          quantity?: number | null
+          raw_text?: string | null
+          unit_price?: number | null
+          vat_percent?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_quote_import_lines_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "rfq_quote_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_quote_import_lines_match_rfq_item_id_fkey"
+            columns: ["match_rfq_item_id"]
+            isOneToOne: false
+            referencedRelation: "rfq_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_quote_import_lines_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfq_quote_imports: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          file_name: string
+          file_type: string
+          file_url: string
+          id: string
+          meta_json: Json | null
+          rfq_id: string
+          status: string
+          supplier_id: string
+          totals_json: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          file_name: string
+          file_type?: string
+          file_url: string
+          id?: string
+          meta_json?: Json | null
+          rfq_id: string
+          status?: string
+          supplier_id: string
+          totals_json?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          file_name?: string
+          file_type?: string
+          file_url?: string
+          id?: string
+          meta_json?: Json | null
+          rfq_id?: string
+          status?: string
+          supplier_id?: string
+          totals_json?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_quote_imports_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "rfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_quote_imports_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_quote_imports_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rfq_quotes: {
         Row: {
           created_at: string
