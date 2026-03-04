@@ -5,24 +5,28 @@ import { QuickCommandGrid } from "@/components/command-center/QuickCommandGrid";
 import { CommandOutput } from "@/components/command-center/CommandOutput";
 import { ContextOSDashboard } from "@/components/context-os/ContextOSDashboard";
 import { ActionCommandPalette } from "@/components/command-center/ActionCommandPalette";
+import { KernelDecisionsPanel } from "@/components/kernel/KernelDecisionsPanel";
+import { KernelActionsLog } from "@/components/kernel/KernelActionsLog";
+import { DriftOverview } from "@/components/kernel/DriftOverview";
 import { useSlashCommands, SlashCommand } from "@/hooks/useSlashCommands";
 import { useAskFastCRM } from "@/hooks/useAskFastCRM";
 import { useRecentAskQueries } from "@/hooks/useRecentAskQueries";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useKernelDecisions } from "@/hooks/useKernelDecisions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Terminal, Clock, Zap, Database } from "lucide-react";
-import { useCallback as useCallbackR } from "react";
+import { Loader2, Terminal, Clock, Zap, Database, Brain, Activity } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 export default function CommandCenterPage() {
   const { currentWorkspace, loading } = useWorkspace();
   const slash = useSlashCommands();
   const ask = useAskFastCRM();
   const { data: recentQueries } = useRecentAskQueries();
+  const { openDecisions } = useKernelDecisions();
   const [cmdkOpen, setCmdkOpen] = useState(false);
 
-  // Cmd+K listener
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -75,6 +79,14 @@ export default function CommandCenterPage() {
               <TabsTrigger value="command" className="gap-1.5 text-xs data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
                 <Zap className="h-3.5 w-3.5" /> Comando
               </TabsTrigger>
+              <TabsTrigger value="decisions" className="gap-1.5 text-xs data-[state=active]:bg-chart-4/10 data-[state=active]:text-chart-4 relative">
+                <Brain className="h-3.5 w-3.5" /> Decisões
+                {(openDecisions?.length ?? 0) > 0 && (
+                  <Badge variant="destructive" className="h-4 min-w-4 px-1 text-[9px] ml-1">
+                    {openDecisions.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="context" className="gap-1.5 text-xs data-[state=active]:bg-gold/10 data-[state=active]:text-gold">
                 <Database className="h-3.5 w-3.5" /> Context OS
               </TabsTrigger>
@@ -82,7 +94,6 @@ export default function CommandCenterPage() {
           </div>
 
           <TabsContent value="command" className="space-y-8">
-            {/* Header */}
             <motion.div
               className="text-center space-y-2"
               initial={{ opacity: 0, y: -10 }}
@@ -101,12 +112,7 @@ export default function CommandCenterPage() {
               </p>
             </motion.div>
 
-            {/* Input */}
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.25 }}
-            >
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.25 }}>
               <CommandInput
                 onSubmit={handleTextSubmit}
                 onSlashCommand={handleSlashCommand}
@@ -114,7 +120,6 @@ export default function CommandCenterPage() {
               />
             </motion.div>
 
-            {/* Output */}
             <CommandOutput
               slashResult={slash.result}
               askResult={ask.result}
@@ -128,18 +133,30 @@ export default function CommandCenterPage() {
               isConfirmingAutomation={ask.isConfirmingAutomation}
             />
 
-            {/* Quick Commands */}
             {!hasOutput && (
-              <motion.div className="space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.25 }}>
-                <div className="flex items-center gap-2">
-                  <Terminal className="h-4 w-4 text-muted-foreground" />
-                  <h2 className="text-sm font-semibold text-muted-foreground">Comandos Rápidos</h2>
-                </div>
-                <QuickCommandGrid onSelect={handleQuickCommand} />
-              </motion.div>
+              <>
+                {/* Drift + Actions overview */}
+                <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15, duration: 0.25 }}>
+                  <DriftOverview />
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 px-1">
+                      <Activity className="h-4 w-4 text-muted-foreground" />
+                      <h2 className="text-sm font-semibold text-muted-foreground">Ações de Hoje</h2>
+                    </div>
+                    <KernelActionsLog />
+                  </div>
+                </motion.div>
+
+                <motion.div className="space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.25 }}>
+                  <div className="flex items-center gap-2">
+                    <Terminal className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="text-sm font-semibold text-muted-foreground">Comandos Rápidos</h2>
+                  </div>
+                  <QuickCommandGrid onSelect={handleQuickCommand} />
+                </motion.div>
+              </>
             )}
 
-            {/* Recent */}
             {recentQueries && recentQueries.length > 0 && !hasOutput && (
               <motion.div className="space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.25 }}>
                 <div className="flex items-center gap-2">
@@ -166,13 +183,26 @@ export default function CommandCenterPage() {
             )}
           </TabsContent>
 
+          <TabsContent value="decisions" className="space-y-6">
+            <motion.div className="text-center space-y-2" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-chart-4/10 border border-chart-4/20 text-chart-4 text-xs font-medium mb-2">
+                <Brain className="h-3 w-3" />
+                Kernel Decisions
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">Decisões Pendentes</h1>
+              <p className="text-sm text-muted-foreground">
+                O Kernel analisa sinais do sistema e recomenda ações
+              </p>
+            </motion.div>
+            <KernelDecisionsPanel />
+          </TabsContent>
+
           <TabsContent value="context">
             <ContextOSDashboard />
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* Action Command Palette (Cmd+K) */}
       <ActionCommandPalette open={cmdkOpen} onOpenChange={setCmdkOpen} />
     </DashboardLayout>
   );
