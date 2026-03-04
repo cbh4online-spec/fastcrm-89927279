@@ -1,73 +1,102 @@
 
 
-# FastCRM Event System (Kernel v1) — Implementation Plan
+# System Health & Diagnostics — Implementation Plan
 
-## Current State
+## Overview
 
-Most Kernel infrastructure already exists:
-- **Tables**: `kernel_events`, `kernel_entities`, `kernel_links`, `kernel_actions_registry`, `kernel_action_runs`, `kernel_decisions`, `kernel_decision_evidence`, `context_bindings`, `change_events`, `impact_map`, `drift_scores`
-- **Edge functions**: `kernel-ingest-event`, `kernel-process-events`, `kernel-compute-decisions`, `kernel-run-actions`, `kernel-compute-impact`, `kernel-compute-drift`
-- **Hooks**: `useKernelDecisions`, `useKernelActions`, `useKernelEntities`, `useDriftScores`, etc.
-- **UI**: `KernelDecisionsPanel`, `KernelActionsLog`, `DriftOverview` in Command Center
-- **Emitter**: `kernelEmitter.ts` exists but is **never called** from any module
+Create a dedicated `/dashboard/system/health` page that shows per-module health status, edge function performance, smoke test results, and a request correlation system. This is a new observability layer on top of the existing Kernel infrastructure.
 
-## What's Missing
+## 1. Database Migration (4 tables)
 
-| Gap | Details |
-|---|---|
-| `kernel_event_state` table | Consumer watermarks for batch processing |
-| `kernel_event_deadletter` table | Failed event storage for retry/debug |
-| Event emitters wired | `emitKernelEvent` never called — needs wiring into opportunity stage changes, conversation classification, context block updates |
-| `CONTEXT_DRIFT_HIGH` decision | Not in `kernel-compute-decisions` rules |
-| `NOTIFY_OWNER` action | Not in `kernel-run-actions` switch |
-| `useKernelEvents` hook | No hook to query/display recent kernel events |
-| Events timeline in Command Center | No recent events timeline UI |
-| Watermark-based processing | `kernel-process-events` uses timestamp param, not persistent watermark |
+**`system_function_runs`** — Log every edge function invocation:
+- `id`, `workspace_id`, `function_name`, `module_id`, `request_id` (correlation), `status` (success/error), `latency_ms`, `error_message`, `created_at`
+- RLS: workspace members can read
 
-## Implementation
+**`system_smoke_test_runs`** — Batch test execution records:
+- `id`, `workspace_id`, `started_at`, `finished_at`, `total_checks`, `passed`, `failed`, `status` (running/completed/failed)
+- RLS: workspace members can read
 
-### 1. Database Migration
-- Create `kernel_event_state` (consumer_id, last_event_id, last_processed_at, workspace_id)
-- Create `kernel_event_deadletter` (id, workspace_id, original_event jsonb, error text, retries int, created_at)
-- Seed `NOTIFY_OWNER` into `kernel_actions_registry`
-- RLS on both new tables scoped to workspace
+**`system_smoke_test_failures`** — Individual failed checks:
+- `id`, `run_id` (FK to smoke_test_runs), `workspace_id`, `module_id`, `check_name`, `error_message`, `created_at`
+- RLS: workspace members can read
 
-### 2. Edge Function Updates
+**`feature_registry_runtime`** — Runtime health per feature/module:
+- `id`, `workspace_id`, `module_id`, `status` (ok/degraded/down), `last_error`, `failures_24h`, `failures_7d`, `success_rate`, `p95_latency_ms`, `smoke_status` (pass/fail/pending), `computed_at`
+- RLS: workspace members can read
 
-**`kernel-process-events`**: Read/write watermark from `kernel_event_state` instead of relying on `since` param. On failure, insert into `kernel_event_deadletter`.
+## 2. Edge Functions (3 new)
 
-**`kernel-compute-decisions`**: Add Rule 4 — `CONTEXT_DRIFT_HIGH`: query `drift_scores` where score > 60, create decision with recommended actions (NOTIFY_OWNER + CREATE_TASK).
+### `system-log-function-run`
+- Input: `{ workspace_id, function_name, module_id, request_id, status, latency_ms, error? }`
+- Inserts into `system_function_runs`
+- Lightweight, fire-and-forget (called by other edge functions)
 
-**`kernel-run-actions`**: Add `NOTIFY_OWNER` case — looks up opportunity owner from entity, inserts alert targeted to that user.
+### `system-run-smoke-tests`
+- Creates a `system_smoke_test_runs` row
+- Runs minimal health checks per module:
+  - CRM: query `leads` count
+  - Inbox: query `conversations` count  
+  - Store: query `store_products` count
+  - Kernel: query `kernel_events` count
+  - AI: invoke `ai-copilot` with a ping payload
+- Logs failures to `system_smoke_test_failures`
+- Updates run status
 
-### 3. Event Emitters (Wiring)
+### `system-module-health`
+- Aggregates `system_function_runs` (24h + 7d failure counts, success rate, p95 latency)
+- Merges latest `system_smoke_test_failures` status
+- Computes module status: OK (>95% success, smoke pass), Degraded (>80%), Down (<80% or smoke fail)
+- Upserts into `feature_registry_runtime`
 
-Add `emitKernelEvent` calls in `onSuccess` of:
+## 3. Frontend
 
-- **`useMoveOpportunityEnhanced`** → `OPPORTUNITY.STAGE_CHANGED` (entity_kind: opportunity, payload: { stage_id, title })
-- **`useUpdateOpportunityEnhanced`** → `OPPORTUNITY.UPDATED`
-- **`useCloseOpportunity`** → `OPPORTUNITY.CLOSED` (payload: { status: won/lost })
+### Helper: `src/lib/requestId.ts`
+- `generateRequestId()` — returns a UUID v4 stored in a short-lived context
+- Used by UI actions and passed to edge function calls
 
-These are fire-and-forget calls in existing `onSuccess` callbacks — no behavioral change to existing mutations.
+### Hook: `src/hooks/useSystemHealth.ts`
+- Query `feature_registry_runtime` for workspace
+- Query latest `system_smoke_test_runs`
+- Trigger smoke tests + recompute health
 
-### 4. Frontend
+### Hook: `src/hooks/useSystemFunctionRuns.ts`
+- Query `system_function_runs` with filters (module, status, date range)
+- Stats aggregation (success rate, p95)
 
-**New hook `useKernelEvents`**: Query `kernel_events` for workspace, ordered by created_at desc, limit 20.
+### Page: `src/pages/SystemHealthPage.tsx`
+- **Header**: Workspace health score badge + "Run Smoke Tests" + "Recompute Health" buttons
+- **Module Grid**: Cards per module showing status (OK/Degraded/Down color), last error, 24h/7d failures, success rate, p95 latency, smoke status
+- **Function Runs Table**: Filterable table of recent edge function runs with request_id, status, latency, error
+- **Smoke Test History**: Latest runs with pass/fail summary and expandable failure details
 
-**New component `KernelEventsTimeline`**: Compact timeline showing recent kernel events with type icon, entity reference, and relative timestamp.
+### Route: Add to `src/App.tsx`
+- `<Route path="/dashboard/system/health" element={<SystemHealthPage />} />`
+- Lazy import of `SystemHealthPage`
 
-**Command Center update**: Add "Events" section below drift/actions overview showing the timeline.
+### Sidebar: Add "System Health" link under Admin section
 
-### File Plan
+## 4. Correlation ID Wiring
+
+### `src/lib/kernelEmitter.ts`
+- Update `emitKernelEvent` to accept optional `request_id` and include in payload
+
+### Edge function pattern
+- Each edge function that calls `system-log-function-run` extracts `request_id` from input body and passes it through
+- V1: wire into `kernel-ingest-event`, `kernel-process-events`, `kernel-compute-decisions` as examples
+
+## File Plan
 
 | File | Action |
 |---|---|
-| Migration SQL | 2 new tables + seed NOTIFY_OWNER |
-| `supabase/functions/kernel-process-events/index.ts` | Add watermark + deadletter logic |
-| `supabase/functions/kernel-compute-decisions/index.ts` | Add CONTEXT_DRIFT_HIGH rule |
-| `supabase/functions/kernel-run-actions/index.ts` | Add NOTIFY_OWNER case |
-| `src/hooks/useOpportunitiesEnhanced.ts` | Wire emitKernelEvent in 3 mutations |
-| `src/hooks/useKernelEvents.ts` | New — query kernel_events |
-| `src/components/kernel/KernelEventsTimeline.tsx` | New — timeline component |
-| `src/pages/CommandCenterPage.tsx` | Add events timeline section |
+| Migration SQL | 4 new tables |
+| `supabase/functions/system-log-function-run/index.ts` | New |
+| `supabase/functions/system-run-smoke-tests/index.ts` | New |
+| `supabase/functions/system-module-health/index.ts` | New |
+| `src/lib/requestId.ts` | New — request ID generator |
+| `src/hooks/useSystemHealth.ts` | New |
+| `src/hooks/useSystemFunctionRuns.ts` | New |
+| `src/pages/SystemHealthPage.tsx` | New — full diagnostics page |
+| `src/App.tsx` | Add route + lazy import |
+| `src/lib/kernelEmitter.ts` | Add request_id support |
+| `src/types/featureRegistry.ts` | Add System Health module entry |
 
