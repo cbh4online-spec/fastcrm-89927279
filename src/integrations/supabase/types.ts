@@ -4403,6 +4403,8 @@ export type Database = {
           id: string
           is_read: boolean | null
           listing_id: string
+          message_type: string
+          metadata: Json | null
           receiver_id: string
           sender_id: string
           workspace_id: string
@@ -4413,6 +4415,8 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           listing_id: string
+          message_type?: string
+          metadata?: Json | null
           receiver_id: string
           sender_id: string
           workspace_id: string
@@ -4423,6 +4427,8 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           listing_id?: string
+          message_type?: string
+          metadata?: Json | null
           receiver_id?: string
           sender_id?: string
           workspace_id?: string
