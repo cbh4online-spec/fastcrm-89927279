@@ -225,6 +225,7 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
     iconColor: "text-cyan-500",
     children: [
       { name: "Brief Executivo", href: "/dashboard/strategy", icon: Brain, iconColor: "text-cyan-500" },
+      { name: "Mapa de Impacto", href: "/dashboard/impact-map", icon: GitBranch, iconColor: "text-cyan-500" },
     ],
   },
   {
