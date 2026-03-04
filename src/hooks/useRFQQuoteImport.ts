@@ -32,6 +32,40 @@ export function useRFQQuoteImport(rfqId: string, workspaceId: string) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processResult, setProcessResult] = useState<any>(null);
 
+  const parseInvokeError = async (error: any, fallback = "Processing failed") => {
+    const context = error?.context;
+
+    try {
+      if (context && typeof context.json === "function") {
+        const payload = await context.json();
+        if (payload?.error) return payload.error;
+        if (payload?.message) return payload.message;
+      }
+
+      if (context && typeof context.text === "function") {
+        const text = await context.text();
+        if (text) {
+          try {
+            const parsed = JSON.parse(text);
+            if (parsed?.error) return parsed.error;
+            if (parsed?.message) return parsed.message;
+          } catch {
+            return text;
+          }
+        }
+      }
+
+      if (context && typeof context === "object") {
+        if (typeof context.error === "string") return context.error;
+        if (typeof context.message === "string") return context.message;
+      }
+    } catch {
+      // ignore and use fallback chain
+    }
+
+    return error?.message || fallback;
+  };
+
   // Upload file and create import record
   const uploadAndCreate = async (file: File, supplierId: string, meta: Record<string, any> = {}) => {
     const ext = file.name.split(".").pop()?.toLowerCase() || "pdf";
@@ -71,10 +105,8 @@ export function useRFQQuoteImport(rfqId: string, workspaceId: string) {
         body: { import_id: id },
       });
       if (error) {
-        const msg = error?.context
-          ? await error.context.json().then((j: any) => j.error).catch(() => error.message)
-          : error.message;
-        throw new Error(msg || "Processing failed");
+        const msg = await parseInvokeError(error, "Processing failed");
+        throw new Error(msg);
       }
       if (data?.error) throw new Error(data.error);
       return data;
@@ -113,9 +145,7 @@ export function useRFQQuoteImport(rfqId: string, workspaceId: string) {
         body: { line_id: lineId, rfq_item_id: rfqItemId },
       });
       if (error) {
-        const msg = error?.context
-          ? await error.context.json().then((j: any) => j.error).catch(() => error.message)
-          : error.message;
+        const msg = await parseInvokeError(error, "Erro ao atualizar match");
         throw new Error(msg);
       }
       return data;
@@ -133,9 +163,7 @@ export function useRFQQuoteImport(rfqId: string, workspaceId: string) {
         body: { import_id: importId, mode },
       });
       if (error) {
-        const msg = error?.context
-          ? await error.context.json().then((j: any) => j.error).catch(() => error.message)
-          : error.message;
+        const msg = await parseInvokeError(error, "Erro ao aplicar");
         throw new Error(msg);
       }
       if (data?.error) throw new Error(data.error);
