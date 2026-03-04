@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getShareUrl } from "@/utils/getShareUrl";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -161,7 +162,7 @@ export default function C2CListingDetail() {
 
             {/* Share buttons */}
             <ShareButtons
-              url={window.location.href}
+              url={getShareUrl("c2c-listing", (currentWorkspace?.slug || "") + "/" + id)}
               title={listing.title}
               description={`${listing.price.toFixed(2)} ${listing.currency}`}
             />
