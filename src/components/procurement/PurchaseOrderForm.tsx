@@ -5,11 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useSuppliers } from "@/hooks/useProcurement";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, ScanLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { BarcodeScannerModal } from "@/components/barcode/BarcodeScannerModal";
+import { useBarcodeLookup } from "@/hooks/useBarcodeLookup";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
@@ -43,6 +46,32 @@ export function PurchaseOrderForm({ open, onOpenChange, workspaceId, onSave }: P
   const [form, setForm] = useState({ supplier_id: "", expected_delivery: "", notes: "" });
   const [items, setItems] = useState<OrderItem[]>([{ product_id: "", product_name: "", quantity: 1, unit_price: 0 }]);
   const [saving, setSaving] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const { lookup } = useBarcodeLookup(workspaceId);
+
+  const handleBarcodeScan = useCallback(async (barcode: string) => {
+    const result = await lookup(barcode);
+    if (result.found && result.product_id) {
+      // Check if product already in items
+      const existingIdx = items.findIndex(i => i.product_id === result.product_id);
+      if (existingIdx >= 0) {
+        const updated = [...items];
+        updated[existingIdx].quantity += 1;
+        setItems(updated);
+        toast.success(`+1 ${result.name}`);
+      } else {
+        setItems([...items.filter(i => i.product_id), {
+          product_id: result.product_id,
+          product_name: result.name || "",
+          quantity: 1,
+          unit_price: result.base_price || 0,
+        }]);
+        toast.success(`Adicionado: ${result.name}`);
+      }
+    } else {
+      toast.warning(`Produto com barcode ${barcode} não encontrado`);
+    }
+  }, [lookup, items]);
 
   const addItem = () => setItems([...items, { product_id: "", product_name: "", quantity: 1, unit_price: 0 }]);
   const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
@@ -107,6 +136,7 @@ export function PurchaseOrderForm({ open, onOpenChange, workspaceId, onSave }: P
             <div className="flex items-center justify-between mb-2">
               <Label>{t("items")}</Label>
               <Button size="sm" variant="outline" onClick={addItem}><Plus className="h-3 w-3 mr-1" />{t("addItem")}</Button>
+              <Button size="sm" variant="outline" onClick={() => setScannerOpen(true)}><ScanLine className="h-3 w-3 mr-1" /> Scan</Button>
             </div>
             {items.map((item, i) => (
               <div key={i} className="grid grid-cols-[1fr_80px_100px_32px] gap-2 mb-2">
@@ -127,6 +157,11 @@ export function PurchaseOrderForm({ open, onOpenChange, workspaceId, onSave }: P
           <div><Label>{t("notes")}</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} /></div>
           <Button className="w-full" onClick={handleSubmit} disabled={saving || !form.supplier_id}>{saving ? "A guardar..." : t("newOrder")}</Button>
         </div>
+        <BarcodeScannerModal
+          open={scannerOpen}
+          onOpenChange={setScannerOpen}
+          onScan={handleBarcodeScan}
+        />
       </DialogContent>
     </Dialog>
   );

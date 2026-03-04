@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useProductInventory } from "@/hooks/useProductInventory";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,9 +9,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Package, AlertTriangle, Plus, Minus, Loader2, Search, ArrowLeft } from "lucide-react";
+import { Package, AlertTriangle, Plus, Minus, Loader2, Search, ArrowLeft, ScanLine } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { BarcodeScannerModal } from "@/components/barcode/BarcodeScannerModal";
+import { BarcodeResultPanel } from "@/components/barcode/BarcodeResultPanel";
+import { useBarcodeLookup } from "@/hooks/useBarcodeLookup";
 
 export default function B2BStockPage() {
   const { currentWorkspace } = useWorkspace();
@@ -23,6 +26,16 @@ export default function B2BStockPage() {
   const [adjustType, setAdjustType] = useState("in");
   const [adjustQty, setAdjustQty] = useState(1);
   const [adjustNotes, setAdjustNotes] = useState("");
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanResultOpen, setScanResultOpen] = useState(false);
+  const [scannedBarcode, setScannedBarcode] = useState("");
+  const { lookup, isLoading: scanLoading, result: scanResult, reset: resetScan } = useBarcodeLookup(currentWorkspace?.id);
+
+  const handleBarcodeScan = useCallback(async (barcode: string) => {
+    setScannedBarcode(barcode);
+    setScanResultOpen(true);
+    await lookup(barcode);
+  }, [lookup]);
 
   const filtered = inventory.filter((i) =>
     !search || i.product?.name?.toLowerCase().includes(search.toLowerCase()) || i.product?.sku?.toLowerCase().includes(search.toLowerCase())
@@ -55,10 +68,15 @@ export default function B2BStockPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Package className="h-6 w-6" /> Gestão de Stock B2B
+             <Package className="h-6 w-6" /> Gestão de Stock B2B
             </h1>
             <p className="text-muted-foreground">Inventário, alertas de ruptura e movimentações</p>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setScannerOpen(true)}>
+            <ScanLine className="h-4 w-4 mr-2" /> Scan
+          </Button>
         </div>
       </div>
 
@@ -164,6 +182,31 @@ export default function B2BStockPage() {
           </Table>
         </CardContent>
       </Card>
+      {/* Barcode Scanner */}
+      <BarcodeScannerModal
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
+        onScan={handleBarcodeScan}
+      />
+      <BarcodeResultPanel
+        open={scanResultOpen}
+        onOpenChange={(v) => {
+          setScanResultOpen(v);
+          if (!v) resetScan();
+        }}
+        result={scanResult}
+        barcode={scannedBarcode}
+        isLoading={scanLoading}
+        onAddQty={(productId) => {
+          setSelectedProductId(productId);
+          setAdjustType("in");
+          setAdjustQty(1);
+          setAdjustDialogOpen(true);
+        }}
+        onQuickCreate={(barcode) => {
+          window.open(`/mqpc?barcode=${encodeURIComponent(barcode)}`, "_blank");
+        }}
+      />
     </div>
   );
 }
