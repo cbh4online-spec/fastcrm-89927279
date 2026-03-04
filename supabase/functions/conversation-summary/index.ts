@@ -30,6 +30,8 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = performance.now();
+
   try {
     const { 
       messages, leadName, channel, lastMessageAt,
@@ -78,12 +80,7 @@ REGRAS IMPORTANTES:
 4. Identifique o status atual da conversa (ex: "Aguardando resposta", "Em negociação", "Cliente interessado")
 5. Destaque: interesse demonstrado, pedidos específicos, objeções, próximos passos acordados
 
-FORMATO DE RESPOSTA (JSON):
-{
-  "bulletPoints": ["ponto 1", "ponto 2", "ponto 3"],
-  "status": "status atual da conversa",
-  "lastAction": "quem enviou a última mensagem (cliente/equipa)"
-}`;
+Use a ferramenta summarize_conversation para retornar o resumo.`;
 
     const userPrompt = `Analise esta conversa${leadName ? ` com ${leadName}` : ""}${channel ? ` via ${channel}` : ""}:
 
@@ -93,7 +90,7 @@ ${timeSinceLastMessage ? `Última mensagem: ${timeSinceLastMessage}` : ""}
 
 Gere um resumo conciso seguindo o formato especificado.`;
 
-    // Use Lovable AI
+    // Use Lovable AI with tool calling for guaranteed schema
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -106,35 +103,59 @@ Gere um resumo conciso seguindo o formato especificado.`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "summarize_conversation",
+              description: "Create a concise summary of a business conversation",
+              parameters: {
+                type: "object",
+                properties: {
+                  bulletPoints: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "2-3 concise bullet points summarizing the conversation"
+                  },
+                  status: {
+                    type: "string",
+                    description: "Current status of the conversation (e.g. 'Aguardando resposta', 'Em negociação')"
+                  },
+                  lastAction: {
+                    type: "string",
+                    description: "Who sent the last message (cliente/equipa)"
+                  }
+                },
+                required: ["bulletPoints", "status", "lastAction"],
+                additionalProperties: false
+              }
+            }
+          }
+        ],
+        tool_choice: { type: "function", function: { name: "summarize_conversation" } },
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI API error:", errorText);
+      const latencyMs = Math.round(performance.now() - startTime);
+      console.error(`[CONV-SUMMARY] latency_ms=${latencyMs} status=error http_status=${response.status} error=${errorText}`);
       throw new Error(`AI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
 
-    // Parse JSON from response
-    let summary;
-    try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        summary = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("No JSON found in response");
-      }
-    } catch (parseError) {
-      console.error("Failed to parse AI response:", content);
-      summary = {
-        bulletPoints: ["Não foi possível gerar resumo automático"],
-        status: "Indeterminado",
-        lastAction: "desconhecido",
-      };
+    if (!toolCall || toolCall.function.name !== "summarize_conversation") {
+      const latencyMs = Math.round(performance.now() - startTime);
+      console.error(`[CONV-SUMMARY] latency_ms=${latencyMs} status=error reason=invalid_tool_call`);
+      throw new Error("Invalid response from AI - no tool call returned");
     }
+
+    const summary = JSON.parse(toolCall.function.arguments);
+    const latencyMs = Math.round(performance.now() - startTime);
+    const usage = data.usage;
+    console.log(`[CONV-SUMMARY] latency_ms=${latencyMs} status=ok bullets=${summary.bulletPoints?.length || 0} tokens_prompt=${usage?.prompt_tokens ?? 'n/a'} tokens_completion=${usage?.completion_tokens ?? 'n/a'}`);
 
     // Session mode: persist to conversation_sessions
     if (sessionMode && conversationId && workspaceId) {
@@ -146,7 +167,6 @@ Gere um resumo conciso seguindo o formato especificado.`;
 
         const summaryText = summary.bulletPoints.join(" | ");
 
-        // Upsert session with summary
         await supabaseAdmin
           .from("conversation_sessions")
           .update({
@@ -172,7 +192,8 @@ Gere um resumo conciso seguindo o formato especificado.`;
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in conversation-summary:", error);
+    const latencyMs = Math.round(performance.now() - startTime);
+    console.error(`[CONV-SUMMARY] latency_ms=${latencyMs} status=error error=${error instanceof Error ? error.message : "Unknown"}`);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : "Unknown error",

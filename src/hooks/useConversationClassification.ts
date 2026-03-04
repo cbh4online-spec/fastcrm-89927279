@@ -4,6 +4,8 @@ import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
+import { generateRequestId } from "@/lib/requestId";
 
 export type ConversationPriority = "high" | "medium" | "low";
 export type ConversationIntent = "support" | "sales" | "question" | "follow_up" | "complaint" | "other";
@@ -32,6 +34,9 @@ export function useClassifyConversation() {
       leadName?: string;
       channel?: string;
     }): Promise<ConversationClassification> => {
+      const correlationId = generateRequestId();
+      console.log(`[CLASSIFY] correlation_id=${correlationId} starting classification`);
+
       const { data, error } = await supabase.functions.invoke("classify-conversation", {
         body: { messages, leadName, channel },
       });
@@ -44,6 +49,7 @@ export function useClassifyConversation() {
         throw new Error(data.error);
       }
 
+      console.log(`[CLASSIFY] correlation_id=${correlationId} result: priority=${data.priority} intent=${data.intent}`);
       return data as ConversationClassification;
     },
     onError: (error) => {
@@ -93,11 +99,29 @@ export function useSaveClassification() {
         .single();
 
       if (error) throw error;
-      return data;
+      return { data, isAI, classification, conversationId };
     },
-    onSuccess: (data) => {
+    onSuccess: ({ data, isAI, classification, conversationId }) => {
       queryClient.invalidateQueries({ queryKey: ["conversations", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["conversation", data.id] });
+
+      // Emit CONVERSATION.FEEDBACK when user overrides AI classification
+      if (!isAI && currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CONVERSATION.FEEDBACK',
+          entity_kind: 'conversation',
+          entity_id: conversationId,
+          payload: {
+            user_classification: classification,
+            original_ai_priority: data.ai_priority,
+            original_ai_intent: data.ai_intent,
+            original_ai_sentiment: data.ai_sentiment,
+          },
+          source_module: 'ai-conversational',
+          correlation_id: generateRequestId(),
+        });
+      }
     },
   });
 }
@@ -146,7 +170,6 @@ export function useConfirmClassification() {
         const effectivePriority = conversation.user_priority || conversation.ai_priority;
         const effectiveIntent = conversation.user_intent || conversation.ai_intent;
 
-        // Add tags based on classification
         const newTags: string[] = [];
         if (effectivePriority === "high") newTags.push("prioridade-alta");
         if (effectiveIntent === "sales") newTags.push("potencial-venda");
@@ -154,7 +177,6 @@ export function useConfirmClassification() {
         if (effectiveIntent === "complaint") newTags.push("reclamacao");
 
         if (newTags.length > 0) {
-          // Get existing tags
           const { data: lead } = await workspaceClient
             .from("leads")
             .select("tags")
@@ -171,13 +193,37 @@ export function useConfirmClassification() {
         }
       }
 
-      return data;
+      return { data, conversation };
     },
-    onSuccess: (data) => {
+    onSuccess: ({ data, conversation }) => {
       queryClient.invalidateQueries({ queryKey: ["conversations", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["conversation", data.id] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       toast.success("Classificação confirmada e aplicada ao CRM");
+
+      // Emit CONVERSATION.CLASSIFIED kernel event
+      if (currentWorkspace?.id) {
+        const effectivePriority = conversation.user_priority || conversation.ai_priority;
+        const effectiveIntent = conversation.user_intent || conversation.ai_intent;
+        const effectiveSentiment = conversation.ai_sentiment;
+
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CONVERSATION.CLASSIFIED',
+          entity_kind: 'conversation',
+          entity_id: data.id,
+          payload: {
+            priority: effectivePriority,
+            intent: effectiveIntent,
+            sentiment: effectiveSentiment,
+            reasoning: null,
+            is_ai_confirmed: !conversation.user_priority && !conversation.user_intent,
+            has_user_override: !!(conversation.user_priority || conversation.user_intent),
+          },
+          source_module: 'ai-conversational',
+          correlation_id: generateRequestId(),
+        });
+      }
     },
     onError: () => {
       toast.error("Erro ao confirmar classificação");
