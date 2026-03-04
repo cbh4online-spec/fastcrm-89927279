@@ -56,12 +56,14 @@ export default function C2CMessages() {
     setMobileTab("chat");
   }, []);
 
-  const handleSend = useCallback((content: string) => {
+  const handleSend = useCallback((content: string, messageType?: string, metadata?: Record<string, unknown>) => {
     if (!selected) return;
     sendMessage.mutate({
       listingId: selected.listing_id,
       receiverId: selected.other_user_id,
       content,
+      messageType,
+      metadata,
     });
   }, [selected, sendMessage]);
 
