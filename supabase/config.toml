@@ -438,3 +438,15 @@ verify_jwt = false
 
 [functions.rfq-quote-apply]
 verify_jwt = false
+
+[functions.marketplace-track-click]
+verify_jwt = false
+
+[functions.marketplace-attribute-sale]
+verify_jwt = false
+
+[functions.marketplace-process-payouts]
+verify_jwt = false
+
+[functions.marketplace-payout-execute]
+verify_jwt = false

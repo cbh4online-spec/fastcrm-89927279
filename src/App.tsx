@@ -201,6 +201,9 @@ import C2CSponsorPortal from "./pages/c2c/C2CSponsorPortal";
 import C2CSponsorAdmin from "./pages/c2c/C2CSponsorAdmin";
 import C2CSellerDashboard from "./pages/c2c/C2CSellerDashboard";
 import C2CSellerArea from "./pages/c2c/C2CSellerArea";
+import C2CAffiliateCenter from "./pages/c2c/C2CAffiliateCenter";
+import C2CReferralCenter from "./pages/c2c/C2CReferralCenter";
+import C2CAffiliateAdmin from "./pages/c2c/C2CAffiliateAdmin";
 import C2CSellerProfile from "./pages/c2c/C2CSellerProfile";
 import C2CEditListing from "./pages/c2c/C2CEditListing";
 import C2CNotifications from "./pages/c2c/C2CNotifications";
@@ -557,6 +560,9 @@ function CRMRoutes() {
                 <Route path="/dashboard/c2c/sponsors" element={<C2CSponsorAdmin />} />
                 <Route path="/dashboard/c2c/analytics" element={<C2CSellerDashboard />} />
                 <Route path="/dashboard/c2c/seller-area" element={<C2CSellerArea />} />
+                <Route path="/dashboard/c2c/affiliates" element={<C2CAffiliateCenter />} />
+                <Route path="/dashboard/c2c/referrals" element={<C2CReferralCenter />} />
+                <Route path="/dashboard/c2c/affiliate-admin" element={<C2CAffiliateAdmin />} />
                 <Route path="/dashboard/c2c/notifications" element={<C2CNotifications />} />
                 <Route path="/dashboard/c2c/seller/:sellerId" element={<C2CSellerProfile />} />
                 <Route path="/dashboard/c2c/edit/:id" element={<C2CEditListing />} />
