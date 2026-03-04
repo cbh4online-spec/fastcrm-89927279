@@ -18,8 +18,10 @@ interface KernelEvent {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const startTime = Date.now();
+
   try {
-    const { workspace_id, events } = await req.json();
+    const { workspace_id, events, correlation_id } = await req.json();
     if (!workspace_id) throw new Error("workspace_id required");
 
     const supabase = createClient(
@@ -29,6 +31,35 @@ Deno.serve(async (req) => {
 
     const decisions: { decision: Record<string, unknown>; evidence: Record<string, unknown>[] }[] = [];
     const dedup7d = new Date(Date.now() - 7 * 86400_000).toISOString();
+
+    // Load workspace policies
+    const { data: policies } = await supabase
+      .from("kernel_policies")
+      .select("*")
+      .eq("workspace_id", workspace_id);
+
+    const getPolicy = (type: string) => {
+      const p = policies?.find(p => p.decision_type === type);
+      return p ? { mode: p.default_mode, approver_role: p.approver_role, risk_level: p.risk_thresholds } : { mode: "suggest" };
+    };
+
+    const getStatusFromPolicy = (type: string) => {
+      const policy = getPolicy(type);
+      if (policy.mode === "auto") return "open"; // will auto-execute
+      return "open";
+    };
+
+    // Helper: check dedup
+    async function isDuplicate(type: string): Promise<boolean> {
+      const { data } = await supabase
+        .from("kernel_decisions")
+        .select("id")
+        .eq("workspace_id", workspace_id)
+        .eq("type", type)
+        .gt("created_at", dedup7d)
+        .limit(1);
+      return (data?.length ?? 0) > 0;
+    }
 
     // Rule 1: Opportunity stale (>5 days no activity)
     const { data: staleOpps } = await supabase
@@ -40,17 +71,9 @@ Deno.serve(async (req) => {
       .limit(20);
 
     for (const opp of staleOpps ?? []) {
-      const { data: existing } = await supabase
-        .from("kernel_decisions")
-        .select("id")
-        .eq("workspace_id", workspace_id)
-        .eq("type", "opportunity_stale")
-        .gt("created_at", dedup7d)
-        .limit(1);
-
-      if (existing?.length) continue;
-
+      if (await isDuplicate("opportunity_stale")) continue;
       const staleDays = Math.floor((Date.now() - new Date(opp.updated_at).getTime()) / 86400_000);
+      const policy = getPolicy("opportunity_stale");
       decisions.push({
         decision: {
           workspace_id,
@@ -62,11 +85,11 @@ Deno.serve(async (req) => {
             { action_key: "CREATE_TASK", params: { title: `Fazer follow-up: ${opp.title}`, related_type: "opportunity", related_id: opp.id } },
             { action_key: "NOTIFY_OWNER", params: { title: `Oportunidade parada: ${opp.title}`, severity: "warn", entity_type: "opportunity", entity_id: opp.id } },
           ],
-          policy: { mode: "approval" },
-          status: "open",
+          policy,
+          status: getStatusFromPolicy("opportunity_stale"),
         },
         evidence: [
-          { evidence_type: "query", ref_id: opp.id, snippet: `Última atualização: ${opp.updated_at}, Stage: ${opp.stage}` },
+          { evidence_type: "query", ref_kind: "opportunity", ref_id: opp.id, snippet: `Última atualização: ${opp.updated_at}, Stage: ${opp.stage}` },
         ],
       });
     }
@@ -78,6 +101,7 @@ Deno.serve(async (req) => {
       );
 
       for (const evt of hotLeadEvents) {
+        const policy = getPolicy("hot_lead_detected");
         decisions.push({
           decision: {
             workspace_id,
@@ -89,11 +113,11 @@ Deno.serve(async (req) => {
               { action_key: "CREATE_TASK", params: { title: `Contactar lead quente: ${evt.entity_id}`, priority: "high" } },
               { action_key: "NOTIFY_OWNER", params: { title: "Lead quente detectado", severity: "info", entity_type: "conversation", entity_id: evt.entity_id } },
             ],
-            policy: { mode: "auto" },
-            status: "open",
+            policy,
+            status: getStatusFromPolicy("hot_lead_detected"),
           },
           evidence: [
-            { evidence_type: "event", ref_id: evt.id, snippet: JSON.stringify(evt.payload).slice(0, 200) },
+            { evidence_type: "event", ref_kind: "conversation", ref_id: evt.id, snippet: JSON.stringify(evt.payload).slice(0, 200) },
           ],
         });
       }
@@ -109,17 +133,9 @@ Deno.serve(async (req) => {
       .limit(10);
 
     for (const ds of lowScores ?? []) {
-      const { data: existing } = await supabase
-        .from("kernel_decisions")
-        .select("id")
-        .eq("workspace_id", workspace_id)
-        .eq("type", "deal_score_drop")
-        .gt("created_at", dedup7d)
-        .limit(1);
-
-      if (existing?.length) continue;
-
+      if (await isDuplicate("deal_score_drop")) continue;
       const oppTitle = (ds as any).opportunities?.title ?? ds.opportunity_id;
+      const policy = getPolicy("deal_score_drop");
       decisions.push({
         decision: {
           workspace_id,
@@ -131,11 +147,11 @@ Deno.serve(async (req) => {
             { action_key: "NOTIFY_OWNER", params: { title: `Deal em risco: ${oppTitle}`, severity: "risk", entity_type: "opportunity", entity_id: ds.opportunity_id } },
             { action_key: "RUN_AI_AGENT_JOB", params: { agent_type: "deal_rescue", entity_id: ds.opportunity_id } },
           ],
-          policy: { mode: "approval" },
-          status: "open",
+          policy,
+          status: getStatusFromPolicy("deal_score_drop"),
         },
         evidence: [
-          { evidence_type: "query", ref_id: ds.opportunity_id, snippet: `Score: ${ds.previous_score} → ${ds.score}` },
+          { evidence_type: "query", ref_kind: "deal_score", ref_id: ds.opportunity_id, snippet: `Score: ${ds.previous_score} → ${ds.score}` },
         ],
       });
     }
@@ -149,19 +165,11 @@ Deno.serve(async (req) => {
       .limit(10);
 
     for (const ds of highDrift ?? []) {
-      const { data: existing } = await supabase
-        .from("kernel_decisions")
-        .select("id")
-        .eq("workspace_id", workspace_id)
-        .eq("type", "context_drift_high")
-        .gt("created_at", dedup7d)
-        .limit(1);
-
-      if (existing?.length) continue;
-
+      if (await isDuplicate("context_drift_high")) continue;
       const blockInfo = (ds as any).context_blocks;
       const blockTitle = blockInfo?.title ?? ds.block_id;
       const blockType = blockInfo?.block_type ?? "block";
+      const policy = getPolicy("context_drift_high");
 
       decisions.push({
         decision: {
@@ -174,13 +182,41 @@ Deno.serve(async (req) => {
             { action_key: "NOTIFY_OWNER", params: { title: `Drift elevado: ${blockTitle}`, severity: "warn", entity_type: "context_block", entity_id: ds.block_id } },
             { action_key: "CREATE_TASK", params: { title: `Rever bloco de contexto: ${blockTitle}`, related_type: "context_block", related_id: ds.block_id } },
           ],
-          policy: { mode: "approval" },
-          status: "open",
+          policy,
+          status: getStatusFromPolicy("context_drift_high"),
         },
         evidence: [
-          { evidence_type: "query", ref_id: ds.block_id, snippet: `Drift score: ${ds.score}%, Tipo: ${blockType}` },
+          { evidence_type: "query", ref_kind: "context_block", ref_id: ds.block_id, snippet: `Drift score: ${ds.score}%, Tipo: ${blockType}` },
         ],
       });
+    }
+
+    // Rule 5: FUNNEL_LEAK — detect conversion drops from events
+    if (events?.length) {
+      const funnelEvents = (events as KernelEvent[]).filter(
+        e => e.type === "FUNNEL.CONVERSION_DROPPED" || e.type === "funnel.conversion_dropped"
+      );
+      for (const evt of funnelEvents) {
+        const policy = getPolicy("funnel_leak");
+        decisions.push({
+          decision: {
+            workspace_id,
+            type: "funnel_leak",
+            priority: 0.8,
+            summary: `Queda de conversão detectada no funil ${evt.entity_id}`,
+            rationale: `Evento de queda de conversão recebido: ${JSON.stringify(evt.payload).slice(0, 150)}`,
+            recommended_actions: [
+              { action_key: "NOTIFY_OWNER", params: { title: `Leak no funil: ${evt.entity_id}`, severity: "risk" } },
+              { action_key: "CREATE_TASK", params: { title: `Investigar queda de conversão: ${evt.entity_id}`, priority: "high" } },
+            ],
+            policy,
+            status: getStatusFromPolicy("funnel_leak"),
+          },
+          evidence: [
+            { evidence_type: "event", ref_kind: "funnel", ref_id: evt.id, snippet: JSON.stringify(evt.payload).slice(0, 200) },
+          ],
+        });
+      }
     }
 
     // Insert decisions + evidence
@@ -202,8 +238,18 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Log observability
+    supabase.from("system_function_runs").insert({
+      workspace_id,
+      function_name: "kernel-compute-decisions",
+      module_id: "kernel",
+      status: "success",
+      latency_ms: Date.now() - startTime,
+      request_id: correlation_id ?? null,
+    }).then(() => {});
+
     return new Response(
-      JSON.stringify({ created, total_rules_checked: 4 }),
+      JSON.stringify({ created, total_rules_checked: 5 }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

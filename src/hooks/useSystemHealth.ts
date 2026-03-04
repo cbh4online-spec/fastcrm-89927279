@@ -54,6 +54,36 @@ export function useSystemHealth() {
     enabled: !!wsId,
   });
 
+  // Deadletter count
+  const deadletterQuery = useQuery({
+    queryKey: ["system-health-deadletter", wsId],
+    queryFn: async () => {
+      if (!wsId) return 0;
+      const { count, error } = await supabase
+        .from("kernel_event_deadletter")
+        .select("*", { count: "exact", head: true })
+        .eq("workspace_id", wsId);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: !!wsId,
+  });
+
+  // Consumer status from kernel_event_state
+  const consumerStatusQuery = useQuery({
+    queryKey: ["system-health-consumers", wsId],
+    queryFn: async () => {
+      if (!wsId) return [];
+      const { data, error } = await supabase
+        .from("kernel_event_state")
+        .select("*")
+        .eq("workspace_id", wsId);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!wsId,
+  });
+
   const runSmokeTests = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("system-run-smoke-tests", {
@@ -91,6 +121,8 @@ export function useSystemHealth() {
     modules,
     smokeRuns: smokeRunsQuery.data ?? [],
     smokeFailures: smokeFailuresQuery.data ?? [],
+    deadletterCount: deadletterQuery.data ?? 0,
+    consumerStatus: consumerStatusQuery.data ?? [],
     healthScore,
     isLoading: modulesQuery.isLoading,
     runSmokeTests,

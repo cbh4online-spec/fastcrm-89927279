@@ -8,6 +8,8 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const startTime = Date.now();
+
   try {
     const body = await req.json().catch(() => ({}));
     const supabase = createClient(
@@ -19,6 +21,7 @@ Deno.serve(async (req) => {
     if (!workspaceId) throw new Error("workspace_id required");
 
     const consumerId = body.consumer_id ?? "default";
+    const correlationId = body.correlation_id ?? null;
 
     // Read watermark from kernel_event_state
     const { data: state } = await supabase
@@ -55,15 +58,17 @@ Deno.serve(async (req) => {
       await fetch(`${supabaseUrl}/functions/v1/kernel-compute-decisions`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ workspace_id: workspaceId, events }),
+        body: JSON.stringify({ workspace_id: workspaceId, events, correlation_id: correlationId }),
       });
     } catch (err) {
-      // Deadletter failed events
+      // Write to deadletter
       await supabase.from("kernel_event_deadletter").insert(
         events.map(e => ({
           workspace_id: workspaceId,
+          consumer_key: consumerId,
           original_event: e,
           error: `compute-decisions dispatch failed: ${(err as Error).message}`,
+          last_attempt_at: new Date().toISOString(),
         }))
       );
     }
@@ -72,7 +77,8 @@ Deno.serve(async (req) => {
     const changeEvents = events.filter(e =>
       ["created", "updated", "deleted", "published"].includes(e.type) ||
       e.type.includes("change") || e.type.includes("stage_changed") ||
-      e.type.includes("STAGE_CHANGED") || e.type.includes("UPDATED") || e.type.includes("CLOSED")
+      e.type.includes("STAGE_CHANGED") || e.type.includes("UPDATED") || e.type.includes("CLOSED") ||
+      e.type.includes("BLOCK_UPDATED")
     );
 
     if (changeEvents.length > 0) {
@@ -95,9 +101,20 @@ Deno.serve(async (req) => {
         consumer_id: consumerId,
         last_event_id: lastEvent.id,
         last_processed_at: lastEvent.created_at,
+        updated_at: new Date().toISOString(),
       },
       { onConflict: "workspace_id,consumer_id" }
     );
+
+    // Log observability
+    supabase.from("system_function_runs").insert({
+      workspace_id: workspaceId,
+      function_name: "kernel-process-events",
+      module_id: "kernel",
+      status: "success",
+      latency_ms: Date.now() - startTime,
+      request_id: correlationId,
+    }).then(() => {});
 
     return new Response(
       JSON.stringify({ processed: events.length, decisions_triggered: true, impact_triggered: changeEvents.length > 0 }),

@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { generateRequestId } from './requestId';
 
 /**
  * Emit a kernel event via the kernel-ingest-event edge function.
@@ -15,13 +16,19 @@ export async function emitKernelEvent(params: {
   source_module?: string;
   source_route?: string;
   idempotency_key?: string;
-  request_id?: string;
+  correlation_id?: string;
+  occurred_at?: string;
+  schema_version?: number;
 }) {
   try {
+    const correlation_id = params.correlation_id ?? generateRequestId();
     await supabase.functions.invoke('kernel-ingest-event', {
       body: {
         actor_type: 'user',
+        schema_version: 1,
+        occurred_at: new Date().toISOString(),
         ...params,
+        correlation_id,
       },
     });
   } catch (err) {

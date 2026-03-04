@@ -17819,6 +17819,7 @@ export type Database = {
       kernel_action_runs: {
         Row: {
           action_key: string
+          correlation_id: string | null
           created_at: string
           error: string | null
           finished_at: string | null
@@ -17832,6 +17833,7 @@ export type Database = {
         }
         Insert: {
           action_key: string
+          correlation_id?: string | null
           created_at?: string
           error?: string | null
           finished_at?: string | null
@@ -17845,6 +17847,7 @@ export type Database = {
         }
         Update: {
           action_key?: string
+          correlation_id?: string | null
           created_at?: string
           error?: string | null
           finished_at?: string | null
@@ -17917,6 +17920,7 @@ export type Database = {
           evidence_type: string
           id: string
           ref_id: string | null
+          ref_kind: string | null
           snippet: string | null
         }
         Insert: {
@@ -17925,6 +17929,7 @@ export type Database = {
           evidence_type: string
           id?: string
           ref_id?: string | null
+          ref_kind?: string | null
           snippet?: string | null
         }
         Update: {
@@ -17933,6 +17938,7 @@ export type Database = {
           evidence_type?: string
           id?: string
           ref_id?: string | null
+          ref_kind?: string | null
           snippet?: string | null
         }
         Relationships: [
@@ -18033,6 +18039,82 @@ export type Database = {
           },
         ]
       }
+      kernel_event_deadletter: {
+        Row: {
+          consumer_key: string | null
+          created_at: string
+          error: string | null
+          error_stack: string | null
+          id: string
+          last_attempt_at: string | null
+          original_event: Json | null
+          retry_count: number
+          workspace_id: string
+        }
+        Insert: {
+          consumer_key?: string | null
+          created_at?: string
+          error?: string | null
+          error_stack?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          original_event?: Json | null
+          retry_count?: number
+          workspace_id: string
+        }
+        Update: {
+          consumer_key?: string | null
+          created_at?: string
+          error?: string | null
+          error_stack?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          original_event?: Json | null
+          retry_count?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kernel_event_deadletter_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kernel_event_state: {
+        Row: {
+          consumer_id: string
+          last_event_id: string | null
+          last_processed_at: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          consumer_id?: string
+          last_event_id?: string | null
+          last_processed_at?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          consumer_id?: string
+          last_event_id?: string | null
+          last_processed_at?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kernel_event_state_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kernel_events: {
         Row: {
           actor_id: string | null
@@ -18042,7 +18124,10 @@ export type Database = {
           entity_kind: string
           id: string
           idempotency_key: string | null
+          ingested_at: string | null
+          occurred_at: string | null
           payload: Json | null
+          schema_version: number | null
           source_module: string | null
           source_route: string | null
           type: string
@@ -18056,7 +18141,10 @@ export type Database = {
           entity_kind: string
           id?: string
           idempotency_key?: string | null
+          ingested_at?: string | null
+          occurred_at?: string | null
           payload?: Json | null
+          schema_version?: number | null
           source_module?: string | null
           source_route?: string | null
           type: string
@@ -18070,7 +18158,10 @@ export type Database = {
           entity_kind?: string
           id?: string
           idempotency_key?: string | null
+          ingested_at?: string | null
+          occurred_at?: string | null
           payload?: Json | null
+          schema_version?: number | null
           source_module?: string | null
           source_route?: string | null
           type?: string
@@ -18123,6 +18214,96 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "kernel_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kernel_outcomes: {
+        Row: {
+          action_run_id: string | null
+          decision_id: string | null
+          id: string
+          occurred_at: string
+          outcome_type: string
+          outcome_value: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          action_run_id?: string | null
+          decision_id?: string | null
+          id?: string
+          occurred_at?: string
+          outcome_type: string
+          outcome_value?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          action_run_id?: string | null
+          decision_id?: string | null
+          id?: string
+          occurred_at?: string
+          outcome_type?: string
+          outcome_value?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kernel_outcomes_action_run_id_fkey"
+            columns: ["action_run_id"]
+            isOneToOne: false
+            referencedRelation: "kernel_action_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kernel_outcomes_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "kernel_decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kernel_outcomes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kernel_policies: {
+        Row: {
+          approver_role: string | null
+          decision_type: string
+          default_mode: string
+          id: string
+          risk_thresholds: Json | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          approver_role?: string | null
+          decision_type: string
+          default_mode?: string
+          id?: string
+          risk_thresholds?: Json | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          approver_role?: string | null
+          decision_type?: string
+          default_mode?: string
+          id?: string
+          risk_thresholds?: Json | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kernel_policies_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

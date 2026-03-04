@@ -5,7 +5,7 @@ import { useSystemFunctionRuns } from "@/hooks/useSystemFunctionRuns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Activity, ShieldCheck, ShieldAlert, ShieldX, FlaskConical, RefreshCw, Clock, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Activity, ShieldCheck, ShieldAlert, ShieldX, FlaskConical, RefreshCw, Clock, AlertTriangle, CheckCircle2, XCircle, Inbox, Radio } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -24,7 +24,7 @@ const smokeStatusConfig = {
 };
 
 export default function SystemHealthPage() {
-  const { modules, smokeRuns, smokeFailures, healthScore, isLoading, runSmokeTests, recomputeHealth } = useSystemHealth();
+  const { modules, smokeRuns, smokeFailures, deadletterCount, consumerStatus, healthScore, isLoading, runSmokeTests, recomputeHealth } = useSystemHealth();
   const { data: functionRuns, isLoading: runsLoading } = useSystemFunctionRuns({ limit: 30 });
   const [expandedRun, setExpandedRun] = useState<string | null>(null);
 
@@ -51,27 +51,73 @@ export default function SystemHealthPage() {
           ]}
         />
 
-        {/* Health Score Banner */}
-        {healthScore !== null && (
+        {/* Health Score Banner + Deadletter + Consumers */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {healthScore !== null && (
+            <Card className="border-border/50">
+              <CardContent className="flex items-center gap-4 py-4">
+                <div className={cn(
+                  "flex items-center justify-center h-14 w-14 rounded-xl text-xl font-bold",
+                  healthScore >= 95 ? "bg-emerald-500/10 text-emerald-500" :
+                  healthScore >= 80 ? "bg-amber-500/10 text-amber-500" :
+                  "bg-destructive/10 text-destructive"
+                )}>
+                  {healthScore}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">Health Score</p>
+                  <p className="text-xs text-muted-foreground">
+                    {modules.length} módulos monitorizados
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Deadletter Count */}
           <Card className="border-border/50">
             <CardContent className="flex items-center gap-4 py-4">
               <div className={cn(
                 "flex items-center justify-center h-14 w-14 rounded-xl text-xl font-bold",
-                healthScore >= 95 ? "bg-emerald-500/10 text-emerald-500" :
-                healthScore >= 80 ? "bg-amber-500/10 text-amber-500" :
-                "bg-destructive/10 text-destructive"
+                deadletterCount === 0 ? "bg-emerald-500/10 text-emerald-500" : "bg-destructive/10 text-destructive"
               )}>
-                {healthScore}
+                {deadletterCount}
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Workspace Health Score</p>
+                <p className="text-sm font-medium text-foreground">Deadletter Queue</p>
                 <p className="text-xs text-muted-foreground">
-                  {modules.length} módulos monitorizados · Média de success rate
+                  Eventos que falharam no processamento
                 </p>
               </div>
             </CardContent>
           </Card>
-        )}
+
+          {/* Consumer Status */}
+          <Card className="border-border/50">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Radio className="h-4 w-4 text-primary" />
+                <p className="text-sm font-medium text-foreground">Kernel Consumers</p>
+              </div>
+              {consumerStatus.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Nenhum consumer ativo</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {consumerStatus.map((c: any) => (
+                    <div key={`${c.workspace_id}-${c.consumer_id}`} className="flex items-center justify-between text-xs">
+                      <span className="font-mono text-muted-foreground">{c.consumer_id}</span>
+                      <span className="text-muted-foreground">
+                        {c.last_processed_at
+                          ? formatDistanceToNow(new Date(c.last_processed_at), { addSuffix: true, locale: pt })
+                          : "—"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Module Grid */}
         <div>
