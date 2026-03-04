@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import { Loader2, Save, Send, AlertTriangle, CheckCircle2, Percent, Clock, ChevronDown } from "lucide-react";
+import { Loader2, Save, Send, AlertTriangle, CheckCircle2, Percent, Clock, ChevronDown, X, RotateCcw } from "lucide-react";
 import { useRFQQuoteSheet, QuoteSheetRow } from "@/hooks/useRFQQuoteSheet";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +14,7 @@ interface RFQQuoteSheetDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   rfqId: string;
-  suppliers: any[]; // rfq_suppliers with suppliers relation
+  suppliers: any[];
 }
 
 type EditableField = "unit_price" | "discount_percent" | "vat_percent" | "lead_time_days" | "min_order_qty";
@@ -36,14 +36,14 @@ export default function RFQQuoteSheetDialog({ open, onOpenChange, rfqId, supplie
   const [loaded, setLoaded] = useState(false);
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
-  // Load sheet when supplier selected
   const handleSupplierChange = useCallback(async (supplierId: string) => {
     setSelectedSupplierId(supplierId);
     if (!supplierId) return;
     try {
       const data = await fetchSheet(rfqId, supplierId);
-      setRows(data.rows);
-      setOriginalRows(JSON.parse(JSON.stringify(data.rows)));
+      const rowsWithExcluded = data.rows.map(r => ({ ...r, excluded: false }));
+      setRows(rowsWithExcluded);
+      setOriginalRows(JSON.parse(JSON.stringify(rowsWithExcluded)));
       setCurrency(data.currency);
       setLoaded(true);
     } catch {
@@ -53,7 +53,24 @@ export default function RFQQuoteSheetDialog({ open, onOpenChange, rfqId, supplie
     }
   }, [rfqId, fetchSheet]);
 
-  // Cell change
+  // Toggle exclude
+  const toggleExclude = useCallback((rowIdx: number) => {
+    setRows(prev => {
+      const next = [...prev];
+      next[rowIdx] = { ...next[rowIdx], excluded: !next[rowIdx].excluded };
+      return next;
+    });
+  }, []);
+
+  // Update supplier_ref
+  const updateSupplierRef = useCallback((rowIdx: number, value: string) => {
+    setRows(prev => {
+      const next = [...prev];
+      next[rowIdx] = { ...next[rowIdx], supplier_ref: value };
+      return next;
+    });
+  }, []);
+
   const updateCell = useCallback((rowIdx: number, field: EditableField, value: string) => {
     setRows(prev => {
       const next = [...prev];
@@ -65,7 +82,6 @@ export default function RFQQuoteSheetDialog({ open, onOpenChange, rfqId, supplie
     });
   }, []);
 
-  // Keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent, rowIdx: number, fieldIdx: number) => {
     if (e.key === "Tab" || e.key === "Enter") {
       e.preventDefault();
@@ -89,13 +105,12 @@ export default function RFQQuoteSheetDialog({ open, onOpenChange, rfqId, supplie
     }
   }, [rows.length]);
 
-  // Paste support
   const handlePaste = useCallback((e: React.ClipboardEvent, startRowIdx: number, startFieldIdx: number) => {
     const text = e.clipboardData.getData("text/plain");
     if (!text) return;
 
     const pastedRows = text.split("\n").filter(r => r.trim());
-    if (pastedRows.length <= 1 && !text.includes("\t")) return; // Single value, let default handle
+    if (pastedRows.length <= 1 && !text.includes("\t")) return;
 
     e.preventDefault();
     setRows(prev => {
@@ -118,10 +133,14 @@ export default function RFQQuoteSheetDialog({ open, onOpenChange, rfqId, supplie
     });
   }, []);
 
-  // Validation
+  // Active (non-excluded) rows
+  const activeRows = useMemo(() => rows.filter(r => !r.excluded), [rows]);
+  const excludedCount = useMemo(() => rows.filter(r => r.excluded).length, [rows]);
+
   const cellErrors = useMemo(() => {
     const errors: Map<string, CellError> = new Map();
     rows.forEach((row, idx) => {
+      if (row.excluded) return;
       if (row.unit_price < 0) {
         errors.set(`${idx}-unit_price`, { field: "unit_price", message: "Preço inválido" });
       }
@@ -141,7 +160,6 @@ export default function RFQQuoteSheetDialog({ open, onOpenChange, rfqId, supplie
     return errors;
   }, [rows]);
 
-  // Changes count
   const changesCount = useMemo(() => {
     if (!originalRows.length) return 0;
     let count = 0;
@@ -151,11 +169,12 @@ export default function RFQQuoteSheetDialog({ open, onOpenChange, rfqId, supplie
       EDITABLE_FIELDS.forEach(f => {
         if ((row as any)[f] !== (orig as any)[f]) count++;
       });
+      if (row.supplier_ref !== orig.supplier_ref) count++;
+      if (row.excluded !== orig.excluded) count++;
     });
     return count;
   }, [rows, originalRows]);
 
-  // Calculations
   const calcSubtotal = (row: QuoteSheetRow) => {
     const base = row.unit_price * row.qty;
     const discount = base * (row.discount_percent / 100);
@@ -167,17 +186,15 @@ export default function RFQQuoteSheetDialog({ open, onOpenChange, rfqId, supplie
     return subtotal * (1 + row.vat_percent / 100);
   };
 
-  const grandSubtotal = useMemo(() => rows.reduce((s, r) => s + calcSubtotal(r), 0), [rows]);
-  const grandTotal = useMemo(() => rows.reduce((s, r) => s + calcTotal(r), 0), [rows]);
+  const grandSubtotal = useMemo(() => activeRows.reduce((s, r) => s + calcSubtotal(r), 0), [activeRows]);
+  const grandTotal = useMemo(() => activeRows.reduce((s, r) => s + calcTotal(r), 0), [activeRows]);
 
-  // Bulk apply actions
   const applyToAll = (field: EditableField, value: number) => {
-    setRows(prev => prev.map(r => ({ ...r, [field]: value })));
+    setRows(prev => prev.map(r => r.excluded ? r : { ...r, [field]: value }));
   };
 
-  // Save draft
-  const handleSaveDraft = async () => {
-    const saveRows = rows.map(r => ({
+  const buildSaveRows = (status: string) =>
+    activeRows.map(r => ({
       rfq_item_id: r.rfq_item_id,
       unit_price: r.unit_price,
       discount_percent: r.discount_percent,
@@ -186,16 +203,17 @@ export default function RFQQuoteSheetDialog({ open, onOpenChange, rfqId, supplie
       min_order_qty: r.min_order_qty,
       pack_size: r.pack_size,
       notes: r.notes,
-      status: "draft",
+      supplier_ref: r.supplier_ref,
+      status,
     }));
-    await upsertSheet({ rfq_id: rfqId, supplier_id: selectedSupplierId, rows: saveRows });
+
+  const handleSaveDraft = async () => {
+    await upsertSheet({ rfq_id: rfqId, supplier_id: selectedSupplierId, rows: buildSaveRows("draft") });
     setOriginalRows(JSON.parse(JSON.stringify(rows)));
   };
 
-  // Submit
   const handleSubmit = async () => {
-    // Check required: all unit_price > 0
-    const missing = rows.filter(r => !r.unit_price || r.unit_price <= 0);
+    const missing = activeRows.filter(r => !r.unit_price || r.unit_price <= 0);
     if (missing.length > 0) {
       const { toast } = await import("sonner");
       toast.error(`${missing.length} item(s) sem preço. Preencha todos os preços antes de submeter.`);
@@ -207,19 +225,7 @@ export default function RFQQuoteSheetDialog({ open, onOpenChange, rfqId, supplie
       return;
     }
 
-    // Save first, then submit
-    const saveRows = rows.map(r => ({
-      rfq_item_id: r.rfq_item_id,
-      unit_price: r.unit_price,
-      discount_percent: r.discount_percent,
-      vat_percent: r.vat_percent,
-      lead_time_days: r.lead_time_days,
-      min_order_qty: r.min_order_qty,
-      pack_size: r.pack_size,
-      notes: r.notes,
-      status: "submitted",
-    }));
-    await upsertSheet({ rfq_id: rfqId, supplier_id: selectedSupplierId, rows: saveRows });
+    await upsertSheet({ rfq_id: rfqId, supplier_id: selectedSupplierId, rows: buildSaveRows("submitted") });
     await submitSheet({ rfq_id: rfqId, supplier_id: selectedSupplierId });
     setOriginalRows(JSON.parse(JSON.stringify(rows)));
     onOpenChange(false);
@@ -236,6 +242,16 @@ export default function RFQQuoteSheetDialog({ open, onOpenChange, rfqId, supplie
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             Tabela de Cotação
+            {loaded && (
+              <Badge variant="secondary" className="text-xs">
+                {activeRows.length} de {rows.length} itens
+              </Badge>
+            )}
+            {excludedCount > 0 && (
+              <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">
+                {excludedCount} removido(s)
+              </Badge>
+            )}
             {changesCount > 0 && (
               <Badge variant="outline" className="text-xs">
                 {changesCount} alteração(ões)
@@ -292,12 +308,13 @@ export default function RFQQuoteSheetDialog({ open, onOpenChange, rfqId, supplie
               Nenhum item neste RFQ.
             </div>
           ) : (
-            <table className="w-full text-sm border-collapse" style={{ minWidth: "1100px" }}>
+            <table className="w-full text-sm border-collapse" style={{ minWidth: "1250px" }}>
               <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
                 <tr className="border-b border-border">
                   <th className="text-left px-2 py-2 font-medium text-muted-foreground w-10">#</th>
                   <th className="text-left px-2 py-2 font-medium text-muted-foreground min-w-[180px]">Produto</th>
                   <th className="text-left px-2 py-2 font-medium text-muted-foreground w-24">SKU</th>
+                  <th className="text-left px-2 py-2 font-medium text-muted-foreground w-28">Ref. Forn.</th>
                   <th className="text-right px-2 py-2 font-medium text-muted-foreground w-16">Qtd</th>
                   <th className="text-right px-2 py-2 font-medium text-muted-foreground w-28">Preço Unit. ({currency})</th>
                   <th className="text-right px-2 py-2 font-medium text-muted-foreground w-20">Desc. %</th>
@@ -306,17 +323,31 @@ export default function RFQQuoteSheetDialog({ open, onOpenChange, rfqId, supplie
                   <th className="text-right px-2 py-2 font-medium text-muted-foreground w-20">MOQ</th>
                   <th className="text-right px-2 py-2 font-medium text-muted-foreground w-28">Subtotal</th>
                   <th className="text-right px-2 py-2 font-medium text-muted-foreground w-28">Total c/ IVA</th>
+                  <th className="px-1 py-2 w-10"></th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, rowIdx) => (
                   <tr key={row.rfq_item_id} className={cn(
-                    "border-b border-border/50 hover:bg-muted/30 transition-colors",
-                    row.has_existing_quote && "bg-primary/5"
+                    "border-b border-border/50 transition-colors",
+                    row.excluded
+                      ? "opacity-40 bg-muted/20 line-through"
+                      : "hover:bg-muted/30",
+                    !row.excluded && row.has_existing_quote && "bg-primary/5"
                   )}>
                     <td className="px-2 py-1 text-muted-foreground">{row.line_number}</td>
                     <td className="px-2 py-1 font-medium truncate max-w-[200px]" title={row.product_name}>{row.product_name}</td>
                     <td className="px-2 py-1 text-muted-foreground font-mono text-xs">{row.sku}</td>
+                    <td className="px-1 py-1">
+                      <Input
+                        type="text"
+                        className="h-7 text-sm px-2 bg-transparent border-border/40 focus:border-primary"
+                        value={row.supplier_ref || ""}
+                        onChange={e => updateSupplierRef(rowIdx, e.target.value)}
+                        disabled={row.excluded}
+                        placeholder="—"
+                      />
+                    </td>
                     <td className="px-2 py-1 text-right">{row.qty} {row.unit}</td>
                     {EDITABLE_FIELDS.map((field, fieldIdx) => {
                       const cellKey = `${rowIdx}-${field}`;
@@ -337,24 +368,37 @@ export default function RFQQuoteSheetDialog({ open, onOpenChange, rfqId, supplie
                             onKeyDown={e => handleKeyDown(e, rowIdx, fieldIdx)}
                             onPaste={e => handlePaste(e, rowIdx, fieldIdx)}
                             title={error?.message}
+                            disabled={row.excluded}
                           />
                         </td>
                       );
                     })}
                     <td className="px-2 py-1 text-right font-medium tabular-nums">
-                      {calcSubtotal(row).toFixed(2)}
+                      {row.excluded ? "—" : calcSubtotal(row).toFixed(2)}
                     </td>
                     <td className="px-2 py-1 text-right font-medium tabular-nums">
-                      {calcTotal(row).toFixed(2)}
+                      {row.excluded ? "—" : calcTotal(row).toFixed(2)}
+                    </td>
+                    <td className="px-1 py-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn("h-6 w-6", row.excluded ? "text-primary hover:text-primary" : "text-muted-foreground hover:text-destructive")}
+                        onClick={() => toggleExclude(rowIdx)}
+                        title={row.excluded ? "Restaurar item" : "Remover item"}
+                      >
+                        {row.excluded ? <RotateCcw className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                      </Button>
                     </td>
                   </tr>
                 ))}
               </tbody>
               <tfoot className="bg-muted/40 font-medium">
                 <tr className="border-t-2 border-border">
-                  <td colSpan={9} className="px-2 py-2 text-right">Totais:</td>
+                  <td colSpan={10} className="px-2 py-2 text-right">Totais ({activeRows.length} itens):</td>
                   <td className="px-2 py-2 text-right tabular-nums">{grandSubtotal.toFixed(2)}</td>
                   <td className="px-2 py-2 text-right tabular-nums">{grandTotal.toFixed(2)}</td>
+                  <td></td>
                 </tr>
               </tfoot>
             </table>

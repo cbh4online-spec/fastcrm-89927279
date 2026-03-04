@@ -104,6 +104,7 @@ serve(async (req) => {
             min_order_qty: row.min_order_qty != null ? Number(row.min_order_qty) : null,
             pack_size: row.pack_size != null ? Number(row.pack_size) : null,
             notes: row.notes || null,
+            supplier_ref: row.supplier_ref || null,
             status: row.status || "draft",
             updated_at: new Date().toISOString(),
           };

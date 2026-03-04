@@ -1,0 +1,1 @@
+ALTER TABLE public.rfq_quotes ADD COLUMN IF NOT EXISTS supplier_ref text;
