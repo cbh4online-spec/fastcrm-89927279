@@ -15,6 +15,7 @@ export async function emitKernelEvent(params: {
   source_module?: string;
   source_route?: string;
   idempotency_key?: string;
+  request_id?: string;
 }) {
   try {
     await supabase.functions.invoke('kernel-ingest-event', {
