@@ -1,123 +1,127 @@
 
 
-# Context OS Phase 4 — Command Center Vivo
+# Phase 5 — Dependency Linking + Change Detection + Job Runner + Alert Policy + Telemetry
 
-## Overview
+## Current State
 
-Transform the Context OS from documentation into a living system with an Action Registry (cmdk), Event Bus, Dependency Graph, Drift Score, and Alerts. This is a large feature set; the plan is scoped to the PRD's MVP DONE CRITERIA.
+**Already exists (Phase 4):**
+- `context_dependencies` table (relation, strength, rule_json) + CRUD hook + UI tab
+- `context_drift` table + `compute-drift` edge function (score formula working)
+- `context_alerts` table + alerts panel with mark-read/resolve
+- `context_event_log` + event bus (mitt + persist)
+- `context_block_versions` table (block_id, version_number, snapshot_fields, change_summary)
+- Action Registry (15 actions) + ActionCommandPalette (⌘K)
+- `context_block_status` enum: `draft` | `approved`
 
-## What Already Exists
-
-- `context_blocks` + `context_fields` tables (8 block types, Phase 1-3 complete)
-- `context_block_versions`, `context_block_comments`, `context_block_attachments` (Phase 2)
-- `context-ai-assist` edge function (Phase 3)
-- `tasks` table exists but is scoped to leads/opportunities (`related_type CHECK IN ('lead','opportunity')`)
-- Existing `useSlashCommands` with 6 hardcoded commands
-- `CommandPalette` component using cmdk
-- No `context_dependencies`, `context_drift`, `alerts`, `event_log`, or `action_catalog` tables exist yet
-- `VisualDataModelPage` uses xyflow (Sprint 2 foundation ready)
+**Missing (this PRD):**
+1. Dependencies: `auto_detected`, `created_by`, more `relation_type` options, loop prevention
+2. Change Detection: `change_type` + `changed_fields` columns on versions
+3. Job Runner: `jobs` table + `process-jobs` edge function + cron
+4. Alert Policy: `alert_policy` table + `snooze_until`/`last_shown_at` on alerts + cooldown logic
+5. System Metrics: `system_metrics_daily` table + `compute-metrics` edge function
+6. System Health Score: computed from drift data
+7. Alerts page at `/alerts`
+8. Command Center dashboard enhancements (drift overview, health score)
 
 ## Database Migration
 
-**New tables:**
+### New tables
 
-1. **`context_dependencies`** — Dependency graph between blocks (source → target, relation type, strength 0-100)
-2. **`context_drift`** — Computed drift score per block (score, severity, stale_days, reasons_json). Unique on block_id.
-3. **`context_alerts`** — System-generated alerts with severity, CTA actions, related block. (Named `context_alerts` to avoid conflicts with any future generic alerts table)
-4. **`context_event_log`** — Persistent event log (type, actor, entity, payload, correlation_id). Named to avoid collision with `stripe_event_log`.
+1. **`jobs`** — async job queue
+   - `id, workspace_id, type, payload_json, status (pending/running/completed/failed/retry), attempts, max_attempts, run_after, last_error, created_at, updated_at`
 
-**Schema changes to existing tables:**
+2. **`alert_policy`** — per-workspace alert governance
+   - `workspace_id (PK), max_warn_per_day, max_risk_per_day, cooldown_hours`
 
-5. **`context_blocks`** — Add columns: `last_verified_at TIMESTAMPTZ`, `last_changed_at TIMESTAMPTZ DEFAULT now()`, `owner_user_id UUID`, `slug TEXT`, `content_json JSONB DEFAULT '{}'`, `metadata_json JSONB DEFAULT '{}'`
+3. **`system_metrics_daily`** — daily telemetry
+   - `id, workspace_id, metric_date, commands_executed, alerts_generated, alerts_resolved, tasks_created_system, tasks_completed, drift_blocks_warn, drift_blocks_risk, drift_blocks_critical, health_score, created_at`
+   - Unique on `(workspace_id, metric_date)`
 
-**Note:** The PRD's `action_catalog` table will be hardcoded in the frontend registry for MVP (synced later). The PRD's `tasks` and `alerts` tables are replaced by `context_alerts` and we extend the existing `tasks` table to support context blocks.
+### ALTER existing tables
 
-**Existing `tasks` table update:** Add `related_type` value `'context_block'` support — requires dropping and recreating the CHECK constraint.
+4. **`context_block_versions`** — add `change_type TEXT DEFAULT 'minor'`, `changed_fields TEXT[]`
 
-All tables scoped by workspace_id with RLS using `is_workspace_member`.
+5. **`context_dependencies`** — add `auto_detected BOOLEAN DEFAULT false`, `created_by UUID`
+
+6. **`context_alerts`** — add `snooze_until TIMESTAMPTZ`, `last_shown_at TIMESTAMPTZ`
+   - Update status check constraint to include `'snoozed'`
+
+### Constraints
+
+7. **`context_dependencies`** — CHECK `source_block_id != target_block_id`
+
+All tables get RLS scoped by workspace membership.
 
 ## Edge Functions
 
-### `compute-drift` (new)
-- For each active `context_block` in a workspace:
-  - Compute `stale_days` from `last_verified_at`
-  - Compute `dependency_impact` from `context_dependencies` where source blocks changed recently
-  - Count open tasks related to the block
-  - Apply drift formula → upsert into `context_drift`
-  - If severity crosses threshold → insert `context_alerts`
-- Called on-demand or after block updates
+### `process-jobs` (new)
+- Fetches up to 20 pending jobs where `run_after <= now()`
+- Sets status to `running`, executes handler based on `type`:
+  - `compute_drift` → calls compute-drift logic inline
+  - `compute_impact` → calls compute-impact logic inline
+  - `compute_metrics` → aggregates daily metrics
+  - `cleanup_alerts` → resolves old alerts (>30 days)
+  - `create_tasks_from_drift` → creates tasks for risk/critical blocks
+- On success: `status = completed`; on error: `attempts++`, retry if < max_attempts
 
-### `compute-impact` (new)
-- Given a `source_block_id`, traverse `context_dependencies` to find affected targets
-- Return list with impact scores
-- Used by the "Impact Map" action
+### `compute-metrics` (new)
+- Counts from `context_event_log` (commands_executed), `context_alerts`, `tasks`, `context_drift`
+- Computes health_score = 100 - (critical*5) - (risk*2) - (overdue_tasks*1), clamped 0-100
+- Upserts into `system_metrics_daily`
 
-## Frontend Architecture
+### Cron setup
+- SQL (via insert tool, not migration) to schedule:
+  - `process-jobs` every 5 minutes
+  - `compute-drift` every 6 hours
+  - `compute-metrics` daily
 
-### 1. Event Bus (`src/lib/eventBus.ts`)
-- Tiny mitt-based bus with `emitAndPersist(type, payload)` that:
-  - Emits to in-memory listeners
-  - Async inserts into `context_event_log`
-- Event types as TypeScript union (from PRD list)
+## Frontend Changes
 
-### 2. Action Registry (`src/lib/actionRegistry.ts`)
-- `Action` interface matching PRD spec (id, title, group, keywords, requires, run)
-- ~15 MVP actions across groups: Navigate, Create, Update, Analyze, Automate, Governance
-- Key actions: `context.verify_block`, `brief.generate_daily`, `impact.run`, `tasks.create_from_drift`, navigation shortcuts
-- Every `run()` calls `emitAndPersist('command.executed', ...)`
+### Hooks
+1. **`useJobs`** — query/create jobs
+2. **`useAlertPolicy`** — fetch/update workspace alert policy
+3. **`useSystemMetrics`** — fetch daily metrics + health score
+4. **`useContextAlerts`** — extend with snooze mutation, respect cooldown/snooze_until filtering
 
-### 3. Enhanced Command Palette (`src/components/command-center/ActionCommandPalette.tsx`)
-- Replace current cmdk integration with full Action Registry
-- Filter by keyword search + context (active block type, user role)
-- "Most urgent" actions pinned at top when drift severity >= risk
-- Keyboard shortcut: Cmd+K (reuse existing listener)
+### Components
+1. **`SystemHealthBadge`** — displays health score (excellent/stable/attention/critical) with color
+2. **`AlertPolicySettings`** — form to configure max alerts per day, cooldown
+3. **`SystemMetricsPanel`** — charts showing commands, alerts, tasks, drift over time
+4. **`AlertsPage`** — dedicated `/dashboard/alerts` page with full inbox (filter by status including snoozed)
 
-### 4. Drift Score UI
-- **Dashboard cards**: Add drift badge (OK/WARN/RISK/CRITICAL) + `stale_days` to each block card in `ContextOSDashboard`
-- **`ContextScoreRing`** enhancement: Show drift severity ring color
-- **`useContextDrift` hook**: Fetch drift data, trigger recompute on block changes
-
-### 5. Dependencies Management
-- **`useContextDependencies` hook**: CRUD for `context_dependencies`
-- **`ContextDependenciesTab`**: New tab in `ContextBlockDetail` showing linked blocks with relation type and strength
-- Simple UI to add/remove dependencies (select source/target block)
-
-### 6. Alerts Panel
-- **`useContextAlerts` hook**: Fetch/mark-read/resolve alerts
-- **`ContextAlertsPanel`**: Slide-in or inline panel showing unread alerts with CTA buttons that trigger actions from the registry
-- Sonner toasts on new critical/risk alerts
-
-### 7. Event Log Viewer
-- **`ContextEventLog`**: Simple scrollable list in a new tab showing recent events for the workspace (filterable by type)
+### Updates to existing
+1. **`ContextOSDashboard`** — add SystemHealthBadge in header, drift overview summary (OK/WARN/RISK/CRITICAL counts)
+2. **`ContextDependenciesTab`** — add relation types `depends_on`, `references`; show `auto_detected` badge
+3. **`useContextVersions`** — pass `change_type` and `changed_fields` when creating versions
+4. **`actionRegistry`** — add actions: `jobs.process`, `metrics.compute`, `alerts.cleanup`
+5. **Routing** — add `/dashboard/alerts` route
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `supabase/migrations/[ts]_phase4.sql` | New tables + ALTER context_blocks + indexes + RLS |
-| `supabase/functions/compute-drift/index.ts` | Drift computation edge function |
-| `supabase/functions/compute-impact/index.ts` | Impact traversal edge function |
-| `supabase/config.toml` | Add function entries |
-| `src/lib/eventBus.ts` | mitt event bus + persist |
-| `src/lib/actionRegistry.ts` | Action interface + registry |
-| `src/hooks/useContextDrift.ts` | Drift data + recompute trigger |
-| `src/hooks/useContextDependencies.ts` | Dependencies CRUD |
-| `src/hooks/useContextAlerts.ts` | Alerts CRUD |
-| `src/hooks/useContextEventLog.ts` | Event log query |
-| `src/components/command-center/ActionCommandPalette.tsx` | New cmdk with action registry |
-| `src/components/context-os/ContextDriftBadge.tsx` | Drift severity badge |
-| `src/components/context-os/ContextDependenciesTab.tsx` | Dependencies management tab |
-| `src/components/context-os/ContextAlertsPanel.tsx` | Alerts panel with CTAs |
-| `src/components/context-os/ContextOSDashboard.tsx` | Update: drift badges on cards |
-| `src/components/context-os/ContextBlockDetail.tsx` | Update: add Dependencies tab |
-| `src/pages/CommandCenterPage.tsx` | Update: integrate alerts + new palette |
+| Migration SQL | New tables (jobs, alert_policy, system_metrics_daily) + ALTER versions/deps/alerts |
+| `supabase/functions/process-jobs/index.ts` | Job runner edge function |
+| `supabase/functions/compute-metrics/index.ts` | Daily metrics computation |
+| `src/hooks/useJobs.ts` | Jobs CRUD hook |
+| `src/hooks/useAlertPolicy.ts` | Alert policy hook |
+| `src/hooks/useSystemMetrics.ts` | Metrics + health score hook |
+| `src/hooks/useContextAlerts.ts` | Extend with snooze |
+| `src/components/context-os/SystemHealthBadge.tsx` | Health score badge |
+| `src/components/context-os/SystemMetricsPanel.tsx` | Telemetry charts |
+| `src/components/context-os/AlertPolicySettings.tsx` | Policy config form |
+| `src/pages/AlertsPage.tsx` | Dedicated alerts inbox |
+| `src/components/context-os/ContextOSDashboard.tsx` | Add health + drift overview |
+| `src/components/context-os/ContextDependenciesTab.tsx` | Extended relation types |
+| `src/lib/actionRegistry.ts` | New actions |
+| `src/App.tsx` | Add alerts route |
 
-## Sequence (implementation order)
+## Implementation Order
 
-1. Database migration (all new tables + schema changes)
-2. Event bus + action registry (foundation layer)
-3. Edge functions (compute-drift, compute-impact)
-4. Hooks (drift, dependencies, alerts, event log)
-5. UI components (drift badges, dependencies tab, alerts panel, enhanced command palette)
-6. Wire everything together in CommandCenterPage + ContextOSDashboard
+1. Database migration (all schema changes)
+2. Edge functions (process-jobs, compute-metrics)
+3. Hooks (jobs, alert policy, metrics, alerts extension)
+4. UI components (health badge, metrics panel, policy settings, alerts page)
+5. Wire into dashboard + routing
+6. Cron setup (via insert tool)
 
