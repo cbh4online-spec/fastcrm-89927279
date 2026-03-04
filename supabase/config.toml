@@ -420,3 +420,12 @@ verify_jwt = false
 
 [functions.renewals-ai-suggestions]
 verify_jwt = false
+
+[functions.rfq-get-supplier-quote-sheet]
+verify_jwt = false
+
+[functions.rfq-upsert-quote-sheet]
+verify_jwt = false
+
+[functions.rfq-submit-quote-sheet]
+verify_jwt = false
