@@ -1,21 +1,28 @@
 import { useState } from "react";
 import { useContextBlocks, useOverallScore, useMissingFields, BLOCK_META, ContextBlock } from "@/hooks/useContextBlocks";
+import { useContextDrift } from "@/hooks/useContextDrift";
 import { ContextScoreRing } from "./ContextScoreRing";
 import { ContextBlockDetail } from "./ContextBlockDetail";
 import { ContextActionsPanel } from "./ContextActionsPanel";
+import { ContextAlertsPanel } from "./ContextAlertsPanel";
+import { ContextEventLog } from "./ContextEventLog";
+import { ContextDriftBadge } from "./ContextDriftBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { AlertTriangle, Edit3, Loader2, Database, Zap } from "lucide-react";
+import { AlertTriangle, Edit3, Loader2, Database, Zap, Bell, Activity, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useContextAlerts } from "@/hooks/useContextAlerts";
 
 export function ContextOSDashboard() {
   const { data: blocks, isLoading } = useContextBlocks();
   const overallScore = useOverallScore(blocks);
   const missingFields = useMissingFields(blocks);
+  const { getDriftForBlock, recompute } = useContextDrift();
+  const { unreadCount } = useContextAlerts();
   const [selectedBlock, setSelectedBlock] = useState<ContextBlock | null>(null);
-  const [showActions, setShowActions] = useState(false);
 
   if (isLoading) {
     return (
@@ -47,29 +54,39 @@ export function ContextOSDashboard() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => setShowActions(!showActions)}
-            className="gap-1.5 text-xs border-gold/30 text-gold hover:bg-gold/10"
+            onClick={() => recompute.mutate()}
+            disabled={recompute.isPending}
+            className="gap-1.5 text-xs"
           >
-            <Zap className="h-3.5 w-3.5" />
-            {showActions ? "Ver Blocos" : "Context-to-Actions"}
+            <RefreshCw className={cn("h-3.5 w-3.5", recompute.isPending && "animate-spin")} />
+            Drift
           </Button>
           <ContextScoreRing score={overallScore} size={80} strokeWidth={6} />
         </div>
       </motion.div>
 
-      {/* Actions Panel */}
-      {showActions && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
-        >
-          <ContextActionsPanel />
-        </motion.div>
-      )}
+      <Tabs defaultValue="blocks" className="space-y-4">
+        <TabsList className="bg-muted/30 border border-border/50">
+          <TabsTrigger value="blocks" className="gap-1.5 text-xs">
+            <Database className="h-3.5 w-3.5" /> Blocos
+          </TabsTrigger>
+          <TabsTrigger value="actions" className="gap-1.5 text-xs">
+            <Zap className="h-3.5 w-3.5" /> Actions
+          </TabsTrigger>
+          <TabsTrigger value="alerts" className="gap-1.5 text-xs relative">
+            <Bell className="h-3.5 w-3.5" /> Alertas
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[9px] text-destructive-foreground flex items-center justify-center font-bold">
+                {unreadCount}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="events" className="gap-1.5 text-xs">
+            <Activity className="h-3.5 w-3.5" /> Eventos
+          </TabsTrigger>
+        </TabsList>
 
-      {!showActions && (
-        <>
+        <TabsContent value="blocks" className="space-y-4">
           {/* Missing Fields Alert */}
           {missingFields.length > 0 && (
             <motion.div
@@ -100,6 +117,7 @@ export function ContextOSDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {(blocks || []).map((block, idx) => {
               const meta = BLOCK_META[block.block_type];
+              const drift = getDriftForBlock(block.id);
               return (
                 <motion.div
                   key={block.id}
@@ -121,15 +139,25 @@ export function ContextOSDashboard() {
                         <p className="text-[11px] text-muted-foreground">{meta.label}</p>
                       </div>
                     </div>
-                    <Badge
-                      variant={block.status === 'approved' ? 'default' : 'secondary'}
-                      className={cn(
-                        "text-[10px]",
-                        block.status === 'approved' && "bg-green-500/10 text-green-500 border-green-500/20"
+                    <div className="flex items-center gap-1.5">
+                      {drift && drift.severity !== 'ok' && (
+                        <ContextDriftBadge
+                          severity={drift.severity}
+                          score={drift.drift_score}
+                          staleDays={drift.stale_days}
+                          compact
+                        />
                       )}
-                    >
-                      {block.status === 'approved' ? 'Aprovado' : 'Rascunho'}
-                    </Badge>
+                      <Badge
+                        variant={block.status === 'approved' ? 'default' : 'secondary'}
+                        className={cn(
+                          "text-[10px]",
+                          block.status === 'approved' && "bg-green-500/10 text-green-500 border-green-500/20"
+                        )}
+                      >
+                        {block.status === 'approved' ? 'Aprovado' : 'Rascunho'}
+                      </Badge>
+                    </div>
                   </div>
 
                   {/* Score Bar */}
@@ -174,8 +202,23 @@ export function ContextOSDashboard() {
               );
             })}
           </div>
-        </>
-      )}
+        </TabsContent>
+
+        <TabsContent value="actions">
+          <ContextActionsPanel />
+        </TabsContent>
+
+        <TabsContent value="alerts">
+          <ContextAlertsPanel onBlockClick={(blockId) => {
+            const block = blocks?.find(b => b.id === blockId);
+            if (block) setSelectedBlock(block);
+          }} />
+        </TabsContent>
+
+        <TabsContent value="events">
+          <ContextEventLog />
+        </TabsContent>
+      </Tabs>
 
       {/* Block Detail Dialog */}
       {selectedBlock && (

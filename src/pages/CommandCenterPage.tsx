@@ -1,15 +1,17 @@
+import { useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { CommandInput } from "@/components/command-center/CommandInput";
 import { QuickCommandGrid } from "@/components/command-center/QuickCommandGrid";
 import { CommandOutput } from "@/components/command-center/CommandOutput";
 import { ContextOSDashboard } from "@/components/context-os/ContextOSDashboard";
+import { ActionCommandPalette } from "@/components/command-center/ActionCommandPalette";
 import { useSlashCommands, SlashCommand } from "@/hooks/useSlashCommands";
 import { useAskFastCRM } from "@/hooks/useAskFastCRM";
 import { useRecentAskQueries } from "@/hooks/useRecentAskQueries";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Terminal, Clock, Zap, Database } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback as useCallbackR } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +20,19 @@ export default function CommandCenterPage() {
   const slash = useSlashCommands();
   const ask = useAskFastCRM();
   const { data: recentQueries } = useRecentAskQueries();
+  const [cmdkOpen, setCmdkOpen] = useState(false);
+
+  // Cmd+K listener
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCmdkOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   const handleTextSubmit = useCallback((query: string) => {
     slash.clearResult();
@@ -82,7 +97,7 @@ export default function CommandCenterPage() {
                 O que quer saber?
               </h1>
               <p className="text-sm text-muted-foreground">
-                Pergunte em linguagem natural ou use <kbd className="px-1.5 py-0.5 rounded bg-muted text-[11px] font-mono">/</kbd> para comandos rápidos
+                Pergunte em linguagem natural ou use <kbd className="px-1.5 py-0.5 rounded bg-muted text-[11px] font-mono">/</kbd> para comandos rápidos · <kbd className="px-1.5 py-0.5 rounded bg-muted text-[11px] font-mono">⌘K</kbd> para ações
               </p>
             </motion.div>
 
@@ -156,6 +171,9 @@ export default function CommandCenterPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Action Command Palette (Cmd+K) */}
+      <ActionCommandPalette open={cmdkOpen} onOpenChange={setCmdkOpen} />
     </DashboardLayout>
   );
 }
