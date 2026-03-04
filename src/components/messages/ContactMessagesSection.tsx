@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { LinkedConversationsCard } from "./LinkedConversationsCard";
+import { EntityMessageHistory } from "./EntityMessageHistory";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -372,6 +373,9 @@ export function ContactMessagesSection({
 
   return (
     <div className="space-y-6">
+      {/* Message History */}
+      <EntityMessageHistory entityType={entityType} entityId={entityId} />
+
       {/* Header with channel selector */}
       <Card>
         <CardHeader className="pb-3">
