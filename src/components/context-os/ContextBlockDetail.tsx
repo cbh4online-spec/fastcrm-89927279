@@ -9,13 +9,14 @@ import { ContextScoreRing } from "./ContextScoreRing";
 import { ContextVersionsTab } from "./ContextVersionsTab";
 import { ContextCommentsTab } from "./ContextCommentsTab";
 import { ContextAttachmentsTab } from "./ContextAttachmentsTab";
+import { ContextAIAssistPanel } from "./ContextAIAssistPanel";
 import { TagInput } from "./TagInput";
 import {
   ContextBlock, BLOCK_META,
   useUpsertContextField, useUpdateBlockStatus, useUpdateBlockRichText, useUpdateBlockTags,
 } from "@/hooks/useContextBlocks";
 import { useCreateVersion } from "@/hooks/useContextVersions";
-import { Save, CheckCircle2, RotateCcw, FileText, List, Clock, MessageSquare, Paperclip } from "lucide-react";
+import { Save, CheckCircle2, RotateCcw, FileText, List, Clock, MessageSquare, Paperclip, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -45,7 +46,6 @@ export function ContextBlockDetail({ block, open, onOpenChange }: Props) {
       upsertField.mutateAsync({ fieldId, value })
     );
     await Promise.all(promises);
-    // Create version snapshot
     createVersion.mutate({ block, changeSummary: "Campos atualizados" });
     setLocalFields({});
     toast.success("Campos guardados");
@@ -84,9 +84,12 @@ export function ContextBlockDetail({ block, open, onOpenChange }: Props) {
         </DialogHeader>
 
         <Tabs defaultValue="fields" className="mt-2">
-          <TabsList className="w-full bg-muted/30 grid grid-cols-5">
+          <TabsList className="w-full bg-muted/30 grid grid-cols-6">
             <TabsTrigger value="fields" className="gap-1 text-[11px]">
               <List className="h-3 w-3" /> Campos
+            </TabsTrigger>
+            <TabsTrigger value="ai" className="gap-1 text-[11px]">
+              <Sparkles className="h-3 w-3" /> IA
             </TabsTrigger>
             <TabsTrigger value="summary" className="gap-1 text-[11px]">
               <FileText className="h-3 w-3" /> Resumo
@@ -95,7 +98,7 @@ export function ContextBlockDetail({ block, open, onOpenChange }: Props) {
               <Clock className="h-3 w-3" /> Versões
             </TabsTrigger>
             <TabsTrigger value="comments" className="gap-1 text-[11px]">
-              <MessageSquare className="h-3 w-3" /> Comentários
+              <MessageSquare className="h-3 w-3" /> Chat
             </TabsTrigger>
             <TabsTrigger value="attachments" className="gap-1 text-[11px]">
               <Paperclip className="h-3 w-3" /> Anexos
@@ -117,6 +120,10 @@ export function ContextBlockDetail({ block, open, onOpenChange }: Props) {
             >
               <Save className="h-4 w-4" /> Guardar Campos
             </Button>
+          </TabsContent>
+
+          <TabsContent value="ai" className="mt-4">
+            <ContextAIAssistPanel block={block} />
           </TabsContent>
 
           <TabsContent value="summary" className="space-y-4 mt-4">

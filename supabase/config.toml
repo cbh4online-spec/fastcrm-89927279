@@ -1,5 +1,8 @@
 project_id = "eumnfkccyvlyoyjchiwe"
 
+[functions.context-ai-assist]
+verify_jwt = false
+
 [functions.instagram-oauth-callback]
 verify_jwt = false
 
