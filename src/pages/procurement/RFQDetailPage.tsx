@@ -22,10 +22,12 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ArrowLeft, Send, Plus, Trophy, Loader2, FileDown, Building2, Calendar as CalendarIcon, Globe, CreditCard, MapPin, Clock, Pencil, FolderOpen, FileText, Upload } from "lucide-react";
 import RFQComparisonDashboard from "@/components/procurement/RFQComparisonDashboard";
+import RFQAnalysisTab from "@/components/procurement/RFQAnalysisTab";
 import { RFQAuditTrail } from "@/components/procurement/RFQAuditTrail";
 import RFQQuoteSheetDialog from "@/components/procurement/RFQQuoteSheetDialog";
 import { toast } from "sonner";
 import RFQQuoteImportWizard from "@/components/procurement/RFQQuoteImportWizard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function RFQDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -457,21 +459,33 @@ export default function RFQDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Comparison Dashboard */}
-      <RFQComparisonDashboard
-        quotes={quotes}
-        items={items}
-        supplierIds={supplierIds}
-        supplierNames={supplierNames}
-        selectedQuoteIds={selectedQuoteIds}
-        setSelectedQuoteIds={setSelectedQuoteIds}
-      />
+      {/* Tabs: Comparison, Analysis, Audit */}
+      <Tabs defaultValue={quotes.length > 0 ? "analysis" : "comparison"} className="w-full">
+        <TabsList>
+          <TabsTrigger value="comparison">Cotações</TabsTrigger>
+          <TabsTrigger value="analysis">Análise & Sugestão</TabsTrigger>
+          <TabsTrigger value="audit">Histórico</TabsTrigger>
+        </TabsList>
+        <TabsContent value="comparison" className="mt-4">
+          <RFQComparisonDashboard
+            quotes={quotes}
+            items={items}
+            supplierIds={supplierIds}
+            supplierNames={supplierNames}
+            selectedQuoteIds={selectedQuoteIds}
+            setSelectedQuoteIds={setSelectedQuoteIds}
+          />
+        </TabsContent>
+        <TabsContent value="analysis" className="mt-4">
+          <RFQAnalysisTab rfqId={rfq.id} hasEditPermission={hasEditPermission} />
+        </TabsContent>
+        <TabsContent value="audit" className="mt-4">
+          <RFQAuditTrail rfqId={rfq.id} />
+        </TabsContent>
+      </Tabs>
 
       {/* Generated POs Section */}
       {rfq.status === "awarded" && <GeneratedPOsCard rfqId={rfq.id} />}
-
-      {/* Audit Trail */}
-      <RFQAuditTrail rfqId={rfq.id} />
 
       {/* Add Quote Modal */}
       <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>

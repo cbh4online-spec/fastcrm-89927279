@@ -26596,6 +26596,138 @@ export type Database = {
           },
         ]
       }
+      rfq_award_items: {
+        Row: {
+          award_id: string
+          created_at: string
+          id: string
+          rank_alternatives: Json | null
+          rationale_text: string | null
+          rfq_item_id: string
+          score_json: Json | null
+          selected_qty: number
+          selected_quote_id: string | null
+          selected_supplier_id: string
+          workspace_id: string
+        }
+        Insert: {
+          award_id: string
+          created_at?: string
+          id?: string
+          rank_alternatives?: Json | null
+          rationale_text?: string | null
+          rfq_item_id: string
+          score_json?: Json | null
+          selected_qty?: number
+          selected_quote_id?: string | null
+          selected_supplier_id: string
+          workspace_id: string
+        }
+        Update: {
+          award_id?: string
+          created_at?: string
+          id?: string
+          rank_alternatives?: Json | null
+          rationale_text?: string | null
+          rfq_item_id?: string
+          score_json?: Json | null
+          selected_qty?: number
+          selected_quote_id?: string | null
+          selected_supplier_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_award_items_award_id_fkey"
+            columns: ["award_id"]
+            isOneToOne: false
+            referencedRelation: "rfq_awards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_award_items_rfq_item_id_fkey"
+            columns: ["rfq_item_id"]
+            isOneToOne: false
+            referencedRelation: "rfq_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_award_items_selected_quote_id_fkey"
+            columns: ["selected_quote_id"]
+            isOneToOne: false
+            referencedRelation: "rfq_quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_award_items_selected_supplier_id_fkey"
+            columns: ["selected_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_award_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfq_awards: {
+        Row: {
+          analysis_json: Json | null
+          created_at: string
+          created_by: string | null
+          id: string
+          rfq_id: string
+          status: string
+          strategy: string
+          updated_at: string
+          weights_json: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          analysis_json?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          rfq_id: string
+          status?: string
+          strategy?: string
+          updated_at?: string
+          weights_json?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          analysis_json?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          rfq_id?: string
+          status?: string
+          strategy?: string
+          updated_at?: string
+          weights_json?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_awards_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "rfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_awards_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rfq_items: {
         Row: {
           created_at: string
