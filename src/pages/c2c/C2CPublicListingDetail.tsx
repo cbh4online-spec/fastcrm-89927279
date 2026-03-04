@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
+import { C2CPublicOfferDialog } from "@/components/c2c/C2CPublicOfferDialog";
 import { getShareUrl } from "@/utils/getShareUrl";
 import {
-  ArrowLeft, MapPin, Eye, Clock, ShieldCheck, MessageCircle,
+  ArrowLeft, MapPin, Eye, Clock, ShieldCheck, MessageCircle, HandCoins,
   ChevronLeft, ChevronRight, User, Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -275,12 +276,25 @@ export default function C2CPublicListingDetail() {
                 </div>
 
                 {/* CTA */}
-                <Button
-                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-zinc-950 font-semibold h-12 text-base"
-                  onClick={() => navigate(`/c2c/${workspaceSlug}/sell`)}
-                >
-                  <MessageCircle className="h-5 w-5 mr-2" /> Contactar vendedor
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-zinc-950 font-semibold h-12 text-base"
+                    onClick={() => navigate(`/c2c/${workspaceSlug}/sell`)}
+                  >
+                    <MessageCircle className="h-5 w-5 mr-2" /> Contactar vendedor
+                  </Button>
+
+                  {workspace && (
+                    <C2CPublicOfferDialog
+                      listingId={listing.id}
+                      listingTitle={listing.title}
+                      originalPrice={listing.price}
+                      currency={listing.currency ?? "EUR"}
+                      workspaceId={workspace.id}
+                      sellerId={listing.seller_id}
+                    />
+                  )}
+                </div>
               </motion.div>
 
               {/* Seller card */}
