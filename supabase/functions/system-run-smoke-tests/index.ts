@@ -12,6 +12,25 @@ interface CheckResult {
   error?: string;
 }
 
+async function runCheck(
+  supabase: ReturnType<typeof createClient>,
+  workspace_id: string,
+  module_id: string,
+  check_name: string,
+  table: string,
+): Promise<CheckResult> {
+  try {
+    const { error } = await supabase
+      .from(table)
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspace_id);
+    if (error) throw error;
+    return { module_id, check_name, passed: true };
+  } catch (e) {
+    return { module_id, check_name, passed: false, error: (e as Error).message };
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -34,52 +53,23 @@ Deno.serve(async (req) => {
 
     if (runErr) throw runErr;
 
-    const checks: CheckResult[] = [];
-
-    // CRM check: query leads
-    try {
-      const { count, error } = await supabase.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", workspace_id);
-      if (error) throw error;
-      checks.push({ module_id: "crm-leads", check_name: "leads_query", passed: true });
-    } catch (e) {
-      checks.push({ module_id: "crm-leads", check_name: "leads_query", passed: false, error: (e as Error).message });
-    }
-
-    // Inbox check: query conversations
-    try {
-      const { count, error } = await supabase.from("conversations").select("id", { count: "exact", head: true }).eq("workspace_id", workspace_id);
-      if (error) throw error;
-      checks.push({ module_id: "inbox", check_name: "conversations_query", passed: true });
-    } catch (e) {
-      checks.push({ module_id: "inbox", check_name: "conversations_query", passed: false, error: (e as Error).message });
-    }
-
-    // Store check: query store_products
-    try {
-      const { count, error } = await supabase.from("store_products").select("id", { count: "exact", head: true }).eq("workspace_id", workspace_id);
-      if (error) throw error;
-      checks.push({ module_id: "store", check_name: "store_products_query", passed: true });
-    } catch (e) {
-      checks.push({ module_id: "store", check_name: "store_products_query", passed: false, error: (e as Error).message });
-    }
-
-    // Kernel check: query kernel_events
-    try {
-      const { count, error } = await supabase.from("kernel_events").select("id", { count: "exact", head: true }).eq("workspace_id", workspace_id);
-      if (error) throw error;
-      checks.push({ module_id: "kernel", check_name: "kernel_events_query", passed: true });
-    } catch (e) {
-      checks.push({ module_id: "kernel", check_name: "kernel_events_query", passed: false, error: (e as Error).message });
-    }
-
-    // AI check: query ai_agent_executions (lightweight)
-    try {
-      const { count, error } = await supabase.from("ai_agent_executions").select("id", { count: "exact", head: true }).eq("workspace_id", workspace_id);
-      if (error) throw error;
-      checks.push({ module_id: "ai-agents", check_name: "ai_executions_query", passed: true });
-    } catch (e) {
-      checks.push({ module_id: "ai-agents", check_name: "ai_executions_query", passed: false, error: (e as Error).message });
-    }
+    // Run all checks in parallel
+    const checks = await Promise.all([
+      // CRM
+      runCheck(supabase, workspace_id, "crm-leads", "leads_query", "leads"),
+      runCheck(supabase, workspace_id, "crm-opportunities", "opportunities_query", "opportunities"),
+      // Inbox
+      runCheck(supabase, workspace_id, "inbox", "conversations_query", "conversations"),
+      runCheck(supabase, workspace_id, "inbox-messages", "messages_query", "messages"),
+      // Context OS
+      runCheck(supabase, workspace_id, "context-os", "context_blocks_query", "context_blocks"),
+      runCheck(supabase, workspace_id, "context-os-fields", "context_fields_query", "context_fields"),
+      // AI Agents
+      runCheck(supabase, workspace_id, "ai-agents", "ai_jobs_query", "ai_agent_jobs"),
+      runCheck(supabase, workspace_id, "ai-agents-registry", "ai_registry_query", "ai_agent_registry"),
+      // Kernel
+      runCheck(supabase, workspace_id, "kernel", "kernel_events_query", "kernel_events"),
+    ]);
 
     // Log failures
     const failures = checks.filter((c) => !c.passed);

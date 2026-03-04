@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
+import { generateRequestId } from "@/lib/requestId";
 import type {
   AgentJob,
   LifecycleResponse,
@@ -105,7 +107,7 @@ export function useAgentLifecycle(options: UseAgentLifecycleOptions) {
       if (error) throw error;
       return data as LifecycleResponse;
     },
-    onSuccess: (response) => {
+    onSuccess: (response, variables) => {
       queryClient.invalidateQueries({ queryKey: ['agent-jobs', workspaceId, entityId] });
 
       if (response.alreadyExists) {
@@ -116,6 +118,25 @@ export function useAgentLifecycle(options: UseAgentLifecycleOptions) {
         toast.success('Análise agendada', {
           description: `Posição na fila: ${response.queuePosition}`,
         });
+
+        // Kernel event: job dispatched
+        if (workspaceId && entityId) {
+          emitKernelEvent({
+            workspace_id: workspaceId,
+            type: 'AGENT.JOB_DISPATCHED',
+            entity_kind: 'ai_agent_job',
+            entity_id: response.jobId,
+            payload: {
+              agent_type: agentType || entityType,
+              entity_id: entityId,
+              entity_type: entityType,
+              trigger_type: variables.triggerType,
+              queue_position: response.queuePosition,
+            },
+            source_module: 'ai-agents',
+            correlation_id: generateRequestId(),
+          });
+        }
       }
     },
     onError: (error: Error) => {

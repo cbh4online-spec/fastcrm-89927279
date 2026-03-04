@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 import { useCallback, useMemo } from "react";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
+import { generateRequestId } from "@/lib/requestId";
 
 export type ContextBlockType = 
   | 'strategy' | 'business_model' | 'offers' | 'team'
@@ -180,9 +182,22 @@ export function useUpdateBlockStatus() {
         .eq("id", blockId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["context-blocks", currentWorkspace?.id] });
       toast.success("Status atualizado");
+
+      // Kernel event: status changed
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CONTEXT.STATUS_CHANGED',
+          entity_kind: 'context_block',
+          entity_id: variables.blockId,
+          payload: { status: variables.status },
+          source_module: 'strategy-context-os',
+          correlation_id: generateRequestId(),
+        });
+      }
     },
     onError: (err: Error) => toast.error("Erro: " + err.message),
   });
@@ -200,9 +215,22 @@ export function useUpdateBlockRichText() {
         .eq("id", blockId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["context-blocks", currentWorkspace?.id] });
       toast.success("Resumo guardado");
+
+      // Kernel event: rich text updated
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CONTEXT.RICH_TEXT_UPDATED',
+          entity_kind: 'context_block',
+          entity_id: variables.blockId,
+          payload: { content_length: variables.richText.length },
+          source_module: 'strategy-context-os',
+          correlation_id: generateRequestId(),
+        });
+      }
     },
     onError: (err: Error) => toast.error("Erro: " + err.message),
   });

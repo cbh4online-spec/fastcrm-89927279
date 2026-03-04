@@ -12,6 +12,7 @@ import {
   PipelineStage,
 } from "@/types/opportunity";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
+import { generateRequestId } from "@/lib/requestId";
 
 
 // Pipelines hooks
@@ -177,10 +178,25 @@ export function useCreateOpportunityEnhanced() {
       if (error) throw error;
       return data as Opportunity;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["opportunities-enhanced", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["opportunities", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["opportunity-kpis", currentWorkspace?.id] });
+
+      // Kernel event: opportunity created
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'OPPORTUNITY.CREATED',
+          entity_kind: 'opportunity',
+          entity_id: data.id,
+          actor_type: 'user',
+          actor_id: user?.id,
+          payload: { title: data.title, value: data.value, stage_id: data.stage_id },
+          source_module: 'crm-opportunities',
+          correlation_id: generateRequestId(),
+        });
+      }
     },
   });
 }
@@ -232,8 +248,10 @@ export function useUpdateOpportunityEnhanced() {
           type: "OPPORTUNITY.UPDATED",
           entity_kind: "opportunity",
           entity_id: data.id,
+          actor_type: 'user',
           payload: { title: data.title, stage_id: data.stage_id },
           source_module: "crm-opportunities",
+          correlation_id: generateRequestId(),
         });
       }
     },
@@ -282,8 +300,10 @@ export function useMoveOpportunityEnhanced() {
           type: "OPPORTUNITY.STAGE_CHANGED",
           entity_kind: "opportunity",
           entity_id: data.id,
+          actor_type: 'user',
           payload: { stage_id: data.stage_id, title: data.title },
           source_module: "crm-opportunities",
+          correlation_id: generateRequestId(),
         });
       }
     },
@@ -341,8 +361,10 @@ export function useCloseOpportunity() {
           type: "OPPORTUNITY.CLOSED",
           entity_kind: "opportunity",
           entity_id: data.id,
+          actor_type: 'user',
           payload: { status: data.status, title: data.title },
           source_module: "crm-opportunities",
+          correlation_id: generateRequestId(),
         });
       }
     },
