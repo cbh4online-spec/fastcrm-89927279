@@ -1,61 +1,81 @@
 
 
-# Module Prompt — All 4 Modules: CRM, Comm Inbox, Context OS, AI Agents
+# Comm Inbox — Kernel V2 Stabilization & Integration
 
-## Current State Summary
+## Current State
 
-| Module | Kernel Events Wired | Smoke Tests | Observability | Gaps |
-|--------|-------------------|-------------|---------------|------|
-| **CRM** | OPPORTUNITY.UPDATED, STAGE_CHANGED, CLOSED, **CREATED** + **LEAD.CREATED, LEAD.UPDATED, LEAD.STATUS_CHANGED** | `leads_query`, **`opportunities_query`** | ✅ correlation_id + actor_id on all | ✅ All blockers resolved |
-| **Comm Inbox** | CONVERSATION.RECEIVED, CONVERSATION.UPDATED, **MESSAGE.SENT** | `conversations_query`, **`messages_query`** | ✅ correlation_id + actor_id on send | ✅ All blockers resolved |
-| **Context OS** | CONTEXT.BLOCK_UPDATED, **CONTEXT.STATUS_CHANGED, CONTEXT.RICH_TEXT_UPDATED** | **`context_blocks_query`, `context_fields_query`** | ✅ correlation_id on all | ✅ All blockers resolved |
-| **AI Agents** | **AGENT.JOB_DISPATCHED** | `ai_jobs_query`, **`ai_registry_query`** | ✅ correlation_id + agent metadata | ✅ All blockers resolved |
+The inbox already has:
+- Realtime subscriptions for conversations (postgres_changes) and messages (INSERT)
+- Kernel events: `CONVERSATION.RECEIVED`, `CONVERSATION.UPDATED` (realtime), `MESSAGE.SENT` (useSendMessage onSuccess)
+- AI panels: summary, classification, intelligence
+- Actions: priority, status, assign, follow-up, create opportunity, resolve
+- Smoke tests: `conversations_query`, `messages_query` (basic count checks)
 
----
+## What's Missing
 
-## ✅ A) Blockers — ALL RESOLVED
+| Gap | Detail |
+|-----|--------|
+| `CONVERSATION.ASSIGNED` event | `useAssignConversation` has no kernel event |
+| `CONVERSATION.STATUS_CHANGED` event | `useUpdateConversationStatus` has no kernel event |
+| `MESSAGE.RECEIVED` event | Realtime only emits CONVERSATION.RECEIVED/UPDATED, not per-message |
+| `CONVERSATION.SLA_BREACHED` | No SLA tracking exists at all |
+| Quick Actions via Kernel | Actions panel doesn't route through `kernel-action-engine` |
+| Stale conversation detector | No automated detection of stale/abandoned conversations |
+| Correlation IDs on mutations | `useAssignConversation`, `useUpdateConversationStatus`, `useMarkConversationRead` have none |
+| Realtime reconnect logging | No observability on subscription failures |
 
-### CRM (Opportunities/Leads)
-- [x] `useCreateLead` — emits LEAD.CREATED with correlation_id + actor_id
-- [x] `useUpdateLead` — emits LEAD.UPDATED or LEAD.STATUS_CHANGED with correlation_id
-- [x] `useCreateOpportunityEnhanced` — emits OPPORTUNITY.CREATED with correlation_id + actor_id
-- [x] All existing emitters upgraded with correlation_id + actor_id
+## Implementation Plan
 
-### Comm Inbox
-- [x] `useSendMessage` — emits MESSAGE.SENT with correlation_id + actor_id
-- [x] Includes conversation_id, direction, is_automated in payload
+### A) Blockers — Kernel Event Wiring
 
-### Context OS
-- [x] `useUpdateBlockStatus` — emits CONTEXT.STATUS_CHANGED with correlation_id
-- [x] `useUpdateBlockRichText` — emits CONTEXT.RICH_TEXT_UPDATED with correlation_id
+**1. `useAssignConversation`** — emit `CONVERSATION.ASSIGNED` on success with `assigned_to`, `previous_assigned_to` in payload.
 
-### AI Agents
-- [x] `useAgentLifecycle.dispatch` — emits AGENT.JOB_DISPATCHED with full metadata
-- [x] Includes agent_type, entity_type, trigger_type, queue_position in payload
+**2. `useUpdateConversationStatus`** — emit `CONVERSATION.STATUS_CHANGED` on success with `status`, `previous_status` in payload.
 
----
+**3. `MESSAGE.RECEIVED` via realtime** — In `ConversationList.tsx` realtime handler (line 110-129), emit `MESSAGE.RECEIVED` kernel event when an inbound message INSERT is detected.
 
-## ✅ D) Smoke Tests — EXPANDED
+**4. `useMarkConversationResolved`** (`useInboxActions.ts`) — emit `CONVERSATION.STATUS_CHANGED` with status=closed.
 
-| Module | Check | Table |
-|--------|-------|-------|
-| `crm-leads` | leads_query | leads |
-| `crm-opportunities` | opportunities_query | opportunities |
-| `inbox` | conversations_query | conversations |
-| `inbox-messages` | messages_query | messages |
-| `context-os` | context_blocks_query | context_blocks |
-| `context-os-fields` | context_fields_query | context_fields |
-| `ai-agents` | ai_jobs_query | ai_agent_jobs |
-| `ai-agents-registry` | ai_registry_query | ai_agent_registry |
-| `kernel` | kernel_events_query | kernel_events |
+### B) V2 Improvements
 
-## File Changes
+**1. Stale Conversation Detector** — New hook `useStaleConversationDetector.ts`:
+- Query open conversations where `last_message_at` < 48h ago AND `last_message_direction` = 'inbound' (client waiting)
+- Emit `CONVERSATION.STALE` kernel event for each
+- Run on inbox mount, debounced
+
+**2. Quick Actions via Kernel** — Add "Create Task" and "Run AI Agent" buttons to `InboxContextPanel` actions tab:
+- "Create Task" invokes `kernel-run-actions` with action_key `CREATE_TASK`
+- "Run AI Agent" invokes `kernel-run-actions` with action_key `RUN_AI_AGENT_JOB`
+- Both pass `correlation_id` and `conversation_id`
+
+**3. Conversation timeline enrichment** — Add classification badges (priority, intent, sentiment) to `ConversationList` items using existing `ai_priority`, `ai_intent`, `ai_sentiment` fields already on the conversation object.
+
+### C) SLA Tracking (Lightweight V1)
+
+No new tables needed. Compute SLA status client-side:
+- If open conversation has `last_message_direction=inbound` and `last_message_at` > X hours ago → SLA risk
+- Display SLA badge in ConversationList
+- Emit `CONVERSATION.SLA_BREACHED` kernel event from the stale detector when threshold exceeded
+
+### D) Smoke Test Enhancement
+
+Add to `system-run-smoke-tests`:
+- `inbox-action-logs`: query `inbox_action_logs` count
+
+### E) Observability
+
+- All new kernel emitters include `correlation_id` via `generateRequestId()`
+- Add `console.log` for realtime subscription status changes (connected/disconnected/error)
+
+## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useLeads.ts` | Added emitKernelEvent to useCreateLead + useUpdateLead with correlation_id + actor_id |
-| `src/hooks/useOpportunitiesEnhanced.ts` | Added OPPORTUNITY.CREATED event, upgraded all existing emitters with correlation_id + actor_id |
-| `src/hooks/useMessages.ts` | Added MESSAGE.SENT event with correlation_id + actor_id |
-| `src/hooks/useContextBlocks.ts` | Added CONTEXT.STATUS_CHANGED + CONTEXT.RICH_TEXT_UPDATED events |
-| `src/hooks/useAgentLifecycle.ts` | Added AGENT.JOB_DISPATCHED event with full metadata |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Refactored with parallel checks, added 5 new module checks |
+| `src/hooks/useConversations.ts` | Add kernel events to `useAssignConversation` + `useUpdateConversationStatus` onSuccess |
+| `src/hooks/useInboxActions.ts` | Add kernel event to `useMarkConversationResolved` onSuccess |
+| `src/components/inbox/ConversationList.tsx` | Emit MESSAGE.RECEIVED kernel event on inbound INSERT, add classification badges, add realtime logging |
+| `src/hooks/useStaleConversationDetector.ts` | New — detect stale conversations + emit kernel events |
+| `src/components/inbox/InboxContextPanel.tsx` | Add "Create Task" and "Run AI Agent" quick action buttons |
+| `src/components/inbox/InboxView.tsx` | Wire stale detector hook |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add inbox-action-logs check |
+
