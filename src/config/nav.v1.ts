@@ -153,6 +153,9 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Impulsionar", href: "/dashboard/c2c/boost", icon: Rocket, group: "Marketplace C2C", moduleSlug: "marketplace-c2c" },
   { name: "Sponsors", href: "/dashboard/c2c/sponsors", icon: Eye, group: "Marketplace C2C", moduleSlug: "marketplace-c2c" },
   { name: "Vendedores", href: "/dashboard/c2c/sellers", icon: Users, group: "Marketplace C2C", moduleSlug: "marketplace-c2c" },
+  { name: "Afiliados", href: "/dashboard/c2c/affiliates", icon: TrendingUp, group: "Marketplace C2C", moduleSlug: "marketplace-c2c" },
+  { name: "Referências", href: "/dashboard/c2c/referrals", icon: Users, group: "Marketplace C2C", moduleSlug: "marketplace-c2c" },
+  { name: "Admin Afiliados", href: "/dashboard/c2c/affiliate-admin", icon: Settings, group: "Marketplace C2C", moduleSlug: "marketplace-c2c" },
 
   // FastClub
   { name: "Abrir FastClub", href: "/club/fastclub", icon: Trophy, group: "FastClub", separator: true, moduleSlug: "fastclub" },

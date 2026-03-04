@@ -164,6 +164,9 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
       { name: "Impulsionar", href: "/dashboard/c2c/boost", icon: Zap, iconColor: "text-rose-500" },
       { name: "Sponsors", href: "/dashboard/c2c/sponsors", icon: Star, iconColor: "text-rose-500" },
       { name: "Vendedores", href: "/dashboard/c2c/sellers", icon: Users, iconColor: "text-rose-500" },
+      { name: "Afiliados", href: "/dashboard/c2c/affiliates", icon: TrendingUp, iconColor: "text-rose-500" },
+      { name: "Referências", href: "/dashboard/c2c/referrals", icon: Users, iconColor: "text-rose-500" },
+      { name: "Admin Afiliados", href: "/dashboard/c2c/affiliate-admin", icon: Settings, iconColor: "text-rose-500" },
     ],
   },
   {

@@ -157,6 +157,30 @@ Deno.serve(async (req) => {
         }
 
         logStep("C2C purchase completed", { listingId });
+
+        // ── Trigger affiliate/referral attribution ──
+        try {
+          const attributionUrl = `${supabaseUrl}/functions/v1/marketplace-attribute-sale`;
+          await fetch(attributionUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify({
+              workspace_id: metadata.workspace_id || null,
+              listing_id: listingId,
+              buyer_user_id: metadata.buyer_user_id || null,
+              seller_user_id: metadata.seller_id || null,
+              sale_amount: metadata.sale_amount || "0",
+              session_id: metadata.affiliate_session_id || null,
+              referral_code: metadata.referral_code || null,
+            }),
+          });
+          logStep("Attribution triggered");
+        } catch (attrErr) {
+          logStep("Attribution call failed (non-blocking)", { error: String(attrErr) });
+        }
       }
     }
 

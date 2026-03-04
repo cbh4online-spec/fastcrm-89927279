@@ -3839,6 +3839,292 @@ export type Database = {
           },
         ]
       }
+      c2c_affiliate_attributions: {
+        Row: {
+          affiliate_id: string
+          approved_at: string | null
+          commission_amount: number
+          commission_type: string
+          commission_value: number
+          created_at: string
+          hold_until: string | null
+          id: string
+          listing_id: string | null
+          order_id: string | null
+          paid_at: string | null
+          program_id: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          affiliate_id: string
+          approved_at?: string | null
+          commission_amount?: number
+          commission_type?: string
+          commission_value?: number
+          created_at?: string
+          hold_until?: string | null
+          id?: string
+          listing_id?: string | null
+          order_id?: string | null
+          paid_at?: string | null
+          program_id: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          affiliate_id?: string
+          approved_at?: string | null
+          commission_amount?: number
+          commission_type?: string
+          commission_value?: number
+          created_at?: string
+          hold_until?: string | null
+          id?: string
+          listing_id?: string | null
+          order_id?: string | null
+          paid_at?: string | null
+          program_id?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_affiliate_attributions_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_affiliate_attributions_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_affiliate_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_affiliate_attributions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_affiliate_clicks: {
+        Row: {
+          affiliate_id: string
+          created_at: string
+          id: string
+          ip_hash: string | null
+          landing_url: string | null
+          program_id: string
+          referrer_url: string | null
+          session_id: string
+          user_agent_hash: string | null
+          visitor_fingerprint_hash: string | null
+          workspace_id: string
+        }
+        Insert: {
+          affiliate_id: string
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          landing_url?: string | null
+          program_id: string
+          referrer_url?: string | null
+          session_id: string
+          user_agent_hash?: string | null
+          visitor_fingerprint_hash?: string | null
+          workspace_id: string
+        }
+        Update: {
+          affiliate_id?: string
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          landing_url?: string | null
+          program_id?: string
+          referrer_url?: string | null
+          session_id?: string
+          user_agent_hash?: string | null
+          visitor_fingerprint_hash?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_affiliate_clicks_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_affiliate_clicks_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_affiliate_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_affiliate_clicks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_affiliate_links: {
+        Row: {
+          affiliate_id: string
+          created_at: string
+          id: string
+          target_id: string | null
+          target_type: string
+          url: string
+          workspace_id: string
+        }
+        Insert: {
+          affiliate_id: string
+          created_at?: string
+          id?: string
+          target_id?: string | null
+          target_type?: string
+          url: string
+          workspace_id: string
+        }
+        Update: {
+          affiliate_id?: string
+          created_at?: string
+          id?: string
+          target_id?: string | null
+          target_type?: string
+          url?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_affiliate_links_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_affiliate_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_affiliate_programs: {
+        Row: {
+          attribution_model: string
+          cookie_window_days: number
+          created_at: string
+          default_commission_type: string
+          default_commission_value: number
+          id: string
+          name: string
+          payout_hold_days: number
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attribution_model?: string
+          cookie_window_days?: number
+          created_at?: string
+          default_commission_type?: string
+          default_commission_value?: number
+          id?: string
+          name?: string
+          payout_hold_days?: number
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attribution_model?: string
+          cookie_window_days?: number
+          created_at?: string
+          default_commission_type?: string
+          default_commission_value?: number
+          id?: string
+          name?: string
+          payout_hold_days?: number
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_affiliate_programs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_affiliates: {
+        Row: {
+          affiliate_code: string
+          created_at: string
+          id: string
+          program_id: string
+          status: string
+          total_clicks: number
+          total_conversions: number
+          total_earnings: number
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          affiliate_code: string
+          created_at?: string
+          id?: string
+          program_id: string
+          status?: string
+          total_clicks?: number
+          total_conversions?: number
+          total_earnings?: number
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          affiliate_code?: string
+          created_at?: string
+          id?: string
+          program_id?: string
+          status?: string
+          total_clicks?: number
+          total_conversions?: number
+          total_earnings?: number
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_affiliates_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_affiliate_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_affiliates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       c2c_categories: {
         Row: {
           created_at: string
@@ -4303,6 +4589,293 @@ export type Database = {
           },
           {
             foreignKeyName: "c2c_offers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_order_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          order_id: string
+          payload: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          order_id: string
+          payload?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          order_id?: string
+          payload?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_order_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_payouts: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          method: string
+          notes: string | null
+          paid_at: string | null
+          payout_type: string
+          period_end: string | null
+          period_start: string | null
+          status: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          method?: string
+          notes?: string | null
+          paid_at?: string | null
+          payout_type?: string
+          period_end?: string | null
+          period_start?: string | null
+          status?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          method?: string
+          notes?: string | null
+          paid_at?: string | null
+          payout_type?: string
+          period_end?: string | null
+          period_start?: string | null
+          status?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_payouts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_platform_fees: {
+        Row: {
+          applies_to: string
+          category: string | null
+          created_at: string
+          fee_type: string
+          fee_value: number
+          id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          applies_to?: string
+          category?: string | null
+          created_at?: string
+          fee_type?: string
+          fee_value?: number
+          id?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          applies_to?: string
+          category?: string | null
+          created_at?: string
+          fee_type?: string
+          fee_value?: number
+          id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_platform_fees_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_referral_attributions: {
+        Row: {
+          approved_at: string | null
+          created_at: string
+          hold_until: string | null
+          id: string
+          order_id: string | null
+          paid_at: string | null
+          referral_id: string
+          reward_amount: number
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string
+          hold_until?: string | null
+          id?: string
+          order_id?: string | null
+          paid_at?: string | null
+          referral_id: string
+          reward_amount?: number
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string
+          hold_until?: string | null
+          id?: string
+          order_id?: string | null
+          paid_at?: string | null
+          referral_id?: string
+          reward_amount?: number
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_referral_attributions_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_referrals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_referral_attributions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_referral_programs: {
+        Row: {
+          created_at: string
+          hold_days: number
+          id: string
+          name: string
+          reward_type: string
+          reward_value: number
+          status: string
+          trigger_event: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          hold_days?: number
+          id?: string
+          name?: string
+          reward_type?: string
+          reward_value?: number
+          status?: string
+          trigger_event?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          hold_days?: number
+          id?: string
+          name?: string
+          reward_type?: string
+          reward_value?: number
+          status?: string
+          trigger_event?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_referral_programs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_referrals: {
+        Row: {
+          created_at: string
+          id: string
+          program_id: string
+          qualified_at: string | null
+          referral_code: string
+          referred_email: string | null
+          referred_user_id: string | null
+          referrer_user_id: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          program_id: string
+          qualified_at?: string | null
+          referral_code: string
+          referred_email?: string | null
+          referred_user_id?: string | null
+          referrer_user_id: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          program_id?: string
+          qualified_at?: string | null
+          referral_code?: string
+          referred_email?: string | null
+          referred_user_id?: string | null
+          referrer_user_id?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_referrals_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_referral_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_referrals_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
