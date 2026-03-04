@@ -1,102 +1,103 @@
 
 
-# System Health & Diagnostics — Implementation Plan
+# Kernel V2 — Implementation Plan
 
-## Overview
+## Current State Analysis
 
-Create a dedicated `/dashboard/system/health` page that shows per-module health status, edge function performance, smoke test results, and a request correlation system. This is a new observability layer on top of the existing Kernel infrastructure.
+**Already exists (V1):**
+- Tables: `kernel_events`, `kernel_entities`, `kernel_links`, `kernel_actions_registry`, `kernel_action_runs`, `kernel_decisions`, `kernel_decision_evidence`, `context_bindings`, `change_events`, `impact_map`, `drift_scores`, `system_function_runs`, `system_smoke_test_runs`, `system_smoke_test_failures`, `feature_registry_runtime`
+- Edge functions: `kernel-ingest-event`, `kernel-process-events`, `kernel-compute-decisions`, `kernel-run-actions`, `kernel-compute-impact`, `kernel-compute-drift`, `system-log-function-run`, `system-run-smoke-tests`, `system-module-health`
+- UI: Command Center (decisions, actions, drift, events timeline), Impact Map (context + kernel views), System Health page
+- Emitters: `emitKernelEvent` wired into opportunities (UPDATED, STAGE_CHANGED, CLOSED)
 
-## 1. Database Migration (4 tables)
+**Missing for V2:**
 
-**`system_function_runs`** — Log every edge function invocation:
-- `id`, `workspace_id`, `function_name`, `module_id`, `request_id` (correlation), `status` (success/error), `latency_ms`, `error_message`, `created_at`
-- RLS: workspace members can read
+| Gap | Detail |
+|-----|--------|
+| `kernel_event_state` table | Not created (migration existed in process-events code but table never migrated) |
+| `kernel_event_deadletter` table | Not created |
+| `kernel_outcomes` table | New — decision/action attribution tracking |
+| `kernel_policies` table | New — workspace governance rules |
+| `kernel_events` schema gaps | Missing `occurred_at`, `ingested_at`, `schema_version` columns |
+| `kernel_action_runs` gaps | Missing `correlation_id` column |
+| `kernel_decision_evidence` gaps | Missing `ref_kind` column |
+| V2 action types | Missing `SEND_EMAIL`, `SEND_INBOX_REPLY`, `UPDATE_ASSET`, `PAUSE_CAMPAIGN`, `PUBLISH_ASSET` in registry |
+| V2 decision statuses | Missing `executed`, `archived` handling |
+| Policy-based governance | `kernel-run-actions` doesn't check `kernel_policies` for auto/approve/suggest |
+| `FUNNEL_LEAK` decision rule | Not implemented |
+| Event emitters | Only opportunities wired. Missing: inbox, conversational, context-os, store |
+| Correlation ID propagation | `system_function_runs` has `request_id` but kernel functions don't log to it |
+| Approval queue UI | Not in Command Center |
+| Context OS integration | No "Run Impact" button or bindings view |
+| System Health deadletter view | Not showing deadletter count |
 
-**`system_smoke_test_runs`** — Batch test execution records:
-- `id`, `workspace_id`, `started_at`, `finished_at`, `total_checks`, `passed`, `failed`, `status` (running/completed/failed)
-- RLS: workspace members can read
+## Implementation Plan
 
-**`system_smoke_test_failures`** — Individual failed checks:
-- `id`, `run_id` (FK to smoke_test_runs), `workspace_id`, `module_id`, `check_name`, `error_message`, `created_at`
-- RLS: workspace members can read
+### Phase A — Database Migration
 
-**`feature_registry_runtime`** — Runtime health per feature/module:
-- `id`, `workspace_id`, `module_id`, `status` (ok/degraded/down), `last_error`, `failures_24h`, `failures_7d`, `success_rate`, `p95_latency_ms`, `smoke_status` (pass/fail/pending), `computed_at`
-- RLS: workspace members can read
+Single migration adding:
 
-## 2. Edge Functions (3 new)
+1. **`kernel_event_state`** — consumer watermarks (consumer_key pk, workspace_id, last_ingested_at, last_event_id, updated_at)
+2. **`kernel_event_deadletter`** — failed events (id, workspace_id, consumer_key, event_id FK, error_message, error_stack, retry_count, last_attempt_at, created_at)
+3. **`kernel_outcomes`** — attribution (id, workspace_id, decision_id FK, action_run_id FK, outcome_type, outcome_value jsonb, occurred_at)
+4. **`kernel_policies`** — governance (id, workspace_id, decision_type, default_mode, approver_role, risk_thresholds jsonb, updated_at)
+5. **ALTER `kernel_events`** — add `occurred_at`, `ingested_at`, `schema_version` columns (nullable, backwards-compatible)
+6. **ALTER `kernel_action_runs`** — add `correlation_id` column
+7. **ALTER `kernel_decision_evidence`** — add `ref_kind` column
+8. **Seed** additional action registry entries (SEND_EMAIL, SEND_INBOX_REPLY, UPDATE_ASSET, PAUSE_CAMPAIGN, PUBLISH_ASSET)
+9. RLS on all new tables scoped to workspace members
 
-### `system-log-function-run`
-- Input: `{ workspace_id, function_name, module_id, request_id, status, latency_ms, error? }`
-- Inserts into `system_function_runs`
-- Lightweight, fire-and-forget (called by other edge functions)
+### Phase B — Edge Function Updates
 
-### `system-run-smoke-tests`
-- Creates a `system_smoke_test_runs` row
-- Runs minimal health checks per module:
-  - CRM: query `leads` count
-  - Inbox: query `conversations` count  
-  - Store: query `store_products` count
-  - Kernel: query `kernel_events` count
-  - AI: invoke `ai-copilot` with a ping payload
-- Logs failures to `system_smoke_test_failures`
-- Updates run status
+**`kernel-ingest-event`**: Add `occurred_at`, `schema_version`, `correlation_id` support. Log to `system_function_runs` via internal call.
 
-### `system-module-health`
-- Aggregates `system_function_runs` (24h + 7d failure counts, success rate, p95 latency)
-- Merges latest `system_smoke_test_failures` status
-- Computes module status: OK (>95% success, smoke pass), Degraded (>80%), Down (<80% or smoke fail)
-- Upserts into `feature_registry_runtime`
+**`kernel-process-events`**: Use `kernel_event_state` table for persistent watermarks. Write failures to `kernel_event_deadletter`. Propagate `correlation_id`.
 
-## 3. Frontend
+**`kernel-compute-decisions`**: Add `FUNNEL_LEAK` rule (check conversion metrics). Respect `kernel_policies` for `default_mode` when setting decision status. Store `ref_kind` in evidence.
 
-### Helper: `src/lib/requestId.ts`
-- `generateRequestId()` — returns a UUID v4 stored in a short-lived context
-- Used by UI actions and passed to edge function calls
+**`kernel-run-actions`**: Check `kernel_policies` for auto/approve/suggest governance before execution. Add `SEND_INBOX_REPLY` and `UPDATE_ASSET` action handlers. Write `correlation_id` to action runs. Record `kernel_outcomes` on success.
 
-### Hook: `src/hooks/useSystemHealth.ts`
-- Query `feature_registry_runtime` for workspace
-- Query latest `system_smoke_test_runs`
-- Trigger smoke tests + recompute health
+**`kernel-compute-impact`**: No major changes needed — already does BFS traversal through links + bindings.
 
-### Hook: `src/hooks/useSystemFunctionRuns.ts`
-- Query `system_function_runs` with filters (module, status, date range)
-- Stats aggregation (success rate, p95)
+**`kernel-compute-drift`**: Reference `kernel_event_deadletter` count as an additional drift signal.
 
-### Page: `src/pages/SystemHealthPage.tsx`
-- **Header**: Workspace health score badge + "Run Smoke Tests" + "Recompute Health" buttons
-- **Module Grid**: Cards per module showing status (OK/Degraded/Down color), last error, 24h/7d failures, success rate, p95 latency, smoke status
-- **Function Runs Table**: Filterable table of recent edge function runs with request_id, status, latency, error
-- **Smoke Test History**: Latest runs with pass/fail summary and expandable failure details
+### Phase C — Event Emitters (Wiring)
 
-### Route: Add to `src/App.tsx`
-- `<Route path="/dashboard/system/health" element={<SystemHealthPage />} />`
-- Lazy import of `SystemHealthPage`
+Wire `emitKernelEvent` with `idempotency_key` and `correlation_id` into:
 
-### Sidebar: Add "System Health" link under Admin section
+- **Inbox** (`useConversations` or similar): `CONVERSATION.RECEIVED`, `MESSAGE.RECEIVED`
+- **AI Conversational** (post-classification hook): `CONVERSATION.CLASSIFIED`, `CONVERSATION.SUMMARIZED`
+- **Context OS** (`useContextBlocks` save): `CONTEXT.BLOCK_UPDATED`
+- **Store** (cart abandonment if available): `CART.ABANDONED`
 
-## 4. Correlation ID Wiring
+Each emitter generates a `requestId` from `src/lib/requestId.ts` and passes it through.
 
-### `src/lib/kernelEmitter.ts`
-- Update `emitKernelEvent` to accept optional `request_id` and include in payload
+### Phase D — UI Integration
 
-### Edge function pattern
-- Each edge function that calls `system-log-function-run` extracts `request_id` from input body and passes it through
-- V1: wire into `kernel-ingest-event`, `kernel-process-events`, `kernel-compute-decisions` as examples
+**Command Center** — Add "Approval Queue" tab showing decisions with `status=open` and `policy.mode=approve`, with approve/reject buttons.
 
-## File Plan
+**Context OS** — Add "Run Impact" button that invokes `kernel-compute-impact` for the workspace. Add compact bindings view showing context_block → asset mappings.
+
+**Impact Map** — Enhance kernel view: clicking a node shows linked decisions/actions in a sidebar panel.
+
+**System Health** — Add deadletter count card and kernel consumer status (from `kernel_event_state`).
+
+### File Plan
 
 | File | Action |
-|---|---|
-| Migration SQL | 4 new tables |
-| `supabase/functions/system-log-function-run/index.ts` | New |
-| `supabase/functions/system-run-smoke-tests/index.ts` | New |
-| `supabase/functions/system-module-health/index.ts` | New |
-| `src/lib/requestId.ts` | New — request ID generator |
-| `src/hooks/useSystemHealth.ts` | New |
-| `src/hooks/useSystemFunctionRuns.ts` | New |
-| `src/pages/SystemHealthPage.tsx` | New — full diagnostics page |
-| `src/App.tsx` | Add route + lazy import |
-| `src/lib/kernelEmitter.ts` | Add request_id support |
-| `src/types/featureRegistry.ts` | Add System Health module entry |
+|------|--------|
+| Migration SQL | 4 new tables + 3 ALTER + seed actions |
+| `supabase/functions/kernel-ingest-event/index.ts` | Add V2 fields + observability logging |
+| `supabase/functions/kernel-process-events/index.ts` | Persistent watermarks + deadletter |
+| `supabase/functions/kernel-compute-decisions/index.ts` | FUNNEL_LEAK rule + policy awareness + ref_kind |
+| `supabase/functions/kernel-run-actions/index.ts` | Policy governance + new actions + outcomes |
+| `supabase/functions/kernel-compute-drift/index.ts` | Deadletter signal |
+| `src/lib/kernelEmitter.ts` | Add correlation_id, occurred_at, schema_version |
+| `src/hooks/useConversations.ts` (or equivalent) | Wire CONVERSATION events |
+| `src/components/context-os/WizardShell.tsx` (or block save) | Wire CONTEXT.BLOCK_UPDATED |
+| `src/hooks/useKernelDecisions.ts` | Add approval queue filter |
+| `src/pages/CommandCenterPage.tsx` | Add Approval Queue tab |
+| `src/pages/SystemHealthPage.tsx` | Add deadletter + consumer status |
+| `src/pages/ImpactMapPage.tsx` | Enhance kernel node sidebar |
+| `src/components/context-os/ContextOSDashboard.tsx` | Add Run Impact button + bindings |
 
