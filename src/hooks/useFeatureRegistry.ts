@@ -7,6 +7,8 @@ export function useFeatureRegistry() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const forceRefresh = useCallback(() => {
+    setSelectedCategory("all");
+    setSearchQuery("");
     setRefreshKey((k) => k + 1);
   }, []);
 
