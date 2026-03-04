@@ -53,6 +53,33 @@ Deno.serve(async (req) => {
 
     if (runErr) throw runErr;
 
+    // AI Conversational smoke test
+    const aiConversationalCheck = async (): Promise<CheckResult> => {
+      try {
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+        if (!LOVABLE_API_KEY) {
+          return { module_id: "ai-conversational", check_name: "classify_schema", passed: false, error: "LOVABLE_API_KEY not configured" };
+        }
+        const sampleMessages = [{ direction: "inbound", content: "Quanto custa o plano premium?" }];
+        const classifyResp = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/classify-conversation`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({ messages: sampleMessages }),
+        });
+        if (!classifyResp.ok) {
+          return { module_id: "ai-conversational", check_name: "classify_schema", passed: false, error: `HTTP ${classifyResp.status}` };
+        }
+        const result = await classifyResp.json();
+        const hasSchema = result.priority && result.intent && result.sentiment;
+        return { module_id: "ai-conversational", check_name: "classify_schema", passed: !!hasSchema, error: hasSchema ? undefined : "Missing required fields in response" };
+      } catch (e) {
+        return { module_id: "ai-conversational", check_name: "classify_schema", passed: false, error: (e as Error).message };
+      }
+    };
+
     // Run all checks in parallel
     const checks = await Promise.all([
       // CRM
@@ -71,6 +98,8 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "kernel", "kernel_events_query", "kernel_events"),
       // Inbox Action Logs
       runCheck(supabase, workspace_id, "inbox-action-logs", "inbox_action_logs_query", "inbox_action_logs"),
+      // AI Conversational
+      aiConversationalCheck(),
     ]);
 
     // Log failures

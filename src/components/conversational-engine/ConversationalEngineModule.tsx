@@ -15,12 +15,14 @@ import {
   Settings,
   MessageSquare,
   Zap,
-  Target
+  Target,
+  FlaskConical
 } from "lucide-react";
 import { VibeProfilesTab } from "./VibeProfilesTab";
 import { ConversationRulesTab } from "./ConversationRulesTab";
 import { AutopilotConfigTab } from "./AutopilotConfigTab";
 import { ConversationObjectivesTab } from "./ConversationObjectivesTab";
+import { SimulatorTab } from "./SimulatorTab";
 import { useVibeProfiles } from "@/hooks/useVibeProfiles";
 import { useConversationRules } from "@/hooks/useConversationRules";
 import { useAutopilotConfig } from "@/hooks/useAutopilotConfig";
@@ -89,7 +91,7 @@ export function ConversationalEngineModule() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="vibe" className="gap-2">
             <Palette className="h-4 w-4" />
             <span className="hidden sm:inline">Perfis de Vibe</span>
@@ -105,6 +107,11 @@ export function ConversationalEngineModule() {
             <span className="hidden sm:inline">Objetivos</span>
             <span className="sm:hidden">Obj.</span>
           </TabsTrigger>
+          <TabsTrigger value="simulator" className="gap-2">
+            <FlaskConical className="h-4 w-4" />
+            <span className="hidden sm:inline">Simulador</span>
+            <span className="sm:hidden">Sim.</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="vibe" className="mt-6">
@@ -117,6 +124,10 @@ export function ConversationalEngineModule() {
 
         <TabsContent value="objectives" className="mt-6">
           <ConversationObjectivesTab />
+        </TabsContent>
+
+        <TabsContent value="simulator" className="mt-6">
+          <SimulatorTab />
         </TabsContent>
       </Tabs>
     </div>

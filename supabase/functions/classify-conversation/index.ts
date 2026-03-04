@@ -17,6 +17,8 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = performance.now();
+
   try {
     const { messages, leadName, channel } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -32,9 +34,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Build conversation context
     const conversationContext = messages
-      .slice(-20) // Last 20 messages for context
+      .slice(-20)
       .map((m: { direction: string; content: string }) => 
         `${m.direction === "inbound" ? "Customer" : "Agent"}: ${m.content}`
       )
@@ -122,20 +123,23 @@ Classify the conversation based on the messages above.`;
     });
 
     if (!response.ok) {
+      const latencyMs = Math.round(performance.now() - startTime);
       if (response.status === 429) {
+        console.error(`[CLASSIFY] latency_ms=${latencyMs} status=rate_limited`);
         return new Response(
           JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (response.status === 402) {
+        console.error(`[CLASSIFY] latency_ms=${latencyMs} status=payment_required`);
         return new Response(
           JSON.stringify({ error: "Payment required. Please add credits to continue using AI." }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error(`[CLASSIFY] latency_ms=${latencyMs} status=error http_status=${response.status} error=${errorText}`);
       return new Response(
         JSON.stringify({ error: "AI classification failed" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -146,16 +150,22 @@ Classify the conversation based on the messages above.`;
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
 
     if (!toolCall || toolCall.function.name !== "classify_conversation") {
+      const latencyMs = Math.round(performance.now() - startTime);
+      console.error(`[CLASSIFY] latency_ms=${latencyMs} status=error reason=invalid_tool_call`);
       throw new Error("Invalid response from AI");
     }
 
     const classification: ClassificationResult = JSON.parse(toolCall.function.arguments);
+    const latencyMs = Math.round(performance.now() - startTime);
+    const usage = data.usage;
+    console.log(`[CLASSIFY] latency_ms=${latencyMs} status=ok priority=${classification.priority} intent=${classification.intent} sentiment=${classification.sentiment} tokens_prompt=${usage?.prompt_tokens ?? 'n/a'} tokens_completion=${usage?.completion_tokens ?? 'n/a'}`);
 
     return new Response(JSON.stringify(classification), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Classification error:", error);
+    const latencyMs = Math.round(performance.now() - startTime);
+    console.error(`[CLASSIFY] latency_ms=${latencyMs} status=error error=${error instanceof Error ? error.message : "Unknown"}`);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Message } from "@/hooks/useMessages";
+import { generateRequestId } from "@/lib/requestId";
 
 export interface ConversationSummary {
   bulletPoints: string[];
@@ -14,6 +15,7 @@ interface UseConversationSummaryProps {
   leadName?: string;
   channel?: string;
   lastMessageAt?: string;
+  workspaceId?: string;
 }
 
 export function useConversationSummary({
@@ -22,12 +24,12 @@ export function useConversationSummary({
   leadName,
   channel,
   lastMessageAt,
+  workspaceId,
 }: UseConversationSummaryProps) {
   const [summary, setSummary] = useState<ConversationSummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Track last message count to detect new messages
   const lastMessageCountRef = useRef<number>(0);
   const lastConversationIdRef = useRef<string | null>(null);
 
@@ -36,6 +38,9 @@ export function useConversationSummary({
       setSummary(null);
       return;
     }
+
+    const correlationId = generateRequestId();
+    console.log(`[CONV-SUMMARY] correlation_id=${correlationId} generating summary for ${conversationId}`);
 
     setIsLoading(true);
     setError(null);
@@ -67,14 +72,34 @@ export function useConversationSummary({
       }
 
       setSummary(data as ConversationSummary);
+      console.log(`[CONV-SUMMARY] correlation_id=${correlationId} summary generated successfully`);
+
+      // Emit CONVERSATION.SUMMARIZED kernel event
+      if (workspaceId) {
+        import("@/lib/kernelEmitter").then(({ emitKernelEvent }) => {
+          emitKernelEvent({
+            workspace_id: workspaceId,
+            type: 'CONVERSATION.SUMMARIZED',
+            entity_kind: 'conversation',
+            entity_id: conversationId,
+            payload: {
+              bullet_count: data.bulletPoints?.length || 0,
+              status: data.status,
+              last_action: data.lastAction,
+            },
+            source_module: 'ai-conversational',
+            correlation_id: correlationId,
+          });
+        });
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro ao gerar resumo";
       setError(message);
-      console.error("Summary generation error:", err);
+      console.error(`[CONV-SUMMARY] correlation_id=${correlationId} error:`, err);
     } finally {
       setIsLoading(false);
     }
-  }, [conversationId, messages, leadName, channel, lastMessageAt]);
+  }, [conversationId, messages, leadName, channel, lastMessageAt, workspaceId]);
 
   // Auto-generate summary when messages change
   useEffect(() => {
@@ -82,7 +107,6 @@ export function useConversationSummary({
     const conversationChanged = conversationId !== lastConversationIdRef.current;
     const hasNewMessages = messageCount > lastMessageCountRef.current;
 
-    // Generate summary on conversation change or new messages
     if (conversationId && messages && messages.length > 0) {
       if (conversationChanged || hasNewMessages) {
         lastConversationIdRef.current = conversationId;

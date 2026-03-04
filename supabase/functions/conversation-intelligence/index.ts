@@ -1,5 +1,3 @@
-
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -60,6 +58,8 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = performance.now();
+
   try {
     const { messages, leadData, opportunityData, channel, lastMessageAt } = await req.json();
     
@@ -75,21 +75,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Calculate days since last message
     const daysSinceLastMessage = lastMessageAt 
       ? Math.floor((Date.now() - new Date(lastMessageAt).getTime()) / (1000 * 60 * 60 * 24))
       : 0;
 
-    // Build conversation context
     const conversationContext = messages
       .slice(-30)
       .map((m: Message) => `${m.direction === "inbound" ? "Cliente" : "Agente"}: ${m.content}`)
       .join("\n");
 
-    // Build lead context
     let leadContext = "";
     if (leadData) {
-      leadContext = `\n## Dados do Lead:\n`;
+      leadContext = `
+## Dados do Lead:
+`;
       if (leadData.name) leadContext += `- Nome: ${leadData.name}\n`;
       if (leadData.email) leadContext += `- Email: ${leadData.email}\n`;
       if (leadData.status) leadContext += `- Estado: ${leadData.status}\n`;
@@ -97,10 +96,11 @@ Deno.serve(async (req) => {
       if (leadData.tags?.length) leadContext += `- Tags: ${leadData.tags.join(", ")}\n`;
     }
 
-    // Build opportunity context
     let oppContext = "";
     if (opportunityData) {
-      oppContext = `\n## Oportunidade:\n`;
+      oppContext = `
+## Oportunidade:
+`;
       if (opportunityData.title) oppContext += `- Título: ${opportunityData.title}\n`;
       if (opportunityData.value) oppContext += `- Valor: €${opportunityData.value}\n`;
       if (opportunityData.stage) oppContext += `- Etapa: ${opportunityData.stage}\n`;
@@ -247,20 +247,23 @@ Forneça uma análise completa de inteligência de vendas.`;
     });
 
     if (!response.ok) {
+      const latencyMs = Math.round(performance.now() - startTime);
       if (response.status === 429) {
+        console.error(`[CONV-INTELLIGENCE] latency_ms=${latencyMs} status=rate_limited`);
         return new Response(
           JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (response.status === 402) {
+        console.error(`[CONV-INTELLIGENCE] latency_ms=${latencyMs} status=payment_required`);
         return new Response(
           JSON.stringify({ error: "Payment required. Please add credits to continue." }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error(`[CONV-INTELLIGENCE] latency_ms=${latencyMs} status=error http_status=${response.status} error=${errorText}`);
       return new Response(
         JSON.stringify({ error: "AI analysis failed" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -271,19 +274,24 @@ Forneça uma análise completa de inteligência de vendas.`;
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
 
     if (!toolCall || toolCall.function.name !== "analyze_conversation") {
+      const latencyMs = Math.round(performance.now() - startTime);
+      console.error(`[CONV-INTELLIGENCE] latency_ms=${latencyMs} status=error reason=invalid_tool_call`);
       throw new Error("Invalid response from AI");
     }
 
     const intelligence: IntelligenceResult = JSON.parse(toolCall.function.arguments);
-    
-    // Add days inactive to drop-off risk
     intelligence.dropOffRisk.daysInactive = daysSinceLastMessage;
+
+    const latencyMs = Math.round(performance.now() - startTime);
+    const usage = data.usage;
+    console.log(`[CONV-INTELLIGENCE] latency_ms=${latencyMs} status=ok intent=${intelligence.buyingIntent.level} urgency=${intelligence.urgency.level} risk=${intelligence.dropOffRisk.level} tokens_prompt=${usage?.prompt_tokens ?? 'n/a'} tokens_completion=${usage?.completion_tokens ?? 'n/a'}`);
 
     return new Response(JSON.stringify(intelligence), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Conversation intelligence error:", error);
+    const latencyMs = Math.round(performance.now() - startTime);
+    console.error(`[CONV-INTELLIGENCE] latency_ms=${latencyMs} status=error error=${error instanceof Error ? error.message : "Unknown"}`);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
