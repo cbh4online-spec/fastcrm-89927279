@@ -8,13 +8,14 @@ import { ActionCommandPalette } from "@/components/command-center/ActionCommandP
 import { KernelDecisionsPanel } from "@/components/kernel/KernelDecisionsPanel";
 import { KernelActionsLog } from "@/components/kernel/KernelActionsLog";
 import { DriftOverview } from "@/components/kernel/DriftOverview";
+import { KernelEventsTimeline } from "@/components/kernel/KernelEventsTimeline";
 import { useSlashCommands, SlashCommand } from "@/hooks/useSlashCommands";
 import { useAskFastCRM } from "@/hooks/useAskFastCRM";
 import { useRecentAskQueries } from "@/hooks/useRecentAskQueries";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useKernelDecisions } from "@/hooks/useKernelDecisions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Terminal, Clock, Zap, Database, Brain, Activity } from "lucide-react";
+import { Loader2, Terminal, Clock, Zap, Database, Brain, Activity, Radio } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -135,7 +136,7 @@ export default function CommandCenterPage() {
 
             {!hasOutput && (
               <>
-                {/* Drift + Actions overview */}
+                {/* Drift + Actions + Events overview */}
                 <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15, duration: 0.25 }}>
                   <DriftOverview />
                   <div className="space-y-2">
@@ -145,6 +146,10 @@ export default function CommandCenterPage() {
                     </div>
                     <KernelActionsLog />
                   </div>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.18, duration: 0.25 }}>
+                  <KernelEventsTimeline />
                 </motion.div>
 
                 <motion.div className="space-y-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.25 }}>

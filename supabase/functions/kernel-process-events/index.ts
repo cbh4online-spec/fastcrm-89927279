@@ -18,8 +18,17 @@ Deno.serve(async (req) => {
     const workspaceId = body.workspace_id;
     if (!workspaceId) throw new Error("workspace_id required");
 
-    // Get last processed watermark from drift_scores meta or use 1 hour ago
-    const since = body.since ?? new Date(Date.now() - 3600_000).toISOString();
+    const consumerId = body.consumer_id ?? "default";
+
+    // Read watermark from kernel_event_state
+    const { data: state } = await supabase
+      .from("kernel_event_state")
+      .select("last_event_id, last_processed_at")
+      .eq("workspace_id", workspaceId)
+      .eq("consumer_id", consumerId)
+      .maybeSingle();
+
+    const since = state?.last_processed_at ?? new Date(Date.now() - 3600_000).toISOString();
 
     // Fetch unprocessed events
     const { data: events, error } = await supabase
@@ -37,29 +46,58 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Dispatch to compute-decisions
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const headers = { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` };
 
-    await fetch(`${supabaseUrl}/functions/v1/kernel-compute-decisions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
-      body: JSON.stringify({ workspace_id: workspaceId, events }),
-    });
+    // Dispatch to compute-decisions
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/kernel-compute-decisions`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ workspace_id: workspaceId, events }),
+      });
+    } catch (err) {
+      // Deadletter failed events
+      await supabase.from("kernel_event_deadletter").insert(
+        events.map(e => ({
+          workspace_id: workspaceId,
+          original_event: e,
+          error: `compute-decisions dispatch failed: ${(err as Error).message}`,
+        }))
+      );
+    }
 
-    // Check for change-type events and dispatch impact computation
+    // Dispatch impact for change events
     const changeEvents = events.filter(e =>
       ["created", "updated", "deleted", "published"].includes(e.type) ||
-      e.type.includes("change") || e.type.includes("stage_changed")
+      e.type.includes("change") || e.type.includes("stage_changed") ||
+      e.type.includes("STAGE_CHANGED") || e.type.includes("UPDATED") || e.type.includes("CLOSED")
     );
 
     if (changeEvents.length > 0) {
-      await fetch(`${supabaseUrl}/functions/v1/kernel-compute-impact`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
-        body: JSON.stringify({ workspace_id: workspaceId, events: changeEvents }),
-      });
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/kernel-compute-impact`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ workspace_id: workspaceId, events: changeEvents }),
+        });
+      } catch (err) {
+        console.error("Impact dispatch failed:", (err as Error).message);
+      }
     }
+
+    // Update watermark
+    const lastEvent = events[events.length - 1];
+    await supabase.from("kernel_event_state").upsert(
+      {
+        workspace_id: workspaceId,
+        consumer_id: consumerId,
+        last_event_id: lastEvent.id,
+        last_processed_at: lastEvent.created_at,
+      },
+      { onConflict: "workspace_id,consumer_id" }
+    );
 
     return new Response(
       JSON.stringify({ processed: events.length, decisions_triggered: true, impact_triggered: changeEvents.length > 0 }),

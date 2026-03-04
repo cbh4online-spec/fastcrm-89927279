@@ -11,6 +11,7 @@ import {
   Pipeline,
   PipelineStage,
 } from "@/types/opportunity";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 
 // Pipelines hooks
@@ -225,6 +226,15 @@ export function useUpdateOpportunityEnhanced() {
         supabase.functions.invoke("compute-deal-score", {
           body: { workspace_id: currentWorkspace.id, opportunity_id: data.id },
         });
+        // Kernel event: opportunity updated
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: "OPPORTUNITY.UPDATED",
+          entity_kind: "opportunity",
+          entity_id: data.id,
+          payload: { title: data.title, stage_id: data.stage_id },
+          source_module: "crm-opportunities",
+        });
       }
     },
 
@@ -265,6 +275,15 @@ export function useMoveOpportunityEnhanced() {
       if (currentWorkspace?.id) {
         supabase.functions.invoke("compute-deal-score", {
           body: { workspace_id: currentWorkspace.id, opportunity_id: data.id },
+        });
+        // Kernel event: stage changed
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: "OPPORTUNITY.STAGE_CHANGED",
+          entity_kind: "opportunity",
+          entity_id: data.id,
+          payload: { stage_id: data.stage_id, title: data.title },
+          source_module: "crm-opportunities",
         });
       }
     },
@@ -311,10 +330,21 @@ export function useCloseOpportunity() {
       if (error) throw error;
       return data as Opportunity;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["opportunities-enhanced", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["opportunities", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["opportunity-kpis", currentWorkspace?.id] });
+      // Kernel event: opportunity closed
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: "OPPORTUNITY.CLOSED",
+          entity_kind: "opportunity",
+          entity_id: data.id,
+          payload: { status: data.status, title: data.title },
+          source_module: "crm-opportunities",
+        });
+      }
     },
   });
 }
