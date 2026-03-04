@@ -142,6 +142,33 @@ async function generateDailyBrief(supabase: ReturnType<typeof createClient>, wor
       `- ${l.first_name || ""} ${l.last_name || ""} (${l.company_name || "Sem empresa"}) — Engagement: ${l.engagement_score || 0}`)
     .join("\n");
 
+  // === Context OS Integration ===
+  let contextOSSection = "";
+  try {
+    const { data: contextBlocks } = await supabase
+      .from("context_blocks")
+      .select("block_type, title, rich_text, score, status")
+      .eq("workspace_id", workspaceId);
+
+    if (contextBlocks && contextBlocks.length > 0) {
+      const { data: contextFields } = await supabase
+        .from("context_fields")
+        .select("block_id, field_key, field_value")
+        .in("block_id", contextBlocks.map((b: any) => b.id));
+
+      const blockSummaries = contextBlocks.map((b: any) => {
+        const bFields = (contextFields || [])
+          .filter((f: any) => f.block_id === b.id && f.field_value !== null && f.field_value !== "")
+          .map((f: any) => `    ${f.field_key}: ${JSON.stringify(f.field_value).substring(0, 100)}`);
+        return `  [${b.block_type}] ${b.title} (score: ${b.score}%, ${b.status})\n${bFields.join("\n")}`;
+      }).join("\n");
+
+      contextOSSection = `\nCONTEXTO ESTRATÉGICO DO NEGÓCIO (Context OS):\n${blockSummaries}`;
+    }
+  } catch (e) {
+    console.warn("Could not load Context OS data:", e);
+  }
+
   const metricsContext = `
 ÚLTIMAS 24 HORAS:
 - Leads criados: ${leadsToday || 0}
@@ -157,6 +184,7 @@ ${hotLeadsContext || "Nenhum lead novo hoje."}
 
 DEALS TRAVADOS:
 ${stalledContext || "Nenhum deal travado."}
+${contextOSSection}
   `.trim();
 
   const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -170,7 +198,7 @@ ${stalledContext || "Nenhum deal travado."}
       messages: [
         {
           role: "system",
-          content: `És um analista operacional de negócios. Geras um resumo executivo diário (últimas 24h) em Português de Portugal. Sê direto, prático e orientado para ação imediata. Foca-te no que precisa de atenção hoje.`,
+          content: `És um analista operacional de negócios. Geras um resumo executivo diário (últimas 24h) em Português de Portugal. Sê direto, prático e orientado para ação imediata. Foca-te no que precisa de atenção hoje. Usa o contexto estratégico do negócio (Context OS) para alinhar as recomendações com a estratégia, metas e processos definidos.`,
         },
         {
           role: "user",

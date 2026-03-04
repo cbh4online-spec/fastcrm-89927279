@@ -9421,6 +9421,8 @@ export type Database = {
           field_type: string
           field_value: Json | null
           id: string
+          origin: string | null
+          origin_details: Json | null
           updated_at: string | null
         }
         Insert: {
@@ -9430,6 +9432,8 @@ export type Database = {
           field_type?: string
           field_value?: Json | null
           id?: string
+          origin?: string | null
+          origin_details?: Json | null
           updated_at?: string | null
         }
         Update: {
@@ -9439,6 +9443,8 @@ export type Database = {
           field_type?: string
           field_value?: Json | null
           id?: string
+          origin?: string | null
+          origin_details?: Json | null
           updated_at?: string | null
         }
         Relationships: [
