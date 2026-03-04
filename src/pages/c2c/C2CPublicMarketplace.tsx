@@ -20,6 +20,7 @@ import {
   DollarSign, Eye, Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ShareButtons } from "@/components/c2c/ShareButtons";
 
 /* ── Workspace resolver ─────────────────────────────────────────── */
 function usePublicWorkspace(slug: string | undefined) {
@@ -418,6 +419,7 @@ export default function C2CPublicMarketplace() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
+              <ShareButtons url={shareUrl} title={ogTitle} />
               <Button variant="outline" size="sm" className="rounded-full hidden sm:flex" onClick={() => navigate(`/login?redirect=/c2c/${workspaceSlug}`)}>
                 Entrar
               </Button>
