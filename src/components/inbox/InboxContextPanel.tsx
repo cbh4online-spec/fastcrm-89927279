@@ -401,6 +401,48 @@ export function InboxContextPanel({ conversationId, onClose, onInsertReply }: In
                 </DropdownMenuContent>
               </DropdownMenu>
 
+              {/* Quick Actions via Kernel */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start h-9 text-xs"
+                disabled={!conversationId}
+                onClick={async () => {
+                  if (!conversationId || !currentWorkspace) return;
+                  const { supabase } = await import("@/integrations/supabase/client");
+                  const { generateRequestId } = await import("@/lib/requestId");
+                  const correlationId = generateRequestId();
+                  const { error } = await supabase.functions.invoke("kernel-run-actions", {
+                    body: { workspace_id: currentWorkspace.id, action_key: "CREATE_TASK", entity_kind: "conversation", entity_id: conversationId, correlation_id: correlationId },
+                  });
+                  if (error) toast.error("Erro ao criar tarefa");
+                  else toast.success("Tarefa criada via Kernel");
+                }}
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                Criar Tarefa (Kernel)
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start h-9 text-xs"
+                disabled={!conversationId}
+                onClick={async () => {
+                  if (!conversationId || !currentWorkspace) return;
+                  const { supabase } = await import("@/integrations/supabase/client");
+                  const { generateRequestId } = await import("@/lib/requestId");
+                  const correlationId = generateRequestId();
+                  const { error } = await supabase.functions.invoke("kernel-run-actions", {
+                    body: { workspace_id: currentWorkspace.id, action_key: "RUN_AI_AGENT_JOB", entity_kind: "conversation", entity_id: conversationId, correlation_id: correlationId },
+                  });
+                  if (error) toast.error("Erro ao executar agente");
+                  else toast.success("Agente AI executado via Kernel");
+                }}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Executar Agente AI (Kernel)
+              </Button>
+
               {/* Add Note */}
               <Button
                 variant="outline"

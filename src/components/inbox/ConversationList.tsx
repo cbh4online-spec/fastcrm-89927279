@@ -123,9 +123,33 @@ export function ConversationList({
             description: newMsg.content?.substring(0, 80) || "Nova mensagem",
             duration: 4000,
           });
+
+          // Emit MESSAGE.RECEIVED kernel event
+          if (currentWorkspace?.id) {
+            import('@/lib/kernelEmitter').then(({ emitKernelEvent }) => {
+              import('@/lib/requestId').then(({ generateRequestId }) => {
+                emitKernelEvent({
+                  workspace_id: currentWorkspace.id,
+                  type: 'MESSAGE.RECEIVED',
+                  entity_kind: 'message',
+                  entity_id: newMsg.id,
+                  payload: {
+                    conversation_id: newMsg.conversation_id,
+                    direction: 'inbound',
+                    channel: newMsg.channel,
+                  },
+                  source_module: 'comm-inbox',
+                  correlation_id: generateRequestId(),
+                  idempotency_key: `msg-received-${newMsg.id}`,
+                });
+              });
+            });
+          }
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`[Inbox Realtime] messages subscription: ${status}`);
+      });
     return () => { supabase.removeChannel(channel); };
   }, [currentWorkspace?.id, queryClient]);
 

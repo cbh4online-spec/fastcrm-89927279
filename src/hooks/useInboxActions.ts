@@ -295,7 +295,9 @@ export function useUpdateLeadStatusFromInbox() {
 
 export function useMarkConversationResolved() {
   const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
   const { workspaceClient } = useWorkspaceInstance();
+  const { user } = useAuth();
   const executeAction = useExecuteInboxAction();
 
   return useMutation({
@@ -330,10 +332,29 @@ export function useMarkConversationResolved() {
 
       return { conversationId };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       queryClient.invalidateQueries({ queryKey: ["conversation"] });
       toast.success("Conversa marcada como resolvida");
+
+      // Emit CONVERSATION.STATUS_CHANGED kernel event
+      if (currentWorkspace?.id) {
+        import('@/lib/kernelEmitter').then(({ emitKernelEvent }) => {
+          import('@/lib/requestId').then(({ generateRequestId }) => {
+            emitKernelEvent({
+              workspace_id: currentWorkspace.id,
+              type: 'CONVERSATION.STATUS_CHANGED',
+              entity_kind: 'conversation',
+              entity_id: result.conversationId,
+              actor_type: 'user',
+              actor_id: user?.id,
+              payload: { status: 'closed', previous_status: 'open' },
+              source_module: 'comm-inbox',
+              correlation_id: generateRequestId(),
+            });
+          });
+        });
+      }
     },
     onError: (error) => {
       toast.error(`Erro ao resolver conversa: ${error.message}`);

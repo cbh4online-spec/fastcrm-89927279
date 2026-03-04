@@ -21,6 +21,7 @@ import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
 import { useGHLConversationSync } from "@/hooks/useGHLConversationSync";
 import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
 import { useSyncEmail, useActiveEmailConnection } from "@/hooks/useEmailConnection";
+import { useStaleConversationDetector } from "@/hooks/useStaleConversationDetector";
 
 export function InboxView() {
   const [searchParams] = useSearchParams();
@@ -40,6 +41,9 @@ export function InboxView() {
   const syncEmail = useSyncEmail();
   const isEmailSyncing = syncEmail.isPending;
   const isSyncing = isGHLSyncing || isEmailSyncing;
+
+  // Stale conversation detector (runs once on mount)
+  useStaleConversationDetector();
 
   // Auto-sync on mount (once)
   const hasSyncedRef = useRef(false);
