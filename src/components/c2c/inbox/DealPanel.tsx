@@ -70,7 +70,7 @@ export function DealPanel({ conversation, offers, onMakeOffer }: DealPanelProps)
           variant="outline"
           size="sm"
           className="w-full mt-3 text-xs"
-          onClick={() => navigate(`/dashboard/c2c/listing/${conversation.listing_id}`)}
+          onClick={() => navigate(`/dashboard/c2c/${conversation.listing_id}`)}
         >
           <ExternalLink className="h-3 w-3 mr-1.5" /> Ver anúncio
         </Button>
