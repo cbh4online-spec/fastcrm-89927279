@@ -1,9 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
+import { encode as encodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const ALLOWED_TYPES = new Set(["pdf", "jpg", "jpeg", "png"]);
 
 function normalize(s: string): string {
   return s
@@ -26,14 +30,25 @@ function trigramSimilarity(a: string, b: string): number {
   return intersection / Math.max(triA.size, triB.size);
 }
 
+async function markFailed(supabase: any, importId: string, errorMsg: string) {
+  await supabase.from("rfq_quote_imports").update({
+    status: "failed",
+    meta_json: { last_error: errorMsg, failed_at: new Date().toISOString() },
+  }).eq("id", importId);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  try {
-    const { import_id } = await req.json();
-    if (!import_id) throw new Error("import_id is required");
+  let importId: string | null = null;
+  let supabase: any = null;
 
-    const supabase = createClient(
+  try {
+    const body = await req.json();
+    importId = body.import_id;
+    if (!importId) throw new Error("import_id is required");
+
+    supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
@@ -42,34 +57,45 @@ Deno.serve(async (req) => {
     const { data: imp, error: impErr } = await supabase
       .from("rfq_quote_imports")
       .select("*")
-      .eq("id", import_id)
+      .eq("id", importId)
       .single();
     if (impErr || !imp) throw new Error("Import not found");
 
+    // Validate file type
+    const fileExt = (imp.file_type || "").toLowerCase();
+    if (!ALLOWED_TYPES.has(fileExt)) {
+      throw new Error(`Tipo de ficheiro não suportado: ${fileExt}. Use PDF, JPG ou PNG.`);
+    }
+
     // Update status
-    await supabase.from("rfq_quote_imports").update({ status: "processing" }).eq("id", import_id);
+    await supabase.from("rfq_quote_imports").update({ status: "processing" }).eq("id", importId);
 
     // Download file
+    console.log("[ocr-parse] download_started", { importId, file: imp.file_url });
     const { data: fileData, error: dlErr } = await supabase.storage
       .from("rfq-quote-files")
       .download(imp.file_url);
     if (dlErr || !fileData) throw new Error("File download failed: " + dlErr?.message);
 
-    // Convert to base64
+    // Validate file size
     const arrayBuffer = await fileData.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    const chunkSize = 8192;
-    let binary = "";
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-      for (let j = 0; j < chunk.length; j++) {
-        binary += String.fromCharCode(chunk[j]);
-      }
-    }
-    const base64 = btoa(binary);
+    const fileSize = arrayBuffer.byteLength;
+    console.log("[ocr-parse] download_done", { importId, size: fileSize });
 
-    const mimeType = imp.file_type === "pdf" ? "application/pdf" :
-      imp.file_type === "png" ? "image/png" : "image/jpeg";
+    if (fileSize > MAX_FILE_SIZE) {
+      throw new Error(`Ficheiro demasiado grande (${(fileSize / 1024 / 1024).toFixed(1)} MB). Máximo: 10 MB.`);
+    }
+    if (fileSize === 0) {
+      throw new Error("Ficheiro vazio.");
+    }
+
+    // Convert to base64 using Deno std (stack-safe)
+    const bytes = new Uint8Array(arrayBuffer);
+    const base64 = encodeBase64(bytes);
+    console.log("[ocr-parse] base64_done", { importId, length: base64.length });
+
+    const mimeType = fileExt === "pdf" ? "application/pdf" :
+      fileExt === "png" ? "image/png" : "image/jpeg";
 
     // Get RFQ items for matching context
     const { data: rfqItems } = await supabase
@@ -92,6 +118,7 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     // OCR + Parse via Gemini with tool calling
+    console.log("[ocr-parse] ai_request_started", { importId });
     const ocrResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -182,13 +209,15 @@ Important rules:
 
     if (!ocrResponse.ok) {
       const errText = await ocrResponse.text();
-      console.error("AI gateway error:", ocrResponse.status, errText);
+      console.error("[ocr-parse] ai_error", { importId, status: ocrResponse.status, body: errText });
       if (ocrResponse.status === 429) throw new Error("Rate limit exceeded, try again later");
       if (ocrResponse.status === 402) throw new Error("AI credits exhausted");
-      throw new Error("OCR processing failed");
+      throw new Error("OCR processing failed (AI " + ocrResponse.status + ")");
     }
 
     const ocrResult = await ocrResponse.json();
+    console.log("[ocr-parse] ai_request_done", { importId });
+
     const toolCall = ocrResult.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) throw new Error("No structured data returned from OCR");
 
@@ -202,58 +231,37 @@ Important rules:
     for (let i = 0; i < extractedLines.length; i++) {
       const line = extractedLines[i];
 
-      // Compute unit price
       let computedUnitPrice = line.unit_price || null;
       if (!computedUnitPrice && line.line_total && line.quantity) {
         computedUnitPrice = line.line_total / line.quantity;
       }
 
-      // Try matching
       let bestMatch: any = null;
       let bestScore = 0;
       let bestMethod = "none";
-
       const lineDesc = normalize(line.description || "");
 
       for (const item of itemsList) {
-        // Layer 1: SKU exact match
         if (item.sku && lineDesc.includes(normalize(item.sku)) && item.sku.length >= 3) {
-          if (1.0 > bestScore) {
-            bestScore = 1.0;
-            bestMatch = item;
-            bestMethod = "sku";
-          }
+          if (1.0 > bestScore) { bestScore = 1.0; bestMatch = item; bestMethod = "sku"; }
           continue;
         }
-
-        // Layer 1: Barcode exact match
         if (item.barcode && line.raw_text?.includes(item.barcode)) {
-          if (1.0 > bestScore) {
-            bestScore = 1.0;
-            bestMatch = item;
-            bestMethod = "ean";
-          }
+          if (1.0 > bestScore) { bestScore = 1.0; bestMatch = item; bestMethod = "ean"; }
           continue;
         }
-
-        // Layer 2: Fuzzy text matching
         const itemName = normalize(item.name);
         const sim = trigramSimilarity(lineDesc, itemName);
-        if (sim > bestScore) {
-          bestScore = sim;
-          bestMatch = item;
-          bestMethod = "fuzzy";
-        }
+        if (sim > bestScore) { bestScore = sim; bestMatch = item; bestMethod = "fuzzy"; }
       }
 
-      // Determine match status
       let matchStatus = "unmatched";
       if (bestScore >= 0.86) matchStatus = "matched";
       else if (bestScore >= 0.5) matchStatus = "needs_review";
 
       linesToInsert.push({
         workspace_id: imp.workspace_id,
-        import_id: import_id,
+        import_id: importId,
         line_no: i + 1,
         raw_text: line.raw_text || "",
         description: line.description || "",
@@ -273,7 +281,7 @@ Important rules:
       });
     }
 
-    // If fuzzy didn't match well, try semantic matching via AI for unmatched lines
+    // Semantic matching for unmatched/needs_review lines
     const unmatchedLines = linesToInsert.filter(l => l.match_status === "unmatched" || l.match_status === "needs_review");
     if (unmatchedLines.length > 0 && itemsList.length > 0) {
       try {
@@ -316,7 +324,7 @@ ${itemsList.map((item: any) => `ID:${item.id} - "${item.name}" (SKU: ${item.sku 
                         properties: {
                           line_index: { type: "number" },
                           rfq_item_id: { type: "string" },
-                          confidence: { type: "number", description: "0 to 1" },
+                          confidence: { type: "number" },
                           reason: { type: "string" }
                         },
                         required: ["line_index", "rfq_item_id", "confidence"]
@@ -337,7 +345,6 @@ ${itemsList.map((item: any) => `ID:${item.id} - "${item.name}" (SKU: ${item.sku 
           if (semanticCall) {
             const semanticParsed = JSON.parse(semanticCall.function.arguments);
             const validItemIds = new Set(itemsList.map((it: any) => it.id));
-
             for (const match of (semanticParsed.matches || [])) {
               if (match.line_index >= 0 && match.line_index < unmatchedLines.length && validItemIds.has(match.rfq_item_id)) {
                 const targetLine = unmatchedLines[match.line_index];
@@ -350,13 +357,16 @@ ${itemsList.map((item: any) => `ID:${item.id} - "${item.name}" (SKU: ${item.sku 
               }
             }
           }
+        } else {
+          const errText = await semanticResponse.text();
+          console.warn("[ocr-parse] semantic_match_failed (non-fatal)", { status: semanticResponse.status, body: errText });
         }
       } catch (e) {
-        console.error("Semantic matching failed (non-fatal):", e);
+        console.error("[ocr-parse] semantic_match_error (non-fatal):", e);
       }
     }
 
-    // Check for collisions (2 lines matched to same rfq_item)
+    // Check for collisions
     const matchedItemIds = new Map<string, number[]>();
     linesToInsert.forEach((l, idx) => {
       if (l.match_rfq_item_id && l.match_status === "matched") {
@@ -380,11 +390,13 @@ ${itemsList.map((item: any) => `ID:${item.id} - "${item.name}" (SKU: ${item.sku 
     await supabase.from("rfq_quote_imports").update({
       status: "matched",
       totals_json: docTotals,
-    }).eq("id", import_id);
+    }).eq("id", importId);
 
     const matched = linesToInsert.filter(l => l.match_status === "matched").length;
     const needsReview = linesToInsert.filter(l => l.match_status === "needs_review").length;
     const unmatched = linesToInsert.filter(l => l.match_status === "unmatched").length;
+
+    console.log("[ocr-parse] complete", { importId, lines: linesToInsert.length, matched, needsReview, unmatched });
 
     return new Response(JSON.stringify({
       lines_count: linesToInsert.length,
@@ -394,7 +406,11 @@ ${itemsList.map((item: any) => `ID:${item.id} - "${item.name}" (SKU: ${item.sku 
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (error) {
-    console.error("rfq-quote-ocr-parse error:", error);
+    console.error("[ocr-parse] error:", error);
+    // Persist failed status
+    if (importId && supabase) {
+      await markFailed(supabase, importId, error.message).catch(() => {});
+    }
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }

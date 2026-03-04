@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,8 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Upload, CheckCircle, AlertTriangle, XCircle, Search, FileText } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Upload, CheckCircle, AlertTriangle, XCircle, Search, FileText, RotateCcw } from "lucide-react";
 import { useRFQQuoteImport, ImportLine } from "@/hooks/useRFQQuoteImport";
+
+const MAX_FILE_SIZE_MB = 10;
 
 interface RFQQuoteImportWizardProps {
   open: boolean;
@@ -32,6 +35,8 @@ export default function RFQQuoteImportWizard({
   const [supplierId, setSupplierId] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [applyResult, setApplyResult] = useState<any>(null);
+  const [processError, setProcessError] = useState<string | null>(null);
+  const [lastImportId, setLastImportId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -50,12 +55,33 @@ export default function RFQQuoteImportWizard({
 
   const handleProcess = async () => {
     if (!file || !supplierId) return;
+    // Client-side file size check
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      setProcessError(`Ficheiro demasiado grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Máximo: ${MAX_FILE_SIZE_MB} MB.`);
+      return;
+    }
+    setProcessError(null);
     setStep(2);
     try {
       const id = await uploadAndCreate(file, supplierId);
+      setLastImportId(id);
       await process(id);
       setStep(3);
-    } catch {
+    } catch (err: any) {
+      setProcessError(err?.message || "Erro desconhecido no processamento.");
+      setStep(1);
+    }
+  };
+
+  const handleRetry = async () => {
+    if (!lastImportId) return;
+    setProcessError(null);
+    setStep(2);
+    try {
+      await process(lastImportId);
+      setStep(3);
+    } catch (err: any) {
+      setProcessError(err?.message || "Erro desconhecido no processamento.");
       setStep(1);
     }
   };
@@ -74,6 +100,8 @@ export default function RFQQuoteImportWizard({
     setSupplierId("");
     setFile(null);
     setApplyResult(null);
+    setProcessError(null);
+    setLastImportId(null);
   };
 
   const matchedCount = lines.filter(l => l.match_status === "matched").length;
@@ -88,6 +116,9 @@ export default function RFQQuoteImportWizard({
             <FileText className="h-5 w-5" />
             Importar Cotação (PDF/OCR)
           </DialogTitle>
+          <DialogDescription>
+            Importe cotações de fornecedores a partir de PDF ou imagem para preenchimento automático.
+          </DialogDescription>
         </DialogHeader>
 
         {/* Stepper */}
@@ -110,6 +141,20 @@ export default function RFQQuoteImportWizard({
         {/* Step 1: Upload */}
         {step === 1 && (
           <div className="space-y-4">
+            {processError && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>{processError}</span>
+                  {lastImportId && (
+                    <Button variant="outline" size="sm" onClick={handleRetry} className="ml-2 gap-1">
+                      <RotateCcw className="h-3 w-3" /> Tentar novamente
+                    </Button>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div>
               <Label>Fornecedor</Label>
               <Select value={supplierId} onValueChange={setSupplierId}>
@@ -125,13 +170,13 @@ export default function RFQQuoteImportWizard({
             </div>
 
             <div>
-              <Label>Ficheiro (PDF, JPG, PNG)</Label>
+              <Label>Ficheiro (PDF, JPG, PNG — máx. {MAX_FILE_SIZE_MB} MB)</Label>
               <input
                 ref={fileRef}
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png"
                 className="hidden"
-                onChange={e => setFile(e.target.files?.[0] || null)}
+                onChange={e => { setFile(e.target.files?.[0] || null); setProcessError(null); }}
               />
               <div
                 className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
@@ -174,7 +219,6 @@ export default function RFQQuoteImportWizard({
         {/* Step 3: Review */}
         {step === 3 && (
           <div className="space-y-4">
-            {/* Summary */}
             <div className="flex gap-3">
               <Badge variant="default" className="gap-1">
                 <CheckCircle className="h-3 w-3" /> {matchedCount} matched
@@ -187,7 +231,6 @@ export default function RFQQuoteImportWizard({
               </Badge>
             </div>
 
-            {/* Lines table */}
             {isLoadingLines ? (
               <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
             ) : (
