@@ -352,12 +352,13 @@ export default function C2CListingDetail() {
                   <Button variant="outline" size="sm" className="w-full" onClick={() => navigate(`/dashboard/c2c/seller/${listing.seller_id}`)}>
                     Ver perfil
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full gap-1" onClick={() => {
-                    const el = document.getElementById("contact-seller");
-                    el?.scrollIntoView({ behavior: "smooth" });
-                  }}>
-                    <MessageCircle className="h-3.5 w-3.5" /> Contactar
-                  </Button>
+                  {!isOwner && (
+                    <Button variant="outline" size="sm" className="w-full gap-1" onClick={() => {
+                      navigate(`/dashboard/c2c/messages?to=${listing.seller_id}&listing=${listing.id}`);
+                    }}>
+                      <MessageCircle className="h-3.5 w-3.5" /> Contactar
+                    </Button>
+                  )}
                 </div>
               </div>
 
