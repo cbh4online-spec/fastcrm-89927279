@@ -1,103 +1,123 @@
 
 
-# Kernel V2 — Implementation Plan
+# Module Prompt — All 4 Modules: CRM, Comm Inbox, Context OS, AI Agents
 
-## Current State Analysis
+## Current State Summary
 
-**Already exists (V1):**
-- Tables: `kernel_events`, `kernel_entities`, `kernel_links`, `kernel_actions_registry`, `kernel_action_runs`, `kernel_decisions`, `kernel_decision_evidence`, `context_bindings`, `change_events`, `impact_map`, `drift_scores`, `system_function_runs`, `system_smoke_test_runs`, `system_smoke_test_failures`, `feature_registry_runtime`
-- Edge functions: `kernel-ingest-event`, `kernel-process-events`, `kernel-compute-decisions`, `kernel-run-actions`, `kernel-compute-impact`, `kernel-compute-drift`, `system-log-function-run`, `system-run-smoke-tests`, `system-module-health`
-- UI: Command Center (decisions, actions, drift, events timeline), Impact Map (context + kernel views), System Health page
-- Emitters: `emitKernelEvent` wired into opportunities (UPDATED, STAGE_CHANGED, CLOSED)
+| Module | Kernel Events Wired | Smoke Tests | Observability | Gaps |
+|--------|-------------------|-------------|---------------|------|
+| **CRM** | OPPORTUNITY.UPDATED, STAGE_CHANGED, CLOSED | `leads_query` (basic count) | None on leads mutations | No LEAD.CREATED/UPDATED/STATUS_CHANGED events, no correlation_id on lead mutations, no OPPORTUNITY.CREATED, no ACTIVITY.ADDED, smoke test only checks count |
+| **Comm Inbox** | CONVERSATION.RECEIVED, CONVERSATION.UPDATED (via realtime) | `conversations_query` (basic count) | None on send message | No MESSAGE.SENT event, no correlation_id on useSendMessage, smoke test only checks count |
+| **Context OS** | CONTEXT.BLOCK_UPDATED (field save only) | None specific | None | No CONTEXT.STATUS_CHANGED (approve/draft), no CONTEXT.RICH_TEXT_UPDATED, no smoke test for context_blocks+context_fields |
+| **AI Agents** | None | `ai_executions_query` (basic count) | None | No AGENT.JOB_DISPATCHED, AGENT.JOB_COMPLETED events, no correlation_id on dispatch, no smoke test for job dispatch flow |
 
-**Missing for V2:**
+---
 
-| Gap | Detail |
-|-----|--------|
-| `kernel_event_state` table | Not created (migration existed in process-events code but table never migrated) |
-| `kernel_event_deadletter` table | Not created |
-| `kernel_outcomes` table | New — decision/action attribution tracking |
-| `kernel_policies` table | New — workspace governance rules |
-| `kernel_events` schema gaps | Missing `occurred_at`, `ingested_at`, `schema_version` columns |
-| `kernel_action_runs` gaps | Missing `correlation_id` column |
-| `kernel_decision_evidence` gaps | Missing `ref_kind` column |
-| V2 action types | Missing `SEND_EMAIL`, `SEND_INBOX_REPLY`, `UPDATE_ASSET`, `PAUSE_CAMPAIGN`, `PUBLISH_ASSET` in registry |
-| V2 decision statuses | Missing `executed`, `archived` handling |
-| Policy-based governance | `kernel-run-actions` doesn't check `kernel_policies` for auto/approve/suggest |
-| `FUNNEL_LEAK` decision rule | Not implemented |
-| Event emitters | Only opportunities wired. Missing: inbox, conversational, context-os, store |
-| Correlation ID propagation | `system_function_runs` has `request_id` but kernel functions don't log to it |
-| Approval queue UI | Not in Command Center |
-| Context OS integration | No "Run Impact" button or bindings view |
-| System Health deadletter view | Not showing deadletter count |
+## A) Blockers per Module
 
-## Implementation Plan
+### CRM (Opportunities/Leads)
+- [ ] `useCreateLead` — no kernel event emitted for LEAD.CREATED
+- [ ] `useUpdateLead` — no kernel event for LEAD.UPDATED
+- [ ] `useCreateOpportunityEnhanced` — no kernel event for OPPORTUNITY.CREATED
+- [ ] No `correlation_id` passed from any CRM mutation
 
-### Phase A — Database Migration
+### Comm Inbox
+- [ ] `useSendMessage` — no kernel event for MESSAGE.SENT
+- [ ] No `correlation_id` in message send flow
+- [ ] Realtime emitter uses `Date.now()` for idempotency — fragile under rapid updates
 
-Single migration adding:
+### Context OS
+- [ ] `useUpdateBlockStatus` — no kernel event for CONTEXT.STATUS_CHANGED
+- [ ] `useUpdateBlockRichText` — no kernel event for CONTEXT.RICH_TEXT_UPDATED
+- [ ] No smoke test entry for context-os module
 
-1. **`kernel_event_state`** — consumer watermarks (consumer_key pk, workspace_id, last_ingested_at, last_event_id, updated_at)
-2. **`kernel_event_deadletter`** — failed events (id, workspace_id, consumer_key, event_id FK, error_message, error_stack, retry_count, last_attempt_at, created_at)
-3. **`kernel_outcomes`** — attribution (id, workspace_id, decision_id FK, action_run_id FK, outcome_type, outcome_value jsonb, occurred_at)
-4. **`kernel_policies`** — governance (id, workspace_id, decision_type, default_mode, approver_role, risk_thresholds jsonb, updated_at)
-5. **ALTER `kernel_events`** — add `occurred_at`, `ingested_at`, `schema_version` columns (nullable, backwards-compatible)
-6. **ALTER `kernel_action_runs`** — add `correlation_id` column
-7. **ALTER `kernel_decision_evidence`** — add `ref_kind` column
-8. **Seed** additional action registry entries (SEND_EMAIL, SEND_INBOX_REPLY, UPDATE_ASSET, PAUSE_CAMPAIGN, PUBLISH_ASSET)
-9. RLS on all new tables scoped to workspace members
+### AI Agents
+- [ ] `useAgentLifecycle.dispatch` — no kernel event for AGENT.JOB_DISPATCHED
+- [ ] No kernel event on job completion (would need to emit from dispatch `onSuccess`)
+- [ ] No smoke test beyond basic count query
 
-### Phase B — Edge Function Updates
+---
 
-**`kernel-ingest-event`**: Add `occurred_at`, `schema_version`, `correlation_id` support. Log to `system_function_runs` via internal call.
+## B) V2 Improvements
 
-**`kernel-process-events`**: Use `kernel_event_state` table for persistent watermarks. Write failures to `kernel_event_deadletter`. Propagate `correlation_id`.
+### CRM
+- [ ] Add `correlation_id` to all CRM emitKernelEvent calls using `generateRequestId()`
+- [ ] Include `actor_id` (user.id) in all CRM kernel events
+- [ ] Emit LEAD.STATUS_CHANGED when status field changes specifically
 
-**`kernel-compute-decisions`**: Add `FUNNEL_LEAK` rule (check conversion metrics). Respect `kernel_policies` for `default_mode` when setting decision status. Store `ref_kind` in evidence.
+### Comm Inbox
+- [ ] Add `correlation_id` to message send kernel events
+- [ ] Include message metadata (channel, direction) in event payload
+- [ ] Add `actor_id` for outbound messages
 
-**`kernel-run-actions`**: Check `kernel_policies` for auto/approve/suggest governance before execution. Add `SEND_INBOX_REPLY` and `UPDATE_ASSET` action handlers. Write `correlation_id` to action runs. Record `kernel_outcomes` on success.
+### Context OS
+- [ ] Include block_type and status in event payload for better decision engine input
+- [ ] Emit from `useUpdateBlockTags` for CONTEXT.TAGS_UPDATED
 
-**`kernel-compute-impact`**: No major changes needed — already does BFS traversal through links + bindings.
+### AI Agents
+- [ ] Include agent_type, entity_type, trigger_type in dispatch event payload
+- [ ] Wire queue position into event payload for observability
 
-**`kernel-compute-drift`**: Reference `kernel_event_deadletter` count as an additional drift signal.
+---
 
-### Phase C — Event Emitters (Wiring)
+## C) Kernel Events to Emit
 
-Wire `emitKernelEvent` with `idempotency_key` and `correlation_id` into:
+### CRM
+| Event | Hook | Trigger |
+|-------|------|---------|
+| `LEAD.CREATED` | `useCreateLead.onSuccess` | New lead created |
+| `LEAD.UPDATED` | `useUpdateLead.onSuccess` | Lead fields updated |
+| `OPPORTUNITY.CREATED` | `useCreateOpportunityEnhanced.onSuccess` | New opportunity |
 
-- **Inbox** (`useConversations` or similar): `CONVERSATION.RECEIVED`, `MESSAGE.RECEIVED`
-- **AI Conversational** (post-classification hook): `CONVERSATION.CLASSIFIED`, `CONVERSATION.SUMMARIZED`
-- **Context OS** (`useContextBlocks` save): `CONTEXT.BLOCK_UPDATED`
-- **Store** (cart abandonment if available): `CART.ABANDONED`
+### Comm Inbox
+| Event | Hook | Trigger |
+|-------|------|---------|
+| `MESSAGE.SENT` | `useSendMessage.onSuccess` | Outbound message sent |
 
-Each emitter generates a `requestId` from `src/lib/requestId.ts` and passes it through.
+### Context OS
+| Event | Hook | Trigger |
+|-------|------|---------|
+| `CONTEXT.STATUS_CHANGED` | `useUpdateBlockStatus.onSuccess` | Block approved/draft |
+| `CONTEXT.RICH_TEXT_UPDATED` | `useUpdateBlockRichText.onSuccess` | Rich text saved |
 
-### Phase D — UI Integration
+### AI Agents
+| Event | Hook | Trigger |
+|-------|------|---------|
+| `AGENT.JOB_DISPATCHED` | `useAgentLifecycle.dispatchMutation.onSuccess` | Job dispatched |
 
-**Command Center** — Add "Approval Queue" tab showing decisions with `status=open` and `policy.mode=approve`, with approve/reject buttons.
+---
 
-**Context OS** — Add "Run Impact" button that invokes `kernel-compute-impact` for the workspace. Add compact bindings view showing context_block → asset mappings.
+## D) Smoke Test Definitions
 
-**Impact Map** — Enhance kernel view: clicking a node shows linked decisions/actions in a sidebar panel.
+Update `system-run-smoke-tests` to add deeper checks:
 
-**System Health** — Add deadletter count card and kernel consumer status (from `kernel_event_state`).
+| Module | Check | Expected |
+|--------|-------|----------|
+| `crm-leads` | Query leads count | No error |
+| `crm-opportunities` | Query opportunities count | No error |
+| `inbox` | Query conversations count | No error |
+| `inbox-messages` | Query messages count | No error |
+| `context-os` | Query context_blocks count | No error |
+| `context-os-fields` | Query context_fields count | No error |
+| `ai-agents` | Query ai_agent_jobs count | No error |
+| `ai-agents-registry` | Query ai_agent_registry count | No error |
 
-### File Plan
+---
+
+## E) Observability
+
+All emitters will use `generateRequestId()` for `correlation_id`. The existing `emitKernelEvent` already logs to `system_function_runs` via `kernel-ingest-event`.
+
+---
+
+## File Plan
 
 | File | Action |
 |------|--------|
-| Migration SQL | 4 new tables + 3 ALTER + seed actions |
-| `supabase/functions/kernel-ingest-event/index.ts` | Add V2 fields + observability logging |
-| `supabase/functions/kernel-process-events/index.ts` | Persistent watermarks + deadletter |
-| `supabase/functions/kernel-compute-decisions/index.ts` | FUNNEL_LEAK rule + policy awareness + ref_kind |
-| `supabase/functions/kernel-run-actions/index.ts` | Policy governance + new actions + outcomes |
-| `supabase/functions/kernel-compute-drift/index.ts` | Deadletter signal |
-| `src/lib/kernelEmitter.ts` | Add correlation_id, occurred_at, schema_version |
-| `src/hooks/useConversations.ts` (or equivalent) | Wire CONVERSATION events |
-| `src/components/context-os/WizardShell.tsx` (or block save) | Wire CONTEXT.BLOCK_UPDATED |
-| `src/hooks/useKernelDecisions.ts` | Add approval queue filter |
-| `src/pages/CommandCenterPage.tsx` | Add Approval Queue tab |
-| `src/pages/SystemHealthPage.tsx` | Add deadletter + consumer status |
-| `src/pages/ImpactMapPage.tsx` | Enhance kernel node sidebar |
-| `src/components/context-os/ContextOSDashboard.tsx` | Add Run Impact button + bindings |
+| `src/hooks/useLeads.ts` | Add emitKernelEvent to useCreateLead + useUpdateLead onSuccess |
+| `src/hooks/useOpportunitiesEnhanced.ts` | Add emitKernelEvent to useCreateOpportunityEnhanced onSuccess, add correlation_id + actor_id to existing emitters |
+| `src/hooks/useMessages.ts` | Add emitKernelEvent to useSendMessage onSuccess |
+| `src/hooks/useContextBlocks.ts` | Add emitKernelEvent to useUpdateBlockStatus + useUpdateBlockRichText onSuccess |
+| `src/hooks/useAgentLifecycle.ts` | Add emitKernelEvent to dispatchMutation onSuccess |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add crm-opportunities, inbox-messages, context-os, context-os-fields, ai-agents-registry checks |
 
