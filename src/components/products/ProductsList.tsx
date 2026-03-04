@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -63,6 +63,7 @@ import {
   Tag,
   Trash2,
   Settings,
+  ScanLine,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -76,6 +77,10 @@ import { PricingTabContent } from "./PricingTabContent";
 import { ProductSettingsTabContent } from "./settings/ProductSettingsTabContent";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
+import { BarcodeScannerModal } from "@/components/barcode/BarcodeScannerModal";
+import { BarcodeResultPanel } from "@/components/barcode/BarcodeResultPanel";
+import { useBarcodeLookup } from "@/hooks/useBarcodeLookup";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
 import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
 import {
@@ -131,6 +136,7 @@ const sortOptions = [
 ];
 
 export function ProductsList() {
+  const { currentWorkspace } = useWorkspace();
   const [statusFilter, setStatusFilter] = useState<string>("active");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -138,6 +144,16 @@ export function ProductsList() {
   const [batchImportOpen, setBatchImportOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanResultOpen, setScanResultOpen] = useState(false);
+  const [scannedBarcode, setScannedBarcode] = useState("");
+  const { lookup, isLoading: scanLoading, result: scanResult, reset: resetScan } = useBarcodeLookup(currentWorkspace?.id);
+
+  const handleBarcodeScan = useCallback(async (barcode: string) => {
+    setScannedBarcode(barcode);
+    setScanResultOpen(true);
+    await lookup(barcode);
+  }, [lookup]);
   
   // New state for reorganized UI
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -592,6 +608,12 @@ export function ProductsList() {
           onTabChange={setActiveTab}
           actions={activeTab === "products" ? [
             {
+              label: "Scan",
+              icon: <ScanLine className="h-4 w-4" />,
+              onClick: () => setScannerOpen(true),
+              variant: "outline" as const,
+            },
+            {
               label: "Importar SKUs",
               icon: <Upload className="h-4 w-4" />,
               onClick: () => setBatchImportOpen(true),
@@ -889,6 +911,30 @@ export function ProductsList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Barcode Scanner */}
+      <BarcodeScannerModal
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
+        onScan={handleBarcodeScan}
+      />
+      <BarcodeResultPanel
+        open={scanResultOpen}
+        onOpenChange={(v) => {
+          setScanResultOpen(v);
+          if (!v) resetScan();
+        }}
+        result={scanResult}
+        barcode={scannedBarcode}
+        isLoading={scanLoading}
+        onOpenProduct={(id) => {
+          const p = products?.find(pr => pr.id === id);
+          if (p) setDetailProduct(p);
+        }}
+        onQuickCreate={(barcode) => {
+          window.open(`/mqpc?barcode=${encodeURIComponent(barcode)}`, "_blank");
+        }}
+      />
     </div>
   );
 }

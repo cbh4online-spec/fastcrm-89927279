@@ -5,9 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { usePurchaseOrders, useGoodsReceipts } from "@/hooks/useProcurement";
 import { useQueryClient } from "@tanstack/react-query";
+import { ScanLine } from "lucide-react";
+import { BarcodeScannerModal } from "@/components/barcode/BarcodeScannerModal";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
@@ -25,6 +28,25 @@ export function GoodsReceiptForm({ open, onOpenChange, workspaceId }: Props) {
   const [notes, setNotes] = useState("");
   const [receiptItems, setReceiptItems] = useState<{ order_item_id: string; quantity_received: number; description: string; max: number }[]>([]);
   const [saving, setSaving] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+
+  const handleBarcodeScan = useCallback((barcode: string) => {
+    // Find matching item in receipt by checking PO items descriptions or product barcodes
+    const matchIdx = receiptItems.findIndex(
+      (item) => item.description?.toLowerCase().includes(barcode.toLowerCase())
+    );
+    if (matchIdx >= 0) {
+      const updated = [...receiptItems];
+      updated[matchIdx].quantity_received = Math.min(
+        updated[matchIdx].quantity_received + 1,
+        updated[matchIdx].max
+      );
+      setReceiptItems(updated);
+      toast.success(`+1 ${updated[matchIdx].description}`);
+    } else {
+      toast.warning(`Código ${barcode} não encontrado nos items desta PO`);
+    }
+  }, [receiptItems]);
 
   const activePOs = (orders as any[]).filter(o => ["sent", "confirmed", "partial"].includes(o.status));
 
@@ -83,6 +105,9 @@ export function GoodsReceiptForm({ open, onOpenChange, workspaceId }: Props) {
           {receiptItems.length > 0 && (
             <div className="space-y-2">
               <Label>{t("items")}</Label>
+              <Button size="sm" variant="outline" onClick={() => setScannerOpen(true)} className="ml-2">
+                <ScanLine className="h-3 w-3 mr-1" /> Scan
+              </Button>
               {receiptItems.map((item, i) => (
                 <div key={item.order_item_id} className="flex items-center gap-3 text-sm">
                   <span className="flex-1 truncate">{item.description}</span>
@@ -109,6 +134,11 @@ export function GoodsReceiptForm({ open, onOpenChange, workspaceId }: Props) {
             {saving ? "A registar..." : t("newReceipt")}
           </Button>
         </div>
+        <BarcodeScannerModal
+          open={scannerOpen}
+          onOpenChange={setScannerOpen}
+          onScan={handleBarcodeScan}
+        />
       </DialogContent>
     </Dialog>
   );
