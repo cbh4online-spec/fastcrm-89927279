@@ -113,7 +113,9 @@ export function useConversations(filters?: ConversationFilters) {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`[Inbox Realtime] conversations subscription: ${status}`);
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -232,7 +234,7 @@ export function useAssignConversation() {
   const { workspaceClient } = useWorkspaceInstance();
 
   return useMutation({
-    mutationFn: async ({ conversationId, assignTo }: { conversationId: string; assignTo: string | null }) => {
+    mutationFn: async ({ conversationId, assignTo, previousAssignedTo }: { conversationId: string; assignTo: string | null; previousAssignedTo?: string | null }) => {
       const { data, error } = await workspaceClient
         .from("conversations")
         .update({ assigned_to: assignTo })
@@ -241,11 +243,33 @@ export function useAssignConversation() {
         .single();
 
       if (error) throw error;
-      return data as Conversation;
+      return { conversation: data as Conversation, previousAssignedTo };
     },
-    onSuccess: (data) => {
+    onSuccess: ({ conversation, previousAssignedTo }) => {
       queryClient.invalidateQueries({ queryKey: ["conversations", currentWorkspace?.id] });
-      queryClient.invalidateQueries({ queryKey: ["conversation", data.id] });
+      queryClient.invalidateQueries({ queryKey: ["conversation", conversation.id] });
+
+      // Emit CONVERSATION.ASSIGNED kernel event
+      if (currentWorkspace?.id) {
+        import('@/lib/kernelEmitter').then(({ emitKernelEvent }) => {
+          import('@/lib/requestId').then(({ generateRequestId }) => {
+            emitKernelEvent({
+              workspace_id: currentWorkspace.id,
+              type: 'CONVERSATION.ASSIGNED',
+              entity_kind: 'conversation',
+              entity_id: conversation.id,
+              actor_type: 'user',
+              payload: {
+                assigned_to: conversation.assigned_to,
+                previous_assigned_to: previousAssignedTo ?? null,
+                channel: conversation.channel,
+              },
+              source_module: 'comm-inbox',
+              correlation_id: generateRequestId(),
+            });
+          });
+        });
+      }
     },
   });
 }
@@ -256,7 +280,7 @@ export function useUpdateConversationStatus() {
   const { workspaceClient } = useWorkspaceInstance();
 
   return useMutation({
-    mutationFn: async ({ conversationId, status }: { conversationId: string; status: ConversationStatus }) => {
+    mutationFn: async ({ conversationId, status, previousStatus }: { conversationId: string; status: ConversationStatus; previousStatus?: ConversationStatus }) => {
       const { data, error } = await workspaceClient
         .from("conversations")
         .update({ status })
@@ -265,11 +289,33 @@ export function useUpdateConversationStatus() {
         .single();
 
       if (error) throw error;
-      return data as Conversation;
+      return { conversation: data as Conversation, previousStatus };
     },
-    onSuccess: (data) => {
+    onSuccess: ({ conversation, previousStatus }) => {
       queryClient.invalidateQueries({ queryKey: ["conversations", currentWorkspace?.id] });
-      queryClient.invalidateQueries({ queryKey: ["conversation", data.id] });
+      queryClient.invalidateQueries({ queryKey: ["conversation", conversation.id] });
+
+      // Emit CONVERSATION.STATUS_CHANGED kernel event
+      if (currentWorkspace?.id) {
+        import('@/lib/kernelEmitter').then(({ emitKernelEvent }) => {
+          import('@/lib/requestId').then(({ generateRequestId }) => {
+            emitKernelEvent({
+              workspace_id: currentWorkspace.id,
+              type: 'CONVERSATION.STATUS_CHANGED',
+              entity_kind: 'conversation',
+              entity_id: conversation.id,
+              actor_type: 'user',
+              payload: {
+                status: conversation.status,
+                previous_status: previousStatus ?? null,
+                channel: conversation.channel,
+              },
+              source_module: 'comm-inbox',
+              correlation_id: generateRequestId(),
+            });
+          });
+        });
+      }
     },
   });
 }

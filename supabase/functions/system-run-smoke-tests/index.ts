@@ -69,6 +69,8 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "ai-agents-registry", "ai_registry_query", "ai_agent_registry"),
       // Kernel
       runCheck(supabase, workspace_id, "kernel", "kernel_events_query", "kernel_events"),
+      // Inbox Action Logs
+      runCheck(supabase, workspace_id, "inbox-action-logs", "inbox_action_logs_query", "inbox_action_logs"),
     ]);
 
     // Log failures
