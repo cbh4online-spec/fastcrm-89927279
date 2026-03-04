@@ -7,7 +7,7 @@ import { pt } from 'date-fns/locale';
 import { Loader2, Activity } from 'lucide-react';
 
 const EVENT_TYPES = [
-  { value: '', label: 'Todos' },
+  { value: 'all', label: 'Todos' },
   { value: 'context.block.created', label: 'Bloco criado' },
   { value: 'context.block.updated', label: 'Bloco atualizado' },
   { value: 'context.block.verified', label: 'Bloco verificado' },
@@ -20,8 +20,8 @@ const EVENT_TYPES = [
 ];
 
 export function ContextEventLog() {
-  const [typeFilter, setTypeFilter] = useState('');
-  const { events, isLoading } = useContextEventLog(typeFilter || undefined);
+  const [typeFilter, setTypeFilter] = useState('all');
+  const { events, isLoading } = useContextEventLog(typeFilter === 'all' ? undefined : typeFilter);
 
   return (
     <div className="space-y-3">
