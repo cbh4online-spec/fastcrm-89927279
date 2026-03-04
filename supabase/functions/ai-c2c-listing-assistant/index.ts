@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const { mode, image, title, description, categories, condition, price, count: reqCount } = await req.json();
+    const { mode, image, title, description, categories, condition, price, count: reqCount, category_name, category_id } = await req.json();
 
     const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
     const headers = {
@@ -223,6 +223,57 @@ Deno.serve(async (req) => {
         });
       }
       throw new Error("No tool call");
+    }
+
+    // ===== GENERATE CATEGORY IMAGE (3D) =====
+    if (mode === "generate-category-image") {
+      const catName = category_name || title || "generic";
+      const imgPrompt = `Create a high-quality 3D isometric icon representing the "${catName}" product category for an online marketplace. The icon should be a single 3D rendered object on a pure white background, with soft shadows, vibrant colors, clean minimal style. No text, no labels. Professional 3D render quality.`;
+
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const sb = createClient(supabaseUrl, supabaseKey);
+
+      const aiRes = await fetch(AI_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: "google/gemini-3-pro-image-preview",
+          messages: [{ role: "user", content: imgPrompt }],
+          modalities: ["image", "text"],
+        }),
+      });
+
+      if (!aiRes.ok) {
+        if (aiRes.status === 429) throw new Error("RATE_LIMITED");
+        if (aiRes.status === 402) throw new Error("PAYMENT_REQUIRED");
+        throw new Error(`AI image error: ${aiRes.status}`);
+      }
+
+      const aiData = await aiRes.json();
+      const imageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      if (!imageUrl) throw new Error("No image returned from AI");
+
+      const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, "");
+      const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+      const filePath = `category-icons/${crypto.randomUUID()}.png`;
+
+      const { error: uploadError } = await sb.storage
+        .from("c2c-photos")
+        .upload(filePath, binaryData, { contentType: "image/png", upsert: true });
+      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+
+      const { data: publicUrlData } = sb.storage.from("c2c-photos").getPublicUrl(filePath);
+      const publicUrl = publicUrlData.publicUrl;
+
+      // Update the category record if category_id provided
+      if (category_id) {
+        await sb.from("c2c_categories").update({ image_url: publicUrl }).eq("id", category_id);
+      }
+
+      return new Response(JSON.stringify({ success: true, image_url: publicUrl }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // ===== GENERATE IMAGE =====

@@ -32,6 +32,7 @@ export interface C2CCategory {
   name: string;
   slug: string;
   icon: string | null;
+  image_url: string | null;
   description: string | null;
   parent_id: string | null;
   sort_order: number;

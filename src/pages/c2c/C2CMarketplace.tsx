@@ -18,7 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 
 function CategoryCarousel({ categories, onSelect, selected }: {
-  categories: { id: string; name: string; icon: string | null; slug: string }[];
+  categories: { id: string; name: string; icon: string | null; image_url?: string | null; slug: string }[];
   onSelect: (id: string | undefined) => void;
   selected?: string;
 }) {
@@ -51,7 +51,11 @@ function CategoryCarousel({ categories, onSelect, selected }: {
                 : "bg-card border-border hover:border-primary/30"
             )}
           >
-            <span className="text-2xl">{cat.icon || "📦"}</span>
+            {cat.image_url ? (
+              <img src={cat.image_url} alt={cat.name} className="w-12 h-12 object-contain rounded-lg" />
+            ) : (
+              <span className="text-2xl">{cat.icon || "📦"}</span>
+            )}
             <span className="text-xs font-medium text-center leading-tight">{cat.name}</span>
           </button>
         ))}
