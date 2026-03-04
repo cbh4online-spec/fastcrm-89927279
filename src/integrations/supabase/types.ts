@@ -9204,6 +9204,162 @@ export type Database = {
           },
         ]
       }
+      context_block_attachments: {
+        Row: {
+          attachment_type: string
+          block_id: string
+          created_at: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string | null
+          id: string
+          mime_type: string | null
+          uploaded_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          attachment_type?: string
+          block_id: string
+          created_at?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          mime_type?: string | null
+          uploaded_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          attachment_type?: string
+          block_id?: string
+          created_at?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          mime_type?: string | null
+          uploaded_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "context_block_attachments_block_id_fkey"
+            columns: ["block_id"]
+            isOneToOne: false
+            referencedRelation: "context_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "context_block_attachments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      context_block_comments: {
+        Row: {
+          block_id: string
+          content: string
+          created_at: string | null
+          id: string
+          updated_at: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          block_id: string
+          content: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          block_id?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "context_block_comments_block_id_fkey"
+            columns: ["block_id"]
+            isOneToOne: false
+            referencedRelation: "context_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "context_block_comments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      context_block_versions: {
+        Row: {
+          block_id: string
+          change_summary: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          snapshot_fields: Json
+          snapshot_rich_text: string | null
+          snapshot_status: string | null
+          snapshot_tags: string[] | null
+          version_number: number
+          workspace_id: string
+        }
+        Insert: {
+          block_id: string
+          change_summary?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          snapshot_fields?: Json
+          snapshot_rich_text?: string | null
+          snapshot_status?: string | null
+          snapshot_tags?: string[] | null
+          version_number?: number
+          workspace_id: string
+        }
+        Update: {
+          block_id?: string
+          change_summary?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          snapshot_fields?: Json
+          snapshot_rich_text?: string | null
+          snapshot_status?: string | null
+          snapshot_tags?: string[] | null
+          version_number?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "context_block_versions_block_id_fkey"
+            columns: ["block_id"]
+            isOneToOne: false
+            referencedRelation: "context_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "context_block_versions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       context_blocks: {
         Row: {
           block_type: Database["public"]["Enums"]["context_block_type"]
