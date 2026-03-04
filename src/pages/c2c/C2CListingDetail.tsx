@@ -14,7 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { OfferDialog } from "@/components/c2c/OfferDialog";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
-import { ArrowLeft, MapPin, Star, MessageCircle, Flag, Eye, Calendar, ShoppingBag, Loader2, User, Camera, RotateCw, Video } from "lucide-react";
+import { ArrowLeft, MapPin, Star, MessageCircle, Flag, Eye, Calendar, ShoppingBag, Loader2, User, Camera, RotateCw, Video, Store, Heart, Bell } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -151,15 +151,51 @@ export default function C2CListingDetail() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* C2C Marketplace Header */}
+      <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-md border-b shadow-sm">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/dashboard/c2c")}
+              className="shrink-0"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <Store className="w-5 h-5 text-primary" />
+              </div>
+              <div className="hidden sm:block">
+                <h1 className="text-lg font-bold leading-tight">Marketplace</h1>
+              </div>
+            </div>
+
+            <div className="flex-1" />
+
+            {user && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/c2c/favorites")}>
+                  <Heart className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/c2c/messages")}>
+                  <MessageCircle className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/c2c/notifications")}>
+                  <Bell className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/c2c/my-listings")}>
+                  <User className="h-5 w-5" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
       <div className="container mx-auto px-4 py-6 max-w-5xl">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate(-1)}
-          className="mb-4 -ml-2"
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
-        </Button>
 
         <div className="grid gap-6 lg:grid-cols-5">
           {/* Photos / Media */}
