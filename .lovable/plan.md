@@ -1,168 +1,124 @@
 
 
-# Auditoria Completa — Módulo Loja Online FastCRM
+# Plano: Sistema de Afiliados e Referenciação para Marketplace C2C
+
+## Contexto
+
+O Marketplace C2C já possui infraestrutura completa: `c2c_sellers`, `c2c_listings`, `c2c_commissions`, `c2c_offers`, `c2c_reviews`, `c2c_messages`, `c2c_notifications`, `c2c_reports`, `c2c_sponsored_listings`, `c2c_categories`. O que falta é o sistema de **afiliados**, **referenciação** e **payouts**.
 
 ---
 
-## A) INVENTÁRIO DE UI E NAVEGAÇÃO
+## 1. Base de Dados (1 migração)
 
-### Rotas registadas no Router (App.tsx)
+### Novas tabelas
 
-| Rota (Dashboard Admin) | Existe página? | No Menu V1? | No Menu V2? | Observação |
-|---|---|---|---|---|
-| `/dashboard/store-products` | ✅ StoreProductsAdminPage | ✅ | ✅ | OK |
-| `/dashboard/store-orders` | ✅ StoreOrdersPage | ✅ | ✅ | OK |
-| `/dashboard/store-orders/:id` | ✅ StoreOrderDetailPage | N/A (sub-rota) | N/A | OK |
-| `/dashboard/store-categories` | ✅ StoreCategoriesPage | ✅ | ✅ | OK |
-| `/dashboard/store-coupons` | ✅ StoreCouponsPage | ❌ **AUSENTE** | ❌ **AUSENTE** | Rota existe, página existe, **sem menu** |
-| `/dashboard/store-analytics` | ✅ StoreAnalyticsPage | ❌ **AUSENTE** | ❌ **AUSENTE** | Rota existe, página existe (1073 linhas), **sem menu** |
-| `/dashboard/store-settings` | ✅ StoreSettingsPage | ❌ **AUSENTE** | ❌ **AUSENTE** | Rota existe, página existe (623 linhas), **sem menu** |
-
-Todas estão no `routes.legacy.ts` como `hidden: true`, mas **nunca foram adicionadas ao nav.v1.ts / nav.v2.ts**.
-
-### Rotas Públicas (Storefront — `/store/*`)
-
-| Rota | Página | Status |
-|---|---|---|
-| `/store/:slug` | StorePage | ✅ OK |
-| `/store/:slug/product/:id` | StoreProductPage | ✅ OK |
-| `/store/:slug/checkout` | StoreCheckoutPage | ✅ OK |
-| `/store/:slug/success` | StoreSuccessPage | ✅ OK |
-| `/store/:slug/cancel` | StoreCancelPage | ✅ OK |
-| `/store/:slug/wishlist` | StoreWishlistPage | ✅ OK |
-| `/store/:slug/orders` | StoreOrderHistoryPage | ✅ OK |
-| `/store/:slug/downloads` | StoreDigitalAssetsPage | ✅ OK |
-| `/store/:slug/loyalty` | StoreLoyaltyPage | ✅ OK |
-| `/store/:slug/referrals` | StoreReferralPage | ✅ OK |
-| `/store/:slug/gift-cards` | StoreGiftCardsPage | ✅ OK |
-
-### Ficheiros a alterar para corrigir menus
-
-- `src/config/nav.v1.ts` — grupo "Loja Online" (linhas 138-141): adicionar 3 itens
-- `src/config/nav.v2.ts` — grupo "Loja Online" (linhas 136-147): adicionar 3 children
-
----
-
-## B) INVENTÁRIO DO BACKEND
-
-### Tabelas e-commerce existentes na DB
-
-| Tabela | Status | Notas |
-|---|---|---|
-| `store_settings` | ✅ OK | workspace_id unique, todas as configs |
-| `products` | ✅ OK | store_published, store_featured, store_category_id |
-| `product_variants` | ✅ OK | attributes JSONB, price, sku |
-| `product_deliverables` | ✅ OK | Digital delivery (files, portal_access) |
-| `store_categories` | ✅ OK | position, is_active, image_url |
-| `store_orders` | ✅ OK | FKs: contact, company, opportunity, campaign, coupon, shipping_method |
-| `store_order_items` (via store_orders.items JSONB) | ⚠️ Parcial | Items são JSONB dentro de store_orders, não tabela separada |
-| `store_coupons` | ✅ OK | discount_type, category_ids, valid_until |
-| `store_reviews` | ✅ OK | rating, comment, product FK |
-| `store_wishlist` | ✅ OK | product FK |
-| `store_page_views` | ✅ OK | Analytics tracking |
-| `store_abandoned_carts` | ✅ OK | contact FK, recovered_order FK |
-| `store_gift_cards` | ✅ OK | code, balance, transactions |
-| `store_gift_card_transactions` | ✅ OK | gift_card FK |
-| `store_referral_settings` | ✅ OK | workspace unique |
-| `store_referral_codes` | ✅ OK | code, workspace FK |
-| `store_referrals` | ✅ OK | referee_order FK |
-| `shipping_methods` | ✅ OK | workspace FK, base_price |
-| `product_inventory` | ✅ OK | stock_on_hand, reorder_point |
-| `inventory_movements` | ✅ OK | type, qty, source |
-
-**Tabelas ausentes**: Nenhuma crítica em falta. O schema é bastante completo.
-
-### Edge Functions e-commerce
-
-| Edge Function | Existe? | Usada na UI? | Status |
-|---|---|---|---|
-| `create-store-checkout` | ✅ | ✅ StoreCheckoutPage | OK — Stripe checkout |
-| `store-webhook` | ✅ | ✅ (Stripe webhook) | OK — processa deliverables, stock |
-| `stripe-webhook` | ✅ | ✅ | OK |
-| `calculate-shipping` | ✅ | ✅ StoreCheckoutPage | OK |
-| `detect-abandoned-carts` | ✅ | ✅ StoreAnalyticsPage | OK |
-| `store-cart-abandonment` | ✅ | ✅ | OK |
-| `store-ai-advisor` | ✅ | ✅ StoreProductPage | OK |
-| `store-visual-search` | ✅ | ✅ | OK |
-| `store-capture-lead` | ✅ | ✅ | OK |
-| `store-classify-visitor` | ✅ | ✅ | OK |
-| `ai-cart-recommendations` | ✅ | ✅ | OK |
-| `ai-store-offers` | ✅ | ✅ | OK |
-| `process-refund` | ✅ | ✅ | OK |
-| `send-order-status-notification` | ✅ | ✅ | OK |
-| `send-tracking-notification` | ✅ | ✅ | OK |
-| `process-product-alerts` | ✅ | ✅ | OK |
-| `ai-pricing-optimizer` | ✅ | ✅ | OK |
-
----
-
-## C) INVENTÁRIO FUNCIONAL
-
-| # | Feature | Status | O que falta | Prioridade |
-|---|---|---|---|---|
-| 1 | Catálogo (produtos, variantes, preços, imagens, stock) | ✅ Implementado | — | — |
-| 2 | Página produto (storefront) | ✅ Implementado | Reviews, zoom, video, badges, AI advisor | — |
-| 3 | Carrinho (cart) | ✅ Implementado | Context-based (StoreCartProvider) | — |
-| 4 | Checkout (dados, morada, envio) | ✅ Implementado | Stripe redirect, coupon, gift card, shipping | — |
-| 5 | Pagamento (Stripe) | ✅ Implementado | create-store-checkout + webhook | — |
-| 6 | Encomendas (admin list + detalhe) | ✅ Implementado | StoreOrdersPage + StoreOrderDetailPage | — |
-| 7 | Estados (pending/paid/fulfilled/cancelled/refunded) | ✅ Implementado | Via store_orders.status + webhook | — |
-| 8 | Emails transacionais | ✅ Implementado | send-order-status-notification, send-tracking | — |
-| 9 | Cupões/descontos | ✅ Implementado | StoreCouponsPage existe, **MAS SEM MENU** | **P0** |
-| 10 | IVA (23% PT) | ✅ Implementado | StoreVatProvider, vat_rate em store_settings | — |
-| 11 | Envio (métodos, custos) | ✅ Implementado | ShippingMethodsManager em StoreSettingsPage, **MAS SEM MENU** | **P0** |
-| 12 | Área cliente (wishlist, orders, downloads, loyalty, referrals, gift cards) | ✅ Implementado | 6 páginas públicas | — |
-| 13 | Admin: settings da loja | ✅ Implementado | StoreSettingsPage (623 linhas), **MAS SEM MENU** | **P0** |
-| 14 | Analytics da loja | ✅ Implementado | StoreAnalyticsPage (1073 linhas!), **MAS SEM MENU** | **P0** |
-
----
-
-## D) DIAGNÓSTICO DE CAUSA-RAIZ
-
-**Causa principal: #1 — Navegação/menus incompleta**
-
-O backend, as edge functions, e os componentes UI estão **todos implementados e funcionais**. O problema é exclusivamente que 4 páginas admin nunca foram adicionadas ao menu lateral:
-
-| Página em falta no menu | Ficheiros a corrigir |
+| Tabela | Finalidade |
 |---|---|
-| Cupões (`/dashboard/store-coupons`) | `nav.v1.ts` linha ~141, `nav.v2.ts` linha ~145 |
-| Definições (`/dashboard/store-settings`) | `nav.v1.ts` linha ~141, `nav.v2.ts` linha ~145 |
-| Analytics (`/dashboard/store-analytics`) | `nav.v1.ts` linha ~141, `nav.v2.ts` linha ~145 |
+| `c2c_affiliate_programs` | Configuração do programa de afiliados por workspace |
+| `c2c_affiliates` | Utilizadores inscritos como afiliados |
+| `c2c_affiliate_links` | Links gerados por afiliado (listing, seller, home) |
+| `c2c_affiliate_clicks` | Tracking de cliques com fingerprint/ip hash |
+| `c2c_affiliate_attributions` | Atribuição de comissão por venda |
+| `c2c_referral_programs` | Configuração do programa de referenciação por workspace |
+| `c2c_referrals` | Convites enviados (código/email) |
+| `c2c_referral_attributions` | Recompensas por referenciação qualificada |
+| `c2c_payouts` | Pagamentos a afiliados/sellers/referrers |
+| `c2c_order_events` | Auditoria de eventos por order (existing c2c_commissions serves as orders) |
+| `c2c_platform_fees` | Configuração de taxas da plataforma |
 
-Não há:
-- ❌ Feature flags a bloquear (moduleSlug `online-store` já existe)
-- ❌ RLS a impedir acesso
-- ❌ Backend incompleto
-- ❌ Componentes sem bindings
+Todas com `workspace_id` (NOT NULL, FK workspaces), RLS multi-tenant, e indexes.
+
+### RLS
+
+- Afiliados: vêem apenas os seus dados (`user_id = auth.uid()`)
+- Clicks: insert público (anon/authenticated), select só afiliado dono ou admin
+- Attributions/Payouts: select por user_id, manage por admin workspace
+- Programs/Fees: select por workspace members, manage por admin/owner
 
 ---
 
-## E) PLANO DE CORREÇÃO
+## 2. Edge Functions (4)
 
-### P0 — Bloqueadores (imediato)
+### A) `marketplace-track-click`
+- Input: `affiliate_code` ou `referral_code`, `target_type`, `target_id`, `user_agent`, `referrer_url`
+- Grava `c2c_affiliate_clicks` com `ip_hash`, `user_agent_hash`, `session_id`
+- Retorna redirect URL + session_id (cookie)
+- `verify_jwt = false` (público)
 
-**Adicionar 3 itens ao menu "Loja Online"** em ambos os ficheiros de navegação:
+### B) `marketplace-attribute-sale`
+- Chamada pelo webhook de pagamento (c2c-webhook) quando `c2c_purchase` é pago
+- Verifica cookie_window (affiliate) e referral trigger
+- Anti-fraude: bloqueia self-referral/self-affiliate
+- Cria `c2c_affiliate_attributions` (status=held, hold_until=now+hold_days)
+- Cria `c2c_referral_attributions` se aplicável
+- Cria `c2c_order_events` (event_type=attributed)
 
-**`nav.v1.ts`** — após linha 141, adicionar:
-```
-{ name: "Cupões", href: "/dashboard/store-coupons", icon: Ticket, group: "Loja Online", moduleSlug: "online-store" },
-{ name: "Analytics", href: "/dashboard/store-analytics", icon: BarChart3, group: "Loja Online", moduleSlug: "online-store" },
-{ name: "Definições", href: "/dashboard/store-settings", icon: Settings, group: "Loja Online", moduleSlug: "online-store" },
-```
+### C) `marketplace-process-payouts`
+- Cron ou manual: processa attributions com `hold_until < now()` e `status=held` → approved
+- Agrega por user_id + período → cria `c2c_payouts` (status=queued)
+- Se refund/chargeback detectado → reverte attributions
 
-**`nav.v2.ts`** — dentro do children do grupo "Loja Online" (linha ~145), adicionar:
-```
-{ name: "Cupões", href: "/dashboard/store-coupons", icon: Ticket, iconColor: "text-pink-500" },
-{ name: "Analytics", href: "/dashboard/store-analytics", icon: BarChart3, iconColor: "text-pink-500" },
-{ name: "Definições", href: "/dashboard/store-settings", icon: Settings, iconColor: "text-pink-500" },
-```
+### D) `marketplace-payout-execute`
+- Para payouts queued: marca como processing/paid (manual tracking)
+- Exporta relatório CSV para pagamento IBAN
 
-### P1 — Nada identificado
-O core e-commerce está completo: catálogo, checkout Stripe, encomendas, cupões, envio, IVA, emails, analytics.
+---
 
-### P2 — Melhorias futuras (opcionais)
-- Separar `store_order_items` de JSONB para tabela relacional (melhor reporting)
-- Tracking de envio integrado (número + link transportadora)
-- Dashboard de métricas em tempo real (realtime subscriptions)
-- Variantes de produto no checkout (seleção de cor/tamanho)
+## 3. UI — Novas Páginas
+
+### A) Centro de Afiliados (`/dashboard/c2c/affiliates`)
+- Inscrição como afiliado (se programa ativo)
+- Gerar links/códigos por listing ou geral
+- Dashboard: cliques, conversões, comissões (pending/held/approved/paid)
+- Tabela de histórico com export CSV
+
+### B) Centro de Referências (`/dashboard/c2c/referrals`)
+- Gerar link/código de convite
+- Enviar convite por email (campo)
+- Estado dos convites (invited/signed_up/qualified/rewarded)
+- Recompensas acumuladas
+
+### C) Admin Afiliados & Referências (`/dashboard/c2c/affiliate-admin`)
+- Configurar programa afiliados (comissão %, cookie window, hold days)
+- Configurar programa referências (reward type/value, trigger)
+- Lista de afiliados + stats
+- Lista de payouts + aprovar/rejeitar
+- Anti-fraude: top IPs, self-referrals detectados
+
+---
+
+## 4. Navegação
+
+Adicionar ao grupo "Marketplace C2C" em `nav.v1.ts` e `nav.v2.ts`:
+- "Afiliados" → `/dashboard/c2c/affiliates`
+- "Referências" → `/dashboard/c2c/referrals`
+- "Admin Afiliados" → `/dashboard/c2c/affiliate-admin`
+
+---
+
+## 5. Integração com c2c-webhook existente
+
+No `c2c-webhook/index.ts`, no bloco `c2c_purchase`, adicionar chamada a `marketplace-attribute-sale` para processar atribuições de afiliado/referência automaticamente após pagamento.
+
+---
+
+## 6. Ficheiros a criar/modificar
+
+| Ficheiro | Ação |
+|---|---|
+| Migração SQL | Criar 11 tabelas + RLS + indexes |
+| `supabase/functions/marketplace-track-click/index.ts` | Criar |
+| `supabase/functions/marketplace-attribute-sale/index.ts` | Criar |
+| `supabase/functions/marketplace-process-payouts/index.ts` | Criar |
+| `supabase/functions/marketplace-payout-execute/index.ts` | Criar |
+| `src/hooks/useC2CAffiliates.ts` | Hooks para affiliate CRUD + stats |
+| `src/hooks/useC2CReferrals.ts` | Hooks para referral CRUD + stats |
+| `src/hooks/useC2CPayouts.ts` | Hooks para payouts admin |
+| `src/pages/c2c/C2CAffiliateCenter.tsx` | Página afiliados |
+| `src/pages/c2c/C2CReferralCenter.tsx` | Página referências |
+| `src/pages/c2c/C2CAffiliateAdmin.tsx` | Página admin |
+| `src/App.tsx` | Registar 3 novas rotas |
+| `src/config/nav.v1.ts` | Adicionar 3 itens menu |
+| `src/config/nav.v2.ts` | Adicionar 3 children |
+| `supabase/functions/c2c-webhook/index.ts` | Integrar atribuição |
 
