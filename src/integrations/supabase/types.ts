@@ -13919,6 +13919,56 @@ export type Database = {
           },
         ]
       }
+      feature_registry_runtime: {
+        Row: {
+          computed_at: string
+          failures_24h: number
+          failures_7d: number
+          id: string
+          last_error: string | null
+          module_id: string
+          p95_latency_ms: number | null
+          smoke_status: string
+          status: string
+          success_rate: number | null
+          workspace_id: string
+        }
+        Insert: {
+          computed_at?: string
+          failures_24h?: number
+          failures_7d?: number
+          id?: string
+          last_error?: string | null
+          module_id: string
+          p95_latency_ms?: number | null
+          smoke_status?: string
+          status?: string
+          success_rate?: number | null
+          workspace_id: string
+        }
+        Update: {
+          computed_at?: string
+          failures_24h?: number
+          failures_7d?: number
+          id?: string
+          last_error?: string | null
+          module_id?: string
+          p95_latency_ms?: number | null
+          smoke_status?: string
+          status?: string
+          success_rate?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_registry_runtime_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       field_permissions: {
         Row: {
           created_at: string
@@ -33873,6 +33923,50 @@ export type Database = {
           },
         ]
       }
+      system_function_runs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          function_name: string
+          id: string
+          latency_ms: number | null
+          module_id: string | null
+          request_id: string | null
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          function_name: string
+          id?: string
+          latency_ms?: number | null
+          module_id?: string | null
+          request_id?: string | null
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          function_name?: string
+          id?: string
+          latency_ms?: number | null
+          module_id?: string | null
+          request_id?: string | null
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_function_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_incidents: {
         Row: {
           created_at: string
@@ -33978,6 +34072,92 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "system_metrics_daily_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_smoke_test_failures: {
+        Row: {
+          check_name: string
+          created_at: string
+          error_message: string | null
+          id: string
+          module_id: string
+          run_id: string
+          workspace_id: string
+        }
+        Insert: {
+          check_name: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          module_id: string
+          run_id: string
+          workspace_id: string
+        }
+        Update: {
+          check_name?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          module_id?: string
+          run_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_smoke_test_failures_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "system_smoke_test_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "system_smoke_test_failures_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_smoke_test_runs: {
+        Row: {
+          failed: number
+          finished_at: string | null
+          id: string
+          passed: number
+          started_at: string
+          status: string
+          total_checks: number
+          workspace_id: string
+        }
+        Insert: {
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          passed?: number
+          started_at?: string
+          status?: string
+          total_checks?: number
+          workspace_id: string
+        }
+        Update: {
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          passed?: number
+          started_at?: string
+          status?: string
+          total_checks?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_smoke_test_runs_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

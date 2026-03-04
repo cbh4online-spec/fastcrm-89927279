@@ -236,6 +236,7 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
     children: [
       { name: "SEO & Growth", href: "/dashboard/seo", icon: Search, moduleSlug: "seo-growth", iconColor: "text-slate-500" },
       { name: "Motor Conversacional", href: "/dashboard/conversational-engine", icon: MessageSquare, moduleSlug: "conversational-engine", iconColor: "text-slate-500" },
+      { name: "System Health", href: "/dashboard/system/health", icon: ShieldCheck, iconColor: "text-slate-500" },
     ],
   },
   {
