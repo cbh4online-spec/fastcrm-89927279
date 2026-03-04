@@ -94,6 +94,31 @@ Deno.serve(async (req) => {
             output = { notified: true };
             break;
           }
+          case "NOTIFY_OWNER": {
+            const p = action.params as any;
+            let ownerId: string | null = null;
+
+            // Look up entity owner
+            if (p.entity_type === "opportunity" && p.entity_id) {
+              const { data: opp } = await supabase
+                .from("opportunities")
+                .select("owner_id, title")
+                .eq("id", p.entity_id)
+                .maybeSingle();
+              ownerId = opp?.owner_id ?? null;
+            }
+
+            await supabase.from("context_alerts").insert({
+              workspace_id,
+              type: "kernel",
+              title: p.title ?? "Alerta do Kernel",
+              message: p.message ?? p.title ?? "",
+              severity: p.severity ?? "info",
+              target_user_id: ownerId,
+            });
+            output = { notified: true, owner_id: ownerId };
+            break;
+          }
           case "RUN_AI_AGENT_JOB": {
             const p = action.params as any;
             await supabase.from("ai_agent_jobs").insert({

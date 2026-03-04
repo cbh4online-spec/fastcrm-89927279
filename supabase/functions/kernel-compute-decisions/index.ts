@@ -40,7 +40,6 @@ Deno.serve(async (req) => {
       .limit(20);
 
     for (const opp of staleOpps ?? []) {
-      // Check dedup
       const { data: existing } = await supabase
         .from("kernel_decisions")
         .select("id")
@@ -61,7 +60,7 @@ Deno.serve(async (req) => {
           rationale: `Sem atividade desde ${opp.updated_at}. Stage atual: ${opp.stage}`,
           recommended_actions: [
             { action_key: "CREATE_TASK", params: { title: `Fazer follow-up: ${opp.title}`, related_type: "opportunity", related_id: opp.id } },
-            { action_key: "NOTIFY", params: { title: `Oportunidade parada: ${opp.title}`, severity: "warn" } },
+            { action_key: "NOTIFY_OWNER", params: { title: `Oportunidade parada: ${opp.title}`, severity: "warn", entity_type: "opportunity", entity_id: opp.id } },
           ],
           policy: { mode: "approval" },
           status: "open",
@@ -88,7 +87,7 @@ Deno.serve(async (req) => {
             rationale: `Conversa classificada como hot_lead pelo motor conversacional`,
             recommended_actions: [
               { action_key: "CREATE_TASK", params: { title: `Contactar lead quente: ${evt.entity_id}`, priority: "high" } },
-              { action_key: "NOTIFY", params: { title: "Lead quente detectado", severity: "info" } },
+              { action_key: "NOTIFY_OWNER", params: { title: "Lead quente detectado", severity: "info", entity_type: "conversation", entity_id: evt.entity_id } },
             ],
             policy: { mode: "auto" },
             status: "open",
@@ -129,7 +128,7 @@ Deno.serve(async (req) => {
           summary: `Score do deal "${oppTitle}" caiu de ${ds.previous_score} para ${ds.score}`,
           rationale: `Queda significativa no deal score indica risco de perda`,
           recommended_actions: [
-            { action_key: "NOTIFY", params: { title: `Deal em risco: ${oppTitle}`, severity: "risk" } },
+            { action_key: "NOTIFY_OWNER", params: { title: `Deal em risco: ${oppTitle}`, severity: "risk", entity_type: "opportunity", entity_id: ds.opportunity_id } },
             { action_key: "RUN_AI_AGENT_JOB", params: { agent_type: "deal_rescue", entity_id: ds.opportunity_id } },
           ],
           policy: { mode: "approval" },
@@ -137,6 +136,49 @@ Deno.serve(async (req) => {
         },
         evidence: [
           { evidence_type: "query", ref_id: ds.opportunity_id, snippet: `Score: ${ds.previous_score} → ${ds.score}` },
+        ],
+      });
+    }
+
+    // Rule 4: Context drift high (drift_scores > 60)
+    const { data: highDrift } = await supabase
+      .from("drift_scores")
+      .select("id, block_id, score, context_blocks(title, block_type)")
+      .eq("workspace_id", workspace_id)
+      .gt("score", 60)
+      .limit(10);
+
+    for (const ds of highDrift ?? []) {
+      const { data: existing } = await supabase
+        .from("kernel_decisions")
+        .select("id")
+        .eq("workspace_id", workspace_id)
+        .eq("type", "context_drift_high")
+        .gt("created_at", dedup7d)
+        .limit(1);
+
+      if (existing?.length) continue;
+
+      const blockInfo = (ds as any).context_blocks;
+      const blockTitle = blockInfo?.title ?? ds.block_id;
+      const blockType = blockInfo?.block_type ?? "block";
+
+      decisions.push({
+        decision: {
+          workspace_id,
+          type: "context_drift_high",
+          priority: Math.min(1, ds.score / 100),
+          summary: `Drift elevado no bloco "${blockTitle}" (${blockType}): ${ds.score}%`,
+          rationale: `O drift score ultrapassou o limiar de 60%, indicando desalinhamento estratégico que precisa de revisão`,
+          recommended_actions: [
+            { action_key: "NOTIFY_OWNER", params: { title: `Drift elevado: ${blockTitle}`, severity: "warn", entity_type: "context_block", entity_id: ds.block_id } },
+            { action_key: "CREATE_TASK", params: { title: `Rever bloco de contexto: ${blockTitle}`, related_type: "context_block", related_id: ds.block_id } },
+          ],
+          policy: { mode: "approval" },
+          status: "open",
+        },
+        evidence: [
+          { evidence_type: "query", ref_id: ds.block_id, snippet: `Drift score: ${ds.score}%, Tipo: ${blockType}` },
         ],
       });
     }
@@ -161,7 +203,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ created, total_rules_checked: 3 }),
+      JSON.stringify({ created, total_rules_checked: 4 }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
