@@ -1,53 +1,45 @@
 
 
-# Imagens 3D no Carrossel de Categorias C2C
+# Gerar Foto 360° com IA a partir de Fotos Existentes
 
 ## Contexto
-Atualmente, o carrossel de categorias usa emojis (`cat.icon || "📦"`). O objetivo é substituir por imagens 3D geradas por IA, tornando o visual mais profissional e apelativo.
+O utilizador quer que o sistema gere automaticamente uma "foto 360°" (vista panorâmica do produto de vários ângulos) a partir das fotos normais já carregadas ou geradas por IA, em vez de exigir upload manual de imagens 360°.
+
+## Abordagem
+Usar o modelo `google/gemini-3-pro-image-preview` para gerar múltiplas vistas do produto (frente, lado, trás, topo, etc.) a partir de uma foto existente, e combinar essas vistas numa experiência de rotação 360°.
 
 ## Alterações
 
-### 1. Migração SQL — Adicionar `image_url` à tabela `c2c_categories`
-```sql
-ALTER TABLE c2c_categories ADD COLUMN IF NOT EXISTS image_url text;
-```
+### 1. Edge Function — Novo modo `generate-360`
+**Ficheiro:** `supabase/functions/ai-c2c-listing-assistant/index.ts`
+- Novo modo `generate-360` que recebe uma imagem (URL ou base64) de referência + título/descrição
+- Gera 6-8 vistas do mesmo produto de ângulos diferentes (0°, 45°, 90°, 135°, 180°, 225°, 270°, 315°)
+- Cada vista é gerada com prompt: "Generate the same product from [angle] view, consistent style and lighting..."
+- Faz upload de cada imagem ao bucket `c2c-photos` no path `360-views/{uuid}/`
+- Retorna array de URLs ordenadas por ângulo
 
-### 2. Edge Function — Gerar imagens 3D para categorias
-Criar uma nova edge function `ai-category-image` (ou adicionar modo ao `ai-c2c-listing-assistant`) que:
-- Recebe o nome da categoria
-- Usa `google/gemini-3-pro-image-preview` para gerar uma imagem 3D isométrica do ícone da categoria (ex: "3D isometric icon of electronics category, white background, minimal")
-- Faz upload ao bucket `c2c-photos` e retorna o URL público
-- Pode ser chamada em bulk para gerar todas as categorias de uma vez
+### 2. Hook — `useGenerate360`
+**Ficheiro:** `src/hooks/useC2CListingAI.ts`
+- Nova mutation `useGenerate360` que chama o modo `generate-360`
+- Recebe `{ image, title, description }` e retorna `string[]` (URLs das vistas)
 
-### 3. Hook — Gerar imagem da categoria
-Adicionar ao `useC2CListings.ts` (ou novo hook) uma mutation `useGenerateCategoryImage` que chama a edge function e atualiza o `image_url` na tabela `c2c_categories`.
+### 3. UI — Botão "Gerar 360° com IA" no formulário
+**Ficheiro:** `src/pages/c2c/C2CCreateListing.tsx`
+- Na tab "360°", adicionar botão "Gerar 360° com IA" que:
+  - Usa a primeira foto normal como referência
+  - Chama `useGenerate360` com essa foto + título
+  - Popula o estado `photos360` com as vistas geradas
+- Manter upload manual como alternativa
+- Mostrar spinner durante geração (pode demorar ~30-60s para 6 imagens)
 
-### 4. UI — Atualizar `CategoryCarousel` em ambas as páginas
-**Ficheiros:** `C2CMarketplace.tsx` e `C2CPublicMarketplace.tsx`
-
-Substituir:
-```tsx
-<span className="text-2xl">{cat.icon || "📦"}</span>
-```
-Por:
-```tsx
-{cat.image_url ? (
-  <img src={cat.image_url} alt={cat.name} className="w-12 h-12 object-contain" />
-) : (
-  <span className="text-2xl">{cat.icon || "📦"}</span>
-)}
-```
-
-### 5. Botão admin para gerar imagens em bulk
-Na página de gestão de categorias (se existir) ou no dashboard C2C, adicionar um botão "Gerar imagens 3D" que percorre todas as categorias sem `image_url` e gera as imagens via IA.
-
-### 6. Auto-geração na criação de categoria
-Quando uma nova categoria é criada, chamar automaticamente a geração de imagem 3D em background.
+### 4. Galeria 360° melhorada no detalhe
+**Ficheiro:** `src/pages/c2c/C2CListingDetail.tsx`
+- Se `photos_360` tem múltiplas imagens, mostrar viewer tipo "spin" (trocar imagem conforme o utilizador arrasta) em vez do pan CSS atual
+- Cada posição de drag mapeia para uma imagem diferente do array, criando efeito de rotação real
 
 ## Ficheiros a alterar
-- Migração SQL: coluna `image_url`
-- `supabase/functions/ai-c2c-listing-assistant/index.ts` — modo `generate-category-image`
-- `src/pages/c2c/C2CMarketplace.tsx` — CategoryCarousel com imagem
-- `src/pages/c2c/C2CPublicMarketplace.tsx` — CategoryCarousel com imagem
-- `src/hooks/useC2CListings.ts` — mutation para gerar imagem de categoria
+- `supabase/functions/ai-c2c-listing-assistant/index.ts` — modo `generate-360`
+- `src/hooks/useC2CListingAI.ts` — hook `useGenerate360`
+- `src/pages/c2c/C2CCreateListing.tsx` — botão gerar 360° com IA
+- `src/pages/c2c/C2CListingDetail.tsx` — viewer spin com múltiplas imagens
 
