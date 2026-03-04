@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { getShareUrl } from "@/utils/getShareUrl";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useC2CListingDetail, useC2CSellerReviews, useCreateC2CReport } from "@/hooks/useC2CListings";
@@ -13,7 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { OfferDialog } from "@/components/c2c/OfferDialog";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
-import { ArrowLeft, MapPin, Star, MessageCircle, Flag, Eye, Calendar, ShoppingBag, Loader2, User } from "lucide-react";
+import { ArrowLeft, MapPin, Star, MessageCircle, Flag, Eye, Calendar, ShoppingBag, Loader2, User, Camera, RotateCw, Video } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
@@ -23,6 +24,38 @@ const conditionLabels: Record<string, string> = {
   used: "Usado",
   for_parts: "Para peças",
 };
+
+function PanoramaViewer({ src }: { src: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dragStart, setDragStart] = useState<number | null>(null);
+  const [offset, setOffset] = useState(0);
+  const [baseOffset, setBaseOffset] = useState(0);
+
+  return (
+    <div
+      ref={containerRef}
+      className="w-full h-full overflow-hidden cursor-grab active:cursor-grabbing relative"
+      onMouseDown={(e) => { setDragStart(e.clientX); setBaseOffset(offset); }}
+      onMouseMove={(e) => { if (dragStart !== null) setOffset(baseOffset + (e.clientX - dragStart)); }}
+      onMouseUp={() => setDragStart(null)}
+      onMouseLeave={() => setDragStart(null)}
+      onTouchStart={(e) => { setDragStart(e.touches[0].clientX); setBaseOffset(offset); }}
+      onTouchMove={(e) => { if (dragStart !== null) setOffset(baseOffset + (e.touches[0].clientX - dragStart)); }}
+      onTouchEnd={() => setDragStart(null)}
+    >
+      <img
+        src={src}
+        alt="360°"
+        className="h-full max-w-none select-none"
+        style={{ transform: `translateX(${offset}px)` }}
+        draggable={false}
+      />
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-background/80 rounded-full px-3 py-1 text-xs text-muted-foreground flex items-center gap-1">
+        <RotateCw className="h-3 w-3" /> Arrasta para rodar
+      </div>
+    </div>
+  );
+}
 
 export default function C2CListingDetail() {
   const { id } = useParams<{ id: string }>();
@@ -46,6 +79,9 @@ export default function C2CListingDetail() {
   if (!listing) return <div className="flex items-center justify-center min-h-screen text-muted-foreground">Anúncio não encontrado</div>;
 
   const isOwner = user?.id === listing.seller_id;
+  const photos360 = (listing as any).photos_360 as string[] || [];
+  const videos = (listing as any).videos as string[] || [];
+  const hasMultiMedia = photos360.length > 0 || videos.length > 0;
 
   const handleSendMessage = () => {
     if (!messageText.trim() || !listing) return;
@@ -77,35 +113,88 @@ export default function C2CListingDetail() {
         </Button>
 
         <div className="grid gap-6 lg:grid-cols-5">
-          {/* Photos */}
+          {/* Photos / Media */}
           <div className="lg:col-span-3 space-y-3">
-            <div className="aspect-square rounded-xl overflow-hidden bg-muted">
-              {listing.photos && listing.photos.length > 0 ? (
-                <img
-                  src={listing.photos[selectedPhoto]}
-                  alt={listing.title}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                  Sem foto
+            {hasMultiMedia ? (
+              <Tabs defaultValue="photos" className="w-full">
+                <TabsList className="w-full grid grid-cols-3">
+                  <TabsTrigger value="photos" className="gap-1.5">
+                    <Camera className="h-3.5 w-3.5" />
+                    Fotos {listing.photos?.length ? `(${listing.photos.length})` : ""}
+                  </TabsTrigger>
+                  <TabsTrigger value="360" className="gap-1.5" disabled={photos360.length === 0}>
+                    <RotateCw className="h-3.5 w-3.5" />
+                    360° {photos360.length > 0 && `(${photos360.length})`}
+                  </TabsTrigger>
+                  <TabsTrigger value="video" className="gap-1.5" disabled={videos.length === 0}>
+                    <Video className="h-3.5 w-3.5" />
+                    Vídeo {videos.length > 0 && `(${videos.length})`}
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="photos" className="mt-3 space-y-3">
+                  <div className="aspect-square rounded-xl overflow-hidden bg-muted">
+                    {listing.photos && listing.photos.length > 0 ? (
+                      <img src={listing.photos[selectedPhoto]} alt={listing.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">Sem foto</div>
+                    )}
+                  </div>
+                  {listing.photos && listing.photos.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto">
+                      {listing.photos.map((photo, i) => (
+                        <button key={i} onClick={() => setSelectedPhoto(i)} className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 ${i === selectedPhoto ? "border-primary" : "border-transparent"}`}>
+                          <img src={photo} alt="" className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="360" className="mt-3">
+                  {photos360.length > 0 && (
+                    <div className="aspect-video rounded-xl overflow-hidden bg-muted">
+                      <PanoramaViewer src={photos360[0]} />
+                    </div>
+                  )}
+                  {photos360.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto mt-3">
+                      {photos360.map((photo, i) => (
+                        <div key={i} className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border">
+                          <img src={photo} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="video" className="mt-3">
+                  {videos.map((video, i) => (
+                    <div key={i} className="aspect-video rounded-xl overflow-hidden bg-muted mb-3">
+                      <video src={video} controls className="w-full h-full object-contain" />
+                    </div>
+                  ))}
+                </TabsContent>
+              </Tabs>
+            ) : (
+              <>
+                <div className="aspect-square rounded-xl overflow-hidden bg-muted">
+                  {listing.photos && listing.photos.length > 0 ? (
+                    <img src={listing.photos[selectedPhoto]} alt={listing.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">Sem foto</div>
+                  )}
                 </div>
-              )}
-            </div>
-            {listing.photos && listing.photos.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto">
-                {listing.photos.map((photo, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedPhoto(i)}
-                    className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 ${
-                      i === selectedPhoto ? "border-primary" : "border-transparent"
-                    }`}
-                  >
-                    <img src={photo} alt="" className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
+                {listing.photos && listing.photos.length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto">
+                    {listing.photos.map((photo, i) => (
+                      <button key={i} onClick={() => setSelectedPhoto(i)} className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 ${i === selectedPhoto ? "border-primary" : "border-transparent"}`}>
+                        <img src={photo} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
 

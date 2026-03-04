@@ -6,11 +6,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateC2CListing, useC2CCategories } from "@/hooks/useC2CListings";
-import { useAnalyzePhoto, useGenerateTitle, useGenerateDescription, useSuggestPrice, useSuggestCategory } from "@/hooks/useC2CListingAI";
+import { useAnalyzePhoto, useGenerateTitle, useGenerateDescription, useSuggestPrice, useSuggestCategory, useGenerateListingImage } from "@/hooks/useC2CListingAI";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { ArrowLeft, ImagePlus, X, Sparkles, TrendingUp, Loader2, Wand2, Zap } from "lucide-react";
+import { ArrowLeft, ImagePlus, X, Sparkles, TrendingUp, Loader2, Wand2, Zap, Camera, Video, RotateCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -28,6 +29,8 @@ export default function C2CCreateListing() {
   const [categoryId, setCategoryId] = useState("");
   const [location, setLocation] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
+  const [photos360, setPhotos360] = useState<string[]>([]);
+  const [videos, setVideos] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [autoAnalyzed, setAutoAnalyzed] = useState(false);
   const prevPhotosLen = useRef(0);
@@ -52,6 +55,7 @@ export default function C2CCreateListing() {
   const generateDescription = useGenerateDescription();
   const suggestPrice = useSuggestPrice();
   const suggestCategory = useSuggestCategory();
+  const generateImage = useGenerateListingImage();
 
   // Auto-trigger AI analysis when first photo is uploaded and title is empty
   useEffect(() => {
@@ -62,7 +66,7 @@ export default function C2CCreateListing() {
     prevPhotosLen.current = photos.length;
   }, [photos]);
 
-  const isAnyAILoading = analyzePhoto.isPending || generateTitle.isPending || generateDescription.isPending || suggestPrice.isPending || suggestCategory.isPending;
+  const isAnyAILoading = analyzePhoto.isPending || generateTitle.isPending || generateDescription.isPending || suggestPrice.isPending || suggestCategory.isPending || generateImage.isPending;
 
   // Progress calculation
   const progress = useMemo(() => {
@@ -102,6 +106,81 @@ export default function C2CCreateListing() {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handlePhoto360Upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || !workspaceId) return;
+    setUploading(true);
+    try {
+      const newPhotos: string[] = [];
+      for (const file of Array.from(files)) {
+        const ext = file.name.split(".").pop();
+        const path = `${workspaceId}/c2c/360/${crypto.randomUUID()}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from("c2c-photos").upload(path, file);
+        if (uploadError) {
+          const reader = new FileReader();
+          const dataUrl = await new Promise<string>((resolve) => {
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          });
+          newPhotos.push(dataUrl);
+        } else {
+          const { data: urlData } = supabase.storage.from("c2c-photos").getPublicUrl(path);
+          newPhotos.push(urlData.publicUrl);
+        }
+      }
+      setPhotos360((prev) => [...prev, ...newPhotos]);
+    } catch {
+      toast.error("Erro ao carregar fotos 360°");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || !workspaceId) return;
+    setUploading(true);
+    try {
+      const newVideos: string[] = [];
+      for (const file of Array.from(files)) {
+        if (file.size > 50 * 1024 * 1024) {
+          toast.error("Vídeo demasiado grande (máx 50MB)");
+          continue;
+        }
+        const ext = file.name.split(".").pop();
+        const path = `${workspaceId}/c2c/${crypto.randomUUID()}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from("c2c-videos").upload(path, file);
+        if (uploadError) {
+          toast.error("Erro ao carregar vídeo");
+          continue;
+        }
+        const { data: urlData } = supabase.storage.from("c2c-videos").getPublicUrl(path);
+        newVideos.push(urlData.publicUrl);
+      }
+      setVideos((prev) => [...prev, ...newVideos]);
+    } catch {
+      toast.error("Erro ao carregar vídeo");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleGenerateAIImages = () => {
+    if (!title.trim()) {
+      toast.error("Introduz um título primeiro para gerar imagens.");
+      return;
+    }
+    generateImage.mutate(
+      { title, description, condition, count: 3 },
+      {
+        onSuccess: (images) => {
+          setPhotos((prev) => [...prev, ...images]);
+          toast.success(`${images.length} imagem(ns) gerada(s) com IA!`);
+        },
+      }
+    );
   };
 
   const handleAnalyzeWithAI = async () => {
@@ -171,6 +250,8 @@ export default function C2CCreateListing() {
       condition: condition as any,
       category_id: categoryId || null,
       photos,
+      photos_360: photos360,
+      videos,
       location: location || null,
       status: "active",
     };
@@ -227,47 +308,142 @@ export default function C2CCreateListing() {
         </div>
 
         <div className="space-y-5">
-          {/* Photos */}
+          {/* Media Section with Tabs */}
           <div>
-            <Label>Fotos</Label>
-            <div className="flex flex-wrap gap-3 mt-2">
-              {photos.map((photo, i) => (
-                <div key={i} className="relative w-24 h-24 rounded-lg overflow-hidden border">
-                  <img src={photo} alt="" className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => setPhotos(photos.filter((_, idx) => idx !== i))}
-                    className="absolute top-1 right-1 bg-background/80 rounded-full p-0.5"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+            <Label className="mb-2 block">Media</Label>
+            <Tabs defaultValue="photos" className="w-full">
+              <TabsList className="w-full grid grid-cols-3">
+                <TabsTrigger value="photos" className="gap-1.5">
+                  <Camera className="h-3.5 w-3.5" />
+                  Fotos {photos.length > 0 && `(${photos.length})`}
+                </TabsTrigger>
+                <TabsTrigger value="360" className="gap-1.5">
+                  <RotateCw className="h-3.5 w-3.5" />
+                  360° {photos360.length > 0 && `(${photos360.length})`}
+                </TabsTrigger>
+                <TabsTrigger value="video" className="gap-1.5">
+                  <Video className="h-3.5 w-3.5" />
+                  Vídeo {videos.length > 0 && `(${videos.length})`}
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Photos Tab */}
+              <TabsContent value="photos" className="mt-3">
+                <div className="flex flex-wrap gap-3">
+                  {photos.map((photo, i) => (
+                    <div key={i} className="relative w-24 h-24 rounded-lg overflow-hidden border">
+                      <img src={photo} alt="" className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => setPhotos(photos.filter((_, idx) => idx !== i))}
+                        className="absolute top-1 right-1 bg-background/80 rounded-full p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <label className="w-24 h-24 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors">
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
+                    <ImagePlus className="h-6 w-6 text-muted-foreground" />
+                  </label>
                 </div>
-              ))}
-              <label className="w-24 h-24 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors">
-                <input type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
-                <ImagePlus className="h-6 w-6 text-muted-foreground" />
-              </label>
-            </div>
 
-            {/* AI Banner after photo upload */}
-            {analyzePhoto.isPending && (
-              <div className="mt-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 animate-pulse">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                <span className="text-sm font-medium text-primary">A analisar a tua foto com IA...</span>
-              </div>
-            )}
+                {/* AI Banner after photo upload */}
+                {analyzePhoto.isPending && (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 animate-pulse">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-sm font-medium text-primary">A analisar a tua foto com IA...</span>
+                  </div>
+                )}
 
-            {photos.length > 0 && !analyzePhoto.isPending && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleAnalyzeWithAI}
-                disabled={isAnyAILoading}
-                className="mt-3 gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
-              >
-                <Wand2 className="h-4 w-4" />
-                Preencher tudo com IA a partir da foto
-              </Button>
-            )}
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {photos.length > 0 && !analyzePhoto.isPending && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAnalyzeWithAI}
+                      disabled={isAnyAILoading}
+                      className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+                    >
+                      <Wand2 className="h-4 w-4" />
+                      Preencher tudo com IA
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateAIImages}
+                    disabled={generateImage.isPending || !title.trim()}
+                    className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+                  >
+                    {generateImage.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    Gerar fotos com IA
+                  </Button>
+                </div>
+
+                {generateImage.isPending && (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 animate-pulse">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-sm font-medium text-primary">A gerar imagens com IA (pode demorar ~30s)...</span>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* 360° Tab */}
+              <TabsContent value="360" className="mt-3">
+                <p className="text-xs text-muted-foreground mb-3">
+                  Carrega imagens panorâmicas ou 360° do teu produto para uma experiência imersiva.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  {photos360.map((photo, i) => (
+                    <div key={i} className="relative w-24 h-24 rounded-lg overflow-hidden border">
+                      <img src={photo} alt="" className="w-full h-full object-cover" />
+                      <div className="absolute bottom-0 left-0 right-0 bg-background/80 text-center">
+                        <span className="text-[10px] font-medium">360°</span>
+                      </div>
+                      <button
+                        onClick={() => setPhotos360(photos360.filter((_, idx) => idx !== i))}
+                        className="absolute top-1 right-1 bg-background/80 rounded-full p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <label className="w-24 h-24 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors gap-1">
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={handlePhoto360Upload} disabled={uploading} />
+                    <RotateCw className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground">360°</span>
+                  </label>
+                </div>
+              </TabsContent>
+
+              {/* Video Tab */}
+              <TabsContent value="video" className="mt-3">
+                <p className="text-xs text-muted-foreground mb-3">
+                  Adiciona um vídeo curto do produto (máx 50MB).
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  {videos.map((video, i) => (
+                    <div key={i} className="relative w-40 h-24 rounded-lg overflow-hidden border bg-muted">
+                      <video src={video} className="w-full h-full object-cover" muted />
+                      <button
+                        onClick={() => setVideos(videos.filter((_, idx) => idx !== i))}
+                        className="absolute top-1 right-1 bg-background/80 rounded-full p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                      <div className="absolute bottom-1 left-1 bg-background/80 rounded px-1.5 py-0.5">
+                        <span className="text-[10px] font-medium">Vídeo</span>
+                      </div>
+                    </div>
+                  ))}
+                  <label className="w-40 h-24 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors gap-1">
+                    <input type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} disabled={uploading} />
+                    <Video className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground">Adicionar vídeo</span>
+                  </label>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
 
           {/* Title */}

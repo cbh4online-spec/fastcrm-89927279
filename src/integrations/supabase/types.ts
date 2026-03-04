@@ -4311,11 +4311,13 @@ export type Database = {
           moderation_notes: string | null
           moderation_status: string | null
           photos: string[] | null
+          photos_360: string[] | null
           price: number
           seller_id: string
           status: string
           title: string
           updated_at: string
+          videos: string[] | null
           views_count: number | null
           workspace_id: string
         }
@@ -4338,11 +4340,13 @@ export type Database = {
           moderation_notes?: string | null
           moderation_status?: string | null
           photos?: string[] | null
+          photos_360?: string[] | null
           price: number
           seller_id: string
           status?: string
           title: string
           updated_at?: string
+          videos?: string[] | null
           views_count?: number | null
           workspace_id: string
         }
@@ -4365,11 +4369,13 @@ export type Database = {
           moderation_notes?: string | null
           moderation_status?: string | null
           photos?: string[] | null
+          photos_360?: string[] | null
           price?: number
           seller_id?: string
           status?: string
           title?: string
           updated_at?: string
+          videos?: string[] | null
           views_count?: number | null
           workspace_id?: string
         }
