@@ -9204,6 +9204,66 @@ export type Database = {
           },
         ]
       }
+      context_alerts: {
+        Row: {
+          action_suggestion_json: Json
+          created_at: string
+          id: string
+          message: string
+          related_block_id: string | null
+          severity: string
+          source_event_id: string | null
+          status: string
+          title: string
+          type: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          action_suggestion_json?: Json
+          created_at?: string
+          id?: string
+          message: string
+          related_block_id?: string | null
+          severity?: string
+          source_event_id?: string | null
+          status?: string
+          title: string
+          type: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          action_suggestion_json?: Json
+          created_at?: string
+          id?: string
+          message?: string
+          related_block_id?: string | null
+          severity?: string
+          source_event_id?: string | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "context_alerts_related_block_id_fkey"
+            columns: ["related_block_id"]
+            isOneToOne: false
+            referencedRelation: "context_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "context_alerts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       context_block_attachments: {
         Row: {
           attachment_type: string
@@ -9363,11 +9423,17 @@ export type Database = {
       context_blocks: {
         Row: {
           block_type: Database["public"]["Enums"]["context_block_type"]
+          content_json: Json
           created_at: string | null
           created_by: string | null
           id: string
+          last_changed_at: string | null
+          last_verified_at: string | null
+          metadata_json: Json
+          owner_user_id: string | null
           rich_text: string | null
           score: number | null
+          slug: string | null
           status: Database["public"]["Enums"]["context_block_status"] | null
           tags: string[] | null
           title: string
@@ -9377,11 +9443,17 @@ export type Database = {
         }
         Insert: {
           block_type: Database["public"]["Enums"]["context_block_type"]
+          content_json?: Json
           created_at?: string | null
           created_by?: string | null
           id?: string
+          last_changed_at?: string | null
+          last_verified_at?: string | null
+          metadata_json?: Json
+          owner_user_id?: string | null
           rich_text?: string | null
           score?: number | null
+          slug?: string | null
           status?: Database["public"]["Enums"]["context_block_status"] | null
           tags?: string[] | null
           title: string
@@ -9391,11 +9463,17 @@ export type Database = {
         }
         Update: {
           block_type?: Database["public"]["Enums"]["context_block_type"]
+          content_json?: Json
           created_at?: string | null
           created_by?: string | null
           id?: string
+          last_changed_at?: string | null
+          last_verified_at?: string | null
+          metadata_json?: Json
+          owner_user_id?: string | null
           rich_text?: string | null
           score?: number | null
+          slug?: string | null
           status?: Database["public"]["Enums"]["context_block_status"] | null
           tags?: string[] | null
           title?: string
@@ -9406,6 +9484,165 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "context_blocks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      context_dependencies: {
+        Row: {
+          created_at: string
+          id: string
+          relation: string
+          rule_json: Json
+          source_block_id: string
+          strength: number
+          target_block_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          relation: string
+          rule_json?: Json
+          source_block_id: string
+          strength?: number
+          target_block_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          relation?: string
+          rule_json?: Json
+          source_block_id?: string
+          strength?: number
+          target_block_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "context_dependencies_source_block_id_fkey"
+            columns: ["source_block_id"]
+            isOneToOne: false
+            referencedRelation: "context_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "context_dependencies_target_block_id_fkey"
+            columns: ["target_block_id"]
+            isOneToOne: false
+            referencedRelation: "context_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "context_dependencies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      context_drift: {
+        Row: {
+          block_id: string
+          confidence: number
+          created_at: string
+          dependency_impact: number
+          drift_score: number
+          id: string
+          last_computed_at: string | null
+          reasons_json: Json
+          severity: string
+          stale_days: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          block_id: string
+          confidence?: number
+          created_at?: string
+          dependency_impact?: number
+          drift_score?: number
+          id?: string
+          last_computed_at?: string | null
+          reasons_json?: Json
+          severity?: string
+          stale_days?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          block_id?: string
+          confidence?: number
+          created_at?: string
+          dependency_impact?: number
+          drift_score?: number
+          id?: string
+          last_computed_at?: string | null
+          reasons_json?: Json
+          severity?: string
+          stale_days?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "context_drift_block_id_fkey"
+            columns: ["block_id"]
+            isOneToOne: true
+            referencedRelation: "context_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "context_drift_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      context_event_log: {
+        Row: {
+          actor_user_id: string | null
+          correlation_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          payload_json: Json
+          type: string
+          workspace_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          payload_json?: Json
+          type: string
+          workspace_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          payload_json?: Json
+          type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "context_event_log_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

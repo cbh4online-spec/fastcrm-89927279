@@ -10,13 +10,16 @@ import { ContextVersionsTab } from "./ContextVersionsTab";
 import { ContextCommentsTab } from "./ContextCommentsTab";
 import { ContextAttachmentsTab } from "./ContextAttachmentsTab";
 import { ContextAIAssistPanel } from "./ContextAIAssistPanel";
+import { ContextDependenciesTab } from "./ContextDependenciesTab";
+import { ContextDriftBadge } from "./ContextDriftBadge";
 import { TagInput } from "./TagInput";
 import {
   ContextBlock, BLOCK_META,
   useUpsertContextField, useUpdateBlockStatus, useUpdateBlockRichText, useUpdateBlockTags,
 } from "@/hooks/useContextBlocks";
 import { useCreateVersion } from "@/hooks/useContextVersions";
-import { Save, CheckCircle2, RotateCcw, FileText, List, Clock, MessageSquare, Paperclip, Sparkles } from "lucide-react";
+import { useContextDrift } from "@/hooks/useContextDrift";
+import { Save, CheckCircle2, RotateCcw, FileText, List, Clock, MessageSquare, Paperclip, Sparkles, Link2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -32,6 +35,8 @@ export function ContextBlockDetail({ block, open, onOpenChange }: Props) {
   const updateRichText = useUpdateBlockRichText();
   const updateTags = useUpdateBlockTags();
   const createVersion = useCreateVersion();
+  const { getDriftForBlock } = useContextDrift();
+  const drift = getDriftForBlock(block.id);
 
   const [richText, setRichText] = useState(block.rich_text || '');
   const [localFields, setLocalFields] = useState<Record<string, any>>({});
@@ -79,17 +84,25 @@ export function ContextBlockDetail({ block, open, onOpenChange }: Props) {
                 {block.status === 'approved' ? 'Aprovado' : 'Rascunho'}
               </Badge>
             </DialogTitle>
-            <ContextScoreRing score={block.score} size={48} strokeWidth={4} />
+            <div className="flex items-center gap-2">
+              {drift && drift.severity !== 'ok' && (
+                <ContextDriftBadge severity={drift.severity} score={drift.drift_score} staleDays={drift.stale_days} />
+              )}
+              <ContextScoreRing score={block.score} size={48} strokeWidth={4} />
+            </div>
           </div>
         </DialogHeader>
 
         <Tabs defaultValue="fields" className="mt-2">
-          <TabsList className="w-full bg-muted/30 grid grid-cols-6">
+          <TabsList className="w-full bg-muted/30 grid grid-cols-7">
             <TabsTrigger value="fields" className="gap-1 text-[11px]">
               <List className="h-3 w-3" /> Campos
             </TabsTrigger>
             <TabsTrigger value="ai" className="gap-1 text-[11px]">
               <Sparkles className="h-3 w-3" /> IA
+            </TabsTrigger>
+            <TabsTrigger value="deps" className="gap-1 text-[11px]">
+              <Link2 className="h-3 w-3" /> Deps
             </TabsTrigger>
             <TabsTrigger value="summary" className="gap-1 text-[11px]">
               <FileText className="h-3 w-3" /> Resumo
@@ -124,6 +137,10 @@ export function ContextBlockDetail({ block, open, onOpenChange }: Props) {
 
           <TabsContent value="ai" className="mt-4">
             <ContextAIAssistPanel block={block} />
+          </TabsContent>
+
+          <TabsContent value="deps" className="mt-4">
+            <ContextDependenciesTab blockId={block.id} />
           </TabsContent>
 
           <TabsContent value="summary" className="space-y-4 mt-4">
