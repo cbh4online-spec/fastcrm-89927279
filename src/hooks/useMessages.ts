@@ -5,6 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 import { recordMessage, checkMessageLoop } from "@/lib/inboxSafety";
 import { supabase } from "@/integrations/supabase/client";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
+import { generateRequestId } from "@/lib/requestId";
 
 export type MessageDirection = "inbound" | "outbound";
 
@@ -322,6 +324,25 @@ export function useSendMessage() {
       
       queryClient.refetchQueries({ queryKey: ["messages", data.conversation_id] });
       queryClient.invalidateQueries({ queryKey: ["conversations", currentWorkspace?.id] });
+
+      // Kernel event: message sent
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'MESSAGE.SENT',
+          entity_kind: 'message',
+          entity_id: data.id,
+          actor_type: 'user',
+          actor_id: user?.id,
+          payload: {
+            conversation_id: data.conversation_id,
+            direction: 'outbound',
+            is_automated: variables.isAutomated || false,
+          },
+          source_module: 'inbox',
+          correlation_id: generateRequestId(),
+        });
+      }
     },
     onError: (error: Error, variables) => {
       // Import toast from sonner dynamically won't work, so we use a custom event

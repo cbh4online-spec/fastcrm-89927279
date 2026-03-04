@@ -4,6 +4,8 @@ import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { trackLeadCreated } from "@/modules/growth-seo/lib/gtmEvents";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
+import { generateRequestId } from "@/lib/requestId";
 
 export type LeadStatus = "new" | "in_progress" | "completed";
 export type LeadSource = "instagram" | "whatsapp" | "email" | "form" | string;
@@ -196,6 +198,21 @@ export function useCreateLead() {
         lead_source: data.source || undefined,
         workspace_id: data.workspace_id,
       });
+
+      // Kernel event: lead created
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'LEAD.CREATED',
+          entity_kind: 'lead',
+          entity_id: data.id,
+          actor_type: 'user',
+          actor_id: user?.id,
+          payload: { name: data.name, source: data.source, status: data.status },
+          source_module: 'crm-leads',
+          correlation_id: generateRequestId(),
+        });
+      }
     },
     onError: (error) => {
       console.error("Error creating lead:", error);
@@ -230,9 +247,24 @@ export function useUpdateLead() {
       }
       return data as Lead;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["leads", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["lead", data.id] });
+
+      // Kernel event: lead updated
+      if (currentWorkspace?.id) {
+        const eventType = variables.status ? 'LEAD.STATUS_CHANGED' : 'LEAD.UPDATED';
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: eventType,
+          entity_kind: 'lead',
+          entity_id: data.id,
+          actor_type: 'user',
+          payload: { name: data.name, status: data.status, changed_fields: Object.keys(variables).filter(k => k !== 'id') },
+          source_module: 'crm-leads',
+          correlation_id: generateRequestId(),
+        });
+      }
     },
     onError: (error) => {
       console.error("Error updating lead:", error);
