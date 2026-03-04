@@ -123,6 +123,7 @@ import Marketplace from "./pages/Marketplace";
 import PublicBioPage from "./pages/PublicBioPage";
 import PublicBioShortLink from "./pages/PublicBioShortLink";
 import C2CPublicMarketplace from "./pages/c2c/C2CPublicMarketplace";
+import C2CPublicListingDetail from "./pages/c2c/C2CPublicListingDetail";
 import C2CSellerRegistration from "./pages/c2c/C2CSellerRegistration";
 import C2CSellersAdmin from "./pages/c2c/C2CSellersAdmin";
 import MarketplaceAdmin from "./pages/admin/MarketplaceAdmin";
@@ -630,6 +631,7 @@ const App = () => (
               <Route path="/store/*" element={<StoreRoutes />} />
               
               {/* C2C Public Marketplace */}
+              <Route path="/c2c/:workspaceSlug/:id" element={<C2CPublicListingDetail />} />
               <Route path="/c2c/:workspaceSlug" element={<C2CPublicMarketplace />} />
               <Route path="/c2c/:workspaceSlug/sell" element={<AuthProvider><C2CSellerRegistration /></AuthProvider>} />
               <Route path="/c2c/:workspaceSlug/sponsor" element={<AuthProvider><C2CSponsorPortal /></AuthProvider>} />
