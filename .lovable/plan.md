@@ -1,66 +1,38 @@
 
 
-# Plano: Histórico de Mensagens nas Entidades (Leads, Contactos, Empresas)
+# Corrigir OG Meta Tags para Partilhas de Links C2C
 
 ## Problema
-A sub-tab "Mensagens" dentro de Comunicação mostra apenas a UI de composição (enviar mensagens, templates, sugestões AI). **Não mostra o histórico de mensagens trocadas** com a entidade. O utilizador precisa ir ao Inbox para ver as conversas.
+Quando se partilha `https://fastcrm.metodopare.ai/c2c/metodopare` no WhatsApp/Facebook, aparece a imagem e descrição genérica do FastCRM porque:
+1. A edge function `og-proxy` usa o domínio antigo (`fastcrm.lovable.app`)
+2. A `og-proxy` não tem handler para páginas C2C (`type === "c2c"`)
+3. O `C2CPublicMarketplace` não tem `<Helmet>` com OG tags
+4. Os crawlers (WhatsApp, Facebook) não executam JavaScript — precisam de OG tags no HTML inicial
 
 ## Solução
-Adicionar uma secção de **histórico de mensagens** na `ContactMessagesSection` que mostra todas as conversas e mensagens associadas à entidade, diretamente na página de detalhe.
 
-## Implementação
+### 1. Atualizar domínio na `og-proxy`
+**Ficheiro: `supabase/functions/og-proxy/index.ts`**
+- Alterar `BASE_URL` de `https://fastcrm.lovable.app` para `https://fastcrm.metodopare.ai`
 
-### 1. Criar hook `useEntityMessages`
-**Novo ficheiro: `src/hooks/useEntityMessages.ts`**
+### 2. Adicionar handler C2C na `og-proxy`
+Adicionar caso `type === "c2c"` que:
+- Recebe slug do workspace (ex: `metodopare`)
+- Consulta `workspaces` para obter `name`
+- Consulta `workspace_store_settings` para `store_name`, `store_description`, `logo_url`
+- Gera título: `"{store_name} — Marketplace C2C"` e descrição adequada
+- URL de redirect: `https://fastcrm.metodopare.ai/c2c/{slug}`
 
-- Recebe `entityType` ('lead' | 'contact' | 'company') e `entityId`
-- Consulta `conversations` filtrando por `lead_id`, `contact_id` ou `company_id`
-- Para cada conversa, carrega as últimas mensagens da tabela `messages`
-- Retorna conversas com mensagens agrupadas, incluindo canal, direção e timestamps
+### 3. Adicionar `<Helmet>` ao `C2CPublicMarketplace`
+Para que o client-side também tenha OG tags (quando o browser acede diretamente):
+- Adicionar `react-helmet-async` com `og:title`, `og:description`, `og:image`, `og:url`
+- Usar dados do workspace carregado
 
-### 2. Criar componente `EntityMessageHistory`
-**Novo ficheiro: `src/components/messages/EntityMessageHistory.tsx`**
+### 4. Adicionar handler para seller profiles e listings
+Adicionar casos `type === "c2c-seller"` e `type === "c2c-listing"` para partilhas de perfis de vendedor e anúncios individuais.
 
-- Lista todas as conversas da entidade, agrupadas por canal (WhatsApp, Instagram, Email, SMS)
-- Cada conversa é expansível (collapsible) mostrando as mensagens trocadas
-- Reutiliza o estilo do `MessageBubble` existente (bolhas inbound/outbound)
-- Inclui botão "Ver no Inbox" para abrir a conversa completa
-- Mostra data relativa e badges de canal
-- Estado vazio com mensagem "Nenhuma mensagem trocada"
-
-### 3. Integrar na `ContactMessagesSection`
-**Ficheiro: `src/components/messages/ContactMessagesSection.tsx`**
-
-- Adicionar o `EntityMessageHistory` **acima** da área de composição
-- Layout: Histórico de mensagens em cima, Centro de Mensagens (composição) em baixo
-- Substituir o `LinkedConversationsCard` da sidebar pela timeline completa no conteúdo principal
-
-### Estrutura visual
-
-```text
-┌─────────────────────────────────────┐
-│  📨 Mensagens Trocadas              │
-│  ┌─────────────────────────────────┐│
-│  │ 🟢 WhatsApp · há 2h            ││
-│  │  ← "Olá, gostaria de saber..." ││
-│  │  → "Boa tarde! Claro, envio.." ││
-│  │  ← "Perfeito, obrigada"        ││
-│  │  [Ver no Inbox]                 ││
-│  ├─────────────────────────────────┤│
-│  │ 📸 Instagram · há 1d           ││
-│  │  ← "Vi o vosso produto..."     ││
-│  │  → "Obrigado pelo interesse!"  ││
-│  │  [Ver no Inbox]                 ││
-│  └─────────────────────────────────┘│
-├─────────────────────────────────────┤
-│  Centro de Mensagens (composição)   │
-│  [Compor] [Templates] [Sugestões AI]│
-└─────────────────────────────────────┘
-```
-
-### Detalhes técnicos
-- Query: `conversations` → filtra por entity ID → para cada conversa, `messages` ordenadas por `sent_at` DESC, limit 20 por conversa
-- Sem novas tabelas — usa `conversations` e `messages` existentes
-- Sem novas edge functions
-- Realtime: reutiliza o channel pattern existente para auto-refresh
+### Ficheiros a alterar
+- `supabase/functions/og-proxy/index.ts` — domínio + handlers C2C
+- `src/pages/c2c/C2CPublicMarketplace.tsx` — adicionar `<Helmet>`
+- `src/pages/c2c/C2CPublicSellerProfile.tsx` — adicionar `<Helmet>`
 
