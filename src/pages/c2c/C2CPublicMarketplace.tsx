@@ -113,7 +113,11 @@ function CategoryCarousel({ categories, onSelect, selected }: {
               selected === cat.id ? "bg-primary/10 border-primary shadow-sm" : "bg-card border-border hover:border-primary/30"
             )}
           >
-            <span className="text-2xl">{cat.icon || "📦"}</span>
+            {cat.image_url ? (
+              <img src={cat.image_url} alt={cat.name} className="w-12 h-12 object-contain rounded-lg" />
+            ) : (
+              <span className="text-2xl">{cat.icon || "📦"}</span>
+            )}
             <span className="text-xs font-medium text-center leading-tight">{cat.name}</span>
           </button>
         ))}

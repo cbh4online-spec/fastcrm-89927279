@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -110,6 +110,26 @@ export function useGenerateListingImage() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       return data.images as string[];
+    },
+    onError: handleAIError,
+  });
+}
+
+export function useGenerateCategoryImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ category_name, category_id }: { category_name: string; category_id: string }) => {
+      const { data, error } = await supabase.functions.invoke("ai-c2c-listing-assistant", {
+        body: { mode: "generate-category-image", category_name, category_id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data.image_url as string;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["c2c-categories"] });
+      queryClient.invalidateQueries({ queryKey: ["c2c-public-categories"] });
+      toast.success("Imagem 3D da categoria gerada!");
     },
     onError: handleAIError,
   });
