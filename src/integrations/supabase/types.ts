@@ -9204,6 +9204,97 @@ export type Database = {
           },
         ]
       }
+      context_blocks: {
+        Row: {
+          block_type: Database["public"]["Enums"]["context_block_type"]
+          created_at: string | null
+          created_by: string | null
+          id: string
+          rich_text: string | null
+          score: number | null
+          status: Database["public"]["Enums"]["context_block_status"] | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          updated_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          block_type: Database["public"]["Enums"]["context_block_type"]
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          rich_text?: string | null
+          score?: number | null
+          status?: Database["public"]["Enums"]["context_block_status"] | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+          updated_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          block_type?: Database["public"]["Enums"]["context_block_type"]
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          rich_text?: string | null
+          score?: number | null
+          status?: Database["public"]["Enums"]["context_block_status"] | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "context_blocks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      context_fields: {
+        Row: {
+          block_id: string
+          display_order: number | null
+          field_key: string
+          field_type: string
+          field_value: Json | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          block_id: string
+          display_order?: number | null
+          field_key: string
+          field_type?: string
+          field_value?: Json | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          block_id?: string
+          display_order?: number | null
+          field_key?: string
+          field_type?: string
+          field_value?: Json | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "context_fields_block_id_fkey"
+            columns: ["block_id"]
+            isOneToOne: false
+            referencedRelation: "context_blocks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_ai_state: {
         Row: {
           active_bot_id: string | null
@@ -37289,6 +37380,10 @@ export type Database = {
         }
         Returns: number
       }
+      seed_context_blocks: {
+        Args: { p_workspace_id: string }
+        Returns: undefined
+      }
       set_default_vibe_profile: {
         Args: { p_profile_id: string; p_workspace_id: string }
         Returns: undefined
@@ -37506,6 +37601,16 @@ export type Database = {
         | "is_empty"
         | "is_not_empty"
       contact_entity_type: "consumidor_final" | "eni" | "empresa"
+      context_block_status: "draft" | "approved"
+      context_block_type:
+        | "strategy"
+        | "business_model"
+        | "offers"
+        | "team"
+        | "goals"
+        | "financials"
+        | "priorities"
+        | "processes"
       contract_status:
         | "draft"
         | "active"
@@ -37937,6 +38042,17 @@ export const Constants = {
         "is_not_empty",
       ],
       contact_entity_type: ["consumidor_final", "eni", "empresa"],
+      context_block_status: ["draft", "approved"],
+      context_block_type: [
+        "strategy",
+        "business_model",
+        "offers",
+        "team",
+        "goals",
+        "financials",
+        "priorities",
+        "processes",
+      ],
       contract_status: [
         "draft",
         "active",
