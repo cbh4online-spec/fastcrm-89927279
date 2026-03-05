@@ -110,6 +110,10 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "comm-templates-usage", "template_usage_logs_query", "template_usage_logs"),
       // Core Productivity
       runCheck(supabase, workspace_id, "core-productivity", "tasks_query", "tasks"),
+      // Strategy Command Center
+      runCheck(supabase, workspace_id, "strategy-decisions", "strategic_decisions_query", "strategic_decisions"),
+      runCheck(supabase, workspace_id, "strategy-kernel", "kernel_decisions_query", "kernel_decisions"),
+      runCheck(supabase, workspace_id, "strategy-actions", "kernel_action_runs_query", "kernel_action_runs"),
       // AI Conversational
       aiConversationalCheck(),
     ]);

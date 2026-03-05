@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useCreateTask } from "@/hooks/useTasks";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface StrategicDecision {
   id: string;
@@ -61,10 +62,24 @@ export function useGenerateStrategicDecisions() {
       if (data?.error) throw new Error(data.error);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ["strategic-decisions", currentWorkspace?.id],
       });
+      console.log('[STRATEGY] DECISIONS_GENERATED', { workspace: currentWorkspace?.id });
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'DECISION.CREATED',
+          entity_kind: 'strategic_decision',
+          entity_id: currentWorkspace.id,
+          source_module: 'strategy-command-center',
+          payload: { source: 'strategic_engine' },
+        });
+      }
+    },
+    onError: (error) => {
+      console.warn('[STRATEGY] GENERATE_FAILED', { error: (error as Error).message });
     },
   });
 }
@@ -107,14 +122,29 @@ export function useDismissDecision() {
         .update({ status: "dismissed" })
         .eq("id", id);
       if (error) throw error;
+      return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
       queryClient.invalidateQueries({
         queryKey: ["strategic-decisions", currentWorkspace?.id],
       });
       queryClient.invalidateQueries({
         queryKey: ["strategic-decisions-history", currentWorkspace?.id],
       });
+      console.log('[STRATEGY] DECISION_DISMISSED', { id });
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'DECISION.DISMISSED',
+          entity_kind: 'strategic_decision',
+          entity_id: id,
+          source_module: 'strategy-command-center',
+          payload: { decision_id: id },
+        });
+      }
+    },
+    onError: (error) => {
+      console.warn('[STRATEGY] DISMISS_FAILED', { error: (error as Error).message });
     },
   });
 }
@@ -161,13 +191,27 @@ export function useBulkConvertAllDecisions() {
 
       return { totalTasks, totalDecisions: decisions.length };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({
         queryKey: ["strategic-decisions", currentWorkspace?.id],
       });
       queryClient.invalidateQueries({
         queryKey: ["strategic-decisions-history", currentWorkspace?.id],
       });
+      console.log('[STRATEGY] BULK_CONVERTED', { total_decisions: result.totalDecisions, total_tasks: result.totalTasks });
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'DECISION.BULK_CONVERTED',
+          entity_kind: 'strategic_decision',
+          entity_id: currentWorkspace.id,
+          source_module: 'strategy-command-center',
+          payload: { total_decisions: result.totalDecisions, total_tasks: result.totalTasks },
+        });
+      }
+    },
+    onError: (error) => {
+      console.warn('[STRATEGY] BULK_CONVERT_FAILED', { error: (error as Error).message });
     },
   });
 }
@@ -197,14 +241,29 @@ export function useConvertAllDecisionSteps() {
         .update({ status: "converted" })
         .eq("id", decisionId);
       if (error) throw error;
+      return { decisionId, stepsCount: steps.length };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({
         queryKey: ["strategic-decisions", currentWorkspace?.id],
       });
       queryClient.invalidateQueries({
         queryKey: ["strategic-decisions-history", currentWorkspace?.id],
       });
+      console.log('[STRATEGY] DECISION_CONVERTED', { id: result.decisionId, steps: result.stepsCount });
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'DECISION.CONVERTED',
+          entity_kind: 'strategic_decision',
+          entity_id: result.decisionId,
+          source_module: 'strategy-command-center',
+          payload: { decision_id: result.decisionId, steps_count: result.stepsCount },
+        });
+      }
+    },
+    onError: (error) => {
+      console.warn('[STRATEGY] CONVERT_FAILED', { error: (error as Error).message });
     },
   });
 }
