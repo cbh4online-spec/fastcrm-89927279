@@ -4,6 +4,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 import { SmartForm, FormSubmission, SmartFormSchema, AutomationConfig, FormSettings, FormType } from "@/types/smartForm";
 import { Json } from "@/integrations/supabase/types";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 // Helper to safely convert JSON to typed objects
 function parseJsonField<T>(json: Json | null, defaultValue: T): T {
@@ -131,12 +132,23 @@ export function useCreateSmartForm() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["smart-forms"] });
       toast.success("Formulário criado com sucesso!");
+      console.log(`[FORMS] Form created: ${data.id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'FORM.CREATED',
+          entity_kind: 'form',
+          entity_id: data.id,
+          source_module: 'core-forms',
+          payload: { name: data.name, form_type: data.form_type, is_conversational: data.is_conversational },
+        });
+      }
     },
     onError: (error) => {
-      console.error("Error creating form:", error);
+      console.warn('[FORMS] CREATE_FAILED:', error.message);
       toast.error("Erro ao criar formulário");
     },
   });
@@ -144,6 +156,7 @@ export function useCreateSmartForm() {
 
 export function useUpdateSmartForm() {
   const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<SmartForm> & { id: string }) => {
@@ -173,9 +186,20 @@ export function useUpdateSmartForm() {
       queryClient.invalidateQueries({ queryKey: ["smart-forms"] });
       queryClient.invalidateQueries({ queryKey: ["smart-form", data.id] });
       toast.success("Formulário atualizado!");
+      console.log(`[FORMS] Form updated: ${data.id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'FORM.UPDATED',
+          entity_kind: 'form',
+          entity_id: data.id,
+          source_module: 'core-forms',
+          payload: { name: data.name, is_active: data.is_active },
+        });
+      }
     },
     onError: (error) => {
-      console.error("Error updating form:", error);
+      console.warn('[FORMS] UPDATE_FAILED:', error.message);
       toast.error("Erro ao atualizar formulário");
     },
   });
@@ -183,6 +207,7 @@ export function useUpdateSmartForm() {
 
 export function useDeleteSmartForm() {
   const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
 
   return useMutation({
     mutationFn: async (formId: string) => {
@@ -192,13 +217,24 @@ export function useDeleteSmartForm() {
         .eq("id", formId);
 
       if (error) throw error;
+      return formId;
     },
-    onSuccess: () => {
+    onSuccess: (formId) => {
       queryClient.invalidateQueries({ queryKey: ["smart-forms"] });
       toast.success("Formulário eliminado!");
+      console.log(`[FORMS] Form deleted: ${formId}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'FORM.DELETED',
+          entity_kind: 'form',
+          entity_id: formId,
+          source_module: 'core-forms',
+        });
+      }
     },
     onError: (error) => {
-      console.error("Error deleting form:", error);
+      console.warn('[FORMS] DELETE_FAILED:', error.message);
       toast.error("Erro ao eliminar formulário");
     },
   });
@@ -225,10 +261,10 @@ export function useFormSubmissions(formId: string | undefined) {
 
 export function useSubmitForm() {
   const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
 
   return useMutation({
     mutationFn: async ({ formId, data: formData, workspaceId }: { formId: string; data: Record<string, unknown>; workspaceId: string }) => {
-      // Process submission through edge function
       const { data, error } = await supabase.functions.invoke("process-form-submission", {
         body: { formId, data: formData, workspaceId },
       });
@@ -236,12 +272,27 @@ export function useSubmitForm() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ["form-submissions", variables.formId] });
       queryClient.invalidateQueries({ queryKey: ["smart-forms"] });
+      console.log(`[FORMS] Form submitted: ${variables.formId}`, result?.submission);
+      if (currentWorkspace?.id && result?.submission) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'FORM.SUBMITTED',
+          entity_kind: 'form',
+          entity_id: variables.formId,
+          source_module: 'core-forms',
+          payload: {
+            score: result.submission.score,
+            temperature: result.submission.temperature,
+            leadId: result.submission.leadId,
+          },
+        });
+      }
     },
     onError: (error) => {
-      console.error("Error submitting form:", error);
+      console.warn('[FORMS] SUBMIT_FAILED:', error.message);
       toast.error("Erro ao submeter formulário");
     },
   });
@@ -258,7 +309,7 @@ export function useGenerateFormWithAI() {
       return data;
     },
     onError: (error) => {
-      console.error("Error generating form:", error);
+      console.warn('[FORMS] AI_GENERATE_FAILED:', error.message);
       toast.error("Erro ao gerar formulário com IA");
     },
   });

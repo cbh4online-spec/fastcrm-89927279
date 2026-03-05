@@ -65,10 +65,8 @@ function calculateScore(data: Record<string, unknown>, rules: ScoringRule[], bas
     }
   }
 
-  // Clamp score between 0 and 100
   score = Math.max(0, Math.min(100, score));
 
-  // Determine temperature
   let temperature = 'cold';
   if (score >= 70 || temperatureBoosts >= 2) {
     temperature = 'hot';
@@ -136,15 +134,32 @@ Responde APENAS com JSON: {"summary": "1-2 frases sobre o lead", "nextAction": "
       }
     }
   } catch (error) {
-    console.error('AI summary error:', error);
+    console.warn('[FORMS] AI_SUMMARY_FAILED:', (error as Error).message);
   }
 
-  // Fallback
   const tempText = temperature === 'hot' ? 'alta intenção' : temperature === 'warm' ? 'interesse moderado' : 'interesse inicial';
   return {
     summary: `Lead com ${tempText} (score: ${score}).`,
     nextAction: temperature === 'hot' ? 'Contactar em menos de 15 minutos.' : 'Agendar follow-up.',
   };
+}
+
+async function emitKernelEventServerSide(params: Record<string, unknown>) {
+  try {
+    const resp = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/kernel-ingest-event`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      body: JSON.stringify(params),
+    });
+    if (!resp.ok) {
+      console.warn('[FORMS] KERNEL_EVENT_EMIT_FAILED:', await resp.text());
+    }
+  } catch (e) {
+    console.warn('[FORMS] KERNEL_EVENT_EMIT_FAILED:', (e as Error).message);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -154,6 +169,7 @@ Deno.serve(async (req) => {
 
   try {
     const { formId, data, workspaceId } = await req.json();
+    console.log(`[FORMS] Processing submission for form: ${formId}`);
 
     if (!formId || !data || !workspaceId) {
       return new Response(
@@ -194,8 +210,9 @@ Deno.serve(async (req) => {
     }
 
     // Calculate score
-    const baseScore = 20; // Default base score
+    const baseScore = 20;
     const { score, temperature } = calculateScore(data, scoringRules, baseScore);
+    console.log(`[FORMS] Score: ${score}, Temperature: ${temperature}`);
 
     // Generate AI summary
     const { summary, nextAction } = await generateAISummary(data, score, temperature);
@@ -250,6 +267,17 @@ Deno.serve(async (req) => {
 
       if (lead) {
         leadId = lead.id;
+        console.log(`[FORMS] Lead created: ${leadId}`);
+        // Emit LEAD.CREATED_FROM_FORM kernel event server-side
+        emitKernelEventServerSide({
+          workspace_id: workspaceId,
+          type: 'LEAD.CREATED_FROM_FORM',
+          entity_kind: 'lead',
+          entity_id: leadId,
+          actor_type: 'system',
+          source_module: 'core-forms',
+          payload: { formId, submissionId: submission.id, score, temperature, name: lead.name },
+        });
       }
     }
 
@@ -274,6 +302,7 @@ Deno.serve(async (req) => {
 
       if (contact) {
         contactId = contact.id;
+        console.log(`[FORMS] Contact created: ${contactId}`);
       }
     }
 
@@ -296,6 +325,7 @@ Deno.serve(async (req) => {
 
       if (opportunity) {
         opportunityId = opportunity.id;
+        console.log(`[FORMS] Opportunity created: ${opportunityId}`);
       }
     }
 
@@ -317,6 +347,8 @@ Deno.serve(async (req) => {
       .update({ submission_count: (form.submission_count || 0) + 1 })
       .eq('id', formId);
 
+    console.log(`[FORMS] Submission ${submission.id} processed successfully`);
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -334,7 +366,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error processing form submission:', error);
+    console.warn(`[FORMS] SUBMISSION_FAILED: ${(error as Error).message}`);
     const message = error instanceof Error ? error.message : 'Failed to process submission';
     return new Response(
       JSON.stringify({ error: message }),

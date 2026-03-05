@@ -146,6 +146,9 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "core-calendar", "ai_booking_calendars_query", "ai_booking_calendars"),
       // Admin Workspaces
       runCheck(supabase, workspace_id, "admin-workspaces", "workspace_members_query", "workspace_members"),
+      // Core Forms
+      runCheck(supabase, workspace_id, "core-forms", "forms_query", "forms"),
+      runCheck(supabase, workspace_id, "core-forms", "form_submissions_query", "form_submissions"),
       // Admin Integrations
       runCheck(supabase, workspace_id, "admin-integrations", "stripe_config_query", "workspace_stripe_config"),
       runCheck(supabase, workspace_id, "admin-integrations", "ghl_config_query", "workspace_ghl_config"),
