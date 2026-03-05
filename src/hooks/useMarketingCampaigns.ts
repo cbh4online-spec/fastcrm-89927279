@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { toast } from 'sonner';
 import type { MarketingCampaign, CampaignStatus } from '@/types/marketing';
+import { emitKernelEvent } from '@/lib/kernelEmitter';
 
 // Map DB to frontend type
 function mapCampaign(row: any): MarketingCampaign {
@@ -137,12 +138,23 @@ export function useCreateCampaign() {
       if (error) throw error;
       return mapCampaign(result);
     },
-    onSuccess: () => {
+    onSuccess: (campaign) => {
       queryClient.invalidateQueries({ queryKey: ['marketing-campaigns'] });
       toast.success('Campanha criada com sucesso');
+      console.log('[EMAIL-MKT] CREATED', { campaign_id: campaign.id, name: campaign.name });
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CAMPAIGN.CREATED',
+          entity_kind: 'marketing_campaign',
+          entity_id: campaign.id,
+          source_module: 'mkt-email-marketing',
+          payload: { campaign_id: campaign.id, name: campaign.name, segment_id: campaign.segmentId },
+        });
+      }
     },
     onError: (error) => {
-      console.error('Error creating campaign:', error);
+      console.warn('[EMAIL-MKT] CREATE_FAILED', { error: (error as Error).message });
       toast.error('Erro ao criar campanha');
     },
   });
@@ -150,6 +162,7 @@ export function useCreateCampaign() {
 
 export function useUpdateCampaign() {
   const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
 
   return useMutation({
     mutationFn: async ({
@@ -193,13 +206,25 @@ export function useUpdateCampaign() {
       if (error) throw error;
       return mapCampaign(result);
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (campaign, variables) => {
       queryClient.invalidateQueries({ queryKey: ['marketing-campaigns'] });
       queryClient.invalidateQueries({ queryKey: ['marketing-campaign', variables.id] });
       toast.success('Campanha atualizada');
+      const changedFields = Object.keys(variables).filter(k => k !== 'id');
+      console.log('[EMAIL-MKT] UPDATED', { campaign_id: variables.id, changed_fields: changedFields });
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CAMPAIGN.UPDATED',
+          entity_kind: 'marketing_campaign',
+          entity_id: variables.id,
+          source_module: 'mkt-email-marketing',
+          payload: { campaign_id: variables.id, changed_fields: changedFields },
+        });
+      }
     },
     onError: (error) => {
-      console.error('Error updating campaign:', error);
+      console.warn('[EMAIL-MKT] UPDATE_FAILED', { error: (error as Error).message });
       toast.error('Erro ao atualizar campanha');
     },
   });
@@ -207,6 +232,7 @@ export function useUpdateCampaign() {
 
 export function useDeleteCampaign() {
   const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -217,12 +243,23 @@ export function useDeleteCampaign() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['marketing-campaigns'] });
       toast.success('Campanha eliminada');
+      console.log('[EMAIL-MKT] DELETED', { campaign_id: id });
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CAMPAIGN.DELETED',
+          entity_kind: 'marketing_campaign',
+          entity_id: id,
+          source_module: 'mkt-email-marketing',
+          payload: { campaign_id: id },
+        });
+      }
     },
     onError: (error) => {
-      console.error('Error deleting campaign:', error);
+      console.warn('[EMAIL-MKT] DELETE_FAILED', { error: (error as Error).message });
       toast.error('Erro ao eliminar campanha');
     },
   });
@@ -230,6 +267,7 @@ export function useDeleteCampaign() {
 
 export function useSendCampaign() {
   const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
 
   return useMutation({
     mutationFn: async (campaignId: string) => {
@@ -244,9 +282,20 @@ export function useSendCampaign() {
       queryClient.invalidateQueries({ queryKey: ['marketing-campaigns'] });
       queryClient.invalidateQueries({ queryKey: ['marketing-campaign', campaignId] });
       toast.success('Campanha iniciada com sucesso');
+      console.log('[EMAIL-MKT] LAUNCHED', { campaign_id: campaignId });
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CAMPAIGN.LAUNCHED',
+          entity_kind: 'marketing_campaign',
+          entity_id: campaignId,
+          source_module: 'mkt-email-marketing',
+          payload: { campaign_id: campaignId },
+        });
+      }
     },
     onError: (error: any) => {
-      console.error('Error sending campaign:', error);
+      console.warn('[EMAIL-MKT] LAUNCH_FAILED', { error: error.message });
       toast.error(error.message || 'Erro ao enviar campanha');
     },
   });
