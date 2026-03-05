@@ -1,59 +1,65 @@
 
 
-# Core Forms — Kernel V2 Stabilization
+# Core Custom Fields — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | File | Mutations | Kernel Events | Logging |
 |------|------|-----------|---------------|---------|
-| Create Form | `useSmartForms.ts` | `useCreateSmartForm` | None | `console.error` only |
-| Update Form | `useSmartForms.ts` | `useUpdateSmartForm` | None | `console.error` only |
-| Delete Form | `useSmartForms.ts` | `useDeleteSmartForm` | None | `console.error` only |
-| Submit Form (hook) | `useSmartForms.ts` | `useSubmitForm` | None | `console.error` only |
-| Submit Form (edge fn) | `process-form-submission/index.ts` | insert submission + lead/contact/opportunity | None | 1 `console.error` |
-| Public Form Page | `PublicFormPage.tsx` | calls edge fn directly | None | `console.error` only |
-| Smoke Tests | — | — | — | No `forms` or `form_submissions` checks |
+| Custom Fields CRUD | `useCustomFields.ts` | create/update/delete/reorder | None | `console.error` + debug logs |
+| Custom Field Values | `useCustomFields.ts` | set value (upsert) | None | `console.error` only |
+| Core Object Fields | `useCoreObjectFields.ts` | create/update/delete | None | None (toast only) |
+| AI Suggestions | `useFieldSuggestions.ts` | generate/accept/reject/dismiss | None | None |
+| Smoke Tests | `system-run-smoke-tests` | — | — | No `custom_fields` or `custom_field_values` checks |
 
 ## Implementation Plan
 
-### A) Kernel Events — `src/hooks/useSmartForms.ts`
+### A) Kernel Events — `src/hooks/useCustomFields.ts`
 
-Import `emitKernelEvent` + `useWorkspace`. All events use `source_module: 'core-forms'`.
+Import `emitKernelEvent`. All events: `source_module: 'core-custom-fields'`, `entity_kind: 'custom_field'`.
 
-1. `useCreateSmartForm.onSuccess` → `FORM.CREATED` (entity_kind: `form`, payload: `name`, `form_type`, `is_conversational`)
-2. `useUpdateSmartForm.onSuccess` → `FORM.UPDATED` (payload: `name`, `is_active`)
-3. `useDeleteSmartForm.onSuccess` → `FORM.DELETED`
-4. `useSubmitForm.onSuccess` → `FORM.SUBMITTED` (payload: `score`, `temperature`, `leadId`)
-5. All errors → `console.warn('[FORMS] ..._FAILED')`
+1. `useCreateCustomField.onSuccess` → `CUSTOM_FIELD.CREATED` (payload: `name`, `field_type`, `entity_type`, `is_unique`, `required`)
+2. `useUpdateCustomField.onSuccess` → `CUSTOM_FIELD.UPDATED` (payload: updated keys)
+3. `useDeleteCustomField.onSuccess` → `CUSTOM_FIELD.DELETED`
+4. `useReorderCustomFields.onSuccess` → `CUSTOM_FIELD.REORDERED` (payload: `count`)
+5. `useSetCustomFieldValue.onSuccess` → `CUSTOM_FIELD.VALUE_SET` (entity_kind: `custom_field_value`, payload: `custom_field_id`, `origin`)
+6. All errors → `console.warn('[CUSTOM-FIELDS] ..._FAILED')`
 
-### B) Kernel Events — `supabase/functions/process-form-submission/index.ts`
+### B) Kernel Events — `src/hooks/useCoreObjectFields.ts`
 
-Add `[FORMS]` structured logging throughout:
-1. Log incoming request params: `[FORMS] Processing submission for form: ${formId}`
-2. Log scoring result: `[FORMS] Score: ${score}, Temperature: ${temperature}`
-3. Log lead creation: `[FORMS] Lead created: ${leadId}` → also emit `LEAD.CREATED_FROM_FORM` via kernel-ingest-event edge fn call
-4. Log contact creation: `[FORMS] Contact created: ${contactId}`
-5. Log opportunity creation: `[FORMS] Opportunity created: ${opportunityId}`
-6. Log completion: `[FORMS] Submission ${submission.id} processed successfully`
-7. Log errors: `[FORMS] SUBMISSION_FAILED: ${error}`
+Import `emitKernelEvent`. All events: `source_module: 'core-custom-fields'`, `entity_kind: 'core_object_field'`.
 
-For the `LEAD.CREATED_FROM_FORM` kernel event, call the `kernel-ingest-event` edge function server-side using fetch (since we're already in an edge function).
+1. `useCreateObjectField.onSuccess` → `CUSTOM_FIELD.CREATED` (payload: `name`, `slug`, `field_type`)
+2. `useUpdateObjectField.onSuccess` → `CUSTOM_FIELD.UPDATED`
+3. `useDeleteObjectField.onSuccess` → `CUSTOM_FIELD.DELETED`
+4. All errors → `console.warn('[CUSTOM-FIELDS] ..._FAILED')`
 
-### C) Observability — All Client Hooks
+### C) Kernel Events — `src/hooks/useFieldSuggestions.ts`
 
-All hooks get `[FORMS]` prefixed `console.log` on success, `console.warn` on error.
+Import `emitKernelEvent`. Events: `source_module: 'core-custom-fields'`.
 
-### D) Smoke Tests
+1. `useGenerateFieldSuggestions.onSuccess` → `CUSTOM_FIELD.AI_SUGGESTIONS_GENERATED` (entity_kind: entity's type, payload: `suggestion_count`)
+2. `useAcceptSuggestion.onSuccess` → `CUSTOM_FIELD.AI_SUGGESTION_ACCEPTED` (payload: `field_name`, `field_type`, `confidence`)
+3. `useRejectSuggestion.onSuccess` → `CUSTOM_FIELD.AI_SUGGESTION_REJECTED`
+4. All errors → `console.warn('[CUSTOM-FIELDS] ..._FAILED')`
+
+### D) Observability
+
+All hooks get `[CUSTOM-FIELDS]` prefixed `console.log` on success, `console.warn` on error.
+
+### E) Smoke Tests
 
 Add to `system-run-smoke-tests`:
-- `forms` table check
-- `form_submissions` table check
+- `custom_fields` table check
+- `custom_field_values` table check
+- `core_object_fields` table check
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useSmartForms.ts` | Import `emitKernelEvent`; emit `FORM.CREATED`/`UPDATED`/`DELETED`/`SUBMITTED`; add `[FORMS]` logging |
-| `supabase/functions/process-form-submission/index.ts` | Add `[FORMS]` structured logging; emit `LEAD.CREATED_FROM_FORM` server-side via kernel-ingest-event |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `forms` and `form_submissions` checks |
+| `src/hooks/useCustomFields.ts` | Import `emitKernelEvent`; emit events for all CRUD + value set; add `[CUSTOM-FIELDS]` logging |
+| `src/hooks/useCoreObjectFields.ts` | Import `emitKernelEvent`; emit events for field CRUD; add logging |
+| `src/hooks/useFieldSuggestions.ts` | Import `emitKernelEvent`; emit AI suggestion events; add logging |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add `custom_fields`, `custom_field_values`, `core_object_fields` checks |
 
