@@ -160,6 +160,9 @@ Deno.serve(async (req) => {
       // Core Files
       runCheck(supabase, workspace_id, "core-files", "entity_documents_query", "entity_documents"),
       runCheck(supabase, workspace_id, "core-files", "contact_documents_query", "contact_documents"),
+      // Core Feed
+      runCheck(supabase, workspace_id, "core-feed", "internal_posts_query", "internal_posts"),
+      runCheck(supabase, workspace_id, "core-feed", "post_comments_query", "post_comments"),
       // Core Custom Fields
       runCheck(supabase, workspace_id, "core-custom-fields", "custom_fields_query", "custom_fields"),
       runCheck(supabase, workspace_id, "core-custom-fields", "custom_field_values_query", "custom_field_values"),

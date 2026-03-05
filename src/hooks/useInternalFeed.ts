@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { emitKernelEvent } from '@/lib/kernelEmitter';
 import type { Json } from '@/integrations/supabase/types';
 
 export type FeedType = 'workspace' | 'team' | 'user' | 'client';
@@ -219,11 +220,28 @@ export function useInternalFeed(feedType?: FeedType, targetId?: string) {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['internal-posts'] });
       toast({ title: 'Post publicado com sucesso' });
+      console.log(`[FEED] Post created: ${data.id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'FEED.POST_CREATED',
+          entity_kind: 'post',
+          entity_id: data.id,
+          source_module: 'core-feed',
+          payload: {
+            feed_type: variables.feed_type,
+            post_type: variables.post_type,
+            has_mentions: !!(variables.mentions && variables.mentions.length > 0),
+            has_checklist: !!(variables.checklist_items && variables.checklist_items.length > 0),
+          },
+        });
+      }
     },
     onError: (error) => {
+      console.warn('[FEED] POST_CREATE_FAILED:', error.message);
       toast({ title: 'Erro ao publicar', description: error.message, variant: 'destructive' });
     },
   });
@@ -249,8 +267,21 @@ export function useInternalFeed(feedType?: FeedType, targetId?: string) {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['internal-posts'] });
+      console.log(`[FEED] Post updated: ${data.id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'FEED.POST_UPDATED',
+          entity_kind: 'post',
+          entity_id: data.id,
+          source_module: 'core-feed',
+        });
+      }
+    },
+    onError: (error: Error) => {
+      console.warn('[FEED] POST_UPDATE_FAILED:', error.message);
     },
   });
 
@@ -259,9 +290,22 @@ export function useInternalFeed(feedType?: FeedType, targetId?: string) {
       const { error } = await supabase.from('internal_posts').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ['internal-posts'] });
       toast({ title: 'Post eliminado' });
+      console.log(`[FEED] Post deleted: ${id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'FEED.POST_DELETED',
+          entity_kind: 'post',
+          entity_id: id,
+          source_module: 'core-feed',
+        });
+      }
+    },
+    onError: (error: Error) => {
+      console.warn('[FEED] POST_DELETE_FAILED:', error.message);
     },
   });
 
@@ -274,8 +318,22 @@ export function useInternalFeed(feedType?: FeedType, targetId?: string) {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['internal-posts'] });
+      console.log(`[FEED] Post ${variables.is_pinned ? 'pinned' : 'unpinned'}: ${variables.id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'FEED.POST_PINNED',
+          entity_kind: 'post',
+          entity_id: variables.id,
+          source_module: 'core-feed',
+          payload: { is_pinned: variables.is_pinned },
+        });
+      }
+    },
+    onError: (error: Error) => {
+      console.warn('[FEED] POST_PIN_FAILED:', error.message);
     },
   });
 
@@ -292,8 +350,22 @@ export function useInternalFeed(feedType?: FeedType, targetId?: string) {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['internal-posts'] });
+      console.log(`[FEED] Post ${variables.is_resolved ? 'resolved' : 'unresolved'}: ${variables.id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'FEED.POST_RESOLVED',
+          entity_kind: 'post',
+          entity_id: variables.id,
+          source_module: 'core-feed',
+          payload: { is_resolved: variables.is_resolved },
+        });
+      }
+    },
+    onError: (error: Error) => {
+      console.warn('[FEED] POST_RESOLVE_FAILED:', error.message);
     },
   });
 
@@ -451,11 +523,32 @@ export function usePostComments(postId: string | null) {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['post-comments', postId] });
       queryClient.invalidateQueries({ queryKey: ['internal-posts'] });
+      console.log(`[FEED] Comment created: ${data.id} on post ${postId}`);
+      // Note: usePostComments doesn't have workspace context, emit with postId as correlation
+      if (postId) {
+        // We need workspace_id — get it from the query cache if available
+        const posts = queryClient.getQueryData<Array<{ workspace_id: string }>>(['internal-posts']);
+        const workspaceId = posts?.[0]?.workspace_id;
+        if (workspaceId) {
+          emitKernelEvent({
+            workspace_id: workspaceId,
+            type: 'FEED.COMMENT_CREATED',
+            entity_kind: 'comment',
+            entity_id: data.id,
+            source_module: 'core-feed',
+            payload: {
+              post_id: postId,
+              is_reply: !!variables.parent_comment_id,
+            },
+          });
+        }
+      }
     },
     onError: (error) => {
+      console.warn('[FEED] COMMENT_CREATE_FAILED:', error.message);
       toast({ title: 'Erro ao comentar', description: error.message, variant: 'destructive' });
     },
   });
@@ -465,9 +558,27 @@ export function usePostComments(postId: string | null) {
       const { error } = await supabase.from('post_comments').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ['post-comments', postId] });
       queryClient.invalidateQueries({ queryKey: ['internal-posts'] });
+      console.log(`[FEED] Comment deleted: ${id}`);
+      if (postId) {
+        const posts = queryClient.getQueryData<Array<{ workspace_id: string }>>(['internal-posts']);
+        const workspaceId = posts?.[0]?.workspace_id;
+        if (workspaceId) {
+          emitKernelEvent({
+            workspace_id: workspaceId,
+            type: 'FEED.COMMENT_DELETED',
+            entity_kind: 'comment',
+            entity_id: id,
+            source_module: 'core-feed',
+            payload: { post_id: postId },
+          });
+        }
+      }
+    },
+    onError: (error: Error) => {
+      console.warn('[FEED] COMMENT_DELETE_FAILED:', error.message);
     },
   });
 
@@ -527,8 +638,9 @@ export function useMyMentions() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ['my-mentions'] });
+      console.log(`[FEED] Mention marked as read: ${id}`);
     },
   });
 
