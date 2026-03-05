@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface FastMatchProfile {
   id: string;
@@ -83,7 +84,7 @@ export function useUpdateFastMatchProfile() {
           .select()
           .single();
         if (error) throw error;
-        return data;
+        return { data, is_new: false, fields_changed: Object.keys(updates) };
       } else {
         const { data, error } = await supabase
           .from("fastmatch_profiles")
@@ -95,11 +96,28 @@ export function useUpdateFastMatchProfile() {
           .select()
           .single();
         if (error) throw error;
-        return data;
+        return { data, is_new: true, fields_changed: Object.keys(updates) };
       }
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["fastmatch-profile", currentWorkspace?.id, user?.id] });
+
+      emitKernelEvent({
+        workspace_id: currentWorkspace!.id,
+        type: 'FASTMATCH.PROFILE_UPDATED',
+        entity_kind: 'fastmatch_profile',
+        entity_id: result.data.id,
+        actor_id: user!.id,
+        source_module: 'crm-fastmatch',
+        payload: {
+          fields_changed: result.fields_changed,
+          is_new: result.is_new,
+        },
+      });
+      console.log(`[FASTMATCH] Profile ${result.is_new ? 'created' : 'updated'}: ${result.data.id}`);
+    },
+    onError: (err: any) => {
+      console.warn('[FASTMATCH] PROFILE_UPDATE_FAILED', err?.message);
     },
   });
 }
