@@ -1,47 +1,43 @@
 
 
-# MKT Landing Pages — Kernel V2 Stabilization
+# MKT Email Marketing — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | Status | Gaps |
 |------|--------|------|
-| Landing CRUD | Works | `useLandingPages.ts`: create/update/delete/publish. Zero kernel events |
-| Publish | Works | `usePublishLandingPage` toggles `is_published`. No kernel event, no logging |
-| Update | Works | `useUpdateLandingPage` generic update. No kernel event, no logging |
-| Delete | Works | No kernel event, no logging |
-| Kernel Events | **None** | Zero `LANDING.*` events in codebase |
-| Smoke Tests | **None** | No `landing_pages` table check in smoke tests |
-| Observability | **None** | No structured logging for landing page lifecycle |
+| Campaign CRUD | Works | `useMarketingCampaigns.ts`: create/update/delete. Zero kernel events, no structured logging |
+| Send Campaign | Works | `useSendCampaign` invokes `marketing-send-campaign` edge function. Zero kernel events, no logging |
+| Webhook Events | Works | `marketing-webhook` processes Resend events (delivered/opened/clicked/bounced). Zero kernel events |
+| Smoke Tests | **None** | No `marketing_campaigns`, `marketing_recipients`, `marketing_events` checks |
+| Observability | **None** | No structured logging in hooks |
 
 ## Implementation Plan
 
-### A) Kernel Events — Wire Landing Page Lifecycle
+### A) Kernel Events — `src/hooks/useMarketingCampaigns.ts`
 
-**`src/hooks/useLandingPages.ts`:**
+1. **`useCreateCampaign.onSuccess`** → Emit `CAMPAIGN.CREATED` with `campaign_id`, `name`, `segment_id`
+2. **`useUpdateCampaign.onSuccess`** → Emit `CAMPAIGN.UPDATED` with `campaign_id`
+3. **`useSendCampaign.onSuccess`** → Emit `CAMPAIGN.LAUNCHED` with `campaign_id`
+4. **`useDeleteCampaign.onSuccess`** → Emit `CAMPAIGN.DELETED` with `campaign_id`
 
-1. **`useCreateLandingPage.onSuccess`** — Emit `LANDING.CREATED` with `landing_id`, `title`, `slug`.
-2. **`useUpdateLandingPage.onSuccess`** — Emit `LANDING.UPDATED` with `landing_id`, `changed_fields`.
-3. **`usePublishLandingPage.onSuccess`** — Emit `LANDING.PUBLISHED` (when published) or `LANDING.UNPUBLISHED` (when unpublished) with `landing_id`, `slug`.
-4. **`useDeleteLandingPage.onSuccess`** — Emit `LANDING.DELETED` with `landing_id`.
-
-All events use `source_module: 'mkt-landing-pages'`.
+All events: `source_module: 'mkt-email-marketing'`.
 
 ### B) Observability — Structured Logging
 
-All mutations in `useLandingPages.ts`:
-- `console.log('[LANDING] CREATED id=X slug=Y')`, `[LANDING] PUBLISHED`, etc.
-- `console.warn('[LANDING] CREATE_FAILED error=X')` on errors.
+All mutations in `useMarketingCampaigns.ts`: `[EMAIL-MKT]` prefixed `console.log` on success, `console.warn` on error.
 
-### C) Smoke Test
+### C) Smoke Tests
 
 Add to `system-run-smoke-tests`:
-- `mkt-landing-pages`: query `landing_pages` table count for workspace.
+- `marketing_campaigns` table check
+- `marketing_recipients` table check
+- `marketing_events` table check
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useLandingPages.ts` | Import `emitKernelEvent` + `useWorkspace`; emit `LANDING.CREATED`, `LANDING.UPDATED`, `LANDING.PUBLISHED`/`UNPUBLISHED`, `LANDING.DELETED`; add structured logging |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `landing_pages` table check under `mkt-landing-pages` module |
+| `src/hooks/useMarketingCampaigns.ts` | Import `emitKernelEvent` + `useWorkspace`; emit events on create/update/send/delete; add `[EMAIL-MKT]` logging |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add `marketing_campaigns`, `marketing_recipients`, `marketing_events` checks under `mkt-email-marketing` |
 
