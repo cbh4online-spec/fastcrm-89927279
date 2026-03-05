@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useFastMatchProfile } from "./useFastMatchProfile";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { toast } from "sonner";
 
 export interface FastMatchConnection {
@@ -67,6 +68,21 @@ export function useUnlockConnection() {
         .single();
 
       if (error) throw error;
+
+      // Emit FASTMATCH.ACCEPTED kernel event
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'FASTMATCH.ACCEPTED',
+        entity_kind: 'fastmatch_connection',
+        entity_id: (connection as any).id,
+        actor_id: profile.user_id,
+        source_module: 'crm-fastmatch',
+        payload: {
+          profile_a_id: profile.id,
+          profile_b_id: otherProfileId,
+          source: quotaSource,
+        },
+      });
 
       // 2. Fetch other profile for CRM auto-create
       const { data: otherProfile } = await supabase
@@ -187,6 +203,8 @@ export function useUnlockConnection() {
           })
           .eq("id", (connection as any).id);
 
+        console.log(`[FASTMATCH] CRM provisioned: company=${companyId}, contact=${contactId}, opportunity=${opportunityId}`);
+
         return {
           ...(connection as any),
           crm_opportunity_id: opportunityId,
@@ -194,7 +212,7 @@ export function useUnlockConnection() {
           crm_company_id: companyId,
         } as FastMatchConnection;
       } catch (crmError) {
-        console.error("CRM auto-create failed:", crmError);
+        console.error("[FASTMATCH] CRM auto-create failed:", crmError);
         // Return connection even if CRM creation fails
         return connection as FastMatchConnection;
       }
@@ -203,9 +221,11 @@ export function useUnlockConnection() {
       queryClient.invalidateQueries({ queryKey: ["fastmatch-connections"] });
       queryClient.invalidateQueries({ queryKey: ["fastmatch-profile"] });
       queryClient.invalidateQueries({ queryKey: ["fastmatch-discovery"] });
+      console.log('[FASTMATCH] Connection unlocked');
       toast.success("Conexão desbloqueada com sucesso!");
     },
-    onError: () => {
+    onError: (err: any) => {
+      console.warn('[FASTMATCH] UNLOCK_FAILED', err?.message);
       toast.error("Erro ao desbloquear conexão.");
     },
   });

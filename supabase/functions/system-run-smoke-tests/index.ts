@@ -175,6 +175,10 @@ Deno.serve(async (req) => {
       // CRM Lead Enricher
       runCheck(supabase, workspace_id, "crm-lead-enricher", "lead_enricher_settings_query", "lead_enricher_settings"),
       runCheck(supabase, workspace_id, "crm-lead-enricher", "credit_consumption_logs_query", "credit_consumption_logs"),
+      // CRM FastMatch
+      runCheck(supabase, workspace_id, "crm-fastmatch", "fastmatch_profiles_query", "fastmatch_profiles"),
+      runCheck(supabase, workspace_id, "crm-fastmatch", "fastmatch_connections_query", "fastmatch_connections"),
+      runCheck(supabase, workspace_id, "crm-fastmatch", "fastmatch_interests_query", "fastmatch_interests"),
       // AI Conversational
       aiConversationalCheck(),
     ]);

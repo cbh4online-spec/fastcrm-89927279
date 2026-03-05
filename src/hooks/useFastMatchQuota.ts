@@ -51,10 +51,15 @@ export function useConsumeMatchQuota() {
       if (error) throw error;
       const result = (data as any)?.[0] || data;
       if (!result?.success) throw new Error(result?.message || "Quota esgotada");
-      return result;
+      return { ...result, profileId };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["fastmatch-profile"] });
+      const profileId = result.profileId;
+      console.log(`[FASTMATCH] Quota consumed for profile ${profileId}`);
+    },
+    onError: (err: any) => {
+      console.warn('[FASTMATCH] QUOTA_CONSUME_FAILED', err?.message);
     },
   });
 }

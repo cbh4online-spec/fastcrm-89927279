@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useFastMatchProfile } from "./useFastMatchProfile";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { toast } from "sonner";
 
 export function useConnectionReviews(connectionId: string | undefined) {
@@ -67,8 +68,9 @@ export function useSubmitReview() {
         .select("rating")
         .eq("reviewed_profile_id", reviewedProfileId);
 
+      let avg = 0;
       if (allReviews && allReviews.length > 0) {
-        const avg =
+        avg =
           allReviews.reduce((sum, r) => sum + (r as any).rating, 0) /
           allReviews.length;
 
@@ -79,16 +81,33 @@ export function useSubmitReview() {
             reputation_count: allReviews.length,
           })
           .eq("id", reviewedProfileId);
+
+        console.log(`[FASTMATCH] Reputation recalculated for ${reviewedProfileId}: score=${Math.round(avg * 10) / 10}`);
       }
 
-      return data;
+      return { data, connectionId, reviewedProfileId, rating };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["fastmatch-review"] });
       queryClient.invalidateQueries({ queryKey: ["fastmatch-connections"] });
+
+      emitKernelEvent({
+        workspace_id: currentWorkspace!.id,
+        type: 'FASTMATCH.REVIEW_SUBMITTED',
+        entity_kind: 'fastmatch_review',
+        entity_id: result.data.id,
+        source_module: 'crm-fastmatch',
+        payload: {
+          connection_id: result.connectionId,
+          rating: result.rating,
+          reviewed_profile_id: result.reviewedProfileId,
+        },
+      });
+
       toast.success("Avaliação enviada com sucesso!");
     },
-    onError: () => {
+    onError: (err: any) => {
+      console.warn('[FASTMATCH] REVIEW_FAILED', err?.message);
       toast.error("Erro ao enviar avaliação.");
     },
   });

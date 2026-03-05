@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useFastMatchProfile } from "./useFastMatchProfile";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { toast } from "sonner";
 
 export interface FastMatchInterest {
@@ -83,20 +84,37 @@ export function useSendInterest() {
           supabase.from("fastmatch_interests").update({ status: "mutual" }).eq("id", data.id),
           supabase.from("fastmatch_interests").update({ status: "mutual" }).eq("id", reciprocal.id),
         ]);
-        return { mutual: true, interestId: data.id };
+        return { mutual: true, interestId: data.id, toProfileId };
       }
 
-      return { mutual: false, interestId: data.id };
+      return { mutual: false, interestId: data.id, toProfileId };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["fastmatch-interests"] });
+
+      emitKernelEvent({
+        workspace_id: currentWorkspace!.id,
+        type: 'FASTMATCH.SUGGESTED',
+        entity_kind: 'fastmatch_interest',
+        entity_id: result.interestId,
+        source_module: 'crm-fastmatch',
+        payload: {
+          from_profile_id: profile!.id,
+          to_profile_id: result.toProfileId,
+          mutual: result.mutual,
+        },
+      });
+
       if (result.mutual) {
+        console.log('[FASTMATCH] Mutual interest detected');
         toast.success("Interesse mútuo detectado! Pode desbloquear a conexão.");
       } else {
+        console.log(`[FASTMATCH] Interest sent: ${result.interestId}`);
         toast.success("Interesse demonstrado com sucesso.");
       }
     },
     onError: (err: any) => {
+      console.warn('[FASTMATCH] INTEREST_FAILED', err?.message);
       if (err?.message?.includes("duplicate")) {
         toast.error("Já demonstrou interesse neste perfil.");
       } else {
