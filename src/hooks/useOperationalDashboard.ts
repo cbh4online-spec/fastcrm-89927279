@@ -12,6 +12,7 @@ import { useAutomationRules } from "./useAutomations";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { startOfDay, subDays, isAfter, isBefore, differenceInDays, differenceInHours } from "date-fns";
 import { toast } from "sonner";
 
@@ -103,15 +104,11 @@ export function useOperationalDashboard() {
     const today = startOfDay(now);
     const dayAgo = subDays(now, 1);
 
-    // Leads today
     const leadsToday = leads?.filter(l => isAfter(new Date(l.created_at), today)).length || 0;
-
-    // Hot leads (ai_temperature === 'hot' or lead_score >= 70)
     const hotLeads = leads?.filter(l => 
       (l as any).ai_temperature === "hot" || (l as any).lead_score >= 70
     ).length || 0;
 
-    // Conversations without response (unread > 0 or last message > 24h without reply)
     const conversationsWithoutResponse = conversations?.filter(c => {
       if (c.unread_count > 0) return true;
       if (c.last_message_at) {
@@ -121,22 +118,18 @@ export function useOperationalDashboard() {
       return false;
     }).length || 0;
 
-    // Active opportunities
     const activeOpportunities = opportunities?.filter(o => o.status === "open").length || 0;
-
-    // Forecasted revenue (weighted by probability)
     const forecastedRevenue = opportunities?.filter(o => o.status === "open").reduce((sum, o) => {
       const probability = (o as any).conversion_probability || 50;
       return sum + ((o.value || 0) * (probability / 100));
     }, 0) || 0;
 
-    // Calculate average response time from conversations
     let totalResponseTime = 0;
     let responseCount = 0;
     conversations?.forEach(c => {
       if (c.last_message_at && c.created_at) {
         const hours = differenceInHours(new Date(c.last_message_at), new Date(c.created_at));
-        if (hours > 0 && hours < 168) { // Only count if less than 7 days
+        if (hours > 0 && hours < 168) {
           totalResponseTime += hours;
           responseCount++;
         }
@@ -144,24 +137,16 @@ export function useOperationalDashboard() {
     });
     const avgResponseTimeHours = responseCount > 0 ? Math.round(totalResponseTime / responseCount) : 0;
 
-    // Leads without follow-up (created > 24h ago, status still "new")
     const leadsWithoutFollowup = leads?.filter(l => {
       const created = new Date(l.created_at);
       return isBefore(created, dayAgo) && l.status === "new";
     }).length || 0;
 
-    // Active automations
     const activeAutomations = automations?.filter(a => a.is_active).length || 0;
 
     return {
-      leadsToday,
-      hotLeads,
-      conversationsWithoutResponse,
-      activeOpportunities,
-      forecastedRevenue,
-      avgResponseTimeHours,
-      leadsWithoutFollowup,
-      activeAutomations,
+      leadsToday, hotLeads, conversationsWithoutResponse, activeOpportunities,
+      forecastedRevenue, avgResponseTimeHours, leadsWithoutFollowup, activeAutomations,
     };
   }, [leads, opportunities, conversations, automations, isLoading]);
 
@@ -172,11 +157,8 @@ export function useOperationalDashboard() {
     const stageData = stages.map(stage => {
       const stageOpps = opportunities.filter(o => o.stage_id === stage.id && o.status === "open");
       return {
-        id: stage.id,
-        name: stage.name,
-        color: stage.color,
-        count: stageOpps.length,
-        value: stageOpps.reduce((sum, o) => sum + (o.value || 0), 0),
+        id: stage.id, name: stage.name, color: stage.color,
+        count: stageOpps.length, value: stageOpps.reduce((sum, o) => sum + (o.value || 0), 0),
       };
     });
 
@@ -193,26 +175,22 @@ export function useOperationalDashboard() {
   // Efficiency metrics
   const efficiencyMetrics = useMemo<EfficiencyMetrics | null>(() => {
     if (!kpis) return null;
-    
     return {
       avgResponseTimeHours: kpis.avgResponseTimeHours,
       leadsWithoutFollowup: kpis.leadsWithoutFollowup,
       activeAutomations: kpis.activeAutomations,
-      estimatedTimeSavedHours: kpis.activeAutomations * 2, // Estimate 2h saved per automation
+      estimatedTimeSavedHours: kpis.activeAutomations * 2,
     };
   }, [kpis]);
 
-  // Get user name from profile or auth
   const userName = useMemo(() => {
     return user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Utilizador";
   }, [user]);
 
-  // Recent leads for AI context
   const recentLeadNames = useMemo(() => {
     return leads?.slice(0, 3).map(l => l.name) || [];
   }, [leads]);
 
-  // Top opportunity
   const topOpportunity = useMemo(() => {
     const open = opportunities?.filter(o => o.status === "open") || [];
     const sorted = open.sort((a, b) => (b.value || 0) - (a.value || 0));
@@ -220,19 +198,15 @@ export function useOperationalDashboard() {
   }, [opportunities]);
 
   return {
-    kpis,
-    pipelineSummary,
-    efficiencyMetrics,
-    userName,
-    workspaceName: currentWorkspace?.name,
-    recentLeadNames,
-    topOpportunity,
-    isLoading,
+    kpis, pipelineSummary, efficiencyMetrics, userName,
+    workspaceName: currentWorkspace?.name, recentLeadNames, topOpportunity, isLoading,
   };
 }
 
 // AI-powered insights hook
 export function useDashboardAIInsights(dashboardData: OperationalKPIs | null, userName: string, workspaceName?: string) {
+  const { currentWorkspace } = useWorkspace();
+
   return useQuery({
     queryKey: ["dashboard-ai-insights", dashboardData, userName],
     queryFn: async (): Promise<DashboardAIResponse> => {
@@ -252,50 +226,66 @@ export function useDashboardAIInsights(dashboardData: OperationalKPIs | null, us
         });
 
         if (error) {
-          // Check for rate limit or payment errors in the error message
           const errorMessage = String(error.message || error || "");
           const errorContext = JSON.stringify(error);
           
           if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("rate limit") || errorContext.includes("429")) {
-            console.warn("AI rate limit hit, using fallback insights");
+            console.warn("[DASHBOARD] AI rate limit hit, using fallback insights");
             return generateFallbackInsights(dashboardData, userName);
           }
           if (errorMessage.includes("402") || errorMessage.toLowerCase().includes("payment") || errorContext.includes("402")) {
-            console.warn("AI credits exhausted, using fallback insights");
+            console.warn("[DASHBOARD] AI credits exhausted, using fallback insights");
             return generateFallbackInsights(dashboardData, userName);
           }
-          console.error("AI insights error:", error);
+          console.error("[DASHBOARD] AI insights error:", error);
           return generateFallbackInsights(dashboardData, userName);
         }
         
-        // Check if data contains an error (edge function may return 200 with error in body for edge cases)
         if (data?.error) {
           const errorStr = String(data.error);
           if (errorStr.includes("Rate limit") || errorStr.includes("429")) {
-            console.warn("AI rate limit hit (in body), using fallback insights");
+            console.warn("[DASHBOARD] AI rate limit hit (in body), using fallback insights");
             return generateFallbackInsights(dashboardData, userName);
           }
           if (errorStr.includes("Payment") || errorStr.includes("402")) {
-            console.warn("AI credits exhausted (in body), using fallback insights");
+            console.warn("[DASHBOARD] AI credits exhausted (in body), using fallback insights");
             return generateFallbackInsights(dashboardData, userName);
           }
-          console.warn("AI insights returned error:", data.error);
+          console.warn("[DASHBOARD] AI insights returned error:", data.error);
+          console.warn("[DASHBOARD] AI insights fallback used");
           return generateFallbackInsights(dashboardData, userName);
         }
         
-        return data as DashboardAIResponse;
+        // Emit kernel event on successful AI response
+        const response = data as DashboardAIResponse;
+        console.log(`[DASHBOARD] AI insights generated: ${response.insights?.length || 0} insights, ${response.nextActions?.length || 0} actions`);
+        if (currentWorkspace) {
+          emitKernelEvent({
+            workspace_id: currentWorkspace.id,
+            type: 'DASHBOARD.INSIGHT_GENERATED',
+            entity_kind: 'insight',
+            entity_id: currentWorkspace.id,
+            source_module: 'core-dashboard',
+            payload: {
+              insights_count: response.insights?.length || 0,
+              next_actions_count: response.nextActions?.length || 0,
+              source: 'ai',
+            },
+          });
+        }
+        return response;
       } catch (error: any) {
-        console.error("AI insights exception:", error);
-        // Always return fallback - never let AI errors break the dashboard
+        console.error("[DASHBOARD] AI insights exception:", error);
+        console.warn("[DASHBOARD] AI insights fallback used");
         return generateFallbackInsights(dashboardData, userName);
       }
     },
     enabled: !!dashboardData,
-    staleTime: 10 * 60 * 1000, // Cache for 10 minutes to reduce AI calls
-    gcTime: 15 * 60 * 1000, // Keep in cache for 15 minutes
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    retry: false, // Don't retry on error - we handle fallback ourselves
+    retry: false,
   });
 }
 
@@ -308,53 +298,39 @@ function generateFallbackInsights(data: OperationalKPIs, userName: string): Dash
 
   if (data.hotLeads > 0) {
     insights.push({
-      id: "hot-leads",
-      type: "urgent",
-      priority: "high",
+      id: "hot-leads", type: "urgent", priority: "high",
       title: `${data.hotLeads} lead${data.hotLeads > 1 ? "s" : ""} quente${data.hotLeads > 1 ? "s" : ""}`,
       description: "Prontos para converter. Prioriza o contacto hoje.",
-      actionLabel: "Ver leads quentes",
-      actionRoute: "/dashboard/leads?filter=hot",
+      actionLabel: "Ver leads quentes", actionRoute: "/dashboard/leads?filter=hot",
     });
     nextActions.push({
-      id: "action-hot-leads",
-      type: "lead",
-      priority: "high",
-      title: "Contactar leads quentes",
-      reason: "Alta intenção de compra",
+      id: "action-hot-leads", type: "lead", priority: "high",
+      title: "Contactar leads quentes", reason: "Alta intenção de compra",
       actionRoute: "/dashboard/leads?filter=hot",
     });
   }
 
   if (data.conversationsWithoutResponse > 0) {
     insights.push({
-      id: "unanswered",
-      type: "urgent",
+      id: "unanswered", type: "urgent",
       priority: data.conversationsWithoutResponse > 3 ? "high" : "medium",
       title: `${data.conversationsWithoutResponse} conversa${data.conversationsWithoutResponse > 1 ? "s" : ""} sem resposta`,
       description: "Clientes aguardam resposta. Respostas rápidas melhoram conversão.",
-      actionLabel: "Abrir inbox",
-      actionRoute: "/dashboard/inbox",
+      actionLabel: "Abrir inbox", actionRoute: "/dashboard/inbox",
     });
     nextActions.push({
-      id: "action-inbox",
-      type: "inbox",
-      priority: "high",
-      title: "Responder mensagens pendentes",
-      reason: "Clientes aguardam há +24h",
+      id: "action-inbox", type: "inbox", priority: "high",
+      title: "Responder mensagens pendentes", reason: "Clientes aguardam há +24h",
       actionRoute: "/dashboard/inbox",
     });
   }
 
   if (data.leadsWithoutFollowup > 0) {
     insights.push({
-      id: "no-followup",
-      type: "warning",
-      priority: "medium",
+      id: "no-followup", type: "warning", priority: "medium",
       title: `${data.leadsWithoutFollowup} lead${data.leadsWithoutFollowup > 1 ? "s" : ""} sem follow-up`,
       description: "Leads novos sem contacto há mais de 24h.",
-      actionLabel: "Ver leads",
-      actionRoute: "/dashboard/leads?filter=no_response",
+      actionLabel: "Ver leads", actionRoute: "/dashboard/leads?filter=no_response",
     });
   }
 
@@ -367,12 +343,9 @@ function generateFallbackInsights(data: OperationalKPIs, userName: string): Dash
     : "Tudo em ordem! Sem ações urgentes.";
 
   return {
-    greeting,
-    dayStatus,
+    greeting, dayStatus,
     insights: insights.slice(0, 3),
     nextActions: nextActions.slice(0, 5),
-    efficiencyMetrics: {
-      timeSavedHours: data.activeAutomations * 2,
-    },
+    efficiencyMetrics: { timeSavedHours: data.activeAutomations * 2 },
   };
 }
