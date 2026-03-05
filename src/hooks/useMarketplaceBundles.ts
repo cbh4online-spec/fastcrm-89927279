@@ -93,7 +93,7 @@ export function usePurchaseBundle() {
       queryClient.invalidateQueries({ queryKey: ["workspace-bundles"] });
     },
     onError: (error) => {
-      console.error("Error purchasing bundle:", error);
+      console.warn('[BUNDLES] PURCHASE_FAILED', error.message);
       toast.error("Erro ao processar compra");
     },
   });
