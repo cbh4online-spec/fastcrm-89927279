@@ -1,46 +1,52 @@
 
 
-# Core Productivity — Kernel V2 Stabilization
+# Strategy Command Center — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | Status | Gaps |
 |------|--------|------|
-| Task CRUD | Works | `useTasks.ts`: create/update/delete/toggle. Zero kernel events |
-| Assignment | Partial | `assigned_to` field exists, no event on assignment change |
-| Toggle Status | Works | `useToggleTaskStatus` flips pending↔done. No kernel event |
-| Update | Works | `useUpdateTask` generic update. No kernel event, no assignment detection |
-| Kernel Events | **None** | Zero `TASK.*` events in codebase |
-| Smoke Tests | **None** | No `tasks` table check in smoke tests |
-| Observability | **None** | No structured logging for task transitions |
+| Strategic Decisions | Works | `useStrategicDecisions`: generate/dismiss/convert. Zero kernel events |
+| Kernel Decisions | Works | `useKernelDecisions`: accept/reject/archive/execute. Zero kernel events |
+| Kernel Actions | Works | `useKernelActions`: registry + runs query. No events on execution |
+| Smoke Tests | Partial | `kernel_events` checked but not `strategic_decisions`, `kernel_decisions`, `kernel_action_runs` |
+| Observability | **None** | No structured logging anywhere |
 
 ## Implementation Plan
 
-### A) Kernel Events — Wire Task Lifecycle
+### A) Kernel Events — Strategic Decisions
 
-**1. `useCreateTask.onSuccess`** — Emit `TASK.CREATED` with `task_id`, `title`, `related_type`, `related_id`, `assigned_to`, `due_at`.
+**`useStrategicDecisions.ts`:**
+1. `useGenerateStrategicDecisions.onSuccess` — Emit `DECISION.CREATED` with `source: 'strategic_engine'`
+2. `useDismissDecision.onSuccess` — Emit `DECISION.DISMISSED` with `decision_id`
+3. `useConvertAllDecisionSteps.onSuccess` — Emit `DECISION.CONVERTED` with `decision_id`, `steps_count`
+4. `useBulkConvertAllDecisions.onSuccess` — Emit `DECISION.BULK_CONVERTED` with `total_decisions`, `total_tasks`
 
-**2. `useUpdateTask.onSuccess`** — Emit `TASK.UPDATED` with `task_id`, `changed_fields`. Additionally, if `assigned_to` changed (present in update payload), also emit `TASK.ASSIGNED` with `task_id`, `assigned_to`.
+### B) Kernel Events — Kernel Decisions & Actions
 
-**3. `useToggleTaskStatus.onSuccess`** — Emit `TASK.COMPLETED` (when new status is `done`) or `TASK.REOPENED` (when toggled back to `pending`), with `task_id`, `previous_status`, `new_status`.
+**`useKernelDecisions.ts`:**
+1. `acceptDecision.onSuccess` — Emit `DECISION.APPROVED` with `decision_id`
+2. `rejectDecision.onSuccess` — Emit `DECISION.REJECTED` with `decision_id`
+3. `executeDecision.onSuccess` — Emit `ACTION.EXECUTED` with `decision_id`
 
-All events use `emitKernelEvent` with `source_module: 'core-productivity'`.
+All events use `source_module: 'strategy-command-center'`.
 
-### B) Observability — Structured Logging
+### C) Observability — Structured Logging
 
-In each mutation's `onSuccess`/`onError`:
-- `console.log('[TASK] CREATED id=X title=Y')`, `[TASK] COMPLETED`, `[TASK] ASSIGNED`
-- `console.warn('[TASK] CREATE_FAILED error=X')` on errors
+Both hooks: add `[STRATEGY]` prefixed logging on success/error for all mutations.
 
-### C) Smoke Test
+### D) Smoke Tests
 
 Add to `system-run-smoke-tests`:
-- `core-productivity`: query `tasks` table count for workspace.
+- `strategic_decisions` table check
+- `kernel_decisions` table check
+- `kernel_action_runs` table check
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useTasks.ts` | Import `emitKernelEvent`; emit `TASK.CREATED` in create, `TASK.UPDATED`+`TASK.ASSIGNED` in update, `TASK.COMPLETED`/`TASK.REOPENED` in toggle; add structured logging |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `tasks` table check |
+| `src/hooks/useStrategicDecisions.ts` | Import `emitKernelEvent`; emit events in generate/dismiss/convert mutations; add logging |
+| `src/hooks/useKernelDecisions.ts` | Import `emitKernelEvent`; emit events in accept/reject/execute mutations; add logging |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add `strategic_decisions`, `kernel_decisions`, `kernel_action_runs` checks |
 
