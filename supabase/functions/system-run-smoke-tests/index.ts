@@ -127,6 +127,18 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "mkt-email-marketing", "marketing_campaigns_query", "marketing_campaigns"),
       runCheck(supabase, workspace_id, "mkt-email-marketing", "marketing_recipients_query", "marketing_recipients"),
       runCheck(supabase, workspace_id, "mkt-email-marketing", "marketing_events_query", "marketing_events"),
+      // Admin Settings (admin_settings is global — no workspace_id filter, use a simple query)
+      (async (): Promise<CheckResult> => {
+        try {
+          const { error } = await supabase.from("admin_settings").select("id", { count: "exact", head: true });
+          if (error) throw error;
+          return { module_id: "admin-settings", check_name: "admin_settings_query", passed: true };
+        } catch (e) {
+          return { module_id: "admin-settings", check_name: "admin_settings_query", passed: false, error: (e as Error).message };
+        }
+      })(),
+      runCheck(supabase, workspace_id, "admin-settings", "store_settings_query", "store_settings"),
+      runCheck(supabase, workspace_id, "admin-settings", "client_notification_settings_query", "client_notification_settings"),
       // AI Conversational
       aiConversationalCheck(),
     ]);

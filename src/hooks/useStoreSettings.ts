@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { toast } from "sonner";
 
 export interface StoreSettings {
@@ -86,11 +87,22 @@ export function useUpsertStoreSettings() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["store-settings"] });
+      console.log(`[STORE-SETTINGS] STORE_UPDATED workspace=${currentWorkspace?.id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'SETTINGS.STORE_UPDATED',
+          entity_kind: 'store_settings',
+          entity_id: data.id,
+          source_module: 'admin-settings',
+        });
+      }
       toast.success("Configurações da loja guardadas");
     },
     onError: (error) => {
+      console.warn('[STORE-SETTINGS] UPDATE_FAILED', error.message);
       toast.error("Erro ao guardar: " + error.message);
     },
   });

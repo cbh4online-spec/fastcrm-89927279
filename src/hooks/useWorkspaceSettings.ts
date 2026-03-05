@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { toast } from "sonner";
 
 interface WorkspaceBranding {
@@ -38,10 +39,19 @@ export function useWorkspaceSettings() {
       if (error) throw error;
 
       await refreshWorkspaces();
+      console.log(`[WS-SETTINGS] WORKSPACE_UPDATED workspace=${currentWorkspace.id}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'SETTINGS.WORKSPACE_UPDATED',
+        entity_kind: 'workspace',
+        entity_id: currentWorkspace.id,
+        source_module: 'admin-settings',
+        payload: { changed_fields: ['name', 'slug'] },
+      });
       toast.success("Informação do workspace actualizada");
       return true;
     } catch (error) {
-      console.error("Error updating workspace info:", error);
+      console.warn('[WS-SETTINGS] WORKSPACE_UPDATE_FAILED', (error as Error).message);
       toast.error("Erro ao actualizar informação do workspace");
       return false;
     } finally {
@@ -55,13 +65,11 @@ export function useWorkspaceSettings() {
       return null;
     }
 
-    // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       toast.error("O ficheiro é demasiado grande. Máximo 2MB.");
       return null;
     }
 
-    // Validate file type
     const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
       toast.error("Formato não suportado. Use PNG, JPG, SVG ou WebP.");
@@ -73,7 +81,6 @@ export function useWorkspaceSettings() {
       const fileExt = file.name.split(".").pop()?.toLowerCase() || "png";
       const filePath = `${currentWorkspace.id}/logo.${fileExt}`;
 
-      // Upload to storage with upsert
       const { error: uploadError } = await supabase.storage
         .from("company-logos")
         .upload(filePath, file, { 
@@ -83,18 +90,25 @@ export function useWorkspaceSettings() {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from("company-logos")
         .getPublicUrl(filePath);
 
-      // Add cache-busting timestamp
       const logoUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
+      console.log(`[WS-SETTINGS] LOGO_UPLOADED workspace=${currentWorkspace.id}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'SETTINGS.LOGO_UPLOADED',
+        entity_kind: 'workspace',
+        entity_id: currentWorkspace.id,
+        source_module: 'admin-settings',
+        payload: { file_type: file.type, file_size: file.size },
+      });
       toast.success("Logótipo carregado com sucesso");
       return logoUrl;
     } catch (error) {
-      console.error("Error uploading logo:", error);
+      console.warn('[WS-SETTINGS] LOGO_UPLOAD_FAILED', (error as Error).message);
       toast.error("Erro ao carregar logótipo");
       return null;
     } finally {
@@ -122,10 +136,19 @@ export function useWorkspaceSettings() {
       if (error) throw error;
 
       await refreshWorkspaces();
+      console.log(`[WS-SETTINGS] BRANDING_UPDATED workspace=${currentWorkspace.id}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'SETTINGS.BRANDING_UPDATED',
+        entity_kind: 'workspace',
+        entity_id: currentWorkspace.id,
+        source_module: 'admin-settings',
+        payload: { changed_fields: Object.keys(branding) },
+      });
       toast.success("Aparência actualizada com sucesso");
       return true;
     } catch (error) {
-      console.error("Error updating branding:", error);
+      console.warn('[WS-SETTINGS] BRANDING_UPDATE_FAILED', (error as Error).message);
       toast.error("Erro ao actualizar aparência");
       return false;
     } finally {
