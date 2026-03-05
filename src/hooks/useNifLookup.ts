@@ -86,6 +86,7 @@ export function useNifLookup(options: UseNifLookupOptions = {}) {
         setStatus("success");
         setMessage("Dados da empresa encontrados!");
         if (showToasts) toast.success("Dados da empresa encontrados!");
+        console.log(`[COMPANIES] NIF lookup success: ${cleanNif}`);
         onSuccess?.(result);
         return result;
       } else {
@@ -97,7 +98,7 @@ export function useNifLookup(options: UseNifLookupOptions = {}) {
         return null;
       }
     } catch (error) {
-      console.error("Error looking up company:", error);
+      console.warn(`[COMPANIES] NIF lookup failed: ${cleanNif}`, error);
       const errorMsg = "Erro ao pesquisar empresa. Tente novamente.";
       setStatus("error");
       setMessage(errorMsg);

@@ -83,6 +83,7 @@ Deno.serve(async (req) => {
     // Run all checks in parallel
     const checks = await Promise.all([
       // CRM
+      runCheck(supabase, workspace_id, "crm-companies", "companies_query", "companies"),
       runCheck(supabase, workspace_id, "crm-contacts", "contacts_query", "contacts"),
       runCheck(supabase, workspace_id, "crm-leads", "leads_query", "leads"),
       runCheck(supabase, workspace_id, "crm-opportunities", "opportunities_query", "opportunities"),
