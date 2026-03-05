@@ -4,6 +4,7 @@ import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { ImportConfig, ImportResult } from "@/types/import";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface ImportHistoryRecord {
   id: string;
@@ -91,11 +92,27 @@ export function useCreateImportRecord() {
       if (error) throw error;
       return data as ImportHistoryRecord;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["import_history", currentWorkspace?.id] });
+      console.log(`[IMPORTS] Import record created: ${data.id}, type=${variables.importType}, file=${variables.fileName}, rows=${variables.totalRows}`);
+      if (currentWorkspace) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'IMPORT.STARTED',
+          entity_kind: 'import',
+          entity_id: data.id,
+          source_module: 'core-imports',
+          payload: {
+            import_type: variables.importType,
+            file_name: variables.fileName,
+            total_rows: variables.totalRows,
+            conflict_policy: variables.config.conflictPolicy,
+          },
+        });
+      }
     },
     onError: (error: Error) => {
-      console.error("Error creating import record:", error);
+      console.warn('[IMPORTS] CREATE_FAILED:', error.message);
     },
   });
 }
@@ -145,11 +162,40 @@ export function useUpdateImportRecord() {
       if (error) throw error;
       return data as ImportHistoryRecord;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["import_history", currentWorkspace?.id] });
+      console.log(`[IMPORTS] Import record updated: ${variables.id}, status=${variables.status}`);
+
+      if (currentWorkspace && variables.status === 'complete') {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'IMPORT.COMPLETED',
+          entity_kind: 'import',
+          entity_id: variables.id,
+          source_module: 'core-imports',
+          payload: {
+            success_count: data.success_count,
+            error_count: data.error_count,
+            skip_count: data.skip_count,
+          },
+        });
+      }
+
+      if (currentWorkspace && variables.status === 'error') {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'IMPORT.FAILED',
+          entity_kind: 'import',
+          entity_id: variables.id,
+          source_module: 'core-imports',
+          payload: {
+            error_count: data.error_count,
+          },
+        });
+      }
     },
     onError: (error: Error) => {
-      console.error("Error updating import record:", error);
+      console.warn('[IMPORTS] UPDATE_FAILED:', error.message);
     },
   });
 }
