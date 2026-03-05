@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface WorkspaceStripeConfig {
   id: string;
@@ -71,7 +72,6 @@ export function useWorkspaceStripeConfig() {
       };
 
       if (config?.id) {
-        // Update existing
         const { data, error } = await supabase
           .from("workspace_stripe_config")
           .update(payload)
@@ -82,7 +82,6 @@ export function useWorkspaceStripeConfig() {
         if (error) throw error;
         return data;
       } else {
-        // Insert new
         const { data, error } = await supabase
           .from("workspace_stripe_config")
           .insert(payload)
@@ -93,13 +92,25 @@ export function useWorkspaceStripeConfig() {
         return data;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ 
         queryKey: ["workspace-stripe-config", currentWorkspace?.id] 
       });
+      console.log(`[INTEGRATIONS] STRIPE_CONFIGURED workspace=${currentWorkspace?.id} is_active=${data.is_active}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'INTEGRATION.CONFIGURED',
+          entity_kind: 'stripe',
+          entity_id: currentWorkspace.id,
+          source_module: 'admin-integrations',
+          payload: { is_active: data.is_active, test_mode: data.test_mode },
+        });
+      }
       toast.success("Configuração Stripe guardada com sucesso");
     },
     onError: (error) => {
+      console.warn(`[INTEGRATIONS] STRIPE_CONFIG_FAILED: ${error.message}`);
       toast.error(`Erro ao guardar configuração: ${error.message}`);
     },
   });
@@ -117,12 +128,44 @@ export function useWorkspaceStripeConfig() {
     },
     onSuccess: (data) => {
       if (data.success) {
+        console.log(`[INTEGRATIONS] STRIPE_CONNECTED workspace=${currentWorkspace?.id}`);
+        if (currentWorkspace?.id) {
+          emitKernelEvent({
+            workspace_id: currentWorkspace.id,
+            type: 'INTEGRATION.CONNECTED',
+            entity_kind: 'stripe',
+            entity_id: currentWorkspace.id,
+            source_module: 'admin-integrations',
+          });
+        }
         toast.success("Conexão Stripe verificada com sucesso!");
       } else {
+        console.warn(`[INTEGRATIONS] STRIPE_CONNECTION_FAILED workspace=${currentWorkspace?.id} error=${data.error}`);
+        if (currentWorkspace?.id) {
+          emitKernelEvent({
+            workspace_id: currentWorkspace.id,
+            type: 'INTEGRATION.FAILED',
+            entity_kind: 'stripe',
+            entity_id: currentWorkspace.id,
+            source_module: 'admin-integrations',
+            payload: { error: data.error },
+          });
+        }
         toast.error(`Falha na conexão: ${data.error}`);
       }
     },
     onError: (error) => {
+      console.warn(`[INTEGRATIONS] STRIPE_CONNECTION_ERROR: ${error.message}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'INTEGRATION.FAILED',
+          entity_kind: 'stripe',
+          entity_id: currentWorkspace.id,
+          source_module: 'admin-integrations',
+          payload: { error: error.message },
+        });
+      }
       toast.error(`Erro ao testar conexão: ${error.message}`);
     },
   });

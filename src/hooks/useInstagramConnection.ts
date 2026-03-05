@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface InstagramConnection {
   id: string;
@@ -50,10 +51,23 @@ export function useDisconnectInstagram() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, connectionId) => {
       queryClient.invalidateQueries({
         queryKey: ["instagram-connection", currentWorkspace?.id],
       });
+      console.log(`[INTEGRATIONS] INSTAGRAM_DISCONNECTED workspace=${currentWorkspace?.id} connection=${connectionId}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'INTEGRATION.DISCONNECTED',
+          entity_kind: 'instagram',
+          entity_id: connectionId,
+          source_module: 'admin-integrations',
+        });
+      }
+    },
+    onError: (error) => {
+      console.warn(`[INTEGRATIONS] INSTAGRAM_DISCONNECT_FAILED: ${error.message}`);
     },
   });
 }

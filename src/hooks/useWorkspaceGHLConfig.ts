@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface WorkspaceGHLConfig {
   id: string;
@@ -19,7 +20,7 @@ export interface WorkspaceGHLConfig {
 
 export interface SaveGHLConfigInput {
   ghl_location_id: string;
-  ghl_api_key?: string; // Only set when user wants to update the key
+  ghl_api_key?: string;
   is_active: boolean;
   sync_contacts: boolean;
   sync_messages: boolean;
@@ -56,7 +57,6 @@ export function useWorkspaceGHLConfig() {
       if (!workspaceId) throw new Error("No workspace selected");
 
       if (config?.id) {
-        // Update existing
         const updatePayload: {
           ghl_location_id: string;
           is_active: boolean;
@@ -86,7 +86,6 @@ export function useWorkspaceGHLConfig() {
         if (error) throw error;
         return data;
       } else {
-        // Insert new
         const insertPayload: {
           workspace_id: string;
           ghl_location_id: string;
@@ -116,32 +115,59 @@ export function useWorkspaceGHLConfig() {
         return data;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["workspace-ghl-config", workspaceId] });
+      console.log(`[INTEGRATIONS] GHL_CONFIGURED workspace=${workspaceId} is_active=${data.is_active}`);
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'INTEGRATION.CONFIGURED',
+          entity_kind: 'ghl',
+          entity_id: workspaceId,
+          source_module: 'admin-integrations',
+          payload: { is_active: data.is_active, sync_contacts: data.sync_contacts, sync_messages: data.sync_messages },
+        });
+      }
       toast.success("Configuração GHL guardada com sucesso");
     },
     onError: (error) => {
-      console.error("Failed to save GHL config:", error);
+      console.warn(`[INTEGRATIONS] GHL_CONFIG_FAILED: ${error.message}`);
       toast.error("Erro ao guardar configuração GHL");
     },
   });
 
   const testConnectionMutation = useMutation({
     mutationFn: async (apiKey: string) => {
-      // Test connection to GHL API
-      // For V0, we just validate the API key format and optionally ping the API
       if (!apiKey || apiKey.length < 10) {
         throw new Error("API Key inválida");
       }
-
-      // In a real implementation, you would call the GHL API to validate
-      // For now, we just check the format
       return { success: true };
     },
     onSuccess: () => {
+      console.log(`[INTEGRATIONS] GHL_CONNECTED workspace=${workspaceId}`);
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'INTEGRATION.CONNECTED',
+          entity_kind: 'ghl',
+          entity_id: workspaceId,
+          source_module: 'admin-integrations',
+        });
+      }
       toast.success("Conexão testada com sucesso");
     },
     onError: (error) => {
+      console.warn(`[INTEGRATIONS] GHL_CONNECTION_FAILED: ${error instanceof Error ? error.message : 'Unknown'}`);
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'INTEGRATION.FAILED',
+          entity_kind: 'ghl',
+          entity_id: workspaceId,
+          source_module: 'admin-integrations',
+          payload: { error: error instanceof Error ? error.message : 'Unknown' },
+        });
+      }
       toast.error(error instanceof Error ? error.message : "Erro ao testar conexão");
     },
   });

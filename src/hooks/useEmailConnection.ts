@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export type EmailProvider = "gmail" | "outlook" | "hostinger" | "custom";
 export type EmailAuthType = "oauth" | "app_password";
@@ -123,13 +124,34 @@ export function useConnectEmail() {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["email-connections"] });
       queryClient.invalidateQueries({ queryKey: ["email-connection-active"] });
+      console.log(`[INTEGRATIONS] EMAIL_CONNECTED workspace=${currentWorkspace?.id} provider=${variables.provider}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'INTEGRATION.CONNECTED',
+          entity_kind: 'email',
+          entity_id: currentWorkspace.id,
+          source_module: 'admin-integrations',
+          payload: { provider: variables.provider },
+        });
+      }
       toast.success("Email conectado com sucesso!");
     },
     onError: (error) => {
-      console.error("Connect email error:", error);
+      console.warn(`[INTEGRATIONS] EMAIL_CONNECT_FAILED: ${error.message}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'INTEGRATION.FAILED',
+          entity_kind: 'email',
+          entity_id: currentWorkspace.id,
+          source_module: 'admin-integrations',
+          payload: { error: error.message, action: 'connect' },
+        });
+      }
       toast.error(`Erro ao conectar email: ${error.message}`);
     },
   });
@@ -159,10 +181,11 @@ export function useUpdateEmail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["email-connections"] });
       queryClient.invalidateQueries({ queryKey: ["email-connection-active"] });
+      console.log(`[INTEGRATIONS] EMAIL_UPDATED workspace=${currentWorkspace?.id}`);
       toast.success("Configurações atualizadas!");
     },
     onError: (error) => {
-      console.error("Update email error:", error);
+      console.warn(`[INTEGRATIONS] EMAIL_UPDATE_FAILED: ${error.message}`);
       toast.error(`Erro ao atualizar: ${error.message}`);
     },
   });
@@ -193,10 +216,20 @@ export function useDisconnectEmail() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["email-connections"] });
       queryClient.invalidateQueries({ queryKey: ["email-connection-active"] });
+      console.log(`[INTEGRATIONS] EMAIL_DISCONNECTED workspace=${currentWorkspace?.id} connection=${variables.connectionId}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'INTEGRATION.DISCONNECTED',
+          entity_kind: 'email',
+          entity_id: variables.connectionId,
+          source_module: 'admin-integrations',
+        });
+      }
       toast.success(variables.deleteData ? "Email removido" : "Email desconectado");
     },
     onError: (error) => {
-      console.error("Disconnect email error:", error);
+      console.warn(`[INTEGRATIONS] EMAIL_DISCONNECT_FAILED: ${error.message}`);
       toast.error(`Erro ao desconectar email: ${error.message}`);
     },
   });
@@ -223,13 +256,33 @@ export function useSyncEmail() {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, connectionId) => {
       queryClient.invalidateQueries({ queryKey: ["email-connections"] });
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      console.log(`[INTEGRATIONS] EMAIL_SYNCED workspace=${currentWorkspace?.id} connection=${connectionId}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'INTEGRATION.SYNCED',
+          entity_kind: 'email',
+          entity_id: connectionId,
+          source_module: 'admin-integrations',
+        });
+      }
       toast.success("Sincronização iniciada");
     },
     onError: (error) => {
-      console.error("Sync email error:", error);
+      console.warn(`[INTEGRATIONS] EMAIL_SYNC_FAILED: ${error.message}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'INTEGRATION.FAILED',
+          entity_kind: 'email',
+          entity_id: currentWorkspace.id,
+          source_module: 'admin-integrations',
+          payload: { error: error.message, action: 'sync' },
+        });
+      }
       toast.error(`Erro na sincronização: ${error.message}`);
     },
   });
@@ -257,14 +310,15 @@ export function useForceResyncEmail() {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, connectionId) => {
       queryClient.invalidateQueries({ queryKey: ["email-connections"] });
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      console.log(`[INTEGRATIONS] EMAIL_FORCE_RESYNCED workspace=${currentWorkspace?.id} connection=${connectionId}`);
       toast.success("Re-sincronização completa iniciada");
     },
     onError: (error) => {
-      console.error("Force resync email error:", error);
+      console.warn(`[INTEGRATIONS] EMAIL_FORCE_RESYNC_FAILED: ${error.message}`);
       toast.error(`Erro na re-sincronização: ${error.message}`);
     },
   });
@@ -303,10 +357,11 @@ export function useSendEmail() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["messages", variables.conversationId] });
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      console.log(`[INTEGRATIONS] EMAIL_SENT workspace=${currentWorkspace?.id}`);
       toast.success("Email enviado!");
     },
     onError: (error) => {
-      console.error("Send email error:", error);
+      console.warn(`[INTEGRATIONS] EMAIL_SEND_FAILED: ${error.message}`);
       toast.error(`Erro ao enviar email: ${error.message}`);
     },
   });
