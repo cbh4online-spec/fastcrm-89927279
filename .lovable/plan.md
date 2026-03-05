@@ -1,82 +1,88 @@
 
 
-# Comm-Email — Kernel V2 Stabilization
+# Sales-Proposals — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | File | Mutations | Kernel Events | Logging |
 |------|------|-----------|---------------|---------|
-| Send Email | `useEmailConnection.ts` → `useSendEmail` | invoke `email-send` edge fn | None | `[INTEGRATIONS]` prefix (already) |
-| Send Edge Fn | `email-send/index.ts` | SMTP send + save message + activity | None | `console.log/error` (no prefix) |
-| Compose UI | `ComposeEmailDialog.tsx` | orchestrates send | None | `console.error` only |
-| Sequences | `useEmailSequences.ts` | CRUD sequences/steps/enrollments | None | Toast only |
-| Translation | `useEmailTranslation.ts` | invoke `ai-translate-email` | None | `console.error` only |
-| Marketing Webhook | `marketing-webhook/index.ts` | process Resend events | None | `console.log` (no prefix) |
-| Smoke Tests | `system-run-smoke-tests` | — | `email_connections` under `admin-integrations` | No `comm-email` specific checks |
+| Create | `useProposals.ts` → `useCreateProposal` | insert proposal + version | None | Toast only |
+| Update | `useProposals.ts` → `useUpdateProposal` | update + optional version | None | Toast only |
+| Publish | `useProposals.ts` → `usePublishProposal` | set status=published | None | Toast only |
+| Quick Status | `useProposals.ts` → `useQuickStatusChange` | set status (accepted/rejected) | None | GTM track only |
+| Duplicate | `useProposals.ts` → `useDuplicateProposal` | clone proposal + items | None | Toast only |
+| Delete | `useProposals.ts` → `useDeleteProposal` | delete | None | Toast only |
+| Items | `useProposals.ts` → `useUpdateProposalItems` | replace items + recalc price | None | Toast only |
+| Cost Refresh | `useProposals.ts` → `useRefreshCostSnapshots` | sync product costs | None | Toast only |
+| Templates | `useProposals.ts` → CRUD template hooks | insert/update/soft-delete | None | Toast only |
+| AI Analysis | `useProposalAI.ts` | invoke edge functions | None | `console.error` only |
+| Analytics | `useProposalAnalytics.ts` | read-only | None | None |
+| Smoke Tests | `system-run-smoke-tests` | — | No proposal checks | — |
 
-**Note:** `useEmailConnection.ts` already has kernel events for INTEGRATION.CONNECTED/DISCONNECTED/SYNCED/FAILED under `admin-integrations`. The `comm-email` module scope is the **sending, tracking, and sequencing** layer — distinct from connection management.
+Zero kernel events. Zero structured logging.
 
 ## Implementation Plan
 
-### A) Kernel Events + Logging — `useEmailConnection.ts` (useSendEmail only)
+### A) Kernel Events + Logging — `src/hooks/useProposals.ts`
 
-The `useSendEmail` hook currently logs `[INTEGRATIONS] EMAIL_SENT` but emits no kernel event.
+Import `emitKernelEvent`. All events: `source_module: 'sales-proposals'`, `entity_kind: 'proposal'`.
 
-1. `useSendEmail.onSuccess` → emit `EMAIL.SENT` with `source_module: 'comm-email'`, payload: `to`, `has_subject`, `is_html`, `has_in_reply_to`
-2. `useSendEmail.onError` → emit `EMAIL.SEND_FAILED`; keep existing `[INTEGRATIONS]` prefix but add `[EMAIL]` secondary prefix
+**Create:**
+1. `useCreateProposal.onSuccess` → `PROPOSAL.CREATED` (payload: `has_template`, `has_price`, `currency`, `items_count: 0`)
+2. `onError` → `console.warn('[PROPOSALS] CREATE_FAILED')`
 
-### B) Kernel Events + Logging — `supabase/functions/email-send/index.ts`
+**Publish (= SENT):**
+3. `usePublishProposal.onSuccess` → `PROPOSAL.SENT` (payload: `proposal_id`, `slug`)
+4. `onError` → `console.warn('[PROPOSALS] PUBLISH_FAILED')`
 
-Add `[EMAIL]` prefixed structured logging to the edge function:
+**Quick Status Change:**
+5. `useQuickStatusChange.onSuccess` when `accepted` → `PROPOSAL.SIGNED` (payload: `proposal_id`, `price`, `currency`)
+6. `useQuickStatusChange.onSuccess` when `rejected` → `PROPOSAL.REJECTED` (payload: `proposal_id`)
+7. `onError` → `console.warn('[PROPOSALS] STATUS_CHANGE_FAILED')`
 
-1. Before SMTP connect → `console.log('[EMAIL] Sending: to=${to}, subject_len=${subject.length}')`
-2. SMTP success → `console.log('[EMAIL] SMTP delivered: messageId=${messageId}')`
-3. SMTP error → `console.warn('[EMAIL] SMTP_FAILED: ${error}')`; prefix existing `console.error`
-4. Message save error → `console.warn('[EMAIL] MESSAGE_SAVE_FAILED')`; prefix existing
-5. Credential decrypt error → `console.warn('[EMAIL] DECRYPT_FAILED')`; prefix existing
+**Update:**
+8. `useUpdateProposal.onSuccess` → `console.log('[PROPOSALS] Updated: ${id}')`; if status changed to `accepted` → `PROPOSAL.SIGNED`
+9. `onError` → `console.warn('[PROPOSALS] UPDATE_FAILED')`
 
-### C) Kernel Events + Logging — `useEmailSequences.ts`
+**Delete:**
+10. `useDeleteProposal.onSuccess` → `console.log('[PROPOSALS] Deleted: ${id}')`
+11. `onError` → `console.warn('[PROPOSALS] DELETE_FAILED')`
 
-Import `emitKernelEvent`. Events: `source_module: 'comm-email'`, `entity_kind: 'email_sequence'`.
+**Duplicate:**
+12. `useDuplicateProposal.onSuccess` → `console.log('[PROPOSALS] Duplicated: ${sourceId} → ${newId}')`
+13. `onError` → `console.warn('[PROPOSALS] DUPLICATE_FAILED')`
 
-1. `useCreateSequence.onSuccess` → `EMAIL.SEQUENCE_CREATED` (payload: `has_exit_conditions`, `tags_count`)
-2. `useCreateSequence.onError` → `console.warn('[EMAIL] SEQUENCE_CREATE_FAILED')`
-3. `useUpdateSequence.onSuccess` → `console.log('[EMAIL] Sequence updated')`
-4. `useUpdateSequence.onError` → `console.warn('[EMAIL] SEQUENCE_UPDATE_FAILED')`
-5. `useDeleteSequence.onSuccess` → `console.log('[EMAIL] Sequence deleted')`
-6. `useDeleteSequence.onError` → `console.warn('[EMAIL] SEQUENCE_DELETE_FAILED')`
-7. `useEnrollContact.onSuccess` → `EMAIL.SEQUENCE_ENROLLED` (payload: `sequence_id`, `contact_id`)
-8. `useEnrollContact.onError` → `console.warn('[EMAIL] ENROLL_FAILED')`
+**Items:**
+14. `useUpdateProposalItems.onSuccess` → `console.log('[PROPOSALS] Items updated: ${count} items, total=${price}')`
+15. `onError` → `console.warn('[PROPOSALS] ITEMS_UPDATE_FAILED')`
 
-### D) Logging — `useEmailTranslation.ts`
+**Cost Refresh:**
+16. `useRefreshCostSnapshots.onSuccess` → `console.log('[PROPOSALS] Cost snapshots refreshed')`
+17. `onError` → `console.warn('[PROPOSALS] COST_REFRESH_FAILED')`
 
-Add `[EMAIL]` prefixed logging (no kernel events — utility function):
+**Templates:**
+18. `useCreateProposalTemplate.onSuccess` → `console.log('[PROPOSALS] Template created')`
+19. All template `onError` → prefix with `[PROPOSALS]`
 
-1. `onError` → `console.warn('[EMAIL] TRANSLATE_FAILED')`; prefix existing `console.error`
+### B) Logging — `src/hooks/useProposalAI.ts`
 
-### E) Logging — `supabase/functions/marketing-webhook/index.ts`
+Add `[PROPOSALS]` prefix to existing `console.error` calls (no kernel events — AI utility):
+1. Analysis errors → `console.warn('[PROPOSALS] AI_ANALYSIS_FAILED')`
+2. Scope generation errors → `console.warn('[PROPOSALS] AI_SCOPE_FAILED')`
+3. Timeline errors → `console.warn('[PROPOSALS] AI_TIMELINE_FAILED')`
 
-Add `[EMAIL]` prefixed structured logging:
+### C) Smoke Tests
 
-1. Prefix existing `console.log("Received Resend webhook:...")` → `[EMAIL] Webhook received: ${type}`
-2. Recipient not found → `console.warn('[EMAIL] WEBHOOK_RECIPIENT_NOT_FOUND')`
-3. Processed event → `console.log('[EMAIL] Webhook processed: ${event} for recipient ${id}')`
-
-### F) Smoke Tests
-
-Add `comm-email` specific checks:
-- `conversations` table check (module: `comm-email`)
-- `messages` table check (module: `comm-email`)
-- `email_sequences` table check (module: `comm-email`)
+Add to `system-run-smoke-tests`:
+- `proposals` table check (module: `sales-proposals`)
+- `proposal_items` table check (module: `sales-proposals`)
+- `proposal_templates` table check (module: `sales-proposals`)
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useEmailConnection.ts` | Emit `EMAIL.SENT` in `useSendEmail.onSuccess` |
-| `supabase/functions/email-send/index.ts` | Add `[EMAIL]` prefixed logging for SMTP lifecycle |
-| `src/hooks/useEmailSequences.ts` | Import `emitKernelEvent`; emit sequence lifecycle events; add `[EMAIL]` logging |
-| `src/hooks/useEmailTranslation.ts` | Prefix existing error log with `[EMAIL]` |
-| `supabase/functions/marketing-webhook/index.ts` | Prefix all logs with `[EMAIL]` |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `conversations`, `messages`, `email_sequences` checks under `comm-email` |
+| `src/hooks/useProposals.ts` | Import `emitKernelEvent`; emit `PROPOSAL.CREATED`, `PROPOSAL.SENT`, `PROPOSAL.SIGNED`, `PROPOSAL.REJECTED`; add `[PROPOSALS]` logging across all mutations |
+| `src/hooks/useProposalAI.ts` | Prefix existing error logs with `[PROPOSALS]` |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add `proposals`, `proposal_items`, `proposal_templates` checks |
 
