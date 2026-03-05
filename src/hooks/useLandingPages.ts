@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import type { Json } from "@/integrations/supabase/types";
 
 export interface LandingPage {
@@ -118,11 +119,24 @@ export function useCreateLandingPage() {
       if (error) throw error;
       return data as LandingPage;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["landing-pages"] });
+      console.log(`[LANDING] CREATED id=${data.id} slug=${data.slug}`);
       toast.success("Landing page created");
+
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'LANDING.CREATED',
+          entity_kind: 'landing_page',
+          entity_id: data.id,
+          source_module: 'mkt-landing-pages',
+          payload: { landing_id: data.id, title: data.title, slug: data.slug },
+        });
+      }
     },
     onError: (error) => {
+      console.warn(`[LANDING] CREATE_FAILED error=${error.message}`);
       toast.error("Failed to create landing page: " + error.message);
     },
   });
@@ -130,6 +144,7 @@ export function useCreateLandingPage() {
 
 export function useUpdateLandingPage() {
   const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
 
   return useMutation({
     mutationFn: async ({ id, ...input }: UpdateLandingPageInput & { id: string }) => {
@@ -147,14 +162,27 @@ export function useUpdateLandingPage() {
         .single();
 
       if (error) throw error;
-      return data as LandingPage;
+      return { page: data as LandingPage, changed_fields: Object.keys(input) };
     },
-    onSuccess: (data) => {
+    onSuccess: ({ page, changed_fields }) => {
       queryClient.invalidateQueries({ queryKey: ["landing-pages"] });
-      queryClient.invalidateQueries({ queryKey: ["landing-page", data.id] });
+      queryClient.invalidateQueries({ queryKey: ["landing-page", page.id] });
+      console.log(`[LANDING] UPDATED id=${page.id} fields=${changed_fields.join(',')}`);
       toast.success("Landing page updated");
+
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'LANDING.UPDATED',
+          entity_kind: 'landing_page',
+          entity_id: page.id,
+          source_module: 'mkt-landing-pages',
+          payload: { landing_id: page.id, changed_fields },
+        });
+      }
     },
     onError: (error) => {
+      console.warn(`[LANDING] UPDATE_FAILED error=${error.message}`);
       toast.error("Failed to update landing page: " + error.message);
     },
   });
@@ -162,6 +190,7 @@ export function useUpdateLandingPage() {
 
 export function useDeleteLandingPage() {
   const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -171,12 +200,26 @@ export function useDeleteLandingPage() {
         .eq("id", id);
 
       if (error) throw error;
+      return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
       queryClient.invalidateQueries({ queryKey: ["landing-pages"] });
+      console.log(`[LANDING] DELETED id=${id}`);
       toast.success("Landing page deleted");
+
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'LANDING.DELETED',
+          entity_kind: 'landing_page',
+          entity_id: id,
+          source_module: 'mkt-landing-pages',
+          payload: { landing_id: id },
+        });
+      }
     },
     onError: (error) => {
+      console.warn(`[LANDING] DELETE_FAILED error=${error.message}`);
       toast.error("Failed to delete landing page: " + error.message);
     },
   });
@@ -184,6 +227,7 @@ export function useDeleteLandingPage() {
 
 export function usePublishLandingPage() {
   const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
 
   return useMutation({
     mutationFn: async ({ id, publish }: { id: string; publish: boolean }) => {
@@ -203,9 +247,23 @@ export function usePublishLandingPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["landing-pages"] });
       queryClient.invalidateQueries({ queryKey: ["landing-page", data.id] });
+      const action = data.is_published ? 'PUBLISHED' : 'UNPUBLISHED';
+      console.log(`[LANDING] ${action} id=${data.id} slug=${data.slug}`);
       toast.success(data.is_published ? "Landing page published" : "Landing page unpublished");
+
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: `LANDING.${action}`,
+          entity_kind: 'landing_page',
+          entity_id: data.id,
+          source_module: 'mkt-landing-pages',
+          payload: { landing_id: data.id, slug: data.slug },
+        });
+      }
     },
     onError: (error) => {
+      console.warn(`[LANDING] PUBLISH_FAILED error=${error.message}`);
       toast.error("Failed to update publish status: " + error.message);
     },
   });

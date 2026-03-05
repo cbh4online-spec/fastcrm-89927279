@@ -118,6 +118,8 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "context-os-drift", "context_drift_query", "context_drift"),
       runCheck(supabase, workspace_id, "context-os-bindings", "context_bindings_query", "context_bindings"),
       runCheck(supabase, workspace_id, "context-os-deps", "context_dependencies_query", "context_dependencies"),
+      // MKT Landing Pages
+      runCheck(supabase, workspace_id, "mkt-landing-pages", "landing_pages_query", "landing_pages"),
       // AI Conversational
       aiConversationalCheck(),
     ]);
