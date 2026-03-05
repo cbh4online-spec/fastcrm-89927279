@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useClientAuth } from "@/hooks/client-portal/useClientAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -104,6 +105,21 @@ export default function ClientLoginPage() {
     // Navegação será tratada pelo useEffect quando isAuthenticated mudar
     setIsSubmitting(false);
   };
+
+  // Emit B2B.ACCESS_DENIED when hasAuthButNoClient
+  useEffect(() => {
+    if (hasAuthButNoClient && user && workspaceId) {
+      console.warn(`[B2B-AUTH] ACCESS_DENIED auth_user_id=${user.id} reason=no_client_record`);
+      emitKernelEvent({
+        workspace_id: workspaceId,
+        type: 'B2B.ACCESS_DENIED',
+        entity_kind: 'auth_user',
+        entity_id: user.id,
+        source_module: 'b2b-portal',
+        payload: { reason: 'no_client_record', email: user.email },
+      });
+    }
+  }, [hasAuthButNoClient, user, workspaceId]);
 
   if (loading || !workspaceResolved) {
     return (

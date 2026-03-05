@@ -103,6 +103,8 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "kernel", "kernel_events_query", "kernel_events"),
       // Inbox Action Logs
       runCheck(supabase, workspace_id, "inbox-action-logs", "inbox_action_logs_query", "inbox_action_logs"),
+      // B2B Portal
+      runCheck(supabase, workspace_id, "b2b-portal", "client_users_query", "client_users"),
       // AI Conversational
       aiConversationalCheck(),
     ]);

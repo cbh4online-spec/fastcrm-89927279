@@ -1,8 +1,9 @@
-// v3.0 - Added multi-tenancy support with workspace filtering
-import { useState, useEffect, useCallback } from "react";
+// v4.0 - Added Kernel V2 events + structured observability logging
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import type { ClientUser } from "@/types/client-user";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 interface UseClientAuthConfig {
   workspaceId?: string;
@@ -26,6 +27,7 @@ export function useClientAuth(config?: UseClientAuthConfig): UseClientAuthReturn
   const [clientLoading, setClientLoading] = useState(false);
   const [clientChecked, setClientChecked] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const prevClientUserRef = useRef<ClientUser | null>(null);
 
   const fetchClientUser = useCallback(async (userId: string) => {
     setClientLoading(true);
@@ -96,6 +98,20 @@ export function useClientAuth(config?: UseClientAuthConfig): UseClientAuthReturn
         if (session?.user) {
           await fetchClientUser(session.user.id);
         } else {
+          // Emit B2B.SESSION_EXPIRED if we had a previous client session
+          if (prevClientUserRef.current) {
+            const prev = prevClientUserRef.current;
+            console.warn(`[B2B-AUTH] SESSION_EXPIRED client_user_id=${prev.id} workspace_id=${prev.workspace_id}`);
+            emitKernelEvent({
+              workspace_id: prev.workspace_id,
+              type: 'B2B.SESSION_EXPIRED',
+              entity_kind: 'client_user',
+              entity_id: prev.id,
+              source_module: 'b2b-portal',
+              payload: { event },
+            });
+            prevClientUserRef.current = null;
+          }
           setClientUser(null);
           setClientChecked(true);
           setError(null);
@@ -140,7 +156,7 @@ export function useClientAuth(config?: UseClientAuthConfig): UseClientAuthReturn
       });
       
       if (error) {
-        console.error("Sign in error:", error);
+        console.warn(`[B2B-AUTH] LOGIN_FAILED email=${email} reason=${error.message}`);
         setError(error.message);
         setAuthLoading(false);
         setClientChecked(true);
@@ -149,18 +165,31 @@ export function useClientAuth(config?: UseClientAuthConfig): UseClientAuthReturn
       
       // Login bem sucedido - processar directamente
       if (data?.user) {
-        console.log("Sign in successful, fetching client user:", data.user.email);
+        console.log(`[B2B-AUTH] LOGIN_OK email=${data.user.email}`);
         setUser(data.user);
         await fetchClientUser(data.user.id);
+
+        // Emit B2B.LOGIN after client user is resolved
+        if (clientUser) {
+          prevClientUserRef.current = clientUser;
+          emitKernelEvent({
+            workspace_id: clientUser.workspace_id,
+            type: 'B2B.LOGIN',
+            entity_kind: 'client_user',
+            entity_id: clientUser.id,
+            source_module: 'b2b-portal',
+            payload: { email: data.user.email },
+          });
+        }
       } else {
-        console.warn("Sign in returned no user data");
+        console.warn("[B2B-AUTH] LOGIN_FAILED email=" + email + " reason=no_user_data");
         setClientChecked(true);
       }
       
       setAuthLoading(false);
       return { error: null };
     } catch (err) {
-      console.error("Sign in exception:", err);
+      console.warn(`[B2B-AUTH] LOGIN_FAILED email=${email} reason=${(err as Error).message}`);
       setError("Erro inesperado durante o login");
       setAuthLoading(false);
       setClientChecked(true);
