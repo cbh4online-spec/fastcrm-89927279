@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { emitKernelEvent } from '@/lib/kernelEmitter';
 
 export function useContextDrift() {
   const { currentWorkspace } = useWorkspace();
@@ -31,8 +32,23 @@ export function useContextDrift() {
       if (error) throw error;
     },
     onSuccess: () => {
+      console.log('[CONTEXT] Drift recomputed', { workspaceId });
       queryClient.invalidateQueries({ queryKey: ['context-drift', workspaceId] });
       queryClient.invalidateQueries({ queryKey: ['context-alerts', workspaceId] });
+
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'CONTEXT.DRIFT_RECOMPUTED',
+          entity_kind: 'context_drift',
+          entity_id: workspaceId,
+          source_module: 'strategy-context-os',
+          payload: { workspace_id: workspaceId },
+        });
+      }
+    },
+    onError: (err: Error) => {
+      console.warn('[CONTEXT] Drift recompute failed', err.message);
     },
   });
 

@@ -114,6 +114,10 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "strategy-decisions", "strategic_decisions_query", "strategic_decisions"),
       runCheck(supabase, workspace_id, "strategy-kernel", "kernel_decisions_query", "kernel_decisions"),
       runCheck(supabase, workspace_id, "strategy-actions", "kernel_action_runs_query", "kernel_action_runs"),
+      // Context OS extended
+      runCheck(supabase, workspace_id, "context-os-drift", "context_drift_query", "context_drift"),
+      runCheck(supabase, workspace_id, "context-os-bindings", "context_bindings_query", "context_bindings"),
+      runCheck(supabase, workspace_id, "context-os-deps", "context_dependencies_query", "context_dependencies"),
       // AI Conversational
       aiConversationalCheck(),
     ]);

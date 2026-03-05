@@ -2,6 +2,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useState, useCallback } from 'react';
+import { emitKernelEvent } from '@/lib/kernelEmitter';
 
 export interface ImpactMapBlock {
   id: string;
@@ -101,8 +102,23 @@ export function useImpactMapData() {
       setImpactedIds(ids);
       setImpactResults(data.impacts);
       setSimulatingId(null);
+      console.log('[CONTEXT] Impact simulated', { sourceBlockId, impacted: data.impacts.length });
+
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'IMPACT.MAP_UPDATED',
+          entity_kind: 'context_block',
+          entity_id: sourceBlockId,
+          source_module: 'strategy-context-os',
+          payload: { source_block_id: sourceBlockId, impacted_count: data.impacts.length },
+        });
+      }
     },
-    onError: () => setSimulatingId(null),
+    onError: (err: Error) => {
+      setSimulatingId(null);
+      console.warn('[CONTEXT] Impact simulation failed', err.message);
+    },
   });
 
   const clearImpact = useCallback(() => {

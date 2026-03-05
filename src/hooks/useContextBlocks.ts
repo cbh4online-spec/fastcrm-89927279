@@ -150,23 +150,24 @@ export function useUpsertContextField() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["context-blocks", currentWorkspace?.id] });
+      console.log('[CONTEXT] Field updated', { fieldId: variables.fieldId, blockId: variables.blockId });
 
-      // Emit kernel event for context block update
       if (currentWorkspace?.id && variables.blockId) {
-        import('@/lib/kernelEmitter').then(({ emitKernelEvent }) => {
-          emitKernelEvent({
-            workspace_id: currentWorkspace!.id,
-            type: 'CONTEXT.BLOCK_UPDATED',
-            entity_kind: 'context_block',
-            entity_id: variables.blockId!,
-            payload: { field_id: variables.fieldId },
-            source_module: 'strategy-context-os',
-            idempotency_key: `ctx-field-${variables.fieldId}-${Date.now()}`,
-          });
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CONTEXT.BLOCK_UPDATED',
+          entity_kind: 'context_block',
+          entity_id: variables.blockId,
+          payload: { field_id: variables.fieldId },
+          source_module: 'strategy-context-os',
+          idempotency_key: `ctx-field-${variables.fieldId}-${Date.now()}`,
         });
       }
     },
-    onError: (err: Error) => toast.error("Erro ao guardar campo: " + err.message),
+    onError: (err: Error) => {
+      console.warn('[CONTEXT] Field update failed', err.message);
+      toast.error("Erro ao guardar campo: " + err.message);
+    },
   });
 }
 
@@ -185,8 +186,8 @@ export function useUpdateBlockStatus() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["context-blocks", currentWorkspace?.id] });
       toast.success("Status atualizado");
+      console.log('[CONTEXT] Status changed', { blockId: variables.blockId, status: variables.status });
 
-      // Kernel event: status changed
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -199,7 +200,10 @@ export function useUpdateBlockStatus() {
         });
       }
     },
-    onError: (err: Error) => toast.error("Erro: " + err.message),
+    onError: (err: Error) => {
+      console.warn('[CONTEXT] Status change failed', err.message);
+      toast.error("Erro: " + err.message);
+    },
   });
 }
 
@@ -218,8 +222,8 @@ export function useUpdateBlockRichText() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["context-blocks", currentWorkspace?.id] });
       toast.success("Resumo guardado");
+      console.log('[CONTEXT] Rich text updated', { blockId: variables.blockId, length: variables.richText.length });
 
-      // Kernel event: rich text updated
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -232,7 +236,10 @@ export function useUpdateBlockRichText() {
         });
       }
     },
-    onError: (err: Error) => toast.error("Erro: " + err.message),
+    onError: (err: Error) => {
+      console.warn('[CONTEXT] Rich text update failed', err.message);
+      toast.error("Erro: " + err.message);
+    },
   });
 }
 
@@ -248,10 +255,14 @@ export function useUpdateBlockTags() {
         .eq("id", blockId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["context-blocks", currentWorkspace?.id] });
+      console.log('[CONTEXT] Tags updated', { blockId: variables.blockId, tags: variables.tags });
     },
-    onError: (err: Error) => toast.error("Erro: " + err.message),
+    onError: (err: Error) => {
+      console.warn('[CONTEXT] Tags update failed', err.message);
+      toast.error("Erro: " + err.message);
+    },
   });
 }
 
