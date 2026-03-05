@@ -1,51 +1,51 @@
 
 
-# CRM Opportunities — Kernel V2 Stabilization
+# CRM Leads — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | Status | Detail |
 |------|--------|--------|
-| Kernel Events | Partial | `OPPORTUNITY.CREATED`, `UPDATED`, `STAGE_CHANGED`, `CLOSED` wired. Missing: `ACTIVITY_ADDED`, `DEAL.SCORE_UPDATED`, `OPPORTUNITY.STALE` |
-| Activity Tracking | Partial | `useCreateActivity` exists in `useCrmActivities.ts` but no kernel event emitted on activity creation. Not called from opportunity mutations. |
-| Stale Detection | Exists server-side | `kernel-compute-decisions` already detects stale opps (>5 days). Missing: dedicated kernel event emission + client-side awareness |
-| Deal Score | Works | `compute-deal-score` is idempotent (upsert on `opportunity_id`). Missing: `DEAL.SCORE_UPDATED` kernel event after computation, no observability logging |
-| Smoke Tests | Basic | Only count queries for `opportunities`. No flow test (create→move→score) |
+| Kernel Events | Partial | `LEAD.CREATED`, `LEAD.UPDATED`, `LEAD.STATUS_CHANGED` wired. Missing: `LEAD.SCORED`, `LEAD.TAGGED`, `LEAD.CONVERTED` |
+| Dedup | Exists | `useContactDuplicateCheck` + `useLeadMerge` + `UnifiedDuplicateDialog` already handle email/phone/name fuzzy + merge UX |
+| Lifecycle | Exists | `ConvertLeadDialog` converts lead→contact/company with full history migration. No kernel event emitted. |
+| Behavior Signals | Works | `compute-lead-behavior-signals` edge function computes and upserts signals. No observability logging. |
+| Lead Scoring | Works | `ai-analyze-lead` edge function + `useAnalyzeLead`/`useBulkAnalyzeLeads`. No kernel event on score update. `useUpdateLeadScores` (manual ICP/engagement/PARE) also has no kernel event. |
+| Auto-Tags | Exists | `useAutoTags` generates tags via `ai-auto-tags` edge function. `useUpdateConversationTags` saves them. No `LEAD.TAGGED` event. |
+| Smoke Tests | Basic | Only `leads_query` count check. No lead-specific behavior/scoring validation. |
 
 ## Implementation Plan
 
 ### A) Kernel Events — Wire Missing Events
 
-**1. `OPPORTUNITY.ACTIVITY_ADDED`** — In `useCreateActivity` (`useCrmActivities.ts`), when `entity_type === 'opportunity'`, emit kernel event with `activity_type`, `opportunity_id`, `title` in payload.
+**1. `LEAD.SCORED`** — In `useUpdateLeadScores` (`useLeadScores.ts`), emit on success with `scores` payload. In `useAnalyzeLead` (`useSmartLeads.ts`), emit on success with `lead_score`, `ai_temperature`.
 
-**2. `DEAL.SCORE_UPDATED`** — In `compute-deal-score` edge function, after successful upsert, emit a kernel event via direct insert into `kernel_events` table with `close_score`, `category`, `urgency`, `previous_score` (fetch before upsert).
+**2. `LEAD.TAGGED`** — In `useUpdateLead` (`useLeads.ts`), detect when `tags` field is in changed fields and emit `LEAD.TAGGED` with `tags` payload.
 
-**3. `OPPORTUNITY.STALE`** — In `compute-deal-score`, when `recency_score < 0.2` (>14 days inactive), emit `OPPORTUNITY.STALE` kernel event alongside the score update. This piggybacks on existing score computation without needing a separate job.
+**3. `LEAD.CONVERTED`** — In `ConvertLeadDialog.tsx`, after successful conversion, emit `LEAD.CONVERTED` with `target_type` (contact/company), `target_id`, `delete_after`.
 
-### B) Observability — compute-deal-score
+### B) Observability — compute-lead-behavior-signals
 
-Add timing + input logging to the edge function:
-- Log `[DEAL-SCORE] opportunity_id=X latency_ms=Y score=Z category=W` after computation
-- Log scoring inputs: `engagement_score`, `recency_score`, `trust_score` etc. for debugging
-- Log stage change transitions when `previous_category !== new_category`
+Add timing instrumentation to the edge function:
+- Log `[LEAD-BEHAVIOR] lead_id=X latency_ms=Y signals={...}` after computation
+- Log conversation/message counts processed
 
-### C) Activity Tracking — Kernel Integration
+### C) Smoke Test Enhancement
 
-In `useCreateActivity.onSuccess`, emit `OPPORTUNITY.ACTIVITY_ADDED` kernel event when the activity is linked to an opportunity (via `opportunity_id` field). Include `activity_type` and `entity_type` in payload.
+Add `lead-behavior-signals` check to `system-run-smoke-tests`: query `lead_behavior_signals` table count for workspace.
 
-### D) Smoke Test Enhancement
+### D) Score Explanation Evidence
 
-Add a `crm-deal-score` check to `system-run-smoke-tests`: query `deal_scores` table count for workspace. Also add `crm-activities` check on `crm_activities` table.
-
-### E) V2 — Score Change Detection
-
-In `compute-deal-score`, fetch the existing score before upsert. If `category` changed, include `label_changed: true` and `previous_label` in the `DEAL.SCORE_UPDATED` event payload. This feeds the existing `kernel-compute-decisions` "deal score drop" rule.
+`useUpdateLeadScores` already stores scores on the lead record. `ai-analyze-lead` already stores `lead_score_explanation` and `lead_score_factors`. No additional evidence storage needed — just wire kernel events so the decision engine can react.
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useCrmActivities.ts` | Emit `OPPORTUNITY.ACTIVITY_ADDED` kernel event in `useCreateActivity.onSuccess` when `opportunity_id` present |
-| `supabase/functions/compute-deal-score/index.ts` | Add timing logs, fetch previous score before upsert, emit `DEAL.SCORE_UPDATED` + conditional `OPPORTUNITY.STALE` kernel events via `kernel_events` insert |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `crm-deal-score` and `crm-activities` checks |
+| `src/hooks/useLeadScores.ts` | Emit `LEAD.SCORED` kernel event on success |
+| `src/hooks/useSmartLeads.ts` | Emit `LEAD.SCORED` in `useAnalyzeLead.onSuccess` |
+| `src/hooks/useLeads.ts` | Detect `tags` in update payload → emit `LEAD.TAGGED` |
+| `src/components/crm/ConvertLeadDialog.tsx` | Emit `LEAD.CONVERTED` after successful conversion |
+| `supabase/functions/compute-lead-behavior-signals/index.ts` | Add timing + input logging |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add `lead-behavior-signals` check |
 
