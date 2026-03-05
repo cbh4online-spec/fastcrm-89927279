@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
+import { generateRequestId } from "@/lib/requestId";
 import type { 
   AgentType, 
   AgentTrigger, 
@@ -89,6 +91,8 @@ export function useAgentAnalysis(
         throw new Error('Entity ID e Workspace ID são obrigatórios');
       }
 
+      const correlationId = generateRequestId();
+
       // Check rate limits (unless skipped)
       if (!options.skipRateLimit) {
         const rateLimitCheck = checkAgentRateLimit(entityId, workspaceId);
@@ -107,6 +111,18 @@ export function useAgentAnalysis(
       );
       
       const modeConfig = getOutputModifiers(modeResult.selectedMode);
+
+      // Emit EXECUTION_STARTED
+      console.log('[AI-AGENT] EXECUTION_STARTED', { agent_type: agentType, entity_id: entityId, trigger: triggerType });
+      emitKernelEvent({
+        workspace_id: workspaceId,
+        type: 'AGENT.EXECUTION_STARTED',
+        entity_kind: entityType,
+        entity_id: entityId,
+        payload: { agent_type: agentType, trigger_type: triggerType, behavioral_mode: modeResult.selectedMode },
+        source_module: 'ai-agents',
+        correlation_id: correlationId,
+      });
 
       // Call the orchestrator edge function with behavioral mode
       const { data, error } = await supabase.functions.invoke('ai-agent-orchestrator', {
@@ -129,7 +145,34 @@ export function useAgentAnalysis(
       // Record execution for rate limiting
       recordAgentExecution(entityId, workspaceId);
       
-      return data as AgentResponse;
+      const response = data as AgentResponse;
+
+      // Emit completion/failure kernel event inline
+      if (response.success) {
+        console.log('[AI-AGENT] EXECUTION_COMPLETED', { execution_id: response.executionId, duration_ms: response.durationMs, tokens: response.tokensUsed });
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'AGENT.EXECUTION_COMPLETED',
+          entity_kind: entityType,
+          entity_id: entityId,
+          payload: { execution_id: response.executionId, agent_type: agentType, duration_ms: response.durationMs, tokens_used: response.tokensUsed },
+          source_module: 'ai-agents',
+          correlation_id: correlationId,
+        });
+      } else {
+        console.warn('[AI-AGENT] EXECUTION_FAILED (partial/error)', { execution_id: response.executionId, error: response.error });
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'AGENT.EXECUTION_FAILED',
+          entity_kind: entityType,
+          entity_id: entityId,
+          payload: { execution_id: response.executionId, agent_type: agentType, error: response.error, partial: !!response.partialAnalysis },
+          source_module: 'ai-agents',
+          correlation_id: correlationId,
+        });
+      }
+
+      return response;
     },
     onSuccess: (response) => {
       // Invalidate queries to refresh data
@@ -153,6 +196,18 @@ export function useAgentAnalysis(
       options.onSuccess?.(response);
     },
     onError: (error: Error) => {
+      console.warn('[AI-AGENT] EXECUTION_FAILED', { agent_type: agentType, entity_id: entityId, error: error.message });
+      if (workspaceId && entityId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'AGENT.EXECUTION_FAILED',
+          entity_kind: entityType,
+          entity_id: entityId,
+          payload: { agent_type: agentType, error: error.message },
+          source_module: 'ai-agents',
+          correlation_id: generateRequestId(),
+        });
+      }
       toast.error('Erro na análise', {
         description: error.message,
       });
