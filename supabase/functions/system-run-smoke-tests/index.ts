@@ -120,6 +120,10 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "context-os-deps", "context_dependencies_query", "context_dependencies"),
       // MKT Landing Pages
       runCheck(supabase, workspace_id, "mkt-landing-pages", "landing_pages_query", "landing_pages"),
+      // MKT Email Marketing
+      runCheck(supabase, workspace_id, "mkt-email-marketing", "marketing_campaigns_query", "marketing_campaigns"),
+      runCheck(supabase, workspace_id, "mkt-email-marketing", "marketing_recipients_query", "marketing_recipients"),
+      runCheck(supabase, workspace_id, "mkt-email-marketing", "marketing_events_query", "marketing_events"),
       // AI Conversational
       aiConversationalCheck(),
     ]);
