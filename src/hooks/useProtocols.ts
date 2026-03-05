@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import type { 
   ProductProtocol, 
   ProtocolProduct, 
@@ -49,11 +50,27 @@ export function useProtocols() {
       if (error) throw error;
       return protocol;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       toast.success("Protocolo criado com sucesso");
+      console.log('[BUNDLES] Protocol created:', data.id);
       queryClient.invalidateQueries({ queryKey: ["protocols"] });
+
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'BUNDLE.CREATED',
+          entity_kind: 'protocol',
+          entity_id: data.id,
+          source_module: 'sales-bundles',
+          payload: {
+            has_discount: (variables.discount_percentage ?? 0) > 0,
+            discount_percentage: variables.discount_percentage ?? 0,
+          },
+        });
+      }
     },
     onError: (error) => {
+      console.warn('[BUNDLES] PROTOCOL_CREATE_FAILED', error.message);
       toast.error("Erro ao criar protocolo: " + error.message);
     },
   });
@@ -66,12 +83,26 @@ export function useProtocols() {
         .eq("id", id);
 
       if (error) throw error;
+      return { id };
     },
-    onSuccess: () => {
+    onSuccess: ({ id }) => {
       toast.success("Protocolo atualizado");
+      console.log('[BUNDLES] Protocol updated:', id);
       queryClient.invalidateQueries({ queryKey: ["protocols"] });
+
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'BUNDLE.UPDATED',
+          entity_kind: 'protocol',
+          entity_id: id,
+          source_module: 'sales-bundles',
+          payload: { protocol_id: id },
+        });
+      }
     },
     onError: (error) => {
+      console.warn('[BUNDLES] PROTOCOL_UPDATE_FAILED', error.message);
       toast.error("Erro ao atualizar protocolo: " + error.message);
     },
   });
@@ -84,12 +115,15 @@ export function useProtocols() {
         .eq("id", id);
 
       if (error) throw error;
+      return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
       toast.success("Protocolo eliminado");
+      console.log('[BUNDLES] Protocol deleted:', id);
       queryClient.invalidateQueries({ queryKey: ["protocols"] });
     },
     onError: (error) => {
+      console.warn('[BUNDLES] PROTOCOL_DELETE_FAILED', error.message);
       toast.error("Erro ao eliminar protocolo: " + error.message);
     },
   });
@@ -104,9 +138,11 @@ export function useProtocols() {
     },
     onSuccess: () => {
       toast.success("Produto adicionado ao protocolo");
+      console.log('[BUNDLES] Product added to protocol');
       queryClient.invalidateQueries({ queryKey: ["protocols"] });
     },
     onError: (error) => {
+      console.warn('[BUNDLES] PROTOCOL_ADD_PRODUCT_FAILED', error.message);
       toast.error("Erro ao adicionar produto: " + error.message);
     },
   });
@@ -122,9 +158,11 @@ export function useProtocols() {
     },
     onSuccess: () => {
       toast.success("Produto removido do protocolo");
+      console.log('[BUNDLES] Product removed from protocol');
       queryClient.invalidateQueries({ queryKey: ["protocols"] });
     },
     onError: (error) => {
+      console.warn('[BUNDLES] PROTOCOL_REMOVE_PRODUCT_FAILED', error.message);
       toast.error("Erro ao remover produto: " + error.message);
     },
   });
@@ -218,6 +256,7 @@ export function useCrossSellsManagement() {
       queryClient.invalidateQueries({ queryKey: ["cross-sells"] });
     },
     onError: (error) => {
+      console.warn('[BUNDLES] CROSS_SELL_ADD_FAILED', error.message);
       toast.error("Erro ao adicionar cross-sell: " + error.message);
     },
   });
@@ -234,6 +273,9 @@ export function useCrossSellsManagement() {
     onSuccess: () => {
       toast.success("Cross-sell removido");
       queryClient.invalidateQueries({ queryKey: ["cross-sells"] });
+    },
+    onError: (error) => {
+      console.warn('[BUNDLES] CROSS_SELL_REMOVE_FAILED', error.message);
     },
   });
 
