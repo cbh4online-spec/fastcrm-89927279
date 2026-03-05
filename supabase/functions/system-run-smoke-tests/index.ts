@@ -179,6 +179,10 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "crm-fastmatch", "fastmatch_profiles_query", "fastmatch_profiles"),
       runCheck(supabase, workspace_id, "crm-fastmatch", "fastmatch_connections_query", "fastmatch_connections"),
       runCheck(supabase, workspace_id, "crm-fastmatch", "fastmatch_interests_query", "fastmatch_interests"),
+      // Comm Email
+      runCheck(supabase, workspace_id, "comm-email", "conversations_query", "conversations"),
+      runCheck(supabase, workspace_id, "comm-email", "messages_query", "messages"),
+      runCheck(supabase, workspace_id, "comm-email", "email_sequences_query", "email_sequences"),
       // AI Conversational
       aiConversationalCheck(),
     ]);

@@ -413,7 +413,7 @@ Deno.serve(async (req) => {
       }
       password = await decryptCredential(connection.encrypted_app_password, encryptionKey);
     } catch (decryptError) {
-      console.error("Decryption error:", decryptError);
+      console.warn("[EMAIL] DECRYPT_FAILED:", decryptError);
       throw new Error("Failed to decrypt credentials");
     }
 
@@ -469,7 +469,7 @@ Deno.serve(async (req) => {
     }
 
     // Connect and send via SMTP
-    console.log(`Connecting to SMTP: ${connection.smtp_host}:${connection.smtp_port}`);
+    console.log(`[EMAIL] Sending: to=${to}, subject_len=${subject.length}`);
 
     const smtpClient = new SimpleSMTPClient();
     
@@ -491,9 +491,9 @@ Deno.serve(async (req) => {
       );
 
       await smtpClient.quit();
-      console.log("Email sent successfully via SMTP");
+      console.log(`[EMAIL] SMTP delivered: messageId=${messageId}`);
     } catch (smtpError: unknown) {
-      console.error("SMTP error:", smtpError);
+      console.warn(`[EMAIL] SMTP_FAILED: ${smtpError instanceof Error ? smtpError.message : smtpError}`);
       await smtpClient.quit();
       throw new Error(`SMTP error: ${smtpError instanceof Error ? smtpError.message : "Unknown error"}`);
     }
@@ -518,7 +518,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (msgError) {
-      console.error("Message save error:", msgError);
+      console.warn("[EMAIL] MESSAGE_SAVE_FAILED:", msgError);
       throw new Error("Email sent but failed to save message");
     }
 
@@ -567,7 +567,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
-    console.error("Email send error:", error);
+    console.error("[EMAIL] Send error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: message }),

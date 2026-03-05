@@ -51,11 +51,11 @@ Deno.serve(async (req) => {
 
     const payload: ResendWebhookPayload = await req.json();
     
-    console.log("Received Resend webhook:", payload.type, payload.data?.email_id);
+    console.log(`[EMAIL] Webhook received: ${payload.type}, email_id=${payload.data?.email_id}`);
 
     const resendId = payload.data?.email_id;
     if (!resendId) {
-      console.log("No email_id in webhook payload");
+      console.warn("[EMAIL] WEBHOOK_NO_EMAIL_ID in payload");
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (recipientError || !recipient) {
-      console.log("Recipient not found for resend_id:", resendId);
+      console.warn(`[EMAIL] WEBHOOK_RECIPIENT_NOT_FOUND: resend_id=${resendId}`);
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
 
     const mappedEventType = eventTypeMap[eventType];
     if (!mappedEventType) {
-      console.log("Unknown event type:", eventType);
+      console.warn(`[EMAIL] WEBHOOK_UNKNOWN_EVENT: ${eventType}`);
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -201,7 +201,7 @@ Deno.serve(async (req) => {
         break;
     }
 
-    console.log(`Processed ${mappedEventType} event for recipient ${recipient.id}`);
+    console.log(`[EMAIL] Webhook processed: ${mappedEventType} for recipient ${recipient.id}`);
 
     return new Response(JSON.stringify({ received: true, processed: mappedEventType }), {
       status: 200,
@@ -209,7 +209,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error("Error processing Resend webhook:", error);
+    console.error("[EMAIL] WEBHOOK_PROCESSING_ERROR:", error);
     // Return 200 to prevent Resend from retrying
     return new Response(JSON.stringify({ received: true, error: "Processing error" }), {
       status: 200,

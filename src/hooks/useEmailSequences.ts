@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { emitKernelEvent } from '@/lib/kernelEmitter';
 
 export interface EmailSequence {
   id: string;
@@ -302,10 +303,24 @@ export function useEnrollContact() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, vars) => {
+    onSuccess: (data, vars) => {
       queryClient.invalidateQueries({ queryKey: ['sequence-enrollments', vars.sequenceId] });
+      console.log(`[EMAIL] Contact enrolled: sequence=${vars.sequenceId}, contact=${vars.contactId}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'EMAIL.SEQUENCE_ENROLLED',
+          entity_kind: 'email_sequence',
+          entity_id: vars.sequenceId,
+          source_module: 'comm-email',
+          payload: { sequence_id: vars.sequenceId, contact_id: vars.contactId },
+        });
+      }
       toast.success('Contacto inscrito na sequência');
     },
-    onError: () => toast.error('Erro ao inscrever contacto'),
+    onError: (error) => {
+      console.warn('[EMAIL] ENROLL_FAILED:', (error as Error).message);
+      toast.error('Erro ao inscrever contacto');
+    },
   });
 }
