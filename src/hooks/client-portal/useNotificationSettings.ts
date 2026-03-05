@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClientAuth } from "./useClientAuth";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { toast } from "sonner";
 
 interface NotificationSettings {
@@ -55,9 +56,23 @@ export function useNotificationSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client-notification-settings"] });
+      console.log(`[NOTIF-SETTINGS] NOTIFICATIONS_UPDATED company=${companyId}`);
+      if (workspaceId && companyId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'SETTINGS.NOTIFICATIONS_UPDATED',
+          entity_kind: 'client_notification_settings',
+          entity_id: companyId,
+          source_module: 'admin-settings',
+          payload: { company_id: companyId },
+        });
+      }
       toast.success("Preferências guardadas!");
     },
-    onError: () => toast.error("Erro ao guardar preferências"),
+    onError: () => {
+      console.warn('[NOTIF-SETTINGS] UPDATE_FAILED');
+      toast.error("Erro ao guardar preferências");
+    },
   });
 
   return { settings, isLoading, upsertSettings: upsertSettings.mutateAsync, saving: upsertSettings.isPending };

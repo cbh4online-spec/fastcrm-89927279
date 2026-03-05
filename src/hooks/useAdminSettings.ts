@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { toast } from "sonner";
 
 export interface AdminSetting {
@@ -61,13 +62,23 @@ export function useAdminSettings() {
       }
 
       if (error) throw error;
-      return data;
+      return { data, action: existing ? 'update' : 'create', key };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["admin-settings"] });
+      console.log(`[ADMIN-SETTINGS] UPDATED key=${result.key} action=${result.action}`);
+      emitKernelEvent({
+        workspace_id: 'global',
+        type: 'SETTINGS.UPDATED',
+        entity_kind: 'admin_setting',
+        entity_id: result.key,
+        source_module: 'admin-settings',
+        payload: { setting_key: result.key, action: result.action },
+      });
       toast.success("Configuração guardada");
     },
     onError: (error) => {
+      console.warn('[ADMIN-SETTINGS] UPDATE_FAILED', error.message);
       toast.error(`Erro ao guardar: ${error.message}`);
     },
   });
@@ -80,12 +91,23 @@ export function useAdminSettings() {
         .eq("key", key);
 
       if (error) throw error;
+      return key;
     },
-    onSuccess: () => {
+    onSuccess: (key) => {
       queryClient.invalidateQueries({ queryKey: ["admin-settings"] });
+      console.log(`[ADMIN-SETTINGS] DELETED key=${key}`);
+      emitKernelEvent({
+        workspace_id: 'global',
+        type: 'SETTINGS.DELETED',
+        entity_kind: 'admin_setting',
+        entity_id: key,
+        source_module: 'admin-settings',
+        payload: { setting_key: key },
+      });
       toast.success("Configuração removida");
     },
     onError: (error) => {
+      console.warn('[ADMIN-SETTINGS] DELETE_FAILED', error.message);
       toast.error(`Erro ao remover: ${error.message}`);
     },
   });
