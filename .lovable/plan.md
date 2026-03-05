@@ -1,49 +1,52 @@
 
 
-# AI Assistants — Kernel V2 Stabilization
+# Comm-Templates — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | Status | Gaps |
 |------|--------|------|
-| Kernel Events | **None** | Zero `ASSISTANT.*` kernel events in codebase |
-| Agent CRUD | Works | `useAIChannelAgents` handles create/update/delete. No kernel events emitted |
-| Persona CRUD | Works | `useKnowledgeBase` manages personas. No kernel events |
-| Knowledge Base | Works | Full CRUD + document processing. No kernel events |
-| Test AI | Works | `TestAITab` queries AI via `queryKnowledge`. No token/failure logging |
-| Smoke Tests | Partial | `ai_agents` table checked but no persona/KB checks |
+| Templates CRUD | Works | Two systems: `useCommunicationTemplates.ts` (main) + `useTemplates.ts` (with versioning via `template_versions`). No kernel events on either |
+| Versioning | Partial | `useTemplates.ts` has `template_versions` table + `useUpdateTemplate` with `createVersion` flag. `useCommunicationTemplates.ts` has no versioning |
+| AI Generation | Works | `useGenerateTemplate` → `generate-template` edge function. No structured logging of generation calls |
+| Predictive | Works | `usePredictiveTemplates.ts` has variants, stats, predictive copy. No kernel events |
+| Kernel Events | **None** | Zero `TEMPLATE.*` events in codebase |
+| Smoke Tests | **None** | No `communication_templates` check |
 
 ## Implementation Plan
 
-### A) Kernel Events — Wire `ASSISTANT.UPDATED`
+### A) Kernel Events — Wire Template Lifecycle
 
-**1. `useAIChannelAgents.updateAgent`** — After successful update, emit `ASSISTANT.UPDATED` with `agent_id`, `channel`, `changed_fields` (keys of the update payload). Also emit on `createAgent` → `ASSISTANT.CREATED` and `toggleAgentStatus` → `ASSISTANT.TOGGLED` with `is_active` state.
+**1. `useCreateCommunicationTemplate.onSuccess`** — Emit `TEMPLATE.CREATED` with `template_id`, `channel`, `name`, `tone`.
 
-**2. `useKnowledgeBase` persona updates** — When a persona is updated (need to check if `updatePersona` exists), emit `ASSISTANT.PERSONA_UPDATED` with `persona_id`, `name`.
+**2. `useUpdateCommunicationTemplate.onSuccess`** — Emit `TEMPLATE.UPDATED` with `template_id`, `changed_fields` (keys of update payload).
 
-All events use `emitKernelEvent` with `source_module: 'ai-assistants'`.
+**3. `useUpdateCommunicationTemplate` — when `isActive` changes** — Also emit `TEMPLATE.PUBLISHED` (when toggled to active) with `template_id`, `channel`.
 
-### B) Observability — Token Usage & Failure Logging
+**4. `useGenerateTemplate.onSuccess`** — Emit `TEMPLATE.CREATED` with `source: 'ai_generation'`, `type`, `tone`.
 
-In `useKnowledgeBase.queryKnowledge` (the test AI path), add structured logging:
-- `console.log('[AI-ASSISTANT] QUERY latency_ms=X tokens=Y persona=Z')` on success
-- `console.warn('[AI-ASSISTANT] QUERY_FAILED error=X')` on failure
+All events use `emitKernelEvent` with `source_module: 'comm-templates'`.
 
-### C) Smoke Test Enhancement
+### B) Observability — AI Generation Logging
 
-Add to `system-run-smoke-tests`:
-- `ai-personas`: query `ai_personas` table count
-- `ai-knowledge-bases`: query `knowledge_bases` table count
+In `useGenerateTemplate`:
+- `console.log('[COMM-TEMPLATE] AI_GENERATED type=X tone=Y')` on success
+- `console.warn('[COMM-TEMPLATE] AI_GENERATION_FAILED error=X')` on error
 
-### D) Prompt Versioning Note
+In `useCreateCommunicationTemplate` and `useUpdateCommunicationTemplate`:
+- `console.log('[COMM-TEMPLATE] CREATED id=X channel=Y')` / `UPDATED` on success
 
-The current architecture stores prompts as `system_prompt` on `ai_personas`. True prompt versioning (history + rollback) would require a new `ai_persona_versions` table — this is a V2 concern and not wired in this stabilization pass.
+### C) Smoke Test
+
+Add `comm-templates` check to `system-run-smoke-tests`:
+- `communication_templates_query`: count `communication_templates` for workspace
+- `template_usage_logs_query`: count `template_usage_logs` for workspace
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useAIChannelAgents.ts` | Import `emitKernelEvent`; emit `ASSISTANT.CREATED` in `createAgent.onSuccess`, `ASSISTANT.UPDATED` in `updateAgent.onSuccess`, `ASSISTANT.TOGGLED` in `toggleAgentStatus` |
-| `src/hooks/useKnowledgeBase.ts` | Add structured logging to `queryKnowledge`; emit `ASSISTANT.PERSONA_UPDATED` if persona update exists |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `ai-personas` and `ai-knowledge-bases` table count checks |
+| `src/hooks/useCommunicationTemplates.ts` | Import `emitKernelEvent`; emit `TEMPLATE.CREATED` in create, `TEMPLATE.UPDATED` + `TEMPLATE.PUBLISHED` in update; add structured logging |
+| `src/hooks/useGenerateTemplate.ts` | Import `emitKernelEvent`; emit `TEMPLATE.CREATED` with `source: 'ai_generation'`; add structured logging |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add `communication_templates` and `template_usage_logs` table checks |
 
