@@ -4,6 +4,7 @@ import { useWorkspaceMembers, WorkspaceMember } from "@/hooks/useWorkspaceMember
 import { useWorkspaceSettings } from "@/hooks/useWorkspaceSettings";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { SettingsSection, SettingsItem } from "../SettingsSection";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -182,12 +183,22 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Erro ao enviar convite");
 
+      console.log(`[WORKSPACES] Invited member: ${inviteEmail} as ${inviteRole}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'MEMBER.INVITED',
+        entity_kind: 'workspace_member',
+        entity_id: currentWorkspace.id,
+        source_module: 'admin-workspaces',
+        payload: { email: inviteEmail.trim(), role: inviteRole },
+      });
+
       toast.success(`Convite enviado para ${inviteEmail}`);
       setInviteDialogOpen(false);
       setInviteEmail("");
       setInviteRole("agent");
     } catch (error: any) {
-      console.error("Error inviting member:", error);
+      console.warn('[WORKSPACES] INVITE_FAILED', error.message || error);
       toast.error(error.message || "Erro ao enviar convite");
     } finally {
       setIsSubmitting(false);
@@ -224,6 +235,15 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
             throw memberError;
           }
         } else {
+          console.log(`[WORKSPACES] Added member: ${existingProfile.user_id} as ${manualRole}`);
+          emitKernelEvent({
+            workspace_id: currentWorkspace.id,
+            type: 'MEMBER.ADDED',
+            entity_kind: 'workspace_member',
+            entity_id: existingProfile.user_id,
+            source_module: 'admin-workspaces',
+            payload: { user_id: existingProfile.user_id, role: manualRole },
+          });
           toast.success("Membro adicionado com sucesso");
           refetchMembers();
         }
@@ -238,7 +258,7 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
       setManualEmail("");
       setManualRole("agent");
     } catch (error) {
-      console.error("Error adding member:", error);
+      console.warn('[WORKSPACES] ADD_MEMBER_FAILED', (error as Error).message);
       toast.error("Erro ao adicionar membro");
     } finally {
       setIsSubmitting(false);
@@ -257,12 +277,22 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
 
       if (error) throw error;
 
+      console.log(`[WORKSPACES] Updated role for member: ${selectedMember.id} to ${editRole}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'ROLE.UPDATED',
+        entity_kind: 'workspace_member',
+        entity_id: selectedMember.id,
+        source_module: 'admin-workspaces',
+        payload: { member_id: selectedMember.id, new_role: editRole },
+      });
+
       toast.success("Cargo atualizado com sucesso");
       refetchMembers();
       setEditMemberDialogOpen(false);
       setSelectedMember(null);
     } catch (error) {
-      console.error("Error updating member:", error);
+      console.warn('[WORKSPACES] UPDATE_ROLE_FAILED', (error as Error).message);
       toast.error("Erro ao atualizar cargo");
     } finally {
       setIsSubmitting(false);
@@ -281,12 +311,22 @@ export function WorkspaceSettings({ searchQuery = "", matchedSections }: Workspa
 
       if (error) throw error;
 
+      console.log(`[WORKSPACES] Removed member: ${selectedMember.id}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'MEMBER.REMOVED',
+        entity_kind: 'workspace_member',
+        entity_id: selectedMember.id,
+        source_module: 'admin-workspaces',
+        payload: { member_id: selectedMember.id },
+      });
+
       toast.success("Membro removido com sucesso");
       refetchMembers();
       setDeleteMemberDialogOpen(false);
       setSelectedMember(null);
     } catch (error) {
-      console.error("Error removing member:", error);
+      console.warn('[WORKSPACES] REMOVE_MEMBER_FAILED', (error as Error).message);
       toast.error("Erro ao remover membro");
     } finally {
       setIsSubmitting(false);

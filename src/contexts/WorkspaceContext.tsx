@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export type WorkspaceRole = "owner" | "admin" | "agent" | "viewer" | "agency";
 
@@ -191,8 +192,19 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setWorkspaces((prev) => [...prev, newWorkspace]);
       handleSetCurrentWorkspace(newWorkspace);
 
+      console.log(`[WORKSPACES] Created workspace: ${newWorkspace.id}`);
+      emitKernelEvent({
+        workspace_id: newWorkspace.id,
+        type: 'WORKSPACE.CREATED',
+        entity_kind: 'workspace',
+        entity_id: newWorkspace.id,
+        source_module: 'admin-workspaces',
+        payload: { workspace_name: name, slug },
+      });
+
       return { error: null, workspace: newWorkspace };
     } catch (error) {
+      console.warn('[WORKSPACES] CREATE_FAILED', (error as Error).message);
       return { error: error as Error, workspace: null };
     }
   };

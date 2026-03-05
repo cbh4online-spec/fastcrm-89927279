@@ -139,6 +139,8 @@ Deno.serve(async (req) => {
       })(),
       runCheck(supabase, workspace_id, "admin-settings", "store_settings_query", "store_settings"),
       runCheck(supabase, workspace_id, "admin-settings", "client_notification_settings_query", "client_notification_settings"),
+      // Admin Workspaces
+      runCheck(supabase, workspace_id, "admin-workspaces", "workspace_members_query", "workspace_members"),
       // Admin Integrations
       runCheck(supabase, workspace_id, "admin-integrations", "stripe_config_query", "workspace_stripe_config"),
       runCheck(supabase, workspace_id, "admin-integrations", "ghl_config_query", "workspace_ghl_config"),

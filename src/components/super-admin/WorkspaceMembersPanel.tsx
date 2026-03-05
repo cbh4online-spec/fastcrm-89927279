@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import {
   Sheet,
   SheetContent,
@@ -158,6 +159,16 @@ export function WorkspaceMembersPanel({
       setSearchEmail("");
       toast.success("Membro adicionado com sucesso");
 
+      console.log(`[WORKSPACES] Admin added member: ${userId} as ${role}`);
+      emitKernelEvent({
+        workspace_id: workspaceId!,
+        type: 'MEMBER.ADDED',
+        entity_kind: 'workspace_member',
+        entity_id: userId,
+        source_module: 'admin-workspaces',
+        payload: { user_id: userId, role },
+      });
+
       supabase.rpc("log_admin_action", {
         p_action_type: "member_added",
         p_target_type: "workspace_member",
@@ -167,6 +178,7 @@ export function WorkspaceMembersPanel({
       });
     },
     onError: (error: any) => {
+      console.warn('[WORKSPACES] ADMIN_ADD_MEMBER_FAILED', error.message);
       toast.error("Erro ao adicionar membro: " + error.message);
     },
   });
@@ -187,6 +199,16 @@ export function WorkspaceMembersPanel({
       queryClient.invalidateQueries({ queryKey: ["workspace-members-admin", workspaceId] });
       toast.success("Role atualizada com sucesso");
 
+      console.log(`[WORKSPACES] Admin updated role: ${userId} to ${newRole}`);
+      emitKernelEvent({
+        workspace_id: workspaceId!,
+        type: 'ROLE.UPDATED',
+        entity_kind: 'workspace_member',
+        entity_id: userId,
+        source_module: 'admin-workspaces',
+        payload: { user_id: userId, new_role: newRole },
+      });
+
       supabase.rpc("log_admin_action", {
         p_action_type: "member_role_updated",
         p_target_type: "workspace_member",
@@ -196,6 +218,7 @@ export function WorkspaceMembersPanel({
       });
     },
     onError: (error: any) => {
+      console.warn('[WORKSPACES] ADMIN_UPDATE_ROLE_FAILED', error.message);
       toast.error("Erro ao atualizar role: " + error.message);
     },
   });
@@ -216,6 +239,16 @@ export function WorkspaceMembersPanel({
       setMemberToRemove(null);
       toast.success("Membro removido com sucesso");
 
+      console.log(`[WORKSPACES] Admin removed member: ${userId}`);
+      emitKernelEvent({
+        workspace_id: workspaceId!,
+        type: 'MEMBER.REMOVED',
+        entity_kind: 'workspace_member',
+        entity_id: userId,
+        source_module: 'admin-workspaces',
+        payload: { user_id: userId },
+      });
+
       supabase.rpc("log_admin_action", {
         p_action_type: "member_removed",
         p_target_type: "workspace_member",
@@ -225,6 +258,7 @@ export function WorkspaceMembersPanel({
       });
     },
     onError: (error: any) => {
+      console.warn('[WORKSPACES] ADMIN_REMOVE_MEMBER_FAILED', error.message);
       toast.error("Erro ao remover membro: " + error.message);
     },
   });
