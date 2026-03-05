@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface GenerateTemplateInput {
   type: "email" | "whatsapp" | "proposal";
@@ -13,6 +14,7 @@ export interface GenerateTemplateInput {
     conversationContext?: string;
   };
   customInstructions?: string;
+  workspaceId?: string;
 }
 
 export interface GeneratedEmailTemplate {
@@ -57,11 +59,22 @@ export function useGenerateTemplate() {
 
       return data.data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       toast.success("Template gerado com sucesso");
+      console.log('[COMM-TEMPLATE] AI_GENERATED', { type: variables.type, tone: variables.tone });
+      if (variables.workspaceId) {
+        emitKernelEvent({
+          workspace_id: variables.workspaceId,
+          type: 'TEMPLATE.CREATED',
+          entity_kind: 'communication_template',
+          entity_id: 'ai_generated',
+          source_module: 'comm-templates',
+          payload: { source: 'ai_generation', type: variables.type, tone: variables.tone },
+        });
+      }
     },
     onError: (error) => {
-      console.error("Template generation failed:", error);
+      console.warn('[COMM-TEMPLATE] AI_GENERATION_FAILED', { error: error.message });
       toast.error(error.message || "Não foi possível gerar o template");
     },
   });
