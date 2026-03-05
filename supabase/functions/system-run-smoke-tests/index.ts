@@ -96,6 +96,9 @@ Deno.serve(async (req) => {
       // AI Agents
       runCheck(supabase, workspace_id, "ai-agents", "ai_jobs_query", "ai_agent_jobs"),
       runCheck(supabase, workspace_id, "ai-agents-registry", "ai_registry_query", "ai_agent_registry"),
+      // AI Personas & Knowledge Bases
+      runCheck(supabase, workspace_id, "ai-personas", "ai_personas_query", "ai_personas"),
+      runCheck(supabase, workspace_id, "ai-knowledge-bases", "knowledge_bases_query", "knowledge_bases"),
       // Kernel
       runCheck(supabase, workspace_id, "kernel", "kernel_events_query", "kernel_events"),
       // Inbox Action Logs
