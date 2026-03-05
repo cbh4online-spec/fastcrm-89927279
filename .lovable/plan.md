@@ -1,57 +1,49 @@
 
 
-# Core Files — Kernel V2 Stabilization
+# Core Feed — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | File | Mutations | Kernel Events | Logging |
 |------|------|-----------|---------------|---------|
-| Entity Documents | `EntityDocumentsSection.tsx` | upload/remove/moveToFolder (inline hook) | None | None (toast only) |
-| Contact Documents | `useContactData.ts` | upload/delete | None | None (toast only) |
-| Context Attachments | `useContextAttachments.ts` | addUrl/uploadFile/delete | None | None (toast only) |
-| Note Attachments | `NotesSection.tsx` | inline upload (storage) | None | None |
-| Smoke Tests | `system-run-smoke-tests` | — | — | No `entity_documents` or `contact_documents` checks |
+| Posts CRUD | `useInternalFeed.ts` — `useInternalFeed()` | create/update/delete/pin/resolve | None | Toast only |
+| Comments | `useInternalFeed.ts` — `usePostComments()` | add/delete comment, reaction | None | Toast only |
+| Mentions | `useInternalFeed.ts` — `useMyMentions()` | markAsRead | None | None |
+| Smoke Tests | `system-run-smoke-tests` | — | — | No `internal_posts` check |
 
 ## Implementation Plan
 
-### A) Kernel Events + Logging — `src/components/entity/EntityDocumentsSection.tsx`
+### A) Kernel Events + Logging — `src/hooks/useInternalFeed.ts`
 
-The `useEntityDocuments` hook is defined inline in this file. Add `emitKernelEvent` import and workspace context.
+Import `emitKernelEvent`. All events: `source_module: 'core-feed'`.
 
-Events (`source_module: 'core-files'`, `entity_kind: 'entity_document'`):
-1. `upload.onSuccess` → `FILE.UPLOADED` (payload: `entity_type`, `entity_id`, `document_type`, `file_name`, `file_size`, `folder`)
-2. `remove.onSuccess` → `FILE.DELETED`
-3. `moveToFolder.onSuccess` → `FILE.MOVED` (payload: `folder`)
-4. All errors → `console.warn('[FILES] ..._FAILED')`
-5. All successes → `console.log('[FILES] ...')`
+**`useInternalFeed()` mutations:**
+1. `createPost.onSuccess` → `FEED.POST_CREATED` (entity_kind: `post`, payload: `feed_type`, `post_type`, `has_mentions`, `has_checklist`)
+2. `updatePost.onSuccess` → `FEED.POST_UPDATED`
+3. `deletePost.onSuccess` → `FEED.POST_DELETED`
+4. `togglePin.onSuccess` → `FEED.POST_PINNED` (payload: `is_pinned`)
+5. `resolvePost.onSuccess` → `FEED.POST_RESOLVED` (payload: `is_resolved`)
+6. All errors → `console.warn('[FEED] ..._FAILED')`
+7. All successes → `console.log('[FEED] ...')`
 
-### B) Kernel Events + Logging — `src/components/contacts/eni/useContactData.ts`
+**`usePostComments()` mutations:**
+1. `addComment.onSuccess` → `FEED.COMMENT_CREATED` (entity_kind: `comment`, payload: `post_id`, `is_reply`)
+2. `deleteComment.onSuccess` → `FEED.COMMENT_DELETED`
+3. All errors → `console.warn('[FEED] ..._FAILED')`
 
-Add `emitKernelEvent` import. Events (`source_module: 'core-files'`, `entity_kind: 'contact_document'`):
-1. `uploadDocument.onSuccess` → `FILE.UPLOADED` (payload: `contact_id`, `document_type`, `file_name`, `file_size`)
-2. `deleteDocument.onSuccess` → `FILE.DELETED`
-3. All errors → `console.warn('[FILES] ..._FAILED')`
+**`useMyMentions()` mutations:**
+1. `markAsRead.onSuccess` → `console.log('[FEED] Mention marked as read')`
 
-### C) Kernel Events + Logging — `src/hooks/useContextAttachments.ts`
-
-Add `emitKernelEvent` import. Events (`source_module: 'core-files'`, `entity_kind: 'context_attachment'`):
-1. `useAddUrlAttachment.onSuccess` → `FILE.UPLOADED` (payload: `attachment_type: 'url'`, `block_id`, `name`)
-2. `useUploadFileAttachment.onSuccess` → `FILE.UPLOADED` (payload: `attachment_type: 'file'`, `block_id`, `file_name`, `file_size`)
-3. `useDeleteAttachment.onSuccess` → `FILE.DELETED`
-4. All errors → `console.warn('[FILES] ..._FAILED')`
-
-### D) Smoke Tests
+### B) Smoke Tests
 
 Add to `system-run-smoke-tests`:
-- `entity_documents` table check
-- `contact_documents` table check
+- `internal_posts` table check
+- `post_comments` table check
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/components/entity/EntityDocumentsSection.tsx` | Add kernel events + `[FILES]` logging to inline `useEntityDocuments` hook |
-| `src/components/contacts/eni/useContactData.ts` | Add kernel events + `[FILES]` logging to document mutations |
-| `src/hooks/useContextAttachments.ts` | Add kernel events + `[FILES]` logging to all mutations |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `entity_documents` and `contact_documents` checks |
+| `src/hooks/useInternalFeed.ts` | Import `emitKernelEvent`; emit events for post CRUD, comments, pins, resolves; add `[FEED]` logging |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add `internal_posts` and `post_comments` checks |
 
