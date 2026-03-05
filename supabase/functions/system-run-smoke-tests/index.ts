@@ -139,6 +139,11 @@ Deno.serve(async (req) => {
       })(),
       runCheck(supabase, workspace_id, "admin-settings", "store_settings_query", "store_settings"),
       runCheck(supabase, workspace_id, "admin-settings", "client_notification_settings_query", "client_notification_settings"),
+      // Core Calendar
+      runCheck(supabase, workspace_id, "core-calendar", "meetings_query", "meetings"),
+      runCheck(supabase, workspace_id, "core-calendar", "calendar_events_query", "calendar_events"),
+      runCheck(supabase, workspace_id, "core-calendar", "calendars_query", "calendars"),
+      runCheck(supabase, workspace_id, "core-calendar", "ai_booking_calendars_query", "ai_booking_calendars"),
       // Admin Workspaces
       runCheck(supabase, workspace_id, "admin-workspaces", "workspace_members_query", "workspace_members"),
       // Admin Integrations

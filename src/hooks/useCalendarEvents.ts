@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { emitKernelEvent } from '@/lib/kernelEmitter';
 import type { CalendarEvent, CreateEventData } from './useCalendars';
 
 export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { start: Date; end: Date }) {
@@ -72,11 +73,21 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
 
       if (createError) throw createError;
 
+      console.log(`[CALENDAR] Event created: ${event.id}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'CALENDAR_EVENT.CREATED',
+        entity_kind: 'calendar_event',
+        entity_id: event.id,
+        source_module: 'core-calendar',
+        payload: { title: data.title, calendar_id: data.calendar_id },
+      });
+
       toast.success('Evento criado');
       await fetchEvents();
       return event as unknown as CalendarEvent;
     } catch (err) {
-      console.error('Error creating event:', err);
+      console.warn('[CALENDAR] EVENT_CREATE_FAILED', err);
       toast.error('Erro ao criar evento');
       return null;
     }
@@ -91,11 +102,20 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
 
       if (updateError) throw updateError;
 
+      console.log(`[CALENDAR] Event updated: ${id}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace!.id,
+        type: 'CALENDAR_EVENT.UPDATED',
+        entity_kind: 'calendar_event',
+        entity_id: id,
+        source_module: 'core-calendar',
+      });
+
       toast.success('Evento atualizado');
       await fetchEvents();
       return true;
     } catch (err) {
-      console.error('Error updating event:', err);
+      console.warn('[CALENDAR] EVENT_UPDATE_FAILED', err);
       toast.error('Erro ao atualizar evento');
       return false;
     }
@@ -110,11 +130,20 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
 
       if (deleteError) throw deleteError;
 
+      console.log(`[CALENDAR] Event deleted: ${id}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace!.id,
+        type: 'CALENDAR_EVENT.DELETED',
+        entity_kind: 'calendar_event',
+        entity_id: id,
+        source_module: 'core-calendar',
+      });
+
       toast.success('Evento eliminado');
       await fetchEvents();
       return true;
     } catch (err) {
-      console.error('Error deleting event:', err);
+      console.warn('[CALENDAR] EVENT_DELETE_FAILED', err);
       toast.error('Erro ao eliminar evento');
       return false;
     }
