@@ -1,53 +1,66 @@
 
 
-# AI Agents — Kernel V2 Stabilization
+# Admin Settings — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | Status | Gaps |
 |------|--------|------|
-| Job Dispatch | Works | `useAgentLifecycle.ts` already emits `AGENT.JOB_DISPATCHED`. No logging |
-| Job Cancel | Works | Zero kernel events, no logging |
-| Agent Analysis | Works | `useAgentAnalysis.ts` calls orchestrator. Zero kernel events, no logging |
-| Smoke Tests | Partial | `ai_agent_jobs` and `ai_agent_registry` checked. Missing `ai_agent_executions`, `ai_agent_locks`, `ai_agent_memory` |
-| Observability | **None** | No structured logging in either hook |
+| Admin Settings CRUD | Works | `useAdminSettings.ts`: upsert/delete. Zero kernel events, no structured logging |
+| Workspace Settings | Works | `useWorkspaceSettings.ts`: updateInfo/updateBranding/uploadLogo. Zero kernel events, no structured logging |
+| Store Settings | Works | `useStoreSettings.ts` + `useUpsertStoreSettings`. Zero kernel events, no structured logging |
+| Client Notification Settings | Works | `useNotificationSettings.ts`: upsert prefs. Zero kernel events, no structured logging |
+| Smoke Tests | **None** | No `admin_settings`, `store_settings`, `client_notification_settings` checks |
+| Observability | **None** | No structured logging in any settings hooks |
 
 ## Implementation Plan
 
-### A) Kernel Events — Complete the Lifecycle
+### A) Kernel Events — `src/hooks/useAdminSettings.ts`
 
-**`src/hooks/useAgentLifecycle.ts`** (already has `emitKernelEvent` imported):
+1. **`upsertSetting.onSuccess`** → Emit `SETTINGS.UPDATED` with `setting_key`, `action` (create/update)
+2. **`upsertSetting.onError`** → `console.warn('[ADMIN-SETTINGS] UPDATE_FAILED')`
+3. **`deleteSetting.onSuccess`** → Emit `SETTINGS.DELETED` with `setting_key`
+4. **`deleteSetting.onError`** → `console.warn('[ADMIN-SETTINGS] DELETE_FAILED')`
 
-1. **`dispatchMutation.onSuccess`** — Already emits `AGENT.JOB_DISPATCHED`. Add `[AI-AGENT]` logging.
-2. **`dispatchMutation.onError`** — Add `console.warn('[AI-AGENT] DISPATCH_FAILED')`.
-3. **`cancelMutation.onSuccess`** — Emit `AGENT.JOB_CANCELLED` with `job_id`. Add logging.
-4. **`cancelMutation.onError`** — Add `console.warn('[AI-AGENT] CANCEL_FAILED')`.
+Note: `useAdminSettings` is global (no workspace context). Events will omit `workspace_id` or use a sentinel value.
 
-**`src/hooks/useAgentAnalysis.ts`** (needs `emitKernelEvent` import):
+### B) Kernel Events — `src/hooks/useWorkspaceSettings.ts`
 
-1. **`analyzeMutation` before invoke** — Emit `AGENT.EXECUTION_STARTED` with `agent_type`, `entity_id`, `trigger_type`.
-2. **`analyzeMutation.onSuccess` (success=true)** — Emit `AGENT.EXECUTION_COMPLETED` with `execution_id`, `duration_ms`, `tokens_used`.
-3. **`analyzeMutation.onSuccess` (success=false/partial)** — Emit `AGENT.EXECUTION_FAILED` with `error`.
-4. **`analyzeMutation.onError`** — Emit `AGENT.EXECUTION_FAILED` with error message.
+1. **`updateWorkspaceInfo` success** → Emit `SETTINGS.WORKSPACE_UPDATED` with `changed_fields: ['name','slug']`
+2. **`updateBranding` success** → Emit `SETTINGS.BRANDING_UPDATED`
+3. **`uploadLogo` success** → Emit `SETTINGS.LOGO_UPLOADED`
+4. All errors → `console.warn('[WS-SETTINGS] ..._FAILED')`
 
-All events: `source_module: 'ai-agents'`, `correlation_id` via `generateRequestId()`.
+All events: `source_module: 'admin-settings'`, workspace from `currentWorkspace.id`.
 
-### B) Observability — Structured Logging
+### C) Kernel Events — `src/hooks/useStoreSettings.ts`
 
-Both hooks: `[AI-AGENT]` prefixed `console.log` on success, `console.warn` on error for every mutation.
+1. **`useUpsertStoreSettings.onSuccess`** → Emit `SETTINGS.STORE_UPDATED`
+2. **`useUpsertStoreSettings.onError`** → `console.warn('[STORE-SETTINGS] UPDATE_FAILED')`
 
-### C) Smoke Tests
+### D) Kernel Events — `src/hooks/client-portal/useNotificationSettings.ts`
+
+1. **`upsertSettings.onSuccess`** → Emit `SETTINGS.NOTIFICATIONS_UPDATED` with `company_id`
+2. **`upsertSettings.onError`** → `console.warn('[NOTIF-SETTINGS] UPDATE_FAILED')`
+
+### E) Observability
+
+All hooks: `[ADMIN-SETTINGS]`, `[WS-SETTINGS]`, `[STORE-SETTINGS]`, `[NOTIF-SETTINGS]` prefixed logging on success/error.
+
+### F) Smoke Tests
 
 Add to `system-run-smoke-tests`:
-- `ai_agent_executions` table check
-- `ai_agent_locks` table check
-- `ai_agent_memory` table check
+- `admin_settings` table check (no workspace filter — use a generic check or skip workspace_id filter)
+- `store_settings` table check
+- `client_notification_settings` table check
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useAgentLifecycle.ts` | Add `[AI-AGENT]` logging to dispatch/cancel; emit `AGENT.JOB_CANCELLED` on cancel success |
-| `src/hooks/useAgentAnalysis.ts` | Import `emitKernelEvent` + `generateRequestId`; emit `AGENT.EXECUTION_STARTED`/`COMPLETED`/`FAILED`; add `[AI-AGENT]` logging |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `ai_agent_executions`, `ai_agent_locks`, `ai_agent_memory` checks |
+| `src/hooks/useAdminSettings.ts` | Import `emitKernelEvent`; emit `SETTINGS.UPDATED`/`SETTINGS.DELETED`; add logging |
+| `src/hooks/useWorkspaceSettings.ts` | Import `emitKernelEvent` + use `currentWorkspace`; emit `SETTINGS.WORKSPACE_UPDATED`/`BRANDING_UPDATED`/`LOGO_UPLOADED`; add logging |
+| `src/hooks/useStoreSettings.ts` | Import `emitKernelEvent` + use `currentWorkspace`; emit `SETTINGS.STORE_UPDATED`; add logging |
+| `src/hooks/client-portal/useNotificationSettings.ts` | Import `emitKernelEvent`; emit `SETTINGS.NOTIFICATIONS_UPDATED`; add logging |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add `admin_settings`, `store_settings`, `client_notification_settings` checks |
 
