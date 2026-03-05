@@ -1,60 +1,74 @@
 
 
-# CRM Lead Enricher — Kernel V2 Stabilization
+# CRM FastMatch — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | File | Mutations | Kernel Events | Logging |
 |------|------|-----------|---------------|---------|
-| Single Enrich | `useLeadEnrichment.ts` | invoke `contact-enrich` + update lead | None | `console.error` only |
-| Batch Enrich | `useLeadEnrichment.ts` | sequential enrich loop | None | `console.error` per failure |
-| Contact Enrich | `useContactEnrichment.ts` | invoke `contact-enrich` + insights | None | `console.error` only |
-| Settings | `useLeadEnricherSettings.ts` | upsert settings | None | Toast only |
-| Credits | `useCredits.ts` | consume credits | None | None |
-| Smoke Tests | `system-run-smoke-tests` | — | — | No enrichment-specific check |
+| Profile CRUD | `useFastMatchProfile.ts` | upsert profile | None | None |
+| Discovery | `useFastMatchDiscovery.ts` | read-only query | None | None |
+| Interests | `useFastMatchInterests.ts` | send interest + mutual detection | None | Toast only |
+| Connections | `useFastMatchConnections.ts` | unlock + CRM auto-create | None | `console.error` on CRM fail |
+| Quota | `useFastMatchQuota.ts` | consume quota via RPC | None | None |
+| Reviews | `useFastMatchReviews.ts` | submit review + recalc reputation | None | Toast only |
+| Smoke Tests | `system-run-smoke-tests` | — | — | No FastMatch checks |
 
 ## Implementation Plan
 
-### A) Kernel Events + Logging — `src/hooks/useLeadEnrichment.ts`
+### A) Kernel Events + Logging — `useFastMatchProfile.ts`
 
-Import `emitKernelEvent`. All events: `source_module: 'crm-lead-enricher'`, `entity_kind: 'lead'`.
+Import `emitKernelEvent`. Events: `source_module: 'crm-fastmatch'`, `entity_kind: 'fastmatch_profile'`.
 
-1. `useEnrichLead` — before API call → `LEAD.ENRICH_REQUESTED` (payload: `has_email`, `has_phone`, `settings_sources`)
-2. `useEnrichLead.onSuccess` → `LEAD.ENRICH_COMPLETED` (payload: `fields_updated`, `confidence_score`, `email_validated`)
-3. `useEnrichLead.onError` → `console.warn('[ENRICHER] ENRICH_FAILED', { leadId, error })`
-4. Email validation failure → `console.warn('[ENRICHER] EMAIL_VALIDATION_FAILED')`; prefix existing `console.error`
-5. Batch: log start `console.log('[ENRICHER] Batch started: ${total} leads')`
-6. Batch: per-failure → `console.warn('[ENRICHER] Batch item failed: ${lead.name}')`; prefix existing
-7. Batch: completion → `console.log('[ENRICHER] Batch completed: ${successCount}/${total}')`
+1. `useUpdateFastMatchProfile.onSuccess` → `FASTMATCH.PROFILE_UPDATED` (payload: `fields_changed` keys, `is_new` flag)
+2. `onError` → `console.warn('[FASTMATCH] PROFILE_UPDATE_FAILED')`
 
-### B) Kernel Events + Logging — `src/hooks/useContactEnrichment.ts`
+### B) Kernel Events + Logging — `useFastMatchInterests.ts`
 
-Import `emitKernelEvent`. Events: `source_module: 'crm-lead-enricher'`, `entity_kind: 'contact'`.
+Events: `source_module: 'crm-fastmatch'`, `entity_kind: 'fastmatch_interest'`.
 
-1. `useContactEnrichment.onSuccess` → `LEAD.ENRICH_COMPLETED` (payload: `fields_found`, `source: 'contact-enrich'`)
-2. `useContactEnrichment.onError` → `console.warn('[ENRICHER] CONTACT_ENRICH_FAILED')`; prefix existing
-3. `useContactInsights.onError` → `console.warn('[ENRICHER] CONTACT_INSIGHTS_FAILED')`; prefix existing
-4. `useRefreshContactInsights.onError` → prefix with `[ENRICHER]`
-5. `useGenerateContactMessage.onError` → prefix with `[ENRICHER]`
+1. `useSendInterest.onSuccess` (non-mutual) → `FASTMATCH.SUGGESTED` (payload: `from_profile_id`, `to_profile_id`, `mutual: false`)
+2. `useSendInterest.onSuccess` (mutual) → `FASTMATCH.SUGGESTED` + log `console.log('[FASTMATCH] Mutual interest detected')`
+3. `onError` → `console.warn('[FASTMATCH] INTEREST_FAILED')`
 
-### C) Logging — `src/hooks/useLeadEnricherSettings.ts`
+### C) Kernel Events + Logging — `useFastMatchConnections.ts`
 
-Add `[ENRICHER]` prefixed logging (no kernel events — settings are config-only):
-1. `updateSettings.onSuccess` → `console.log('[ENRICHER] Settings updated')`
-2. `updateSettings.onError` → `console.warn('[ENRICHER] SETTINGS_UPDATE_FAILED')`
+Events: `source_module: 'crm-fastmatch'`, `entity_kind: 'fastmatch_connection'`.
 
-### D) Smoke Tests
+1. `useUnlockConnection` inside `mutationFn` after connection insert → `FASTMATCH.ACCEPTED` (payload: `profile_a_id`, `profile_b_id`, `source`)
+2. CRM auto-create success → `console.log('[FASTMATCH] CRM provisioned: company=${id}, contact=${id}, opportunity=${id}')`
+3. CRM auto-create failure → prefix existing `console.error` with `[FASTMATCH]`
+4. `onSuccess` → `console.log('[FASTMATCH] Connection unlocked')`
+5. `onError` → `console.warn('[FASTMATCH] UNLOCK_FAILED')`
+
+### D) Logging — `useFastMatchQuota.ts`
+
+1. `useConsumeMatchQuota.onSuccess` → `console.log('[FASTMATCH] Quota consumed for profile ${profileId}')`
+2. `useConsumeMatchQuota.onError` → `console.warn('[FASTMATCH] QUOTA_CONSUME_FAILED')`
+
+### E) Kernel Events + Logging — `useFastMatchReviews.ts`
+
+Events: `source_module: 'crm-fastmatch'`, `entity_kind: 'fastmatch_review'`.
+
+1. `useSubmitReview.onSuccess` → `FASTMATCH.REVIEW_SUBMITTED` (payload: `connection_id`, `rating`, `reviewed_profile_id`)
+2. Log reputation recalc → `console.log('[FASTMATCH] Reputation recalculated for ${reviewedProfileId}: score=${avg}')`
+3. `onError` → `console.warn('[FASTMATCH] REVIEW_FAILED')`
+
+### F) Smoke Tests
 
 Add to `system-run-smoke-tests`:
-- `lead_enricher_settings` table check (module: `crm-lead-enricher`)
-- `credit_consumption_logs` table check (module: `crm-lead-enricher`)
+- `fastmatch_profiles` table check (module: `crm-fastmatch`)
+- `fastmatch_connections` table check (module: `crm-fastmatch`)
+- `fastmatch_interests` table check (module: `crm-fastmatch`)
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useLeadEnrichment.ts` | Import `emitKernelEvent`; emit `ENRICH_REQUESTED` + `ENRICH_COMPLETED`; add `[ENRICHER]` logging for batch + API errors |
-| `src/hooks/useContactEnrichment.ts` | Emit `LEAD.ENRICH_COMPLETED` on contact enrich; prefix all logs with `[ENRICHER]` |
-| `src/hooks/useLeadEnricherSettings.ts` | Add `[ENRICHER]` prefixed logging for settings mutations |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `lead_enricher_settings` + `credit_consumption_logs` checks |
+| `src/hooks/useFastMatchProfile.ts` | Import `emitKernelEvent`; emit `PROFILE_UPDATED`; add `[FASTMATCH]` logging |
+| `src/hooks/useFastMatchInterests.ts` | Emit `FASTMATCH.SUGGESTED`; add `[FASTMATCH]` logging |
+| `src/hooks/useFastMatchConnections.ts` | Emit `FASTMATCH.ACCEPTED`; add `[FASTMATCH]` logging for CRM provisioning |
+| `src/hooks/useFastMatchQuota.ts` | Add `[FASTMATCH]` logging for quota consumption |
+| `src/hooks/useFastMatchReviews.ts` | Emit `FASTMATCH.REVIEW_SUBMITTED`; log reputation recalc |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add `fastmatch_profiles`, `fastmatch_connections`, `fastmatch_interests` checks |
 
