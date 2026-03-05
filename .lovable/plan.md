@@ -1,52 +1,46 @@
 
 
-# Comm-Templates — Kernel V2 Stabilization
+# Core Productivity — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | Status | Gaps |
 |------|--------|------|
-| Templates CRUD | Works | Two systems: `useCommunicationTemplates.ts` (main) + `useTemplates.ts` (with versioning via `template_versions`). No kernel events on either |
-| Versioning | Partial | `useTemplates.ts` has `template_versions` table + `useUpdateTemplate` with `createVersion` flag. `useCommunicationTemplates.ts` has no versioning |
-| AI Generation | Works | `useGenerateTemplate` → `generate-template` edge function. No structured logging of generation calls |
-| Predictive | Works | `usePredictiveTemplates.ts` has variants, stats, predictive copy. No kernel events |
-| Kernel Events | **None** | Zero `TEMPLATE.*` events in codebase |
-| Smoke Tests | **None** | No `communication_templates` check |
+| Task CRUD | Works | `useTasks.ts`: create/update/delete/toggle. Zero kernel events |
+| Assignment | Partial | `assigned_to` field exists, no event on assignment change |
+| Toggle Status | Works | `useToggleTaskStatus` flips pending↔done. No kernel event |
+| Update | Works | `useUpdateTask` generic update. No kernel event, no assignment detection |
+| Kernel Events | **None** | Zero `TASK.*` events in codebase |
+| Smoke Tests | **None** | No `tasks` table check in smoke tests |
+| Observability | **None** | No structured logging for task transitions |
 
 ## Implementation Plan
 
-### A) Kernel Events — Wire Template Lifecycle
+### A) Kernel Events — Wire Task Lifecycle
 
-**1. `useCreateCommunicationTemplate.onSuccess`** — Emit `TEMPLATE.CREATED` with `template_id`, `channel`, `name`, `tone`.
+**1. `useCreateTask.onSuccess`** — Emit `TASK.CREATED` with `task_id`, `title`, `related_type`, `related_id`, `assigned_to`, `due_at`.
 
-**2. `useUpdateCommunicationTemplate.onSuccess`** — Emit `TEMPLATE.UPDATED` with `template_id`, `changed_fields` (keys of update payload).
+**2. `useUpdateTask.onSuccess`** — Emit `TASK.UPDATED` with `task_id`, `changed_fields`. Additionally, if `assigned_to` changed (present in update payload), also emit `TASK.ASSIGNED` with `task_id`, `assigned_to`.
 
-**3. `useUpdateCommunicationTemplate` — when `isActive` changes** — Also emit `TEMPLATE.PUBLISHED` (when toggled to active) with `template_id`, `channel`.
+**3. `useToggleTaskStatus.onSuccess`** — Emit `TASK.COMPLETED` (when new status is `done`) or `TASK.REOPENED` (when toggled back to `pending`), with `task_id`, `previous_status`, `new_status`.
 
-**4. `useGenerateTemplate.onSuccess`** — Emit `TEMPLATE.CREATED` with `source: 'ai_generation'`, `type`, `tone`.
+All events use `emitKernelEvent` with `source_module: 'core-productivity'`.
 
-All events use `emitKernelEvent` with `source_module: 'comm-templates'`.
+### B) Observability — Structured Logging
 
-### B) Observability — AI Generation Logging
-
-In `useGenerateTemplate`:
-- `console.log('[COMM-TEMPLATE] AI_GENERATED type=X tone=Y')` on success
-- `console.warn('[COMM-TEMPLATE] AI_GENERATION_FAILED error=X')` on error
-
-In `useCreateCommunicationTemplate` and `useUpdateCommunicationTemplate`:
-- `console.log('[COMM-TEMPLATE] CREATED id=X channel=Y')` / `UPDATED` on success
+In each mutation's `onSuccess`/`onError`:
+- `console.log('[TASK] CREATED id=X title=Y')`, `[TASK] COMPLETED`, `[TASK] ASSIGNED`
+- `console.warn('[TASK] CREATE_FAILED error=X')` on errors
 
 ### C) Smoke Test
 
-Add `comm-templates` check to `system-run-smoke-tests`:
-- `communication_templates_query`: count `communication_templates` for workspace
-- `template_usage_logs_query`: count `template_usage_logs` for workspace
+Add to `system-run-smoke-tests`:
+- `core-productivity`: query `tasks` table count for workspace.
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useCommunicationTemplates.ts` | Import `emitKernelEvent`; emit `TEMPLATE.CREATED` in create, `TEMPLATE.UPDATED` + `TEMPLATE.PUBLISHED` in update; add structured logging |
-| `src/hooks/useGenerateTemplate.ts` | Import `emitKernelEvent`; emit `TEMPLATE.CREATED` with `source: 'ai_generation'`; add structured logging |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `communication_templates` and `template_usage_logs` table checks |
+| `src/hooks/useTasks.ts` | Import `emitKernelEvent`; emit `TASK.CREATED` in create, `TASK.UPDATED`+`TASK.ASSIGNED` in update, `TASK.COMPLETED`/`TASK.REOPENED` in toggle; add structured logging |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add `tasks` table check |
 
