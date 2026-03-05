@@ -108,6 +108,8 @@ Deno.serve(async (req) => {
       // Comm Templates
       runCheck(supabase, workspace_id, "comm-templates", "communication_templates_query", "communication_templates"),
       runCheck(supabase, workspace_id, "comm-templates-usage", "template_usage_logs_query", "template_usage_logs"),
+      // Core Productivity
+      runCheck(supabase, workspace_id, "core-productivity", "tasks_query", "tasks"),
       // AI Conversational
       aiConversationalCheck(),
     ]);
