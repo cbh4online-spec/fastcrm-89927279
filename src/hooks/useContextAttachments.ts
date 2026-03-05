@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface ContextBlockAttachment {
   id: string;
@@ -57,8 +58,22 @@ export function useAddUrlAttachment() {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["context-attachments", vars.blockId] });
       toast.success("Link adicionado");
+      console.log(`[FILES] URL attachment added: ${vars.name}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'FILE.UPLOADED',
+          entity_kind: 'context_attachment',
+          entity_id: vars.blockId,
+          source_module: 'core-files',
+          payload: { attachment_type: 'url', block_id: vars.blockId, name: vars.name },
+        });
+      }
     },
-    onError: (err: Error) => toast.error("Erro: " + err.message),
+    onError: (err: Error) => {
+      toast.error("Erro: " + err.message);
+      console.warn('[FILES] URL_ATTACH_FAILED:', err.message);
+    },
   });
 }
 
@@ -97,13 +112,28 @@ export function useUploadFileAttachment() {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["context-attachments", vars.blockId] });
       toast.success("Ficheiro carregado");
+      console.log(`[FILES] File attachment uploaded: ${vars.file.name}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'FILE.UPLOADED',
+          entity_kind: 'context_attachment',
+          entity_id: vars.blockId,
+          source_module: 'core-files',
+          payload: { attachment_type: 'file', block_id: vars.blockId, file_name: vars.file.name, file_size: vars.file.size },
+        });
+      }
     },
-    onError: (err: Error) => toast.error("Erro ao carregar: " + err.message),
+    onError: (err: Error) => {
+      toast.error("Erro ao carregar: " + err.message);
+      console.warn('[FILES] FILE_ATTACH_FAILED:', err.message);
+    },
   });
 }
 
 export function useDeleteAttachment() {
   const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
 
   return useMutation({
     mutationFn: async ({ attachmentId, blockId }: { attachmentId: string; blockId: string }) => {
@@ -114,10 +144,22 @@ export function useDeleteAttachment() {
       if (error) throw error;
       return blockId;
     },
-    onSuccess: (blockId) => {
+    onSuccess: (blockId, vars) => {
       queryClient.invalidateQueries({ queryKey: ["context-attachments", blockId] });
       toast.success("Anexo removido");
+      console.log(`[FILES] Attachment deleted: ${vars.attachmentId}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace?.id || '',
+        type: 'FILE.DELETED',
+        entity_kind: 'context_attachment',
+        entity_id: vars.attachmentId,
+        source_module: 'core-files',
+        payload: { block_id: blockId },
+      });
     },
-    onError: (err: Error) => toast.error("Erro: " + err.message),
+    onError: (err: Error) => {
+      toast.error("Erro: " + err.message);
+      console.warn('[FILES] ATTACH_DELETE_FAILED:', err.message);
+    },
   });
 }

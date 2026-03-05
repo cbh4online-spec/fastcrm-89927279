@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { FileText, Upload, Trash2, Download, Plus, File, Calendar, FolderPlus, Folder, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { emitKernelEvent } from '@/lib/kernelEmitter';
 
 const DOCUMENT_TYPES = [
   'Contrato', 'Proposta', 'Fatura', 'Relatório', 'Certificado',
@@ -95,11 +96,25 @@ function useEntityDocuments(entityType: string, entityId: string) {
         });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey });
       toast.success('Documento carregado com sucesso');
+      console.log(`[FILES] Entity document uploaded: ${variables.file.name}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'FILE.UPLOADED',
+          entity_kind: 'entity_document',
+          entity_id: entityId,
+          source_module: 'core-files',
+          payload: { entity_type: entityType, entity_id: entityId, document_type: variables.documentType, file_name: variables.file.name, file_size: variables.file.size, folder: variables.folder || null },
+        });
+      }
     },
-    onError: () => toast.error('Erro ao carregar documento'),
+    onError: (err) => {
+      toast.error('Erro ao carregar documento');
+      console.warn('[FILES] UPLOAD_FAILED:', (err as Error).message);
+    },
   });
 
   const remove = useMutation({
@@ -114,11 +129,25 @@ function useEntityDocuments(entityType: string, entityId: string) {
         .eq('id', doc.id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, doc) => {
       queryClient.invalidateQueries({ queryKey });
       toast.success('Documento eliminado');
+      console.log(`[FILES] Entity document deleted: ${doc.id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'FILE.DELETED',
+          entity_kind: 'entity_document',
+          entity_id: doc.id,
+          source_module: 'core-files',
+          payload: { entity_type: entityType, file_name: doc.file_name },
+        });
+      }
     },
-    onError: () => toast.error('Erro ao eliminar documento'),
+    onError: (err) => {
+      toast.error('Erro ao eliminar documento');
+      console.warn('[FILES] DELETE_FAILED:', (err as Error).message);
+    },
   });
 
   const moveToFolder = useMutation({
@@ -129,11 +158,25 @@ function useEntityDocuments(entityType: string, entityId: string) {
         .eq('id', docId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey });
       toast.success('Ficheiro movido');
+      console.log(`[FILES] Entity document moved: ${variables.docId} → ${variables.folder || 'root'}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'FILE.MOVED',
+          entity_kind: 'entity_document',
+          entity_id: variables.docId,
+          source_module: 'core-files',
+          payload: { folder: variables.folder },
+        });
+      }
     },
-    onError: () => toast.error('Erro ao mover ficheiro'),
+    onError: (err) => {
+      toast.error('Erro ao mover ficheiro');
+      console.warn('[FILES] MOVE_FAILED:', (err as Error).message);
+    },
   });
 
   return { documents: query.data || [], isLoading: query.isLoading, upload, remove, moveToFolder };

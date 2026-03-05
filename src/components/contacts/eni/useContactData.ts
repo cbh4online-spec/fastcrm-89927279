@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 import { ContactDocument, ContactProduct } from "./ENIContactTypes";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 // Documents Hook
 export function useContactDocuments(contactId: string | undefined) {
@@ -68,12 +69,24 @@ export function useContactDocuments(contactId: string | undefined) {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["contact-documents", contactId] });
       toast.success("Documento carregado com sucesso");
+      console.log(`[FILES] Contact document uploaded: ${variables.file.name}`);
+      if (currentWorkspace?.id && contactId) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'FILE.UPLOADED',
+          entity_kind: 'contact_document',
+          entity_id: data.id,
+          source_module: 'core-files',
+          payload: { contact_id: contactId, document_type: variables.documentType, file_name: variables.file.name, file_size: variables.file.size },
+        });
+      }
     },
-    onError: () => {
+    onError: (err) => {
       toast.error("Erro ao carregar documento");
+      console.warn('[FILES] UPLOAD_FAILED:', (err as Error).message);
     },
   });
 
@@ -94,12 +107,24 @@ export function useContactDocuments(contactId: string | undefined) {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, documentId) => {
       queryClient.invalidateQueries({ queryKey: ["contact-documents", contactId] });
       toast.success("Documento eliminado");
+      console.log(`[FILES] Contact document deleted: ${documentId}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'FILE.DELETED',
+          entity_kind: 'contact_document',
+          entity_id: documentId,
+          source_module: 'core-files',
+          payload: { contact_id: contactId },
+        });
+      }
     },
-    onError: () => {
+    onError: (err) => {
       toast.error("Erro ao eliminar documento");
+      console.warn('[FILES] DELETE_FAILED:', (err as Error).message);
     },
   });
 
