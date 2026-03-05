@@ -3,6 +3,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface CompanyContext {
   about_us?: string;
@@ -185,12 +186,28 @@ export function useCompanies() {
       }
       return company;
     },
-    onSuccess: () => {
+    onSuccess: (company, variables) => {
       queryClient.invalidateQueries({ queryKey: ["companies", currentWorkspace?.id] });
       toast.success("Empresa criada com sucesso");
+      console.log(`[COMPANIES] Company created: ${company.id}`);
+      if (currentWorkspace) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'COMPANY.CREATED',
+          entity_kind: 'company',
+          entity_id: company.id,
+          source_module: 'crm-companies',
+          payload: {
+            has_email: !!variables.email,
+            has_tax_id: !!variables.tax_id,
+            has_website: !!variables.website,
+            entity_type: variables.entity_type || 'company',
+          },
+        });
+      }
     },
     onError: (error) => {
-      console.error("Error creating company:", error);
+      console.warn('[COMPANIES] CREATE_FAILED', error.message);
       if (error.message === "DUPLICATE_EMAIL") {
         toast.error("Já existe uma empresa com este email neste workspace.");
       } else if (error.message === "DUPLICATE_TAX_ID") {
@@ -259,11 +276,24 @@ export function useCompanies() {
       }
       return company;
     },
-    onSuccess: () => {
+    onSuccess: (company, variables) => {
       queryClient.invalidateQueries({ queryKey: ["companies", currentWorkspace?.id] });
+      const { id, ...changed } = variables;
+      const fieldsChanged = Object.keys(changed);
+      console.log(`[COMPANIES] Company updated: ${id}, fields: ${fieldsChanged.join(', ')}`);
+      if (currentWorkspace) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'COMPANY.UPDATED',
+          entity_kind: 'company',
+          entity_id: id,
+          source_module: 'crm-companies',
+          payload: { fields_changed: fieldsChanged },
+        });
+      }
     },
     onError: (error) => {
-      console.error("Error updating company:", error);
+      console.warn('[COMPANIES] UPDATE_FAILED', error.message);
       if (error.message === "DUPLICATE_EMAIL") {
         toast.error("Já existe uma empresa com este email neste workspace.");
       } else if (error.message === "DUPLICATE_TAX_ID") {
@@ -285,12 +315,23 @@ export function useCompanies() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["companies", currentWorkspace?.id] });
       toast.success("Empresa arquivada com sucesso");
+      console.log(`[COMPANIES] Company deleted (soft): ${id}`);
+      if (currentWorkspace) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'COMPANY.DELETED',
+          entity_kind: 'company',
+          entity_id: id,
+          source_module: 'crm-companies',
+          payload: { soft_delete: true },
+        });
+      }
     },
     onError: (error) => {
-      console.error("Error archiving company:", error);
+      console.warn('[COMPANIES] DELETE_FAILED', error.message);
       toast.error("Erro ao arquivar empresa");
     },
   });
@@ -304,11 +345,22 @@ export function useCompanies() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["companies", currentWorkspace?.id] });
       toast.success("Empresa restaurada com sucesso");
+      console.log(`[COMPANIES] Company restored: ${id}`);
+      if (currentWorkspace) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'COMPANY.RESTORED',
+          entity_kind: 'company',
+          entity_id: id,
+          source_module: 'crm-companies',
+        });
+      }
     },
-    onError: () => {
+    onError: (error) => {
+      console.warn('[COMPANIES] RESTORE_FAILED', (error as Error).message);
       toast.error("Erro ao restaurar empresa");
     },
   });

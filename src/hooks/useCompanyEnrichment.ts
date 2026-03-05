@@ -50,7 +50,7 @@ export function useCompanyEnrichment() {
       });
 
       if (error) {
-        console.error("Enrichment error:", error);
+        console.error("[COMPANIES] Enrichment error:", error);
         throw new Error(error.message || "Erro ao enriquecer dados");
       }
 
@@ -60,8 +60,13 @@ export function useCompanyEnrichment() {
 
       return data.data;
     },
+    onSuccess: (result) => {
+      const fieldsFound = result ? Object.keys(result) : [];
+      const hasSocialLinks = !!(result?.socialLinks);
+      console.log(`[COMPANIES] Company enriched: fields=${fieldsFound.join(', ')}, social=${hasSocialLinks}`);
+    },
     onError: (error) => {
-      console.error("Enrichment failed:", error);
+      console.warn('[COMPANIES] ENRICH_FAILED', error.message);
       toast.error(error.message || "Não foi possível enriquecer os dados");
     },
   });
@@ -75,7 +80,7 @@ export function useCompanyInsights() {
       });
 
       if (error) {
-        console.error("Insights error:", error);
+        console.error("[COMPANIES] Insights error:", error);
         throw new Error(error.message || "Erro ao gerar insights");
       }
 
@@ -85,8 +90,11 @@ export function useCompanyInsights() {
 
       return data.data;
     },
+    onSuccess: (_, companyId) => {
+      console.log(`[COMPANIES] Insights generated: company=${companyId}`);
+    },
     onError: (error) => {
-      console.error("Insights failed:", error);
+      console.warn('[COMPANIES] INSIGHTS_FAILED', error.message);
     },
   });
 }
