@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { toast } from 'sonner';
+import { emitKernelEvent } from '@/lib/kernelEmitter';
 
 export function useKernelDecisions() {
   const { currentWorkspace } = useWorkspace();
@@ -37,10 +38,25 @@ export function useKernelDecisions() {
         .update({ status: 'accepted', resolved_at: new Date().toISOString() })
         .eq('id', decisionId);
       if (error) throw error;
+      return decisionId;
     },
-    onSuccess: () => {
+    onSuccess: (decisionId) => {
       queryClient.invalidateQueries({ queryKey: ['kernel-decisions'] });
       toast.success('Decisão aceite');
+      console.log('[STRATEGY] DECISION_APPROVED', { id: decisionId });
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'DECISION.APPROVED',
+          entity_kind: 'kernel_decision',
+          entity_id: decisionId,
+          source_module: 'strategy-command-center',
+          payload: { decision_id: decisionId },
+        });
+      }
+    },
+    onError: (error) => {
+      console.warn('[STRATEGY] APPROVE_FAILED', { error: (error as Error).message });
     },
   });
 
@@ -51,10 +67,25 @@ export function useKernelDecisions() {
         .update({ status: 'rejected', resolved_at: new Date().toISOString() })
         .eq('id', decisionId);
       if (error) throw error;
+      return decisionId;
     },
-    onSuccess: () => {
+    onSuccess: (decisionId) => {
       queryClient.invalidateQueries({ queryKey: ['kernel-decisions'] });
       toast.success('Decisão rejeitada');
+      console.log('[STRATEGY] DECISION_REJECTED', { id: decisionId });
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'DECISION.REJECTED',
+          entity_kind: 'kernel_decision',
+          entity_id: decisionId,
+          source_module: 'strategy-command-center',
+          payload: { decision_id: decisionId },
+        });
+      }
+    },
+    onError: (error) => {
+      console.warn('[STRATEGY] REJECT_FAILED', { error: (error as Error).message });
     },
   });
 
@@ -79,11 +110,26 @@ export function useKernelDecisions() {
         body: { workspace_id: workspaceId, decision_id: decisionId },
       });
       if (error) throw error;
+      return decisionId;
     },
-    onSuccess: () => {
+    onSuccess: (decisionId) => {
       queryClient.invalidateQueries({ queryKey: ['kernel-decisions'] });
       queryClient.invalidateQueries({ queryKey: ['kernel-action-runs'] });
       toast.success('Ações executadas');
+      console.log('[STRATEGY] ACTION_EXECUTED', { decision_id: decisionId });
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'ACTION.EXECUTED',
+          entity_kind: 'kernel_decision',
+          entity_id: decisionId,
+          source_module: 'strategy-command-center',
+          payload: { decision_id: decisionId },
+        });
+      }
+    },
+    onError: (error) => {
+      console.warn('[STRATEGY] EXECUTE_FAILED', { error: (error as Error).message });
     },
   });
 
