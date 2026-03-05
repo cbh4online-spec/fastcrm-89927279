@@ -3,6 +3,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface Contact {
   id: string;
@@ -163,12 +164,28 @@ export function useContacts() {
       }
       return contact;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
+      console.log(`[CONTACTS] Contact created: ${data.id}`);
+      if (currentWorkspace) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CONTACT.CREATED',
+          entity_kind: 'contact',
+          entity_id: data.id,
+          source_module: 'crm-contacts',
+          payload: {
+            has_email: !!variables.email,
+            has_company: !!variables.company_id,
+            has_tax_id: !!variables.tax_id,
+            auto_linked_company: !variables.company_id && !!data.company_id,
+          },
+        });
+      }
       toast.success("Contacto criado com sucesso");
     },
     onError: (error) => {
-      console.error("Error creating contact:", error);
+      console.warn('[CONTACTS] CREATE_FAILED', error.message);
       if (error.message === "DUPLICATE_EMAIL") {
         toast.error("Já existe um contacto com este email neste workspace.");
       } else if (error.message === "DUPLICATE_TAX_ID") {
@@ -212,12 +229,24 @@ export function useContacts() {
       }
       return contact;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
+      const { id, ...changedFields } = variables;
+      console.log(`[CONTACTS] Contact updated: ${id}, fields: ${Object.keys(changedFields).join(', ')}`);
+      if (currentWorkspace) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CONTACT.UPDATED',
+          entity_kind: 'contact',
+          entity_id: id,
+          source_module: 'crm-contacts',
+          payload: { fields_changed: Object.keys(changedFields) },
+        });
+      }
       toast.success("Contacto atualizado com sucesso");
     },
     onError: (error) => {
-      console.error("Error updating contact:", error);
+      console.warn('[CONTACTS] UPDATE_FAILED', error.message);
       if (error.message === "DUPLICATE_EMAIL") {
         toast.error("Já existe um contacto com este email neste workspace.");
       } else if (error.message === "DUPLICATE_TAX_ID") {
@@ -240,11 +269,21 @@ export function useContacts() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
+      console.log(`[CONTACTS] Contact soft-deleted: ${id}`);
+      if (currentWorkspace) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CONTACT.DELETED',
+          entity_kind: 'contact',
+          entity_id: id,
+          source_module: 'crm-contacts',
+        });
+      }
     },
     onError: (error) => {
-      console.error("Error deleting contact:", error);
+      console.warn('[CONTACTS] DELETE_FAILED', error.message);
       toast.error("Erro ao eliminar contacto");
     },
   });
@@ -258,11 +297,24 @@ export function useContacts() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
+      console.log(`[CONTACTS] Contact restored: ${id}`);
+      if (currentWorkspace) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CONTACT.RESTORED',
+          entity_kind: 'contact',
+          entity_id: id,
+          source_module: 'crm-contacts',
+        });
+      }
       toast.success("Contacto restaurado");
     },
-    onError: () => toast.error("Erro ao restaurar contacto"),
+    onError: (error) => {
+      console.warn('[CONTACTS] RESTORE_FAILED', error.message);
+      toast.error("Erro ao restaurar contacto");
+    },
   });
 
   const deleteContacts = useMutation({
@@ -275,11 +327,22 @@ export function useContacts() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, ids) => {
       queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
+      console.log(`[CONTACTS] Bulk deleted: ${ids.length} contacts`);
+      if (currentWorkspace) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CONTACT.BULK_DELETED',
+          entity_kind: 'contact',
+          entity_id: ids[0],
+          source_module: 'crm-contacts',
+          payload: { count: ids.length },
+        });
+      }
     },
     onError: (error) => {
-      console.error("Error deleting contacts:", error);
+      console.warn('[CONTACTS] BULK_DELETE_FAILED', error.message);
       toast.error("Erro ao eliminar contactos");
     },
   });
@@ -324,12 +387,23 @@ export function useContacts() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["smart-contacts"] });
+      console.log(`[CONTACTS] Bulk updated: ${variables.ids.length} contacts, fields: ${Object.keys(variables.changes).join(', ')}`);
+      if (currentWorkspace) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CONTACT.BULK_UPDATED',
+          entity_kind: 'contact',
+          entity_id: variables.ids[0],
+          source_module: 'crm-contacts',
+          payload: { count: variables.ids.length, fields_changed: Object.keys(variables.changes) },
+        });
+      }
     },
     onError: (error) => {
-      console.error("Error bulk updating contacts:", error);
+      console.warn('[CONTACTS] BULK_UPDATE_FAILED', error.message);
       toast.error("Erro ao atualizar contactos em massa");
     },
   });
