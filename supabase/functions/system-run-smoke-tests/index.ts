@@ -167,6 +167,9 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "core-custom-fields", "custom_fields_query", "custom_fields"),
       runCheck(supabase, workspace_id, "core-custom-fields", "custom_field_values_query", "custom_field_values"),
       runCheck(supabase, workspace_id, "core-custom-fields", "core_object_fields_query", "core_object_fields"),
+      // Core Dashboard
+      runCheck(supabase, workspace_id, "core-dashboard", "report_dashboards_query", "report_dashboards"),
+      runCheck(supabase, workspace_id, "core-dashboard", "report_widgets_query", "report_widgets"),
       // AI Conversational
       aiConversationalCheck(),
     ]);
