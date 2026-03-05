@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import {
   Dialog,
   DialogContent,
@@ -87,13 +88,24 @@ export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDia
       return data;
     },
     onSuccess: (data) => {
+      const workspaceId = data as string;
       queryClient.invalidateQueries({ queryKey: ["super-admin-workspaces"] });
       toast.success(`Workspace "${name}" criado com sucesso`);
+
+      console.log(`[WORKSPACES] Admin created workspace: ${workspaceId}`);
+      emitKernelEvent({
+        workspace_id: workspaceId || 'unknown',
+        type: 'WORKSPACE.CREATED',
+        entity_kind: 'workspace',
+        entity_id: workspaceId || 'unknown',
+        source_module: 'admin-workspaces',
+        payload: { name, slug, plan, owner_email: selectedOwner?.email },
+      });
 
       supabase.rpc("log_admin_action", {
         p_action_type: "workspace_created",
         p_target_type: "workspace",
-        p_target_id: data as string || null,
+        p_target_id: workspaceId || null,
         p_details: { name, slug, plan, owner_email: selectedOwner?.email },
       });
 
@@ -101,6 +113,7 @@ export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDia
       onOpenChange(false);
     },
     onError: (error: any) => {
+      console.warn('[WORKSPACES] ADMIN_CREATE_FAILED', error.message);
       toast.error("Erro ao criar workspace: " + error.message);
     },
   });
