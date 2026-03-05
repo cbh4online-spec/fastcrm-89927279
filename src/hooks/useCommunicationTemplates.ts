@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { emitKernelEvent } from '@/lib/kernelEmitter';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   CommunicationTemplate, 
@@ -167,13 +168,24 @@ export function useCreateCommunicationTemplate() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['communication-templates'] });
       toast.success('Template criado com sucesso');
+      console.log('[COMM-TEMPLATE] CREATED', { id: data.id, channel: variables.channel });
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'TEMPLATE.CREATED',
+          entity_kind: 'communication_template',
+          entity_id: data.id,
+          source_module: 'comm-templates',
+          payload: { channel: variables.channel, name: variables.name, tone: variables.tone },
+        });
+      }
     },
     onError: (error) => {
       toast.error('Erro ao criar template');
-      console.error(error);
+      console.error('[COMM-TEMPLATE] CREATE_FAILED', error);
     }
   });
 }
@@ -215,13 +227,38 @@ export function useUpdateCommunicationTemplate() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['communication-templates'] });
       toast.success('Template atualizado');
+      const { id, ...updates } = variables;
+      const changedFields = Object.keys(updates);
+      console.log('[COMM-TEMPLATE] UPDATED', { id, changed_fields: changedFields });
+      const wsId = data.workspace_id;
+      if (wsId) {
+        emitKernelEvent({
+          workspace_id: wsId,
+          type: 'TEMPLATE.UPDATED',
+          entity_kind: 'communication_template',
+          entity_id: id,
+          source_module: 'comm-templates',
+          payload: { changed_fields: changedFields },
+        });
+        if (updates.isActive === true) {
+          console.log('[COMM-TEMPLATE] PUBLISHED', { id, channel: data.channel });
+          emitKernelEvent({
+            workspace_id: wsId,
+            type: 'TEMPLATE.PUBLISHED',
+            entity_kind: 'communication_template',
+            entity_id: id,
+            source_module: 'comm-templates',
+            payload: { channel: data.channel },
+          });
+        }
+      }
     },
     onError: (error) => {
       toast.error('Erro ao atualizar template');
-      console.error(error);
+      console.error('[COMM-TEMPLATE] UPDATE_FAILED', error);
     }
   });
 }
