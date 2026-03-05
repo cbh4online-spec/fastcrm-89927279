@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export type TaskStatus = "pending" | "done";
 export type TaskRelatedType = "lead" | "contact" | "company" | "opportunity";
@@ -126,8 +127,22 @@ export function useCreateTask() {
       if (error) throw error;
       return data as Task;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["tasks", currentWorkspace?.id] });
+      console.log('[TASK] CREATED', { id: data.id, title: data.title });
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'TASK.CREATED',
+          entity_kind: 'task',
+          entity_id: data.id,
+          source_module: 'core-productivity',
+          payload: { title: data.title, related_type: data.related_type, related_id: data.related_id, assigned_to: data.assigned_to, due_at: data.due_at },
+        });
+      }
+    },
+    onError: (error) => {
+      console.warn('[TASK] CREATE_FAILED', { error: (error as Error).message });
     },
   });
 }
@@ -151,9 +166,36 @@ export function useUpdateTask() {
       if (error) throw error;
       return data as Task;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tasks", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["task", data.id] });
+      const { id, ...updates } = variables;
+      const changedFields = Object.keys(updates);
+      console.log('[TASK] UPDATED', { id: data.id, changed_fields: changedFields });
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'TASK.UPDATED',
+          entity_kind: 'task',
+          entity_id: data.id,
+          source_module: 'core-productivity',
+          payload: { changed_fields: changedFields },
+        });
+        if ('assigned_to' in updates) {
+          console.log('[TASK] ASSIGNED', { id: data.id, assigned_to: data.assigned_to });
+          emitKernelEvent({
+            workspace_id: currentWorkspace.id,
+            type: 'TASK.ASSIGNED',
+            entity_kind: 'task',
+            entity_id: data.id,
+            source_module: 'core-productivity',
+            payload: { assigned_to: data.assigned_to },
+          });
+        }
+      }
+    },
+    onError: (error) => {
+      console.warn('[TASK] UPDATE_FAILED', { error: (error as Error).message });
     },
   });
 }
@@ -193,8 +235,21 @@ export function useToggleTaskStatus() {
       if (error) throw error;
       return data as Task;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tasks", currentWorkspace?.id] });
+      const newStatus = data.status;
+      const eventType = newStatus === 'done' ? 'TASK.COMPLETED' : 'TASK.REOPENED';
+      console.log(`[TASK] ${newStatus === 'done' ? 'COMPLETED' : 'REOPENED'}`, { id: data.id });
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: eventType,
+          entity_kind: 'task',
+          entity_id: data.id,
+          source_module: 'core-productivity',
+          payload: { previous_status: variables.currentStatus, new_status: newStatus },
+        });
+      }
     },
   });
 }
