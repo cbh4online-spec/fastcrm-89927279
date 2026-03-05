@@ -1,65 +1,66 @@
 
 
-# Core Custom Fields — Kernel V2 Stabilization
+# Core Imports — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | File | Mutations | Kernel Events | Logging |
 |------|------|-----------|---------------|---------|
-| Custom Fields CRUD | `useCustomFields.ts` | create/update/delete/reorder | None | `console.error` + debug logs |
-| Custom Field Values | `useCustomFields.ts` | set value (upsert) | None | `console.error` only |
-| Core Object Fields | `useCoreObjectFields.ts` | create/update/delete | None | None (toast only) |
-| AI Suggestions | `useFieldSuggestions.ts` | generate/accept/reject/dismiss | None | None |
-| Smoke Tests | `system-run-smoke-tests` | — | — | No `custom_fields` or `custom_field_values` checks |
+| Import History CRUD | `useImportHistory.ts` | create/update record | None | `console.error` only |
+| Smart Import Wizard | `SmartImportWizard.tsx` | parse file, process rows, create custom fields | None | `console.error`/`console.warn` |
+| Legacy Import Wizard | `ImportWizard.tsx` | parse file, process rows | None | `console.error` only |
+| Supplier Import Parse | `supplier-import-parse/index.ts` | parse uploaded file | None | None |
+| Supplier Import Commit | `supplier-import-commit/index.ts` | commit matched rows | None | None |
+| Smoke Tests | `system-run-smoke-tests` | — | — | No `import_history` check |
 
 ## Implementation Plan
 
-### A) Kernel Events — `src/hooks/useCustomFields.ts`
+### A) Kernel Events — `src/hooks/useImportHistory.ts`
 
-Import `emitKernelEvent`. All events: `source_module: 'core-custom-fields'`, `entity_kind: 'custom_field'`.
+Import `emitKernelEvent` + use workspace from context. All events: `source_module: 'core-imports'`, `entity_kind: 'import'`.
 
-1. `useCreateCustomField.onSuccess` → `CUSTOM_FIELD.CREATED` (payload: `name`, `field_type`, `entity_type`, `is_unique`, `required`)
-2. `useUpdateCustomField.onSuccess` → `CUSTOM_FIELD.UPDATED` (payload: updated keys)
-3. `useDeleteCustomField.onSuccess` → `CUSTOM_FIELD.DELETED`
-4. `useReorderCustomFields.onSuccess` → `CUSTOM_FIELD.REORDERED` (payload: `count`)
-5. `useSetCustomFieldValue.onSuccess` → `CUSTOM_FIELD.VALUE_SET` (entity_kind: `custom_field_value`, payload: `custom_field_id`, `origin`)
-6. All errors → `console.warn('[CUSTOM-FIELDS] ..._FAILED')`
+1. `useCreateImportRecord.onSuccess` → `IMPORT.STARTED` (payload: `import_type`, `file_name`, `total_rows`, `conflict_policy`)
+2. `useUpdateImportRecord.onSuccess` with `status === 'complete'` → `IMPORT.COMPLETED` (payload: `success_count`, `error_count`, `skip_count`)
+3. `useUpdateImportRecord.onSuccess` with `status === 'error'` → `IMPORT.FAILED` (payload: `error_count`)
+4. All errors → `console.warn('[IMPORTS] ..._FAILED')`
 
-### B) Kernel Events — `src/hooks/useCoreObjectFields.ts`
+### B) Observability — `src/components/imports/SmartImportWizard.tsx`
 
-Import `emitKernelEvent`. All events: `source_module: 'core-custom-fields'`, `entity_kind: 'core_object_field'`.
+Add `[IMPORTS]` prefixed logging:
+1. Parse complete: `[IMPORTS] File parsed: ${file.name}, ${rows.length} rows, ${headers.length} columns`
+2. Import start: `[IMPORTS] Import started: ${importType}, ${rows.length} rows`
+3. Import complete: `[IMPORTS] Import complete: ${result.success} success, ${result.errors} errors, ${result.skipped} skipped`
+4. Row-level failure summary at end: `[IMPORTS] Row failures summary: ${errorDetails.length} errors` (log first 10 error details)
+5. Custom field creation: `[IMPORTS] Custom field created: ${label}`
 
-1. `useCreateObjectField.onSuccess` → `CUSTOM_FIELD.CREATED` (payload: `name`, `slug`, `field_type`)
-2. `useUpdateObjectField.onSuccess` → `CUSTOM_FIELD.UPDATED`
-3. `useDeleteObjectField.onSuccess` → `CUSTOM_FIELD.DELETED`
-4. All errors → `console.warn('[CUSTOM-FIELDS] ..._FAILED')`
+### C) Observability — Edge Functions
 
-### C) Kernel Events — `src/hooks/useFieldSuggestions.ts`
+**`supplier-import-parse/index.ts`:**
+1. `[IMPORTS] Parsing file for import: ${import_id}`
+2. `[IMPORTS] Parse complete: ${totalRows} rows, ${columns.length} columns`
+3. `[IMPORTS] PARSE_FAILED: ${error}`
 
-Import `emitKernelEvent`. Events: `source_module: 'core-custom-fields'`.
+**`supplier-import-commit/index.ts`:**
+1. `[IMPORTS] Committing import: ${import_id}, ${allRows.length} matched rows`
+2. `[IMPORTS] Commit complete: ${created} created, ${updated} updated, ${errors} errors`
+3. `[IMPORTS] COMMIT_FAILED: ${error}`
 
-1. `useGenerateFieldSuggestions.onSuccess` → `CUSTOM_FIELD.AI_SUGGESTIONS_GENERATED` (entity_kind: entity's type, payload: `suggestion_count`)
-2. `useAcceptSuggestion.onSuccess` → `CUSTOM_FIELD.AI_SUGGESTION_ACCEPTED` (payload: `field_name`, `field_type`, `confidence`)
-3. `useRejectSuggestion.onSuccess` → `CUSTOM_FIELD.AI_SUGGESTION_REJECTED`
-4. All errors → `console.warn('[CUSTOM-FIELDS] ..._FAILED')`
-
-### D) Observability
-
-All hooks get `[CUSTOM-FIELDS]` prefixed `console.log` on success, `console.warn` on error.
-
-### E) Smoke Tests
+### D) Smoke Tests
 
 Add to `system-run-smoke-tests`:
-- `custom_fields` table check
-- `custom_field_values` table check
-- `core_object_fields` table check
+- `import_history` table check
+
+### E) Observability — All Client Hooks
+
+All hooks get `[IMPORTS]` prefixed `console.log` on success, `console.warn` on error.
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useCustomFields.ts` | Import `emitKernelEvent`; emit events for all CRUD + value set; add `[CUSTOM-FIELDS]` logging |
-| `src/hooks/useCoreObjectFields.ts` | Import `emitKernelEvent`; emit events for field CRUD; add logging |
-| `src/hooks/useFieldSuggestions.ts` | Import `emitKernelEvent`; emit AI suggestion events; add logging |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `custom_fields`, `custom_field_values`, `core_object_fields` checks |
+| `src/hooks/useImportHistory.ts` | Import `emitKernelEvent`; emit `IMPORT.STARTED`/`COMPLETED`/`FAILED`; add `[IMPORTS]` logging |
+| `src/components/imports/SmartImportWizard.tsx` | Add `[IMPORTS]` structured logging for parse, import, and row-level failure summary |
+| `supabase/functions/supplier-import-parse/index.ts` | Add `[IMPORTS]` structured logging |
+| `supabase/functions/supplier-import-commit/index.ts` | Add `[IMPORTS]` structured logging |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add `import_history` check |
 
