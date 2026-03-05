@@ -139,6 +139,12 @@ Deno.serve(async (req) => {
       })(),
       runCheck(supabase, workspace_id, "admin-settings", "store_settings_query", "store_settings"),
       runCheck(supabase, workspace_id, "admin-settings", "client_notification_settings_query", "client_notification_settings"),
+      // Admin Integrations
+      runCheck(supabase, workspace_id, "admin-integrations", "stripe_config_query", "workspace_stripe_config"),
+      runCheck(supabase, workspace_id, "admin-integrations", "ghl_config_query", "workspace_ghl_config"),
+      runCheck(supabase, workspace_id, "admin-integrations", "whatsapp_connections_query", "whatsapp_connections"),
+      runCheck(supabase, workspace_id, "admin-integrations", "instagram_connections_query", "instagram_connections"),
+      runCheck(supabase, workspace_id, "admin-integrations", "email_connections_query", "email_connections"),
       // AI Conversational
       aiConversationalCheck(),
     ]);
