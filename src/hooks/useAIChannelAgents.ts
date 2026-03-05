@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { toast } from 'sonner';
+import { emitKernelEvent } from '@/lib/kernelEmitter';
 import type { 
   AIChannelAgent, 
   AgentChannel, 
@@ -156,6 +157,19 @@ export function useAIChannelAgents(): UseAIChannelAgentsReturn {
       const transformed = transformAgent(newAgent);
       setAgents(prev => [...prev, transformed]);
       toast.success('Agente criado com sucesso!');
+
+      // Kernel event: ASSISTANT.CREATED
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'ASSISTANT.CREATED',
+          entity_kind: 'ai_agent',
+          entity_id: transformed.id,
+          source_module: 'ai-assistants',
+          payload: { name: data.name, channel: data.channel },
+        });
+      }
+
       return transformed;
     } catch (err) {
       console.error('Error creating agent:', err);
@@ -190,6 +204,23 @@ export function useAIChannelAgents(): UseAIChannelAgentsReturn {
 
       await fetchAgents();
       toast.success('Agente atualizado!');
+
+      // Kernel event: ASSISTANT.UPDATED
+      const agent = agents.find(a => a.id === id);
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'ASSISTANT.UPDATED',
+          entity_kind: 'ai_agent',
+          entity_id: id,
+          source_module: 'ai-assistants',
+          payload: {
+            changed_fields: Object.keys(data),
+            channel: agent?.channel,
+          },
+        });
+      }
+
       return true;
     } catch (err) {
       console.error('Error updating agent:', err);
@@ -223,8 +254,23 @@ export function useAIChannelAgents(): UseAIChannelAgentsReturn {
     const agent = agents.find(a => a.id === id);
     if (!agent) return false;
 
-    return updateAgent(id, { isActive: !agent.isActive });
-  }, [agents, updateAgent]);
+    const newActive = !agent.isActive;
+    const result = await updateAgent(id, { isActive: newActive });
+
+    // Kernel event: ASSISTANT.TOGGLED
+    if (result && workspaceId) {
+      emitKernelEvent({
+        workspace_id: workspaceId,
+        type: 'ASSISTANT.TOGGLED',
+        entity_kind: 'ai_agent',
+        entity_id: id,
+        source_module: 'ai-assistants',
+        payload: { is_active: newActive, channel: agent.channel },
+      });
+    }
+
+    return result;
+  }, [agents, updateAgent, workspaceId]);
 
   // Get active agent for channel (from local state)
   const getActiveAgentForChannel = useCallback((channel: AgentChannel): AIChannelAgent | undefined => {

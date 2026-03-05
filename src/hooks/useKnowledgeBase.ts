@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { emitKernelEvent } from '@/lib/kernelEmitter';
 import type { 
   KnowledgeBase, 
   KnowledgeSource, 
@@ -635,6 +636,9 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
+      // Structured observability logging
+      console.log(`[AI-ASSISTANT] QUERY latency_ms=${result.responseTimeMs} confidence=${result.confidence} persona=${options?.personaId || 'none'} source=${result.responseSource}`);
+
       // Log usage
       await supabase.from('knowledge_usage_logs').insert({
         workspace_id: currentWorkspace.id,
@@ -649,7 +653,7 @@ export function useKnowledgeBase() {
 
       return result;
     } catch (error) {
-      console.error('Error querying knowledge:', error);
+      console.warn(`[AI-ASSISTANT] QUERY_FAILED error=${error instanceof Error ? error.message : 'Unknown'}`);
       return null;
     }
   };
@@ -722,6 +726,19 @@ export function useKnowledgeBase() {
 
       toast.success('Persona atualizada');
       await fetchPersonas();
+
+      // Kernel event: ASSISTANT.PERSONA_UPDATED
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'ASSISTANT.PERSONA_UPDATED',
+          entity_kind: 'ai_persona',
+          entity_id: personaId,
+          source_module: 'ai-assistants',
+          payload: { name: data.name, changed_fields: Object.keys(data) },
+        });
+      }
+
       return persona;
     } catch (error) {
       console.error('Error updating persona:', error);
