@@ -83,6 +83,7 @@ export function useAddProductComponent() {
       toast.success("Componente adicionado!");
     },
     onError: (error) => {
+      console.warn('[PRODUCTS] COMPONENT_ADD_FAILED', error.message);
       toast.error("Erro ao adicionar componente: " + error.message);
     },
   });
@@ -126,6 +127,7 @@ export function useUpdateProductComponent() {
       toast.success("Componente atualizado!");
     },
     onError: (error) => {
+      console.warn('[PRODUCTS] COMPONENT_UPDATE_FAILED', error.message);
       toast.error("Erro ao atualizar componente: " + error.message);
     },
   });
@@ -149,6 +151,7 @@ export function useRemoveProductComponent() {
       toast.success("Componente removido!");
     },
     onError: (error) => {
+      console.warn('[PRODUCTS] COMPONENT_REMOVE_FAILED', error.message);
       toast.error("Erro ao remover componente: " + error.message);
     },
   });

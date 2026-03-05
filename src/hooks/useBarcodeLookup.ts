@@ -41,7 +41,8 @@ export function useBarcodeLookup(workspaceId?: string) {
         const r = data as BarcodeLookupResult;
         setResult(r);
         return r;
-      } catch {
+      } catch (err) {
+        console.warn('[PRODUCTS] BARCODE_LOOKUP_FAILED', (err as Error).message);
         const fallback: BarcodeLookupResult = { found: false };
         setResult(fallback);
         return fallback;
@@ -61,7 +62,8 @@ export function useBarcodeLookup(workspaceId?: string) {
         );
         if (error) throw error;
         return data as ExternalLookupResult;
-      } catch {
+      } catch (err) {
+        console.warn('[PRODUCTS] BARCODE_EXTERNAL_FAILED', (err as Error).message);
         return { found: false };
       }
     },

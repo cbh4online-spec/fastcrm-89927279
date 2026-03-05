@@ -133,6 +133,7 @@ export function useCreateProductCategory() {
       toast.success("Categoria criada com sucesso!");
     },
     onError: (error) => {
+      console.warn('[PRODUCTS] CATEGORY_CREATE_FAILED', error.message);
       if (error.message.includes("duplicate")) {
         toast.error("Já existe uma categoria com este nome");
       } else if (error.message.includes("row-level security")) {
@@ -167,6 +168,7 @@ export function useUpdateProductCategory() {
       toast.success("Categoria atualizada com sucesso!");
     },
     onError: (error) => {
+      console.warn('[PRODUCTS] CATEGORY_UPDATE_FAILED', error.message);
       if (error.message.includes("duplicate")) {
         toast.error("Já existe uma categoria com este nome");
       } else {
@@ -193,6 +195,7 @@ export function useDeleteProductCategory() {
       toast.success("Categoria eliminada com sucesso!");
     },
     onError: (error) => {
+      console.warn('[PRODUCTS] CATEGORY_DELETE_FAILED', error.message);
       toast.error("Erro ao eliminar categoria: " + error.message);
     },
   });
@@ -220,6 +223,7 @@ export function useReorderProductCategories() {
       queryClient.invalidateQueries({ queryKey: ["product-categories"] });
     },
     onError: (error) => {
+      console.warn('[PRODUCTS] CATEGORY_REORDER_FAILED', error.message);
       toast.error("Erro ao reordenar categorias: " + error.message);
     },
   });
