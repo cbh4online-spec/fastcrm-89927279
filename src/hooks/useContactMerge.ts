@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import type { Contact } from "./useContacts";
 
 export interface MergeContactsInput {
@@ -17,6 +18,8 @@ export function useContactMerge() {
     mutationFn: async ({ primaryContactId, duplicateContactIds }: MergeContactsInput) => {
       if (!currentWorkspace) throw new Error("No workspace");
       if (duplicateContactIds.length === 0) throw new Error("No duplicates to merge");
+
+      console.log(`[CONTACTS] Merge started: primary=${primaryContactId}, duplicates=${duplicateContactIds.length}`);
 
       // Get primary contact data
       const { data: primaryContact, error: primaryError } = await supabase
@@ -61,16 +64,22 @@ export function useContactMerge() {
         "linkedin_url", "facebook_url", "instagram_url", "twitter_url"
       ] as const;
 
+      const fieldsEnriched: string[] = [];
       fieldsToMerge.forEach(field => {
         if (!primaryContact[field]) {
           for (const dup of duplicates || []) {
             if (dup[field]) {
               updateData[field] = dup[field];
+              fieldsEnriched.push(field);
               break;
             }
           }
         }
       });
+
+      if (fieldsEnriched.length > 0) {
+        console.log(`[CONTACTS] Merge field enrichment: ${fieldsEnriched.join(', ')}`);
+      }
 
       await supabase
         .from("contacts")
@@ -92,6 +101,7 @@ export function useContactMerge() {
       ]);
 
       await Promise.all(migrationPromises);
+      console.log(`[CONTACTS] Merge references migrated for ${duplicateContactIds.length} duplicate(s)`);
 
       // Delete duplicate contacts
       const { error: deleteError } = await supabase
@@ -104,16 +114,35 @@ export function useContactMerge() {
       return {
         primaryContact: primaryContact as Contact,
         mergedCount: duplicateContactIds.length,
+        fieldsEnriched,
+        tagsMergedCount: allTags.size - (primaryContact.tags || []).length,
       };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       queryClient.invalidateQueries({ queryKey: ["smart-contacts"] });
       queryClient.invalidateQueries({ queryKey: ["contact-duplicate-groups"] });
+      console.log(`[CONTACTS] Merge complete: ${result.mergedCount} contact(s) merged into ${result.primaryContact.id}`);
+      if (currentWorkspace) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CONTACT.MERGED',
+          entity_kind: 'contact',
+          entity_id: result.primaryContact.id,
+          source_module: 'crm-contacts',
+          payload: {
+            primary_id: result.primaryContact.id,
+            merged_count: result.mergedCount,
+            fields_enriched: result.fieldsEnriched,
+            tags_merged_count: result.tagsMergedCount,
+            references_migrated: true,
+          },
+        });
+      }
       toast.success(`${result.mergedCount} contacto(s) fundido(s) com ${result.primaryContact.name}`);
     },
-    onError: (error) => {
-      console.error("Error merging contacts:", error);
+    onError: (error, variables) => {
+      console.warn('[CONTACTS] MERGE_FAILED', { primaryContactId: variables.primaryContactId, duplicateCount: variables.duplicateContactIds.length, error: error.message });
       toast.error("Erro ao fundir contactos");
     },
   });
