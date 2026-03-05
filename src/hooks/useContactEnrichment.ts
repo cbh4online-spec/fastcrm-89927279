@@ -2,6 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface EnrichmentField {
   value: string;
@@ -50,7 +51,7 @@ export function useContactEnrichment() {
       });
 
       if (error) {
-        console.error("Enrichment error:", error);
+        console.warn("[ENRICHER] CONTACT_ENRICH_FAILED", error);
         throw new Error(error.message || "Erro ao enriquecer dados");
       }
 
@@ -58,10 +59,27 @@ export function useContactEnrichment() {
         throw new Error(data.error || "Erro ao enriquecer dados");
       }
 
-      return data.data;
+      const result = data.data;
+
+      // Emit enrichment completed event
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'LEAD.ENRICH_COMPLETED',
+        entity_kind: 'contact',
+        entity_id: input.email || input.phone || 'unknown',
+        source_module: 'crm-lead-enricher',
+        payload: {
+          fields_found: Object.keys(result || {}),
+          source: 'contact-enrich',
+        },
+      });
+
+      console.log('[ENRICHER] Contact enriched:', input.email || input.phone);
+
+      return result;
     },
     onError: (error) => {
-      console.error("Enrichment failed:", error);
+      console.warn("[ENRICHER] CONTACT_ENRICH_FAILED", error.message);
       toast.error(error.message || "Não foi possível enriquecer os dados");
     },
   });
@@ -78,7 +96,7 @@ export function useContactInsights(contactId: string | undefined) {
       });
 
       if (error) {
-        console.error("Insights error:", error);
+        console.warn("[ENRICHER] CONTACT_INSIGHTS_FAILED", error);
         throw new Error(error.message || "Erro ao obter insights");
       }
 
@@ -89,7 +107,7 @@ export function useContactInsights(contactId: string | undefined) {
       return data.data;
     },
     enabled: !!contactId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
     retry: 1,
   });
 }
@@ -102,7 +120,7 @@ export function useRefreshContactInsights() {
       });
 
       if (error) {
-        console.error("Insights error:", error);
+        console.warn("[ENRICHER] CONTACT_INSIGHTS_REFRESH_FAILED", error);
         throw new Error(error.message || "Erro ao obter insights");
       }
 
@@ -113,7 +131,7 @@ export function useRefreshContactInsights() {
       return data.data;
     },
     onError: (error) => {
-      console.error("Insights failed:", error);
+      console.warn("[ENRICHER] CONTACT_INSIGHTS_REFRESH_FAILED", error.message);
     },
   });
 }
@@ -134,7 +152,7 @@ export function useGenerateContactMessage() {
       });
 
       if (error) {
-        console.error("Message generation error:", error);
+        console.warn("[ENRICHER] CONTACT_MESSAGE_GENERATION_FAILED", error);
         throw new Error(error.message || "Erro ao gerar mensagem");
       }
 
@@ -145,7 +163,7 @@ export function useGenerateContactMessage() {
       return data.data?.personalizedMessage || "Olá! Como posso ajudá-lo hoje?";
     },
     onError: (error) => {
-      console.error("Message generation failed:", error);
+      console.warn("[ENRICHER] CONTACT_MESSAGE_GENERATION_FAILED", error.message);
       toast.error("Não foi possível gerar a mensagem");
     },
   });

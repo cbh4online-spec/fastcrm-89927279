@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import type { Lead } from "@/hooks/useLeads";
 import type { LeadEnricherSettings } from "@/hooks/useLeadEnricherSettings";
 
@@ -55,6 +56,24 @@ export function useEnrichLead(enricherSettings?: LeadEnricherSettings) {
     mutationFn: async (lead: Lead) => {
       if (!currentWorkspace) throw new Error("No workspace");
 
+      // Emit ENRICH_REQUESTED before API call
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'LEAD.ENRICH_REQUESTED',
+        entity_kind: 'lead',
+        entity_id: lead.id,
+        source_module: 'crm-lead-enricher',
+        payload: {
+          has_email: !!lead.email,
+          has_phone: !!lead.phone,
+          settings_sources: enricherSettings ? {
+            google: enricherSettings.google_enabled,
+            linkedin: enricherSettings.linkedin_enabled,
+            webscraping: enricherSettings.webscraping_enabled,
+          } : undefined,
+        },
+      });
+
       const { data, error } = await supabase.functions.invoke("contact-enrich", {
         body: {
           name: lead.name,
@@ -86,6 +105,7 @@ export function useEnrichLead(enricherSettings?: LeadEnricherSettings) {
       else if (enrichment.company?.confidence === "low") updates.confidence_score = 40;
 
       // Email validation if enabled
+      let emailValidated = false;
       if (enricherSettings?.email_validation_enabled && lead.email) {
         try {
           const { data: validationResult } = await supabase.functions.invoke("validate-email", {
@@ -93,9 +113,10 @@ export function useEnrichLead(enricherSettings?: LeadEnricherSettings) {
           });
           if (validationResult?.success && validationResult.data) {
             updates.email_verified = validationResult.data.status === "valid";
+            emailValidated = true;
           }
         } catch (e) {
-          console.error("Email validation failed:", e);
+          console.warn('[ENRICHER] EMAIL_VALIDATION_FAILED', { leadId: lead.id, error: (e as Error).message });
         }
       }
 
@@ -108,12 +129,29 @@ export function useEnrichLead(enricherSettings?: LeadEnricherSettings) {
         if (updateError) throw updateError;
       }
 
+      // Emit ENRICH_COMPLETED
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'LEAD.ENRICH_COMPLETED',
+        entity_kind: 'lead',
+        entity_id: lead.id,
+        source_module: 'crm-lead-enricher',
+        payload: {
+          fields_updated: Object.keys(updates),
+          confidence_score: updates.confidence_score,
+          email_validated: emailValidated,
+        },
+      });
+
+      console.log(`[ENRICHER] Lead enriched: ${lead.id}, fields: ${Object.keys(updates).join(', ')}`);
+
       return { ...lead, ...updates };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads", currentWorkspace?.id] });
     },
-    onError: (error) => {
+    onError: (error, lead) => {
+      console.warn('[ENRICHER] ENRICH_FAILED', { leadId: lead.id, error: error.message });
       toast.error(error.message || "Não foi possível enriquecer o lead");
     },
   });
@@ -131,6 +169,8 @@ export function useEnrichLeadsBatch(enricherSettings?: LeadEnricherSettings) {
       const total = leads.length;
       let successCount = 0;
 
+      console.log(`[ENRICHER] Batch started: ${total} leads`);
+
       for (let i = 0; i < total; i++) {
         const lead = leads[i];
         onProgress(i, total, lead.name);
@@ -138,10 +178,11 @@ export function useEnrichLeadsBatch(enricherSettings?: LeadEnricherSettings) {
           await enrichLead.mutateAsync(lead);
           successCount++;
         } catch (e) {
-          console.error(`Failed to enrich ${lead.name}:`, e);
+          console.warn(`[ENRICHER] Batch item failed: ${lead.name}`, (e as Error).message);
         }
       }
 
+      console.log(`[ENRICHER] Batch completed: ${successCount}/${total}`);
       onProgress(total, total, "");
       toast.success(`${successCount}/${total} leads enriquecidos com sucesso`);
       return successCount;

@@ -172,6 +172,9 @@ Deno.serve(async (req) => {
       // Core Dashboard
       runCheck(supabase, workspace_id, "core-dashboard", "report_dashboards_query", "report_dashboards"),
       runCheck(supabase, workspace_id, "core-dashboard", "report_widgets_query", "report_widgets"),
+      // CRM Lead Enricher
+      runCheck(supabase, workspace_id, "crm-lead-enricher", "lead_enricher_settings_query", "lead_enricher_settings"),
+      runCheck(supabase, workspace_id, "crm-lead-enricher", "credit_consumption_logs_query", "credit_consumption_logs"),
       // AI Conversational
       aiConversationalCheck(),
     ]);

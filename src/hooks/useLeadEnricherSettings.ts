@@ -87,9 +87,11 @@ export function useLeadEnricherSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lead-enricher-settings", currentWorkspace?.id] });
+      console.log('[ENRICHER] Settings updated');
       toast.success("Configurações guardadas");
     },
     onError: (error) => {
+      console.warn('[ENRICHER] SETTINGS_UPDATE_FAILED', error.message);
       toast.error(`Erro ao guardar: ${error.message}`);
     },
   });
