@@ -1,70 +1,81 @@
 
 
-# Admin Workspaces — Kernel V2 Stabilization
+# Core Calendar — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | File | Mutations | Kernel Events | Logging |
 |------|------|-----------|---------------|---------|
-| Create Workspace (context) | `WorkspaceContext.tsx` | `createWorkspace` via RPC | None | 1 `console.error` |
-| Create Workspace (super-admin) | `CreateWorkspaceDialog.tsx` | `createWorkspace` via RPC | None | None (uses `log_admin_action`) |
-| Invite Member (settings) | `WorkspaceSettings.tsx` | `handleInviteMember` via edge fn | None | 1 `console.error` |
-| Add Manual Member (settings) | `WorkspaceSettings.tsx` | `handleAddManualMember` direct insert | None | 1 `console.error` |
-| Update Role (settings) | `WorkspaceSettings.tsx` | `handleUpdateMemberRole` direct update | None | 1 `console.error` |
-| Remove Member (settings) | `WorkspaceSettings.tsx` | `handleRemoveMember` direct delete | None | 1 `console.error` |
-| Add Member (super-admin) | `WorkspaceMembersPanel.tsx` | `addMember` via RPC | None | None (uses `log_admin_action`) |
-| Update Role (super-admin) | `WorkspaceMembersPanel.tsx` | `updateRole` via RPC | None | None (uses `log_admin_action`) |
-| Remove Member (super-admin) | `WorkspaceMembersPanel.tsx` | `removeMember` via RPC | None | None (uses `log_admin_action`) |
-| Smoke Tests | — | — | — | No `workspace_members` check |
+| Calendar CRUD | `useCalendars.ts` | create/update/delete calendar, createGroup | None | `console.error` only |
+| Calendar Events | `useCalendarEvents.ts` | create/update/delete event | None | `console.error` only |
+| Meetings | `useMeetings.ts` | create/update/updateStatus/updateOutcome/delete/addNote/createFollowUp/publishToTeam | None | `console.error` only |
+| Meeting Automations | `useMeetingAutomations.ts` | processClientCompletion/processNoShow/processInternal | None | `console.error` only |
+| Booking (agent) | `useAgentBooking.ts` | createBookingCalendar/deleteBookingCalendar | None | None |
+| Booking Router | `booking-router/index.ts` (edge fn) | AI routing | None | `console.error` only |
+| Smoke Tests | — | — | — | No `meetings`, `calendar_events`, `ai_booking_calendars` checks |
 
 ## Implementation Plan
 
-### A) Kernel Events — `src/contexts/WorkspaceContext.tsx`
+### A) Kernel Events — `src/hooks/useMeetings.ts`
 
-1. **`createWorkspace` success** → Emit `WORKSPACE.CREATED` with `workspace_name`, `slug`
-2. **`createWorkspace` error** → `console.warn('[WORKSPACES] CREATE_FAILED')`
+1. `createMeeting` success → `MEETING.BOOKED` (entity_kind: `meeting`, payload: `title`, `category`, `mode`, `contact_id`)
+2. `updateMeetingStatus` success with `cancelled` → `MEETING.CANCELLED` (payload: `reason`)
+3. `updateMeetingStatus` success with `confirmed` → `MEETING.CONFIRMED`
+4. `updateMeetingStatus` success with `completed` → `MEETING.COMPLETED`
+5. `updateMeetingStatus` success with `no_show` → `MEETING.NO_SHOW`
+6. `updateMeetingOutcome` success → `MEETING.OUTCOME_SET` (payload: `outcome`)
+7. `deleteMeeting` success → `MEETING.DELETED`
+8. All errors → `console.warn('[CALENDAR] ..._FAILED')`
 
-Import `emitKernelEvent` + `generateRequestId`.
+### B) Kernel Events — `src/hooks/useCalendarEvents.ts`
 
-### B) Kernel Events — `src/components/super-admin/CreateWorkspaceDialog.tsx`
+1. `createEvent` success → `CALENDAR_EVENT.CREATED` (payload: `title`, `calendar_id`)
+2. `updateEvent` success → `CALENDAR_EVENT.UPDATED`
+3. `deleteEvent` success → `CALENDAR_EVENT.DELETED`
+4. All errors → `console.warn('[CALENDAR] ..._FAILED')`
 
-1. **`createWorkspace.onSuccess`** → Emit `WORKSPACE.CREATED` with `name`, `slug`, `plan`, `owner_email`
-2. **`createWorkspace.onError`** → `console.warn('[WORKSPACES] ADMIN_CREATE_FAILED')`
+### C) Kernel Events — `src/hooks/useCalendars.ts`
 
-### C) Kernel Events — `src/components/settings/sections/WorkspaceSettings.tsx`
+1. `createCalendar` success → `CALENDAR.CREATED` (payload: `name`, `calendar_type`)
+2. `updateCalendar` success → `CALENDAR.UPDATED`
+3. `deleteCalendar` success → `CALENDAR.DELETED`
+4. All errors → `console.warn('[CALENDAR] ..._FAILED')`
 
-1. **`handleInviteMember` success** → Emit `MEMBER.INVITED` with `email`, `role`
-2. **`handleAddManualMember` success** → Emit `MEMBER.ADDED` with `user_id`, `role`
-3. **`handleUpdateMemberRole` success** → Emit `ROLE.UPDATED` with `member_id`, `new_role`
-4. **`handleRemoveMember` success** → Emit `MEMBER.REMOVED` with `member_id`
-5. All errors → `console.warn('[WORKSPACES] ..._FAILED')`
+### D) Kernel Events — `src/hooks/useAgentBooking.ts`
 
-### D) Kernel Events — `src/components/super-admin/WorkspaceMembersPanel.tsx`
+1. `useCreateBookingCalendar.onSuccess` → `BOOKING.CALENDAR_ADDED` (payload: `calendar_name`, `bot_id`)
+2. `useDeleteBookingCalendar.onSuccess` → `BOOKING.CALENDAR_REMOVED`
+3. All errors → `console.warn('[CALENDAR] ..._FAILED')`
 
-1. **`addMember.onSuccess`** → Emit `MEMBER.ADDED` with `user_id`, `role`
-2. **`updateRole.onSuccess`** → Emit `ROLE.UPDATED` with `user_id`, `new_role`
-3. **`removeMember.onSuccess`** → Emit `MEMBER.REMOVED` with `user_id`
-4. All errors → `console.warn('[WORKSPACES] ..._FAILED')`
+### E) Observability — `booking-router/index.ts`
 
-All events: `source_module: 'admin-workspaces'`, `entity_kind: 'workspace'` or `'workspace_member'`.
+Add structured `console.log`/`console.warn` with `[BOOKING-ROUTER]` prefix:
+- Log incoming request params
+- Log matched/fallback result
+- Log AI classification failures with `[BOOKING-ROUTER] AI_CLASSIFY_FAILED`
 
-### E) Observability
+### F) Observability — All Client Hooks
 
-All files: `[WORKSPACES]` prefixed `console.log` on success, `console.warn` on error.
+All hooks get `[CALENDAR]` prefixed `console.log` on success, `console.warn` on error.
 
-### F) Smoke Tests
+### G) Smoke Tests
 
 Add to `system-run-smoke-tests`:
-- `workspace_members` table check
-- `workspace_invitations` table check (if exists, otherwise skip)
+- `meetings` table check
+- `calendar_events` table check
+- `calendars` table check
+- `ai_booking_calendars` table check
+
+All events use `source_module: 'core-calendar'`.
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/contexts/WorkspaceContext.tsx` | Import `emitKernelEvent`; emit `WORKSPACE.CREATED`; add logging |
-| `src/components/super-admin/CreateWorkspaceDialog.tsx` | Import `emitKernelEvent`; emit `WORKSPACE.CREATED`; add logging |
-| `src/components/settings/sections/WorkspaceSettings.tsx` | Import `emitKernelEvent`; emit `MEMBER.INVITED`/`ADDED`/`ROLE.UPDATED`/`REMOVED`; add logging |
-| `src/components/super-admin/WorkspaceMembersPanel.tsx` | Import `emitKernelEvent`; emit `MEMBER.ADDED`/`ROLE.UPDATED`/`REMOVED`; add logging |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `workspace_members` check |
+| `src/hooks/useMeetings.ts` | Import `emitKernelEvent`; emit `MEETING.BOOKED`/`CANCELLED`/`CONFIRMED`/`COMPLETED`/`NO_SHOW`/`OUTCOME_SET`/`DELETED`; add `[CALENDAR]` logging |
+| `src/hooks/useCalendarEvents.ts` | Import `emitKernelEvent`; emit `CALENDAR_EVENT.CREATED`/`UPDATED`/`DELETED`; add logging |
+| `src/hooks/useCalendars.ts` | Import `emitKernelEvent`; emit `CALENDAR.CREATED`/`UPDATED`/`DELETED`; add logging |
+| `src/hooks/useAgentBooking.ts` | Import `emitKernelEvent`; emit `BOOKING.CALENDAR_ADDED`/`REMOVED`; add logging |
+| `supabase/functions/booking-router/index.ts` | Add `[BOOKING-ROUTER]` structured logging for requests, matches, fallbacks, and failures |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add `meetings`, `calendar_events`, `calendars`, `ai_booking_calendars` checks |
 
