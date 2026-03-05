@@ -1,51 +1,45 @@
 
 
-# CRM Leads — Kernel V2 Stabilization
+# B2B Portal — Kernel V2 Stabilization
 
 ## Current State
 
-| Area | Status | Detail |
-|------|--------|--------|
-| Kernel Events | Partial | `LEAD.CREATED`, `LEAD.UPDATED`, `LEAD.STATUS_CHANGED` wired. Missing: `LEAD.SCORED`, `LEAD.TAGGED`, `LEAD.CONVERTED` |
-| Dedup | Exists | `useContactDuplicateCheck` + `useLeadMerge` + `UnifiedDuplicateDialog` already handle email/phone/name fuzzy + merge UX |
-| Lifecycle | Exists | `ConvertLeadDialog` converts lead→contact/company with full history migration. No kernel event emitted. |
-| Behavior Signals | Works | `compute-lead-behavior-signals` edge function computes and upserts signals. No observability logging. |
-| Lead Scoring | Works | `ai-analyze-lead` edge function + `useAnalyzeLead`/`useBulkAnalyzeLeads`. No kernel event on score update. `useUpdateLeadScores` (manual ICP/engagement/PARE) also has no kernel event. |
-| Auto-Tags | Exists | `useAutoTags` generates tags via `ai-auto-tags` edge function. `useUpdateConversationTags` saves them. No `LEAD.TAGGED` event. |
-| Smoke Tests | Basic | Only `leads_query` count check. No lead-specific behavior/scoring validation. |
+| Area | Status | Gaps |
+|------|--------|------|
+| Auth | Works | `useClientAuth` handles login/session/client_users lookup. No kernel events on login, auth failure, or session expiry |
+| Permissions | Works | Filtered by `client_users.status` (active/pending) + workspace_id. No kernel event trail |
+| Kernel Events | **None** | Zero `B2B.*` kernel events anywhere in codebase |
+| Smoke Tests | **None** | No `client_users` check in smoke tests |
+| Observability | Minimal | Console.log only, no structured auth failure logging |
 
 ## Implementation Plan
 
-### A) Kernel Events — Wire Missing Events
+### A) Kernel Events — `B2B.LOGIN` and Auth Failure Logging
 
-**1. `LEAD.SCORED`** — In `useUpdateLeadScores` (`useLeadScores.ts`), emit on success with `scores` payload. In `useAnalyzeLead` (`useSmartLeads.ts`), emit on success with `lead_score`, `ai_temperature`.
+**1. `useClientAuth.ts` — `signIn` method**: After successful `signInWithPassword` + `fetchClientUser`, emit `B2B.LOGIN` kernel event with `client_user_id`, `workspace_id`, `email`. On auth failure (invalid credentials or `hasAuthButNoClient`), log structured `[B2B-AUTH] FAILURE email=X reason=Y` to console.
 
-**2. `LEAD.TAGGED`** — In `useUpdateLead` (`useLeads.ts`), detect when `tags` field is in changed fields and emit `LEAD.TAGGED` with `tags` payload.
+**2. `ClientLoginPage.tsx` — Auth failure event**: When `hasAuthButNoClient` is rendered (authenticated but no client_users record), emit `B2B.ACCESS_DENIED` kernel event with `auth_user_id`, `reason: 'no_client_record'`.
 
-**3. `LEAD.CONVERTED`** — In `ConvertLeadDialog.tsx`, after successful conversion, emit `LEAD.CONVERTED` with `target_type` (contact/company), `target_id`, `delete_after`.
+### B) Session Expiry — `B2B.SESSION_EXPIRED`
 
-### B) Observability — compute-lead-behavior-signals
+In `useClientAuth.ts`, within `onAuthStateChange`, when event is `SIGNED_OUT` or `TOKEN_REFRESHED` fails and we had a previous `clientUser`, emit `B2B.SESSION_EXPIRED` with `client_user_id`, `workspace_id`.
 
-Add timing instrumentation to the edge function:
-- Log `[LEAD-BEHAVIOR] lead_id=X latency_ms=Y signals={...}` after computation
-- Log conversation/message counts processed
+### C) Observability — Structured Auth Logging
 
-### C) Smoke Test Enhancement
+In `useClientAuth.ts`:
+- On `signIn` error: `console.warn('[B2B-AUTH] LOGIN_FAILED', { email, error })`
+- On successful login: `console.log('[B2B-AUTH] LOGIN_OK', { email, client_user_id })`
+- On `hasAuthButNoClient`: already logged, add structured prefix
 
-Add `lead-behavior-signals` check to `system-run-smoke-tests`: query `lead_behavior_signals` table count for workspace.
+### D) Smoke Test
 
-### D) Score Explanation Evidence
-
-`useUpdateLeadScores` already stores scores on the lead record. `ai-analyze-lead` already stores `lead_score_explanation` and `lead_score_factors`. No additional evidence storage needed — just wire kernel events so the decision engine can react.
+Add `b2b-client-users` check to `system-run-smoke-tests`: `runCheck(supabase, workspace_id, "b2b-portal", "client_users_query", "client_users")`.
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useLeadScores.ts` | Emit `LEAD.SCORED` kernel event on success |
-| `src/hooks/useSmartLeads.ts` | Emit `LEAD.SCORED` in `useAnalyzeLead.onSuccess` |
-| `src/hooks/useLeads.ts` | Detect `tags` in update payload → emit `LEAD.TAGGED` |
-| `src/components/crm/ConvertLeadDialog.tsx` | Emit `LEAD.CONVERTED` after successful conversion |
-| `supabase/functions/compute-lead-behavior-signals/index.ts` | Add timing + input logging |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `lead-behavior-signals` check |
+| `src/hooks/client-portal/useClientAuth.ts` | Emit `B2B.LOGIN` on successful sign-in, `B2B.SESSION_EXPIRED` on sign-out with prior session, structured logging |
+| `src/pages/client/ClientLoginPage.tsx` | Emit `B2B.ACCESS_DENIED` when `hasAuthButNoClient` rendered |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add `b2b-portal` client_users check |
 
