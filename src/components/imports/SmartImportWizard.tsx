@@ -115,6 +115,7 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
 
   const processData = (headers: string[], rows: Record<string, string>[]) => {
     setParsedData({ headers, rows });
+    console.log(`[IMPORTS] File parsed: ${file.name}, ${rows.length} rows, ${headers.length} columns`);
     
     // Analyze columns
     const detections = headers.map(header => {
@@ -142,6 +143,7 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
     
     setStep("importing");
     setImportStatus("processing");
+    console.log(`[IMPORTS] Import started: ${importType}, ${parsedData.rows.length} rows`);
     
     // Save industry labels (optional, doesn't block import)
     try {
@@ -171,8 +173,9 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
           required: mapping.newFieldConfig!.required,
         });
         result.fieldsCreated.push(mapping.newFieldConfig!.label);
+        console.log(`[IMPORTS] Custom field created: ${mapping.newFieldConfig!.label}`);
       } catch (err) {
-        console.error("Error creating field:", err);
+        console.warn('[IMPORTS] CUSTOM_FIELD_CREATE_FAILED:', err);
       }
     }
 
@@ -237,6 +240,11 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
 
     setImportResult(result);
     setImportStatus("complete");
+    console.log(`[IMPORTS] Import complete: ${result.success} success, ${result.errors} errors, ${result.skipped} skipped`);
+    if (result.errorDetails.length > 0) {
+      console.warn(`[IMPORTS] Row failures summary: ${result.errorDetails.length} errors`);
+      result.errorDetails.slice(0, 10).forEach(e => console.warn(`[IMPORTS]   Row ${e.row}: ${e.error}`));
+    }
   };
 
   if (step === "parsing") {

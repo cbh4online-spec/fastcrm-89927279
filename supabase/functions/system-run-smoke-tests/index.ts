@@ -155,6 +155,8 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "admin-integrations", "whatsapp_connections_query", "whatsapp_connections"),
       runCheck(supabase, workspace_id, "admin-integrations", "instagram_connections_query", "instagram_connections"),
       runCheck(supabase, workspace_id, "admin-integrations", "email_connections_query", "email_connections"),
+      // Core Imports
+      runCheck(supabase, workspace_id, "core-imports", "import_history_query", "import_history"),
       // Core Custom Fields
       runCheck(supabase, workspace_id, "core-custom-fields", "custom_fields_query", "custom_fields"),
       runCheck(supabase, workspace_id, "core-custom-fields", "custom_field_values_query", "custom_field_values"),

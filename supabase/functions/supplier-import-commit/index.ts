@@ -11,6 +11,7 @@ Deno.serve(async (req) => {
   try {
     const { import_id } = await req.json();
     if (!import_id) throw new Error("import_id is required");
+    console.log(`[IMPORTS] Committing import: ${import_id}`);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -101,6 +102,8 @@ Deno.serve(async (req) => {
       }
     }
 
+    console.log(`[IMPORTS] Commit complete: ${created} created, ${updated} updated, ${errors} errors`);
+
     const stats = {
       total_matched: allRows.length,
       updated,
@@ -118,6 +121,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
+    console.error(`[IMPORTS] COMMIT_FAILED: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
