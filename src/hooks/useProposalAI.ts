@@ -150,7 +150,7 @@ export function useProposalAI() {
       );
       return result;
     } catch (error) {
-      console.error("analyzeProposal error:", error);
+      console.warn('[PROPOSALS] AI_ANALYSIS_FAILED', error);
       toast.error(error instanceof Error ? error.message : "Erro ao analisar proposta");
       return null;
     } finally {
@@ -171,7 +171,7 @@ export function useProposalAI() {
       );
       return result;
     } catch (error) {
-      console.error("generateScope error:", error);
+      console.warn('[PROPOSALS] AI_SCOPE_FAILED', error);
       toast.error(error instanceof Error ? error.message : "Erro ao gerar âmbito");
       return null;
     } finally {
@@ -194,7 +194,7 @@ export function useProposalAI() {
       );
       return result;
     } catch (error) {
-      console.error("generateTimeline error:", error);
+      console.warn('[PROPOSALS] AI_TIMELINE_FAILED', error);
       toast.error(error instanceof Error ? error.message : "Erro ao gerar cronograma");
       return null;
     } finally {
@@ -216,7 +216,7 @@ export function useProposalAI() {
       );
       return result;
     } catch (error) {
-      console.error("suggestConditions error:", error);
+      console.warn('[PROPOSALS] AI_CONDITIONS_FAILED', error);
       toast.error(error instanceof Error ? error.message : "Erro ao sugerir condições");
       return null;
     } finally {
@@ -238,7 +238,7 @@ export function useProposalAI() {
       );
       return result;
     } catch (error) {
-      console.error("suggestReferences error:", error);
+      console.warn('[PROPOSALS] AI_REFERENCES_FAILED', error);
       toast.error(error instanceof Error ? error.message : "Erro ao sugerir referências");
       return null;
     } finally {
@@ -265,7 +265,7 @@ export function useProposalAI() {
       );
       return result.response;
     } catch (error) {
-      console.error("askCopilot error:", error);
+      console.warn('[PROPOSALS] AI_COPILOT_FAILED', error);
       toast.error(error instanceof Error ? error.message : "Erro ao processar pergunta");
       return null;
     } finally {

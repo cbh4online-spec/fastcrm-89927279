@@ -183,6 +183,10 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "comm-email", "conversations_query", "conversations"),
       runCheck(supabase, workspace_id, "comm-email", "messages_query", "messages"),
       runCheck(supabase, workspace_id, "comm-email", "email_sequences_query", "email_sequences"),
+      // Sales Proposals
+      runCheck(supabase, workspace_id, "sales-proposals", "proposals_query", "proposals"),
+      runCheck(supabase, workspace_id, "sales-proposals", "proposal_items_query", "proposal_items"),
+      runCheck(supabase, workspace_id, "sales-proposals", "proposal_templates_query", "proposal_templates"),
       // AI Conversational
       aiConversationalCheck(),
     ]);

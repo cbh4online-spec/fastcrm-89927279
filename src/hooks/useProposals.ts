@@ -4,6 +4,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { trackProposalAccepted } from "@/modules/growth-seo/lib/gtmEvents";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import type {
   Proposal,
   ProposalTemplate,
@@ -82,8 +83,10 @@ export function useCreateProposalTemplate() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["proposal-templates"] });
       toast.success("Modelo de proposta criado!");
+      console.log('[PROPOSALS] Template created');
     },
     onError: (error) => {
+      console.warn('[PROPOSALS] TEMPLATE_CREATE_FAILED', error.message);
       toast.error(`Erro ao criar modelo: ${error.message}`);
     },
   });
@@ -115,8 +118,10 @@ export function useUpdateProposalTemplate() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["proposal-templates"] });
       toast.success("Modelo atualizado!");
+      console.log('[PROPOSALS] Template updated');
     },
     onError: (error) => {
+      console.warn('[PROPOSALS] TEMPLATE_UPDATE_FAILED', error.message);
       toast.error(`Erro ao atualizar modelo: ${error.message}`);
     },
   });
@@ -137,8 +142,10 @@ export function useDeleteProposalTemplate() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["proposal-templates"] });
       toast.success("Modelo removido!");
+      console.log('[PROPOSALS] Template deleted');
     },
     onError: (error) => {
+      console.warn('[PROPOSALS] TEMPLATE_DELETE_FAILED', error.message);
       toast.error(`Erro ao remover modelo: ${error.message}`);
     },
   });
@@ -277,11 +284,28 @@ export function useCreateProposal() {
 
       return data as unknown as Proposal;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       toast.success("Proposta criada!");
+
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'PROPOSAL.CREATED',
+          entity_kind: 'proposal',
+          entity_id: data.id,
+          source_module: 'sales-proposals',
+          payload: {
+            has_template: !!variables.template_id,
+            has_price: (data.price ?? 0) > 0,
+            currency: data.currency,
+            items_count: 0,
+          },
+        });
+      }
     },
     onError: (error) => {
+      console.warn('[PROPOSALS] CREATE_FAILED', error.message);
       toast.error(`Erro ao criar proposta: ${error.message}`);
     },
   });
@@ -373,6 +397,7 @@ export function useUpdateProposal() {
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       queryClient.invalidateQueries({ queryKey: ["proposal"] });
       toast.success("Proposta atualizada!");
+      console.log(`[PROPOSALS] Updated: ${data.id}`);
       
       // Track proposal accepted in GTM when status changes to 'accepted'
       if (data.status === 'accepted' && data._previousStatus !== 'accepted') {
@@ -384,9 +409,23 @@ export function useUpdateProposal() {
           opportunity_id: data.opportunity_id || undefined,
           workspace_id: data.workspace_id,
         });
+
+        emitKernelEvent({
+          workspace_id: data.workspace_id,
+          type: 'PROPOSAL.SIGNED',
+          entity_kind: 'proposal',
+          entity_id: data.id,
+          source_module: 'sales-proposals',
+          payload: {
+            proposal_id: data.id,
+            price: data.price,
+            currency: data.currency,
+          },
+        });
       }
     },
     onError: (error) => {
+      console.warn('[PROPOSALS] UPDATE_FAILED', error.message);
       toast.error(`Erro ao atualizar proposta: ${error.message}`);
     },
   });
@@ -410,12 +449,25 @@ export function usePublishProposal() {
       if (error) throw error;
       return data as unknown as Proposal;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       queryClient.invalidateQueries({ queryKey: ["proposal"] });
       toast.success("Proposta publicada!");
+
+      emitKernelEvent({
+        workspace_id: data.workspace_id,
+        type: 'PROPOSAL.SENT',
+        entity_kind: 'proposal',
+        entity_id: data.id,
+        source_module: 'sales-proposals',
+        payload: {
+          proposal_id: data.id,
+          slug: data.slug,
+        },
+      });
     },
     onError: (error) => {
+      console.warn('[PROPOSALS] PUBLISH_FAILED', error.message);
       toast.error(`Erro ao publicar proposta: ${error.message}`);
     },
   });
@@ -433,11 +485,13 @@ export function useDeleteProposal() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       toast.success("Proposta removida!");
+      console.log(`[PROPOSALS] Deleted: ${id}`);
     },
     onError: (error) => {
+      console.warn('[PROPOSALS] DELETE_FAILED', error.message);
       toast.error(`Erro ao remover proposta: ${error.message}`);
     },
   });
@@ -620,8 +674,10 @@ export function useUpdateProposalItems() {
       });
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       toast.success("Itens da proposta atualizados!");
+      console.log(`[PROPOSALS] Items updated: ${data.itemsCount} items, total=${data.totalPrice}`);
     },
     onError: (error) => {
+      console.warn('[PROPOSALS] ITEMS_UPDATE_FAILED', error.message);
       toast.error(`Erro ao atualizar itens: ${error.message}`);
     },
   });
@@ -772,12 +828,13 @@ export function useDuplicateProposal() {
 
       return newProposal as unknown as Proposal;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, sourceId) => {
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       toast.success("Proposta duplicada com sucesso!");
-      return data;
+      console.log(`[PROPOSALS] Duplicated: ${sourceId} → ${data.id}`);
     },
     onError: (error) => {
+      console.warn('[PROPOSALS] DUPLICATE_FAILED', error.message);
       toast.error(`Erro ao duplicar proposta: ${error.message}`);
     },
   });
@@ -821,7 +878,7 @@ export function useQuickStatusChange() {
       };
       toast.success(`Proposta marcada como ${statusLabels[data.newStatus] || data.newStatus}!`);
       
-      // Track accepted in GTM
+      // Track accepted in GTM + Kernel
       if (data.newStatus === "accepted") {
         trackProposalAccepted({
           proposal_id: data.proposal.id,
@@ -831,9 +888,36 @@ export function useQuickStatusChange() {
           opportunity_id: data.proposal.opportunity_id || undefined,
           workspace_id: data.proposal.workspace_id,
         });
+
+        emitKernelEvent({
+          workspace_id: data.proposal.workspace_id,
+          type: 'PROPOSAL.SIGNED',
+          entity_kind: 'proposal',
+          entity_id: data.proposal.id,
+          source_module: 'sales-proposals',
+          payload: {
+            proposal_id: data.proposal.id,
+            price: data.proposal.price,
+            currency: data.proposal.currency,
+          },
+        });
+      }
+
+      if (data.newStatus === "rejected") {
+        emitKernelEvent({
+          workspace_id: data.proposal.workspace_id,
+          type: 'PROPOSAL.REJECTED',
+          entity_kind: 'proposal',
+          entity_id: data.proposal.id,
+          source_module: 'sales-proposals',
+          payload: {
+            proposal_id: data.proposal.id,
+          },
+        });
       }
     },
     onError: (error) => {
+      console.warn('[PROPOSALS] STATUS_CHANGE_FAILED', error.message);
       toast.error(`Erro ao alterar estado: ${error.message}`);
     },
   });
@@ -886,8 +970,10 @@ export function useRefreshCostSnapshots() {
     onSuccess: (_data, proposalId) => {
       queryClient.invalidateQueries({ queryKey: ["proposal-items", proposalId] });
       toast.success("Custos atualizados com sucesso");
+      console.log('[PROPOSALS] Cost snapshots refreshed');
     },
     onError: (error) => {
+      console.warn('[PROPOSALS] COST_REFRESH_FAILED', error.message);
       toast.error(`Erro ao atualizar custos: ${error.message}`);
     },
   });
