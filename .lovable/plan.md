@@ -1,71 +1,70 @@
 
 
-# Admin Integrations — Kernel V2 Stabilization
+# Admin Workspaces — Kernel V2 Stabilization
 
 ## Current State
 
-| Integration | Hook | Mutations | Kernel Events | Logging |
-|---|---|---|---|---|
-| Stripe | `useWorkspaceStripeConfig.ts` | saveConfig, testConnection | None | None |
-| GHL | `useWorkspaceGHLConfig.ts` | saveConfig, testConnection | None | 1 `console.error` |
-| WhatsApp | `useWhatsAppConnection.ts` | disconnect | None | None |
-| Instagram | `useInstagramConnection.ts` | disconnect | None | None |
-| Email | `useEmailConnection.ts` | connect, update, disconnect, sync, forceResync, send | None | `console.error` only |
-| Smoke Tests | — | — | — | No integration config tables checked |
+| Area | File | Mutations | Kernel Events | Logging |
+|------|------|-----------|---------------|---------|
+| Create Workspace (context) | `WorkspaceContext.tsx` | `createWorkspace` via RPC | None | 1 `console.error` |
+| Create Workspace (super-admin) | `CreateWorkspaceDialog.tsx` | `createWorkspace` via RPC | None | None (uses `log_admin_action`) |
+| Invite Member (settings) | `WorkspaceSettings.tsx` | `handleInviteMember` via edge fn | None | 1 `console.error` |
+| Add Manual Member (settings) | `WorkspaceSettings.tsx` | `handleAddManualMember` direct insert | None | 1 `console.error` |
+| Update Role (settings) | `WorkspaceSettings.tsx` | `handleUpdateMemberRole` direct update | None | 1 `console.error` |
+| Remove Member (settings) | `WorkspaceSettings.tsx` | `handleRemoveMember` direct delete | None | 1 `console.error` |
+| Add Member (super-admin) | `WorkspaceMembersPanel.tsx` | `addMember` via RPC | None | None (uses `log_admin_action`) |
+| Update Role (super-admin) | `WorkspaceMembersPanel.tsx` | `updateRole` via RPC | None | None (uses `log_admin_action`) |
+| Remove Member (super-admin) | `WorkspaceMembersPanel.tsx` | `removeMember` via RPC | None | None (uses `log_admin_action`) |
+| Smoke Tests | — | — | — | No `workspace_members` check |
 
 ## Implementation Plan
 
-### A) Kernel Events — Per Hook
+### A) Kernel Events — `src/contexts/WorkspaceContext.tsx`
 
-**`useWorkspaceStripeConfig.ts`**
-1. `saveConfig.onSuccess` → `INTEGRATION.CONFIGURED` (entity_kind: `stripe`, payload: `is_active`, `test_mode`)
-2. `saveConfig.onError` → `console.warn('[INTEGRATIONS] STRIPE_CONFIG_FAILED')`
-3. `testConnection.onSuccess` (success=true) → `INTEGRATION.CONNECTED` (entity_kind: `stripe`)
-4. `testConnection.onSuccess` (success=false) → `INTEGRATION.FAILED` (entity_kind: `stripe`, payload: `error`)
-5. `testConnection.onError` → `INTEGRATION.FAILED`
+1. **`createWorkspace` success** → Emit `WORKSPACE.CREATED` with `workspace_name`, `slug`
+2. **`createWorkspace` error** → `console.warn('[WORKSPACES] CREATE_FAILED')`
 
-**`useWorkspaceGHLConfig.ts`**
-1. `saveConfigMutation.onSuccess` → `INTEGRATION.CONFIGURED` (entity_kind: `ghl`, payload: `is_active`, `sync_contacts`, `sync_messages`)
-2. `saveConfigMutation.onError` → warn log
-3. `testConnectionMutation.onSuccess` → `INTEGRATION.CONNECTED` (entity_kind: `ghl`)
-4. `testConnectionMutation.onError` → `INTEGRATION.FAILED`
+Import `emitKernelEvent` + `generateRequestId`.
 
-**`useWhatsAppConnection.ts`** (needs `emitKernelEvent` + `useWorkspace` import — already has `useWorkspace`)
-1. `useDisconnectWhatsApp.onSuccess` → `INTEGRATION.DISCONNECTED` (entity_kind: `whatsapp`)
+### B) Kernel Events — `src/components/super-admin/CreateWorkspaceDialog.tsx`
 
-**`useInstagramConnection.ts`** (same pattern)
-1. `useDisconnectInstagram.onSuccess` → `INTEGRATION.DISCONNECTED` (entity_kind: `instagram`)
+1. **`createWorkspace.onSuccess`** → Emit `WORKSPACE.CREATED` with `name`, `slug`, `plan`, `owner_email`
+2. **`createWorkspace.onError`** → `console.warn('[WORKSPACES] ADMIN_CREATE_FAILED')`
 
-**`useEmailConnection.ts`** (needs `emitKernelEvent` import)
-1. `useConnectEmail.onSuccess` → `INTEGRATION.CONNECTED` (entity_kind: `email`, payload: `provider`)
-2. `useConnectEmail.onError` → `INTEGRATION.FAILED`
-3. `useDisconnectEmail.onSuccess` → `INTEGRATION.DISCONNECTED`
-4. `useSyncEmail.onSuccess` → `INTEGRATION.SYNCED` (entity_kind: `email`)
-5. `useSyncEmail.onError` → `INTEGRATION.FAILED`
+### C) Kernel Events — `src/components/settings/sections/WorkspaceSettings.tsx`
 
-All events: `source_module: 'admin-integrations'`.
+1. **`handleInviteMember` success** → Emit `MEMBER.INVITED` with `email`, `role`
+2. **`handleAddManualMember` success** → Emit `MEMBER.ADDED` with `user_id`, `role`
+3. **`handleUpdateMemberRole` success** → Emit `ROLE.UPDATED` with `member_id`, `new_role`
+4. **`handleRemoveMember` success** → Emit `MEMBER.REMOVED` with `member_id`
+5. All errors → `console.warn('[WORKSPACES] ..._FAILED')`
 
-### B) Observability — Structured Logging
+### D) Kernel Events — `src/components/super-admin/WorkspaceMembersPanel.tsx`
 
-All hooks get `[INTEGRATIONS]` prefixed `console.log` on success, `console.warn` on error for every mutation.
+1. **`addMember.onSuccess`** → Emit `MEMBER.ADDED` with `user_id`, `role`
+2. **`updateRole.onSuccess`** → Emit `ROLE.UPDATED` with `user_id`, `new_role`
+3. **`removeMember.onSuccess`** → Emit `MEMBER.REMOVED` with `user_id`
+4. All errors → `console.warn('[WORKSPACES] ..._FAILED')`
 
-### C) Smoke Tests
+All events: `source_module: 'admin-workspaces'`, `entity_kind: 'workspace'` or `'workspace_member'`.
+
+### E) Observability
+
+All files: `[WORKSPACES]` prefixed `console.log` on success, `console.warn` on error.
+
+### F) Smoke Tests
 
 Add to `system-run-smoke-tests`:
-- `workspace_stripe_config` table check
-- `workspace_ghl_config` table check
-- `whatsapp_connections` table check
-- `instagram_connections` table check
-- `email_connections` table check
+- `workspace_members` table check
+- `workspace_invitations` table check (if exists, otherwise skip)
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useWorkspaceStripeConfig.ts` | Import `emitKernelEvent`; emit `INTEGRATION.CONFIGURED`/`CONNECTED`/`FAILED`; add `[INTEGRATIONS]` logging |
-| `src/hooks/useWorkspaceGHLConfig.ts` | Import `emitKernelEvent`; emit `INTEGRATION.CONFIGURED`/`CONNECTED`/`FAILED`; add logging |
-| `src/hooks/useWhatsAppConnection.ts` | Import `emitKernelEvent`; emit `INTEGRATION.DISCONNECTED` on disconnect; add logging |
-| `src/hooks/useInstagramConnection.ts` | Import `emitKernelEvent`; emit `INTEGRATION.DISCONNECTED` on disconnect; add logging |
-| `src/hooks/useEmailConnection.ts` | Import `emitKernelEvent`; emit `INTEGRATION.CONNECTED`/`DISCONNECTED`/`SYNCED`/`FAILED`; add logging |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add 5 integration config table checks |
+| `src/contexts/WorkspaceContext.tsx` | Import `emitKernelEvent`; emit `WORKSPACE.CREATED`; add logging |
+| `src/components/super-admin/CreateWorkspaceDialog.tsx` | Import `emitKernelEvent`; emit `WORKSPACE.CREATED`; add logging |
+| `src/components/settings/sections/WorkspaceSettings.tsx` | Import `emitKernelEvent`; emit `MEMBER.INVITED`/`ADDED`/`ROLE.UPDATED`/`REMOVED`; add logging |
+| `src/components/super-admin/WorkspaceMembersPanel.tsx` | Import `emitKernelEvent`; emit `MEMBER.ADDED`/`ROLE.UPDATED`/`REMOVED`; add logging |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add `workspace_members` check |
 
