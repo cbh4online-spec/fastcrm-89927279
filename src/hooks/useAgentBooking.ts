@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { toast } from 'sonner';
+import { emitKernelEvent } from '@/lib/kernelEmitter';
 
 export interface BookingCalendar {
   id: string;
@@ -45,25 +46,51 @@ export function useCreateBookingCalendar() {
         .from('ai_booking_calendars')
         .insert({ ...data, workspace_id: currentWorkspace!.id } as any);
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log(`[CALENDAR] Booking calendar added: ${data.calendar_name}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace!.id,
+        type: 'BOOKING.CALENDAR_ADDED',
+        entity_kind: 'booking_calendar',
+        entity_id: data.calendar_id,
+        source_module: 'core-calendar',
+        payload: { calendar_name: data.calendar_name, bot_id: data.bot_id },
+      });
       qc.invalidateQueries({ queryKey: ['ai-booking-calendars'] });
       toast.success('Calendário adicionado');
     },
-    onError: (e) => toast.error('Erro ao adicionar calendário', { description: (e as Error).message }),
+    onError: (e) => {
+      console.warn('[CALENDAR] BOOKING_CALENDAR_ADD_FAILED', (e as Error).message);
+      toast.error('Erro ao adicionar calendário', { description: (e as Error).message });
+    },
   });
 }
 
 export function useDeleteBookingCalendar() {
   const qc = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('ai_booking_calendars').delete().eq('id', id);
       if (error) throw error;
+      return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
+      console.log(`[CALENDAR] Booking calendar removed: ${id}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace!.id,
+        type: 'BOOKING.CALENDAR_REMOVED',
+        entity_kind: 'booking_calendar',
+        entity_id: id,
+        source_module: 'core-calendar',
+      });
       qc.invalidateQueries({ queryKey: ['ai-booking-calendars'] });
       toast.success('Calendário removido');
+    },
+    onError: (e) => {
+      console.warn('[CALENDAR] BOOKING_CALENDAR_REMOVE_FAILED', (e as Error).message);
     },
   });
 }

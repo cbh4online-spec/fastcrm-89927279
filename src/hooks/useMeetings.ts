@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { emitKernelEvent } from '@/lib/kernelEmitter';
 import type { CalendarEvent } from './useCalendars';
 
 export type MeetingCategory = 'client' | 'internal' | 'hybrid';
@@ -392,11 +393,21 @@ export function useMeetings(dateRange?: { start: Date; end: Date }) {
           .insert(attendeeInserts);
       }
 
+      console.log(`[CALENDAR] Meeting booked: ${meeting.id}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'MEETING.BOOKED',
+        entity_kind: 'meeting',
+        entity_id: meeting.id,
+        source_module: 'core-calendar',
+        payload: { title: data.title, category: data.category, mode: data.mode, contact_id: data.contact_id },
+      });
+
       toast.success('Reunião criada com sucesso');
       await fetchMeetings();
       return meeting as unknown as Meeting;
     } catch (err) {
-      console.error('Error creating meeting:', err);
+      console.warn('[CALENDAR] MEETING_CREATE_FAILED', err);
       toast.error('Erro ao criar reunião');
       return null;
     }
@@ -457,11 +468,28 @@ export function useMeetings(dateRange?: { start: Date; end: Date }) {
         completed: 'concluída',
       };
 
+      const eventTypeMap: Record<MeetingStatus, string> = {
+        cancelled: 'MEETING.CANCELLED',
+        confirmed: 'MEETING.CONFIRMED',
+        completed: 'MEETING.COMPLETED',
+        no_show: 'MEETING.NO_SHOW',
+        pending: 'MEETING.STATUS_UPDATED',
+      };
+      console.log(`[CALENDAR] Meeting status updated: ${id} → ${status}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace!.id,
+        type: eventTypeMap[status],
+        entity_kind: 'meeting',
+        entity_id: id,
+        source_module: 'core-calendar',
+        payload: { status, reason },
+      });
+
       toast.success(`Reunião marcada como ${statusLabels[status]}`);
       await fetchMeetings();
       return true;
     } catch (err) {
-      console.error('Error updating meeting status:', err);
+      console.warn('[CALENDAR] MEETING_STATUS_UPDATE_FAILED', err);
       toast.error('Erro ao atualizar estado');
       return false;
     }
@@ -476,11 +504,20 @@ export function useMeetings(dateRange?: { start: Date; end: Date }) {
 
       if (deleteError) throw deleteError;
 
+      console.log(`[CALENDAR] Meeting deleted: ${id}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace!.id,
+        type: 'MEETING.DELETED',
+        entity_kind: 'meeting',
+        entity_id: id,
+        source_module: 'core-calendar',
+      });
+
       toast.success('Reunião eliminada');
       await fetchMeetings();
       return true;
     } catch (err) {
-      console.error('Error deleting meeting:', err);
+      console.warn('[CALENDAR] MEETING_DELETE_FAILED', err);
       toast.error('Erro ao eliminar reunião');
       return false;
     }
@@ -531,11 +568,21 @@ export function useMeetings(dateRange?: { start: Date; end: Date }) {
 
       if (updateError) throw updateError;
 
+      console.log(`[CALENDAR] Meeting outcome set: ${id} → ${outcome}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace!.id,
+        type: 'MEETING.OUTCOME_SET',
+        entity_kind: 'meeting',
+        entity_id: id,
+        source_module: 'core-calendar',
+        payload: { outcome },
+      });
+
       toast.success('Resultado da reunião registado');
       await fetchMeetings();
       return true;
     } catch (err) {
-      console.error('Error updating meeting outcome:', err);
+      console.warn('[CALENDAR] MEETING_OUTCOME_FAILED', err);
       toast.error('Erro ao registar resultado');
       return false;
     }

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { emitKernelEvent } from '@/lib/kernelEmitter';
 
 export interface Calendar {
   id: string;
@@ -195,11 +196,21 @@ export function useCalendars() {
           is_owner: true,
         });
 
+      console.log(`[CALENDAR] Calendar created: ${calendar.id}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'CALENDAR.CREATED',
+        entity_kind: 'calendar',
+        entity_id: calendar.id,
+        source_module: 'core-calendar',
+        payload: { name: data.name, calendar_type: data.calendar_type },
+      });
+
       toast.success('Calendário criado com sucesso');
       await fetchCalendars();
       return calendar as unknown as Calendar;
     } catch (err) {
-      console.error('Error creating calendar:', err);
+      console.warn('[CALENDAR] CALENDAR_CREATE_FAILED', err);
       toast.error('Erro ao criar calendário');
       return null;
     }
@@ -214,11 +225,20 @@ export function useCalendars() {
 
       if (updateError) throw updateError;
 
+      console.log(`[CALENDAR] Calendar updated: ${id}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace!.id,
+        type: 'CALENDAR.UPDATED',
+        entity_kind: 'calendar',
+        entity_id: id,
+        source_module: 'core-calendar',
+      });
+
       toast.success('Calendário atualizado');
       await fetchCalendars();
       return true;
     } catch (err) {
-      console.error('Error updating calendar:', err);
+      console.warn('[CALENDAR] CALENDAR_UPDATE_FAILED', err);
       toast.error('Erro ao atualizar calendário');
       return false;
     }
@@ -233,11 +253,20 @@ export function useCalendars() {
 
       if (deleteError) throw deleteError;
 
+      console.log(`[CALENDAR] Calendar deleted: ${id}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace!.id,
+        type: 'CALENDAR.DELETED',
+        entity_kind: 'calendar',
+        entity_id: id,
+        source_module: 'core-calendar',
+      });
+
       toast.success('Calendário eliminado');
       await fetchCalendars();
       return true;
     } catch (err) {
-      console.error('Error deleting calendar:', err);
+      console.warn('[CALENDAR] CALENDAR_DELETE_FAILED', err);
       toast.error('Erro ao eliminar calendário');
       return false;
     }

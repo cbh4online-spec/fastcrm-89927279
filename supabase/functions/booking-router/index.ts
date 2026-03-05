@@ -10,7 +10,10 @@ Deno.serve(async (req) => {
 
   try {
     const { workspace_id, bot_id, user_message, conversation_id } = await req.json();
+    console.log(`[BOOKING-ROUTER] Request: workspace=${workspace_id} bot=${bot_id} conversation=${conversation_id}`);
+
     if (!workspace_id || !bot_id || !user_message) {
+      console.warn("[BOOKING-ROUTER] Missing required fields");
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -28,6 +31,7 @@ Deno.serve(async (req) => {
 
     if (calErr) throw calErr;
     if (!calendars || calendars.length === 0) {
+      console.log("[BOOKING-ROUTER] No calendars configured for bot");
       return new Response(JSON.stringify({ matched: false, reason: "no_calendars_configured" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -65,9 +69,11 @@ ${JSON.stringify(calendarDescriptions, null, 2)}`
     });
 
     if (!aiResp.ok) {
-      console.error("AI error:", await aiResp.text());
+      const errText = await aiResp.text();
+      console.warn(`[BOOKING-ROUTER] AI_CLASSIFY_FAILED: HTTP ${aiResp.status} - ${errText}`);
       // Fallback to default calendar
       const fallback = calendars.find((c: any) => c.is_fallback) || calendars[0];
+      console.log(`[BOOKING-ROUTER] Fallback to calendar: ${fallback.calendar_name}`);
       return new Response(JSON.stringify({
         matched: false,
         fallback_calendar_id: fallback.calendar_id,
@@ -83,6 +89,7 @@ ${JSON.stringify(calendarDescriptions, null, 2)}`
     const matchedCalendar = calendars.find((c: any) => c.id === matchedId);
 
     if (matchedCalendar) {
+      console.log(`[BOOKING-ROUTER] Matched calendar: ${matchedCalendar.calendar_name} (${matchedCalendar.id})`);
       return new Response(JSON.stringify({
         matched: true,
         calendar_id: matchedCalendar.calendar_id,
@@ -94,6 +101,7 @@ ${JSON.stringify(calendarDescriptions, null, 2)}`
 
     // No match — use fallback
     const fallback = calendars.find((c: any) => c.is_fallback) || calendars[0];
+    console.log(`[BOOKING-ROUTER] No match, fallback to: ${fallback.calendar_name}`);
     return new Response(JSON.stringify({
       matched: false,
       fallback_calendar_id: fallback.calendar_id,
@@ -103,7 +111,7 @@ ${JSON.stringify(calendarDescriptions, null, 2)}`
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (e) {
-    console.error("booking-router error:", e);
+    console.warn("[BOOKING-ROUTER] ERROR:", e.message);
     return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
