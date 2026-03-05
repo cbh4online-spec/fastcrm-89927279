@@ -1,98 +1,65 @@
 
 
-# Sales-Products — Kernel V2 Stabilization
+# Sales-Bundles — Kernel V2 Stabilization
 
-## Current State
+## Scope
 
-| Area | File | Mutations | Kernel Events | Logging |
-|------|------|-----------|---------------|---------|
-| Create | `useProducts.ts` → `useCreateProduct` | insert + SKU/name dup check | None | Toast only |
-| Update | `useProducts.ts` → `useUpdateProduct` | update fields | None | Toast only |
-| Archive | `useProducts.ts` → `useArchiveProduct` | toggle status | None | Toast only |
-| Delete | `useProducts.ts` → `useDeleteProduct` | delete | None | Toast only |
-| Quick Create | `product-quick-create/index.ts` | edge fn: full product creation | None | `console.error` (no prefix) |
-| AI Improve | `product-ai-improve/index.ts` | edge fn: enrich metadata | None | `console.error` (no prefix) |
-| Publish | `product-publish/index.ts` | edge fn: toggle publish status | None | `console.error` (no prefix) |
-| Barcode | `useBarcodeLookup.ts` | lookup internal + external | None | None |
-| Categories | `useProductCategories.ts` | CRUD categories | None | Toast only |
-| Images | `useProductImages.ts` | CRUD images | None | Toast only |
-| Components | `useProductComponents.ts` | CRUD bundle components | None | Toast only |
-| Smoke Tests | `system-run-smoke-tests` | — | No product checks | — |
+The "sales-bundles" module spans three layers:
+1. **Product Components** (`useProductComponents.ts`) — bundle composition (already has `[PRODUCTS]` error logging from prior stabilization)
+2. **Protocols/Kits** (`useProtocols.ts`) — protocol bundles with discount rules, cross-sells
+3. **Marketplace Bundles** (`useMarketplaceBundles.ts`) — purchasable module bundles + checkout
+4. **Bundle Checkout** (`bundle-checkout/index.ts`) — edge function (already has `[BUNDLE-CHECKOUT]` logging)
 
-Zero kernel events. Zero structured logging.
+Product components already received `[PRODUCTS]` logging under the sales-products stabilization. This plan focuses on the **protocol/kit layer**, **marketplace bundles**, and **bundle pricing calculation** — the pieces with zero kernel events and zero structured logging.
 
 ## Implementation Plan
 
-### A) Kernel Events + Logging — `src/hooks/useProducts.ts`
+### A) Kernel Events + Logging — `src/hooks/useProtocols.ts`
 
-Import `emitKernelEvent`. All events: `source_module: 'sales-products'`, `entity_kind: 'product'`.
+Import `emitKernelEvent`. Events: `source_module: 'sales-bundles'`, `entity_kind: 'protocol'`.
 
-**Create:**
-1. `useCreateProduct.onSuccess` → `PRODUCT.CREATED` (payload: `has_sku`, `has_price`, `category`, `product_type`)
-2. `onError` → `console.warn('[PRODUCTS] CREATE_FAILED', error.message)`
+1. `createProtocol.onSuccess` → `BUNDLE.CREATED` (payload: `has_discount`, `discount_percentage`)
+2. `createProtocol.onError` → `console.warn('[BUNDLES] PROTOCOL_CREATE_FAILED')`
+3. `updateProtocol.onSuccess` → `BUNDLE.UPDATED` (payload: `protocol_id`); `console.log('[BUNDLES] Protocol updated')`
+4. `updateProtocol.onError` → `console.warn('[BUNDLES] PROTOCOL_UPDATE_FAILED')`
+5. `deleteProtocol.onSuccess` → `console.log('[BUNDLES] Protocol deleted')`
+6. `deleteProtocol.onError` → `console.warn('[BUNDLES] PROTOCOL_DELETE_FAILED')`
+7. `addProduct.onSuccess` → `console.log('[BUNDLES] Product added to protocol')`
+8. `addProduct.onError` → `console.warn('[BUNDLES] PROTOCOL_ADD_PRODUCT_FAILED')`
+9. `removeProduct.onSuccess` → `console.log('[BUNDLES] Product removed from protocol')`
+10. `removeProduct.onError` → `console.warn('[BUNDLES] PROTOCOL_REMOVE_PRODUCT_FAILED')`
+11. `addCrossSell.onError` → `console.warn('[BUNDLES] CROSS_SELL_ADD_FAILED')`
+12. `removeCrossSell.onError` → `console.warn('[BUNDLES] CROSS_SELL_REMOVE_FAILED')`
 
-**Update:**
-3. `useUpdateProduct.onSuccess` → `console.log('[PRODUCTS] Updated: ${id}')` ; if `base_price` changed → `PRODUCT.PRICE_UPDATED` (payload: `product_id`, `new_price`, `currency`)
-4. `onError` → `console.warn('[PRODUCTS] UPDATE_FAILED')`
+### B) Logging — `src/hooks/useMarketplaceBundles.ts`
 
-**Archive:**
-5. `useArchiveProduct.onSuccess` → `console.log('[PRODUCTS] Archived/Reactivated: ${id}')`
-6. `onError` → `console.warn('[PRODUCTS] ARCHIVE_FAILED')`
+No kernel events (marketplace is platform-level, not workspace entity). Add `[BUNDLES]` prefix:
 
-**Delete:**
-7. `useDeleteProduct.onSuccess` → `console.log('[PRODUCTS] Deleted: ${id}')`
-8. `onError` → `console.warn('[PRODUCTS] DELETE_FAILED')`
+1. `usePurchaseBundle.onError` → `console.warn('[BUNDLES] PURCHASE_FAILED', error.message)` (replace bare `console.error`)
 
-### B) Logging — Edge Functions
+### C) Logging — `src/hooks/useProductComponents.ts` (calculateBundleTotals)
 
-**`product-quick-create/index.ts`:**
-1. Before insert → `console.log('[PRODUCTS] Quick-create: name=${name}, sku=${sku}, channel=${channel}')`
-2. After insert → `console.log('[PRODUCTS] Quick-created: id=${productId}')`
-3. Error → prefix existing `console.error` with `[PRODUCTS]`
+Add price rule evaluation logging to `calculateBundleTotals`:
 
-**`product-ai-improve/index.ts`:**
-4. Before AI call → `console.log('[PRODUCTS] AI-improve: product=${productId}')`
-5. After success → `console.log('[PRODUCTS] AI-improved: fields=${fields.join(",")}')`
-6. Error → prefix existing `console.error` with `[PRODUCTS]`
+1. Add `console.log('[BUNDLES] Price calc: components=${count}, mode=${bundlePriceMode}, total=${finalPrice}')` at end of calculation
 
-**`product-publish/index.ts`:**
-7. Before update → `console.log('[PRODUCTS] Publish: product=${product_id}, status=${status}')`
-8. After update → `console.log('[PRODUCTS] Published: product=${product_id}')`
-9. Error → prefix existing `console.error` with `[PRODUCTS]`
+### D) Logging — `supabase/functions/bundle-checkout/index.ts`
 
-### C) Logging — Supporting Hooks
+Already has `[BUNDLE-CHECKOUT]` prefix — consistent. No changes needed.
 
-**`useBarcodeLookup.ts`:**
-1. Lookup fail → `console.warn('[PRODUCTS] BARCODE_LOOKUP_FAILED')`
-2. External lookup fail → `console.warn('[PRODUCTS] BARCODE_EXTERNAL_FAILED')`
-
-**`useProductCategories.ts`:**
-3. Create/Update/Delete `onError` → `console.warn('[PRODUCTS] CATEGORY_*_FAILED')`
-
-**`useProductImages.ts`:**
-4. All `onError` → `console.warn('[PRODUCTS] IMAGE_*_FAILED')`
-
-**`useProductComponents.ts`:**
-5. All `onError` → `console.warn('[PRODUCTS] COMPONENT_*_FAILED')`
-
-### D) Smoke Tests
+### E) Smoke Tests
 
 Add to `system-run-smoke-tests`:
-- `products` table check (module: `sales-products`)
-- `product_categories` table check (module: `sales-products`)
-- `product_images` table check (module: `sales-products`)
+- `product_protocols` table check (module: `sales-bundles`)
+- `protocol_products` table check (module: `sales-bundles`)
+- `product_components` table check (module: `sales-bundles`)
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useProducts.ts` | Import `emitKernelEvent`; emit `PRODUCT.CREATED`, `PRODUCT.PRICE_UPDATED`; add `[PRODUCTS]` logging |
-| `supabase/functions/product-quick-create/index.ts` | Add `[PRODUCTS]` prefixed logging |
-| `supabase/functions/product-ai-improve/index.ts` | Add `[PRODUCTS]` prefixed logging |
-| `supabase/functions/product-publish/index.ts` | Add `[PRODUCTS]` prefixed logging |
-| `src/hooks/useBarcodeLookup.ts` | Add `[PRODUCTS]` error logging |
-| `src/hooks/useProductCategories.ts` | Add `[PRODUCTS]` error logging |
-| `src/hooks/useProductImages.ts` | Add `[PRODUCTS]` error logging |
-| `src/hooks/useProductComponents.ts` | Add `[PRODUCTS]` error logging |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `products`, `product_categories`, `product_images` checks |
+| `src/hooks/useProtocols.ts` | Import `emitKernelEvent`; emit `BUNDLE.CREATED`, `BUNDLE.UPDATED`; add `[BUNDLES]` logging to all mutations + cross-sells |
+| `src/hooks/useMarketplaceBundles.ts` | Replace bare `console.error` with `[BUNDLES]` prefixed `console.warn` |
+| `src/hooks/useProductComponents.ts` | Add price calc logging to `calculateBundleTotals` |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add `product_protocols`, `protocol_products`, `product_components` checks under `sales-bundles` |
 
