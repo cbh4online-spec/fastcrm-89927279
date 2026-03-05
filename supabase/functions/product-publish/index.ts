@@ -114,6 +114,7 @@ Deno.serve(async (req) => {
     }
 
     // 7. Update product
+    console.log(`[PRODUCTS] Publish: product=${product_id}, status=${status}`);
     const now = new Date().toISOString();
     const { error: updateError } = await adminClient
       .from("products")
@@ -125,9 +126,11 @@ Deno.serve(async (req) => {
       .eq("id", product_id);
 
     if (updateError) {
-      console.error("product-publish update error:", updateError);
+      console.error("[PRODUCTS] product-publish update error:", updateError);
       return errorResponse(500, "INTERNAL_ERROR", "Failed to update product", requestId);
     }
+
+    console.log(`[PRODUCTS] Published: product=${product_id}`);
 
     // 8. Audit log (optional)
     let audit: { log_id: string; event: string } | null = null;
@@ -173,7 +176,7 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
-    console.error("product-publish error:", err);
+    console.error("[PRODUCTS] product-publish error:", err);
     return errorResponse(500, "INTERNAL_ERROR", "Internal server error", requestId);
   }
 });

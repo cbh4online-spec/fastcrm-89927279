@@ -144,6 +144,7 @@ Gera APENAS os campos pedidos.`;
     }
 
     // 7. Call AI
+    console.log(`[PRODUCTS] AI-improve: product=${product_id}`);
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -179,7 +180,7 @@ Gera APENAS os campos pedidos.`;
     if (!aiResponse.ok) {
       const statusCode = aiResponse.status;
       const errText = await aiResponse.text();
-      console.error("AI gateway error:", statusCode, errText);
+      console.error("[PRODUCTS] AI gateway error:", statusCode, errText);
 
       if (statusCode === 429) {
         return errorResponse(502, "AI_PROVIDER_ERROR", "AI rate limit exceeded. Please try again later.");
@@ -193,7 +194,7 @@ Gera APENAS os campos pedidos.`;
     const aiData = await aiResponse.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall?.function?.arguments) {
-      console.error("No tool call in AI response:", JSON.stringify(aiData));
+      console.error("[PRODUCTS] No tool call in AI response:", JSON.stringify(aiData));
       return errorResponse(502, "AI_PROVIDER_ERROR", "AI returned unexpected format");
     }
 
@@ -201,7 +202,7 @@ Gera APENAS os campos pedidos.`;
     try {
       generated = JSON.parse(toolCall.function.arguments);
     } catch {
-      console.error("Failed to parse AI tool arguments:", toolCall.function.arguments);
+      console.error("[PRODUCTS] Failed to parse AI tool arguments:", toolCall.function.arguments);
       return errorResponse(502, "AI_PROVIDER_ERROR", "AI returned invalid JSON");
     }
 
@@ -248,7 +249,7 @@ Gera APENAS os campos pedidos.`;
           .eq("id", product_id);
 
         if (updateError) {
-          console.error("Write-back error:", updateError);
+          console.error("[PRODUCTS] AI-improve write-back error:", updateError);
         }
       }
     }
@@ -285,6 +286,8 @@ Gera APENAS os campos pedidos.`;
       console.warn("Audit log error:", e);
     }
 
+    console.log(`[PRODUCTS] AI-improved: product=${product_id}, fields=${updatedFields.join(",")}`);
+
     // 11. Response
     const responsePayload = {
       success: true,
@@ -307,7 +310,7 @@ Gera APENAS os campos pedidos.`;
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("product-ai-improve error:", error);
+    console.error("[PRODUCTS] product-ai-improve error:", error);
     return errorResponse(500, "INTERNAL_ERROR", error instanceof Error ? error.message : "Unknown error");
   }
 });

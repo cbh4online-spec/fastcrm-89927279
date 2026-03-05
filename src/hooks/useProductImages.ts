@@ -74,6 +74,7 @@ export function useAddProductImage() {
       toast.success("Imagem adicionada!");
     },
     onError: (error) => {
+      console.warn('[PRODUCTS] IMAGE_ADD_FAILED', error.message);
       toast.error("Erro ao adicionar imagem: " + error.message);
     },
   });
@@ -108,6 +109,7 @@ export function useUpdateProductImage() {
       queryClient.invalidateQueries({ queryKey: ["product-images", productId] });
     },
     onError: (error) => {
+      console.warn('[PRODUCTS] IMAGE_UPDATE_FAILED', error.message);
       toast.error("Erro ao atualizar imagem: " + error.message);
     },
   });
@@ -131,6 +133,7 @@ export function useDeleteProductImage() {
       toast.success("Imagem removida!");
     },
     onError: (error) => {
+      console.warn('[PRODUCTS] IMAGE_DELETE_FAILED', error.message);
       toast.error("Erro ao remover imagem: " + error.message);
     },
   });
@@ -159,6 +162,7 @@ export function useReorderProductImages() {
       queryClient.invalidateQueries({ queryKey: ["product-images", productId] });
     },
     onError: (error) => {
+      console.warn('[PRODUCTS] IMAGE_REORDER_FAILED', error.message);
       toast.error("Erro ao reordenar imagens: " + error.message);
     },
   });

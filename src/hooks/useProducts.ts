@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import type { Product, CreateProductInput, UpdateProductInput } from "@/types/product";
 
 // Helper function to ensure category exists in product_categories table
@@ -154,12 +155,29 @@ export function useCreateProduct() {
       if (error) throw error;
       return data as Product;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["product-categories"] });
       toast.success("Produto criado com sucesso!");
+      console.log(`[PRODUCTS] Created: ${data.id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'PRODUCT.CREATED',
+          entity_kind: 'product',
+          entity_id: data.id,
+          source_module: 'sales-products',
+          payload: {
+            has_sku: !!data.sku,
+            has_price: (data.base_price ?? 0) > 0,
+            category: data.category,
+            product_type: data.product_type,
+          },
+        });
+      }
     },
     onError: (error) => {
+      console.warn('[PRODUCTS] CREATE_FAILED', error.message);
       toast.error("Erro ao criar produto: " + error.message);
     },
   });
@@ -229,13 +247,29 @@ export function useUpdateProduct() {
       if (error) throw error;
       return data as Product;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["product", data.id] });
       queryClient.invalidateQueries({ queryKey: ["product-categories"] });
       toast.success("Produto atualizado com sucesso!");
+      console.log(`[PRODUCTS] Updated: ${data.id}`);
+      if (variables.base_price !== undefined && currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'PRODUCT.PRICE_UPDATED',
+          entity_kind: 'product',
+          entity_id: data.id,
+          source_module: 'sales-products',
+          payload: {
+            product_id: data.id,
+            new_price: data.base_price,
+            currency: data.currency,
+          },
+        });
+      }
     },
     onError: (error) => {
+      console.warn('[PRODUCTS] UPDATE_FAILED', error.message);
       toast.error("Erro ao atualizar produto: " + error.message);
     },
   });
@@ -262,6 +296,7 @@ export function useArchiveProduct() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["product", data.id] });
+      console.log(`[PRODUCTS] ${data.status === 'archived' ? 'Archived' : 'Reactivated'}: ${data.id}`);
       toast.success(
         data.status === "archived"
           ? "Produto arquivado com sucesso!"
@@ -269,6 +304,7 @@ export function useArchiveProduct() {
       );
     },
     onError: (error) => {
+      console.warn('[PRODUCTS] ARCHIVE_FAILED', error.message);
       toast.error("Erro ao arquivar produto: " + error.message);
     },
   });
@@ -291,9 +327,11 @@ export function useDeleteProduct() {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["product", id] });
       queryClient.invalidateQueries({ queryKey: ["product-categories"] });
+      console.log(`[PRODUCTS] Deleted: ${id}`);
       toast.success("Produto eliminado com sucesso!");
     },
     onError: (error) => {
+      console.warn('[PRODUCTS] DELETE_FAILED', error.message);
       toast.error("Erro ao eliminar produto: " + error.message);
     },
   });

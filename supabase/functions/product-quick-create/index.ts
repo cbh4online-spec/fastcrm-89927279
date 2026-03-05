@@ -194,6 +194,8 @@ Deno.serve(async (req) => {
     const currency = product.price?.currency || "EUR";
     const requestId = crypto.randomUUID();
 
+    console.log(`[PRODUCTS] Quick-create: name=${name}, sku=${productSku || 'none'}, channel=${options.channel || 'mobile_quick'}`);
+
     const { data: newProduct, error: insertError } = await adminClient
       .from("products")
       .insert({
@@ -223,11 +225,12 @@ Deno.serve(async (req) => {
       .single();
 
     if (insertError || !newProduct) {
-      console.error("Product insert error:", insertError);
+      console.error("[PRODUCTS] Quick-create insert error:", insertError);
       return errorResponse(500, "INTERNAL_ERROR", "Failed to create product");
     }
 
     const productId = newProduct.id;
+    console.log(`[PRODUCTS] Quick-created: id=${productId}`);
 
     // 9. Promote images from tmp to final path
     const promotedImages: {
@@ -465,7 +468,7 @@ Deno.serve(async (req) => {
       { status: 201, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("product-quick-create error:", err);
+    console.error("[PRODUCTS] product-quick-create error:", err);
     return errorResponse(500, "INTERNAL_ERROR", "Internal server error");
   }
 });
