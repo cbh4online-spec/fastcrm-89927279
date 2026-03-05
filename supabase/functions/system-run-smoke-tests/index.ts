@@ -95,7 +95,10 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "context-os-fields", "context_fields_query", "context_fields"),
       // AI Agents
       runCheck(supabase, workspace_id, "ai-agents", "ai_jobs_query", "ai_agent_jobs"),
-      runCheck(supabase, workspace_id, "ai-agents-registry", "ai_registry_query", "ai_agent_registry"),
+      runCheck(supabase, workspace_id, "ai-agents", "ai_registry_query", "ai_agent_registry"),
+      runCheck(supabase, workspace_id, "ai-agents", "ai_executions_query", "ai_agent_executions"),
+      runCheck(supabase, workspace_id, "ai-agents", "ai_locks_query", "ai_agent_locks"),
+      runCheck(supabase, workspace_id, "ai-agents", "ai_memory_query", "ai_agent_memory"),
       // AI Personas & Knowledge Bases
       runCheck(supabase, workspace_id, "ai-personas", "ai_personas_query", "ai_personas"),
       runCheck(supabase, workspace_id, "ai-knowledge-bases", "knowledge_bases_query", "knowledge_bases"),

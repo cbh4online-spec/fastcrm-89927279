@@ -111,10 +111,12 @@ export function useAgentLifecycle(options: UseAgentLifecycleOptions) {
       queryClient.invalidateQueries({ queryKey: ['agent-jobs', workspaceId, entityId] });
 
       if (response.alreadyExists) {
+        console.log('[AI-AGENT] JOB_ALREADY_EXISTS', { job_id: response.jobId, entity_id: entityId });
         toast.info('Análise já agendada', {
           description: 'Já existe uma análise pendente para esta entidade.',
         });
       } else {
+        console.log('[AI-AGENT] JOB_DISPATCHED', { job_id: response.jobId, entity_id: entityId, trigger: variables.triggerType, queue_position: response.queuePosition });
         toast.success('Análise agendada', {
           description: `Posição na fila: ${response.queuePosition}`,
         });
@@ -140,6 +142,7 @@ export function useAgentLifecycle(options: UseAgentLifecycleOptions) {
       }
     },
     onError: (error: Error) => {
+      console.warn('[AI-AGENT] DISPATCH_FAILED', { entity_id: entityId, error: error.message });
       if (error.message.includes('Rate limit')) {
         toast.warning('Limite de execuções atingido', {
           description: 'Aguarde alguns minutos antes de solicitar nova análise.',
@@ -162,11 +165,29 @@ export function useAgentLifecycle(options: UseAgentLifecycleOptions) {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, jobId) => {
+      console.log('[AI-AGENT] JOB_CANCELLED', { job_id: jobId, entity_id: entityId });
       queryClient.invalidateQueries({ queryKey: ['agent-jobs', workspaceId, entityId] });
       toast.success('Análise cancelada');
+
+      if (workspaceId && entityId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'AGENT.JOB_CANCELLED',
+          entity_kind: 'ai_agent_job',
+          entity_id: jobId,
+          payload: {
+            agent_type: agentType || entityType,
+            entity_id: entityId,
+            entity_type: entityType,
+          },
+          source_module: 'ai-agents',
+          correlation_id: generateRequestId(),
+        });
+      }
     },
     onError: (error: Error) => {
+      console.warn('[AI-AGENT] CANCEL_FAILED', { entity_id: entityId, error: error.message });
       toast.error('Erro ao cancelar análise', {
         description: error.message,
       });
