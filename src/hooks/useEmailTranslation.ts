@@ -49,7 +49,7 @@ export function useTranslateEmail() {
       return data as TranslationResult;
     },
     onError: (error) => {
-      console.error("Translation error:", error);
+      console.warn("[EMAIL] TRANSLATE_FAILED:", error.message);
       toast.error(`Erro na tradução: ${error.message}`);
     },
   });

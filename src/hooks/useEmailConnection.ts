@@ -357,11 +357,36 @@ export function useSendEmail() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["messages", variables.conversationId] });
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      console.log(`[INTEGRATIONS] EMAIL_SENT workspace=${currentWorkspace?.id}`);
+      console.log(`[INTEGRATIONS][EMAIL] EMAIL_SENT workspace=${currentWorkspace?.id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'EMAIL.SENT',
+          entity_kind: 'message',
+          entity_id: variables.conversationId,
+          source_module: 'comm-email',
+          payload: {
+            to: variables.to,
+            has_subject: !!variables.subject,
+            is_html: !!variables.isHtml,
+            has_in_reply_to: !!variables.inReplyTo,
+          },
+        });
+      }
       toast.success("Email enviado!");
     },
     onError: (error) => {
-      console.warn(`[INTEGRATIONS] EMAIL_SEND_FAILED: ${error.message}`);
+      console.warn(`[INTEGRATIONS][EMAIL] EMAIL_SEND_FAILED: ${error.message}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'EMAIL.SEND_FAILED',
+          entity_kind: 'message',
+          entity_id: currentWorkspace.id,
+          source_module: 'comm-email',
+          payload: { error: error.message },
+        });
+      }
       toast.error(`Erro ao enviar email: ${error.message}`);
     },
   });
