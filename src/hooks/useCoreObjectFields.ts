@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface CoreObjectField {
   id: string;
@@ -68,11 +69,25 @@ export function useCreateObjectField() {
       if (error) throw error;
       return data as CoreObjectField;
     },
-    onSuccess: (_, v) => {
+    onSuccess: (data, v) => {
       qc.invalidateQueries({ queryKey: ["core-object-fields", currentWorkspace?.id, v.object_id] });
       toast.success("Campo criado");
+      console.log(`[CUSTOM-FIELDS] Core object field created: ${data.id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CUSTOM_FIELD.CREATED',
+          entity_kind: 'core_object_field',
+          entity_id: data.id,
+          source_module: 'core-custom-fields',
+          payload: { name: v.name, slug: v.slug, field_type: v.field_type },
+        });
+      }
     },
-    onError: () => toast.error("Erro ao criar campo"),
+    onError: (error: Error) => {
+      console.warn('[CUSTOM-FIELDS] CORE_FIELD_CREATE_FAILED:', error.message);
+      toast.error("Erro ao criar campo");
+    },
   });
 }
 
@@ -91,8 +106,21 @@ export function useUpdateObjectField() {
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ["core-object-fields", currentWorkspace?.id, v.object_id] });
       toast.success("Campo atualizado");
+      console.log(`[CUSTOM-FIELDS] Core object field updated: ${v.id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CUSTOM_FIELD.UPDATED',
+          entity_kind: 'core_object_field',
+          entity_id: v.id,
+          source_module: 'core-custom-fields',
+        });
+      }
     },
-    onError: () => toast.error("Erro ao atualizar campo"),
+    onError: (error: Error) => {
+      console.warn('[CUSTOM-FIELDS] CORE_FIELD_UPDATE_FAILED:', error.message);
+      toast.error("Erro ao atualizar campo");
+    },
   });
 }
 
@@ -110,8 +138,21 @@ export function useDeleteObjectField() {
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ["core-object-fields", currentWorkspace?.id, v.object_id] });
       toast.success("Campo removido");
+      console.log(`[CUSTOM-FIELDS] Core object field deleted: ${v.id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CUSTOM_FIELD.DELETED',
+          entity_kind: 'core_object_field',
+          entity_id: v.id,
+          source_module: 'core-custom-fields',
+        });
+      }
     },
-    onError: () => toast.error("Erro ao remover campo"),
+    onError: (error: Error) => {
+      console.warn('[CUSTOM-FIELDS] CORE_FIELD_DELETE_FAILED:', error.message);
+      toast.error("Erro ao remover campo");
+    },
   });
 }
 

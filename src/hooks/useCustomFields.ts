@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export type CustomFieldType = "text" | "number" | "date" | "boolean" | "select";
 export type CustomFieldEntityType = "lead" | "opportunity" | "contact" | "company";
@@ -154,12 +155,23 @@ export function useCreateCustomField() {
       }
       return data as CustomField;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["custom_fields", currentWorkspace?.id] });
       toast.success("Campo personalizado criado");
+      console.log(`[CUSTOM-FIELDS] Custom field created: ${data.id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CUSTOM_FIELD.CREATED',
+          entity_kind: 'custom_field',
+          entity_id: data.id,
+          source_module: 'core-custom-fields',
+          payload: { name: variables.name, field_type: variables.field_type, entity_type: variables.entity_type, is_unique: variables.is_unique, required: variables.required },
+        });
+      }
     },
     onError: (error: Error) => {
-      console.error("Error creating custom field:", error);
+      console.warn('[CUSTOM-FIELDS] CREATE_FAILED:', error.message);
       toast.error("Erro ao criar campo personalizado");
     },
   });
@@ -185,12 +197,24 @@ export function useUpdateCustomField() {
       if (error) throw error;
       return data as CustomField;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["custom_fields", currentWorkspace?.id] });
       toast.success("Campo personalizado atualizado");
+      console.log(`[CUSTOM-FIELDS] Custom field updated: ${data.id}`);
+      if (currentWorkspace?.id) {
+        const { id, ...updatedKeys } = variables;
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CUSTOM_FIELD.UPDATED',
+          entity_kind: 'custom_field',
+          entity_id: id,
+          source_module: 'core-custom-fields',
+          payload: { updated_keys: Object.keys(updatedKeys) },
+        });
+      }
     },
     onError: (error: Error) => {
-      console.error("Error updating custom field:", error);
+      console.warn('[CUSTOM-FIELDS] UPDATE_FAILED:', error.message);
       toast.error("Erro ao atualizar campo personalizado");
     },
   });
@@ -211,12 +235,22 @@ export function useDeleteCustomField() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["custom_fields", currentWorkspace?.id] });
       toast.success("Campo personalizado eliminado");
+      console.log(`[CUSTOM-FIELDS] Custom field deleted: ${id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CUSTOM_FIELD.DELETED',
+          entity_kind: 'custom_field',
+          entity_id: id,
+          source_module: 'core-custom-fields',
+        });
+      }
     },
     onError: (error: Error) => {
-      console.error("Error deleting custom field:", error);
+      console.warn('[CUSTOM-FIELDS] DELETE_FAILED:', error.message);
       toast.error("Erro ao eliminar campo personalizado");
     },
   });
@@ -244,12 +278,23 @@ export function useReorderCustomFields() {
         if (result.error) throw result.error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, fields) => {
       queryClient.invalidateQueries({ queryKey: ["custom_fields", currentWorkspace?.id] });
       toast.success("Ordem dos campos atualizada");
+      console.log(`[CUSTOM-FIELDS] Custom fields reordered: ${fields.length} fields`);
+      if (currentWorkspace?.id && fields.length > 0) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CUSTOM_FIELD.REORDERED',
+          entity_kind: 'custom_field',
+          entity_id: fields[0].id,
+          source_module: 'core-custom-fields',
+          payload: { count: fields.length },
+        });
+      }
     },
     onError: (error: Error) => {
-      console.error("Error reordering custom fields:", error);
+      console.warn('[CUSTOM-FIELDS] REORDER_FAILED:', error.message);
       toast.error("Erro ao reordenar campos");
     },
   });
@@ -333,11 +378,12 @@ export function useSetCustomFieldValue() {
       if (error) throw error;
       return data as CustomFieldValue;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["custom_field_values", variables.entityId] });
+      console.log(`[CUSTOM-FIELDS] Custom field value set: ${data.id}`);
     },
     onError: (error: Error) => {
-      console.error("Error setting custom field value:", error);
+      console.warn('[CUSTOM-FIELDS] VALUE_SET_FAILED:', error.message);
       toast.error(error.message || "Erro ao guardar valor do campo");
     },
   });

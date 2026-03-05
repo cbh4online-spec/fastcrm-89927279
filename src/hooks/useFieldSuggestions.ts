@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export type EntityType = "lead" | "opportunity" | "contact" | "company";
 export type SuggestionStatus = "pending" | "accepted" | "rejected" | "expired";
@@ -98,15 +99,30 @@ export function useGenerateFieldSuggestions() {
 
       return data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ 
         queryKey: ["field-suggestions", variables.entityType, variables.entityId] 
       });
+      console.log(`[CUSTOM-FIELDS] AI suggestions generated for ${variables.entityType}:${variables.entityId} — ${data.suggestions?.length ?? 0} suggestions`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CUSTOM_FIELD.AI_SUGGESTIONS_GENERATED',
+          entity_kind: variables.entityType,
+          entity_id: variables.entityId,
+          source_module: 'core-custom-fields',
+          payload: { suggestion_count: data.suggestions?.length ?? 0 },
+        });
+      }
+    },
+    onError: (error: Error) => {
+      console.warn('[CUSTOM-FIELDS] AI_SUGGESTIONS_GENERATE_FAILED:', error.message);
     },
   });
 }
 
 export function useAcceptSuggestion() {
+  const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -141,14 +157,27 @@ export function useAcceptSuggestion() {
         queryKey: ["field-suggestions", variables.suggestion.entity_type, variables.suggestion.entity_id] 
       });
       toast.success("Sugestão aplicada com sucesso");
+      console.log(`[CUSTOM-FIELDS] AI suggestion accepted: ${variables.suggestion.id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CUSTOM_FIELD.AI_SUGGESTION_ACCEPTED',
+          entity_kind: variables.suggestion.entity_type,
+          entity_id: variables.suggestion.entity_id,
+          source_module: 'core-custom-fields',
+          payload: { field_name: variables.suggestion.field_name, field_type: variables.suggestion.field_type, confidence: variables.suggestion.confidence },
+        });
+      }
     },
-    onError: () => {
+    onError: (error: Error) => {
+      console.warn('[CUSTOM-FIELDS] AI_SUGGESTION_ACCEPT_FAILED:', error.message);
       toast.error("Erro ao aplicar sugestão");
     },
   });
 }
 
 export function useRejectSuggestion() {
+  const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -167,6 +196,19 @@ export function useRejectSuggestion() {
       queryClient.invalidateQueries({ 
         queryKey: ["field-suggestions", suggestion.entity_type, suggestion.entity_id] 
       });
+      console.log(`[CUSTOM-FIELDS] AI suggestion rejected: ${suggestion.id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'CUSTOM_FIELD.AI_SUGGESTION_REJECTED',
+          entity_kind: suggestion.entity_type,
+          entity_id: suggestion.entity_id,
+          source_module: 'core-custom-fields',
+        });
+      }
+    },
+    onError: (error: Error) => {
+      console.warn('[CUSTOM-FIELDS] AI_SUGGESTION_REJECT_FAILED:', error.message);
     },
   });
 }
