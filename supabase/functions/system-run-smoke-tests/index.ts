@@ -85,6 +85,8 @@ Deno.serve(async (req) => {
       // CRM
       runCheck(supabase, workspace_id, "crm-leads", "leads_query", "leads"),
       runCheck(supabase, workspace_id, "crm-opportunities", "opportunities_query", "opportunities"),
+      runCheck(supabase, workspace_id, "crm-deal-score", "deal_scores_query", "deal_scores"),
+      runCheck(supabase, workspace_id, "crm-activities", "crm_activities_query", "crm_activities"),
       // Inbox
       runCheck(supabase, workspace_id, "inbox", "conversations_query", "conversations"),
       runCheck(supabase, workspace_id, "inbox-messages", "messages_query", "messages"),

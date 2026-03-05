@@ -10,6 +10,8 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = performance.now();
+
   try {
     const body = await req.json().catch(() => ({}));
     const { workspace_id, opportunity_id } = body;
@@ -21,11 +23,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use service role to bypass RLS for reading and writing
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Fetch previous score before computation
+    const { data: previousScore } = await supabase
+      .from("deal_scores")
+      .select("close_score, category, urgency")
+      .eq("opportunity_id", opportunity_id)
+      .maybeSingle();
 
     // Parallel data fetch
     const [oppResult, activitiesResult, meetingsResult, tasksResult] = await Promise.all([
@@ -91,7 +99,6 @@ Deno.serve(async (req) => {
 
     // ─── SCORING COMPONENTS ──────────────────────────────────────────────────
 
-    // 1. Engagement Score (based on activity count in last 30 days)
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const recentActivities = activities.filter(
       (a) => new Date(a.created_at) >= thirtyDaysAgo
@@ -102,7 +109,6 @@ Deno.serve(async (req) => {
     else if (recentActivities.length >= 2) engagement_score = 0.4;
     else engagement_score = 0.1;
 
-    // 2. Recency Score (based on last_activity_at or updated_at)
     const lastActivityDate = opportunity.last_activity_at
       ? new Date(opportunity.last_activity_at)
       : opportunity.updated_at
@@ -119,7 +125,6 @@ Deno.serve(async (req) => {
     else if (daysSinceActivity < 30) recency_score = 0.15;
     else recency_score = 0.0;
 
-    // 3. Trust Score (from conversation_signals, fallback to stage probability)
     let trust_score: number;
     if (signals?.trust_score != null) {
       trust_score = Number(signals.trust_score) > 1
@@ -131,28 +136,16 @@ Deno.serve(async (req) => {
     }
     trust_score = Math.min(1, Math.max(0, trust_score));
 
-    // 4. Objection Penalty (from main_objection)
     const objectionMap: Record<string, number> = {
-      none: 0.0,
-      no_need: 1.0,
-      price: 0.8,
-      competitor: 0.8,
-      authority: 0.5,
-      timing: 0.5,
-      uncertainty: 0.3,
-      confusion: 0.3,
+      none: 0.0, no_need: 1.0, price: 0.8, competitor: 0.8,
+      authority: 0.5, timing: 0.5, uncertainty: 0.3, confusion: 0.3,
     };
     const objection_penalty = signals?.main_objection
       ? (objectionMap[signals.main_objection] ?? 0.3)
       : 0.0;
 
-    // 5. Intent Score (composite from buying_intent, temperature, meeting bonus)
     const tempMap: Record<string, number> = {
-      ready_to_buy: 1.0,
-      evaluating: 0.6,
-      stalling: 0.3,
-      cold: 0.1,
-      lost: 0.0,
+      ready_to_buy: 1.0, evaluating: 0.6, stalling: 0.3, cold: 0.1, lost: 0.0,
     };
     const tempScore = signals?.temperature ? (tempMap[signals.temperature] ?? 0.3) : 0.3;
 
@@ -168,7 +161,6 @@ Deno.serve(async (req) => {
     const meetingBonus = hasUpcomingMeeting ? 0.15 : 0.0;
     const intent_score = Math.min(1, intentBase + meetingBonus);
 
-    // 6. Historical Similarity (stage probability proxy)
     const stageProbability = opportunity.stage?.probability ?? opportunity.probability ?? 50;
     const historical_similarity = stageProbability / 100;
 
@@ -183,14 +175,12 @@ Deno.serve(async (req) => {
 
     const close_score = Math.min(100, Math.max(0, Math.round(raw_score * 100 * 10) / 10));
 
-    // ─── CATEGORY ────────────────────────────────────────────────────────────
     let category: string;
     if (close_score >= 81) category = "hot";
     else if (close_score >= 61) category = "likely";
     else if (close_score >= 31) category = "uncertain";
     else category = "low";
 
-    // ─── URGENCY ─────────────────────────────────────────────────────────────
     const churnRisk = signals?.churn_risk != null
       ? (Number(signals.churn_risk) > 1 ? Number(signals.churn_risk) / 100 : Number(signals.churn_risk))
       : 0;
@@ -200,7 +190,6 @@ Deno.serve(async (req) => {
     else if (category === "hot" && !hasUpcomingMeeting) urgency = "high";
     else urgency = "normal";
 
-    // ─── NEXT ACTION ─────────────────────────────────────────────────────────
     let next_action: string | null = null;
     if (category === "hot" && !hasUpcomingMeeting) {
       next_action = "Agendar reunião com o cliente";
@@ -215,6 +204,15 @@ Deno.serve(async (req) => {
     }
 
     // ─── UPSERT ──────────────────────────────────────────────────────────────
+    const score_breakdown = {
+      engagement_score,
+      recency_score,
+      trust_score,
+      objection_penalty,
+      intent_score,
+      historical_similarity,
+    };
+
     const { data: upserted, error: upsertError } = await supabase
       .from("deal_scores")
       .upsert(
@@ -225,14 +223,7 @@ Deno.serve(async (req) => {
           category,
           urgency,
           next_action,
-          score_breakdown: {
-            engagement_score,
-            recency_score,
-            trust_score,
-            objection_penalty,
-            intent_score,
-            historical_similarity,
-          },
+          score_breakdown,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "opportunity_id" }
@@ -242,11 +233,81 @@ Deno.serve(async (req) => {
 
     if (upsertError) throw upsertError;
 
+    // ─── OBSERVABILITY LOGGING ───────────────────────────────────────────────
+    const latency_ms = Math.round(performance.now() - startTime);
+    console.log(`[DEAL-SCORE] opportunity_id=${opportunity_id} latency_ms=${latency_ms} score=${close_score} category=${category} urgency=${urgency}`);
+    console.log(`[DEAL-SCORE] inputs: engagement=${engagement_score} recency=${recency_score} trust=${trust_score} objection=${objection_penalty} intent=${intent_score} historical=${historical_similarity}`);
+
+    const label_changed = previousScore ? previousScore.category !== category : false;
+    if (label_changed && previousScore) {
+      console.log(`[DEAL-SCORE] CATEGORY_CHANGE opportunity_id=${opportunity_id} ${previousScore.category} → ${category} (score: ${previousScore.close_score} → ${close_score})`);
+    }
+
+    // ─── KERNEL EVENTS ───────────────────────────────────────────────────────
+    const kernelEvents: Record<string, unknown>[] = [];
+
+    // DEAL.SCORE_UPDATED event
+    kernelEvents.push({
+      workspace_id,
+      type: "DEAL.SCORE_UPDATED",
+      entity_kind: "opportunity",
+      entity_id: opportunity_id,
+      actor_type: "system",
+      actor_id: "compute-deal-score",
+      source_module: "crm-deal-score",
+      schema_version: 1,
+      occurred_at: new Date().toISOString(),
+      payload: {
+        close_score,
+        category,
+        urgency,
+        next_action,
+        previous_score: previousScore?.close_score ?? null,
+        previous_category: previousScore?.category ?? null,
+        label_changed,
+        score_breakdown,
+      },
+    });
+
+    // OPPORTUNITY.STALE event when recency_score < 0.2 (>14 days inactive)
+    if (recency_score < 0.2) {
+      kernelEvents.push({
+        workspace_id,
+        type: "OPPORTUNITY.STALE",
+        entity_kind: "opportunity",
+        entity_id: opportunity_id,
+        actor_type: "system",
+        actor_id: "compute-deal-score",
+        source_module: "crm-deal-score",
+        schema_version: 1,
+        occurred_at: new Date().toISOString(),
+        payload: {
+          days_since_activity: daysSinceActivity,
+          recency_score,
+          close_score,
+          category,
+        },
+      });
+      console.log(`[DEAL-SCORE] STALE opportunity_id=${opportunity_id} days_inactive=${daysSinceActivity}`);
+    }
+
+    // Insert kernel events
+    if (kernelEvents.length > 0) {
+      const { error: kernelError } = await supabase
+        .from("kernel_events")
+        .insert(kernelEvents);
+
+      if (kernelError) {
+        console.error(`[DEAL-SCORE] Failed to insert kernel events: ${kernelError.message}`);
+      }
+    }
+
     return new Response(JSON.stringify({ success: true, data: upserted }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("compute-deal-score error:", err);
+    const latency_ms = Math.round(performance.now() - startTime);
+    console.error(`[DEAL-SCORE] ERROR latency_ms=${latency_ms}`, err);
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Internal error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

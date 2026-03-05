@@ -3,6 +3,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export type ActivityType = 
   | "message_sent" | "message_received"
@@ -220,8 +221,28 @@ export function useCreateActivity() {
       if (error) throw error;
       return data as CrmActivity;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["crm-activities", currentWorkspace?.id] });
+
+      // Emit OPPORTUNITY.ACTIVITY_ADDED kernel event when activity is linked to an opportunity
+      if (variables.opportunity_id && currentWorkspace && user) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'OPPORTUNITY.ACTIVITY_ADDED',
+          entity_kind: 'opportunity',
+          entity_id: variables.opportunity_id,
+          actor_type: 'user',
+          actor_id: user.id,
+          source_module: 'crm-activities',
+          payload: {
+            activity_id: data.id,
+            activity_type: variables.activity_type,
+            entity_type: variables.entity_type,
+            entity_id: variables.entity_id,
+            title: variables.title,
+          },
+        });
+      }
     },
   });
 }
