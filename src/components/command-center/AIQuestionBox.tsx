@@ -326,7 +326,48 @@ export function AIQuestionBox() {
               ) : (
                 <p>{msg.content}</p>
               )}
-              {/* Suggestion chips — subtle indigo style */}
+              {/* Items list */}
+              {msg.items && msg.items.length > 0 && (
+                <div className="mt-2 space-y-1 border-t border-border/20 pt-2">
+                  {msg.items.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => navigate(item.link)}
+                      className="w-full text-left flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-primary/5 transition-colors group"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-foreground truncate">{item.title}</p>
+                        {item.subtitle && <p className="text-[10px] text-muted-foreground truncate">{item.subtitle}</p>}
+                      </div>
+                      {item.value != null && item.value > 0 && (
+                        <span className="text-[10px] text-muted-foreground ml-2 shrink-0">€{item.value.toLocaleString("pt-PT")}</span>
+                      )}
+                      <ChevronRight className="h-3 w-3 text-muted-foreground/50 group-hover:text-primary ml-1 shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* Quick actions */}
+              {msg.actions && msg.actions.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-border/20">
+                  {msg.actions.map((action) => (
+                    <button
+                      key={action.id}
+                      onClick={() => {
+                        if (action.type === 'navigate' && action.payload?.link) {
+                          navigate(action.payload.link);
+                        } else {
+                          executeAction(action);
+                        }
+                      }}
+                      className="text-xs px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors font-medium"
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* Suggestion chips */}
               {msg.suggestions && msg.suggestions.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-3 pt-2 border-t border-border/20">
                   {msg.suggestions.map((s, i) => (
