@@ -32,9 +32,20 @@ export function InboxView() {
 
   // Get channel filter from URL params
   const channelParam = searchParams.get("channel") as ConversationChannel | null;
+  const templateParam = searchParams.get("template");
+
   useEffect(() => {
     if (channelParam) setSelectedChannel(channelParam as ChannelFilter);
   }, [channelParam]);
+
+  useEffect(() => {
+    if (templateParam) {
+      toast.info("Template selecionado", {
+        description: "Use o botão de composição para criar uma nova mensagem com este template.",
+        duration: 5000,
+      });
+    }
+  }, [templateParam]);
 
   const { data: conversations } = useConversations();
   const updateStatus = useUpdateConversationStatus();

@@ -20,6 +20,7 @@ import { getExtensionObjectTabsGrouped } from "@/config/extensionRegistry";
 import { useSidebarFavorites } from "@/hooks/useSidebarFavorites";
 import { X, Puzzle, ChevronRight, Star, Command } from "lucide-react";
 import { useMemo, useState, useCallback } from "react";
+import { useUnreadInboxCount } from "@/hooks/useUnreadInboxCount";
 import {
   Tooltip,
   TooltipContent,
@@ -46,6 +47,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { data: flags, isLoading: flagsLoading } = useFeatureFlags();
   const { installedModuleIds } = useWorkspaceModules();
   const { favorites, toggleFavorite, isFavorite } = useSidebarFavorites();
+  const unreadInboxCount = useUnreadInboxCount();
 
   // Collapsible group state — auto-open group containing active route
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
@@ -158,6 +160,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           >
             <Icon className={cn("w-[18px] h-[18px] shrink-0", active ? "text-primary" : item.iconColor)} />
             <span className="truncate">{item.name}</span>
+            {(item as any).badgeKey === "inbox-unread" && unreadInboxCount > 0 && (
+              <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                {unreadInboxCount > 99 ? "99+" : unreadInboxCount}
+              </span>
+            )}
           </Link>
         </TooltipTrigger>
         <TooltipContent side="right" className="text-xs">

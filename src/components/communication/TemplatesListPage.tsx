@@ -608,10 +608,20 @@ export function TemplatesListPage() {
                                 </TooltipProvider>
                               )}
                             </div>
-                            <Switch
-                              checked={template.isActive}
-                              onCheckedChange={() => handleToggleActive(template)}
-                            />
+                            <div className="flex items-center gap-1.5">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs"
+                                onClick={() => navigate(`/dashboard/inbox?template=${template.id}`)}
+                              >
+                                Usar agora
+                              </Button>
+                              <Switch
+                                checked={template.isActive}
+                                onCheckedChange={() => handleToggleActive(template)}
+                              />
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
