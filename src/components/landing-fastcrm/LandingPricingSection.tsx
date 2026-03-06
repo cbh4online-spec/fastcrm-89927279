@@ -142,14 +142,14 @@ export function LandingPricingSection() {
 
                 <Link to={plan.ctaLink} className="w-full">
                   <Button
-                    className={`w-full font-bold uppercase tracking-wide h-11 ${
+                    className={`w-full font-bold uppercase tracking-wide h-auto min-h-[44px] py-2 px-4 text-sm whitespace-normal text-center ${
                       plan.highlighted
                         ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:bg-[hsl(var(--primary)/0.9)]"
                         : "bg-[hsl(210,40%,98%)/0.1] text-[hsl(210,40%,98%)] hover:bg-[hsl(210,40%,98%)/0.15] border border-[hsl(210,40%,98%)/0.1]"
                     }`}
                   >
-                    {t(`pricing.${plan.ctaKey}`)}
-                    <ArrowRight className="h-4 w-4 ml-2" />
+                    <span className="truncate">{t(`pricing.${plan.ctaKey}`)}</span>
+                    <ArrowRight className="h-4 w-4 ml-2 shrink-0" />
                   </Button>
                 </Link>
               </motion.div>
