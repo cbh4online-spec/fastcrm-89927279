@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { motion } from "framer-motion";
 import { Search, Filter, Users, Link2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -86,7 +87,8 @@ export default function FastMatchDiscoveryPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
+    <div className="bg-background">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-1">
@@ -253,5 +255,6 @@ export default function FastMatchDiscoveryPage() {
         />
       </div>
     </div>
+    </DashboardLayout>
   );
 }
