@@ -98,12 +98,12 @@ Deno.serve(async (req) => {
           workspace_id: workspaceId,
           title: `Handover: ${conversation.title || "Conversa sem título"}`,
           description: `Bot transferiu esta conversa para atendimento humano.\nMotivo: ${reason}`,
-          due_date: dueDate,
+          due_at: dueDate,
           assigned_to: assignToUserId || null,
           status: "pending",
           priority: "high",
-          entity_type: "conversation",
-          entity_id: conversationId,
+          related_type: "conversation",
+          related_id: conversationId,
         });
 
       // 4. Apply tag to lead if available

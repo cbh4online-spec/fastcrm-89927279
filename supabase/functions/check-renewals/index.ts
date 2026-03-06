@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
           title: `Confirmar Renovação/Upsell - ${customerName}`,
           description: `A subscrição de ${customerName} renova ${daysText}. Verifique se o cliente deseja renovar e explore oportunidades de upsell.`,
           assigned_to: renewal.assigned_to,
-          due_date: renewal.renewal_date,
+          due_at: renewal.renewal_date,
           priority: renewal.days_until_renewal <= 3 ? "high" : "medium",
           status: "todo",
           related_type: "subscription",
