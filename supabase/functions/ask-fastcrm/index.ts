@@ -2165,7 +2165,7 @@ async function queryOverdueInvoices(client: any, workspaceId: string) {
         ? [
             {
               id: "view_invoices",
-              label: "View invoices",
+              label: "Ver faturas",
               icon: "Eye",
               type: "navigate",
               payload: { link: "/dashboard/invoices" },
@@ -2173,17 +2173,17 @@ async function queryOverdueInvoices(client: any, workspaceId: string) {
           ]
         : [],
       metric: {
-        label: "Overdue Amount",
+        label: "Valor em Atraso",
         value: `€${totalOverdue.toLocaleString()}`,
         trend: items.length > 0 ? "down" : "neutral",
       },
     };
   } catch {
     return {
-      headline: "Invoice data is not available yet.",
+      headline: "Dados de faturação não disponíveis.",
       items: [],
       actions: [],
-      metric: { label: "Overdue", value: "—", trend: "neutral" },
+      metric: { label: "Em atraso", value: "—", trend: "neutral" },
     };
   }
 }
