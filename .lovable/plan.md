@@ -1,112 +1,95 @@
 
 
-# Mkt-Bio-OS — Kernel V2 Stabilization
+# Store-Ecommerce — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | File(s) | Kernel Events | Logging |
 |------|---------|---------------|---------|
-| Page CRUD | `useBioPages.ts` | None | Toast only |
-| Block CRUD | `useBioBlocks.ts` | None | Toast only |
-| Publish/Unpublish | `useBioPages.ts` → `usePublishBioPage` | None | Toast only |
-| Public Render | `PublicBioPage.tsx` | None | None |
-| Click Tracking | `PublicBioPage.tsx` → `trackBlockClick` | None (writes to `bio_events`) | None |
-| Page View | `PublicBioPage.tsx` → `trackPageView` | None (writes to `bio_events`) | None |
-| Form/Lead Submit | `PublicBioPage.tsx` → `FormBlock` | None | Silent catch |
-| AI Builder | `bio-ai-builder` edge fn | None | Bare `console.error` |
-| Smart Link | `bio-smart-link` edge fn | None | Bare `console.error` |
-| SEO Copy | `bio-seo-copy` edge fn | None | Bare `console.error` |
-| Image Gen | `bio-generate-image` edge fn | None | Bare `console.error` |
-| WhatsApp Copy | `bio-whatsapp-copy` edge fn | None | Bare `console.error` |
-| Analytics | `BioAnalyticsTab.tsx` | None | None |
-| Smoke Tests | `system-run-smoke-tests` | — | No bio table checks |
+| Checkout | `create-store-checkout` edge fn | None | Has `[STORE-CHECKOUT]` prefix (good) |
+| Webhook (payment confirm) | `store-webhook` edge fn | None | Has `[STORE-WEBHOOK]` prefix (good) |
+| Cart Context | `StoreCartContext.tsx` | None | Bare `console.error` |
+| Cart Abandonment Detect | `detect-abandoned-carts` edge fn | None | Has `[DETECT-ABANDONED]` prefix |
+| Cart Abandonment Process | `store-cart-abandonment` edge fn | None | Has `[CART-ABANDONMENT]` prefix |
+| Store Automation | `useStoreAutomation.ts` | None | Toast only |
+| Visitor Tracking | `useStoreVisitorTracking.ts` | None | Bare `console.error` |
+| Order Status Update | `useStoreOrders.ts` | `ORDER.FULFILLED` (done) | `[ORDERS]` prefix (done) |
+| Returns/Refunds | `useReturnRequests.ts` + `process-refund` edge fn | None | Has `[PROCESS-REFUND]` prefix |
+| Smoke Tests | `system-run-smoke-tests` | — | No store-ecommerce checks |
 
-Zero kernel events. Zero structured logging.
+Partially logged edge functions. Zero kernel events for checkout/payment/cart lifecycle.
 
 ## Implementation Plan
 
-### A) Kernel Events — Page Lifecycle (`useBioPages.ts`)
+### A) Kernel Events — Webhook (`store-webhook/index.ts`)
 
-Import `emitKernelEvent` + `useWorkspace`. Source: `mkt-bio-os`, entity_kind: `bio_page`.
+After order marked as paid (line ~251):
+1. Emit `CHECKOUT.COMPLETED` (entity_kind: `store_order`, payload: `order_id`, `total`, `items_count`, `is_first_purchase`)
+2. Emit `PAYMENT.CONFIRMED` (entity_kind: `store_order`, payload: `order_id`, `payment_intent_id`, `total`)
 
-1. `useCreateBioPage.onSuccess` → emit `BIO.PAGE_CREATED` (payload: `slug`, `name`)
-2. `usePublishBioPage.onSuccess` → if status=`live`, emit `BIO.PAGE_PUBLISHED`; if `draft`, log only
-3. `useDeleteBioPage.onSuccess` → `console.log('[BIO] Page deleted')`
-4. All `onError` → `console.warn('[BIO] <ACTION>_FAILED')`
+Source: `store-ecommerce` for all events in this module.
 
-### B) Kernel Events — Lead Created (`PublicBioPage.tsx`)
+### B) Kernel Events — Cart Abandonment (`detect-abandoned-carts/index.ts`)
 
-In `FormBlock.handleSubmit`, after successful contact insert:
+After abandoned cart record created (line ~74):
+3. Emit `CART.ABANDONED` (entity_kind: `store_abandoned_cart`, payload: `session_id`, `subtotal`, `items_count`)
 
-1. Fire-and-forget call to `emitKernelEvent` is not possible here (public page, no workspace context hook). Instead, add structured logging: `console.log('[BIO] Lead captured: page=${page.id}, block=${block.id}')`
-2. The `bio_events` insert with `event_type: 'lead'` already creates the audit trail. No kernel event needed from public context.
+### C) Kernel Events — Refund (`process-refund/index.ts`)
 
-### C) Logging — Public Page Rendering (`PublicBioPage.tsx`)
+After Stripe refund created (line ~104):
+4. Emit `PAYMENT.REFUNDED` (entity_kind: `store_order`, payload: `order_id`, `refund_id`, `amount`, `return_request_id`)
 
-1. After page loaded successfully → `console.log('[BIO] Public page rendered: page=${page.id}, blocks=${blocks.length}')`
-2. On not found → `console.warn('[BIO] Public page not found: ws=${workspaceSlug}, slug=${pageSlug}')`
-3. `trackBlockClick` → `console.log('[BIO] Click tracked: block=${blockId}')`
-4. `FormBlock` catch → `console.warn('[BIO] LEAD_CAPTURE_FAILED')`
-5. `FormBlock` success → `console.log('[BIO] Lead captured: page=${page.id}')`
+### D) Logging — UI Hooks
 
-### D) Logging — Hooks (`useBioPages.ts`, `useBioBlocks.ts`)
+**`useStoreAutomation.ts`:**
+1. `useTrackCartAbandonment` error → `console.warn('[ECOMMERCE] CART_TRACK_FAILED')`
+2. `useSendCartRecovery.onSuccess` → `console.log('[ECOMMERCE] Cart recovery initiated')`
+3. `useSendCartRecovery.onError` → `console.warn('[ECOMMERCE] CART_RECOVERY_FAILED')`
 
-**`useBioPages.ts`:**
-1. Create success → `console.log('[BIO] Page created: ${data.slug}')`
-2. Update success → `console.log('[BIO] Page updated: ${d.id}')`
-3. Delete success → `console.log('[BIO] Page deleted')`
-4. Publish success → `console.log('[BIO] Page ${status}: ${d.id}')`
-5. All errors → `console.warn('[BIO] <OP>_FAILED', e.message)`
+**`useReturnRequests.ts`:**
+4. `useCreateReturnRequest.onSuccess` → `console.log('[ECOMMERCE] Return request created')`
+5. `useCreateReturnRequest.onError` → `console.warn('[ECOMMERCE] RETURN_CREATE_FAILED')`
+6. `useProcessReturn.onSuccess` → `console.log('[ECOMMERCE] Return processed: ${data.status}')`
+7. `useProcessReturn.onError` → `console.warn('[ECOMMERCE] RETURN_PROCESS_FAILED')`
 
-**`useBioBlocks.ts`:**
-6. Create error → `console.warn('[BIO] BLOCK_CREATE_FAILED')`
-7. Update error → `console.warn('[BIO] BLOCK_UPDATE_FAILED')`
-8. Delete error → `console.warn('[BIO] BLOCK_DELETE_FAILED')`
-9. Reorder error → `console.warn('[BIO] BLOCK_REORDER_FAILED')`
+**`StoreCartContext.tsx`:**
+8. Cart sync error → `console.warn('[ECOMMERCE] CART_SYNC_FAILED')`
 
-### E) Logging — Edge Functions
+**`useStoreVisitorTracking.ts`:**
+9. Upsert error → `console.warn('[ECOMMERCE] VISITOR_SESSION_FAILED')`
+10. Classification error → `console.warn('[ECOMMERCE] VISITOR_CLASSIFY_FAILED')`
 
-All 5 bio edge functions get `[BIO]` prefix:
+### E) Logging — Edge Functions (prefix alignment)
 
-**`bio-ai-builder/index.ts`:**
-1. Before AI call → `console.log('[BIO] AI builder: vertical=${vertical}, tone=${tone}')`
-2. After success → `console.log('[BIO] AI builder: ${blocks.length} blocks generated')`
-3. Errors → prefix with `[BIO]`
+**`detect-abandoned-carts/index.ts`:** Change prefix from `[DETECT-ABANDONED]` to `[ECOMMERCE]` for consistency.
 
-**`bio-smart-link/index.ts`:**
-4. After meta fetch → `console.log('[BIO] Smart link: url=${url}, title=${meta.title}')`
-5. Errors → prefix with `[BIO]`
+**`store-cart-abandonment/index.ts`:** Change prefix from `[CART-ABANDONMENT]` to `[ECOMMERCE]`.
 
-**`bio-seo-copy/index.ts`:**
-6. Before AI call → `console.log('[BIO] SEO copy: page=${pageName}')`
-7. Errors → prefix with `[BIO]`
+**`store-webhook/index.ts`:** Keep `[STORE-WEBHOOK]` (already good), add kernel event emit calls.
 
-**`bio-generate-image/index.ts`:**
-8. After upload → `console.log('[BIO] Image generated: ${filePath}')`
-9. Errors → prefix with `[BIO]`
-
-**`bio-whatsapp-copy/index.ts`:**
-10. Before AI call → `console.log('[BIO] WhatsApp copy: page=${pageName}')`
-11. Errors → prefix with `[BIO]`
+**`process-refund/index.ts`:** Keep `[PROCESS-REFUND]` (already good), add kernel event emit.
 
 ### F) Smoke Tests
 
 Add to `system-run-smoke-tests`:
-- `bio_pages` (module: `mkt-bio-os`)
-- `bio_blocks` (module: `mkt-bio-os`)
-- `bio_events` (module: `mkt-bio-os`)
+- `store_abandoned_carts` (module: `store-ecommerce`)
+- `store_automation_events` (module: `store-ecommerce`)
+- `store_visitor_sessions` (module: `store-ecommerce`)
+- `return_requests` (module: `store-ecommerce`)
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useBioPages.ts` | Import `emitKernelEvent`; emit `BIO.PAGE_CREATED`, `BIO.PAGE_PUBLISHED`; add `[BIO]` logging |
-| `src/hooks/useBioBlocks.ts` | Add `[BIO]` error logging |
-| `src/pages/PublicBioPage.tsx` | Add `[BIO]` logging for render, clicks, lead capture |
-| `supabase/functions/bio-ai-builder/index.ts` | Add `[BIO]` prefixed logging |
-| `supabase/functions/bio-smart-link/index.ts` | Add `[BIO]` prefixed logging |
-| `supabase/functions/bio-seo-copy/index.ts` | Add `[BIO]` prefixed logging |
-| `supabase/functions/bio-generate-image/index.ts` | Add `[BIO]` prefixed logging |
-| `supabase/functions/bio-whatsapp-copy/index.ts` | Add `[BIO]` prefixed logging |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `bio_pages`, `bio_blocks`, `bio_events` checks |
+| `supabase/functions/store-webhook/index.ts` | Emit `CHECKOUT.COMPLETED` + `PAYMENT.CONFIRMED` via kernel-ingest-event fetch |
+| `supabase/functions/detect-abandoned-carts/index.ts` | Emit `CART.ABANDONED`; align prefix to `[ECOMMERCE]` |
+| `supabase/functions/store-cart-abandonment/index.ts` | Align prefix to `[ECOMMERCE]` |
+| `supabase/functions/process-refund/index.ts` | Emit `PAYMENT.REFUNDED` via kernel-ingest-event fetch |
+| `src/hooks/useStoreAutomation.ts` | Add `[ECOMMERCE]` logging |
+| `src/hooks/useReturnRequests.ts` | Add `[ECOMMERCE]` logging |
+| `src/contexts/StoreCartContext.tsx` | Align cart sync error to `[ECOMMERCE]` |
+| `src/hooks/useStoreVisitorTracking.ts` | Align errors to `[ECOMMERCE]` |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add 4 store-ecommerce table checks |
+
+Note: Edge functions emit kernel events by calling `kernel-ingest-event` via internal fetch (same pattern as other edge-to-kernel integrations), since they cannot import the client-side `emitKernelEvent` helper.
 
