@@ -73,7 +73,8 @@ function DynamicIcon({ name, className, style }: { name: string; className?: str
 }
 
 // Track page view (fire-and-forget)
-function trackPageView(page: BioPage) {
+function trackPageView(page: BioPage, blocksCount: number) {
+  console.log(`[BIO] Public page rendered: page=${page.id}, blocks=${blocksCount}`);
   const visitorId = localStorage.getItem("bio_visitor_id") || crypto.randomUUID();
   localStorage.setItem("bio_visitor_id", visitorId);
 
@@ -98,6 +99,7 @@ function trackPageView(page: BioPage) {
 
 // Track block click
 function trackBlockClick(page: BioPage, blockId: string) {
+  console.log(`[BIO] Click tracked: block=${blockId}`);
   const visitorId = localStorage.getItem("bio_visitor_id") || crypto.randomUUID();
   supabase.from("bio_events").insert({
     workspace_id: page.workspace_id,
@@ -547,9 +549,10 @@ function FormBlock({ block, page, primaryColor, contrastColor }: { block: BioBlo
         } as any);
       }
 
+      console.log(`[BIO] Lead captured: page=${page.id}, block=${block.id}`);
       setSubmitted(true);
-    } catch {
-      // silent fail for public page
+    } catch (err) {
+      console.warn("[BIO] LEAD_CAPTURE_FAILED", err);
     } finally {
       setLoading(false);
     }
@@ -629,7 +632,7 @@ export default function PublicBioPage() {
         .eq("slug", workspaceSlug)
         .single();
 
-      if (wsError || !workspace) { setNotFound(true); setLoading(false); return; }
+      if (wsError || !workspace) { console.warn(`[BIO] Public page not found: ws=${workspaceSlug}, slug=${pageSlug}`); setNotFound(true); setLoading(false); return; }
 
       const { data: pageData, error: pageError } = await supabase
         .from("bio_pages")
@@ -639,7 +642,7 @@ export default function PublicBioPage() {
         .eq("status", "live")
         .maybeSingle();
 
-      if (pageError || !pageData) { setNotFound(true); setLoading(false); return; }
+      if (pageError || !pageData) { console.warn(`[BIO] Public page not found: ws=${workspaceSlug}, slug=${pageSlug}`); setNotFound(true); setLoading(false); return; }
 
       setPage(pageData as any);
 
@@ -653,7 +656,7 @@ export default function PublicBioPage() {
       setBlocks((blocksData || []) as any);
       setLoading(false);
 
-      trackPageView(pageData as any);
+      trackPageView(pageData as any, (blocksData || []).length);
     })();
   }, [workspaceSlug, pageSlug]);
 

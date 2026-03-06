@@ -24,6 +24,8 @@ Deno.serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    console.log(`[BIO] AI builder: vertical=${vertical}, tone=${tone}`);
+
     const systemPrompt = `És um especialista em marketing digital e criação de páginas "link in bio" de alta conversão.
 Gera uma estrutura completa de página bio optimizada para conversão usando a framework AIDA (Atenção, Interesse, Desejo, Ação).
 
@@ -113,7 +115,7 @@ Regras:
         );
       }
       const errText = await response.text();
-      console.error("AI gateway error:", response.status, errText);
+      console.error("[BIO] AI builder gateway error:", response.status, errText);
       return new Response(
         JSON.stringify({ error: "Erro ao gerar página com IA." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -124,7 +126,7 @@ Regras:
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
 
     if (!toolCall?.function?.arguments) {
-      console.error("No tool call in response:", JSON.stringify(data));
+      console.error("[BIO] AI builder: no tool call in response:", JSON.stringify(data));
       return new Response(
         JSON.stringify({ error: "Resposta inesperada da IA." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -135,11 +137,13 @@ Regras:
       ? JSON.parse(toolCall.function.arguments)
       : toolCall.function.arguments;
 
+    console.log(`[BIO] AI builder: ${result.blocks?.length || 0} blocks generated`);
+
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("bio-ai-builder error:", e);
+    console.error("[BIO] AI builder error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Erro desconhecido" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

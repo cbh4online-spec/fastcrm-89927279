@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface BioPage {
   id: string;
@@ -69,11 +70,25 @@ export function useCreateBioPage() {
       if (error) throw error;
       return data as BioPage;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["bio-pages"] });
+      console.log(`[BIO] Page created: ${data.slug}`);
       toast.success("Página Bio criada");
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: "BIO.PAGE_CREATED",
+          entity_kind: "bio_page",
+          entity_id: data.id,
+          source_module: "mkt-bio-os",
+          payload: { slug: data.slug, name: data.name },
+        });
+      }
     },
-    onError: (e) => toast.error("Erro: " + e.message),
+    onError: (e) => {
+      console.warn("[BIO] PAGE_CREATE_FAILED", e.message);
+      toast.error("Erro: " + e.message);
+    },
   });
 }
 
@@ -93,9 +108,13 @@ export function useUpdateBioPage() {
     onSuccess: (d) => {
       qc.invalidateQueries({ queryKey: ["bio-pages"] });
       qc.invalidateQueries({ queryKey: ["bio-page", d.id] });
+      console.log(`[BIO] Page updated: ${d.id}`);
       toast.success("Página atualizada");
     },
-    onError: (e) => toast.error("Erro: " + e.message),
+    onError: (e) => {
+      console.warn("[BIO] PAGE_UPDATE_FAILED", e.message);
+      toast.error("Erro: " + e.message);
+    },
   });
 }
 
@@ -108,14 +127,19 @@ export function useDeleteBioPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bio-pages"] });
+      console.log("[BIO] Page deleted");
       toast.success("Página eliminada");
     },
-    onError: (e) => toast.error("Erro: " + e.message),
+    onError: (e) => {
+      console.warn("[BIO] PAGE_DELETE_FAILED", e.message);
+      toast.error("Erro: " + e.message);
+    },
   });
 }
 
 export function usePublishBioPage() {
   const qc = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "draft" | "live" }) => {
       const { data, error } = await supabase
@@ -130,8 +154,22 @@ export function usePublishBioPage() {
     onSuccess: (d) => {
       qc.invalidateQueries({ queryKey: ["bio-pages"] });
       qc.invalidateQueries({ queryKey: ["bio-page", d.id] });
+      console.log(`[BIO] Page ${d.status}: ${d.id}`);
       toast.success(d.status === "live" ? "Página publicada!" : "Página despublicada");
+      if (d.status === "live" && currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: "BIO.PAGE_PUBLISHED",
+          entity_kind: "bio_page",
+          entity_id: d.id,
+          source_module: "mkt-bio-os",
+          payload: { slug: d.slug, name: d.name },
+        });
+      }
     },
-    onError: (e) => toast.error("Erro: " + e.message),
+    onError: (e) => {
+      console.warn("[BIO] PAGE_PUBLISH_FAILED", e.message);
+      toast.error("Erro: " + e.message);
+    },
   });
 }

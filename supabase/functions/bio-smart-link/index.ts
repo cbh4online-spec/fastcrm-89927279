@@ -24,7 +24,7 @@ async function fetchPageMeta(url: string) {
       image: getTag("og:image") || "",
     };
   } catch (e) {
-    console.error("Failed to fetch page meta:", e);
+    console.error("[BIO] Smart link meta fetch failed:", e);
     return { title: "", description: "", image: "" };
   }
 }
@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
 
     // 1. Fetch page metadata
     const meta = await fetchPageMeta(url);
-    console.log("Page meta:", meta);
+    console.log(`[BIO] Smart link: url=${url}, title=${meta.title}`);
 
     // 2. Generate persuasive copy with Gemini 3 Flash
     const copyPrompt = `Analisa este URL e os seus metadados para gerar copy persuasivo para um bloco "${blockType}" numa página "link in bio".
@@ -88,7 +88,7 @@ Responde APENAS com o JSON, sem markdown.`;
 
     if (!copyResponse.ok) {
       const errText = await copyResponse.text();
-      console.error("Copy AI error:", copyResponse.status, errText);
+      console.error("[BIO] Smart link copy AI error:", copyResponse.status, errText);
       throw new Error(`Copy AI error: ${copyResponse.status}`);
     }
 
@@ -100,7 +100,7 @@ Responde APENAS com o JSON, sem markdown.`;
     try {
       copy = JSON.parse(cleanJson);
     } catch {
-      console.error("Failed to parse copy JSON:", cleanJson);
+      console.error("[BIO] Smart link: failed to parse copy JSON:", cleanJson);
       copy = { title: meta.title || "Descubra Agora", subtitle: meta.description || "Algo incrível espera por si", cta_text: "Ver Agora" };
     }
 
@@ -174,15 +174,15 @@ The image must:
                   .getPublicUrl(filePath);
                 result.bg_image = publicUrl;
               } else {
-                console.error("Upload error:", uploadError);
+                console.error("[BIO] Smart link upload error:", uploadError);
               }
             }
           }
         } else {
-          console.error("Image AI error:", imgResponse.status);
+          console.error("[BIO] Smart link image AI error:", imgResponse.status);
         }
       } catch (imgErr) {
-        console.error("Image generation failed (non-blocking):", imgErr);
+        console.error("[BIO] Smart link image generation failed (non-blocking):", imgErr);
       }
     }
 
@@ -190,7 +190,7 @@ The image must:
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("bio-smart-link error:", e);
+    console.error("[BIO] Smart link error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

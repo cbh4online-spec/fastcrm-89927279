@@ -60,7 +60,10 @@ export function useCreateBioBlock() {
     onSuccess: (d) => {
       qc.invalidateQueries({ queryKey: ["bio-blocks", d.bio_page_id] });
     },
-    onError: (e) => toast.error("Erro: " + e.message),
+    onError: (e) => {
+      console.warn("[BIO] BLOCK_CREATE_FAILED", e.message);
+      toast.error("Erro: " + e.message);
+    },
   });
 }
 
@@ -81,7 +84,10 @@ export function useUpdateBioBlock() {
     onSuccess: (d) => {
       qc.invalidateQueries({ queryKey: ["bio-blocks", d.bio_page_id] });
     },
-    onError: (e) => toast.error("Erro: " + e.message),
+    onError: (e) => {
+      console.warn("[BIO] BLOCK_UPDATE_FAILED", e.message);
+      toast.error("Erro: " + e.message);
+    },
   });
 }
 
@@ -97,7 +103,10 @@ export function useDeleteBioBlock() {
       qc.invalidateQueries({ queryKey: ["bio-blocks", pageId] });
       toast.success("Bloco removido");
     },
-    onError: (e) => toast.error("Erro: " + e.message),
+    onError: (e) => {
+      console.warn("[BIO] BLOCK_DELETE_FAILED", e.message);
+      toast.error("Erro: " + e.message);
+    },
   });
 }
 
@@ -114,6 +123,9 @@ export function useReorderBioBlocks() {
     onSuccess: (pageId) => {
       qc.invalidateQueries({ queryKey: ["bio-blocks", pageId] });
     },
-    onError: (e) => toast.error("Erro ao reordenar: " + e.message),
+    onError: (e) => {
+      console.warn("[BIO] BLOCK_REORDER_FAILED", e.message);
+      toast.error("Erro ao reordenar: " + e.message);
+    },
   });
 }
