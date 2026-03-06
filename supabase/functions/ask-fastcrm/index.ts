@@ -783,11 +783,14 @@ Always call the tool. Only use allowed fields, operators, and sort fields.`,
     // Clamp limit
     query.limit = Math.max(1, Math.min(100, query.limit));
 
-    // --- Execute query based on intent ---
+    // --- Execute query based on intent (with telemetry) ---
+    const execStart = performance.now();
     const handlerResult = await executeIntent(serviceClient, workspaceId, intent, days);
+    const execMs = Math.round(performance.now() - execStart);
 
     // Derive actions_available
     const hasItems = (handlerResult.items?.length || 0) > 0;
+    const isFallback = intent === "unknown" || (!hasItems && !handlerResult.metric);
     const actionsAvailable = getActionsAvailable(intent, hasItems);
 
     // --- LLM Contextual Response: Feed real data to LLM for natural language answer ---
@@ -890,7 +893,7 @@ Rules:
           actor_id: userId,
           entity_type: "ask_fastcrm",
           entity_id: workspaceId,
-          payload: { intent, confidence, routed_via: routedVia, question_length: question.length },
+          payload: { intent, confidence, routed_via: routedVia, question_length: question.length, execution_time_ms: execMs },
         },
         {
           workspace_id: workspaceId,
@@ -899,7 +902,7 @@ Rules:
           actor_id: userId,
           entity_type: query.object_type,
           entity_id: workspaceId,
-          payload: { intent, items_count: response.items?.length ?? 0, has_contextual_response: !!aiContextualResponse },
+          payload: { intent, items_count: response.items?.length ?? 0, has_contextual_response: !!aiContextualResponse, execution_time_ms: execMs, is_fallback: isFallback },
         },
         {
           workspace_id: workspaceId,
@@ -908,7 +911,7 @@ Rules:
           actor_id: userId,
           entity_type: "ask_fastcrm",
           entity_id: workspaceId,
-          payload: { intent, routed_via: routedVia, items_count: response.items?.length ?? 0, actions_count: response.actions?.length ?? 0 },
+          payload: { intent, routed_via: routedVia, items_count: response.items?.length ?? 0, actions_count: response.actions?.length ?? 0, execution_time_ms: execMs, is_fallback: isFallback },
         },
       ])
       .then(({ error: evtErr }: any) => {
@@ -1348,13 +1351,26 @@ async function executeIntent(
         actions: [{ id: "nav_approvals", label: "Ir para Aprovações", icon: "arrow-right", type: "navigate", payload: { link: "/dashboard/b2b/approvals" } }],
         metric: { label: "Aprovações", value: "—", trend: "neutral" as const },
       };
+    case "daily_priorities":
+      return await queryDailyPriorities(client, workspaceId);
+    case "kernel_decisions":
+      return await queryKernelDecisions(client, workspaceId);
+    case "kernel_live_feed":
+      return await queryKernelLiveFeed(client, workspaceId);
+    case "drift_overview":
+      return await queryDriftOverview(client, workspaceId);
+    case "lead_drop_analysis":
+      return await queryLeadDropAnalysis(client, workspaceId);
     default:
       return {
-        headline: "Não consegui compreender essa pergunta.",
-        subtext: "Tenta reformular ou usa um dos comandos sugeridos abaixo.",
+        headline: "Não tenho dados suficientes para essa análise.",
+        subtext: "Tenta uma destas perguntas: \"como está o pipeline?\", \"deals em risco\", \"prioridades do dia\", ou usa /brief para um resumo executivo.",
         items: [],
-        actions: [],
-        did_you_mean: DID_YOU_MEAN_DEFAULTS,
+        actions: [
+          { id: "try_pipeline", label: "Ver pipeline", icon: "Eye", type: "navigate", payload: { link: "/dashboard/opportunities" } },
+          { id: "try_brief", label: "Gerar brief", icon: "FileText", type: "navigate", payload: { link: "/dashboard" } },
+        ],
+        did_you_mean: ["Como está o pipeline?", "Deals em risco", "Prioridades do dia", "Previsão de receita", "Decisões pendentes", "Leads sem resposta"],
       };
   }
 }
