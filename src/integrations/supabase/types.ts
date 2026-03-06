@@ -34353,6 +34353,7 @@ export type Database = {
           created_by: string | null
           due_at: string | null
           id: string
+          priority: string | null
           related_id: string
           related_type: string
           status: string
@@ -34366,6 +34367,7 @@ export type Database = {
           created_by?: string | null
           due_at?: string | null
           id?: string
+          priority?: string | null
           related_id: string
           related_type: string
           status?: string
@@ -34379,6 +34381,7 @@ export type Database = {
           created_by?: string | null
           due_at?: string | null
           id?: string
+          priority?: string | null
           related_id?: string
           related_type?: string
           status?: string
