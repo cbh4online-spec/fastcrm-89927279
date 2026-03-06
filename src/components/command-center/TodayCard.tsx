@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { motion } from "framer-motion";
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 
 export function TodayCard({ delay = 0 }: { delay?: number }) {
   const { data: tasks, isLoading: tasksLoading, isError: tasksError } = useTasks({ status: "pending" });

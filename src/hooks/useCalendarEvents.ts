@@ -35,7 +35,9 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
         .from('calendar_events')
         .select(`
           *,
-          calendar:calendars(id, name, color)
+          calendar:calendars(id, name, color),
+          contact:contacts(id, name),
+          company:companies(id, name)
         `)
         .eq('workspace_id', currentWorkspace.id)
         .in('calendar_id', stableCalendarIds)
