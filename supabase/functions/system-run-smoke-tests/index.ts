@@ -249,6 +249,9 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "ai-docint", "document_processing_jobs_query", "document_processing_jobs"),
       // AI Analytics
       runCheck(supabase, workspace_id, "ai-analytics", "revenue_forecasts_query", "revenue_forecasts"),
+      // Strategy Briefs
+      runCheck(supabase, workspace_id, "strategy-brief", "weekly_briefs_query", "weekly_briefs"),
+      runCheck(supabase, workspace_id, "strategy-brief", "daily_briefs_query", "daily_briefs"),
     ]);
 
     // Log failures

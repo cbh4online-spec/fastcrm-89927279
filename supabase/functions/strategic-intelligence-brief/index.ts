@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
         const brief = await generateBriefForWorkspace(supabase, wsId);
         if (wsId === workspaceId) lastBrief = brief;
       } catch (err) {
-        console.error(`Error generating brief for workspace ${wsId}:`, err);
+        console.error(`[STRATEGY-BRIEF] Error generating weekly brief for workspace ${wsId}:`, err);
       }
     }
 
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("strategic-intelligence-brief error:", err);
+    console.error("[STRATEGY-BRIEF] strategic-intelligence-brief error:", err);
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -353,5 +353,36 @@ Gera um brief executivo com insights acionáveis baseados nos dados reais acima.
     .single();
 
   if (error) throw error;
+
+  // Emit kernel event
+  try {
+    await supabase.from("kernel_events").insert({
+      workspace_id: workspaceId,
+      type: "STRATEGIC_BRIEF.GENERATED",
+      entity_kind: "weekly_brief",
+      entity_id: inserted.id,
+      actor_type: "system",
+      source_module: "strategy-brief",
+      payload: {
+        leads_total: leadsThisWeek || 0,
+        won_deals: wonThisWeekCount,
+        revenue_this_week: revenueThisWeek,
+      },
+      occurred_at: new Date().toISOString(),
+      ingested_at: new Date().toISOString(),
+      schema_version: 1,
+    });
+  } catch (e) {
+    console.warn("[STRATEGY-BRIEF] Failed to emit STRATEGIC_BRIEF.GENERATED event:", (e as Error).message);
+  }
+
+  console.log("[STRATEGY-BRIEF] Weekly brief generated", {
+    workspace_id: workspaceId,
+    brief_id: inserted.id,
+    leads_total: leadsThisWeek || 0,
+    won_deals: wonThisWeekCount,
+    revenue_this_week: revenueThisWeek,
+  });
+
   return inserted;
 }
