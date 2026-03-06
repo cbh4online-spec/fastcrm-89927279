@@ -86,7 +86,7 @@ function buildResponse(
     },
     answer: {
       headline: (handlerResult.headline || "").slice(0, 80),
-      ...(handlerResult.subtext ? { subtext: handlerResult.subtext.slice(0, 120) } : {}),
+      ...(handlerResult.subtext ? { subtext: handlerResult.subtext.slice(0, 500) } : {}),
     },
     actions_available: handlerResult.actions_available || [],
     items: handlerResult.items || [],
