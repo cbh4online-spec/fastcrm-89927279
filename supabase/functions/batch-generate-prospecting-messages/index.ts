@@ -88,6 +88,8 @@ Deno.serve(async (req) => {
       });
     }
 
+    console.log(`[PROSPECTING] Batch generate: ${profiles.length} profiles`);
+
     if (profiles.length > 20) {
       return new Response(JSON.stringify({ error: "Máximo 20 perfis por batch" }), {
         status: 400,
@@ -124,11 +126,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    const errors = results.filter(r => r.error).length;
+    console.log(`[PROSPECTING] Batch done: ${results.length} results, ${errors} errors`);
+
     return new Response(JSON.stringify({ results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Batch generate error:", error);
+    console.error("[PROSPECTING] BATCH_GENERATE_FAILED", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Erro desconhecido" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

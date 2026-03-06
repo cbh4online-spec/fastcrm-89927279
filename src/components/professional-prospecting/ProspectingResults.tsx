@@ -21,6 +21,7 @@ import {
   Eye, Facebook, Mail, Phone, MessageSquare, CheckSquare, Square, ArrowUpDown, Send
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { ConvertProfileDialog, ConversionOptions } from "./ConvertProfileDialog";
 import { ProspectingMessageDialog } from "./ProspectingMessageDialog";
 // BulkOutreachDialog is now rendered at page level (ProfessionalProspecting.tsx)
@@ -323,14 +324,25 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
 
       return lead;
     },
-    onSuccess: () => {
+    onSuccess: (lead, { profile }) => {
       queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       setConvertDialogOpen(false);
       setProfileToConvert(null);
       toast.success("Lead criado com sucesso com dados enriquecidos!");
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'PROSPECT.CONVERTED',
+          entity_kind: 'prospecting_profile',
+          entity_id: profile.id,
+          source_module: 'mkt-prospecting',
+          payload: { profile_id: profile.id, lead_id: lead.id, source: 'manual' },
+        });
+      }
     },
     onError: (error) => {
+      console.warn('[PROSPECTING] CONVERT_FAILED', error.message);
       toast.error("Erro ao criar lead", {
         description: error instanceof Error ? error.message : "Tente novamente",
       });
@@ -370,6 +382,9 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
       queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
       toast.success("Perfil rejeitado");
     },
+    onError: (error) => {
+      console.warn('[PROSPECTING] REJECT_FAILED', error);
+    },
   });
 
   // Enrich profile with Instagram data
@@ -404,6 +419,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
       toast.success(`Perfil enriquecido: ${data.data.followers?.toLocaleString() || 0} seguidores`);
       queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
     } catch (error) {
+      console.warn('[PROSPECTING] ENRICH_FAILED', error);
       toast.error(error instanceof Error ? error.message : "Erro ao enriquecer perfil");
     } finally {
       setEnrichingIds(prev => {
@@ -460,6 +476,7 @@ export function ProspectingResults({ searchId, onGoToSearch, defaultTone, onStar
     setSelectedIds(new Set());
     
     if (error) {
+      console.warn('[PROSPECTING] BULK_REJECT_FAILED', error);
       toast.error("Erro ao rejeitar perfis");
     } else {
       queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
