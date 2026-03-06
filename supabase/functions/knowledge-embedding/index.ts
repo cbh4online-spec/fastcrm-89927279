@@ -23,9 +23,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Embedding API (text-embedding-ada-002) is not supported by the current AI gateway.
-    // The system uses keyword-based search as the primary search method.
-    // This function now extracts keywords and stores them for better searchability.
+    console.log(`[AI-KNOWLEDGE] EMBEDDING_START entryId=${entryId}`);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
@@ -61,23 +59,21 @@ Deno.serve(async (req) => {
         if (keywordResponse.ok) {
           const data = await keywordResponse.json();
           const raw = data.choices?.[0]?.message?.content || "[]";
-          // Extract JSON array from response
           const match = raw.match(/\[[\s\S]*\]/);
           if (match) {
             keywords = JSON.parse(match[0]);
           }
         }
       } catch (e) {
-        console.warn("Keyword extraction failed, continuing without keywords:", e);
+        console.warn("[AI-KNOWLEDGE] KEYWORD_EXTRACTION_FAILED", e);
       }
     }
 
-    // Update entry with extracted keywords (store in a searchable format)
+    // Update entry with extracted keywords
     const updateData: Record<string, unknown> = {};
     if (keywords.length > 0) {
       updateData.search_keywords = keywords;
     }
-    // Mark as processed even without embedding
     updateData.embedding_status = 'keywords_extracted';
 
     if (Object.keys(updateData).length > 0) {
@@ -87,12 +83,11 @@ Deno.serve(async (req) => {
         .eq("id", entryId);
 
       if (error) {
-        // Non-critical: columns may not exist yet, log and continue
-        console.warn("Update with keywords failed (columns may not exist):", error.message);
+        console.warn("[AI-KNOWLEDGE] KEYWORD_UPDATE_FAILED", error.message);
       }
     }
 
-    console.log(`Keywords extracted for entry ${entryId}: ${keywords.length} keywords`);
+    console.log(`[AI-KNOWLEDGE] EMBEDDING_COMPLETE entryId=${entryId} keywords=${keywords.length}`);
 
     return new Response(
       JSON.stringify({ success: true, entryId, keywords: keywords.length }),
@@ -100,7 +95,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("Embedding error:", error);
+    console.error("[AI-KNOWLEDGE] EMBEDDING_ERROR", error);
     return new Response(
       JSON.stringify({ 
         success: false, 

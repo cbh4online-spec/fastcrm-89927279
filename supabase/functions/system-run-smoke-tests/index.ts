@@ -105,6 +105,8 @@ Deno.serve(async (req) => {
       // AI Personas & Knowledge Bases
       runCheck(supabase, workspace_id, "ai-personas", "ai_personas_query", "ai_personas"),
       runCheck(supabase, workspace_id, "ai-knowledge-bases", "knowledge_bases_query", "knowledge_bases"),
+      runCheck(supabase, workspace_id, "ai-knowledge", "knowledge_entries_query", "knowledge_entries"),
+      runCheck(supabase, workspace_id, "ai-knowledge", "knowledge_sources_query", "knowledge_sources"),
       // Kernel
       runCheck(supabase, workspace_id, "kernel", "kernel_events_query", "kernel_events"),
       // Inbox Action Logs

@@ -35,14 +35,13 @@ Deno.serve(async (req) => {
       );
     }
 
+    console.log(`[AI-KNOWLEDGE] SEARCH_START query="${query}" workspace=${workspaceId}`);
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Use keyword-based text search instead of vector embeddings
-    // (text-embedding-ada-002 is not supported by the AI gateway)
-    
     // Extract key terms from the query for better matching
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     let searchTerms: string[] = [];
@@ -77,7 +76,7 @@ Deno.serve(async (req) => {
           }
         }
       } catch (e) {
-        console.warn("Keyword extraction failed, using raw query:", e);
+        console.warn("[AI-KNOWLEDGE] SEARCH_KEYWORD_EXTRACTION_FAILED", e);
       }
     }
 
@@ -103,12 +102,12 @@ Deno.serve(async (req) => {
       dbQuery = dbQuery.eq("status", status);
     }
 
-    dbQuery = dbQuery.limit(limit * 3); // Fetch more to filter/rank
+    dbQuery = dbQuery.limit(limit * 3);
 
     const { data: entries, error } = await dbQuery;
 
     if (error) {
-      console.error("Database search error:", error);
+      console.error("[AI-KNOWLEDGE] SEARCH_DB_ERROR", error);
       throw error;
     }
 
@@ -123,12 +122,10 @@ Deno.serve(async (req) => {
       let score = 0;
       for (const term of searchTerms) {
         const termLower = term.toLowerCase();
-        // Exact word match gets higher score
         const regex = new RegExp(`\\b${termLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
         const exactMatches = (searchableText.match(regex) || []).length;
         score += exactMatches * 2;
         
-        // Partial match gets lower score
         if (searchableText.includes(termLower)) {
           score += 1;
         }
@@ -140,7 +137,7 @@ Deno.serve(async (req) => {
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, limit);
 
-    console.log(`Text search found ${scoredResults.length} results for query: "${query}" (terms: ${searchTerms.join(", ")})`);
+    console.log(`[AI-KNOWLEDGE] SEARCH_COMPLETE results=${scoredResults.length} terms=${searchTerms.join(",")}`);
 
     return new Response(
       JSON.stringify({ 
@@ -154,7 +151,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("Search error:", error);
+    console.error("[AI-KNOWLEDGE] SEARCH_ERROR", error);
     return new Response(
       JSON.stringify({ 
         success: false,

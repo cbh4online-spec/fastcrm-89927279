@@ -37,7 +37,6 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
-      // Map to camelCase
       const mapped = (data || []).map(kb => ({
         id: kb.id,
         workspaceId: kb.workspace_id,
@@ -53,7 +52,7 @@ export function useKnowledgeBase() {
 
       setKnowledgeBases(mapped);
     } catch (error) {
-      console.error('Error fetching knowledge bases:', error);
+      console.error('[AI-KNOWLEDGE] KB_FETCH_FAILED', error);
     }
   }, [currentWorkspace?.id]);
 
@@ -90,7 +89,7 @@ export function useKnowledgeBase() {
 
       setPersonas(mapped);
     } catch (error) {
-      console.error('Error fetching personas:', error);
+      console.error('[AI-KNOWLEDGE] PERSONAS_FETCH_FAILED', error);
     }
   }, [currentWorkspace?.id]);
 
@@ -115,11 +114,21 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
+      console.log(`[AI-KNOWLEDGE] BASE_CREATED id=${created.id} name=${created.name}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'KNOWLEDGE.BASE_CREATED',
+        entity_kind: 'knowledge_base',
+        entity_id: created.id,
+        source_module: 'ai-knowledge',
+        payload: { name: created.name, type: created.type },
+      });
+
       toast.success('Base de conhecimento criada');
       await fetchKnowledgeBases();
       return created;
     } catch (error) {
-      console.error('Error creating knowledge base:', error);
+      console.error('[AI-KNOWLEDGE] BASE_CREATE_FAILED', error);
       toast.error('Erro ao criar base de conhecimento');
       return null;
     }
@@ -147,6 +156,16 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
+      console.log(`[AI-KNOWLEDGE] SOURCE_ADDED id=${source.id} type=${sourceType} kb=${knowledgeBaseId}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'KNOWLEDGE.SOURCE_ADDED',
+        entity_kind: 'knowledge_source',
+        entity_id: source.id,
+        source_module: 'ai-knowledge',
+        payload: { source_type: sourceType, knowledge_base_id: knowledgeBaseId },
+      });
+
       // Trigger appropriate processing based on source type
       if (sourceType === 'document' && data.filePath && data.fileName && data.mimeType) {
         processDocument(source.id, data.filePath, data.fileName, data.mimeType, knowledgeBaseId);
@@ -157,7 +176,7 @@ export function useKnowledgeBase() {
       toast.success('Fonte adicionada. A processar...');
       return source;
     } catch (error) {
-      console.error('Error adding source:', error);
+      console.error('[AI-KNOWLEDGE] SOURCE_ADD_FAILED', error);
       toast.error('Erro ao adicionar fonte');
       return null;
     }
@@ -168,12 +187,10 @@ export function useKnowledgeBase() {
     if (!currentWorkspace?.id || !user?.id) return null;
 
     try {
-      // Create unique file path
       const timestamp = Date.now();
       const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const filePath = `${currentWorkspace.id}/${knowledgeBaseId}/${timestamp}_${sanitizedName}`;
 
-      // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from('knowledge-documents')
         .upload(filePath, file, {
@@ -190,9 +207,21 @@ export function useKnowledgeBase() {
         mimeType: file.type
       });
 
+      if (result) {
+        console.log(`[AI-KNOWLEDGE] DOC_UPLOADED file=${file.name} mime=${file.type} kb=${knowledgeBaseId}`);
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'KNOWLEDGE.DOC_UPLOADED',
+          entity_kind: 'knowledge_source',
+          entity_id: result.id,
+          source_module: 'ai-knowledge',
+          payload: { file_name: file.name, mime_type: file.type, knowledge_base_id: knowledgeBaseId },
+        });
+      }
+
       return result;
     } catch (error) {
-      console.error('Error uploading document:', error);
+      console.error('[AI-KNOWLEDGE] DOC_UPLOAD_FAILED', error);
       toast.error('Erro ao carregar documento');
       return null;
     }
@@ -213,7 +242,7 @@ export function useKnowledgeBase() {
       });
 
       if (error) {
-        console.error('Document processing error:', error);
+        console.error('[AI-KNOWLEDGE] DOC_PROCESS_ERROR', error);
         await supabase
           .from('knowledge_sources')
           .update({
@@ -223,7 +252,7 @@ export function useKnowledgeBase() {
           .eq('id', sourceId);
       }
     } catch (error) {
-      console.error('Error processing document:', error);
+      console.error('[AI-KNOWLEDGE] DOC_PROCESS_FAILED', error);
       await supabase
         .from('knowledge_sources')
         .update({
@@ -237,7 +266,6 @@ export function useKnowledgeBase() {
   // Process source with AI
   const processSource = async (sourceId: string, sourceType: string, data: { url?: string; content?: string }) => {
     try {
-      // Get knowledge base type
       const { data: source } = await supabase
         .from('knowledge_sources')
         .select('knowledge_base_id')
@@ -262,7 +290,6 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
-      // Update source with processed content
       await supabase
         .from('knowledge_sources')
         .update({
@@ -274,7 +301,6 @@ export function useKnowledgeBase() {
         })
         .eq('id', sourceId);
 
-      // Create entries from FAQs
       if (result.faqs && result.faqs.length > 0) {
         const entries = result.faqs.map((faq: any) => ({
           knowledge_base_id: source?.knowledge_base_id,
@@ -293,9 +319,10 @@ export function useKnowledgeBase() {
         await supabase.from('knowledge_entries').insert(entries);
       }
 
+      console.log(`[AI-KNOWLEDGE] SOURCE_PROCESSED id=${sourceId} faqs=${result.faqs?.length || 0}`);
       toast.success('Fonte processada com sucesso');
     } catch (error) {
-      console.error('Error processing source:', error);
+      console.error('[AI-KNOWLEDGE] SOURCE_PROCESS_FAILED', error);
       await supabase
         .from('knowledge_sources')
         .update({
@@ -331,6 +358,16 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
+      console.log(`[AI-KNOWLEDGE] ENTRY_CREATED id=${entry.id} type=${data.entryType || 'content'} kb=${knowledgeBaseId}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'KNOWLEDGE.ENTRY_CREATED',
+        entity_kind: 'knowledge_entry',
+        entity_id: entry.id,
+        source_module: 'ai-knowledge',
+        payload: { entry_type: data.entryType || 'content', knowledge_base_id: knowledgeBaseId },
+      });
+
       // Generate embedding in background
       if (entry) {
         supabase.functions.invoke('knowledge-embedding', {
@@ -340,13 +377,13 @@ export function useKnowledgeBase() {
             question: data.question, 
             content: data.content 
           }
-        }).catch(err => console.warn('Embedding generation failed:', err));
+        }).catch(err => console.warn('[AI-KNOWLEDGE] EMBEDDING_FAILED', err));
       }
 
       toast.success('Entrada criada');
       return entry;
     } catch (error) {
-      console.error('Error creating entry:', error);
+      console.error('[AI-KNOWLEDGE] ENTRY_CREATE_FAILED', error);
       toast.error('Erro ao criar entrada');
       return null;
     }
@@ -366,9 +403,20 @@ export function useKnowledgeBase() {
         })
         .eq('id', entryId);
 
+      console.log(`[AI-KNOWLEDGE] ENTRY_VALIDATED id=${entryId}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'KNOWLEDGE.ENTRY_VALIDATED',
+          entity_kind: 'knowledge_entry',
+          entity_id: entryId,
+          source_module: 'ai-knowledge',
+        });
+      }
+
       toast.success('Entrada validada');
     } catch (error) {
-      console.error('Error validating entry:', error);
+      console.error('[AI-KNOWLEDGE] ENTRY_VALIDATE_FAILED', error);
       toast.error('Erro ao validar entrada');
     }
   };
@@ -399,12 +447,13 @@ export function useKnowledgeBase() {
             question: data.question, 
             content: data.content 
           }
-        }).catch(err => console.warn('Embedding regeneration failed:', err));
+        }).catch(err => console.warn('[AI-KNOWLEDGE] EMBEDDING_REGEN_FAILED', err));
       }
 
+      console.log(`[AI-KNOWLEDGE] ENTRY_UPDATED id=${entryId}`);
       toast.success('Entrada atualizada');
     } catch (error) {
-      console.error('Error updating entry:', error);
+      console.error('[AI-KNOWLEDGE] ENTRY_UPDATE_FAILED', error);
       toast.error('Erro ao atualizar entrada');
     }
   };
@@ -419,9 +468,20 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
+      console.log(`[AI-KNOWLEDGE] ENTRY_DELETED id=${entryId}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'KNOWLEDGE.ENTRY_DELETED',
+          entity_kind: 'knowledge_entry',
+          entity_id: entryId,
+          source_module: 'ai-knowledge',
+        });
+      }
+
       toast.success('Entrada eliminada');
     } catch (error) {
-      console.error('Error deleting entry:', error);
+      console.error('[AI-KNOWLEDGE] ENTRY_DELETE_FAILED', error);
       toast.error('Erro ao eliminar entrada');
     }
   };
@@ -439,9 +499,10 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
+      console.log(`[AI-KNOWLEDGE] ENTRY_ARCHIVED id=${entryId}`);
       toast.success('Entrada arquivada');
     } catch (error) {
-      console.error('Error archiving entry:', error);
+      console.error('[AI-KNOWLEDGE] ENTRY_ARCHIVE_FAILED', error);
       toast.error('Erro ao arquivar entrada');
     }
   };
@@ -481,7 +542,7 @@ export function useKnowledgeBase() {
         updatedAt: e.updated_at
       })) as KnowledgeEntry[];
     } catch (error) {
-      console.error('Error fetching entries:', error);
+      console.error('[AI-KNOWLEDGE] ENTRIES_FETCH_FAILED', error);
       return [];
     }
   }, [currentWorkspace?.id]);
@@ -518,7 +579,7 @@ export function useKnowledgeBase() {
         updatedAt: s.updated_at
       }));
     } catch (error) {
-      console.error('Error fetching sources:', error);
+      console.error('[AI-KNOWLEDGE] SOURCES_FETCH_FAILED', error);
       return [];
     }
   }, [currentWorkspace?.id]);
@@ -529,9 +590,9 @@ export function useKnowledgeBase() {
       const { error } = await supabase.functions.invoke('knowledge-embedding', {
         body: { entryId, title, question, content }
       });
-      if (error) console.warn('Embedding generation failed:', error);
+      if (error) console.warn('[AI-KNOWLEDGE] EMBEDDING_FAILED', error);
     } catch (error) {
-      console.warn('Embedding generation failed:', error);
+      console.warn('[AI-KNOWLEDGE] EMBEDDING_FAILED', error);
     }
   }, []);
 
@@ -555,7 +616,8 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
-      // Map results to KnowledgeEntry format with similarity score
+      console.log(`[AI-KNOWLEDGE] SEARCH_COMPLETED query="${query}" results=${data?.results?.length || 0}`);
+
       return (data?.results || []).map((r: any) => ({
         id: r.id,
         knowledgeBaseId: r.knowledge_base_id,
@@ -572,7 +634,7 @@ export function useKnowledgeBase() {
         similarity: r.similarity
       })) as KnowledgeEntry[];
     } catch (error) {
-      console.error('Semantic search error:', error);
+      console.error('[AI-KNOWLEDGE] SEARCH_FAILED', error);
       return [];
     }
   }, [currentWorkspace?.id]);
@@ -586,7 +648,6 @@ export function useKnowledgeBase() {
     if (!currentWorkspace?.id) return null;
 
     try {
-      // Fetch relevant entries
       let entriesQuery = supabase
         .from('knowledge_entries')
         .select('id, title, content, entry_type')
@@ -600,7 +661,6 @@ export function useKnowledgeBase() {
 
       const { data: entries } = await entriesQuery;
 
-      // Fetch persona if specified
       let persona = undefined;
       if (options?.personaId) {
         const { data: p } = await supabase
@@ -636,10 +696,8 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
-      // Structured observability logging
-      console.log(`[AI-ASSISTANT] QUERY latency_ms=${result.responseTimeMs} confidence=${result.confidence} persona=${options?.personaId || 'none'} source=${result.responseSource}`);
+      console.log(`[AI-KNOWLEDGE] QUERY latency_ms=${result.responseTimeMs} confidence=${result.confidence} persona=${options?.personaId || 'none'} source=${result.responseSource}`);
 
-      // Log usage
       await supabase.from('knowledge_usage_logs').insert({
         workspace_id: currentWorkspace.id,
         persona_id: options?.personaId,
@@ -653,7 +711,7 @@ export function useKnowledgeBase() {
 
       return result;
     } catch (error) {
-      console.warn(`[AI-ASSISTANT] QUERY_FAILED error=${error instanceof Error ? error.message : 'Unknown'}`);
+      console.warn(`[AI-KNOWLEDGE] QUERY_FAILED error=${error instanceof Error ? error.message : 'Unknown'}`);
       return null;
     }
   };
@@ -737,7 +795,6 @@ export function useKnowledgeBase() {
       toast.success('Persona atualizada');
       await fetchPersonas();
 
-      // Kernel event: PERSONA.UPDATED
       console.log(`[AI-PERSONAS] PERSONA_UPDATED id=${personaId}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
@@ -834,7 +891,7 @@ export function useKnowledgeBase() {
         missingContentQueries: 0
       });
     } catch (error) {
-      console.error('Error fetching metrics:', error);
+      console.error('[AI-KNOWLEDGE] METRICS_FETCH_FAILED', error);
     }
   }, [currentWorkspace?.id]);
 
