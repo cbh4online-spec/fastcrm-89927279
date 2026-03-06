@@ -123,6 +123,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
         )}
 
         <LanguageSelector />
+        <ContextScoreIndicator />
         <HelpSupportDropdown />
 
         <NotificationBell />
