@@ -77,7 +77,7 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
           workspace_id: currentWorkspace.id,
           created_by: user.id,
         })
-        .select(`*, calendar:calendars(id, name, color)`)
+        .select(`*, calendar:calendars(id, name, color), contact:contacts(id, name), company:companies(id, name)`)
         .single();
 
       if (createError) throw createError;
