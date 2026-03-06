@@ -10,7 +10,7 @@ interface Product {
   short_description: string | null;
   commercial_description: string | null;
   base_price: number;
-  effective_price: number; // Price after tier discounts
+  effective_price: number;
   has_discount: boolean;
   category: string | null;
   images: string[] | null;
@@ -118,7 +118,10 @@ export function useClientProducts(
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.warn('[B2B-CATALOG] CLIENT_PRODUCTS_FAILED:', error.message);
+        throw error;
+      }
 
       // Apply tier pricing to products
       const productsWithPricing = (data || []).map((product) => {

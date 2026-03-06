@@ -24,31 +24,45 @@ export function useStoreTierPricing(workspaceId: string) {
       if (!user) return empty;
 
       // Check if user is a client_user with a tier
-      const { data: clientUser } = await supabase
+      const { data: clientUser, error: clientErr } = await supabase
         .from("client_users")
         .select("id, price_tier_id")
         .eq("auth_user_id", user.id)
         .eq("workspace_id", workspaceId)
         .maybeSingle();
 
+      if (clientErr) {
+        console.warn('[B2B-CATALOG] STORE_TIER_PRICING_FAILED:', clientErr.message);
+        return empty;
+      }
+
       if (!clientUser?.price_tier_id) return empty;
 
       // Get tier details
-      const { data: tier } = await supabase
+      const { data: tier, error: tierErr } = await supabase
         .from("client_price_tiers")
         .select("*")
         .eq("id", clientUser.price_tier_id)
         .eq("is_active", true)
         .single();
 
+      if (tierErr) {
+        console.warn('[B2B-CATALOG] STORE_TIER_PRICING_FAILED:', tierErr.message);
+        return empty;
+      }
+
       if (!tier) return empty;
 
       // Get all tier prices for this tier
-      const { data: prices } = await supabase
+      const { data: prices, error: pricesErr } = await supabase
         .from("product_tier_prices")
         .select("product_id, price_net, valid_from, valid_until, is_active")
         .eq("tier_id", tier.id)
         .eq("is_active", true);
+
+      if (pricesErr) {
+        console.warn('[B2B-CATALOG] STORE_TIER_PRICING_FAILED:', pricesErr.message);
+      }
 
       const tierPrices = new Map<string, number>();
       const now = new Date();

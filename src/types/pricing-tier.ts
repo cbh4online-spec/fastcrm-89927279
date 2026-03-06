@@ -105,15 +105,19 @@ export function getEffectivePrice(
       (!validUntil || now <= validUntil);
     
     if (isValidPeriod) {
+      console.log(`[B2B-CATALOG] Price computed: base=${basePrice}, effective=${tierPrice.price_net}, source=tier_price`);
       return tierPrice.price_net;
     }
   }
   
   // Otherwise, apply tier discount percentage
   if (tier?.is_active && tier.discount_percentage > 0) {
-    return basePrice * (1 - tier.discount_percentage / 100);
+    const result = basePrice * (1 - tier.discount_percentage / 100);
+    console.log(`[B2B-CATALOG] Price computed: base=${basePrice}, effective=${result}, source=tier_discount`);
+    return result;
   }
   
+  console.log(`[B2B-CATALOG] Price computed: base=${basePrice}, effective=${basePrice}, source=base`);
   return basePrice;
 }
 
