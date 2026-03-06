@@ -5,6 +5,9 @@ import { KernelDecisionsCard } from "@/components/command-center/KernelDecisions
 import { DriftAlertsCard } from "@/components/command-center/DriftAlertsCard";
 import { TodayCard } from "@/components/command-center/TodayCard";
 import { PipelineRiskCard } from "@/components/command-center/PipelineRiskCard";
+import { KernelActionsCard } from "@/components/command-center/KernelActionsCard";
+import { KernelLiveFeedCard } from "@/components/command-center/KernelLiveFeedCard";
+import { StrategicBriefCard } from "@/components/command-center/StrategicBriefCard";
 import { useDailyBrief } from "@/hooks/useDailyBrief";
 import { useKernelDecisions } from "@/hooks/useKernelDecisions";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -37,12 +40,15 @@ export default function CommandCenter() {
           {/* Left column */}
           <div className="space-y-4">
             <KernelDecisionsCard delay={200} />
-            <DriftAlertsCard delay={300} />
+            <KernelActionsCard delay={300} />
+            <DriftAlertsCard delay={400} />
+            <KernelLiveFeedCard delay={500} />
           </div>
           {/* Right column */}
           <div className="space-y-4">
             <TodayCard delay={200} />
             <PipelineRiskCard delay={300} />
+            <StrategicBriefCard delay={400} />
           </div>
         </div>
       </div>
