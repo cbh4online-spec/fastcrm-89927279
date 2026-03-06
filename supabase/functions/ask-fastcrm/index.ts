@@ -2063,19 +2063,19 @@ async function queryHighValueDeals(client: any, workspaceId: string) {
 
   return {
     headline: items.length > 0
-      ? `Top ${items.length} deals worth €${totalValue.toLocaleString()}.`
-      : "No open deals found.",
-    subtext: items.length > 0 ? "Your highest-value open opportunities." : undefined,
+      ? `Top ${items.length} deals no valor de €${totalValue.toLocaleString()}.`
+      : "Nenhum deal aberto encontrado.",
+    subtext: items.length > 0 ? "As oportunidades abertas de maior valor." : undefined,
     items,
     actions: items.length > 0
       ? [
           {
             id: "save_view",
-            label: "Save as view",
+            label: "Guardar como vista",
             icon: "Bookmark",
             type: "create_saved_view",
             payload: {
-              view_name: "High Value Deals",
+              view_name: "Deals de Alto Valor",
               object_type_id: "opportunity",
               filters: { sort: "value_desc", limit: 10 },
               columns: ["title", "value", "expected_close_date"],
@@ -2083,14 +2083,14 @@ async function queryHighValueDeals(client: any, workspaceId: string) {
           },
           {
             id: "assign_owner",
-            label: "Assign owner",
+            label: "Atribuir responsável",
             icon: "UserPlus",
             type: "bulk_assign_owner",
             payload: { deal_ids: items.map((i) => i.id) },
           },
           {
             id: "view_as_list",
-            label: "View deals",
+            label: "Ver deals",
             icon: "Eye",
             type: "navigate",
             payload: { link: "/dashboard/opportunities" },
@@ -2098,7 +2098,7 @@ async function queryHighValueDeals(client: any, workspaceId: string) {
         ]
       : [],
     metric: {
-      label: "Total Value",
+      label: "Valor Total",
       value: `€${totalValue.toLocaleString()}`,
       trend: "up",
     },
