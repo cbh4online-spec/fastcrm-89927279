@@ -1504,6 +1504,27 @@ async function queryDealsAtRisk(client: any, workspaceId: string) {
             },
           },
           {
+            id: "send_followup",
+            label: "Enviar follow-up",
+            icon: "Send",
+            type: "send_followup",
+            payload: {
+              entity_ids: items.map((i: any) => i.id),
+              entity_type: "opportunity",
+              task_title: "Follow-up deal em risco",
+            },
+          },
+          {
+            id: "open_filtered",
+            label: "Ver filtrados",
+            icon: "Filter",
+            type: "open_filtered_view",
+            payload: {
+              path: "/dashboard/opportunities",
+              query_params: { health: "at_risk" },
+            },
+          },
+          {
             id: "view_as_list",
             label: "Ver no pipeline",
             icon: "Eye",
@@ -1628,6 +1649,27 @@ async function queryDealsInactive(
             type: "bulk_move_stage",
             payload: {
               deal_ids: inactive.map((i) => i.id),
+            },
+          },
+          {
+            id: "send_followup",
+            label: "Enviar follow-up",
+            icon: "Send",
+            type: "send_followup",
+            payload: {
+              entity_ids: inactive.map((i) => i.id),
+              entity_type: "opportunity",
+              task_title: "Reengajar deal inativo",
+            },
+          },
+          {
+            id: "open_filtered",
+            label: "Ver filtrados",
+            icon: "Filter",
+            type: "open_filtered_view",
+            payload: {
+              path: "/dashboard/opportunities",
+              query_params: { inactive_days: String(days) },
             },
           },
           {
@@ -2067,6 +2109,27 @@ async function queryLeadsInactive(
             icon: "Eye",
             type: "navigate",
             payload: { link: "/dashboard/leads" },
+          },
+          {
+            id: "send_followup",
+            label: "Enviar follow-up",
+            icon: "Send",
+            type: "send_followup",
+            payload: {
+              entity_ids: items.map((i: any) => i.id),
+              entity_type: "lead",
+              task_title: "Follow-up lead sem resposta",
+            },
+          },
+          {
+            id: "open_filtered",
+            label: "Ver filtrados",
+            icon: "Filter",
+            type: "open_filtered_view",
+            payload: {
+              path: "/dashboard/leads",
+              query_params: { inactive_days: String(days) },
+            },
           },
         ]
       : [],
