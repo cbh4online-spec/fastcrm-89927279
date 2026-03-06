@@ -17975,8 +17975,12 @@ export type Database = {
           executor: string | null
           id: string
           input_schema: Json | null
+          input_validation: Json | null
           key: string
+          permission_scope: string | null
           requires_approval: boolean
+          side_effect_events: string[] | null
+          ui_label: string | null
         }
         Insert: {
           description?: string | null
@@ -17984,8 +17988,12 @@ export type Database = {
           executor?: string | null
           id?: string
           input_schema?: Json | null
+          input_validation?: Json | null
           key: string
+          permission_scope?: string | null
           requires_approval?: boolean
+          side_effect_events?: string[] | null
+          ui_label?: string | null
         }
         Update: {
           description?: string | null
@@ -17993,8 +18001,12 @@ export type Database = {
           executor?: string | null
           id?: string
           input_schema?: Json | null
+          input_validation?: Json | null
           key?: string
+          permission_scope?: string | null
           requires_approval?: boolean
+          side_effect_events?: string[] | null
+          ui_label?: string | null
         }
         Relationships: []
       }
@@ -18091,7 +18103,11 @@ export type Database = {
           entity_id: string
           id: string
           kind: string
+          last_activity_at: string | null
           meta: Json | null
+          owner_id: string | null
+          score: number | null
+          status: string | null
           title: string | null
           updated_at: string
           workspace_id: string
@@ -18100,7 +18116,11 @@ export type Database = {
           entity_id: string
           id?: string
           kind: string
+          last_activity_at?: string | null
           meta?: Json | null
+          owner_id?: string | null
+          score?: number | null
+          status?: string | null
           title?: string | null
           updated_at?: string
           workspace_id: string
@@ -18109,7 +18129,11 @@ export type Database = {
           entity_id?: string
           id?: string
           kind?: string
+          last_activity_at?: string | null
           meta?: Json | null
+          owner_id?: string | null
+          score?: number | null
+          status?: string | null
           title?: string | null
           updated_at?: string
           workspace_id?: string
@@ -18212,9 +18236,11 @@ export type Database = {
           ingested_at: string | null
           occurred_at: string | null
           payload: Json | null
+          processed_at: string | null
           schema_version: number | null
           source_module: string | null
           source_route: string | null
+          status: string
           type: string
           workspace_id: string
         }
@@ -18229,9 +18255,11 @@ export type Database = {
           ingested_at?: string | null
           occurred_at?: string | null
           payload?: Json | null
+          processed_at?: string | null
           schema_version?: number | null
           source_module?: string | null
           source_route?: string | null
+          status?: string
           type: string
           workspace_id: string
         }
@@ -18246,9 +18274,11 @@ export type Database = {
           ingested_at?: string | null
           occurred_at?: string | null
           payload?: Json | null
+          processed_at?: string | null
           schema_version?: number | null
           source_module?: string | null
           source_route?: string | null
+          status?: string
           type?: string
           workspace_id?: string
         }
