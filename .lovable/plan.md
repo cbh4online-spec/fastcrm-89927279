@@ -1,62 +1,83 @@
 
 
-# B2B-Orders — Kernel V2 Stabilization
+# B2B-Finance — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | File(s) | Kernel Events | Logging |
 |------|---------|---------------|---------|
-| Order Create (admin) | `useCreateOrderNote.ts` | `ORDER.CREATED` (done) | `[ORDERS]` (done) |
-| Order Update (admin) | `useOrderNotes.ts` | None | `[ORDERS]` (done) |
-| Status Change | `useOrderNoteStatus.ts` | None | None |
-| Approvals (admin) | `useOrderApprovals.ts` | None | Toast only |
-| Approval Stats | `useOrderApprovals.ts` | None | None |
-| Client Orders (portal) | `useClientOrders.ts` | None | `[ORDERS]` partial |
-| Contact Order Notes | `useContactOrderNotes.ts` | None | None |
-| Notify Edge Fn | `order-note-notify` | None | Has logging |
-| Smoke Tests | `system-run-smoke-tests` | — | Has `order_notes` + `order_note_items` |
+| Subscription CRUD | `useSubscriptions.ts` | None | `console.error` only |
+| Subscription Cancel/Activate | `useSubscriptions.ts` | None | `console.error` only |
+| Opp→Sub Conversion | `useSubscriptions.ts` | None | `console.error` only |
+| Subscription Events | `useSubscriptionEvents.ts` | None | `console.error` only |
+| SaaS Metrics (MRR/ARR/churn) | `useSaaSMetrics.ts` | None | None |
+| Credit Limit Update | `useClientUsers.ts` | None | Toast only |
+| Renewal Usage Ledger | `useRenewalUsage.ts` | None | Toast only |
+| Billing Assistant | `useBillingAssistant.ts` + edge fn | None | `[BILLING-ASSISTANT]` (good) |
+| Check Renewals | `check-renewals` edge fn | None | Minimal |
+| B2B Plan Notify | `b2b-plan-notify-cycle` edge fn | None | Unknown |
+| Smoke Tests | `system-run-smoke-tests` | — | No b2b-finance checks |
 
-`ORDER.CREATED` is already emitted. Missing: approval/reject events, status change events, client-portal submit event, and standardized logging on approvals and status hooks.
+Zero kernel events across all finance hooks. No standardized logging.
 
 ## Implementation Plan
 
-### A) Kernel Events (source: `b2b-orders`)
+### A) Kernel Events (source: `b2b-finance`)
 
-**`useOrderApprovals.ts`:**
-1. `approveMutation.onSuccess` → emit `B2B.ORDER_APPROVED` (entity_kind: `order_note`, payload: `order_id`)
-2. `rejectMutation.onSuccess` → emit `B2B.ORDER_REJECTED` (entity_kind: `order_note`, payload: `order_id`, `reason`)
-3. `bulkApproveMutation.onSuccess` → emit `B2B.ORDER_APPROVED` per order ID
+**`useSubscriptions.ts`:**
+1. `useCreateSubscription.onSuccess` → emit `B2B.SUBSCRIPTION_CREATED` (entity_kind: `subscription`, payload: `contact_id`, `company_id`, `mrr_amount`)
+2. `useCancelSubscription.onSuccess` → emit `B2B.SUBSCRIPTION_CANCELLED` (payload: `reason`)
+3. `useActivateSubscription.onSuccess` → emit `B2B.SUBSCRIPTION_ACTIVATED`
+4. `useConvertOpportunityToSubscription.onSuccess` → emit `B2B.SUBSCRIPTION_CONVERTED` (payload: `opportunity_id`)
 
-**`useOrderNoteStatus.ts`:**
-4. `changeStatusMutation.onSuccess` → emit `B2B.ORDER_STATUS_CHANGED` (payload: `order_id`, `new_status`)
+**`useClientUsers.ts`:**
+5. `updateCreditLimit` success → emit `B2B.LIMIT_REACHED` when new limit is set (entity_kind: `client_user`, payload: `credit_limit`)
 
-### B) Logging (prefix: `[B2B-ORDERS]`)
+**`useRenewalUsage.ts`:**
+6. `useLogRenewalUsage.onSuccess` → emit `B2B.LEDGER_UPDATED` (entity_kind: `renewal_usage_ledger`, payload: `contract_id`, `amount`, `usage_type`)
 
-**`useOrderApprovals.ts`:**
-- Approve success/error, Reject success/error, Bulk approve success/error
-- Query error for pending orders
+**`useSubscriptionEvents.ts`:**
+7. `useCreateSubscriptionEvent.onSuccess` → emit `B2B.SUBSCRIPTION_EVENT_LOGGED` (payload: `event_type`, `subscription_id`)
 
-**`useOrderNoteStatus.ts`:**
-- Status change success/error, Notification failure (already has `console.error` — align prefix)
+### B) Logging (prefix: `[B2B-FINANCE]`)
 
-**`useContactOrderNotes.ts`:**
-- Query error → `console.warn('[B2B-ORDERS] CONTACT_ORDERS_FAILED')`
+**`useSubscriptions.ts`:**
+- Create/update/delete/cancel/activate success + errors
 
-**`useClientOrders.ts`:**
-- Already has `[ORDERS]` — keep as-is (client-portal context)
+**`useSubscriptionEvents.ts`:**
+- Create event success/error
+
+**`useRenewalUsage.ts`:**
+- Log usage success/error, hours_remaining update
+
+**`useClientUsers.ts`:**
+- Credit limit update success/error
+
+**`useSaaSMetrics.ts`:**
+- No mutations, read-only — skip
+
+**`useBillingAssistant.ts`:**
+- Already has `[BILLING-ASSISTANT]` in edge fn — add `[B2B-FINANCE]` to hook errors
+
+**`check-renewals` edge fn:**
+- Align to `[B2B-FINANCE]` prefix
 
 ### C) Smoke Tests
 
 Add to `system-run-smoke-tests`:
-- `order_audit_logs` (module: `b2b-orders`) — if table exists
-- `client_approval_requests` (module: `b2b-orders`)
+- `subscriptions` (module: `b2b-finance`)
+- `subscription_events` (module: `b2b-finance`)
+- `renewal_usage_ledger` (module: `b2b-finance`)
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useOrderApprovals.ts` | Import `emitKernelEvent`; emit `B2B.ORDER_APPROVED` + `B2B.ORDER_REJECTED`; add `[B2B-ORDERS]` logging |
-| `src/hooks/useOrderNoteStatus.ts` | Import `emitKernelEvent`; emit `B2B.ORDER_STATUS_CHANGED`; align logging to `[B2B-ORDERS]` |
-| `src/hooks/useContactOrderNotes.ts` | Add `[B2B-ORDERS]` error logging |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `client_approval_requests` smoke check (module: `b2b-orders`) |
+| `src/hooks/useSubscriptions.ts` | Import `emitKernelEvent`; emit 4 events; add `[B2B-FINANCE]` logging |
+| `src/hooks/useSubscriptionEvents.ts` | Import `emitKernelEvent`; emit `B2B.SUBSCRIPTION_EVENT_LOGGED`; add `[B2B-FINANCE]` logging |
+| `src/hooks/useRenewalUsage.ts` | Import `emitKernelEvent`; emit `B2B.LEDGER_UPDATED`; add `[B2B-FINANCE]` logging |
+| `src/hooks/useClientUsers.ts` | Import `emitKernelEvent`; emit `B2B.LIMIT_REACHED` on credit limit update; add `[B2B-FINANCE]` logging |
+| `src/hooks/useBillingAssistant.ts` | Add `[B2B-FINANCE]` error logging |
+| `supabase/functions/check-renewals/index.ts` | Align logging to `[B2B-FINANCE]` prefix |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add 3 b2b-finance table checks |
 
