@@ -85,13 +85,37 @@ export function getConversationalResponse(
       const leadCount = stats?.leads ?? 0;
       const oppCount = stats?.opportunities ?? 0;
       const decCount = stats?.decisions ?? 0;
+      
+      // All zeros — onboarding message
+      if (leadCount === 0 && oppCount === 0 && decCount === 0) {
+        return {
+          text: `Estou a funcionar bem! 🚀\n\nParece que ainda estás a configurar o workspace.\n\nPara começar, podes:\n• Importar os teus leads existentes\n• Criar a primeira oportunidade no pipeline\n• Ou perguntar-me qualquer coisa sobre o sistema`,
+          suggestions: [
+            '/brief',
+            'Como funciona o pipeline?',
+            'Importar leads',
+          ],
+        };
+      }
+      
+      // Show only non-zero values
+      const parts: string[] = [];
+      if (leadCount > 0) parts.push(`**${leadCount} leads activos**`);
+      if (oppCount > 0) parts.push(`**${oppCount} oportunidades abertas**`);
+      if (decCount > 0) parts.push(`**${decCount} decisões pendentes do Kernel**`);
+      
+      const statusText = parts.length > 0
+        ? `O teu workspace tem ${parts.join(', ')}.\n\nQueres saber mais sobre algum destes?`
+        : 'Tudo em ordem por aqui! ✨';
+      
       return {
-        text: `Estou a funcionar bem! 🚀\n\nO teu workspace tem **${leadCount} leads activos**, **${oppCount} oportunidades abertas** e **${decCount} decisões pendentes**.\n\nQueres saber mais sobre algum destes?`,
+        text: `Estou a funcionar bem! 🚀\n\n${statusText}`,
         suggestions: [
-          'Ver leads activos',
-          'Pipeline aberto',
-          'Decisões pendentes',
-        ],
+          ...(leadCount > 0 ? ['Ver leads activos'] : []),
+          ...(oppCount > 0 ? ['Pipeline aberto'] : []),
+          ...(decCount > 0 ? ['Decisões pendentes'] : []),
+          '/brief',
+        ].slice(0, 3),
       };
     }
     

@@ -53,7 +53,7 @@ const ACTIONS_ENUM = {
   NAVIGATE: "NAVIGATE",
 } as const;
 
-const DID_YOU_MEAN_DEFAULTS = ["Deals at risk", "No activity", "Closing this month", "Pipeline summary", "High value deals", "No next step"];
+const DID_YOU_MEAN_DEFAULTS = ["Deals em risco", "Sem atividade", "A fechar este mês", "Resumo do pipeline", "Deals de alto valor", "Sem próximo passo"];
 
 // --- buildResponse helper: enforces strict contract ---
 function buildResponse(
@@ -531,6 +531,7 @@ Deno.serve(async (req) => {
               {
                 role: "system",
                 content: `You classify CRM revenue questions into intents. Return ONLY structured output via tool call.
+IMPORTANT: The user speaks Portuguese (pt-PT). All headline and subtext responses MUST be in Portuguese de Portugal. Never respond in English.
 
 Available intents: deals_at_risk, deals_inactive, closing_soon, forecast_summary, forecast_risk, pipeline_summary, pipeline_comparison, contacts_inactive, stage_bottleneck, deals_no_next_step, deals_stuck_in_stage, high_value_deals, overdue_invoices, pending_approvals
 
@@ -590,7 +591,8 @@ Always call the tool. Only use allowed fields, operators, and sort fields.`,
         const fallbackQuery = buildStructuredQuery("unknown", 14);
         return new Response(
           JSON.stringify(buildResponse("unknown", "deals", fallbackQuery, "llm", 0, {
-            headline: "I couldn't process that question.",
+            headline: "Não consegui processar essa pergunta.",
+            subtext: "Tenta reformular ou usa um dos comandos sugeridos.",
             items: [],
             actions: [],
             did_you_mean: DID_YOU_MEAN_DEFAULTS,
@@ -605,7 +607,8 @@ Always call the tool. Only use allowed fields, operators, and sort fields.`,
         const fallbackQuery = buildStructuredQuery("unknown", 14);
         return new Response(
           JSON.stringify(buildResponse("unknown", "deals", fallbackQuery, "llm", 0, {
-            headline: "I'm not sure what you mean.",
+            headline: "Não compreendi a pergunta.",
+            subtext: "Tenta reformular ou escolhe uma das sugestões abaixo.",
             items: [],
             actions: [],
             did_you_mean: DID_YOU_MEAN_DEFAULTS,
@@ -621,7 +624,8 @@ Always call the tool. Only use allowed fields, operators, and sort fields.`,
         const fallbackQuery = buildStructuredQuery("unknown", 14);
         return new Response(
           JSON.stringify(buildResponse("unknown", "deals", fallbackQuery, "llm", 0, {
-            headline: "I'm not sure what you mean.",
+            headline: "Não compreendi a pergunta.",
+            subtext: "Tenta reformular ou escolhe uma das sugestões abaixo.",
             items: [],
             actions: [],
             did_you_mean: DID_YOU_MEAN_DEFAULTS,
@@ -636,7 +640,8 @@ Always call the tool. Only use allowed fields, operators, and sort fields.`,
         const fallbackQuery = buildStructuredQuery("unknown", 14);
         return new Response(
           JSON.stringify(buildResponse("unknown", "deals", fallbackQuery, "llm", 0, {
-            headline: "I couldn't build a valid query for that.",
+            headline: "Não consegui construir a consulta para essa pergunta.",
+            subtext: "Tenta reformular de outra forma.",
             items: [],
             actions: [],
             did_you_mean: DID_YOU_MEAN_DEFAULTS,
@@ -1109,14 +1114,16 @@ async function executeIntent(
       return await queryOverdueInvoices(client, workspaceId);
     case "pending_approvals":
       return {
-        headline: "Pending approvals — coming soon.",
+        headline: "Aprovações pendentes",
+        subtext: "As aprovações são geridas no módulo Portal B2B. Consulta directamente essa secção.",
         items: [],
-        actions: [],
-        metric: { label: "Approvals", value: "—", trend: "neutral" as const },
+        actions: [{ id: "nav_approvals", label: "Ir para Aprovações", icon: "arrow-right", type: "navigate", payload: { link: "/dashboard/b2b/approvals" } }],
+        metric: { label: "Aprovações", value: "—", trend: "neutral" as const },
       };
     default:
       return {
-        headline: "I couldn't understand that question.",
+        headline: "Não consegui compreender essa pergunta.",
+        subtext: "Tenta reformular ou usa um dos comandos sugeridos abaixo.",
         items: [],
         actions: [],
         did_you_mean: DID_YOU_MEAN_DEFAULTS,
