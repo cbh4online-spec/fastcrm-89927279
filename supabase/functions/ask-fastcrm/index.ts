@@ -522,6 +522,13 @@ function getActionsAvailable(intent: string, hasItems: boolean): string[] {
     case "pipeline_summary":
     case "pipeline_comparison":
       return [ACTIONS_ENUM.NAVIGATE, ...base];
+    case "daily_priorities":
+      return [ACTIONS_ENUM.CREATE_TASKS_BULK, ACTIONS_ENUM.NAVIGATE];
+    case "kernel_decisions":
+    case "kernel_live_feed":
+    case "drift_overview":
+    case "lead_drop_analysis":
+      return [ACTIONS_ENUM.NAVIGATE];
     default:
       return [ACTIONS_ENUM.NAVIGATE];
   }
