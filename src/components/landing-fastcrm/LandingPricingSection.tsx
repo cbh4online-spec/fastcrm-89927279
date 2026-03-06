@@ -22,7 +22,7 @@ const fallbackPlans = [
     ctaKey: "startFreeUpgrade", ctaLink: "/auth",
   },
   {
-    nameKey: "scale", price: "€149", priceNote: true, color: "hsl(250, 83%, 60%)", icon: Crown,
+    nameKey: "scale", price: "Consulte-nos", priceNote: false, color: "hsl(250, 83%, 60%)", icon: Crown,
     badgeKey: "enterprise",
     featureKeys: ["f_unlimited_users", "f_adv_intelligence", "f_adv_automations", "f_api_access", "f_adv_roles", "f_priority_support", "f_white_label", "f_5000_ai"],
     ctaKey: "startFreeUpgrade", ctaLink: "/auth",
