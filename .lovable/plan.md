@@ -1,78 +1,64 @@
 
 
-# Community-FastClub — Kernel V2 Stabilization
+# AI-Personas — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | File(s) | Kernel Events | Logging |
 |------|---------|---------------|---------|
-| Forum Topic CRUD | `useForum.ts` | None | Toast only |
-| Forum Post/Reply | `useForum.ts` | None | Toast only |
-| Community Settings | `useCommunitySettings.ts` | None | Toast only |
-| Community Events | `useCommunityEvents.ts` | None | Toast only |
-| Community Members/Invites | `useCommunityMembers.ts` | None | `console.error` only |
-| Moderation (shared) | `useModeration.ts` | None | Toast only |
-| Community Banner (edge fn) | `generate-community-banner` | None | `console.error` |
-| Community Invite (edge fn) | `send-community-invite` | None | `console.error`/`console.log` |
-| Smoke Tests | `system-run-smoke-tests` | — | No community checks |
+| Persona CRUD (Profiles page) | `useAIProfiles.ts` | None | `console.error` only |
+| Persona CRUD (KB context) | `useKnowledgeBase.ts` | `ASSISTANT.PERSONA_UPDATED` only | Mixed (`console.error` + structured for queries) |
+| Persona fetch (KB context) | `useKnowledgeBase.ts` | None | `console.error` only |
+| Channel Agents (persona selection) | `useAIChannelAgents.ts` | `ASSISTANT.CREATED` exists | `console.error` only |
+| Edge: chat-widget | `chat-widget/index.ts` | None | Existing |
+| Edge: ai-inbox-reply | `ai-inbox-reply/index.ts` | None | Existing |
+| Edge: ai-employee-executor | `ai-employee-executor/index.ts` | None | Existing |
+| Smoke Tests | `system-run-smoke-tests` | — | Already has `ai_personas` check |
 
-Zero kernel events. No standardized logging across 6 hook files and 2 edge functions.
+Two separate hooks manage personas. `useAIProfiles.ts` has zero kernel events. `useKnowledgeBase.ts` has one event (`PERSONA_UPDATED`) but missing `CREATED`/`DELETED`/`ACTIVATED`. Edge functions that consume personas have no selection logging.
 
 ## Implementation Plan
 
-### A) Kernel Events (source: `community-fastclub`)
+### A) Kernel Events (source: `ai-personas`)
 
-**`useForum.ts`:**
-1. `useCreateForumTopic.onSuccess` → emit `COMMUNITY.TOPIC_CREATED` (entity_kind: `forum_topic`, payload: `category_id`, `moderation_status`, `comments_enabled`)
-2. `useCreateForumPost.onSuccess` → emit `COMMUNITY.POST_CREATED` (entity_kind: `forum_post`, payload: `topic_id`)
+**`useAIProfiles.ts`:**
+1. `createProfile` success → emit `PERSONA.CREATED` (entity_kind: `ai_persona`, payload: `name`, `persona_type`, `is_active`)
+2. `updateProfile` success → emit `PERSONA.UPDATED` (entity_kind: `ai_persona`, payload: `name`, `changed_fields`)
+3. `deleteProfile` success → emit `PERSONA.DELETED` (entity_kind: `ai_persona`)
+4. `toggleActive` success → emit `PERSONA.ACTIVATED` or `PERSONA.DEACTIVATED` (payload: `is_active`)
 
-**`useCommunityEvents.ts`:**
-3. `useCreateCommunityEvent.onSuccess` → emit `COMMUNITY.EVENT_CREATED` (entity_kind: `community_event`, payload: `event_type`, `title`)
+**`useKnowledgeBase.ts`:**
+5. `createPersona` success → emit `PERSONA.CREATED` (already has `PERSONA_UPDATED`, align naming)
+6. `deletePersona` success → emit `PERSONA.DELETED`
 
-**`useCommunityMembers.ts`:**
-4. `useInviteCommunityMember.onSuccess` → emit `COMMUNITY.MEMBER_INVITED` (entity_kind: `community_member`, payload: `invite_count`)
+### B) Logging (prefix: `[AI-PERSONAS]`)
 
-**`useCommunitySettings.ts`:**
-5. `useUpsertCommunitySettings.onSuccess` → emit `COMMUNITY.SETTINGS_UPDATED` (entity_kind: `community_settings`)
+**`useAIProfiles.ts`:**
+- Fetch error → `console.warn('[AI-PERSONAS] PROFILES_FETCH_FAILED')`
+- Create success → `console.log('[AI-PERSONAS] PERSONA_CREATED id=...')`
+- Create error → `console.error('[AI-PERSONAS] PERSONA_CREATE_FAILED')`
+- Update success → `console.log('[AI-PERSONAS] PERSONA_UPDATED id=...')`
+- Update error → `console.error('[AI-PERSONAS] PERSONA_UPDATE_FAILED')`
+- Delete success → `console.log('[AI-PERSONAS] PERSONA_DELETED id=...')`
+- Delete error → `console.error('[AI-PERSONAS] PERSONA_DELETE_FAILED')`
 
-### B) Logging (prefix: `[COMMUNITY-FASTCLUB]`)
+**`useKnowledgeBase.ts`:**
+- Align persona CRUD logs to `[AI-PERSONAS]` prefix (create/update/delete)
 
-**`useForum.ts`:**
-- Topic created success/error, post created success/error
-
-**`useCommunityEvents.ts`:**
-- Event created success/error
-
-**`useCommunityMembers.ts`:**
-- Invite success/error (already has `console.error`, align prefix)
-
-**`useCommunitySettings.ts`:**
-- Settings upsert success/error
-
-**`generate-community-banner/index.ts`:**
-- Align to `[COMMUNITY-FASTCLUB]` prefix
-
-**`send-community-invite/index.ts`:**
-- Align to `[COMMUNITY-FASTCLUB]` prefix
+**Edge functions** (`chat-widget`, `ai-inbox-reply`, `ai-employee-executor`):
+- Add persona selection log: `console.log('[AI-PERSONAS] PERSONA_SELECTED id=... channel=...')`
 
 ### C) Smoke Tests
 
-Add to `system-run-smoke-tests`:
-- `forum_topics` (module: `community-fastclub`)
-- `forum_posts` (module: `community-fastclub`)
-- `community_settings` (module: `community-fastclub`)
-- `community_members` (module: `community-fastclub`)
-- `community_events` (module: `community-fastclub`)
+Already has `ai_personas` check in `system-run-smoke-tests`. No additions needed.
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useForum.ts` | Import `emitKernelEvent`; emit `COMMUNITY.TOPIC_CREATED` + `COMMUNITY.POST_CREATED`; add `[COMMUNITY-FASTCLUB]` logging |
-| `src/hooks/useCommunityEvents.ts` | Import `emitKernelEvent`; emit `COMMUNITY.EVENT_CREATED`; add `[COMMUNITY-FASTCLUB]` logging |
-| `src/hooks/useCommunityMembers.ts` | Import `emitKernelEvent`; emit `COMMUNITY.MEMBER_INVITED`; add `[COMMUNITY-FASTCLUB]` logging |
-| `src/hooks/useCommunitySettings.ts` | Import `emitKernelEvent`; emit `COMMUNITY.SETTINGS_UPDATED`; add `[COMMUNITY-FASTCLUB]` logging |
-| `supabase/functions/generate-community-banner/index.ts` | Align logging to `[COMMUNITY-FASTCLUB]` prefix |
-| `supabase/functions/send-community-invite/index.ts` | Align logging to `[COMMUNITY-FASTCLUB]` prefix |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add 5 community table checks |
+| `src/hooks/useAIProfiles.ts` | Import `emitKernelEvent`; emit `PERSONA.CREATED`, `PERSONA.UPDATED`, `PERSONA.DELETED`, `PERSONA.ACTIVATED`/`DEACTIVATED`; add `[AI-PERSONAS]` logging |
+| `src/hooks/useKnowledgeBase.ts` | Emit `PERSONA.CREATED` + `PERSONA.DELETED`; align existing event to `PERSONA.UPDATED`; add `[AI-PERSONAS]` prefix |
+| `supabase/functions/chat-widget/index.ts` | Add `[AI-PERSONAS] PERSONA_SELECTED` log when persona is loaded |
+| `supabase/functions/ai-inbox-reply/index.ts` | Add `[AI-PERSONAS] PERSONA_SELECTED` log when persona is loaded |
+| `supabase/functions/ai-employee-executor/index.ts` | Add `[AI-PERSONAS] PERSONA_SELECTED` log when persona is loaded |
 
