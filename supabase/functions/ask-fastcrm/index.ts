@@ -86,7 +86,7 @@ function buildResponse(
     },
     answer: {
       headline: (handlerResult.headline || "").slice(0, 80),
-      ...(handlerResult.subtext ? { subtext: handlerResult.subtext.slice(0, 120) } : {}),
+      ...(handlerResult.subtext ? { subtext: handlerResult.subtext.slice(0, 500) } : {}),
     },
     actions_available: handlerResult.actions_available || [],
     items: handlerResult.items || [],
@@ -118,20 +118,31 @@ const PRIMARY_KEYWORDS = [
 const KEYWORD_MAP: Record<string, string> = {
   "at risk": "deals_at_risk",
   "em risco": "deals_at_risk",
+  "risco": "deals_at_risk",
   "inactive": "deals_inactive",
   "no activity": "deals_inactive",
   "sem atividade": "deals_inactive",
+  "sem actividade": "deals_inactive",
+  "atividade recente": "deals_inactive",
+  "actividade recente": "deals_inactive",
   "closing": "closing_soon",
   "this month": "closing_soon",
   "este mês": "closing_soon",
+  "acelerar fecho": "closing_soon",
+  "acelerar": "closing_soon",
+  "fechar mais rápido": "closing_soon",
   "forecast": "forecast_summary",
   "forecast risk": "forecast_risk",
   "blocking forecast": "forecast_risk",
   "forecast slipping": "forecast_risk",
   "previsão": "forecast_summary",
+  "receita prevista": "forecast_summary",
+  "quanto vou faturar": "forecast_summary",
   "pipeline": "pipeline_summary",
   "pipeline health": "pipeline_summary",
   "pipeline summary": "pipeline_summary",
+  "estado do pipeline": "pipeline_summary",
+  "como está o pipeline": "pipeline_summary",
   "which pipeline": "pipeline_comparison",
   "pipeline comparison": "pipeline_comparison",
   "riskier pipeline": "pipeline_comparison",
@@ -146,16 +157,31 @@ const KEYWORD_MAP: Record<string, string> = {
   "gargalo": "stage_bottleneck",
   "stuck": "deals_stuck_in_stage",
   "preso": "deals_stuck_in_stage",
+  "parado": "deals_stuck_in_stage",
+  "parados": "deals_stuck_in_stage",
+  "estagnado": "deals_stuck_in_stage",
   "no next step": "deals_no_next_step",
   "sem próximo passo": "deals_no_next_step",
+  "próximos passos": "deals_no_next_step",
+  "próximo passo": "deals_no_next_step",
+  "next step": "deals_no_next_step",
+  "next action": "deals_no_next_step",
+  "o que devo fazer": "deals_no_next_step",
   "high value": "high_value_deals",
   "alto valor": "high_value_deals",
+  "maior valor": "high_value_deals",
+  "maiores deals": "high_value_deals",
+  "melhor deal": "high_value_deals",
+  "melhor cliente": "high_value_deals",
+  "melhor oportunidade": "high_value_deals",
   "overdue": "overdue_invoices",
   "vencida": "overdue_invoices",
+  "faturas em atraso": "overdue_invoices",
   "approval": "pending_approvals",
   "aprovação": "pending_approvals",
   "contacts inactive": "contacts_inactive",
   "contactos inativos": "contacts_inactive",
+  "contactos sem atividade": "contacts_inactive",
   // Automation intent keywords
   "remind me": "create_automation_rule",
   "alert me": "create_automation_rule",
@@ -181,14 +207,21 @@ const KEYWORD_MAP: Record<string, string> = {
 const EXACT_PHRASES: Record<string, string> = {
   "deals at risk": "deals_at_risk",
   "deals em risco": "deals_at_risk",
+  "quais estão em risco": "deals_at_risk",
+  "deals em perigo": "deals_at_risk",
   "no activity": "deals_inactive",
   "sem atividade": "deals_inactive",
+  "sem actividade": "deals_inactive",
   "closing this month": "closing_soon",
   "a fechar este mês": "closing_soon",
+  "acelerar fecho": "closing_soon",
+  "como acelerar o fecho": "closing_soon",
   "pipeline summary": "pipeline_summary",
   "pipeline health": "pipeline_summary",
   "pipeline health summary": "pipeline_summary",
   "resumo pipeline": "pipeline_summary",
+  "como está o pipeline": "pipeline_summary",
+  "estado do pipeline": "pipeline_summary",
   "which pipeline is riskier": "pipeline_comparison",
   "which pipeline has highest confidence": "pipeline_comparison",
   "where is revenue concentrated": "pipeline_comparison",
@@ -196,6 +229,9 @@ const EXACT_PHRASES: Record<string, string> = {
   "compare pipelines": "pipeline_comparison",
   "comparar pipelines": "pipeline_comparison",
   "forecast": "forecast_summary",
+  "previsão de receita": "forecast_summary",
+  "quanto vou faturar": "forecast_summary",
+  "receita prevista": "forecast_summary",
   "forecast risk": "forecast_risk",
   "what's blocking my forecast": "forecast_risk",
   "why is my forecast slipping": "forecast_risk",
@@ -203,14 +239,24 @@ const EXACT_PHRASES: Record<string, string> = {
   "gargalo de estágio": "stage_bottleneck",
   "no next step": "deals_no_next_step",
   "sem próximo passo": "deals_no_next_step",
+  "próximos passos": "deals_no_next_step",
+  "o que devo fazer": "deals_no_next_step",
+  "o que posso fazer": "deals_no_next_step",
   "high value deals": "high_value_deals",
   "deals alto valor": "high_value_deals",
+  "melhor cliente": "high_value_deals",
+  "melhores deals": "high_value_deals",
+  "maiores oportunidades": "high_value_deals",
   "overdue invoices": "overdue_invoices",
   "faturas vencidas": "overdue_invoices",
+  "faturas em atraso": "overdue_invoices",
   "deals stuck": "deals_stuck_in_stage",
   "deals stuck in stage": "deals_stuck_in_stage",
+  "deals parados": "deals_stuck_in_stage",
+  "deals estagnados": "deals_stuck_in_stage",
   "inactive contacts": "contacts_inactive",
   "contactos inativos": "contacts_inactive",
+  "contactos sem atividade": "contacts_inactive",
 };
 
 function classifyByKeyword(question: string): KeywordMatch | null {
@@ -680,7 +726,76 @@ Always call the tool. Only use allowed fields, operators, and sort fields.`,
     const hasItems = (handlerResult.items?.length || 0) > 0;
     const actionsAvailable = getActionsAvailable(intent, hasItems);
 
+    // --- LLM Contextual Response: Feed real data to LLM for natural language answer ---
+    let aiContextualResponse: string | undefined;
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (LOVABLE_API_KEY && hasItems) {
+      try {
+        const dataSummary = JSON.stringify({
+          intent,
+          headline: handlerResult.headline,
+          items_count: handlerResult.items?.length || 0,
+          items_preview: (handlerResult.items || []).slice(0, 5).map((i: any) => ({
+            title: i.title,
+            subtitle: i.subtitle,
+            value: i.value,
+            health: i.health_label,
+          })),
+          metric: handlerResult.metric,
+          ...(crm_summary ? { crm_context: crm_summary } : {}),
+        });
+
+        const contextMessages: any[] = [
+          {
+            role: "system",
+            content: `Generates a brief, actionable Portuguese (pt-PT) analysis based on CRM query results. 
+Rules:
+- Max 3 sentences
+- Be specific: use names, values, numbers from the data
+- Suggest 1-2 concrete next actions
+- Never invent data not present in the input
+- Always in Portuguese de Portugal`,
+          },
+        ];
+
+        // Include conversation history for contextual follow-ups
+        if (Array.isArray(conversation_history)) {
+          conversation_history.slice(-10).forEach((m: any) => {
+            contextMessages.push({
+              role: m.role === 'user' ? 'user' : 'assistant',
+              content: String(m.content || ''),
+            });
+          });
+        }
+
+        contextMessages.push({
+          role: "user",
+          content: `The user asked: "${question}"\n\nQuery results:\n${dataSummary}\n\nGenerate a brief contextual analysis in Portuguese.`,
+        });
+
+        const contextualAiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-lite",
+            messages: contextMessages,
+          }),
+        });
+
+        if (contextualAiResponse.ok) {
+          const ctxData = await contextualAiResponse.json();
+          aiContextualResponse = ctxData.choices?.[0]?.message?.content;
+        }
+      } catch (e) {
+        console.error("Contextual LLM response error (non-fatal):", e);
+      }
+    }
+
     // --- Build strict response ---
+    const finalSubtext = aiContextualResponse || handlerResult.subtext;
     const response = buildResponse(
       intent,
       query.object_type,
@@ -689,7 +804,7 @@ Always call the tool. Only use allowed fields, operators, and sort fields.`,
       confidence,
       {
         headline: handlerResult.headline || handlerResult.header || "",
-        subtext: handlerResult.subtext,
+        subtext: finalSubtext,
         items: handlerResult.items,
         actions: handlerResult.actions,
         actions_available: actionsAvailable,
@@ -699,12 +814,49 @@ Always call the tool. Only use allowed fields, operators, and sort fields.`,
       }
     );
 
+    // --- Emit Kernel Events (non-blocking) ---
+    const userId = claimsData.claims.sub;
+    serviceClient
+      .from("kernel_events")
+      .insert([
+        {
+          workspace_id: workspaceId,
+          event_type: "CHAT.INTENT_DETECTED",
+          actor_type: "system",
+          actor_id: userId,
+          entity_type: "ask_fastcrm",
+          entity_id: workspaceId,
+          payload: { intent, confidence, routed_via: routedVia, question_length: question.length },
+        },
+        {
+          workspace_id: workspaceId,
+          event_type: "CHAT.ACTION_EXECUTED",
+          actor_type: "system",
+          actor_id: userId,
+          entity_type: query.object_type,
+          entity_id: workspaceId,
+          payload: { intent, items_count: response.items?.length ?? 0, has_contextual_response: !!aiContextualResponse },
+        },
+        {
+          workspace_id: workspaceId,
+          event_type: "CHAT.RESPONSE_GENERATED",
+          actor_type: "system",
+          actor_id: userId,
+          entity_type: "ask_fastcrm",
+          entity_id: workspaceId,
+          payload: { intent, routed_via: routedVia, items_count: response.items?.length ?? 0, actions_count: response.actions?.length ?? 0 },
+        },
+      ])
+      .then(({ error: evtErr }: any) => {
+        if (evtErr) console.error("kernel_events insert error:", evtErr);
+      });
+
     // --- Log query (non-blocking) ---
     serviceClient
       .from("ask_fastcrm_query_logs")
       .insert({
         workspace_id: workspaceId,
-        user_id: claimsData.claims.sub,
+        user_id: userId,
         question,
         intent,
         items_count: response.items?.length ?? 0,
