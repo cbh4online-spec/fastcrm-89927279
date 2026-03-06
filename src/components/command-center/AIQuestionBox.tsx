@@ -139,7 +139,7 @@ export function AIQuestionBox() {
     }
   }, [result]);
 
-  // When slash command result comes in, add to chat
+  // When slash command result comes in, add to chat with structured data
   useEffect(() => {
     if (slashResult && !slashResult.loading) {
       setMessages(prev => {
@@ -152,6 +152,8 @@ export function AIQuestionBox() {
           suggestions: getContextualSuggestions(slashResult.content),
           timestamp: new Date(),
           type: slashResult.type,
+          items: slashResult.items?.slice(0, 5),
+          actions: slashResult.actions,
         }];
       });
     }

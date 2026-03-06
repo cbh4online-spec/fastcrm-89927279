@@ -1,10 +1,10 @@
 import { SlashCommand } from "@/hooks/useSlashCommands";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { BarChart3, Target, Users, TrendingUp, CheckSquare, FileText } from "lucide-react";
+import { BarChart3, Target, Users, TrendingUp, CheckSquare, FileText, AlertTriangle, Brain } from "lucide-react";
 
 const iconMap: Record<string, React.ElementType> = {
-  BarChart3, Target, Users, TrendingUp, CheckSquare, FileText,
+  BarChart3, Target, Users, TrendingUp, CheckSquare, FileText, AlertTriangle, Brain,
 };
 
 interface Props {

@@ -20,6 +20,9 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: "forecast", command: "/forecast", label: "Previsão de Receita", description: "Previsão de receita com cenários", icon: "TrendingUp", category: "revenue" },
   { id: "leads", command: "/leads", label: "Estado dos Leads", description: "Leads activos e sem resposta", icon: "Users", category: "leads" },
   { id: "pipeline", command: "/pipeline", label: "Análise do Pipeline", description: "Resumo do estado actual do pipeline", icon: "BarChart3", category: "pipeline" },
+  { id: "risk", command: "/risk", label: "Deals em Risco", description: "Oportunidades em risco com ações sugeridas", icon: "AlertTriangle", category: "pipeline" },
+  { id: "stalled", command: "/stalled", label: "Deals Parados", description: "Oportunidades paradas na etapa actual", icon: "Target", category: "pipeline" },
+  { id: "priorities", command: "/priorities", label: "Prioridades do Dia", description: "Acções prioritárias combinadas", icon: "Target", category: "actions" },
   { id: "drift", command: "/drift", label: "Contexto Drift", description: "Contexto estratégico desactualizado", icon: "AlertTriangle", category: "intelligence" },
   { id: "tarefas", command: "/tarefas", label: "Tarefas de Hoje", description: "Tarefas e follow-ups pendentes", icon: "CheckSquare", category: "actions" },
   { id: "kernel", command: "/kernel", label: "Decisões do Kernel", description: "Decisões e acções pendentes do Kernel", icon: "Brain", category: "intelligence" },
@@ -39,7 +42,25 @@ export interface SlashCommandResult {
   data?: Record<string, unknown>;
   loading: boolean;
   type?: "brief" | "text"; // structured type for rendering
+  items?: any[];
+  actions?: any[];
 }
+
+// Map of slash command IDs to their ask-fastcrm question strings
+const SLASH_TO_QUESTION: Record<string, string> = {
+  forecast: "previsão de receita forecast summary",
+  "prever-receita": "previsão de receita forecast summary",
+  leads: "leads sem resposta activos sem atividade",
+  pipeline: "pipeline summary resumo pipeline health",
+  "resumir-pipeline": "pipeline summary resumo pipeline health",
+  drift: "contexto desatualizado drift overview",
+  risk: "deals em risco quais estão em risco",
+  stalled: "deals parados estagnados stuck",
+  priorities: "prioridades do dia o que devo fazer hoje",
+  prioridades: "prioridades do dia o que devo fazer hoje",
+  tarefas: "tarefas do dia prioridades",
+  kernel: "decisões pendentes kernel decisions",
+};
 
 export function useSlashCommands() {
   const [result, setResult] = useState<SlashCommandResult | null>(null);
@@ -71,13 +92,40 @@ export function useSlashCommands() {
     return SLASH_COMMANDS.filter(cmd => cmd.command.startsWith(trimmed));
   }, []);
 
+  // Helper: call ask-fastcrm and return structured result
+  const callAskFastCRM = async (question: string, command: SlashCommand, emoji: string): Promise<SlashCommandResult> => {
+    if (!currentWorkspace?.id) {
+      return { command: command.command, title: `${emoji} ${command.label}`, content: "Workspace não encontrado.", loading: false };
+    }
+    try {
+      const { data, error } = await supabase.functions.invoke("ask-fastcrm", {
+        body: { question },
+        headers: { "X-Workspace-Id": currentWorkspace.id },
+      });
+      if (error) throw error;
+      const headline = data?.answer?.headline || command.label;
+      const subtext = data?.answer?.subtext || "";
+      return {
+        command: command.command,
+        title: `${emoji} ${headline}`,
+        content: subtext || headline,
+        loading: false,
+        data,
+        items: data?.items,
+        actions: data?.actions,
+      };
+    } catch {
+      return { command: command.command, title: `${emoji} ${command.label}`, content: `Erro ao obter dados.`, loading: false };
+    }
+  };
+
   const executeCommand = useCallback(async (command: SlashCommand, args: string) => {
     setIsExecuting(true);
     setResult({ command: command.command, title: command.label, content: "A processar...", loading: true });
 
     try {
       switch (command.id) {
-        // === NEW: /brief → invoke strategic-intelligence-brief directly ===
+        // === /brief → invoke strategic-intelligence-brief directly ===
         case "brief": {
           if (!currentWorkspace?.id) {
             setResult({ command: command.command, title: "📋 Brief Executivo", content: "Workspace não encontrado.", loading: false });
@@ -107,108 +155,54 @@ export function useSlashCommands() {
           break;
         }
 
-        // === NEW: /forecast → structured query to ask-fastcrm ===
+        // === Commands routed to ask-fastcrm with structured results ===
         case "forecast":
         case "prever-receita": {
-          if (!currentWorkspace?.id) {
-            setResult({ command: command.command, title: "📈 Previsão", content: "Workspace não encontrado.", loading: false });
-            break;
-          }
-          try {
-            const { data, error } = await supabase.functions.invoke("ask-fastcrm", {
-              body: { question: "forecast summary previsão receita" },
-              headers: { "X-Workspace-Id": currentWorkspace.id },
-            });
-            if (error) throw error;
-            const headline = data?.answer?.headline || "Previsão de receita";
-            const subtext = data?.answer?.subtext || "";
-            setResult({ command: command.command, title: `📈 ${headline}`, content: subtext || headline, loading: false, data });
-          } catch {
-            setResult({ command: command.command, title: "📈 Previsão", content: "Erro ao obter previsão.", loading: false });
-          }
+          const r = await callAskFastCRM(SLASH_TO_QUESTION[command.id] || "forecast", command, "📈");
+          setResult(r);
           break;
         }
-
-        // === NEW: /leads → ask-fastcrm with leads query ===
         case "leads": {
-          if (!currentWorkspace?.id) break;
-          try {
-            const { data, error } = await supabase.functions.invoke("ask-fastcrm", {
-              body: { question: "leads sem resposta activos sem atividade" },
-              headers: { "X-Workspace-Id": currentWorkspace.id },
-            });
-            if (error) throw error;
-            const headline = data?.answer?.headline || "Leads activos";
-            const subtext = data?.answer?.subtext || "";
-            setResult({ command: command.command, title: `👥 ${headline}`, content: subtext || headline, loading: false, data });
-          } catch {
-            setResult({ command: command.command, title: "👥 Leads", content: "Erro ao obter dados de leads.", loading: false });
-          }
+          const r = await callAskFastCRM(SLASH_TO_QUESTION.leads, command, "👥");
+          setResult(r);
           break;
         }
-
-        // === NEW: /pipeline → ask-fastcrm pipeline summary ===
         case "pipeline":
         case "resumir-pipeline": {
-          if (!currentWorkspace?.id) break;
-          try {
-            const { data, error } = await supabase.functions.invoke("ask-fastcrm", {
-              body: { question: "pipeline summary resumo pipeline health" },
-              headers: { "X-Workspace-Id": currentWorkspace.id },
-            });
-            if (error) throw error;
-            const headline = data?.answer?.headline || "Pipeline";
-            const subtext = data?.answer?.subtext || "";
-            setResult({ command: command.command, title: `📊 ${headline}`, content: subtext || headline, loading: false, data });
-          } catch {
-            setResult({ command: command.command, title: "📊 Pipeline", content: "Erro ao obter dados do pipeline.", loading: false });
-          }
+          const r = await callAskFastCRM(SLASH_TO_QUESTION.pipeline, command, "📊");
+          setResult(r);
           break;
         }
-
-        // === NEW: /drift → ask-fastcrm context drift ===
         case "drift": {
-          if (!currentWorkspace?.id) break;
-          try {
-            const { data, error } = await supabase.functions.invoke("ask-fastcrm", {
-              body: { question: "deals sem atividade sem próximo passo contexto desactualizado" },
-              headers: { "X-Workspace-Id": currentWorkspace.id },
-            });
-            if (error) throw error;
-            const headline = data?.answer?.headline || "Context Drift";
-            const subtext = data?.answer?.subtext || "";
-            setResult({ command: command.command, title: `⚠️ ${headline}`, content: subtext || headline, loading: false, data });
-          } catch {
-            setResult({ command: command.command, title: "⚠️ Drift", content: "Erro ao verificar contexto.", loading: false });
-          }
+          const r = await callAskFastCRM(SLASH_TO_QUESTION.drift, command, "⚠️");
+          setResult(r);
           break;
         }
-
-        // === NEW: /tarefas → navigate to tasks ===
+        case "risk": {
+          const r = await callAskFastCRM(SLASH_TO_QUESTION.risk, command, "🔴");
+          setResult(r);
+          break;
+        }
+        case "stalled": {
+          const r = await callAskFastCRM(SLASH_TO_QUESTION.stalled, command, "⏸️");
+          setResult(r);
+          break;
+        }
+        case "priorities":
+        case "prioridades": {
+          const r = await callAskFastCRM(SLASH_TO_QUESTION.priorities, command, "🎯");
+          setResult(r);
+          break;
+        }
         case "tarefas":
         case "criar-followup": {
-          navigate("/dashboard/tasks");
-          toast.info("A abrir tarefas...");
-          setResult(null);
+          const r = await callAskFastCRM(SLASH_TO_QUESTION.tarefas, command, "✅");
+          setResult(r);
           break;
         }
-
-        // === NEW: /kernel → navigate to kernel decisions ===
         case "kernel": {
-          navigate("/dashboard/kernel");
-          toast.info("A abrir decisões do Kernel...");
-          setResult(null);
-          break;
-        }
-
-        case "prioridades": {
-          const actions = intelligenceData?.recommended_actions;
-          if (actions && actions.length > 0) {
-            const list = actions.slice(0, 5).map((a, i) => `${i + 1}. **${a.deal_title}** — ${a.action} (${a.priority})`).join("\n");
-            setResult({ command: command.command, title: "🎯 Prioridades do Dia", content: list, loading: false });
-          } else {
-            setResult({ command: command.command, title: "🎯 Prioridades", content: "Nenhuma acção prioritária detectada. Pipeline limpo!", loading: false });
-          }
+          const r = await callAskFastCRM(SLASH_TO_QUESTION.kernel, command, "🧠");
+          setResult(r);
           break;
         }
         case "analisar-lead": {

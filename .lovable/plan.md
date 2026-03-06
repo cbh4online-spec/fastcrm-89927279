@@ -1,78 +1,68 @@
 
 
-# Command Center — Núcleo Operacional Real
+# Phase 5B — Command Center COMPLETO
 
-## Diagnóstico
+## Gap Analysis: Current vs Spec
 
-Após análise exaustiva do código, o sistema **já tem ~85% implementado**:
+The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
 
-- **Intent Router**: keyword (25+ mappings) + LLM fallback com tool calling — funciona
-- **Data Engine**: 20+ handlers com queries reais (`deal_intelligence_cache`, `opportunities`, `leads`, `kernel_decisions`, `context_drift`, `revenue_forecasts`, etc.)
-- **Response Builder**: `buildResponse` com contrato estrito (headline, subtext, items, actions, metric)
-- **Quick Actions no chat**: items clicáveis + botões de ação (bulk_task, navigate, create_saved_view, etc.)
-- **Conversation Memory**: `conversationContextRef` com last_question, last_dataset, last_analysis
-- **Kernel Events**: 3 eventos emitidos por interação (INTENT_DETECTED, ACTION_EXECUTED, RESPONSE_GENERATED)
-- **Telemetria**: `execution_time_ms`, `is_fallback`, `ask_fastcrm_query_logs`
-- **PipelineRiskCard**: já usa `deal_intelligence_cache` (mesma fonte que o chat)
+**Already implemented (needs enhancement):**
+- Header with greeting + 3 KPIs — needs larger font (32px), labels below
+- AI Question Box — needs slash command suggestions row below input
+- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
+- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
+- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
+- Drift Alerts — needs "Rever →" links to Context OS blocks
 
-## Problemas Reais Identificados
+**New sections to build:**
+1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
+2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
+   - Change Events (last 5 from `useChangeEvents` with realtime)
+   - Entity Activity (top 3 entities from `useKernelEntities`)
+   - Impact Score (top 2 from `useImpactMapData`)
+3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
 
-### 1. Auth quebrada no Edge Function
-A edge function usa `userClient.auth.getClaims()` que **não existe** no SDK do Supabase. Isto pode causar erros 401 em todas as chamadas.
+**Enhanced Command Palette (⌘K):**
+- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
 
-### 2. Slash commands retornam texto plano
-`/forecast`, `/leads`, `/pipeline`, `/drift` chamam `ask-fastcrm` mas descartam `items` e `actions` do resultado — mostram apenas o headline como texto. O utilizador não consegue agir a partir de um slash command.
+**Spotlight (Space key):**
+- Opens AI Question Box as a modal from any page. New global component.
 
-### 3. Slash commands em falta
-Faltam: `/risk`, `/stalled`, `/priorities`. Estão no spec mas não existem em `SLASH_COMMANDS`.
+## Implementation Plan — 3 Sub-phases
 
-### 4. Respostas em inglês
-Vários handlers devolvem texto em inglês: "Untitled Deal", "Follow up on at-risk deal", pipeline comparison inteiro em inglês, suggestion texts.
+Given the scope, I recommend splitting into 3 batches:
 
-### 5. `/tarefas` e `/kernel` navegam para fora
-Em vez de mostrar dados inline, estes comandos fazem `navigate()` e mostram `null` — quebram o fluxo conversacional.
+### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
+| File | Action |
+|------|--------|
+| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
+| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
+| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
+| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
 
-### 6. Slash commands não passam resultado estruturado ao chat
-Quando `/pipeline` devolve resultado, o `AIQuestionBox` apenas mostra o `content` string — ignora `data` que contém items e actions.
+### Batch 2: Enhance Existing Cards
+| File | Action |
+|------|--------|
+| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
+| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
+| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
+| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
+| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
+| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
 
-## Plano de Implementação
+### Batch 3: Spotlight Modal + Command Palette Enhancement
+| File | Action |
+|------|--------|
+| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
+| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
+| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
 
-### Fase 1: Corrigir Auth + Slash Commands Estruturados
+### Realtime subscriptions needed
+- `change_events` table for Kernel Live Feed auto-update
+- `kernel_action_runs` for Ações do Dia auto-update
+- Already have `kernel_decisions` and `conversations`
 
-**`supabase/functions/ask-fastcrm/index.ts`**
-- Substituir `getClaims()` por `getUser()` — método validado do SDK
-- Traduzir todas as strings em inglês para português
+No database migrations needed. All hooks, edge functions, and tables already exist.
 
-**`src/hooks/useSlashCommands.ts`**
-- Adicionar 3 novos comandos: `/risk`, `/stalled`, `/priorities`
-- Para `/forecast`, `/leads`, `/pipeline`, `/drift`, `/risk`, `/stalled`, `/priorities`, `/tarefas`, `/kernel`: devolver o resultado completo de `ask-fastcrm` (incluindo items e actions) em vez de apenas texto
-- Mudar `/tarefas` e `/kernel` para chamar `ask-fastcrm` inline em vez de `navigate()`
-
-**`src/components/command-center/AIQuestionBox.tsx`**
-- Quando `slashResult` chega com `data` que contém `items`/`actions`, injectar esses dados na mensagem do chat para renderizar items clicáveis e quick actions (exactamente como já acontece para perguntas naturais)
-
-### Fase 2: Consistência de Respostas
-
-**`supabase/functions/ask-fastcrm/index.ts`**
-- `queryPipelineComparison`: traduzir todas as strings para PT-PT
-- `queryDealsAtRisk`: mudar "Untitled Deal" → "Deal sem nome", suggestion text para PT
-- `queryDealsStuckInStage`: traduzir subtitles
-- `queryForecastRisk`: traduzir labels
-- Cada handler com 0 items deve incluir diagnóstico contextual (ex: "Não existem deals com close date definida" em vez de apenas "Nenhum deal encontrado")
-
-### Fase 3: Robustez de Fallbacks
-
-**`supabase/functions/ask-fastcrm/index.ts`**
-- No `default` case de `executeIntent`: já foi melhorado mas melhorar a mensagem com contagem de dados disponíveis (ex: "Tens X deals e Y leads — tenta 'como está o pipeline?' ou 'leads sem resposta'")
-- Quando LLM falha: manter keyword result mesmo com confidence < 0.75 se > 0.50 (actualmente descarta e vai para LLM)
-
-## Ficheiros Afectados
-
-| Ficheiro | Alteração |
-|----------|-----------|
-| `supabase/functions/ask-fastcrm/index.ts` | Fix auth, traduzir strings EN→PT, melhorar fallbacks |
-| `src/hooks/useSlashCommands.ts` | +3 comandos, devolver resultado estruturado |
-| `src/components/command-center/AIQuestionBox.tsx` | Renderizar items/actions de slash commands no chat |
-
-Sem migrações de base de dados necessárias. Todas as tabelas e hooks já existem.
+**Shall I start with Batch 1?**
 
