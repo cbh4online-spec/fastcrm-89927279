@@ -9,8 +9,6 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const startTime = Date.now();
-  let status = "success";
-  let errorMessage: string | null = null;
 
   try {
     const body = await req.json();
@@ -29,7 +27,9 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Insert event (idempotency handled by unique index)
+    const eventOccurredAt = occurred_at ?? new Date().toISOString();
+
+    // Insert event with processing status
     const { data: event, error: evErr } = await supabase
       .from("kernel_events")
       .insert({
@@ -43,9 +43,10 @@ Deno.serve(async (req) => {
         source_module: source_module ?? null,
         source_route: source_route ?? null,
         idempotency_key: idempotency_key ?? null,
-        occurred_at: occurred_at ?? new Date().toISOString(),
+        occurred_at: eventOccurredAt,
         ingested_at: new Date().toISOString(),
         schema_version: schema_version ?? 1,
+        status: "pending",
       })
       .select("id")
       .single();
@@ -59,8 +60,12 @@ Deno.serve(async (req) => {
       throw evErr;
     }
 
-    // Upsert entity registry
+    // Upsert entity registry with normalized fields
     const title = payload?.title ?? payload?.name ?? entity_id;
+    const ownerId = payload?.owner_id ?? payload?.assigned_to ?? null;
+    const entityStatus = payload?.status ?? payload?.stage ?? null;
+    const entityScore = typeof payload?.score === "number" ? payload.score : null;
+
     await supabase
       .from("kernel_entities")
       .upsert(
@@ -70,6 +75,10 @@ Deno.serve(async (req) => {
           entity_id,
           title: typeof title === "string" ? title : entity_id,
           meta: payload ?? {},
+          owner_id: ownerId,
+          status: entityStatus,
+          score: entityScore,
+          last_activity_at: eventOccurredAt,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "workspace_id,kind,entity_id" }
@@ -92,10 +101,8 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    status = "error";
-    errorMessage = (err as Error).message;
+    const errorMessage = (err as Error).message;
 
-    // Try to log failure
     try {
       const supabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
