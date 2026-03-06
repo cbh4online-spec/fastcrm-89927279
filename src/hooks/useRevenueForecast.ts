@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface RevenueForecast {
   id: string;
@@ -79,8 +80,27 @@ export function useGenerateRevenueForecast() {
       if (data?.error) throw new Error(data.error);
       return data?.data as RevenueForecast;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["revenue-forecast", currentWorkspace?.id] });
+      console.log("[AI-ANALYTICS] FORECAST_GENERATED", { forecast_confidence: result?.forecast_confidence, expected_case: result?.expected_case });
+
+      if (currentWorkspace && result?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: "FORECAST.UPDATED",
+          entity_kind: "revenue_forecast",
+          entity_id: result.id,
+          source_module: "ai-analytics",
+          payload: {
+            expected_case: result.expected_case,
+            forecast_confidence: result.forecast_confidence,
+            opportunity_count: result.opportunity_count,
+          },
+        });
+      }
+    },
+    onError: (err) => {
+      console.error("[AI-ANALYTICS] FORECAST_GENERATE_FAILED", err instanceof Error ? err.message : err);
     },
   });
 }

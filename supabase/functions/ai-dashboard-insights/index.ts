@@ -188,7 +188,7 @@ Gera o resumo do dashboard com insights acionáveis.`;
         throw new Error("No JSON found in response");
       }
     } catch (parseError) {
-      console.error("Failed to parse AI response:", content);
+      console.error("[AI-ANALYTICS] DASHBOARD_INSIGHTS_PARSE_FAILED content_length=" + content.length);
       parsed = {
         greeting: `Olá, ${userName || "Utilizador"}!`,
         dayStatus: dashboardData.hotLeads > 0 
@@ -205,7 +205,7 @@ Gera o resumo do dashboard com insights acionáveis.`;
     });
 
   } catch (error: unknown) {
-    console.error("Dashboard insights error:", error);
+    console.error("[AI-ANALYTICS] DASHBOARD_INSIGHTS_FAILED", error instanceof Error ? error.message : error);
     return new Response(JSON.stringify({ error: "An error occurred processing your request" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

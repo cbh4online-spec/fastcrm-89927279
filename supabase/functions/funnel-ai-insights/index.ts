@@ -117,7 +117,7 @@ Responde APENAS com um JSON válido neste formato:
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("funnel-ai-insights error:", e);
+    console.error("[AI-ANALYTICS] FUNNEL_AI_INSIGHTS_FAILED", e instanceof Error ? e.message : e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
