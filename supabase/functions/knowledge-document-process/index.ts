@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     sourceId = body.sourceId;
     const { filePath, fileName, mimeType, knowledgeBaseId, workspaceId } = body;
 
-    console.log(`[KNOWLEDGE-DOC] Received request for: ${fileName}`);
+    console.log(`[AI-KNOWLEDGE] DOC_RECEIVED file=${fileName}`);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -70,11 +70,11 @@ Deno.serve(async (req) => {
     const contentLength = parseInt(headResponse.headers.get('content-length') || '0');
     const fileSizeMB = contentLength / (1024 * 1024);
 
-    console.log(`[KNOWLEDGE-DOC] File size: ${fileSizeMB.toFixed(2)}MB`);
+    console.log(`[AI-KNOWLEDGE] DOC_SIZE ${fileSizeMB.toFixed(2)}MB`);
 
     // For files > 20MB, delegate to Trigger.dev for full processing
     if (contentLength > TRIGGER_THRESHOLD) {
-      console.log(`[KNOWLEDGE-DOC] Large file detected. Delegating to Trigger.dev...`);
+      console.log(`[AI-KNOWLEDGE] LARGE_FILE delegating to Trigger.dev...`);
       
       // Get source details including fileName from the database
       const { data: sourceDetails, error: sourceError } = await supabase
@@ -117,11 +117,11 @@ Deno.serve(async (req) => {
       });
 
       if (triggerError) {
-        console.error('[KNOWLEDGE-DOC] Trigger dispatch failed:', triggerError);
+        console.error('[AI-KNOWLEDGE] TRIGGER_DISPATCH_FAILED', triggerError);
         throw new Error(`Failed to dispatch to Trigger.dev: ${triggerError.message}`);
       }
 
-      console.log(`[KNOWLEDGE-DOC] Dispatched to Trigger.dev`);
+      console.log(`[AI-KNOWLEDGE] TRIGGER_DISPATCHED`);
 
       return new Response(
         JSON.stringify({
@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
         knowledgeBaseId,
         workspaceId
       ).catch(async (error) => {
-        console.error("[KNOWLEDGE-DOC] Background processing error:", error);
+        console.error("[AI-KNOWLEDGE] BACKGROUND_PROCESS_ERROR", error);
         await supabase
           .from('knowledge_sources')
           .update({
@@ -172,7 +172,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("[KNOWLEDGE-DOC] Error:", error);
+    console.error("[AI-KNOWLEDGE] DOC_ERROR", error);
     
     if (sourceId) {
       try {
@@ -210,7 +210,7 @@ async function processDocumentInBackground(
   knowledgeBaseId: string,
   workspaceId: string
 ) {
-  console.log(`[KNOWLEDGE-DOC] Starting background processing: ${fileName}`);
+  console.log(`[AI-KNOWLEDGE] DOC_BACKGROUND_START file=${fileName}`);
   
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) {
@@ -247,7 +247,7 @@ async function processDocumentInBackground(
   }
 
   const fileData = await response.blob();
-  console.log(`[KNOWLEDGE-DOC] Downloaded: ${(fileData.size / 1024 / 1024).toFixed(2)}MB`);
+  console.log(`[AI-KNOWLEDGE] DOC_DOWNLOADED ${(fileData.size / 1024 / 1024).toFixed(2)}MB`);
   
   await updateProgress(`Ficheiro obtido. A extrair texto...`);
 
@@ -267,7 +267,7 @@ async function processDocumentInBackground(
     throw new Error('Não foi possível extrair texto do documento');
   }
 
-  console.log(`[KNOWLEDGE-DOC] Extracted ${textContent.length} characters`);
+  console.log(`[AI-KNOWLEDGE] DOC_TEXT_EXTRACTED chars=${textContent.length}`);
   await updateProgress(`Texto extraído (${textContent.length} caracteres). A processar com IA...`);
 
   // Get knowledge base type
@@ -281,13 +281,13 @@ async function processDocumentInBackground(
   const totalContent = textContent.slice(0, MAX_TOTAL_CHARS);
   const chunks = splitIntoChunks(totalContent, CHUNK_SIZE);
   
-  console.log(`[KNOWLEDGE-DOC] Processing ${chunks.length} chunk(s)`);
+  console.log(`[AI-KNOWLEDGE] DOC_CHUNKS count=${chunks.length}`);
 
   const allResults: ChunkResult[] = [];
 
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
-    console.log(`[KNOWLEDGE-DOC] Processing chunk ${i + 1}/${chunks.length} (${chunk.length} chars)`);
+    console.log(`[AI-KNOWLEDGE] DOC_CHUNK ${i + 1}/${chunks.length} chars=${chunk.length}`);
     
     await updateProgress(`A processar bloco ${i + 1} de ${chunks.length}...`);
 
@@ -305,8 +305,7 @@ async function processDocumentInBackground(
 
   const mergedResult = mergeChunkResults(allResults);
 
-  console.log(`[KNOWLEDGE-DOC] Total FAQs extracted: ${mergedResult.faqs.length}`);
-  console.log(`[KNOWLEDGE-DOC] Total topics: ${mergedResult.topics.length}`);
+  console.log(`[AI-KNOWLEDGE] DOC_COMPLETE faqs=${mergedResult.faqs.length} topics=${mergedResult.topics.length} chars=${totalContent.length}`);
 
   await updateProgress('A guardar resultados...');
 
@@ -349,7 +348,7 @@ async function processDocumentInBackground(
 
     const { error: insertError } = await supabase.from('knowledge_entries').insert(entries);
     if (insertError) {
-      console.error('[KNOWLEDGE-DOC] Error inserting entries:', insertError);
+      console.error('[AI-KNOWLEDGE] DOC_ENTRIES_INSERT_FAILED', insertError);
     }
   }
 
@@ -369,10 +368,10 @@ async function processDocumentInBackground(
   });
 
   if (articleError) {
-    console.error('[KNOWLEDGE-DOC] Error inserting article:', articleError);
+    console.error('[AI-KNOWLEDGE] DOC_ARTICLE_INSERT_FAILED', articleError);
   }
 
-  console.log(`[KNOWLEDGE-DOC] Successfully processed: ${fileName}`);
+  console.log(`[AI-KNOWLEDGE] DOC_SUCCESS file=${fileName}`);
 }
 
 // PDF extraction using AI vision
@@ -417,7 +416,7 @@ async function extractPDFContent(
   });
 
   if (!response.ok) {
-    console.warn(`[KNOWLEDGE-DOC] PDF extraction failed: ${response.status}`);
+    console.warn(`[AI-KNOWLEDGE] PDF_EXTRACTION_FAILED status=${response.status}`);
     return "PDF document - text extraction requires manual review";
   }
 
@@ -627,7 +626,7 @@ async function extractDocxContent(data: Uint8Array): Promise<string> {
     
     return cleanText.slice(0, 50000);
   } catch (error) {
-    console.error('[KNOWLEDGE-DOC] DOCX extraction error:', error);
+    console.error('[AI-KNOWLEDGE] DOCX_EXTRACTION_ERROR', error);
     return 'Could not extract DOCX content';
   }
 }

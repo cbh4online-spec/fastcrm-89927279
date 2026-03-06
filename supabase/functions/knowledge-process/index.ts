@@ -16,10 +16,9 @@ interface ProcessRequest {
 async function extractUrlContent(url: string): Promise<string> {
   const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
   
-  // Try Firecrawl first for better extraction
   if (FIRECRAWL_API_KEY) {
     try {
-      console.log("[KNOWLEDGE-PROCESS] Using Firecrawl for URL extraction:", url);
+      console.log("[AI-KNOWLEDGE] Using Firecrawl for URL extraction:", url);
       
       const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
         method: "POST",
@@ -31,7 +30,7 @@ async function extractUrlContent(url: string): Promise<string> {
           url,
           formats: ["markdown"],
           onlyMainContent: true,
-          waitFor: 3000, // Wait for dynamic content
+          waitFor: 3000,
         }),
       });
 
@@ -40,19 +39,18 @@ async function extractUrlContent(url: string): Promise<string> {
         const markdown = data.data?.markdown || data.markdown || "";
         
         if (markdown && markdown.length > 100) {
-          console.log("[KNOWLEDGE-PROCESS] Firecrawl extracted:", markdown.length, "chars");
+          console.log("[AI-KNOWLEDGE] Firecrawl extracted:", markdown.length, "chars");
           return markdown;
         }
       } else {
-        console.warn("[KNOWLEDGE-PROCESS] Firecrawl failed:", response.status);
+        console.warn("[AI-KNOWLEDGE] Firecrawl failed:", response.status);
       }
     } catch (e) {
-      console.error("[KNOWLEDGE-PROCESS] Firecrawl error:", e);
+      console.error("[AI-KNOWLEDGE] Firecrawl error:", e);
     }
   }
 
-  // Fallback to basic fetch
-  console.log("[KNOWLEDGE-PROCESS] Using basic fetch for URL extraction");
+  console.log("[AI-KNOWLEDGE] Using basic fetch for URL extraction");
   try {
     const response = await fetch(url, {
       headers: {
@@ -63,7 +61,6 @@ async function extractUrlContent(url: string): Promise<string> {
     
     let html = await response.text();
     
-    // Better HTML stripping
     html = html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
@@ -84,7 +81,7 @@ async function extractUrlContent(url: string): Promise<string> {
       
     return html;
   } catch (e) {
-    console.error("[KNOWLEDGE-PROCESS] Basic fetch error:", e);
+    console.error("[AI-KNOWLEDGE] Basic fetch error:", e);
     return `Erro ao extrair conteúdo de ${url}`;
   }
 }
@@ -98,7 +95,7 @@ Deno.serve(async (req) => {
     const body: ProcessRequest = await req.json();
     const { sourceId, sourceType, content, url, knowledgeBaseType } = body;
 
-    console.log("[KNOWLEDGE-PROCESS] Processing:", { sourceId, sourceType, url, knowledgeBaseType });
+    console.log("[AI-KNOWLEDGE] PROCESS_START", { sourceId, sourceType, url, knowledgeBaseType });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -107,13 +104,11 @@ Deno.serve(async (req) => {
 
     let rawContent = content || '';
 
-    // Extract content from URL using best available method
     if (sourceType === 'url' && url) {
       rawContent = await extractUrlContent(url);
-      console.log("[KNOWLEDGE-PROCESS] Extracted content length:", rawContent.length);
+      console.log("[AI-KNOWLEDGE] CONTENT_EXTRACTED chars=", rawContent.length);
     }
 
-    // Expanded prompt for product pages
     const systemPrompt = `És um processador de conhecimento para CRM.
 Analisa o conteúdo fornecido e extrai TODA a informação estruturada disponível.
 
@@ -157,10 +152,9 @@ Responde em JSON:
   "summary": "Resumo em 2-3 frases com dados principais"
 }`;
 
-    // Increase content limit for better extraction
     const contentToProcess = rawContent.slice(0, 60000);
     
-    console.log("[KNOWLEDGE-PROCESS] Sending to AI, content size:", contentToProcess.length);
+    console.log("[AI-KNOWLEDGE] AI_REQUEST content_size=", contentToProcess.length);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -192,7 +186,7 @@ Responde em JSON:
     const aiResponse = await response.json();
     const contentText = aiResponse.choices?.[0]?.message?.content || "";
 
-    console.log("[KNOWLEDGE-PROCESS] AI response length:", contentText.length);
+    console.log("[AI-KNOWLEDGE] AI_RESPONSE length=", contentText.length);
 
     let result;
     try {
@@ -210,7 +204,7 @@ Responde em JSON:
       };
     }
 
-    console.log("[KNOWLEDGE-PROCESS] Extracted FAQs:", result.faqs?.length || 0);
+    console.log(`[AI-KNOWLEDGE] PROCESS_COMPLETE sourceId=${sourceId} faqs=${result.faqs?.length || 0} topics=${result.topics?.length || 0}`);
 
     return new Response(
       JSON.stringify({
@@ -227,7 +221,7 @@ Responde em JSON:
     );
 
   } catch (error) {
-    console.error("[KNOWLEDGE-PROCESS] Error:", error);
+    console.error("[AI-KNOWLEDGE] PROCESS_ERROR", error);
     return new Response(
       JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
