@@ -188,6 +188,21 @@ export function useAskFastCRM() {
     async (action: AskResultAction, skipConfirmation = false) => {
       if (!currentWorkspace?.id || !user?.id) return;
 
+      // Emit kernel event for every quick action
+      try {
+        await supabase.from("kernel_events").insert({
+          workspace_id: currentWorkspace.id,
+          event_type: "COMMAND_CENTER.QUICK_ACTION_CLICKED",
+          actor_type: "user",
+          actor_id: user.id,
+          entity_type: action.type,
+          entity_id: action.id || "unknown",
+          payload: { action_label: action.label, action_type: action.type, payload: action.payload },
+        });
+      } catch {
+        // Non-blocking telemetry
+      }
+
       if (!skipConfirmation) {
         const dealIds: string[] = action.payload?.deal_ids || [];
         const needsConfirmation =
@@ -209,6 +224,46 @@ export function useAskFastCRM() {
         case "automation": {
           const link = action.payload?.link || "/dashboard/automations?create=true";
           navigate(link);
+          break;
+        }
+        case "send_followup": {
+          const entityIds: string[] = action.payload?.entity_ids || [];
+          const entityType = action.payload?.entity_type || "opportunity";
+          const taskTitle = action.payload?.task_title || "Fazer follow-up";
+
+          if (entityIds.length === 0) {
+            toast.info("Nenhuma entidade para follow-up.");
+            return;
+          }
+
+          try {
+            const tasks = entityIds.map((entityId) => ({
+              workspace_id: currentWorkspace.id,
+              assigned_to: user.id,
+              created_by: user.id,
+              title: taskTitle,
+              priority: "high",
+              status: "pending",
+              related_type: entityType,
+              related_id: entityId,
+              due_at: new Date(Date.now() + 86400000).toISOString(), // tomorrow
+            }));
+
+            const { error: insertError } = await supabase.from("tasks").insert(tasks);
+            if (insertError) throw insertError;
+
+            queryClient.invalidateQueries({ queryKey: ["tasks"] });
+            toast.success(`${entityIds.length} follow-up${entityIds.length !== 1 ? "s" : ""} criado${entityIds.length !== 1 ? "s" : ""}.`);
+          } catch (e: any) {
+            toast.error(e?.message || "Erro ao criar follow-up");
+          }
+          break;
+        }
+        case "open_filtered_view": {
+          const path = action.payload?.path || "/dashboard/opportunities";
+          const params = action.payload?.query_params || {};
+          const queryStr = new URLSearchParams(params).toString();
+          navigate(queryStr ? `${path}?${queryStr}` : path);
           break;
         }
         case "bulk_task": {
@@ -328,7 +383,7 @@ export function useAskFastCRM() {
         }
       }
     },
-    [currentWorkspace?.id, user?.id, navigate]
+    [currentWorkspace?.id, user?.id, navigate, queryClient]
   );
 
   const executeAction = useCallback(

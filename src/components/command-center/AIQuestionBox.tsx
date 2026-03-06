@@ -3,6 +3,7 @@ import { CommandInput } from "./CommandInput";
 import { CommandOutput } from "./CommandOutput";
 import { useAskFastCRM, AskResultAction, AskResultItem } from "@/hooks/useAskFastCRM";
 import { useSlashCommands, SlashCommand, SlashCommandResult } from "@/hooks/useSlashCommands";
+import { useConversationMemory } from "@/hooks/useConversationMemory";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
