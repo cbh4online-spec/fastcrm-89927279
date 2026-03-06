@@ -31,6 +31,28 @@ interface PipelineIntelligence {
   total_value: number;
 }
 
+async function emitKernelEvent(
+  client: ReturnType<typeof createClient>,
+  params: { workspace_id: string; type: string; entity_kind: string; entity_id: string; payload?: Record<string, unknown> }
+) {
+  try {
+    await client.from("kernel_events").insert({
+      workspace_id: params.workspace_id,
+      type: params.type,
+      entity_kind: params.entity_kind,
+      entity_id: params.entity_id,
+      source_module: "ai-analytics",
+      actor_type: "system",
+      payload: params.payload ?? {},
+      occurred_at: new Date().toISOString(),
+      ingested_at: new Date().toISOString(),
+      schema_version: 1,
+    });
+  } catch (e) {
+    console.warn("[AI-ANALYTICS] Failed to emit kernel event:", (e as Error).message);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -246,6 +268,35 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Emit FORECAST.PIPELINE_ANALYZED kernel event
+    await emitKernelEvent(client, {
+      workspace_id: workspaceId,
+      type: "FORECAST.PIPELINE_ANALYZED",
+      entity_kind: "pipeline",
+      entity_id: workspaceId,
+      payload: {
+        pipeline_count: pipelineResults.length,
+        insights_count: insights.length,
+      },
+    });
+
+    // Emit RISK.SIGNAL_DETECTED for high-risk pipelines
+    for (const p of highRisk) {
+      await emitKernelEvent(client, {
+        workspace_id: workspaceId,
+        type: "RISK.SIGNAL_DETECTED",
+        entity_kind: "pipeline",
+        entity_id: p.pipeline_id,
+        payload: {
+          pipeline_name: p.name,
+          risk_ratio: p.risk_ratio,
+          health_index: p.health_index,
+        },
+      });
+    }
+
+    console.log(`[AI-ANALYTICS] PIPELINE_ANALYZED workspace=${workspaceId} pipeline_count=${pipelineResults.length} insights_count=${insights.length}`);
+
     return new Response(
       JSON.stringify({
         pipelines: pipelineResults,
@@ -255,9 +306,9 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("multi-pipeline-intelligence error:", err);
+    console.error("[AI-ANALYTICS] MULTI_PIPELINE_INTELLIGENCE_FAILED", (err as Error).message || err);
     return new Response(
-      JSON.stringify({ error: err.message || "Internal error" }),
+      JSON.stringify({ error: (err as Error).message || "Internal error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

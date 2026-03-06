@@ -247,6 +247,8 @@ Deno.serve(async (req) => {
       aiConversationalCheck(),
       // AI DocInt
       runCheck(supabase, workspace_id, "ai-docint", "document_processing_jobs_query", "document_processing_jobs"),
+      // AI Analytics
+      runCheck(supabase, workspace_id, "ai-analytics", "revenue_forecasts_query", "revenue_forecasts"),
     ]);
 
     // Log failures

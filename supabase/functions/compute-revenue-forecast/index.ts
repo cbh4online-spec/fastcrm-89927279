@@ -31,6 +31,28 @@ function formatCurrency(v: number): string {
   return `€${Math.round(v)}`;
 }
 
+async function emitKernelEvent(
+  supabase: ReturnType<typeof createClient>,
+  params: { workspace_id: string; type: string; entity_kind: string; entity_id: string; payload?: Record<string, unknown> }
+) {
+  try {
+    await supabase.from("kernel_events").insert({
+      workspace_id: params.workspace_id,
+      type: params.type,
+      entity_kind: params.entity_kind,
+      entity_id: params.entity_id,
+      source_module: "ai-analytics",
+      actor_type: "system",
+      payload: params.payload ?? {},
+      occurred_at: new Date().toISOString(),
+      ingested_at: new Date().toISOString(),
+      schema_version: 1,
+    });
+  } catch (e) {
+    console.warn("[AI-ANALYTICS] Failed to emit kernel event:", (e as Error).message);
+  }
+}
+
 async function computeForecastForWorkspace(
   supabase: ReturnType<typeof createClient>,
   workspace_id: string
@@ -282,6 +304,38 @@ async function computeForecastForWorkspace(
     .single();
 
   if (insertError) throw insertError;
+
+  // Emit FORECAST.UPDATED kernel event
+  await emitKernelEvent(supabase, {
+    workspace_id,
+    type: "FORECAST.UPDATED",
+    entity_kind: "revenue_forecast",
+    entity_id: inserted.id,
+    payload: {
+      expected_case: r(expected_case),
+      forecast_confidence,
+      opportunity_count: opportunities.length,
+      risk_index: Math.round(risk_index * 1000) / 1000,
+    },
+  });
+
+  // Emit RISK.SIGNAL_DETECTED if high risk
+  if (risk_index > 0.5 || at_risk_count > 0) {
+    await emitKernelEvent(supabase, {
+      workspace_id,
+      type: "RISK.SIGNAL_DETECTED",
+      entity_kind: "revenue_forecast",
+      entity_id: inserted.id,
+      payload: {
+        risk_index: Math.round(risk_index * 1000) / 1000,
+        at_risk_count,
+        blockers,
+      },
+    });
+  }
+
+  console.log(`[AI-ANALYTICS] FORECAST_COMPUTED workspace=${workspace_id} opportunity_count=${opportunities.length} scored_count=${scored_count} health_count=${health_count} forecast_confidence=${forecast_confidence} expected_case=${r(expected_case)}`);
+
   return inserted;
 }
 
@@ -316,6 +370,8 @@ Deno.serve(async (req: Request) => {
       const succeeded = results.filter((r) => r.status === "fulfilled").length;
       const failed = results.filter((r) => r.status === "rejected").length;
 
+      console.log(`[AI-ANALYTICS] FORECAST_CRON_COMPLETE processed=${succeeded} failed=${failed} workspaces=${uniqueWorkspaceIds.length}`);
+
       return new Response(
         JSON.stringify({ success: true, processed: succeeded, failed }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
@@ -330,7 +386,7 @@ Deno.serve(async (req: Request) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (err: any) {
-    console.error("compute-revenue-forecast error:", err);
+    console.error("[AI-ANALYTICS] COMPUTE_FORECAST_FAILED", err.message || err);
     return new Response(
       JSON.stringify({ error: err.message || "Internal error" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
