@@ -24,9 +24,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
-import Dashboard from "./pages/Dashboard";
-import AskPage from "./pages/AskPage";
-import CommandCenterPage from "./pages/CommandCenterPage";
+import CommandCenter from "./pages/CommandCenter";
 import TasksPage from "./pages/TasksPage";
 import Settings from "./pages/Settings";
 import Leads from "./pages/Leads";
@@ -416,7 +414,7 @@ function CRMRoutes() {
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/onboarding" element={<Onboarding />} />
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard" element={<CommandCenter />} />
                 <Route path="/dashboard/objects" element={<Navigate to="/objects" replace />} />
                 
                 {/* Objects MVP routes */}
@@ -426,8 +424,8 @@ function CRMRoutes() {
                 <Route path="/dashboard/intelligence" element={<IntelligencePage />} />
                 <Route path="/dashboard/context-os" element={<ContextOSPage />} />
                 <Route path="/dashboard/revenue" element={<RevenueOverviewPage />} />
-                <Route path="/dashboard/ask" element={<Navigate to="/dashboard/command-center" replace />} />
-                <Route path="/dashboard/command-center" element={<CommandCenterPage />} />
+                <Route path="/dashboard/ask" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard/command-center" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard/tasks" element={<TasksPage />} />
                 <Route path="/dashboard/alerts" element={<AlertsPage />} />
                 <Route path="/dashboard/impact-map" element={<ImpactMapPage />} />
