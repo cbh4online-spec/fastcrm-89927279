@@ -8,6 +8,7 @@ import { PipelineRiskCard } from "@/components/command-center/PipelineRiskCard";
 import { KernelActionsCard } from "@/components/command-center/KernelActionsCard";
 import { KernelLiveFeedCard } from "@/components/command-center/KernelLiveFeedCard";
 import { StrategicBriefCard } from "@/components/command-center/StrategicBriefCard";
+import { KernelDebugPanel } from "@/components/command-center/KernelDebugPanel";
 import { useDailyBrief } from "@/hooks/useDailyBrief";
 import { useKernelDecisions } from "@/hooks/useKernelDecisions";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -51,6 +52,8 @@ export default function CommandCenter() {
             <StrategicBriefCard delay={400} />
           </div>
         </div>
+
+        <KernelDebugPanel />
       </div>
     </DashboardLayout>
   );
