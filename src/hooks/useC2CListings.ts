@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface C2CListing {
   id: string;
@@ -186,12 +187,24 @@ export function useCreateC2CListing(workspaceId: string | undefined) {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["c2c-listings"] });
       queryClient.invalidateQueries({ queryKey: ["c2c-my-listings"] });
       toast.success("Anúncio publicado com sucesso!");
+      console.log('[MARKETPLACE] Listing created', { id: data.id });
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: "LISTING.CREATED",
+          entity_kind: "c2c_listing",
+          entity_id: data.id,
+          source_module: "store-marketplace",
+          payload: { title: data.title, price: data.price, condition: data.condition },
+        });
+      }
     },
     onError: (err: Error) => {
+      console.warn('[MARKETPLACE] LISTING_CREATE_FAILED', err.message);
       toast.error(err.message);
     },
   });
@@ -215,7 +228,10 @@ export function useUpdateC2CListing() {
       queryClient.invalidateQueries({ queryKey: ["c2c-my-listings"] });
       toast.success("Anúncio atualizado!");
     },
-    onError: () => toast.error("Erro ao atualizar anúncio"),
+    onError: (err: Error) => {
+      console.warn('[MARKETPLACE] LISTING_UPDATE_FAILED', err.message);
+      toast.error("Erro ao atualizar anúncio");
+    },
   });
 }
 
@@ -300,6 +316,9 @@ export function useCreateC2CReport(workspaceId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => toast.success("Denúncia enviada. Obrigado!"),
-    onError: () => toast.error("Erro ao enviar denúncia"),
+    onError: (err: Error) => {
+      console.warn('[MARKETPLACE] REPORT_CREATE_FAILED', err.message);
+      toast.error("Erro ao enviar denúncia");
+    },
   });
 }

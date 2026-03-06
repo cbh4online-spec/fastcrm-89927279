@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 const logStep = (step: string, details?: unknown) => {
-  console.log(`[TRACK-CLICK] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
+  console.log(`[MARKETPLACE] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
 };
 
 async function hashString(str: string): Promise<string> {
@@ -82,7 +82,6 @@ Deno.serve(async (req) => {
       await supabase.rpc("increment_field", { row_id: affiliate.id, table_name: "c2c_affiliates", field_name: "total_clicks" })
         .then(() => {})
         .catch(() => {
-          // Fallback: direct update
           supabase.from("c2c_affiliates")
             .update({ total_clicks: (affiliate as any).total_clicks + 1 })
             .eq("id", affiliate.id);

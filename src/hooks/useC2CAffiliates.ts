@@ -85,8 +85,12 @@ export function useJoinAffiliateProgram() {
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ["c2c-my-affiliate", v.workspaceId] });
       toast.success("Inscrito como afiliado!");
+      console.log('[MARKETPLACE] Affiliate joined');
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      console.warn('[MARKETPLACE] AFFILIATE_JOIN_FAILED', e.message);
+      toast.error(e.message);
+    },
   });
 }
 
@@ -119,8 +123,12 @@ export function useCreateAffiliateLink() {
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ["c2c-affiliate-links", v.affiliate_id] });
       toast.success("Link criado!");
+      console.log('[MARKETPLACE] Affiliate link created');
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      console.warn('[MARKETPLACE] AFFILIATE_LINK_CREATE_FAILED', e.message);
+      toast.error(e.message);
+    },
   });
 }
 

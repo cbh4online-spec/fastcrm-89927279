@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 const logStep = (step: string, details?: unknown) => {
-  console.log(`[PROCESS-PAYOUTS] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
+  console.log(`[MARKETPLACE] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
 };
 
 Deno.serve(async (req) => {
@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
     // ── 3. Create payouts for approved earnings ──
     let payoutsCreated = 0;
     const periodEnd = new Date();
-    const periodStart = new Date(periodEnd.getTime() - 86400000 * 7); // last 7 days
+    const periodStart = new Date(periodEnd.getTime() - 86400000 * 7);
 
     for (const [userId, data] of Object.entries(earningsByUser)) {
       if (data.total > 0) {

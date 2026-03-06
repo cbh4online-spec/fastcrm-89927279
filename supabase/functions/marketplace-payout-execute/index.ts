@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 const logStep = (step: string, details?: unknown) => {
-  console.log(`[PAYOUT-EXECUTE] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
+  console.log(`[MARKETPLACE] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
 };
 
 Deno.serve(async (req) => {
@@ -30,7 +30,6 @@ Deno.serve(async (req) => {
 
       if (error) throw new Error(error.message);
 
-      // Mark related attributions as paid
       await supabase
         .from("c2c_affiliate_attributions")
         .update({ status: "paid", paid_at: new Date().toISOString() })
@@ -48,6 +47,7 @@ Deno.serve(async (req) => {
         .update({ status: "failed" })
         .eq("id", payout_id);
 
+      logStep("Payout marked as failed", { payout_id });
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
         .update({ status: "reversed" })
         .eq("id", payout_id);
 
+      logStep("Payout reversed", { payout_id });
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

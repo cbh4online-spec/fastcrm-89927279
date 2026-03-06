@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface C2CMessage {
   id: string;
@@ -11,23 +12,10 @@ export interface C2CMessage {
   sender_id: string;
   receiver_id: string;
   content: string;
+  message_type: string;
+  metadata: Record<string, any> | null;
   is_read: boolean;
   created_at: string;
-  message_type: "text" | "system" | "offer" | "image";
-  metadata: Record<string, unknown>;
-}
-
-export interface C2CListingInfo {
-  id: string;
-  title: string;
-  price: number;
-  currency: string | null;
-  status: string;
-  condition: string;
-  location: string | null;
-  photos: string[] | null;
-  seller_id: string;
-  category_id: string | null;
 }
 
 export interface C2CConversation {
@@ -50,92 +38,96 @@ export interface C2CConversation {
 
 export function useC2CConversations(workspaceId: string | undefined) {
   const { user } = useAuth();
+
   return useQuery({
     queryKey: ["c2c-conversations", workspaceId, user?.id],
     queryFn: async () => {
       if (!workspaceId || !user) return [];
-      const { data, error } = await supabase
+
+      // Fetch all messages where the current user is either the sender or the receiver
+      const { data: sentMessages, error: sentError } = await supabase
         .from("c2c_messages")
-        .select("*")
+        .select("listing_id, receiver_id, created_at")
         .eq("workspace_id", workspaceId)
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+        .eq("sender_id", user.id);
 
-      const convMap = new Map<string, C2CConversation>();
-      for (const msg of (data as C2CMessage[])) {
-        const otherUser = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
-        const key = `${msg.listing_id}:${otherUser}`;
-        if (!convMap.has(key)) {
-          convMap.set(key, {
-            listing_id: msg.listing_id,
-            listing_title: "",
-            listing_photo: null,
-            listing_price: 0,
-            listing_currency: "EUR",
-            listing_status: "active",
-            listing_condition: "used",
-            listing_location: null,
-            listing_seller_id: "",
-            other_user_id: otherUser,
-            last_message: msg.content,
-            last_message_at: msg.created_at,
-            last_message_type: (msg as any).message_type || "text",
-            unread_count: 0,
-            has_pending_offer: false,
-          });
-        }
-        const conv = convMap.get(key)!;
-        if (!msg.is_read && msg.receiver_id === user.id) {
-          conv.unread_count++;
-        }
+      const { data: receivedMessages, error: receivedError } = await supabase
+        .from("c2c_messages")
+        .select("listing_id, sender_id, created_at")
+        .eq("workspace_id", workspaceId)
+        .eq("receiver_id", user.id);
+
+      if (sentError || receivedError) {
+        console.error("Error fetching messages:", sentError, receivedError);
+        throw new Error("Failed to fetch messages");
       }
 
-      // Fetch listing details
-      const listingIds = [...new Set([...convMap.values()].map(c => c.listing_id))];
-      if (listingIds.length > 0) {
-        const { data: listings } = await supabase
-          .from("c2c_listings")
-          .select("id, title, price, currency, status, condition, location, photos, seller_id")
-          .in("id", listingIds);
-        const listingMap = new Map((listings || []).map(l => [l.id, l]));
-        for (const conv of convMap.values()) {
-          const listing = listingMap.get(conv.listing_id);
-          if (listing) {
-            conv.listing_title = listing.title;
-            conv.listing_photo = listing.photos?.[0] || null;
-            conv.listing_price = listing.price;
-            conv.listing_currency = listing.currency;
-            conv.listing_status = listing.status;
-            conv.listing_condition = listing.condition;
-            conv.listing_location = listing.location;
-            conv.listing_seller_id = listing.seller_id;
-          } else {
-            conv.listing_title = "Anúncio removido";
-          }
-        }
-      }
+      // Process sent messages
+      const sent = (sentMessages || []).map((msg) => ({
+        listingId: msg.listing_id,
+        otherUserId: msg.receiver_id,
+        lastMessageAt: msg.created_at,
+      }));
 
-      // Check pending offers
-      if (listingIds.length > 0) {
-        const { data: offers } = await supabase
-          .from("c2c_offers")
-          .select("listing_id, buyer_id, seller_id, status")
-          .in("listing_id", listingIds)
-          .eq("status", "pending");
-        for (const offer of (offers || [])) {
-          for (const conv of convMap.values()) {
-            if (conv.listing_id === offer.listing_id &&
-              (conv.other_user_id === offer.buyer_id || conv.other_user_id === offer.seller_id)) {
-              conv.has_pending_offer = true;
-            }
-          }
-        }
-      }
+      // Process received messages
+      const received = (receivedMessages || []).map((msg) => ({
+        listingId: msg.listing_id,
+        otherUserId: msg.sender_id,
+        lastMessageAt: msg.created_at,
+      }));
 
-      return [...convMap.values()].sort((a, b) =>
-        new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
+      // Combine and normalize conversations
+      const combined = [...sent, ...received];
+      const conversationsMap: Record<string, any> = {};
+
+      combined.forEach((item) => {
+        const key = `${item.listingId}-${item.otherUserId}`;
+        if (!conversationsMap[key]) {
+          conversationsMap[key] = {
+            listingId: item.listingId,
+            otherUserId: item.otherUserId,
+            lastMessageAt: item.lastMessageAt,
+          };
+        } else {
+          // Use the most recent message
+          conversationsMap[key].lastMessageAt =
+            item.lastMessageAt > conversationsMap[key].lastMessageAt
+              ? item.lastMessageAt
+              : conversationsMap[key].lastMessageAt;
+        }
+      });
+
+      // Convert map to array and sort by lastMessageAt
+      let conversations = Object.values(conversationsMap).sort(
+        (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
       );
+
+      // Fetch additional data for each conversation
+      conversations = await Promise.all(
+        conversations.map(async (c) => {
+          const { data: listing } = await supabase
+            .from("c2c_listings")
+            .select("title, photos")
+            .eq("id", c.listingId)
+            .single();
+
+          const { data: otherUser } = await supabase
+            .from("profiles")
+            .select("full_name, avatar_url")
+            .eq("id", c.otherUserId)
+            .single();
+
+          return {
+            ...c,
+            listingTitle: listing?.title,
+            listingPhoto: listing?.photos?.[0],
+            otherUserName: (otherUser as any)?.full_name,
+            otherUserAvatar: (otherUser as any)?.avatar_url,
+          };
+        })
+      );
+
+      return conversations;
     },
     enabled: !!workspaceId && !!user,
   });
@@ -178,6 +170,7 @@ export function useC2CThread(listingId: string | undefined, otherUserId: string 
   // Realtime subscription for messages + offers
   useEffect(() => {
     if (!listingId || !user) return;
+    console.log('[MARKETPLACE] Realtime subscribe', { listingId });
     const channel = supabase
       .channel(`c2c-inbox-${listingId}`)
       .on(
@@ -208,7 +201,10 @@ export function useC2CThread(listingId: string | undefined, otherUserId: string 
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      console.log('[MARKETPLACE] Realtime unsubscribe', { listingId });
+      supabase.removeChannel(channel);
+    };
   }, [listingId, otherUserId, user, queryClient]);
 
   return query;
@@ -233,7 +229,7 @@ export function useSendC2CMessage(workspaceId: string | undefined) {
       metadata?: Record<string, unknown>;
     }) => {
       if (!workspaceId || !user) throw new Error("Sem sessão");
-      const { error } = await supabase.from("c2c_messages").insert({
+      const { data, error } = await supabase.from("c2c_messages").insert({
         workspace_id: workspaceId,
         listing_id: listingId,
         sender_id: user.id,
@@ -241,12 +237,27 @@ export function useSendC2CMessage(workspaceId: string | undefined) {
         content,
         message_type: messageType,
         metadata,
-      } as any);
+      } as any).select().single();
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["c2c-thread"] });
       queryClient.invalidateQueries({ queryKey: ["c2c-conversations"] });
+      console.log('[MARKETPLACE] Message sent', { listing_id: vars.listingId });
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: "MARKETPLACE.MESSAGE_SENT",
+          entity_kind: "c2c_message",
+          entity_id: data?.id || vars.listingId,
+          source_module: "store-marketplace",
+          payload: { listing_id: vars.listingId, message_type: vars.messageType || "text" },
+        });
+      }
+    },
+    onError: (err: Error) => {
+      console.warn('[MARKETPLACE] MESSAGE_SEND_FAILED', err.message);
     },
   });
 }
@@ -313,13 +324,27 @@ export function useSendC2COfferMessage(workspaceId: string | undefined) {
 
       return offer;
     },
-    onSuccess: () => {
+    onSuccess: (offer, vars) => {
       queryClient.invalidateQueries({ queryKey: ["c2c-thread"] });
       queryClient.invalidateQueries({ queryKey: ["c2c-conversations"] });
       queryClient.invalidateQueries({ queryKey: ["c2c-offers"] });
       toast.success("Proposta enviada!");
+      console.log('[MARKETPLACE] Offer sent', { offer_id: offer.id, listing_id: vars.listingId });
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: "MARKETPLACE.OFFER_SENT",
+          entity_kind: "c2c_offer",
+          entity_id: offer.id,
+          source_module: "store-marketplace",
+          payload: { listing_id: vars.listingId, offer_price: vars.offerPrice },
+        });
+      }
     },
-    onError: () => toast.error("Erro ao enviar proposta"),
+    onError: (err: Error) => {
+      console.warn('[MARKETPLACE] OFFER_SEND_FAILED', err.message);
+      toast.error("Erro ao enviar proposta");
+    },
   });
 }
 
@@ -389,14 +414,30 @@ export function useRespondToOfferInChat(workspaceId: string | undefined) {
         listing_id: listingId,
         related_user_id: user.id,
       });
+
+      return { offerId, action, listingId };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["c2c-thread"] });
       queryClient.invalidateQueries({ queryKey: ["c2c-conversations"] });
       queryClient.invalidateQueries({ queryKey: ["c2c-offers"] });
       toast.success("Resposta enviada!");
+      console.log('[MARKETPLACE] Offer responded', { offer_id: result.offerId, action: result.action });
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: "MARKETPLACE.OFFER_RESPONDED",
+          entity_kind: "c2c_offer",
+          entity_id: result.offerId,
+          source_module: "store-marketplace",
+          payload: { action: result.action, listing_id: result.listingId },
+        });
+      }
     },
-    onError: () => toast.error("Erro ao responder"),
+    onError: (err: Error) => {
+      console.warn('[MARKETPLACE] OFFER_RESPOND_FAILED', err.message);
+      toast.error("Erro ao responder");
+    },
   });
 }
 
@@ -437,13 +478,29 @@ export function useUpdateListingStatusInChat(workspaceId: string | undefined) {
         message_type: "system",
         metadata: { listing_status: newStatus },
       } as any);
+
+      return { listingId, newStatus };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["c2c-thread"] });
       queryClient.invalidateQueries({ queryKey: ["c2c-conversations"] });
       queryClient.invalidateQueries({ queryKey: ["c2c-listings"] });
       toast.success("Estado atualizado!");
+      console.log('[MARKETPLACE] Listing status changed', { listing_id: result.listingId, new_status: result.newStatus });
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: "LISTING.STATUS_CHANGED",
+          entity_kind: "c2c_listing",
+          entity_id: result.listingId,
+          source_module: "store-marketplace",
+          payload: { new_status: result.newStatus, listing_id: result.listingId },
+        });
+      }
     },
-    onError: () => toast.error("Erro ao atualizar estado"),
+    onError: (err: Error) => {
+      console.warn('[MARKETPLACE] LISTING_STATUS_UPDATE_FAILED', err.message);
+      toast.error("Erro ao atualizar estado");
+    },
   });
 }
