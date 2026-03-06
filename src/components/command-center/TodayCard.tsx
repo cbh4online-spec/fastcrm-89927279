@@ -119,20 +119,34 @@ export function TodayCard({ delay = 0 }: { delay?: number }) {
       {/* Meetings */}
       {events.length > 0 && (
         <div className="space-y-1">
-          {events.slice(0, 3).map((ev) => (
-            <div key={ev.id} className="flex items-center gap-2 p-1.5 rounded-md bg-muted/30">
+          {events.slice(0, 3).map((ev) => {
+            const contact = (ev as any).contact;
+            const company = (ev as any).company;
+            const contextParts: string[] = [];
+            if (contact?.name) contextParts.push(contact.name);
+            if (company?.name) contextParts.push(company.name);
+            const contextLine = contextParts.join(' · ');
+
+            return (
               <div
-                className="w-1 h-6 rounded-full shrink-0"
-                style={{ backgroundColor: (ev as any).calendar?.color || "hsl(var(--primary))" }}
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-foreground truncate">{ev.title}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {format(new Date(ev.start_time), "HH:mm")} – {format(new Date(ev.end_time), "HH:mm")}
-                </p>
+                key={ev.id}
+                className="flex items-center gap-2 p-1.5 rounded-md bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => navigate('/dashboard/scheduling')}
+              >
+                <div
+                  className="w-1 h-6 rounded-full shrink-0"
+                  style={{ backgroundColor: (ev as any).calendar?.color || "hsl(var(--primary))" }}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-foreground truncate">{ev.title}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {format(new Date(ev.start_time), "HH:mm")} – {format(new Date(ev.end_time), "HH:mm")}
+                    {contextLine && <span className="ml-1">· {contextLine}</span>}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -141,7 +155,11 @@ export function TodayCard({ delay = 0 }: { delay?: number }) {
         <div className="space-y-1">
           <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Tarefas</p>
           {todayTasks.map((t) => (
-            <div key={t.id} className="flex items-center gap-2 p-1.5 rounded-md bg-muted/30">
+            <div
+              key={t.id}
+              className="flex items-center gap-2 p-1.5 rounded-md bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => navigate('/dashboard/tasks')}
+            >
               <CheckSquare className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <p className="text-xs text-foreground truncate flex-1">{t.title}</p>
             </div>
