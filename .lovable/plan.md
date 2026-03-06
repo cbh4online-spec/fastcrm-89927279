@@ -1,65 +1,78 @@
 
 
-# B2B-Intelligence — Kernel V2 Stabilization
+# Community-FastClub — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | File(s) | Kernel Events | Logging |
 |------|---------|---------------|---------|
-| Growth Insights (hook) | `useGrowthInsights.ts` | None | `console.error` only |
-| AI Growth Analysis (edge fn) | `ai-growth-insights/index.ts` | None | `console.error` only |
-| Cart Recommendations (hook) | `useAIRecommendations.ts` | None | `console.error` only |
-| Cart Recommendations (edge fn) | `ai-cart-recommendations/index.ts` | None | Minimal |
-| Protocol Recommendations (hook) | `useAIRecommendations.ts` | None | `console.error` only |
-| Protocol Recommendations (edge fn) | `ai-protocol-recommendations/index.ts` | None | Minimal |
-| Growth Insights Services | `services/growth-insights/*.ts` | None | None |
-| Smoke Tests | `system-run-smoke-tests` | — | No b2b-intelligence checks |
+| Forum Topic CRUD | `useForum.ts` | None | Toast only |
+| Forum Post/Reply | `useForum.ts` | None | Toast only |
+| Community Settings | `useCommunitySettings.ts` | None | Toast only |
+| Community Events | `useCommunityEvents.ts` | None | Toast only |
+| Community Members/Invites | `useCommunityMembers.ts` | None | `console.error` only |
+| Moderation (shared) | `useModeration.ts` | None | Toast only |
+| Community Banner (edge fn) | `generate-community-banner` | None | `console.error` |
+| Community Invite (edge fn) | `send-community-invite` | None | `console.error`/`console.log` |
+| Smoke Tests | `system-run-smoke-tests` | — | No community checks |
 
-Zero kernel events. No standardized logging. The module spans: growth insights (rankings, need matching, lifecycle), AI-powered growth analysis, cart recommendations, and protocol recommendations.
+Zero kernel events. No standardized logging across 6 hook files and 2 edge functions.
 
 ## Implementation Plan
 
-### A) Kernel Events (source: `b2b-intelligence`)
+### A) Kernel Events (source: `community-fastclub`)
 
-**`useGrowthInsights.ts`:**
-1. After `fetchAIAnalysis` succeeds → emit `B2B.INSIGHT_GENERATED` (entity_kind: `growth_analysis`, payload: `confidence_level`, `insights_count`, `recommendations_count`)
+**`useForum.ts`:**
+1. `useCreateForumTopic.onSuccess` → emit `COMMUNITY.TOPIC_CREATED` (entity_kind: `forum_topic`, payload: `category_id`, `moderation_status`, `comments_enabled`)
+2. `useCreateForumPost.onSuccess` → emit `COMMUNITY.POST_CREATED` (entity_kind: `forum_post`, payload: `topic_id`)
 
-**`useAIRecommendations.ts`:**
-2. Not mutation-based (useQuery) — no event emission. Logging only.
+**`useCommunityEvents.ts`:**
+3. `useCreateCommunityEvent.onSuccess` → emit `COMMUNITY.EVENT_CREATED` (entity_kind: `community_event`, payload: `event_type`, `title`)
 
-### B) Logging (prefix: `[B2B-INTELLIGENCE]`)
+**`useCommunityMembers.ts`:**
+4. `useInviteCommunityMember.onSuccess` → emit `COMMUNITY.MEMBER_INVITED` (entity_kind: `community_member`, payload: `invite_count`)
 
-**`useGrowthInsights.ts`:**
-- `fetchData` error → `console.warn('[B2B-INTELLIGENCE] GROWTH_DATA_FAILED')`
-- `fetchAIAnalysis` success → `console.log('[B2B-INTELLIGENCE] INSIGHT_GENERATED')`
-- `fetchAIAnalysis` error → `console.error('[B2B-INTELLIGENCE] AI_ANALYSIS_FAILED')`
+**`useCommunitySettings.ts`:**
+5. `useUpsertCommunitySettings.onSuccess` → emit `COMMUNITY.SETTINGS_UPDATED` (entity_kind: `community_settings`)
 
-**`useAIRecommendations.ts`:**
-- Protocol recommendations error → `console.warn('[B2B-INTELLIGENCE] PROTOCOL_RECS_FAILED')`
-- Cart recommendations error → `console.warn('[B2B-INTELLIGENCE] CART_RECS_FAILED')`
+### B) Logging (prefix: `[COMMUNITY-FASTCLUB]`)
 
-**`ai-growth-insights/index.ts`:**
-- Align existing `console.error` to `[B2B-INTELLIGENCE]` prefix
-- Add success log with evidence: `console.log('[B2B-INTELLIGENCE] INSIGHT_GENERATED confidence=... insights=... recommendations=...')`
+**`useForum.ts`:**
+- Topic created success/error, post created success/error
 
-**`ai-cart-recommendations/index.ts`:**
-- Add `[B2B-INTELLIGENCE]` prefix to error logs
+**`useCommunityEvents.ts`:**
+- Event created success/error
 
-**`ai-protocol-recommendations/index.ts`:**
-- Add `[B2B-INTELLIGENCE]` prefix to error logs
+**`useCommunityMembers.ts`:**
+- Invite success/error (already has `console.error`, align prefix)
+
+**`useCommunitySettings.ts`:**
+- Settings upsert success/error
+
+**`generate-community-banner/index.ts`:**
+- Align to `[COMMUNITY-FASTCLUB]` prefix
+
+**`send-community-invite/index.ts`:**
+- Align to `[COMMUNITY-FASTCLUB]` prefix
 
 ### C) Smoke Tests
 
 Add to `system-run-smoke-tests`:
-- No dedicated b2b-intelligence tables exist (insights are computed on-the-fly from `contacts`, `opportunities`, `products`). Skip smoke additions — the underlying tables are already covered by other modules.
+- `forum_topics` (module: `community-fastclub`)
+- `forum_posts` (module: `community-fastclub`)
+- `community_settings` (module: `community-fastclub`)
+- `community_members` (module: `community-fastclub`)
+- `community_events` (module: `community-fastclub`)
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useGrowthInsights.ts` | Import `emitKernelEvent`; emit `B2B.INSIGHT_GENERATED` on AI analysis success; add `[B2B-INTELLIGENCE]` logging |
-| `src/hooks/client-portal/useAIRecommendations.ts` | Add `[B2B-INTELLIGENCE]` error logging |
-| `supabase/functions/ai-growth-insights/index.ts` | Add `[B2B-INTELLIGENCE]` prefix + evidence logging on success |
-| `supabase/functions/ai-cart-recommendations/index.ts` | Add `[B2B-INTELLIGENCE]` prefix to error logs |
-| `supabase/functions/ai-protocol-recommendations/index.ts` | Add `[B2B-INTELLIGENCE]` prefix to error logs |
+| `src/hooks/useForum.ts` | Import `emitKernelEvent`; emit `COMMUNITY.TOPIC_CREATED` + `COMMUNITY.POST_CREATED`; add `[COMMUNITY-FASTCLUB]` logging |
+| `src/hooks/useCommunityEvents.ts` | Import `emitKernelEvent`; emit `COMMUNITY.EVENT_CREATED`; add `[COMMUNITY-FASTCLUB]` logging |
+| `src/hooks/useCommunityMembers.ts` | Import `emitKernelEvent`; emit `COMMUNITY.MEMBER_INVITED`; add `[COMMUNITY-FASTCLUB]` logging |
+| `src/hooks/useCommunitySettings.ts` | Import `emitKernelEvent`; emit `COMMUNITY.SETTINGS_UPDATED`; add `[COMMUNITY-FASTCLUB]` logging |
+| `supabase/functions/generate-community-banner/index.ts` | Align logging to `[COMMUNITY-FASTCLUB]` prefix |
+| `supabase/functions/send-community-invite/index.ts` | Align logging to `[COMMUNITY-FASTCLUB]` prefix |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add 5 community table checks |
 
