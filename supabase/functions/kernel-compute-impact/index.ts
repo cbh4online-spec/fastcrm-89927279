@@ -5,6 +5,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const MAX_DEPTH = 5;
+const MIN_SCORE = 1;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -17,19 +20,19 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch all links for workspace
+    // Fetch all kernel_links for workspace (cross-module dependency graph)
     const { data: links } = await supabase
       .from("kernel_links")
       .select("*")
       .eq("workspace_id", workspace_id);
 
-    // Fetch all context_bindings
+    // Also fetch context_bindings for backward compat
     const { data: bindings } = await supabase
       .from("context_bindings")
       .select("*")
       .eq("workspace_id", workspace_id);
 
-    // Determine source entities from events or change_event_id
+    // Determine source entities
     const sources: { kind: string; id: string; changeEventId?: string }[] = [];
 
     if (change_event_id) {
@@ -43,7 +46,7 @@ Deno.serve(async (req) => {
 
     if (events?.length) {
       for (const evt of events) {
-        // Create change_event record
+        // Create change_event record for traceability
         const { data: ce } = await supabase
           .from("change_events")
           .insert({
@@ -61,35 +64,51 @@ Deno.serve(async (req) => {
       }
     }
 
-    // BFS traversal through kernel_links + context_bindings to find impacted assets
+    // BFS traversal through kernel_links + context_bindings
     let totalImpacts = 0;
 
     for (const source of sources) {
       const visited = new Set<string>();
-      const queue: { kind: string; id: string; depth: number }[] = [
-        { kind: source.kind, id: source.id, depth: 0 },
+      const queue: { kind: string; id: string; depth: number; strength: number }[] = [
+        { kind: source.kind, id: source.id, depth: 0, strength: 100 },
       ];
-      const impacted: { kind: string; id: string }[] = [];
+      const impacted: { kind: string; id: string; score: number }[] = [];
 
       while (queue.length > 0) {
-        const { kind, id, depth } = queue.shift()!;
+        const { kind, id, depth, strength } = queue.shift()!;
         const key = `${kind}:${id}`;
         if (visited.has(key)) continue;
         visited.add(key);
 
-        if (depth > 0) impacted.push({ kind, id });
+        const roundedScore = Math.round(strength);
+        if (depth > 0 && roundedScore >= MIN_SCORE) {
+          impacted.push({ kind, id, score: roundedScore });
+        }
 
-        // Find downstream via kernel_links
+        if (depth >= MAX_DEPTH) continue;
+
+        // Traverse kernel_links (cross-module graph)
         for (const link of links ?? []) {
           if (link.from_kind === kind && link.from_id === id && !visited.has(`${link.to_kind}:${link.to_id}`)) {
-            queue.push({ kind: link.to_kind, id: link.to_id, depth: depth + 1 });
+            const linkConfidence = typeof link.confidence === "number" ? link.confidence : 100;
+            queue.push({
+              kind: link.to_kind,
+              id: link.to_id,
+              depth: depth + 1,
+              strength: strength * (linkConfidence / 100),
+            });
           }
         }
 
-        // Find downstream via context_bindings (block → asset)
+        // Traverse context_bindings (block → asset)
         for (const binding of bindings ?? []) {
           if (kind === "context_block" && binding.block_id === id && !visited.has(`${binding.asset_kind}:${binding.asset_id}`)) {
-            queue.push({ kind: binding.asset_kind, id: binding.asset_id, depth: depth + 1 });
+            queue.push({
+              kind: binding.asset_kind,
+              id: binding.asset_id,
+              depth: depth + 1,
+              strength: strength * 0.8,
+            });
           }
         }
       }
@@ -115,8 +134,8 @@ Deno.serve(async (req) => {
               scope_type: "asset",
               scope_kind: imp.kind,
               scope_id: imp.id,
-              score: 50, // Base impact score
-              reasons: [{ type: "change_impact", source_kind: source.kind, source_id: source.id }],
+              score: Math.min(imp.score, 100),
+              reasons: [{ type: "change_impact", source_kind: source.kind, source_id: source.id, propagated_score: imp.score }],
               computed_at: new Date().toISOString(),
             },
             { onConflict: "workspace_id,scope_type,scope_kind,scope_id" }

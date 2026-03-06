@@ -33,11 +33,12 @@ Deno.serve(async (req) => {
 
     const since = state?.last_processed_at ?? new Date(Date.now() - 3600_000).toISOString();
 
-    // Fetch unprocessed events
+    // Fetch unprocessed events (status = pending)
     const { data: events, error } = await supabase
       .from("kernel_events")
       .select("*")
       .eq("workspace_id", workspaceId)
+      .eq("status", "pending")
       .gt("created_at", since)
       .order("created_at", { ascending: true })
       .limit(200);
@@ -61,7 +62,6 @@ Deno.serve(async (req) => {
         body: JSON.stringify({ workspace_id: workspaceId, events, correlation_id: correlationId }),
       });
     } catch (err) {
-      // Write to deadletter
       await supabase.from("kernel_event_deadletter").insert(
         events.map(e => ({
           workspace_id: workspaceId,
@@ -73,25 +73,24 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Dispatch impact for change events
-    const changeEvents = events.filter(e =>
-      ["created", "updated", "deleted", "published"].includes(e.type) ||
-      e.type.includes("change") || e.type.includes("stage_changed") ||
-      e.type.includes("STAGE_CHANGED") || e.type.includes("UPDATED") || e.type.includes("CLOSED") ||
-      e.type.includes("BLOCK_UPDATED")
-    );
-
-    if (changeEvents.length > 0) {
-      try {
-        await fetch(`${supabaseUrl}/functions/v1/kernel-compute-impact`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ workspace_id: workspaceId, events: changeEvents }),
-        });
-      } catch (err) {
-        console.error("Impact dispatch failed:", (err as Error).message);
-      }
+    // Dispatch impact for ALL events via kernel-compute-impact (cross-module)
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/kernel-compute-impact`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ workspace_id: workspaceId, events }),
+      });
+    } catch (err) {
+      console.error("Impact dispatch failed:", (err as Error).message);
     }
+
+    // Mark events as processed
+    const eventIds = events.map(e => e.id);
+    const now = new Date().toISOString();
+    await supabase
+      .from("kernel_events")
+      .update({ status: "processed", processed_at: now })
+      .in("id", eventIds);
 
     // Update watermark
     const lastEvent = events[events.length - 1];
@@ -101,7 +100,7 @@ Deno.serve(async (req) => {
         consumer_id: consumerId,
         last_event_id: lastEvent.id,
         last_processed_at: lastEvent.created_at,
-        updated_at: new Date().toISOString(),
+        updated_at: now,
       },
       { onConflict: "workspace_id,consumer_id" }
     );
@@ -117,7 +116,7 @@ Deno.serve(async (req) => {
     }).then(() => {});
 
     return new Response(
-      JSON.stringify({ processed: events.length, decisions_triggered: true, impact_triggered: changeEvents.length > 0 }),
+      JSON.stringify({ processed: events.length, decisions_triggered: true, impact_triggered: true }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
