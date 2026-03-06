@@ -223,6 +223,9 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "b2b-finance", "subscriptions_query", "subscriptions"),
       runCheck(supabase, workspace_id, "b2b-finance", "subscription_events_query", "subscription_events"),
       runCheck(supabase, workspace_id, "b2b-finance", "renewal_usage_ledger_query", "renewal_usage_ledger"),
+      // B2B Support
+      runCheck(supabase, workspace_id, "b2b-support", "client_tickets_query", "client_tickets"),
+      runCheck(supabase, workspace_id, "b2b-support", "client_ticket_messages_query", "client_ticket_messages"),
       // Store Marketplace
       runCheck(supabase, workspace_id, "store-marketplace", "c2c_listings_query", "c2c_listings"),
       runCheck(supabase, workspace_id, "store-marketplace", "c2c_messages_query", "c2c_messages"),

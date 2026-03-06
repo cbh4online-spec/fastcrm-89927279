@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useClientAuth } from "./useClientAuth";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export type TicketType = "support" | "commercial" | "technical";
 export type TicketPriority = "low" | "medium" | "high" | "urgent";
@@ -50,7 +51,7 @@ export function useClientTickets() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Error fetching tickets:", error);
+        console.warn("[B2B-SUPPORT] TICKETS_QUERY_FAILED", error.message);
         return [];
       }
       return (data || []) as ClientTicket[];
@@ -84,8 +85,25 @@ export function useClientTickets() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log(`[B2B-SUPPORT] TICKET_CREATED id=${data.id}`);
+      emitKernelEvent({
+        workspace_id: data.workspace_id,
+        type: "TICKET.CREATED",
+        entity_kind: "client_ticket",
+        entity_id: data.id,
+        source_module: "b2b-support",
+        payload: {
+          subject: data.subject,
+          type: data.type,
+          priority: data.priority,
+          company_id: data.company_id,
+        },
+      });
       queryClient.invalidateQueries({ queryKey: ["client-tickets"] });
+    },
+    onError: (error) => {
+      console.error("[B2B-SUPPORT] TICKET_CREATE_FAILED", (error as Error).message);
     },
   });
 
@@ -115,7 +133,7 @@ export function useTicketMessages(ticketId: string | undefined) {
         .order("created_at", { ascending: true });
 
       if (error) {
-        console.error("Error fetching messages:", error);
+        console.warn("[B2B-SUPPORT] MESSAGES_QUERY_FAILED", error.message);
         return [];
       }
       return (data || []) as TicketMessage[];
@@ -139,7 +157,24 @@ export function useTicketMessages(ticketId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
+      console.log(`[B2B-SUPPORT] MESSAGE_SENT ticket=${ticketId}`);
+      if (workspaceId && ticketId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: "TICKET.MESSAGE_SENT",
+          entity_kind: "client_ticket_message",
+          entity_id: ticketId,
+          source_module: "b2b-support",
+          payload: {
+            ticket_id: ticketId,
+            sender_type: "client",
+          },
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["ticket-messages", ticketId] });
+    },
+    onError: (error) => {
+      console.error("[B2B-SUPPORT] MESSAGE_SEND_FAILED", (error as Error).message);
     },
   });
 
