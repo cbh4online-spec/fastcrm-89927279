@@ -28,11 +28,11 @@ export function useKernelDebug() {
       if (!workspaceId) return [];
       const { data } = await supabase
         .from('kernel_action_runs')
-        .select('id, action_key, status, error_message, created_at, completed_at')
+        .select('id, action_key, status, error, created_at, finished_at')
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false })
         .limit(10);
-      return data ?? [];
+      return (data as any[]) ?? [];
     },
     enabled: !!workspaceId,
     refetchInterval: 15_000,
