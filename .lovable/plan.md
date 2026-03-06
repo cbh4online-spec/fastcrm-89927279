@@ -1,68 +1,43 @@
 
 
-# Phase 5B — Command Center COMPLETO
+# Fix: "Leads sem resposta" query returns deals instead of leads
 
-## Gap Analysis: Current vs Spec
+## Problem
+When the user asks "leads sem resposta", the system returns deal information (e.g., "1 deal sem atividade há 14+ dias") because there is no dedicated intent for inactive leads. The LLM classifier maps the query to `deals_inactive` or `daily_priorities`, which primarily return deal data.
 
-The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
+## Root Cause
+The `ask-fastcrm` edge function has intents for `contacts_inactive` (queries `contacts` table) and `deals_inactive` (queries `opportunities` table), but **no `leads_inactive` intent** that queries the `leads` table specifically.
 
-**Already implemented (needs enhancement):**
-- Header with greeting + 3 KPIs — needs larger font (32px), labels below
-- AI Question Box — needs slash command suggestions row below input
-- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
-- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
-- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
-- Drift Alerts — needs "Rever →" links to Context OS blocks
+## Solution
 
-**New sections to build:**
-1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
-2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
-   - Change Events (last 5 from `useChangeEvents` with realtime)
-   - Entity Activity (top 3 entities from `useKernelEntities`)
-   - Impact Score (top 2 from `useImpactMapData`)
-3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
+### 1. Add new `leads_inactive` intent
 
-**Enhanced Command Palette (⌘K):**
-- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
+**File: `supabase/functions/ask-fastcrm/index.ts`**
 
-**Spotlight (Space key):**
-- Opens AI Question Box as a modal from any page. New global component.
+- **Keyword mappings** (both `KEYWORD_MAP` and `PHRASE_MAP`): Add entries like `"leads sem resposta"`, `"leads inativos"`, `"leads sem atividade"`, `"leads parados"`, `"inactive leads"` → `"leads_inactive"`
+- **Intent enum**: Add `"leads_inactive"` to the available intents list (line ~431) and the LLM prompt (line ~656)
+- **Intent description**: Add `"leads_inactive: leads without recent activity or response"` (line ~666)
+- **Default structure** (`buildDefaultStructure`): Add case for `leads_inactive` with `object_type: "leads"`, filter on `updated_at`, sort ascending
+- **Actions map** (`actionsForIntent`): Add `leads_inactive` returning `NAVIGATE` actions
 
-## Implementation Plan — 3 Sub-phases
+### 2. Create `queryLeadsInactive` handler function
 
-Given the scope, I recommend splitting into 3 batches:
+New function modeled after `queryContactsInactive` but querying the `leads` table:
+- Query `leads` table filtered by `workspace_id`, status `new`/`contacted`, and `updated_at < cutoff`
+- Return items with `link: /dashboard/leads/${l.id}` (direct link to each lead)
+- Headline: "X leads sem resposta há Y+ dias"
+- Action: "Ver leads" → `/dashboard/leads`
 
-### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
-| File | Action |
-|------|--------|
-| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
-| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
-| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
-| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
+### 3. Wire the intent to the handler
 
-### Batch 2: Enhance Existing Cards
-| File | Action |
-|------|--------|
-| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
-| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
-| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
-| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
-| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
-| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
+In the main `switch` statement (~line 1340), add:
+```
+case "leads_inactive":
+  return await queryLeadsInactive(client, workspaceId, days);
+```
 
-### Batch 3: Spotlight Modal + Command Palette Enhancement
-| File | Action |
-|------|--------|
-| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
-| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
-| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
-
-### Realtime subscriptions needed
-- `change_events` table for Kernel Live Feed auto-update
-- `kernel_action_runs` for Ações do Dia auto-update
-- Already have `kernel_decisions` and `conversations`
-
-No database migrations needed. All hooks, edge functions, and tables already exist.
-
-**Shall I start with Batch 1?**
+### Summary of changes
+- **1 file**: `supabase/functions/ask-fastcrm/index.ts`
+- Adds ~50 lines (keyword mappings, handler function, switch case)
+- The edge function redeploys automatically
 
