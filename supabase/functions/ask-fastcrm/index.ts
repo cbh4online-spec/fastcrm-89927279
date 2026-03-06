@@ -1197,30 +1197,30 @@ async function queryDealsAtRisk(client: any, workspaceId: string) {
 
   return {
     headline: items.length > 0
-      ? `${items.length} deal${items.length !== 1 ? "s" : ""} currently at risk.`
-      : "No deals at risk right now.",
-    subtext: items.length > 0 ? "Most are missing activity and next steps." : undefined,
+      ? `${items.length} deal${items.length !== 1 ? "s" : ""} em risco.`
+      : "Nenhum deal em risco neste momento.",
+    subtext: items.length > 0 ? "A maioria não tem atividade recente nem próximo passo." : undefined,
     items,
     actions: items.length > 0
       ? [
           {
             id: "create_tasks_all",
-            label: "Create follow-up tasks",
+            label: "Criar tarefas de follow-up",
             icon: "ListTodo",
             type: "bulk_task",
             payload: {
               deal_ids: items.map((i: any) => i.id),
-              task_title: "Follow up on at-risk deal",
+              task_title: "Follow up deal em risco",
               priority: "HIGH",
             },
           },
           {
             id: "save_view",
-            label: "Save as view",
+            label: "Guardar como vista",
             icon: "Bookmark",
             type: "create_saved_view",
             payload: {
-              view_name: "Deals at Risk",
+              view_name: "Deals em Risco",
               object_type_id: "opportunity",
               filters: { health_label: "AT_RISK" },
               columns: ["title", "value", "health_label"],
@@ -1228,7 +1228,7 @@ async function queryDealsAtRisk(client: any, workspaceId: string) {
           },
           {
             id: "view_as_list",
-            label: "View in pipeline",
+            label: "Ver no pipeline",
             icon: "Eye",
             type: "navigate",
             payload: { link: "/dashboard/opportunities" },
@@ -1236,7 +1236,7 @@ async function queryDealsAtRisk(client: any, workspaceId: string) {
         ]
       : [],
     metric: {
-      label: "Deals at Risk",
+      label: "Deals em Risco",
       value: String(items.length),
       trend: items.length > 0 ? "down" : "neutral",
     },
@@ -1260,7 +1260,7 @@ async function queryDealsInactive(
     .limit(50);
 
   if (!opps || opps.length === 0) {
-    return { headline: "No open deals found.", items: [], actions: [] };
+    return { headline: "Nenhum deal aberto encontrado.", items: [], actions: [] };
   }
 
   const oppIds = opps.map((o: any) => o.id);
@@ -1289,9 +1289,9 @@ async function queryDealsInactive(
       const daysSince = differenceInDays(new Date(), new Date(lastAct));
       return {
         id: o.id,
-        title: o.title || "Untitled Deal",
-        subtitle: `No activity for ${daysSince} days`,
-        value: Number(o.value) || 0,
+      title: o.title || "Deal sem nome",
+      subtitle: `Sem atividade há ${daysSince} dias`,
+      value: Number(o.value) || 0,
         health_label: daysSince > 21 ? "AT_RISK" : "WATCH",
         link: `/dashboard/opportunities?deal=${o.id}`,
       };
@@ -1299,15 +1299,15 @@ async function queryDealsInactive(
     .slice(0, 10);
 
   const suggestion = inactive.length > 0 ? {
-    text: `${inactive.length} deal${inactive.length !== 1 ? "s" : ""} with no activity in ${days}+ days.`,
+    text: `${inactive.length} deal${inactive.length !== 1 ? "s" : ""} sem atividade há ${days}+ dias.`,
     action: {
       id: "suggest_tasks",
-      label: "Create follow-ups",
+      label: "Criar follow-ups",
       icon: "ListTodo",
       type: "bulk_task",
       payload: {
         deal_ids: inactive.map((i) => i.id),
-        task_title: "Re-engage inactive deal",
+        task_title: "Reengajar deal inativo",
         priority: "HIGH",
       },
     },
