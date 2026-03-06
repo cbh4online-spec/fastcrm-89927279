@@ -1,10 +1,10 @@
 import { SLASH_COMMANDS, SlashCommand } from "@/hooks/useSlashCommands";
 import { cn } from "@/lib/utils";
-import { BarChart3, Target, Users, TrendingUp, CheckSquare, FileText } from "lucide-react";
+import { BarChart3, Target, Users, TrendingUp, CheckSquare, FileText, AlertTriangle, Brain } from "lucide-react";
 import { motion } from "framer-motion";
 
 const iconMap: Record<string, React.ElementType> = {
-  BarChart3, Target, Users, TrendingUp, CheckSquare, FileText,
+  BarChart3, Target, Users, TrendingUp, CheckSquare, FileText, AlertTriangle, Brain,
 };
 
 const categoryColors: Record<string, string> = {
@@ -12,6 +12,7 @@ const categoryColors: Record<string, string> = {
   leads: "from-emerald-500/20 to-emerald-600/5 border-emerald-500/20",
   revenue: "from-primary/20 to-primary/5 border-primary/20",
   actions: "from-violet-500/20 to-violet-600/5 border-violet-500/20",
+  intelligence: "from-amber-500/20 to-amber-600/5 border-amber-500/20",
 };
 
 interface Props {
