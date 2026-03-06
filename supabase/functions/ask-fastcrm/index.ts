@@ -182,6 +182,14 @@ const KEYWORD_MAP: Record<string, string> = {
   "contacts inactive": "contacts_inactive",
   "contactos inativos": "contacts_inactive",
   "contactos sem atividade": "contacts_inactive",
+  // Leads inactive
+  "leads sem resposta": "leads_inactive",
+  "leads inativos": "leads_inactive",
+  "leads sem atividade": "leads_inactive",
+  "leads parados": "leads_inactive",
+  "leads inactivos": "leads_inactive",
+  "inactive leads": "leads_inactive",
+  "leads without response": "leads_inactive",
   // Automation intent keywords
   "remind me": "create_automation_rule",
   "alert me": "create_automation_rule",
@@ -285,6 +293,12 @@ const EXACT_PHRASES: Record<string, string> = {
   "inactive contacts": "contacts_inactive",
   "contactos inativos": "contacts_inactive",
   "contactos sem atividade": "contacts_inactive",
+  // Leads inactive
+  "leads sem resposta": "leads_inactive",
+  "leads inativos": "leads_inactive",
+  "leads sem atividade": "leads_inactive",
+  "leads parados": "leads_inactive",
+  "inactive leads": "leads_inactive",
   // Daily priorities
   "o que devo fazer hoje": "daily_priorities",
   "o que tenho para hoje": "daily_priorities",
@@ -385,6 +399,8 @@ function buildStructuredQuery(intent: string, days: number): StructuredQuery {
       return { ...base, filters: [], sort: [{ field: "amount", dir: "desc" }] };
     case "contacts_inactive":
       return { ...base, object_type: "contacts", filters: [{ field: "updated_at", op: "<", value: `${days}_days_ago` }], sort: [{ field: "updated_at", dir: "asc" }] };
+    case "leads_inactive":
+      return { ...base, object_type: "contacts", filters: [{ field: "updated_at", op: "<", value: `${days}_days_ago` }], sort: [{ field: "updated_at", dir: "asc" }] };
     case "stage_bottleneck":
       return { ...base, filters: [{ field: "stage_days", op: ">", value: 14 }], sort: [{ field: "stage_days", dir: "desc" }] };
     case "deals_no_next_step":
@@ -420,6 +436,7 @@ const INTENT_TOOLS = [
               "pipeline_summary",
               "pipeline_comparison",
               "contacts_inactive",
+              "leads_inactive",
               "stage_bottleneck",
               "deals_no_next_step",
               "deals_stuck_in_stage",
@@ -523,6 +540,8 @@ function getActionsAvailable(intent: string, hasItems: boolean): string[] {
     case "pipeline_comparison":
       return [ACTIONS_ENUM.NAVIGATE, ...base];
     case "daily_priorities":
+      return [ACTIONS_ENUM.CREATE_TASKS_BULK, ACTIONS_ENUM.NAVIGATE];
+    case "leads_inactive":
       return [ACTIONS_ENUM.CREATE_TASKS_BULK, ACTIONS_ENUM.NAVIGATE];
     case "kernel_decisions":
     case "kernel_live_feed":
@@ -653,7 +672,7 @@ ${conversation_context ? `## Contexto da conversa anterior (use para interpretar
 - Última análise: ${conversation_context.last_analysis || 'N/A'}
 If the user asks a follow-up (e.g. pronouns, "desses", "quais", "explica"), use the same intent and object_type from last_dataset.
 ` : ''}
-Available intents: deals_at_risk, deals_inactive, closing_soon, forecast_summary, forecast_risk, pipeline_summary, pipeline_comparison, contacts_inactive, stage_bottleneck, deals_no_next_step, deals_stuck_in_stage, high_value_deals, overdue_invoices, pending_approvals, daily_priorities, kernel_decisions, kernel_live_feed, drift_overview, lead_drop_analysis
+Available intents: deals_at_risk, deals_inactive, closing_soon, forecast_summary, forecast_risk, pipeline_summary, pipeline_comparison, contacts_inactive, leads_inactive, stage_bottleneck, deals_no_next_step, deals_stuck_in_stage, high_value_deals, overdue_invoices, pending_approvals, daily_priorities, kernel_decisions, kernel_live_feed, drift_overview, lead_drop_analysis
 
 Intent descriptions:
 - deals_at_risk: deals with low health scores
@@ -664,6 +683,7 @@ Intent descriptions:
 - pipeline_summary / pipeline_health_summary: pipeline stage distribution and health
 - pipeline_comparison: compare multiple pipelines (risk, health, velocity, revenue concentration)
 - contacts_inactive: contacts without recent activity
+- leads_inactive: leads without recent response or activity (use when user asks about "leads sem resposta", "leads inativos", "leads parados")
 - stage_bottleneck: stages where deals are stuck longer than expected
 - deals_no_next_step: deals without a defined next action
 - deals_stuck_in_stage: deals staying too long in current stage
@@ -1342,6 +1362,8 @@ async function executeIntent(
       return await queryPipelineComparison(client, workspaceId);
     case "contacts_inactive":
       return await queryContactsInactive(client, workspaceId, days);
+    case "leads_inactive":
+      return await queryLeadsInactive(client, workspaceId, days);
     case "stage_bottleneck":
       return await queryStageBottleneck(client, workspaceId);
     case "deals_no_next_step":
@@ -1984,6 +2006,70 @@ async function queryContactsInactive(
       : [],
     metric: {
       label: "Contactos Inativos",
+      value: String(items.length),
+      trend: items.length > 0 ? "down" : "neutral",
+    },
+  };
+}
+
+async function queryLeadsInactive(
+  client: any,
+  workspaceId: string,
+  days: number
+) {
+  const cutoff = new Date(Date.now() - days * 86400000).toISOString();
+
+  const { data: leads } = await client
+    .from("leads")
+    .select("id, name, email, status, updated_at")
+    .eq("workspace_id", workspaceId)
+    .in("status", ["new", "contacted"])
+    .lt("updated_at", cutoff)
+    .order("updated_at", { ascending: true })
+    .limit(10);
+
+  const items = (leads || []).map((l: any) => {
+    const daysSince = differenceInDays(new Date(), new Date(l.updated_at));
+    return {
+      id: l.id,
+      title: l.name || l.email || "Lead desconhecido",
+      subtitle: `Sem resposta há ${daysSince} dias`,
+      value: 0,
+      health_label: "WATCH",
+      link: `/dashboard/leads/${l.id}`,
+    };
+  });
+
+  return {
+    headline: items.length > 0
+      ? `${items.length} lead${items.length !== 1 ? "s" : ""} sem resposta há ${days}+ dias.`
+      : `Todos os leads tiveram atividade nos últimos ${days} dias.`,
+    subtext: items.length > 0 ? "Estes leads podem precisar de follow-up." : undefined,
+    items,
+    actions: items.length > 0
+      ? [
+          {
+            id: "create_tasks_all",
+            label: "Criar tarefas de follow-up",
+            icon: "ListTodo",
+            type: "bulk_task",
+            payload: {
+              lead_ids: items.map((i: any) => i.id),
+              task_title: "Follow-up lead sem resposta",
+              priority: "HIGH",
+            },
+          },
+          {
+            id: "view_as_list",
+            label: "Ver leads",
+            icon: "Eye",
+            type: "navigate",
+            payload: { link: "/dashboard/leads" },
+          },
+        ]
+      : [],
+    metric: {
+      label: "Leads sem resposta",
       value: String(items.length),
       trend: items.length > 0 ? "down" : "neutral",
     },
