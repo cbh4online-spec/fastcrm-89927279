@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { BankPartner, CreditType, BankTerms, CommissionRate } from "../types";
 
 interface CreateBankPartnerInput {
@@ -71,11 +72,26 @@ export function useCreateBankPartner() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["bank-partners"] });
       toast.success("Parceiro bancário adicionado");
+      console.log(`[VERTICAL-CREDIT] Bank partner added id=${data.id} name=${data.name}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: "CREDIT.BANK_ADDED",
+          entity_kind: "bank_partner",
+          entity_id: data.id,
+          source_module: "vertical-credit",
+          payload: {
+            name: data.name,
+            credit_types: data.credit_types,
+          },
+        });
+      }
     },
     onError: (error: Error) => {
+      console.error(`[VERTICAL-CREDIT] Bank partner add failed: ${error.message}`);
       toast.error("Erro ao adicionar parceiro", { description: error.message });
     },
   });
@@ -102,11 +118,13 @@ export function useUpdateBankPartner() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["bank-partners"] });
       toast.success("Parceiro atualizado");
+      console.log(`[VERTICAL-CREDIT] Bank partner updated id=${data.id}`);
     },
     onError: (error: Error) => {
+      console.error(`[VERTICAL-CREDIT] Bank partner update failed: ${error.message}`);
       toast.error("Erro ao atualizar parceiro", { description: error.message });
     },
   });
@@ -127,12 +145,15 @@ export function useDeleteBankPartner() {
         .eq("workspace_id", currentWorkspace.id);
 
       if (error) throw error;
+      return id;
     },
-    onSuccess: () => {
+    onSuccess: (deletedId: string) => {
       queryClient.invalidateQueries({ queryKey: ["bank-partners"] });
       toast.success("Parceiro removido");
+      console.log(`[VERTICAL-CREDIT] Bank partner deleted id=${deletedId}`);
     },
     onError: (error: Error) => {
+      console.error(`[VERTICAL-CREDIT] Bank partner delete failed: ${error.message}`);
       toast.error("Erro ao remover parceiro", { description: error.message });
     },
   });
