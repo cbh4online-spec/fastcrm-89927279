@@ -34351,6 +34351,7 @@ export type Database = {
           assigned_to: string | null
           created_at: string
           created_by: string | null
+          description: string | null
           due_at: string | null
           id: string
           priority: string | null
@@ -34365,6 +34366,7 @@ export type Database = {
           assigned_to?: string | null
           created_at?: string
           created_by?: string | null
+          description?: string | null
           due_at?: string | null
           id?: string
           priority?: string | null
@@ -34379,6 +34381,7 @@ export type Database = {
           assigned_to?: string | null
           created_at?: string
           created_by?: string | null
+          description?: string | null
           due_at?: string | null
           id?: string
           priority?: string | null
