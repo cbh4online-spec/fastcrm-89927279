@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
       (p: ProfileData) => !alreadyProcessed.has(p.profileUrl)
     );
 
-    console.log(`Filtered ${alreadyProcessed.size} already processed profiles, analyzing ${profilesToAnalyze.length}`);
+    console.log(`[PROSPECTING] Analyze: ${profilesToAnalyze.length} profiles (${alreadyProcessed.size} already processed filtered)`);
 
     const results: any[] = [];
 
@@ -317,6 +317,8 @@ Deno.serve(async (req) => {
 
     // Update usage count
     const successCount = results.filter(r => r.success).length;
+    const failCount = results.filter(r => !r.success).length;
+    console.log(`[PROSPECTING] Analyzed: ${successCount} ok, ${failCount} failed`);
     await supabase
       .from("professional_prospecting_usage")
       .update({ 
@@ -341,7 +343,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("Error in professional-prospecting-analyze:", error);
+    console.error("[PROSPECTING] ANALYZE_FAILED", error);
     return new Response(
       JSON.stringify({ 
         success: false, 

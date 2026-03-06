@@ -161,7 +161,7 @@ export function ProspectingSearch({ onSearchComplete, prefill }: ProspectingSear
         onSearchComplete(data.searchId);
       }
     } catch (error) {
-      console.error("Search error:", error);
+      console.warn('[PROSPECTING] SEARCH_FAILED', error);
       toast.error("Erro ao pesquisar", {
         description: error instanceof Error ? error.message : "Tente novamente",
       });
@@ -218,7 +218,7 @@ export function ProspectingSearch({ onSearchComplete, prefill }: ProspectingSear
       // Navigate to results (no searchId for manual)
       onSearchComplete("");
     } catch (error) {
-      console.error("Analysis error:", error);
+      console.warn('[PROSPECTING] ANALYZE_FAILED', error);
       toast.error("Erro ao analisar perfis");
     } finally {
       setIsAnalyzing(false);

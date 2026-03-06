@@ -95,6 +95,7 @@ Responde APENAS com um JSON no formato:
 
     const userPrompt = `Gera uma mensagem de prospecção para Instagram DM para este perfil:\n\n${profileInfo}${workspaceInfo}\n\nTom: ${tone}\nEtapa da sequência: ${sequenceStep}/3`;
 
+    console.log(`[PROSPECTING] Generate msg: step=${sequenceStep}, tone=${tone}`);
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -141,11 +142,12 @@ Responde APENAS com um JSON no formato:
       result = { message: content, message_plain: content.replace(/[\u{1F600}-\u{1F9FF}]/gu, "").trim() };
     }
 
+    console.log(`[PROSPECTING] Message generated: ${(result.message || '').length} chars`);
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error:", error);
+    console.error("[PROSPECTING] MSG_GENERATE_FAILED", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Erro desconhecido" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

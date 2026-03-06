@@ -27,6 +27,8 @@ Deno.serve(async (req) => {
 
     if (fetchError) throw fetchError;
 
+    console.log(`[PROSPECTING] Processor: ${dueItems?.length || 0} due items`);
+
     if (!dueItems || dueItems.length === 0) {
       return new Response(JSON.stringify({ processed: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -154,6 +156,7 @@ Deno.serve(async (req) => {
         },
       });
 
+      console.log(`[PROSPECTING] Processed: profile=${profileName}, step=${item.step_index}`);
       processed++;
     }
 
@@ -161,7 +164,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Outreach processor error:", error);
+    console.error("[PROSPECTING] PROCESSOR_FAILED", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

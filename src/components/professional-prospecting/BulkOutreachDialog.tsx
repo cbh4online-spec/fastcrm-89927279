@@ -22,6 +22,7 @@ import {
   CheckCircle, AlertCircle, SkipForward, PartyPopper, RotateCcw, X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 const extractInstagramUsername = (url: string): string | null => {
   const match = url.match(/instagram\.com\/([a-zA-Z0-9._]+)/);
@@ -131,7 +132,7 @@ export function BulkOutreachDialog({
 
       queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
     } catch (err) {
-      console.error("Erro ao rejeitar perfil:", err);
+      console.warn('[PROSPECTING] BULK_REJECT_FAILED', err);
     }
 
     toast.success(`${profile.profile_name || "Perfil"} rejeitado`);
@@ -235,15 +236,37 @@ export function BulkOutreachDialog({
               converted_by: userId || null,
             } as any)
             .eq("id", profile.id);
+
+          if (wsId) {
+            emitKernelEvent({
+              workspace_id: wsId,
+              type: 'PROSPECT.CONVERTED',
+              entity_kind: 'prospecting_profile',
+              entity_id: profile.id,
+              source_module: 'mkt-prospecting',
+              payload: { profile_id: profile.id, lead_id: newLead.id, source: 'auto_outreach' },
+            });
+          }
         }
 
         // Invalidate queries so the list updates immediately
         queryClient.invalidateQueries({ queryKey: ["prospecting-profiles"] });
       } catch (err) {
-        console.error("Erro ao criar lead automaticamente:", err);
+        console.warn('[PROSPECTING] AUTO_LEAD_CREATE_FAILED', err);
       }
     }
 
+    console.log(`[PROSPECTING] Bulk outreach sent: profile=${profile.id}`);
+    if (wsId) {
+      emitKernelEvent({
+        workspace_id: wsId,
+        type: 'PROSPECT.OUTREACH_SENT',
+        entity_kind: 'prospecting_profile',
+        entity_id: profile.id,
+        source_module: 'mkt-prospecting',
+        payload: { profile_id: profile.id, step_index: 1, channel: 'instagram', bulk: true },
+      });
+    }
     toast.success(`${profile.profile_name || "Perfil"} marcado como enviado`);
   };
 

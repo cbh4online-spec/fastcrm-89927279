@@ -405,8 +405,10 @@ Deno.serve(async (req) => {
       .select()
       .single();
 
+    console.log(`[PROSPECTING] Search started: profession=${profession}, location=${location || 'any'}`);
+
     if (searchError) {
-      console.error("Error creating search:", searchError);
+      console.error("[PROSPECTING] SEARCH_RECORD_FAILED", searchError);
       return new Response(
         JSON.stringify({ success: false, error: "Failed to create search record" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -515,7 +517,7 @@ Deno.serve(async (req) => {
     const finalProfiles = candidateProfiles.filter((p: Profile) => !existingUrls.has(p.profileUrl));
     const filteredCount = candidateProfiles.length - finalProfiles.length;
 
-    console.log(`Filtered ${filteredCount} existing profiles, ${finalProfiles.length} new profiles remain`);
+    console.log(`[PROSPECTING] Search completed: id=${search.id}, results=${finalProfiles.length}, filtered=${filteredCount}`);
 
     // Update search record with results count
     await supabase
@@ -554,7 +556,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("Error in professional-prospecting-search:", error);
+    console.error("[PROSPECTING] SEARCH_FAILED", error);
     return new Response(
       JSON.stringify({ 
         success: false, 

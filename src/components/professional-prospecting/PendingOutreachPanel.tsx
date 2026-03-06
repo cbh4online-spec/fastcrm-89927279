@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 interface OutreachItem {
   id: string;
@@ -117,7 +118,7 @@ export function PendingOutreachPanel() {
       queryClient.invalidateQueries({ queryKey: ["pending-outreach"] });
       return data;
     } catch (err) {
-      console.error("Error generating message:", err);
+      console.warn('[PROSPECTING] MSG_GENERATE_FAILED', err);
       toast.error("Erro ao gerar mensagem");
       return null;
     } finally {
@@ -140,7 +141,18 @@ export function PendingOutreachPanel() {
       .update({ outreach_step: item.step_index + 1 } as any)
       .eq("id", item.profile_id);
     setBulkSent((prev) => new Set(prev).add(item.id));
-  }, []);
+    console.log(`[PROSPECTING] Outreach sent: profile=${item.profile_id}, step=${item.step_index}`);
+    if (currentWorkspace?.id) {
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'PROSPECT.OUTREACH_SENT',
+        entity_kind: 'prospecting_profile',
+        entity_id: item.profile_id,
+        source_module: 'mkt-prospecting',
+        payload: { profile_id: item.profile_id, step_index: item.step_index, channel: 'instagram' },
+      });
+    }
+  }, [currentWorkspace?.id]);
 
   // Reject item
   const rejectMutation = useMutation({
