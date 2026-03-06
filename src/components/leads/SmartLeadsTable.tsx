@@ -35,6 +35,7 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 export function SmartLeadsTable() {
   const { t } = useTranslation("crm");
+  const navigate = useNavigate();
 
   const LEAD_COLUMNS: ColumnConfig[] = useMemo(() => [
     { id: "name", label: t("col_lead"), category: "basic", defaultVisible: true },
