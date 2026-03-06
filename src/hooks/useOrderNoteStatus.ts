@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { OrderNoteStatus } from "@/types/order-note";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 // Valid status transitions
 const validTransitions: Record<OrderNoteStatus, OrderNoteStatus[]> = {
@@ -90,14 +91,35 @@ export function useOrderNoteStatus() {
             },
           });
         } catch (notifyError) {
-          console.error("Failed to send notification:", notifyError);
+          console.error("[B2B-ORDERS] NOTIFICATION_FAILED", (notifyError as Error).message);
           // Don't fail the status change if notification fails
         }
       }
 
       return { orderId, newStatus };
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (result, variables) => {
+      console.log('[B2B-ORDERS] STATUS_CHANGED', result.orderId, result.newStatus);
+      // Emit kernel event - we need workspace from the order context
+      // Using a fire-and-forget approach to get workspace_id from the order
+      supabase
+        .from("order_notes")
+        .select("workspace_id")
+        .eq("id", result.orderId)
+        .single()
+        .then(({ data }) => {
+          if (data?.workspace_id) {
+            emitKernelEvent({
+              workspace_id: data.workspace_id,
+              type: 'B2B.ORDER_STATUS_CHANGED',
+              entity_kind: 'order_note',
+              entity_id: result.orderId,
+              source_module: 'b2b-orders',
+              payload: { new_status: result.newStatus },
+            });
+          }
+        });
+
       queryClient.invalidateQueries({ queryKey: ["order-notes"] });
       queryClient.invalidateQueries({ queryKey: ["order-note", variables.orderId] });
 
@@ -113,6 +135,7 @@ export function useOrderNoteStatus() {
       toast.success(`Encomenda ${statusLabels[variables.newStatus] || "atualizada"}`);
     },
     onError: (error) => {
+      console.error('[B2B-ORDERS] STATUS_CHANGE_FAILED', error.message);
       toast.error(error.message || "Erro ao alterar estado");
     },
   });

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import type { OrderNote, OrderNoteStatus } from "@/types/order-note";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 interface ApprovalFilters {
   type?: 'installment' | 'high_value' | 'all';
@@ -54,7 +55,10 @@ export function useOrderApprovals(filters?: ApprovalFilters): UseOrderApprovalsR
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.warn('[B2B-ORDERS] PENDING_ORDERS_QUERY_FAILED', error.message);
+        throw error;
+      }
 
       // Post-filter for high value if needed
       let orders = data as unknown as OrderNote[];
@@ -101,13 +105,24 @@ export function useOrderApprovals(filters?: ApprovalFilters): UseOrderApprovalsR
       if (error) throw error;
       return true;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      console.log('[B2B-ORDERS] ORDER_APPROVED', variables.orderId);
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'B2B.ORDER_APPROVED',
+          entity_kind: 'order_note',
+          entity_id: variables.orderId,
+          source_module: 'b2b-orders',
+        });
+      }
       toast.success("Encomenda aprovada com sucesso");
       queryClient.invalidateQueries({ queryKey: ["order-approvals"] });
       queryClient.invalidateQueries({ queryKey: ["order-notes"] });
       queryClient.invalidateQueries({ queryKey: ["order-note"] });
     },
     onError: (error) => {
+      console.error('[B2B-ORDERS] APPROVE_FAILED', error.message);
       toast.error("Erro ao aprovar encomenda: " + error.message);
     },
   });
@@ -130,13 +145,25 @@ export function useOrderApprovals(filters?: ApprovalFilters): UseOrderApprovalsR
       if (error) throw error;
       return true;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      console.log('[B2B-ORDERS] ORDER_REJECTED', variables.orderId);
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'B2B.ORDER_REJECTED',
+          entity_kind: 'order_note',
+          entity_id: variables.orderId,
+          source_module: 'b2b-orders',
+          payload: { reason: variables.reason },
+        });
+      }
       toast.success("Encomenda rejeitada");
       queryClient.invalidateQueries({ queryKey: ["order-approvals"] });
       queryClient.invalidateQueries({ queryKey: ["order-notes"] });
       queryClient.invalidateQueries({ queryKey: ["order-note"] });
     },
     onError: (error) => {
+      console.error('[B2B-ORDERS] REJECT_FAILED', error.message);
       toast.error("Erro ao rejeitar encomenda: " + error.message);
     },
   });
@@ -159,11 +186,25 @@ export function useOrderApprovals(filters?: ApprovalFilters): UseOrderApprovalsR
       return true;
     },
     onSuccess: (_, orderIds) => {
+      console.log('[B2B-ORDERS] BULK_APPROVED', orderIds.length);
+      if (workspaceId) {
+        for (const id of orderIds) {
+          emitKernelEvent({
+            workspace_id: workspaceId,
+            type: 'B2B.ORDER_APPROVED',
+            entity_kind: 'order_note',
+            entity_id: id,
+            source_module: 'b2b-orders',
+            payload: { bulk: true },
+          });
+        }
+      }
       toast.success(`${orderIds.length} encomendas aprovadas`);
       queryClient.invalidateQueries({ queryKey: ["order-approvals"] });
       queryClient.invalidateQueries({ queryKey: ["order-notes"] });
     },
     onError: (error) => {
+      console.error('[B2B-ORDERS] BULK_APPROVE_FAILED', error.message);
       toast.error("Erro ao aprovar encomendas: " + error.message);
     },
   });
