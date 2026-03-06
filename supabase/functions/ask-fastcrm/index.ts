@@ -202,6 +202,34 @@ const KEYWORD_MAP: Record<string, string> = {
   "contacto criado": "create_automation_rule",
   "new contact": "create_automation_rule",
   "novo contacto": "create_automation_rule",
+  // Daily priorities
+  "prioridades": "daily_priorities",
+  "prioridades do dia": "daily_priorities",
+  "o que devo fazer hoje": "daily_priorities",
+  "o que tenho para hoje": "daily_priorities",
+  "agenda do dia": "daily_priorities",
+  "tarefas do dia": "daily_priorities",
+  // Kernel decisions
+  "decisões pendentes": "kernel_decisions",
+  "decisões kernel": "kernel_decisions",
+  "decisões": "kernel_decisions",
+  "kernel decisions": "kernel_decisions",
+  // Kernel live feed
+  "atividade recente": "kernel_live_feed",
+  "live feed": "kernel_live_feed",
+  "feed": "kernel_live_feed",
+  "últimos eventos": "kernel_live_feed",
+  // Drift overview
+  "drift": "drift_overview",
+  "contexto desatualizado": "drift_overview",
+  "desatualizado": "drift_overview",
+  "drift score": "drift_overview",
+  // Lead drop analysis
+  "queda de leads": "lead_drop_analysis",
+  "porque caíram os leads": "lead_drop_analysis",
+  "menos leads": "lead_drop_analysis",
+  "lead drop": "lead_drop_analysis",
+  "entrada de leads": "lead_drop_analysis",
 };
 
 const EXACT_PHRASES: Record<string, string> = {
@@ -257,6 +285,27 @@ const EXACT_PHRASES: Record<string, string> = {
   "inactive contacts": "contacts_inactive",
   "contactos inativos": "contacts_inactive",
   "contactos sem atividade": "contacts_inactive",
+  // Daily priorities
+  "o que devo fazer hoje": "daily_priorities",
+  "o que tenho para hoje": "daily_priorities",
+  "prioridades do dia": "daily_priorities",
+  "quais são as prioridades": "daily_priorities",
+  // Kernel decisions
+  "decisões pendentes": "kernel_decisions",
+  "decisões do kernel": "kernel_decisions",
+  "quais decisões": "kernel_decisions",
+  // Kernel live feed
+  "atividade recente do sistema": "kernel_live_feed",
+  "live feed": "kernel_live_feed",
+  "últimos eventos": "kernel_live_feed",
+  // Drift overview
+  "contexto desatualizado": "drift_overview",
+  "qual o drift": "drift_overview",
+  "drift overview": "drift_overview",
+  // Lead drop
+  "porque caíram os leads": "lead_drop_analysis",
+  "queda de leads": "lead_drop_analysis",
+  "menos leads esta semana": "lead_drop_analysis",
 };
 
 function classifyByKeyword(question: string): KeywordMatch | null {
@@ -377,6 +426,11 @@ const INTENT_TOOLS = [
               "high_value_deals",
               "overdue_invoices",
               "pending_approvals",
+              "daily_priorities",
+              "kernel_decisions",
+              "kernel_live_feed",
+              "drift_overview",
+              "lead_drop_analysis",
             ],
             description: "The classified intent of the question.",
           },
@@ -591,7 +645,7 @@ ${conversation_context ? `## Contexto da conversa anterior (use para interpretar
 - Última análise: ${conversation_context.last_analysis || 'N/A'}
 If the user asks a follow-up (e.g. pronouns, "desses", "quais", "explica"), use the same intent and object_type from last_dataset.
 ` : ''}
-Available intents: deals_at_risk, deals_inactive, closing_soon, forecast_summary, forecast_risk, pipeline_summary, pipeline_comparison, contacts_inactive, stage_bottleneck, deals_no_next_step, deals_stuck_in_stage, high_value_deals, overdue_invoices, pending_approvals
+Available intents: deals_at_risk, deals_inactive, closing_soon, forecast_summary, forecast_risk, pipeline_summary, pipeline_comparison, contacts_inactive, stage_bottleneck, deals_no_next_step, deals_stuck_in_stage, high_value_deals, overdue_invoices, pending_approvals, daily_priorities, kernel_decisions, kernel_live_feed, drift_overview, lead_drop_analysis
 
 Intent descriptions:
 - deals_at_risk: deals with low health scores
@@ -608,6 +662,11 @@ Intent descriptions:
 - high_value_deals: top deals by value
 - overdue_invoices: invoices past due date
 - pending_approvals: items waiting for approval
+- daily_priorities: combined view of deals at risk + leads without response + pending kernel decisions + critical drift
+- kernel_decisions: list of open kernel decisions awaiting action
+- kernel_live_feed: most recent kernel events and system activity
+- drift_overview: context drift scores and stale entities
+- lead_drop_analysis: compare lead creation volume this week vs previous week
 
 Allowed filter fields per object_type:
 - deals: ${ALLOWED_FIELDS.deals.join(", ")}
