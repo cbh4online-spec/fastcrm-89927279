@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface C2CReview {
   id: string;
@@ -64,24 +65,37 @@ export function useSubmitReview() {
       comment?: string;
     }) => {
       if (!user) throw new Error("Não autenticado");
-      const { error } = await supabase.from("c2c_reviews").insert({
+      const { data: review, error } = await supabase.from("c2c_reviews").insert({
         workspace_id: data.workspace_id,
         listing_id: data.listing_id,
         seller_id: data.seller_id,
         rating: data.rating,
         comment: data.comment || null,
         reviewer_id: user.id,
-      });
+      }).select().single();
       if (error) {
         if (error.message?.includes("duplicate")) throw new Error("Já avaliaste este artigo");
         throw error;
       }
+      return review;
     },
-    onSuccess: (_, vars) => {
+    onSuccess: (review, vars) => {
       qc.invalidateQueries({ queryKey: ["c2c-reviews-listing", vars.listing_id] });
       qc.invalidateQueries({ queryKey: ["c2c-reviews-seller", vars.seller_id] });
       toast.success("Avaliação submetida!");
+      console.log('[MARKETPLACE] Review submitted', { listing_id: vars.listing_id, rating: vars.rating });
+      emitKernelEvent({
+        workspace_id: vars.workspace_id,
+        type: "RATING.SUBMITTED",
+        entity_kind: "c2c_review",
+        entity_id: review?.id || vars.listing_id,
+        source_module: "store-marketplace",
+        payload: { listing_id: vars.listing_id, seller_id: vars.seller_id, rating: vars.rating },
+      });
     },
-    onError: (err: Error) => toast.error(err.message || "Erro ao submeter avaliação"),
+    onError: (err: Error) => {
+      console.warn('[MARKETPLACE] REVIEW_SUBMIT_FAILED', err.message);
+      toast.error(err.message || "Erro ao submeter avaliação");
+    },
   });
 }

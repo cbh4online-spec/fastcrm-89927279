@@ -11,6 +11,18 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[C2C-WEBHOOK] ${step}${detailsStr}`);
 };
 
+async function emitKernelEvent(supabaseUrl: string, supabaseKey: string, event: Record<string, unknown>) {
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/kernel-ingest-event`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseKey}` },
+      body: JSON.stringify({ actor_type: "system", schema_version: 1, occurred_at: new Date().toISOString(), ...event }),
+    });
+  } catch (err) {
+    logStep("Kernel emit failed (non-blocking)", { error: String(err) });
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -65,7 +77,6 @@ Deno.serve(async (req) => {
       if (error) logStep("Error activating premium", { error: error.message });
       else {
         logStep("Premium activated", { sessionId: session.id });
-        // Update seller commission rate to 3%
         if (metadata.seller_id) {
           await supabase
             .from("c2c_sellers")
@@ -96,7 +107,6 @@ Deno.serve(async (req) => {
         else {
           logStep("Sponsor activated", { applicationId });
 
-          // Auto-create store_sponsors entry
           const { data: app } = await supabase
             .from("sponsor_applications")
             .select("*")
@@ -137,6 +147,7 @@ Deno.serve(async (req) => {
           .eq("status", "pending");
 
         // Update seller stats
+        const saleAmount = parseFloat(metadata.sale_amount || "0");
         if (metadata.seller_id) {
           const { data: seller } = await supabase
             .from("c2c_sellers")
@@ -145,7 +156,6 @@ Deno.serve(async (req) => {
             .single();
 
           if (seller) {
-            const saleAmount = parseFloat(metadata.sale_amount || "0");
             await supabase
               .from("c2c_sellers")
               .update({
@@ -157,6 +167,19 @@ Deno.serve(async (req) => {
         }
 
         logStep("C2C purchase completed", { listingId });
+
+        // ── Emit kernel events ──
+        const workspaceId = metadata.workspace_id;
+        if (workspaceId) {
+          emitKernelEvent(supabaseUrl, supabaseKey, {
+            workspace_id: workspaceId,
+            type: "MARKETPLACE.SALE_COMPLETED",
+            entity_kind: "c2c_listing",
+            entity_id: listingId,
+            source_module: "store-marketplace",
+            payload: { listing_id: listingId, sale_amount: saleAmount, seller_id: metadata.seller_id, buyer_user_id: metadata.buyer_user_id },
+          });
+        }
 
         // ── Trigger affiliate/referral attribution ──
         try {

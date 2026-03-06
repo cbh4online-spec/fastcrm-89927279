@@ -6,8 +6,20 @@ const corsHeaders = {
 };
 
 const logStep = (step: string, details?: unknown) => {
-  console.log(`[ATTRIBUTE-SALE] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
+  console.log(`[MARKETPLACE] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
 };
+
+async function emitKernelEvent(supabaseUrl: string, supabaseKey: string, event: Record<string, unknown>) {
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/kernel-ingest-event`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseKey}` },
+      body: JSON.stringify({ actor_type: "system", schema_version: 1, occurred_at: new Date().toISOString(), ...event }),
+    });
+  } catch (err) {
+    logStep("Kernel emit failed (non-blocking)", { error: String(err) });
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -28,7 +40,6 @@ Deno.serve(async (req) => {
 
     // ── 1. Affiliate Attribution ──
     if (session_id) {
-      // Find click within cookie window
       const { data: click } = await supabase
         .from("c2c_affiliate_clicks")
         .select("*, c2c_affiliates!inner(user_id, program_id)")
@@ -41,11 +52,9 @@ Deno.serve(async (req) => {
       if (click) {
         const affiliateUserId = (click as any).c2c_affiliates?.user_id;
 
-        // Anti-fraud: block self-affiliate
         if (affiliateUserId === buyer_user_id) {
           logStep("BLOCKED self-affiliate", { affiliateUserId, buyer_user_id });
         } else {
-          // Get program config
           const { data: program } = await supabase
             .from("c2c_affiliate_programs")
             .select("*")
@@ -54,7 +63,6 @@ Deno.serve(async (req) => {
             .single();
 
           if (program) {
-            // Check cookie window
             const clickDate = new Date(click.created_at);
             const windowEnd = new Date(clickDate.getTime() + program.cookie_window_days * 86400000);
 
@@ -79,8 +87,19 @@ Deno.serve(async (req) => {
                 hold_until: holdUntil.toISOString(),
               });
 
-              if (error) logStep("Error creating attribution", { error: error.message });
-              else logStep("Affiliate attribution created", { affiliateId: click.affiliate_id, amount: commissionAmount });
+              if (error) {
+                logStep("Error creating attribution", { error: error.message });
+              } else {
+                logStep("Affiliate attribution created", { affiliateId: click.affiliate_id, amount: commissionAmount });
+                emitKernelEvent(supabaseUrl, supabaseKey, {
+                  workspace_id,
+                  type: "MARKETPLACE.AFFILIATE_ATTRIBUTED",
+                  entity_kind: "c2c_affiliate_attribution",
+                  entity_id: click.affiliate_id,
+                  source_module: "store-marketplace",
+                  payload: { listing_id, affiliate_id: click.affiliate_id, commission: commissionAmount },
+                });
+              }
             } else {
               logStep("Click outside cookie window", { clickDate: click.created_at });
             }
@@ -99,7 +118,6 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (referral) {
-        // Anti-fraud: block self-referral
         if (referral.referrer_user_id === buyer_user_id) {
           logStep("BLOCKED self-referral", { referrer: referral.referrer_user_id });
         } else {
@@ -121,7 +139,6 @@ Deno.serve(async (req) => {
               hold_until: holdUntil.toISOString(),
             });
 
-            // Update referral status
             await supabase.from("c2c_referrals")
               .update({ status: "qualified", qualified_at: new Date().toISOString() })
               .eq("id", referral.id);

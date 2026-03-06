@@ -52,8 +52,12 @@ export function useExecutePayout() {
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ["c2c-payouts", v.workspaceId] });
       toast.success("Payout atualizado");
+      console.log('[MARKETPLACE] Payout executed', { action: v.action, payout_id: v.payoutId });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      console.warn('[MARKETPLACE] PAYOUT_EXECUTE_FAILED', e.message);
+      toast.error(e.message);
+    },
   });
 }
 
@@ -70,8 +74,12 @@ export function useProcessPayouts() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["c2c-payouts"] });
       toast.success("Payouts processados");
+      console.log('[MARKETPLACE] Payouts processed');
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      console.warn('[MARKETPLACE] PAYOUTS_PROCESS_FAILED', e.message);
+      toast.error(e.message);
+    },
   });
 }
 
@@ -91,6 +99,9 @@ export function useExportPayoutsCSV() {
       a.click();
       URL.revokeObjectURL(url);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      console.warn('[MARKETPLACE] PAYOUT_CSV_EXPORT_FAILED', e.message);
+      toast.error(e.message);
+    },
   });
 }

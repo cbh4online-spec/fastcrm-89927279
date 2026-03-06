@@ -86,8 +86,12 @@ export function useCreateReferral() {
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ["c2c-my-referrals", v.workspaceId] });
       toast.success("Convite criado!");
+      console.log('[MARKETPLACE] Referral created');
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      console.warn('[MARKETPLACE] REFERRAL_CREATE_FAILED', e.message);
+      toast.error(e.message);
+    },
   });
 }
 

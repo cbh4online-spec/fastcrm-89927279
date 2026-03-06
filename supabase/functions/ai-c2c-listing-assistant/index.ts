@@ -418,7 +418,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (e) {
-    console.error("ai-c2c-listing-assistant error:", e);
+    console.error("[MARKETPLACE] ai-c2c-listing-assistant error:", e);
     const msg = e instanceof Error ? e.message : "Unknown error";
     const status = msg === "RATE_LIMITED" ? 429 : msg === "PAYMENT_REQUIRED" ? 402 : 500;
     return new Response(JSON.stringify({ error: msg }), {
