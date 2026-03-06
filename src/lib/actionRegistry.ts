@@ -333,6 +333,35 @@ const actions: Action[] = [
       else toast.success('Drift do workspace recalculado');
     },
   },
+  // ── Command Center Quick Actions ──
+  {
+    id: 'ask.daily_priorities',
+    title: 'Ver prioridades do dia',
+    group: 'Analyze',
+    keywords: ['prioridades', 'hoje', 'daily', 'priorities', 'agenda'],
+    run: async (ctx) => ctx.navigate?.('/dashboard'),
+  },
+  {
+    id: 'ask.pipeline_risk',
+    title: 'Ver deals em risco',
+    group: 'Analyze',
+    keywords: ['risco', 'risk', 'deals em risco', 'at risk'],
+    run: async (ctx) => ctx.navigate?.('/dashboard/opportunities'),
+  },
+  {
+    id: 'ask.lead_analysis',
+    title: 'Análise de leads',
+    group: 'Analyze',
+    keywords: ['leads', 'queda', 'drop', 'análise leads'],
+    run: async (ctx) => ctx.navigate?.('/dashboard/leads'),
+  },
+  {
+    id: 'ask.drift_overview',
+    title: 'Ver drift do contexto',
+    group: 'Analyze',
+    keywords: ['drift', 'contexto', 'desatualizado', 'overview'],
+    run: async (ctx) => ctx.navigate?.('/dashboard/command-center?tab=context'),
+  },
 ];
 // ── Public API ──
 export function getActions(): Action[] {
