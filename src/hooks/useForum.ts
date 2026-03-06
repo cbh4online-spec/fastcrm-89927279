@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface ForumCategory {
   id: string;
@@ -228,8 +229,29 @@ export function useCreateForumTopic(workspaceId: string | undefined) {
 
       return data;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["forum-topics"] }); toast.success("Tópico criado!"); },
-    onError: () => toast.error("Erro ao criar tópico"),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["forum-topics"] });
+      toast.success("Tópico criado!");
+      console.log('[COMMUNITY-FASTCLUB] TOPIC_CREATED', { id: data?.id });
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'COMMUNITY.TOPIC_CREATED',
+          entity_kind: 'forum_topic',
+          entity_id: data?.id ?? 'unknown',
+          source_module: 'community-fastclub',
+          payload: {
+            category_id: data?.category_id,
+            moderation_status: data?.moderation_status,
+            comments_enabled: data?.comments_enabled,
+          },
+        });
+      }
+    },
+    onError: (err) => {
+      toast.error("Erro ao criar tópico");
+      console.error('[COMMUNITY-FASTCLUB] TOPIC_CREATE_FAILED', (err as Error).message);
+    },
   });
 }
 
@@ -269,7 +291,25 @@ export function useCreateForumPost(workspaceId: string | undefined) {
 
       return data;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["forum-posts"] }); qc.invalidateQueries({ queryKey: ["forum-topics"] }); toast.success("Resposta publicada!"); },
-    onError: () => toast.error("Erro ao publicar resposta"),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["forum-posts"] });
+      qc.invalidateQueries({ queryKey: ["forum-topics"] });
+      toast.success("Resposta publicada!");
+      console.log('[COMMUNITY-FASTCLUB] POST_CREATED', { id: data?.id, topic_id: data?.topic_id });
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'COMMUNITY.POST_CREATED',
+          entity_kind: 'forum_post',
+          entity_id: data?.id ?? 'unknown',
+          source_module: 'community-fastclub',
+          payload: { topic_id: data?.topic_id },
+        });
+      }
+    },
+    onError: (err) => {
+      toast.error("Erro ao publicar resposta");
+      console.error('[COMMUNITY-FASTCLUB] POST_CREATE_FAILED', (err as Error).message);
+    },
   });
 }

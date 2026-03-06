@@ -168,14 +168,14 @@ const handler = async (req: Request): Promise<Response> => {
       html: emailHtml,
     });
 
-    console.log("Community invite email sent:", emailResponse);
+    console.log("[COMMUNITY-FASTCLUB] INVITE_EMAIL_SENT", { email: body.email, isResend: !!body.resend });
 
     return new Response(JSON.stringify({ success: true, data: emailResponse }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: any) {
-    console.error("Error in send-community-invite:", error);
+    console.error("[COMMUNITY-FASTCLUB] INVITE_SEND_FAILED", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
