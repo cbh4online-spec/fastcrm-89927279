@@ -2562,7 +2562,7 @@ async function queryDailyPriorities(client: any, workspaceId: string) {
     sections.push(`**${staleLeads.length} leads sem resposta**`);
     staleLeads.forEach((l: any) => {
       const daysSince = differenceInDays(now, new Date(l.updated_at));
-      items.push({ id: l.id, title: l.name || l.email || "Lead", subtitle: `Sem resposta há ${daysSince}d`, value: 0, health_label: "WATCH", link: `/dashboard/leads` });
+      items.push({ id: l.id, title: l.name || l.email || "Lead", subtitle: `Sem resposta há ${daysSince}d`, value: 0, health_label: "WATCH", link: `/dashboard/leads/${l.id}` });
     });
   }
 
