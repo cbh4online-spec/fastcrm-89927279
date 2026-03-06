@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import type { Json } from "@/integrations/supabase/types";
 
 export type SubscriptionEventType =
@@ -60,9 +61,20 @@ export function useCreateSubscriptionEvent() {
       queryClient.invalidateQueries({
         queryKey: ["subscription-events", data.subscription_id],
       });
+      console.info('[B2B-FINANCE] SUBSCRIPTION_EVENT_LOGGED', data.event_type, data.subscription_id);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'B2B.SUBSCRIPTION_EVENT_LOGGED',
+          entity_kind: 'subscription_event',
+          entity_id: data.id,
+          source_module: 'b2b-finance',
+          payload: { event_type: data.event_type, subscription_id: data.subscription_id },
+        });
+      }
     },
     onError: (error) => {
-      console.error("Error creating subscription event:", error);
+      console.error("[B2B-FINANCE] SUBSCRIPTION_EVENT_FAILED", error.message);
       toast.error("Erro ao registar evento");
     },
   });

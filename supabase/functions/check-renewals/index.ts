@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
       // Use default
     }
 
-    console.log(`Checking for renewals in the next ${daysAhead} days...`);
+    console.log(`[B2B-FINANCE] Checking renewals in next ${daysAhead} days...`);
 
     // Get upcoming renewals using the database function
     const { data: renewals, error: renewalsError } = await supabase.rpc(
@@ -53,12 +53,12 @@ Deno.serve(async (req) => {
     );
 
     if (renewalsError) {
-      console.error("Error fetching renewals:", renewalsError);
+      console.error("[B2B-FINANCE] RENEWALS_QUERY_FAILED", renewalsError);
       throw renewalsError;
     }
 
     const typedRenewals = renewals as RenewalRow[];
-    console.log(`Found ${typedRenewals?.length || 0} upcoming renewals`);
+    console.log(`[B2B-FINANCE] Found ${typedRenewals?.length || 0} upcoming renewals`);
 
     if (!typedRenewals || typedRenewals.length === 0) {
       return new Response(
@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
         });
 
         if (taskError) {
-          console.error("Error creating task:", taskError);
+          console.error("[B2B-FINANCE] RENEWAL_TASK_CREATE_FAILED", taskError);
         } else {
           tasksCreated++;
         }
@@ -129,8 +129,7 @@ Deno.serve(async (req) => {
             notificationsCreated++;
           }
         } catch (e) {
-          // notifications table might not exist
-          console.log("Could not create notification:", e);
+          console.warn("[B2B-FINANCE] NOTIFICATION_CREATE_FAILED", e);
         }
       }
 
@@ -152,13 +151,13 @@ Deno.serve(async (req) => {
       notifications_created: notificationsCreated,
     };
 
-    console.log("Renewal check completed:", result);
+    console.log("[B2B-FINANCE] Renewal check completed:", result);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error in check-renewals:", error);
+    console.error("[B2B-FINANCE] CHECK_RENEWALS_FAILED", error);
     return new Response(
       JSON.stringify({
         success: false,

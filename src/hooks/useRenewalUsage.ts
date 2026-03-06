@@ -3,6 +3,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import type { RenewalUsageEntry, LogUsageInput } from "@/types/renewal";
 
 export function useRenewalUsage(contractId: string | undefined, itemId?: string) {
@@ -70,6 +71,7 @@ export function useLogRenewalUsage() {
       if (item && item.item_type === "hours_pack") {
         const meta = (item.meta_json || {}) as Record<string, unknown>;
         const hoursRemaining = ((meta.hours_remaining as number) || 0) - input.amount;
+        console.info('[B2B-FINANCE] HOURS_REMAINING_UPDATED', input.renewal_item_id, Math.max(0, hoursRemaining));
         await workspaceClient
           .from("renewal_items")
           .update({ meta_json: { ...meta, hours_remaining: Math.max(0, hoursRemaining) } } as any)
@@ -86,12 +88,26 @@ export function useLogRenewalUsage() {
 
       return data;
     },
-    onSuccess: (_, input) => {
+    onSuccess: (data, input) => {
       queryClient.invalidateQueries({ queryKey: ["renewal-usage", input.contract_id] });
       queryClient.invalidateQueries({ queryKey: ["renewal-items", input.contract_id] });
       toast.success("Consumo registado");
+      console.info('[B2B-FINANCE] LEDGER_UPDATED', input.contract_id, input.amount);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'B2B.LEDGER_UPDATED',
+          entity_kind: 'renewal_usage_ledger',
+          entity_id: data.id,
+          source_module: 'b2b-finance',
+          payload: { contract_id: input.contract_id, amount: input.amount, usage_type: input.usage_type || 'hours' },
+        });
+      }
     },
-    onError: () => toast.error("Erro ao registar consumo"),
+    onError: (error) => {
+      console.error('[B2B-FINANCE] LEDGER_UPDATE_FAILED', error.message);
+      toast.error("Erro ao registar consumo");
+    },
   });
 }
 
