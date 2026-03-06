@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { CommandInput } from "./CommandInput";
 import { CommandOutput } from "./CommandOutput";
-import { useAskFastCRM } from "@/hooks/useAskFastCRM";
+import { useAskFastCRM, AskResultAction, AskResultItem } from "@/hooks/useAskFastCRM";
 import { useSlashCommands, SlashCommand, SlashCommandResult } from "@/hooks/useSlashCommands";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -26,6 +26,8 @@ interface ChatMessage {
   suggestions?: string[];
   timestamp: Date;
   type?: 'brief' | 'text';
+  actions?: AskResultAction[];
+  items?: AskResultItem[];
 }
 
 /**
