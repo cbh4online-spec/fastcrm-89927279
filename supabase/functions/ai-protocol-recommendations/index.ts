@@ -141,7 +141,7 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      console.error("AI error:", aiResponse.status);
+      console.error("[B2B-INTELLIGENCE] PROTOCOL_AI_ERROR status=" + aiResponse.status);
       return new Response(JSON.stringify({ recommendations: [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -175,7 +175,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("Error:", e);
+    console.error("[B2B-INTELLIGENCE] PROTOCOL_RECS_FAILED", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
