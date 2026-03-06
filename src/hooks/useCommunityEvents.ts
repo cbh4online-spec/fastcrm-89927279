@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface CommunityEvent {
   id: string;
@@ -61,18 +62,33 @@ export function useCreateCommunityEvent(workspaceId: string | undefined) {
   return useMutation({
     mutationFn: async (event: Omit<CommunityEvent, "id" | "workspace_id" | "created_by" | "created_at">) => {
       if (!workspaceId || !user) throw new Error("Sem sessão");
-      const { error } = await supabase.from("community_events").insert({
+      const { data, error } = await supabase.from("community_events").insert({
         workspace_id: workspaceId,
         created_by: user.id,
         ...event,
-      });
+      }).select().single();
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["community-events"] });
       qc.invalidateQueries({ queryKey: ["community-upcoming-event"] });
       toast.success("Evento criado!");
+      console.log('[COMMUNITY-FASTCLUB] EVENT_CREATED', { id: data?.id });
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'COMMUNITY.EVENT_CREATED',
+          entity_kind: 'community_event',
+          entity_id: data?.id ?? 'unknown',
+          source_module: 'community-fastclub',
+          payload: { event_type: (data as any)?.event_type, title: (data as any)?.title },
+        });
+      }
     },
-    onError: () => toast.error("Erro ao criar evento"),
+    onError: (err) => {
+      toast.error("Erro ao criar evento");
+      console.error('[COMMUNITY-FASTCLUB] EVENT_CREATE_FAILED', (err as Error).message);
+    },
   });
 }

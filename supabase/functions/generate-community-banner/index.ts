@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
-      console.error("AI gateway error:", aiResponse.status, errText);
+      console.error("[COMMUNITY-FASTCLUB] AI_GATEWAY_ERROR", aiResponse.status, errText);
       if (aiResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded, try again later." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -93,11 +93,12 @@ Deno.serve(async (req) => {
       .from("community-assets")
       .getPublicUrl(filePath);
 
+    console.log("[COMMUNITY-FASTCLUB] BANNER_GENERATED", { workspaceId, filePath });
     return new Response(JSON.stringify({ success: true, url: publicUrl }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("generate-community-banner error:", e);
+    console.error("[COMMUNITY-FASTCLUB] BANNER_GENERATION_FAILED", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

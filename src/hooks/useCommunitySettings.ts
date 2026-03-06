@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface CommunitySettings {
   id: string;
@@ -71,8 +72,21 @@ export function useUpsertCommunitySettings(workspaceId: string | undefined) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["community-settings"] });
       toast.success("Definições guardadas!");
+      console.log('[COMMUNITY-FASTCLUB] SETTINGS_UPDATED');
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: 'COMMUNITY.SETTINGS_UPDATED',
+          entity_kind: 'community_settings',
+          entity_id: workspaceId,
+          source_module: 'community-fastclub',
+        });
+      }
     },
-    onError: () => toast.error("Erro ao guardar definições"),
+    onError: (err) => {
+      toast.error("Erro ao guardar definições");
+      console.error('[COMMUNITY-FASTCLUB] SETTINGS_UPDATE_FAILED', (err as Error).message);
+    },
   });
 }
 

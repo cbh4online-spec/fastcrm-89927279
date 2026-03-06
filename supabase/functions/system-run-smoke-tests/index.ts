@@ -232,6 +232,12 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "store-marketplace", "c2c_reviews_query", "c2c_reviews"),
       runCheck(supabase, workspace_id, "store-marketplace", "c2c_offers_query", "c2c_offers"),
       runCheck(supabase, workspace_id, "store-marketplace", "c2c_sellers_query", "c2c_sellers"),
+      // Community FastClub
+      runCheck(supabase, workspace_id, "community-fastclub", "forum_topics_query", "forum_topics"),
+      runCheck(supabase, workspace_id, "community-fastclub", "forum_posts_query", "forum_posts"),
+      runCheck(supabase, workspace_id, "community-fastclub", "community_settings_query", "community_settings"),
+      runCheck(supabase, workspace_id, "community-fastclub", "community_members_query", "community_members"),
+      runCheck(supabase, workspace_id, "community-fastclub", "community_events_query", "community_events"),
       // AI Conversational
       aiConversationalCheck(),
     ]);

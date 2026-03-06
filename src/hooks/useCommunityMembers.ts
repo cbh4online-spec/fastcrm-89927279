@@ -4,6 +4,7 @@ import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface CommunityMember {
   id: string;
@@ -86,7 +87,7 @@ export function useInviteCommunityMember() {
 
       const failures = results.filter((r) => r.status === "rejected");
       if (failures.length > 0) {
-        console.error("Some invites failed:", failures);
+        console.warn("[COMMUNITY-FASTCLUB] INVITE_PARTIAL_FAILURE", { total: invites.length, failed: failures.length });
         if (failures.length === invites.length) throw new Error("Todos os convites falharam");
       }
 
@@ -96,9 +97,20 @@ export function useInviteCommunityMember() {
       queryClient.invalidateQueries({ queryKey: ["community_members", currentWorkspace?.id] });
       const count = variables.length;
       toast.success(`${count} convite${count > 1 ? "s" : ""} enviado${count > 1 ? "s" : ""} com sucesso`);
+      console.log('[COMMUNITY-FASTCLUB] MEMBER_INVITED', { count });
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'COMMUNITY.MEMBER_INVITED',
+          entity_kind: 'community_member',
+          entity_id: currentWorkspace.id,
+          source_module: 'community-fastclub',
+          payload: { invite_count: count },
+        });
+      }
     },
     onError: (error: any) => {
-      console.error("Error inviting:", error);
+      console.error("[COMMUNITY-FASTCLUB] INVITE_FAILED", error?.message);
       toast.error(error?.message || "Erro ao enviar convites");
     },
   });
@@ -151,9 +163,11 @@ export function useResendCommunityInvite() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["community_members", currentWorkspace?.id] });
       toast.success("Convite reenviado com sucesso");
+      console.log('[COMMUNITY-FASTCLUB] INVITE_RESENT');
     },
-    onError: () => {
+    onError: (err) => {
       toast.error("Erro ao reenviar convite");
+      console.error('[COMMUNITY-FASTCLUB] INVITE_RESEND_FAILED', (err as Error).message);
     },
   });
 }
