@@ -23,9 +23,9 @@ export interface SuggestionStats {
     rejected: number;
   }>;
   byConfidenceRange: {
-    low: { total: number; accepted: number };      // 0-0.5
-    medium: { total: number; accepted: number };   // 0.5-0.75
-    high: { total: number; accepted: number };     // 0.75-1.0
+    low: { total: number; accepted: number };
+    medium: { total: number; accepted: number };
+    high: { total: number; accepted: number };
   };
   recentSuggestions: Array<{
     id: string;
@@ -57,11 +57,13 @@ export function useAISuggestionsHistory() {
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[AI-SUGGESTIONS] Failed to fetch suggestions history:', error.message);
+        throw error;
+      }
 
       const suggestions = data || [];
       
-      // Calculate statistics
       const totalSuggestions = suggestions.length;
       const accepted = suggestions.filter(s => s.status === "accepted").length;
       const rejected = suggestions.filter(s => s.status === "rejected").length;
@@ -76,18 +78,11 @@ export function useAISuggestionsHistory() {
         ? suggestions.reduce((acc, s) => acc + Number(s.confidence), 0) / totalSuggestions
         : 0;
 
-      // Group by field
       const byField: SuggestionStats["byField"] = {};
       suggestions.forEach(s => {
         const fieldKey = s.field_name;
         if (!byField[fieldKey]) {
-          byField[fieldKey] = {
-            total: 0,
-            accepted: 0,
-            rejected: 0,
-            acceptanceRate: 0,
-            avgConfidence: 0,
-          };
+          byField[fieldKey] = { total: 0, accepted: 0, rejected: 0, acceptanceRate: 0, avgConfidence: 0 };
         }
         byField[fieldKey].total++;
         if (s.status === "accepted") byField[fieldKey].accepted++;
@@ -95,7 +90,6 @@ export function useAISuggestionsHistory() {
         byField[fieldKey].avgConfidence += Number(s.confidence);
       });
 
-      // Calculate acceptance rate and avg confidence per field
       Object.keys(byField).forEach(key => {
         const field = byField[key];
         const reviewed = field.accepted + field.rejected;
@@ -103,7 +97,6 @@ export function useAISuggestionsHistory() {
         field.avgConfidence = field.total > 0 ? field.avgConfidence / field.total : 0;
       });
 
-      // Group by entity type
       const byEntityType: SuggestionStats["byEntityType"] = {};
       suggestions.forEach(s => {
         if (!byEntityType[s.entity_type]) {
@@ -114,7 +107,6 @@ export function useAISuggestionsHistory() {
         if (s.status === "rejected") byEntityType[s.entity_type].rejected++;
       });
 
-      // Group by confidence range
       const byConfidenceRange: SuggestionStats["byConfidenceRange"] = {
         low: { total: 0, accepted: 0 },
         medium: { total: 0, accepted: 0 },

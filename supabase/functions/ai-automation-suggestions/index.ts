@@ -245,7 +245,7 @@ function validateConditions(
     
     // If operator is invalid for field type, use first valid operator
     if (!validOperators.includes(condition.operator)) {
-      console.log(`Fixing invalid operator "${condition.operator}" for field type "${fieldType}"`);
+      console.log(`[AI-SUGGESTIONS] Fixing invalid operator "${condition.operator}" for field type "${fieldType}"`);
       return {
         ...condition,
         operator: validOperators[0],
@@ -580,7 +580,7 @@ Return your suggestions using the suggest_automations function. Only include hig
         );
       }
       const errorText = await aiResponse.text();
-      console.error("AI API error:", aiResponse.status, errorText);
+      console.error("[AI-SUGGESTIONS] AI API error:", aiResponse.status, errorText);
       throw new Error("AI API error");
     }
 
@@ -654,8 +654,8 @@ Return your suggestions using the suggest_automations function. Only include hig
       });
     }
 
-    console.log("Validated suggestions:", validatedSuggestions.length);
-    console.log("Rejected suggestions:", rejectedSuggestions);
+    console.log("[AI-SUGGESTIONS] Validated suggestions:", validatedSuggestions.length);
+    console.log("[AI-SUGGESTIONS] Rejected suggestions:", rejectedSuggestions);
 
     // Store suggestions in database
     if (validatedSuggestions.length > 0) {
@@ -677,7 +677,7 @@ Return your suggestions using the suggest_automations function. Only include hig
         );
 
       if (insertError) {
-        console.error("Error storing suggestions:", insertError);
+        console.error("[AI-SUGGESTIONS] Error storing suggestions:", insertError);
       }
     }
 
@@ -696,7 +696,7 @@ Return your suggestions using the suggest_automations function. Only include hig
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in ai-automation-suggestions:", error);
+    console.error("[AI-SUGGESTIONS] Error in ai-automation-suggestions:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
