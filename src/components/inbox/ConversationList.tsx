@@ -39,6 +39,8 @@ import {
   CheckCircle,
   Clock,
   Archive,
+  AlignJustify,
+  List,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { cleanEmailPreview } from "@/lib/cleanEmailPreview";
@@ -103,9 +105,18 @@ export function ConversationList({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
+  const [density, setDensity] = useState<"normal" | "compact">(() => {
+    return (localStorage.getItem("inbox-density") as "normal" | "compact") || "normal";
+  });
   const updateStatus = useUpdateConversationStatus();
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
+
+  const toggleDensity = () => {
+    const next = density === "normal" ? "compact" : "normal";
+    setDensity(next);
+    localStorage.setItem("inbox-density", next);
+  };
 
   // Realtime subscription
   useEffect(() => {
@@ -121,8 +132,9 @@ export function ConversationList({
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
         const newMsg = payload.new as any;
         if (newMsg?.direction === 'inbound') {
+          const preview = cleanEmailPreview(newMsg.content, 80) || "Nova mensagem";
           toast.success("Nova mensagem recebida", {
-            description: newMsg.content?.substring(0, 80) || "Nova mensagem",
+            description: preview,
             duration: 4000,
           });
 
@@ -291,6 +303,19 @@ export function ConversationList({
               {processedConversations.length} conversa(s)
             </span>
             <div className="flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={toggleDensity}
+                  >
+                    {density === "normal" ? <AlignJustify className="w-3 h-3" /> : <List className="w-3 h-3" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>{density === "normal" ? "Compacto" : "Normal"}</p></TooltipContent>
+              </Tooltip>
               <Button
                 variant={selectionMode ? "secondary" : "ghost"}
                 size="icon"
@@ -340,7 +365,8 @@ export function ConversationList({
                   <div
                     key={conv.id}
                     className={cn(
-                      "group relative px-3 py-2.5 hover:bg-accent/50 transition-colors cursor-pointer",
+                      "group relative px-3 hover:bg-accent/50 transition-colors cursor-pointer",
+                      density === "normal" ? "py-2.5" : "py-1.5",
                       selectedId === conv.id && "bg-accent",
                       isSelected && "bg-primary/5"
                     )}
