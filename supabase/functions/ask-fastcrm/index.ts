@@ -556,14 +556,15 @@ Deno.serve(async (req) => {
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: claimsData, error: claimsError } =
-      await userClient.auth.getClaims(authHeader.replace("Bearer ", ""));
-    if (claimsError || !claimsData?.claims) {
+    const { data: userData, error: userError } = await userClient.auth.getUser();
+    if (userError || !userData?.user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    // Build claims-compatible object for backward compatibility
+    const claimsData = { claims: { sub: userData.user.id, email: userData.user.email } };
 
     const workspaceId = req.headers.get("X-Workspace-Id");
     if (!workspaceId) {
@@ -607,7 +608,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (keywordResult && keywordResult.confidence >= 0.75) {
+    if (keywordResult && keywordResult.confidence >= 0.50) {
       intent = keywordResult.intent;
       days = keywordResult.days;
       confidence = keywordResult.confidence;
@@ -1079,9 +1080,9 @@ const AUTOMATION_TOOL = {
 };
 
 const AUTOMATION_DID_YOU_MEAN: Record<AutomationObjectType, string[]> = {
-  deal: ["Remind me if no activity for 7 days", "Create follow-up when deal enters Proposal", "Alert me when deals are at risk"],
-  contact: ["Notify me if contact hasn't replied in 14 days", "Create task when new contact is created", "Assign new contacts to SDR team"],
-  invoice: ["Alert me when invoice is overdue", "Notify owner 3 days before due date", "Mark invoice as at risk if overdue 10 days"],
+  deal: ["Avisar se sem atividade há 7 dias", "Criar follow-up quando deal entra em Proposta", "Alertar quando deals estão em risco"],
+  contact: ["Notificar se contacto não respondeu em 14 dias", "Criar tarefa quando novo contacto é criado", "Atribuir novos contactos à equipa SDR"],
+  invoice: ["Alertar quando fatura está vencida", "Notificar responsável 3 dias antes do vencimento", "Marcar como risco se vencida há 10 dias"],
 };
 
 async function handleAutomationIntent(question: string, workspaceId: string, userId: string, serviceClient: any, detectedObjectType: AutomationObjectType) {
@@ -1120,8 +1121,8 @@ async function handleAutomationIntent(question: string, workspaceId: string, use
         object_type: "deals",
         query: { filters: [], sort: [], limit: 0 },
         answer: {
-          headline: "Invoice automations require the Finance Pack.",
-          subtext: "Activate it in Marketplace to unlock invoice rules.",
+          headline: "Automações de faturação requerem o módulo Financeiro.",
+          subtext: "Activa-o no Marketplace para desbloquear regras de faturação.",
         },
         actions_available: [],
         items: [],
@@ -1194,7 +1195,7 @@ Always call the tool. Generate clear human-readable labels. Keep names short.`,
       console.error("AI gateway error for automation:", aiResponse.status);
       return buildResponse("create_automation_rule", "deals",
         { filters: [], sort: [], limit: 0 }, "llm", 0,
-        { headline: "Couldn't understand that automation request.", items: [], actions: [], did_you_mean: AUTOMATION_DID_YOU_MEAN[detectedObjectType] }
+        { headline: "Não consegui compreender esse pedido de automação.", items: [], actions: [], did_you_mean: AUTOMATION_DID_YOU_MEAN[detectedObjectType] }
       );
     }
 
@@ -1203,7 +1204,7 @@ Always call the tool. Generate clear human-readable labels. Keep names short.`,
     if (!toolCall) {
       return buildResponse("create_automation_rule", "deals",
         { filters: [], sort: [], limit: 0 }, "llm", 0,
-        { headline: "Couldn't parse that as an automation rule.", items: [], actions: [], did_you_mean: AUTOMATION_DID_YOU_MEAN[detectedObjectType] }
+        { headline: "Não consegui interpretar como regra de automação.", items: [], actions: [], did_you_mean: AUTOMATION_DID_YOU_MEAN[detectedObjectType] }
       );
     }
 
@@ -1213,7 +1214,7 @@ Always call the tool. Generate clear human-readable labels. Keep names short.`,
     } catch {
       return buildResponse("create_automation_rule", "deals",
         { filters: [], sort: [], limit: 0 }, "llm", 0,
-        { headline: "Couldn't parse automation rule.", items: [], actions: [], did_you_mean: DID_YOU_MEAN_DEFAULTS }
+        { headline: "Não consegui processar a regra de automação.", items: [], actions: [], did_you_mean: DID_YOU_MEAN_DEFAULTS }
       );
     }
 
@@ -1225,7 +1226,7 @@ Always call the tool. Generate clear human-readable labels. Keep names short.`,
     if (!resolvedConfig.triggers.includes(parsed.trigger)) {
       return buildResponse("create_automation_rule", "deals",
         { filters: [], sort: [], limit: 0 }, "llm", 0.3,
-        { headline: `That trigger isn't supported for ${resolvedObjectType}s.`, items: [], actions: [], did_you_mean: AUTOMATION_DID_YOU_MEAN[resolvedObjectType] }
+        { headline: `Esse gatilho não é suportado para ${resolvedObjectType === "deal" ? "deals" : resolvedObjectType === "contact" ? "contactos" : "faturas"}.`, items: [], actions: [], did_you_mean: AUTOMATION_DID_YOU_MEAN[resolvedObjectType] }
       );
     }
 
@@ -1234,7 +1235,7 @@ Always call the tool. Generate clear human-readable labels. Keep names short.`,
     if (validActions.length === 0) {
       return buildResponse("create_automation_rule", "deals",
         { filters: [], sort: [], limit: 0 }, "llm", 0.3,
-        { headline: `That action isn't supported for ${resolvedObjectType}s.`, items: [], actions: [], did_you_mean: AUTOMATION_DID_YOU_MEAN[resolvedObjectType] }
+        { headline: `Essa ação não é suportada para ${resolvedObjectType === "deal" ? "deals" : resolvedObjectType === "contact" ? "contactos" : "faturas"}.`, items: [], actions: [], did_you_mean: AUTOMATION_DID_YOU_MEAN[resolvedObjectType] }
       );
     }
 
@@ -1254,7 +1255,7 @@ Always call the tool. Generate clear human-readable labels. Keep names short.`,
         // Starter: max 1 condition, max 1 action
         if (validConditions.length > 1) validConditions.length = 1;
         if (validActions.length > 1) validActions.length = 1;
-        planNote = "Your plan supports 1 condition and 1 action per rule.";
+        planNote = "O teu plano suporta 1 condição e 1 ação por regra.";
       } else if (wsPlan === "growth") {
         // Growth: multi-conditions allowed, but max 1 action
         if (validActions.length > 1) validActions.length = 1;
@@ -1292,6 +1293,7 @@ Always call the tool. Generate clear human-readable labels. Keep names short.`,
         if (logErr) console.error("ask-fastcrm automation log error:", logErr);
       });
 
+    const objectLabelPT = resolvedObjectType === "deal" ? "Deals" : resolvedObjectType === "contact" ? "Contactos" : "Faturas";
     return {
       version: "1.0",
       routed_via: "llm",
@@ -1300,8 +1302,8 @@ Always call the tool. Generate clear human-readable labels. Keep names short.`,
       object_type: "deals",
       query: { filters: [], sort: [], limit: 0 },
       answer: {
-        headline: `You're creating a new automation for ${objectLabel}s.`,
-        subtext: planNote || "Review the details below and confirm.",
+        headline: `A criar nova automação para ${objectLabelPT}.`,
+        subtext: planNote || "Revê os detalhes abaixo e confirma.",
       },
       actions_available: ["CONFIRM_AUTOMATION", "CANCEL"],
       items: [],
@@ -1312,7 +1314,7 @@ Always call the tool. Generate clear human-readable labels. Keep names short.`,
     console.error("Automation intent error:", e);
     return buildResponse("create_automation_rule", "deals",
       { filters: [], sort: [], limit: 0 }, "llm", 0,
-      { headline: "Something went wrong creating the rule.", items: [], actions: [], did_you_mean: DID_YOU_MEAN_DEFAULTS }
+      { headline: "Ocorreu um erro ao criar a regra.", items: [], actions: [], did_you_mean: DID_YOU_MEAN_DEFAULTS }
     );
   }
 }
@@ -1418,8 +1420,8 @@ async function queryDealsAtRisk(client: any, workspaceId: string) {
       const score = scoreMap.get(r.deal_id) ?? r.payload.health_score;
       return {
         id: deal.id,
-        title: deal.title || "Untitled Deal",
-        subtitle: `Health ${score} · ${r.payload.top_reason || "At risk"}`,
+        title: deal.title || "Deal sem nome",
+        subtitle: `Saúde ${score} · ${r.payload.top_reason || "Em risco"}`,
         value: Number(deal.value) || 0,
         health_label: "AT_RISK",
         link: `/dashboard/opportunities?deal=${deal.id}`,
@@ -1432,15 +1434,15 @@ async function queryDealsAtRisk(client: any, workspaceId: string) {
     .map(({ _score, ...rest }: any) => rest);
 
   const suggestion = items.length > 0 ? {
-    text: `You have ${items.length} deal${items.length !== 1 ? "s" : ""} at risk. Want me to create follow-up tasks?`,
+    text: `Tens ${items.length} deal${items.length !== 1 ? "s" : ""} em risco. Queres que crie tarefas de follow-up?`,
     action: {
       id: "suggest_tasks",
-      label: "Create follow-ups",
+      label: "Criar follow-ups",
       icon: "ListTodo",
       type: "bulk_task",
       payload: {
         deal_ids: items.map((i: any) => i.id),
-        task_title: "Follow up on at-risk deal",
+        task_title: "Follow up deal em risco",
         priority: "HIGH",
       },
     },
@@ -1857,7 +1859,7 @@ async function queryForecastRisk(client: any, workspaceId: string) {
           },
           {
             id: "view_as_list",
-            label: "View pipeline",
+            label: "Ver pipeline",
             icon: "Eye",
             type: "navigate",
             payload: { link: "/dashboard/opportunities" },
@@ -1865,7 +1867,7 @@ async function queryForecastRisk(client: any, workspaceId: string) {
         ]
       : [],
     metric: {
-      label: "At Risk Value",
+      label: "Valor em Risco",
       value: `€${totalAtRiskValue.toLocaleString()}`,
       trend: atRiskDeals.length > 0 ? "down" : "neutral",
     },
@@ -2232,8 +2234,8 @@ async function queryDealsStuckInStage(client: any, workspaceId: string) {
       if (daysIn <= stage.expected) return null;
       return {
         id: o.id,
-        title: o.title || "Untitled Deal",
-        subtitle: `${daysIn} days in "${stage.name}" (expected ${stage.expected})`,
+        title: o.title || "Deal sem nome",
+        subtitle: `${daysIn} dias em "${stage.name}" (esperado ${stage.expected})`,
         value: Number(o.value) || 0,
         health_label: daysIn > stage.expected * 2 ? "AT_RISK" : "WATCH",
         link: `/dashboard/opportunities?deal=${o.id}`,
@@ -2494,28 +2496,28 @@ async function queryPipelineComparison(client: any, workspaceId: string) {
         label: name,
         sublabel: `${b.count} deals · €${b.value.toLocaleString()}`,
         value: health,
-        badge: risk > 30 ? "HIGH RISK" : risk > 15 ? "WATCH" : "HEALTHY",
+        badge: risk > 30 ? "ALTO RISCO" : risk > 15 ? "ATENÇÃO" : "SAUDÁVEL",
         meta: { health, risk_pct: risk, velocity: Math.round(velocity * 100) / 100, revenue_share: share },
       });
 
-      if (risk > 30) insights.push(`${name} shows high risk (${risk}% at risk).`);
-      if (velocity > 1.2) insights.push(`${name} is ${Math.round((velocity - 1) * 100)}% slower than benchmark.`);
-      if (share > 60) insights.push(`Revenue concentrated: ${share}% in ${name}.`);
+      if (risk > 30) insights.push(`${name} apresenta risco alto (${risk}% em risco).`);
+      if (velocity > 1.2) insights.push(`${name} está ${Math.round((velocity - 1) * 100)}% mais lento que o esperado.`);
+      if (share > 60) insights.push(`Receita concentrada: ${share}% em ${name}.`);
     }
 
     items.sort((a, b) => b.value - a.value);
 
     return {
       headline: items.length > 0
-        ? `Comparing ${items.length} pipeline${items.length !== 1 ? "s" : ""} with ${(opps || []).length} active deals.`
-        : "Not enough data to compare pipelines (need ≥5 deals each).",
+        ? `Comparação de ${items.length} pipeline${items.length !== 1 ? "s" : ""} com ${(opps || []).length} deals activos.`
+        : "Dados insuficientes para comparar pipelines (necessário ≥5 deals cada).",
       subtext: insights.length > 0 ? insights[0] : undefined,
       items: items.slice(0, 10),
       actions: items.length > 0
-        ? [{ id: "view_revenue", label: "View Revenue Overview", icon: "TrendingUp", type: "navigate", payload: { link: "/dashboard/revenue" } }]
+        ? [{ id: "view_revenue", label: "Ver receita", icon: "TrendingUp", type: "navigate", payload: { link: "/dashboard/revenue" } }]
         : [],
       metric: {
-        label: "Pipelines Analyzed",
+        label: "Pipelines Analisados",
         value: `${items.length}`,
         trend: "neutral" as const,
       },
@@ -2523,7 +2525,7 @@ async function queryPipelineComparison(client: any, workspaceId: string) {
   } catch (err) {
     console.error("queryPipelineComparison error:", err);
     return {
-      headline: "Pipeline comparison data is not available yet.",
+      headline: "Dados de comparação de pipelines não disponíveis.",
       items: [],
       actions: [],
       metric: { label: "Pipelines", value: "—", trend: "neutral" as const },
