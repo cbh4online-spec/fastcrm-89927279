@@ -438,6 +438,7 @@ async function generateKBResponse(
         .single();
       
       if (persona) {
+        console.log(`[AI-PERSONAS] PERSONA_SELECTED id=${widget.default_persona_id} channel=widget`);
         personaInstructions = `
 Tone: ${persona.tone_of_voice || "empático"}
 Style: ${persona.language_style || "conversational"}

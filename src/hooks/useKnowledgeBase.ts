@@ -684,11 +684,21 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
+      console.log(`[AI-PERSONAS] PERSONA_CREATED id=${persona.id}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'PERSONA.CREATED',
+        entity_kind: 'ai_persona',
+        entity_id: persona.id,
+        source_module: 'ai-personas',
+        payload: { name: persona.name, persona_type: persona.persona_type, is_active: persona.is_active },
+      });
+
       toast.success('Persona criada');
       await fetchPersonas();
       return persona;
     } catch (error) {
-      console.error('Error creating persona:', error);
+      console.error('[AI-PERSONAS] PERSONA_CREATE_FAILED', error);
       toast.error('Erro ao criar persona');
       return null;
     }
@@ -727,21 +737,22 @@ export function useKnowledgeBase() {
       toast.success('Persona atualizada');
       await fetchPersonas();
 
-      // Kernel event: ASSISTANT.PERSONA_UPDATED
+      // Kernel event: PERSONA.UPDATED
+      console.log(`[AI-PERSONAS] PERSONA_UPDATED id=${personaId}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
-          type: 'ASSISTANT.PERSONA_UPDATED',
+          type: 'PERSONA.UPDATED',
           entity_kind: 'ai_persona',
           entity_id: personaId,
-          source_module: 'ai-assistants',
+          source_module: 'ai-personas',
           payload: { name: data.name, changed_fields: Object.keys(data) },
         });
       }
 
       return persona;
     } catch (error) {
-      console.error('Error updating persona:', error);
+      console.error('[AI-PERSONAS] PERSONA_UPDATE_FAILED', error);
       toast.error('Erro ao atualizar persona');
       return null;
     }
@@ -760,11 +771,22 @@ export function useKnowledgeBase() {
 
       if (error) throw error;
 
+      console.log(`[AI-PERSONAS] PERSONA_DELETED id=${personaId}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'PERSONA.DELETED',
+          entity_kind: 'ai_persona',
+          entity_id: personaId,
+          source_module: 'ai-personas',
+        });
+      }
+
       toast.success('Persona eliminada');
       await fetchPersonas();
       return true;
     } catch (error) {
-      console.error('Error deleting persona:', error);
+      console.error('[AI-PERSONAS] PERSONA_DELETE_FAILED', error);
       toast.error('Erro ao eliminar persona');
       return false;
     }

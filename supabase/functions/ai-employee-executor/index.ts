@@ -623,6 +623,7 @@ async function runPrompt(
       .maybeSingle();
     if (persona) {
       const p = persona as any;
+      console.log(`[AI-PERSONAS] PERSONA_SELECTED id=${bot.ai_profile_id} channel=${channelType}`);
       personaBlock = [
         `## Persona: ${p.name}`,
         p.tone_of_voice ? `- Tom: ${p.tone_of_voice}` : "",
