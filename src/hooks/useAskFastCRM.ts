@@ -192,7 +192,7 @@ export function useAskFastCRM() {
       try {
         await supabase.from("kernel_events").insert({
           workspace_id: currentWorkspace.id,
-          event_type: "COMMAND_CENTER.QUICK_ACTION_CLICKED",
+          type: "COMMAND_CENTER.QUICK_ACTION_CLICKED",
           actor_type: "user",
           actor_id: user.id,
           entity_kind: action.type,
