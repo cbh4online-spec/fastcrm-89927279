@@ -534,6 +534,12 @@ Deno.serve(async (req) => {
                 content: `You classify CRM revenue questions into intents. Return ONLY structured output via tool call.
 IMPORTANT: The user speaks Portuguese (pt-PT). All headline and subtext responses MUST be in Portuguese de Portugal. Never respond in English.
 
+${crm_summary ? `CRM Context (use to answer questions about clients, contacts, companies):
+- Top contacts: ${JSON.stringify(crm_summary.top_contacts || [])}
+- Top companies: ${JSON.stringify(crm_summary.top_companies || [])}
+- Active leads: ${crm_summary.active_leads_count ?? 'unknown'}
+` : ''}
+
 Available intents: deals_at_risk, deals_inactive, closing_soon, forecast_summary, forecast_risk, pipeline_summary, pipeline_comparison, contacts_inactive, stage_bottleneck, deals_no_next_step, deals_stuck_in_stage, high_value_deals, overdue_invoices, pending_approvals
 
 Intent descriptions:
@@ -562,6 +568,11 @@ Allowed sort fields: ${ALLOWED_SORT_FIELDS.join(", ")}
 
 Always call the tool. Only use allowed fields, operators, and sort fields.`,
               },
+              // Include conversation history for context
+              ...(Array.isArray(conversation_history) ? conversation_history.slice(-20).map((m: any) => ({
+                role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+                content: String(m.content || ''),
+              })) : []),
               { role: "user", content: question },
             ],
             tools: INTENT_TOOLS,

@@ -98,7 +98,7 @@ export function useAskFastCRM() {
       const [contactsRes, companiesRes, leadsRes] = await Promise.all([
         supabase
           .from("contacts")
-          .select("id, full_name, email, updated_at")
+          .select("id, first_name, last_name, email, updated_at")
           .eq("workspace_id", currentWorkspace.id)
           .order("updated_at", { ascending: false })
           .limit(5),
@@ -110,11 +110,10 @@ export function useAskFastCRM() {
         supabase
           .from("leads")
           .select("id", { count: "exact", head: true })
-          .eq("workspace_id", currentWorkspace.id)
-          .eq("status", "active"),
+          .eq("workspace_id", currentWorkspace.id),
       ]);
       return {
-        top_contacts: (contactsRes.data || []).map(c => ({ name: c.full_name, email: c.email })),
+        top_contacts: (contactsRes.data || []).map(c => ({ name: [c.first_name, c.last_name].filter(Boolean).join(" "), email: c.email })),
         top_companies: (companiesRes.data || []).map(c => c.name),
         active_leads_count: leadsRes.count ?? 0,
       };
