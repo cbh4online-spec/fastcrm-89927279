@@ -88,9 +88,8 @@ const GROUP_COLORS: Record<string, string> = {
 
 export const NAV_V1_ITEMS: NavV1Item[] = [
   // Principal
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Principal", end: true },
+  { name: "Início", href: "/dashboard", icon: Zap, group: "Principal", end: true },
   { name: "Mural Interno", href: "/dashboard/feed", icon: Newspaper, group: "Principal" },
-  { name: "Command Center", href: "/dashboard/command-center", icon: Terminal, group: "Principal" },
 
   // Comunicação
   { name: "WhatsApp", href: "/dashboard/inbox", icon: Phone, group: "Comunicação", separator: true },
