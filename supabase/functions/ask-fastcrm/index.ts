@@ -706,7 +706,76 @@ Always call the tool. Only use allowed fields, operators, and sort fields.`,
     const hasItems = (handlerResult.items?.length || 0) > 0;
     const actionsAvailable = getActionsAvailable(intent, hasItems);
 
+    // --- LLM Contextual Response: Feed real data to LLM for natural language answer ---
+    let aiContextualResponse: string | undefined;
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (LOVABLE_API_KEY && hasItems) {
+      try {
+        const dataSummary = JSON.stringify({
+          intent,
+          headline: handlerResult.headline,
+          items_count: handlerResult.items?.length || 0,
+          items_preview: (handlerResult.items || []).slice(0, 5).map((i: any) => ({
+            title: i.title,
+            subtitle: i.subtitle,
+            value: i.value,
+            health: i.health_label,
+          })),
+          metric: handlerResult.metric,
+          ...(crm_summary ? { crm_context: crm_summary } : {}),
+        });
+
+        const contextMessages: any[] = [
+          {
+            role: "system",
+            content: `Generates a brief, actionable Portuguese (pt-PT) analysis based on CRM query results. 
+Rules:
+- Max 3 sentences
+- Be specific: use names, values, numbers from the data
+- Suggest 1-2 concrete next actions
+- Never invent data not present in the input
+- Always in Portuguese de Portugal`,
+          },
+        ];
+
+        // Include conversation history for contextual follow-ups
+        if (Array.isArray(conversation_history)) {
+          conversation_history.slice(-10).forEach((m: any) => {
+            contextMessages.push({
+              role: m.role === 'user' ? 'user' : 'assistant',
+              content: String(m.content || ''),
+            });
+          });
+        }
+
+        contextMessages.push({
+          role: "user",
+          content: `The user asked: "${question}"\n\nQuery results:\n${dataSummary}\n\nGenerate a brief contextual analysis in Portuguese.`,
+        });
+
+        const contextualAiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-lite",
+            messages: contextMessages,
+          }),
+        });
+
+        if (contextualAiResponse.ok) {
+          const ctxData = await contextualAiResponse.json();
+          aiContextualResponse = ctxData.choices?.[0]?.message?.content;
+        }
+      } catch (e) {
+        console.error("Contextual LLM response error (non-fatal):", e);
+      }
+    }
+
     // --- Build strict response ---
+    const finalSubtext = aiContextualResponse || handlerResult.subtext;
     const response = buildResponse(
       intent,
       query.object_type,
@@ -715,7 +784,7 @@ Always call the tool. Only use allowed fields, operators, and sort fields.`,
       confidence,
       {
         headline: handlerResult.headline || handlerResult.header || "",
-        subtext: handlerResult.subtext,
+        subtext: finalSubtext,
         items: handlerResult.items,
         actions: handlerResult.actions,
         actions_available: actionsAvailable,
@@ -725,12 +794,49 @@ Always call the tool. Only use allowed fields, operators, and sort fields.`,
       }
     );
 
+    // --- Emit Kernel Events (non-blocking) ---
+    const userId = claimsData.claims.sub;
+    serviceClient
+      .from("kernel_events")
+      .insert([
+        {
+          workspace_id: workspaceId,
+          event_type: "CHAT.INTENT_DETECTED",
+          actor_type: "system",
+          actor_id: userId,
+          entity_type: "ask_fastcrm",
+          entity_id: workspaceId,
+          payload: { intent, confidence, routed_via: routedVia, question_length: question.length },
+        },
+        {
+          workspace_id: workspaceId,
+          event_type: "CHAT.ACTION_EXECUTED",
+          actor_type: "system",
+          actor_id: userId,
+          entity_type: query.object_type,
+          entity_id: workspaceId,
+          payload: { intent, items_count: response.items?.length ?? 0, has_contextual_response: !!aiContextualResponse },
+        },
+        {
+          workspace_id: workspaceId,
+          event_type: "CHAT.RESPONSE_GENERATED",
+          actor_type: "system",
+          actor_id: userId,
+          entity_type: "ask_fastcrm",
+          entity_id: workspaceId,
+          payload: { intent, routed_via: routedVia, items_count: response.items?.length ?? 0, actions_count: response.actions?.length ?? 0 },
+        },
+      ])
+      .then(({ error: evtErr }: any) => {
+        if (evtErr) console.error("kernel_events insert error:", evtErr);
+      });
+
     // --- Log query (non-blocking) ---
     serviceClient
       .from("ask_fastcrm_query_logs")
       .insert({
         workspace_id: workspaceId,
-        user_id: claimsData.claims.sub,
+        user_id: userId,
         question,
         intent,
         items_count: response.items?.length ?? 0,
