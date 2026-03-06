@@ -92,8 +92,39 @@ export function useAskFastCRM() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const fetchCrmSummary = useCallback(async () => {
+    if (!currentWorkspace?.id) return undefined;
+    try {
+      const [contactsRes, companiesRes, leadsRes] = await Promise.all([
+        supabase
+          .from("contacts")
+          .select("id, full_name, email, updated_at")
+          .eq("workspace_id", currentWorkspace.id)
+          .order("updated_at", { ascending: false })
+          .limit(5),
+        supabase
+          .from("companies")
+          .select("id, name")
+          .eq("workspace_id", currentWorkspace.id)
+          .limit(5),
+        supabase
+          .from("leads")
+          .select("id", { count: "exact", head: true })
+          .eq("workspace_id", currentWorkspace.id)
+          .eq("status", "active"),
+      ]);
+      return {
+        top_contacts: (contactsRes.data || []).map(c => ({ name: c.full_name, email: c.email })),
+        top_companies: (companiesRes.data || []).map(c => c.name),
+        active_leads_count: leadsRes.count ?? 0,
+      };
+    } catch {
+      return undefined;
+    }
+  }, [currentWorkspace?.id]);
+
   const ask = useCallback(
-    async (question: string) => {
+    async (question: string, conversationHistory?: { role: string; content: string }[]) => {
       if (!currentWorkspace?.id || !question.trim()) return;
       setIsLoading(true);
       setError(null);
@@ -101,10 +132,22 @@ export function useAskFastCRM() {
       setPendingAction(null);
 
       try {
+        // Fetch lightweight CRM context
+        const crmSummary = await fetchCrmSummary();
+
+        // Limit history to last 20 messages
+        const history = conversationHistory
+          ? conversationHistory.slice(-20)
+          : undefined;
+
         const { data, error: fnError } = await supabase.functions.invoke(
           "ask-fastcrm",
           {
-            body: { question: question.trim() },
+            body: {
+              question: question.trim(),
+              conversation_history: history,
+              crm_summary: crmSummary,
+            },
             headers: { "X-Workspace-Id": currentWorkspace.id },
           }
         );
@@ -121,7 +164,7 @@ export function useAskFastCRM() {
         setIsLoading(false);
       }
     },
-    [currentWorkspace?.id]
+    [currentWorkspace?.id, fetchCrmSummary]
   );
 
   const clear = useCallback(() => {

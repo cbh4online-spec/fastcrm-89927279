@@ -469,7 +469,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { question } = await req.json();
+    const body = await req.json();
+    const { question, conversation_history, crm_summary } = body;
     if (!question || typeof question !== "string") {
       return new Response(
         JSON.stringify({ error: "Missing question field" }),
