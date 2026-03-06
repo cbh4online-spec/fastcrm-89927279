@@ -86,12 +86,14 @@ export function AIQuestionBox() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Auto-open drawer when conversation has > 2 exchanges (4 messages)
+  // Auto-open drawer once when conversation has > 2 exchanges (4 messages)
+  const autoOpenedRef = useRef(false);
   useEffect(() => {
-    if (messages.length >= 4 && !drawerOpen) {
+    if (messages.length >= 4 && !autoOpenedRef.current) {
       setDrawerOpen(true);
+      autoOpenedRef.current = true;
     }
-  }, [messages.length, drawerOpen]);
+  }, [messages.length]);
 
   // When ask-fastcrm result comes in, add it to chat with contextual suggestions
   useEffect(() => {
@@ -187,6 +189,7 @@ export function AIQuestionBox() {
   const handleNewConversation = useCallback(() => {
     setMessages([]);
     setDrawerOpen(false);
+    autoOpenedRef.current = false;
     clear();
     setSlashResult(null);
   }, [clear]);
