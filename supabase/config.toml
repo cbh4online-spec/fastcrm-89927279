@@ -1,5 +1,8 @@
 project_id = "eumnfkccyvlyoyjchiwe"
 
+[functions.ask-fastcrm]
+verify_jwt = false
+
 [functions.context-ai-assist]
 verify_jwt = false
 
