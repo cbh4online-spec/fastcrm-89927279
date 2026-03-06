@@ -195,7 +195,7 @@ export function useAskFastCRM() {
           event_type: "COMMAND_CENTER.QUICK_ACTION_CLICKED",
           actor_type: "user",
           actor_id: user.id,
-          entity_type: action.type,
+          entity_kind: action.type,
           entity_id: action.id || "unknown",
           payload: { action_label: action.label, action_type: action.type, payload: action.payload },
         });
