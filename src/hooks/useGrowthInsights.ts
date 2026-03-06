@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { emitKernelEvent } from '@/lib/kernelEmitter';
 import { 
   customerRankingService,
   sellerRankingService,
@@ -203,7 +204,7 @@ export function useGrowthInsights(options: UseGrowthInsightsOptions = {}) {
       setLifecycleEvents(events);
 
     } catch (err) {
-      console.error('Error fetching growth insights:', err);
+      console.warn('[B2B-INTELLIGENCE] GROWTH_DATA_FAILED', (err as Error).message);
       setError('Erro ao carregar dados de crescimento');
     } finally {
       setIsLoading(false);
@@ -227,9 +228,26 @@ export function useGrowthInsights(options: UseGrowthInsightsOptions = {}) {
 
       if (error) throw error;
       setAiAnalysis(data);
+
+      console.log('[B2B-INTELLIGENCE] INSIGHT_GENERATED confidence=' + (data?.confidenceLevel ?? 'N/A') + ' insights=' + (data?.insights?.length ?? 0) + ' recommendations=' + (data?.recommendations?.length ?? 0));
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'B2B.INSIGHT_GENERATED',
+        entity_kind: 'growth_analysis',
+        entity_id: currentWorkspace.id,
+        source_module: 'b2b-intelligence',
+        payload: {
+          confidence_level: data?.confidenceLevel,
+          insights_count: data?.insights?.length ?? 0,
+          recommendations_count: data?.recommendations?.length ?? 0,
+          customer_id: context?.customerId,
+          seller_id: context?.sellerId,
+        },
+      });
+
       return data;
     } catch (err) {
-      console.error('Error fetching AI analysis:', err);
+      console.error('[B2B-INTELLIGENCE] AI_ANALYSIS_FAILED', (err as Error).message);
       return null;
     }
   };

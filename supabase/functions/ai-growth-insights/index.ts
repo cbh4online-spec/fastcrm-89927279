@@ -130,7 +130,7 @@ Responde em JSON com a estrutura:
         );
       }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("[B2B-INTELLIGENCE] AI_GATEWAY_ERROR status=" + response.status, errorText);
       throw new Error("AI gateway error");
     }
 
@@ -156,22 +156,26 @@ Responde em JSON com a estrutura:
       };
     }
 
+    const result = {
+      customerId: context?.customerId,
+      sellerId: context?.sellerId,
+      insights: analysis.insights || [],
+      recommendations: analysis.recommendations || [],
+      patterns: analysis.patterns || [],
+      nextBestActions: analysis.nextBestActions || [],
+      confidenceLevel: analysis.confidenceLevel || 0.7,
+      analysisTimestamp: new Date().toISOString()
+    };
+
+    console.log(`[B2B-INTELLIGENCE] INSIGHT_GENERATED confidence=${result.confidenceLevel} insights=${result.insights.length} recommendations=${result.recommendations.length}`);
+
     return new Response(
-      JSON.stringify({
-        customerId: context?.customerId,
-        sellerId: context?.sellerId,
-        insights: analysis.insights || [],
-        recommendations: analysis.recommendations || [],
-        patterns: analysis.patterns || [],
-        nextBestActions: analysis.nextBestActions || [],
-        confidenceLevel: analysis.confidenceLevel || 0.7,
-        analysisTimestamp: new Date().toISOString()
-      }),
+      JSON.stringify(result),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
-    console.error("Error in ai-growth-insights:", error);
+    console.error("[B2B-INTELLIGENCE] AI_GROWTH_INSIGHTS_FAILED", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

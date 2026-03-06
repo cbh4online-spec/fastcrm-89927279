@@ -32,7 +32,7 @@ export function useProtocolRecommendations(
       });
 
       if (error) {
-        console.error("AI protocol recommendations error:", error);
+        console.warn("[B2B-INTELLIGENCE] PROTOCOL_RECS_FAILED", error.message ?? error);
         return [];
       }
 
@@ -60,7 +60,7 @@ export function useCartRecommendations(
       });
 
       if (error) {
-        console.error("AI cart recommendations error:", error);
+        console.warn("[B2B-INTELLIGENCE] CART_RECS_FAILED", error.message ?? error);
         return [];
       }
 
