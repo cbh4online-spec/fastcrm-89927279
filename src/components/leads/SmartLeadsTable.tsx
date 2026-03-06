@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   useSmartLeads, 
   useAnalyzeLead, 
@@ -35,6 +35,7 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 export function SmartLeadsTable() {
   const { t } = useTranslation("crm");
+  const navigate = useNavigate();
 
   const LEAD_COLUMNS: ColumnConfig[] = useMemo(() => [
     { id: "name", label: t("col_lead"), category: "basic", defaultVisible: true },
@@ -366,19 +367,19 @@ export function SmartLeadsTable() {
                     paginatedLeads.map((lead) => {
                       const initials = lead.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
                       return (
-                        <TableRow key={lead.id} className={cn("group transition-colors", selectedIds.has(lead.id) && "bg-muted/50", lead.slaBreach && "bg-destructive/5")}>
-                          <TableCell className={cn("w-[40px]", stickyCheckboxStyles)}><Checkbox checked={selectedIds.has(lead.id)} onCheckedChange={() => toggleSelect(lead.id)} /></TableCell>
+                        <TableRow key={lead.id} className={cn("group transition-colors cursor-pointer", selectedIds.has(lead.id) && "bg-muted/50", lead.slaBreach && "bg-destructive/5")} onClick={() => navigate(`/dashboard/leads/${lead.id}`)}>
+                          <TableCell className={cn("w-[40px]", stickyCheckboxStyles)} onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedIds.has(lead.id)} onCheckedChange={() => toggleSelect(lead.id)} /></TableCell>
                           <TableCell className={stickyNameStyles}>
                             <div className="flex items-center gap-3">
                               <Avatar className="h-9 w-9"><AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground text-xs font-medium">{initials}</AvatarFallback></Avatar>
                               <div className="min-w-0">
-                                <Link to={`/dashboard/leads/${lead.id}`} className="font-medium text-foreground hover:text-primary hover:underline truncate block">{lead.name}</Link>
+                                <Link to={`/dashboard/leads/${lead.id}`} className="font-medium text-foreground hover:text-primary hover:underline truncate block relative z-10" onClick={(e) => e.stopPropagation()}>{lead.name}</Link>
                                 {(lead as any).company_name && <div className="flex items-center gap-1 text-xs text-muted-foreground"><Building2 className="w-3 h-3" /><span className="truncate">{(lead as any).company_name}</span></div>}
                               </div>
                             </div>
                           </TableCell>
                           {orderedVisibleColumns.map(col => <TableCell key={col.id}><DynamicTableCell columnId={col.id} entity={lead as any} entityType="lead" /></TableCell>)}
-                          <TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleAnalyzeLead(lead.id)} disabled={analyzingId === lead.id}><Sparkles className={cn("w-4 h-4", analyzingId === lead.id && "animate-pulse")} /></Button>
                               <Link to={`/dashboard/leads/${lead.id}`}><Button variant="ghost" size="icon" className="h-7 w-7"><ExternalLink className="w-4 h-4" /></Button></Link>
