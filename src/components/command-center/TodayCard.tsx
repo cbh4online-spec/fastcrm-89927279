@@ -6,17 +6,18 @@ import { Calendar, CheckSquare, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 export function TodayCard({ delay = 0 }: { delay?: number }) {
   const { data: tasks, isLoading: tasksLoading, isError: tasksError } = useTasks({ status: "pending" });
   const { calendars } = useCalendars();
-  const calendarIds = calendars?.map((c) => c.id) ?? [];
-  const today = new Date();
-  const { events, isLoading: eventsLoading, error: eventsErrorMsg } = useCalendarEvents(calendarIds, {
+  const calendarIds = useMemo(() => calendars?.map((c) => c.id) ?? [], [calendars]);
+  const today = useMemo(() => new Date(), []);
+  const dateRange = useMemo(() => ({
     start: startOfDay(today),
     end: endOfDay(today),
-  });
+  }), [today]);
+  const { events, isLoading: eventsLoading, error: eventsErrorMsg } = useCalendarEvents(calendarIds, dateRange);
 
   const isLoading = tasksLoading || eventsLoading;
   const isError = tasksError || !!eventsErrorMsg;
