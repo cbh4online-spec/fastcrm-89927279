@@ -251,8 +251,11 @@ export function useUpdateLead() {
       queryClient.invalidateQueries({ queryKey: ["leads", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["lead", data.id] });
 
-      // Kernel event: lead updated
       if (currentWorkspace?.id) {
+        const changedFields = Object.keys(variables).filter(k => k !== 'id');
+        const correlationId = generateRequestId();
+
+        // Kernel event: lead updated / status changed
         const eventType = variables.status ? 'LEAD.STATUS_CHANGED' : 'LEAD.UPDATED';
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
@@ -260,10 +263,24 @@ export function useUpdateLead() {
           entity_kind: 'lead',
           entity_id: data.id,
           actor_type: 'user',
-          payload: { name: data.name, status: data.status, changed_fields: Object.keys(variables).filter(k => k !== 'id') },
+          payload: { name: data.name, status: data.status, changed_fields: changedFields },
           source_module: 'crm-leads',
-          correlation_id: generateRequestId(),
+          correlation_id: correlationId,
         });
+
+        // Kernel event: lead tagged (when tags changed)
+        if (variables.tags !== undefined) {
+          emitKernelEvent({
+            workspace_id: currentWorkspace.id,
+            type: 'LEAD.TAGGED',
+            entity_kind: 'lead',
+            entity_id: data.id,
+            actor_type: 'user',
+            payload: { tags: data.tags },
+            source_module: 'crm-leads',
+            correlation_id: correlationId,
+          });
+        }
       }
     },
     onError: (error) => {

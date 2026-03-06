@@ -9,6 +9,8 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const t0 = performance.now();
+
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -17,6 +19,10 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const { workspace_id, contact_id, lead_id } = body;
+    const entityId = contact_id || lead_id;
+    const entityType = contact_id ? 'contact' : 'lead';
+
+    console.log(`[LEAD-BEHAVIOR] Starting: ${entityType}=${entityId}, workspace=${workspace_id}`);
 
     if (!workspace_id || (!contact_id && !lead_id)) {
       return new Response(JSON.stringify({ error: "workspace_id and (contact_id or lead_id) required" }), {
@@ -176,21 +182,24 @@ Deno.serve(async (req) => {
         });
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      signals: {
-        response_latency_avg_minutes: responseLatencyAvg,
-        reply_rate_last_30d: replyRate,
-        engagement_depth_score: engagementDepth,
-        followup_needed_rate: followupRate,
-        channel_preference: channelPref,
-        reading_proxy_score: readingProxy,
-      },
-    }), {
+    const latencyMs = Math.round(performance.now() - t0);
+    const signals = {
+      response_latency_avg_minutes: responseLatencyAvg,
+      reply_rate_last_30d: replyRate,
+      engagement_depth_score: engagementDepth,
+      followup_needed_rate: followupRate,
+      channel_preference: channelPref,
+      reading_proxy_score: readingProxy,
+    };
+
+    console.log(`[LEAD-BEHAVIOR] ${entityType}=${entityId} latency_ms=${latencyMs} conversations=${conversations.length} messages=${messages.length} signals=${JSON.stringify(signals)}`);
+
+    return new Response(JSON.stringify({ success: true, signals }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("compute-lead-behavior-signals error:", e);
+    const latencyMs = Math.round(performance.now() - t0);
+    console.error(`[LEAD-BEHAVIOR] ERROR latency_ms=${latencyMs}:`, e);
     return new Response(JSON.stringify({ error: e.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

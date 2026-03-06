@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { supabase } from "@/integrations/supabase/client";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { differenceInHours, differenceInDays, startOfDay, startOfWeek } from "date-fns";
 
 export type LeadTemperature = "cold" | "warm" | "hot";
@@ -294,9 +295,28 @@ export function useAnalyzeLead() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["smart-leads", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["leads-kpis", currentWorkspace?.id] });
+      console.log('[LEADS] AI analysis complete:', variables.leadId);
+
+      if (currentWorkspace?.id && data) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'LEAD.SCORED',
+          entity_kind: 'lead',
+          entity_id: variables.leadId,
+          source_module: 'crm-leads',
+          payload: {
+            lead_score: data.lead_score,
+            ai_temperature: data.ai_temperature,
+            source: 'ai-analyze',
+          },
+        });
+      }
+    },
+    onError: (error) => {
+      console.warn('[LEADS] AI_ANALYZE_FAILED', error.message);
     }
   });
 }
