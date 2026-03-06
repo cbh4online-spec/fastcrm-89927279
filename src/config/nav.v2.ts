@@ -95,7 +95,7 @@ export type NavV2Entry = NavV2CoreItem | NavV2Group;
 // --- Core items (always visible, flat) ---
 
 export const NAV_V2_CORE: NavV2CoreItem[] = [
-  { type: "item", name: "Home", href: "/dashboard", icon: LayoutDashboard, end: true, iconColor: "text-violet-500" },
+  { type: "item", name: "Command Center", href: "/dashboard", icon: Zap, end: true, iconColor: "text-violet-500" },
   { type: "item", name: "Mural", href: "/dashboard/feed", icon: Newspaper, iconColor: "text-violet-500" },
   { type: "item", name: "Inbox", href: "/dashboard/inbox", icon: Inbox, iconColor: "text-blue-500", badgeKey: "inbox-unread" },
   { type: "item", name: "Ask", href: "/dashboard/ask", icon: Sparkles, iconColor: "text-violet-500" },
