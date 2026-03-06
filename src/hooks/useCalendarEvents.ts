@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,8 +13,15 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Stabilize calendarIds to avoid infinite loops
+  const calendarIdsKey = calendarIds.join(',');
+  const stableCalendarIds = useMemo(() => calendarIds, [calendarIdsKey]);
+
+  const startIso = dateRange?.start?.toISOString();
+  const endIso = dateRange?.end?.toISOString();
+
   const fetchEvents = useCallback(async () => {
-    if (!currentWorkspace?.id || calendarIds.length === 0) {
+    if (!currentWorkspace?.id || stableCalendarIds.length === 0) {
       setEvents([]);
       setIsLoading(false);
       return;
@@ -31,13 +38,13 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
           calendar:calendars(id, name, color)
         `)
         .eq('workspace_id', currentWorkspace.id)
-        .in('calendar_id', calendarIds)
+        .in('calendar_id', stableCalendarIds)
         .order('start_time');
 
-      if (dateRange) {
+      if (startIso && endIso) {
         query = query
-          .gte('start_time', dateRange.start.toISOString())
-          .lte('end_time', dateRange.end.toISOString());
+          .gte('start_time', startIso)
+          .lte('end_time', endIso);
       }
 
       const { data, error: fetchError } = await query;
@@ -51,7 +58,7 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
     } finally {
       setIsLoading(false);
     }
-  }, [currentWorkspace?.id, calendarIds, dateRange?.start?.toISOString(), dateRange?.end?.toISOString()]);
+  }, [currentWorkspace?.id, stableCalendarIds, startIso, endIso]);
 
   useEffect(() => {
     fetchEvents();
