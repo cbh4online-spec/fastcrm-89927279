@@ -1462,37 +1462,37 @@ async function queryForecast(client: any, workspaceId: string) {
 
   const fmt = (v: number) => `€${Math.round(v).toLocaleString()}`;
 
-  const confidenceText = confidence >= 70 ? "high confidence" : confidence >= 40 ? "moderate confidence" : "low confidence";
+  const confidenceText = confidence >= 70 ? "confiança alta" : confidence >= 40 ? "confiança moderada" : "confiança baixa";
   const isRealistic = confidence >= 60;
 
   return {
-    headline: `Forecast: ${fmt(riskAdjusted)} risk-adjusted (${confidenceText}).`,
-    subtext: !isRealistic ? "Data quality issues may affect accuracy." : `Stage-weighted: ${fmt(stageWeighted)}`,
+    headline: `Previsão: ${fmt(riskAdjusted)} ajustado ao risco (${confidenceText}).`,
+    subtext: !isRealistic ? "Questões de qualidade de dados podem afetar a precisão." : `Ponderado por etapa: ${fmt(stageWeighted)}`,
     items: [
       {
         id: "gross",
-        title: "Gross (Pipeline Total)",
+        title: "Bruto (Pipeline Total)",
         subtitle: fmt(gross),
         value: gross,
         link: "/dashboard/opportunities",
       },
       {
         id: "stage_weighted",
-        title: "Stage-Weighted",
+        title: "Ponderado por Etapa",
         subtitle: fmt(stageWeighted),
         value: stageWeighted,
         link: "/dashboard/opportunities",
       },
       {
         id: "risk_adjusted",
-        title: "Risk-Adjusted",
+        title: "Ajustado ao Risco",
         subtitle: fmt(riskAdjusted),
         value: riskAdjusted,
         link: "/dashboard/opportunities",
       },
       ...blockers.slice(0, 3).map((b, i) => ({
         id: `blocker_${i}`,
-        title: "⚠ Blocker",
+        title: "⚠ Bloqueio",
         subtitle: b,
         value: 0,
         link: "/dashboard/opportunities",
@@ -1501,14 +1501,14 @@ async function queryForecast(client: any, workspaceId: string) {
     actions: [
       {
         id: "view_as_list",
-        label: "View pipeline",
+        label: "Ver pipeline",
         icon: "Eye",
         type: "navigate",
         payload: { link: "/dashboard/opportunities" },
       },
     ],
     metric: {
-      label: "Confidence",
+      label: "Confiança",
       value: `${confidence}%`,
       trend: confidence >= 60 ? "up" : "down",
     },
