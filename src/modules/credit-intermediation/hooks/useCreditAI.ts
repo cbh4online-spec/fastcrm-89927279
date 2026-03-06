@@ -1,6 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { 
   CreditProposal, 
   FinancialProfile, 
@@ -46,6 +48,8 @@ interface CopilotResponse {
 }
 
 export function useCreditAI() {
+  const { currentWorkspace } = useWorkspace();
+
   // AI Viability Analysis
   const analyzeViability = useMutation({
     mutationFn: async (input: AnalyzeViabilityInput): Promise<AIViabilityAnalysis> => {
@@ -121,10 +125,22 @@ export function useCreditAI() {
       
       return data.extracted;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      console.log(`[AI-DOCINT] Document extracted successfully type=${variables.document_type} confidence=${data.confidence}`);
       toast.success("Documento processado com sucesso");
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'DOCINT.EXTRACTED',
+          entity_kind: 'credit_document',
+          entity_id: variables.file_name,
+          source_module: 'ai-docint',
+          payload: { document_type: variables.document_type, confidence: data.confidence },
+        });
+      }
     },
     onError: (error: Error) => {
+      console.error(`[AI-DOCINT] Document extraction failed: ${error.message}`);
       toast.error("Erro na extração", { description: error.message });
     },
   });

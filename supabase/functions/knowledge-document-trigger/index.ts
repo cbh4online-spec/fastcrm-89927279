@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       throw new Error('Missing required fields: sourceId, filePath');
     }
 
-    console.log(`[KNOWLEDGE-TRIGGER] Processing large document: ${fileName} (${(fileSize / 1024 / 1024).toFixed(2)}MB)`);
+    console.log(`[AI-DOCINT] Processing large document: ${fileName} (${(fileSize / 1024 / 1024).toFixed(2)}MB)`);
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
     }
 
     const fileData = await response.blob();
-    console.log(`[KNOWLEDGE-TRIGGER] Downloaded: ${(fileData.size / 1024 / 1024).toFixed(2)}MB`);
+    console.log(`[AI-DOCINT] Downloaded: ${(fileData.size / 1024 / 1024).toFixed(2)}MB`);
 
     await updateProgress('A extrair texto do documento...');
 
@@ -107,21 +107,21 @@ Deno.serve(async (req) => {
     const isWord = mimeType.includes('word') || mimeType.includes('document') || fileExtension === 'docx' || fileExtension === 'doc';
     const isText = mimeType === 'text/plain' || fileExtension === 'txt';
     
-    console.log(`[KNOWLEDGE-TRIGGER] Detecting file type - mimeType: ${mimeType}, extension: ${fileExtension}, isPDF: ${isPDF}, isWord: ${isWord}`);
+    console.log(`[AI-DOCINT] Detecting file type - mimeType: ${mimeType}, extension: ${fileExtension}, isPDF: ${isPDF}, isWord: ${isWord}`);
 
     // Extract text based on mime type
     if (isText) {
       textContent = await fileData.text();
     } else if (isPDF) {
-      console.log(`[KNOWLEDGE-TRIGGER] Starting PDF extraction for ${fileName}`);
+      console.log(`[AI-DOCINT] Starting PDF extraction for ${fileName}`);
       textContent = await extractPDFContent(fileData, LOVABLE_API_KEY, updateProgress);
-      console.log(`[KNOWLEDGE-TRIGGER] PDF extraction returned ${textContent.length} characters`);
+      console.log(`[AI-DOCINT] PDF extraction returned ${textContent.length} characters`);
     } else if (isWord) {
       const arrayBuffer = await fileData.arrayBuffer();
       textContent = await extractDocxContent(new Uint8Array(arrayBuffer));
     } else {
       // Try PDF extraction as fallback for unknown types
-      console.log(`[KNOWLEDGE-TRIGGER] Unknown type, trying PDF extraction as fallback`);
+      console.log(`[AI-DOCINT] Unknown type, trying PDF extraction as fallback`);
       textContent = await extractPDFContent(fileData, LOVABLE_API_KEY, updateProgress);
     }
 
@@ -130,7 +130,21 @@ Deno.serve(async (req) => {
     
     if (isLimitationMessage) {
       // Large file that couldn't be processed - save the message and mark as completed with warning
-      console.log(`[KNOWLEDGE-TRIGGER] Large file limitation - saving info message`);
+      console.log(`[AI-DOCINT] Large file limitation - saving info message`);
+
+      // Emit DOCINT.MANUAL_REVIEW_REQUIRED kernel event
+      await supabase.from('kernel_events').insert({
+        workspace_id: workspaceId,
+        type: 'DOCINT.MANUAL_REVIEW_REQUIRED',
+        entity_kind: 'knowledge_source',
+        entity_id: sourceId,
+        source_module: 'ai-docint',
+        actor_type: 'system',
+        payload: { file_name: fileName, reason: 'File too large for automatic processing' },
+        occurred_at: new Date().toISOString(),
+        ingested_at: new Date().toISOString(),
+        schema_version: 1,
+      }).then(() => {});
       
       await supabase
         .from('knowledge_sources')
@@ -175,11 +189,11 @@ Deno.serve(async (req) => {
     }
     
     if (!textContent || textContent.length < 10) {
-      console.error(`[KNOWLEDGE-TRIGGER] Text extraction failed - length: ${textContent?.length || 0}`);
+      console.error(`[AI-DOCINT] Text extraction failed - length: ${textContent?.length || 0}`);
       throw new Error('Não foi possível extrair texto do documento');
     }
 
-    console.log(`[KNOWLEDGE-TRIGGER] Extracted ${textContent.length} characters`);
+    console.log(`[AI-DOCINT] Extracted ${textContent.length} characters`);
     await updateProgress(`Texto extraído (${textContent.length} caracteres). A processar com IA...`);
 
     // Get knowledge base type
@@ -193,13 +207,13 @@ Deno.serve(async (req) => {
     const totalContent = textContent.slice(0, MAX_TOTAL_CHARS);
     const chunks = splitIntoChunks(totalContent, CHUNK_SIZE);
     
-    console.log(`[KNOWLEDGE-TRIGGER] Processing ${chunks.length} chunk(s)`);
+    console.log(`[AI-DOCINT] Processing ${chunks.length} chunk(s)`);
 
     const allResults: ChunkResult[] = [];
 
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
-      console.log(`[KNOWLEDGE-TRIGGER] Processing chunk ${i + 1}/${chunks.length} (${chunk.length} chars)`);
+      console.log(`[AI-DOCINT] Processing chunk ${i + 1}/${chunks.length} (${chunk.length} chars)`);
       
       await updateProgress(`A processar bloco ${i + 1} de ${chunks.length}...`);
 
@@ -222,8 +236,8 @@ Deno.serve(async (req) => {
 
     const mergedResult = mergeChunkResults(allResults);
 
-    console.log(`[KNOWLEDGE-TRIGGER] Total FAQs extracted: ${mergedResult.faqs.length}`);
-    console.log(`[KNOWLEDGE-TRIGGER] Total topics: ${mergedResult.topics.length}`);
+    console.log(`[AI-DOCINT] Total FAQs extracted: ${mergedResult.faqs.length}`);
+    console.log(`[AI-DOCINT] Total topics: ${mergedResult.topics.length}`);
 
     await updateProgress('A guardar resultados...');
 
@@ -266,7 +280,7 @@ Deno.serve(async (req) => {
 
       const { error: insertError } = await supabase.from('knowledge_entries').insert(entries);
       if (insertError) {
-        console.error('[KNOWLEDGE-TRIGGER] Error inserting entries:', insertError);
+        console.error('[AI-DOCINT] Error inserting entries:', insertError);
       }
     }
 
@@ -286,10 +300,29 @@ Deno.serve(async (req) => {
     });
 
     if (articleError) {
-      console.error('[KNOWLEDGE-TRIGGER] Error inserting article:', articleError);
+      console.error('[AI-DOCINT] Error inserting article:', articleError);
     }
 
-    console.log(`[KNOWLEDGE-TRIGGER] Successfully processed: ${fileName}`);
+    console.log(`[AI-DOCINT] Successfully processed: ${fileName}`);
+
+    // Emit DOCINT.EXTRACTED kernel event
+    await supabase.from('kernel_events').insert({
+      workspace_id: workspaceId,
+      type: 'DOCINT.EXTRACTED',
+      entity_kind: 'knowledge_source',
+      entity_id: sourceId,
+      source_module: 'ai-docint',
+      actor_type: 'system',
+      payload: {
+        file_name: fileName,
+        chars_extracted: totalContent.length,
+        faqs_count: mergedResult.faqs?.length || 0,
+        topics_count: mergedResult.topics?.length || 0,
+      },
+      occurred_at: new Date().toISOString(),
+      ingested_at: new Date().toISOString(),
+      schema_version: 1,
+    }).then(() => {});
 
     return new Response(
       JSON.stringify({
@@ -308,7 +341,30 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('[KNOWLEDGE-TRIGGER] Error:', error);
+    console.error('[AI-DOCINT] Error:', error);
+
+    // Emit DOCINT.OCR_FAILED kernel event
+    try {
+      const body2 = await new Response(req.clone().body).json();
+      if (body2?.inputData?.sourceId && body2?.workspaceId) {
+        const sb = createClient(
+          Deno.env.get('SUPABASE_URL')!,
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+        );
+        await sb.from('kernel_events').insert({
+          workspace_id: body2.workspaceId,
+          type: 'DOCINT.OCR_FAILED',
+          entity_kind: 'knowledge_source',
+          entity_id: body2.inputData.sourceId,
+          source_module: 'ai-docint',
+          actor_type: 'system',
+          payload: { file_name: body2.inputData.fileName || 'unknown', error: error instanceof Error ? error.message : 'Unknown error' },
+          occurred_at: new Date().toISOString(),
+          ingested_at: new Date().toISOString(),
+          schema_version: 1,
+        }).then(() => {});
+      }
+    } catch {}
     
     // Try to update source status to failed
     try {
@@ -349,7 +405,7 @@ async function extractPDFContent(
   // Maximum PDF size that can be processed (~3MB file = ~4MB base64)
   const MAX_PDF_SIZE = 3 * 1024 * 1024; // 3MB
   
-  console.log(`[KNOWLEDGE-TRIGGER] PDF size: ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
+  console.log(`[AI-DOCINT] PDF size: ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
   
   // For very large PDFs, we can only process a portion
   // The beginning of the PDF typically contains the most important pages
@@ -357,7 +413,7 @@ async function extractPDFContent(
   let isPartial = false;
   
   if (blob.size > MAX_PDF_SIZE) {
-    console.log(`[KNOWLEDGE-TRIGGER] PDF too large, will process first ${(MAX_PDF_SIZE / 1024 / 1024).toFixed(0)}MB only`);
+    console.log(`[AI-DOCINT] PDF too large, will process first ${(MAX_PDF_SIZE / 1024 / 1024).toFixed(0)}MB only`);
     isPartial = true;
     // Note: This truncation won't produce a valid PDF structure
     // We need to inform the user about this limitation
@@ -371,11 +427,11 @@ async function extractPDFContent(
   // For large PDFs, try to extract text from the full file in one go
   // The AI model will handle what it can
   const base64 = await blobToBase64(pdfToProcess);
-  console.log(`[KNOWLEDGE-TRIGGER] PDF base64 length: ${(base64.length / 1024 / 1024).toFixed(2)}MB`);
+  console.log(`[AI-DOCINT] PDF base64 length: ${(base64.length / 1024 / 1024).toFixed(2)}MB`);
   
   // If base64 is too large for the API, we need to inform the user
   if (base64.length > 20 * 1024 * 1024) {
-    console.warn(`[KNOWLEDGE-TRIGGER] PDF base64 too large for API: ${(base64.length / 1024 / 1024).toFixed(2)}MB`);
+    console.warn(`[AI-DOCINT] PDF base64 too large for API: ${(base64.length / 1024 / 1024).toFixed(2)}MB`);
     return `NOTA: Este PDF (${(blob.size / 1024 / 1024).toFixed(0)}MB) excede o limite de processamento automático.
     
 Por favor, considere:
@@ -390,11 +446,11 @@ Tamanho: ${(blob.size / 1024 / 1024).toFixed(2)}MB`;
   const text = await extractPDFFromBase64(base64, apiKey, isPartial);
   
   if (!text || text.length < 50) {
-    console.warn('[KNOWLEDGE-TRIGGER] PDF extraction returned minimal content');
+    console.warn('[AI-DOCINT] PDF extraction returned minimal content');
     return '';
   }
   
-  console.log(`[KNOWLEDGE-TRIGGER] Extracted ${text.length} characters from PDF`);
+  console.log(`[AI-DOCINT] Extracted ${text.length} characters from PDF`);
   return text;
 }
 
@@ -430,7 +486,7 @@ async function extractPDFFromBase64(base64: string, apiKey: string, isPartial: b
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.warn(`[KNOWLEDGE-TRIGGER] PDF extraction failed: ${response.status} - ${errorText.slice(0, 300)}`);
+    console.warn(`[AI-DOCINT] PDF extraction failed: ${response.status} - ${errorText.slice(0, 300)}`);
     return '';
   }
 
@@ -640,7 +696,7 @@ async function extractDocxContent(data: Uint8Array): Promise<string> {
     
     return cleanText.slice(0, 100000); // Higher limit for Trigger.dev
   } catch (error) {
-    console.error('[KNOWLEDGE-TRIGGER] DOCX extraction error:', error);
+    console.error('[AI-DOCINT] DOCX extraction error:', error);
     return 'Could not extract DOCX content';
   }
 }

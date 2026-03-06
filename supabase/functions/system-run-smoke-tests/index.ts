@@ -245,6 +245,8 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "community-fastclub", "community_events_query", "community_events"),
       // AI Conversational
       aiConversationalCheck(),
+      // AI DocInt
+      runCheck(supabase, workspace_id, "ai-docint", "document_processing_jobs_query", "document_processing_jobs"),
     ]);
 
     // Log failures
