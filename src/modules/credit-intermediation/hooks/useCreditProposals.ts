@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { 
   CreditProposal, 
   ProposalStatus, 
@@ -159,11 +160,28 @@ export function useCreateCreditProposal() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["credit-proposals"] });
       toast.success("Proposta de crédito criada com sucesso");
+      console.log(`[VERTICAL-CREDIT] Case created id=${data.id} ref=${data.reference_number} type=${data.credit_type}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: "CREDIT.CASE_CREATED",
+          entity_kind: "credit_proposal",
+          entity_id: data.id,
+          source_module: "vertical-credit",
+          payload: {
+            reference_number: data.reference_number,
+            credit_type: data.credit_type,
+            amount_requested: data.amount_requested,
+            entity_name: data.entity_name,
+          },
+        });
+      }
     },
     onError: (error: Error) => {
+      console.error(`[VERTICAL-CREDIT] Case create failed: ${error.message}`);
       toast.error("Erro ao criar proposta", { description: error.message });
     },
   });
@@ -193,12 +211,28 @@ export function useUpdateCreditProposal() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: any, variables: UpdateProposalInput) => {
       queryClient.invalidateQueries({ queryKey: ["credit-proposals"] });
       queryClient.invalidateQueries({ queryKey: ["credit-proposal", data.id] });
       toast.success("Proposta atualizada com sucesso");
+      const fieldsUpdated = Object.keys(variables).filter(k => k !== "id");
+      console.log(`[VERTICAL-CREDIT] Case updated id=${data.id} fields=${fieldsUpdated.join(",")}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: "CREDIT.CASE_UPDATED",
+          entity_kind: "credit_proposal",
+          entity_id: data.id,
+          source_module: "vertical-credit",
+          payload: {
+            status: data.status,
+            fields_updated: fieldsUpdated,
+          },
+        });
+      }
     },
     onError: (error: Error) => {
+      console.error(`[VERTICAL-CREDIT] Case update failed: ${error.message}`);
       toast.error("Erro ao atualizar proposta", { description: error.message });
     },
   });
@@ -219,12 +253,24 @@ export function useDeleteCreditProposal() {
         .eq("workspace_id", currentWorkspace.id);
 
       if (error) throw error;
+      return id;
     },
-    onSuccess: () => {
+    onSuccess: (deletedId: string) => {
       queryClient.invalidateQueries({ queryKey: ["credit-proposals"] });
       toast.success("Proposta eliminada com sucesso");
+      console.log(`[VERTICAL-CREDIT] Case deleted id=${deletedId}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: "CREDIT.CASE_DELETED",
+          entity_kind: "credit_proposal",
+          entity_id: deletedId,
+          source_module: "vertical-credit",
+        });
+      }
     },
     onError: (error: Error) => {
+      console.error(`[VERTICAL-CREDIT] Case delete failed: ${error.message}`);
       toast.error("Erro ao eliminar proposta", { description: error.message });
     },
   });

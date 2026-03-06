@@ -252,6 +252,9 @@ Deno.serve(async (req) => {
       // Strategy Briefs
       runCheck(supabase, workspace_id, "strategy-brief", "weekly_briefs_query", "weekly_briefs"),
       runCheck(supabase, workspace_id, "strategy-brief", "daily_briefs_query", "daily_briefs"),
+      // Vertical Credit
+      runCheck(supabase, workspace_id, "vertical-credit", "credit_proposals_query", "credit_proposals"),
+      runCheck(supabase, workspace_id, "vertical-credit", "bank_partners_query", "bank_partners"),
     ]);
 
     // Log failures

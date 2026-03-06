@@ -67,7 +67,25 @@ export function useCreditAI() {
       
       return data.analysis;
     },
+    onSuccess: (data: AIViabilityAnalysis, variables: AnalyzeViabilityInput) => {
+      console.log(`[VERTICAL-CREDIT] Viability analyzed proposal=${variables.proposal.id} score=${data.viability_score} risk=${data.risk_level}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: "CREDIT.AI_ANALYZED",
+          entity_kind: "credit_proposal",
+          entity_id: variables.proposal.id,
+          source_module: "vertical-credit",
+          payload: {
+            viability_score: data.viability_score,
+            approval_probability: data.approval_probability,
+            risk_level: data.risk_level,
+          },
+        });
+      }
+    },
     onError: (error: Error) => {
+      console.error(`[VERTICAL-CREDIT] Viability analysis failed: ${error.message}`);
       if (error.message.includes("429")) {
         toast.error("Limite de pedidos excedido", {
           description: "Aguarde alguns segundos e tente novamente.",
@@ -103,7 +121,23 @@ export function useCreditAI() {
       
       return data.recommendations;
     },
+    onSuccess: (data: BankRecommendation[], variables) => {
+      console.log(`[VERTICAL-CREDIT] Banks matched proposal=${variables.proposal.id} count=${data.length}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: "CREDIT.BANKS_MATCHED",
+          entity_kind: "credit_proposal",
+          entity_id: variables.proposal.id,
+          source_module: "vertical-credit",
+          payload: {
+            recommendations_count: data.length,
+          },
+        });
+      }
+    },
     onError: (error: Error) => {
+      console.error(`[VERTICAL-CREDIT] Bank matching failed: ${error.message}`);
       toast.error("Erro no matching IA", { description: error.message });
     },
   });
@@ -163,7 +197,11 @@ export function useCreditAI() {
       
       return data.response;
     },
+    onSuccess: (_data, variables) => {
+      console.log(`[VERTICAL-CREDIT] Copilot responded proposal=${variables.proposal.id} action=${variables.action || "question"}`);
+    },
     onError: (error: Error) => {
+      console.error(`[VERTICAL-CREDIT] Copilot failed: ${error.message}`);
       toast.error("Erro no Copilot", { description: error.message });
     },
   });
@@ -187,7 +225,11 @@ export function useCreditAI() {
       
       return data.suggestions;
     },
+    onSuccess: (data, variables) => {
+      console.log(`[VERTICAL-CREDIT] Optimizations generated proposal=${variables.proposal.id} count=${data.length}`);
+    },
     onError: (error: Error) => {
+      console.error(`[VERTICAL-CREDIT] Optimization failed: ${error.message}`);
       toast.error("Erro nas sugestões", { description: error.message });
     },
   });

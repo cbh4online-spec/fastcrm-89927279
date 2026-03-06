@@ -1,5 +1,3 @@
-
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -30,6 +28,8 @@ Deno.serve(async (req) => {
 
     const request: AnalysisRequest = await req.json();
     const { mode, proposal, financialProfile, bankPartners, question, action } = request;
+
+    console.log(`[VERTICAL-CREDIT] ai-credit-analysis invoked mode=${mode}`);
 
     let systemPrompt = '';
     let userPrompt = '';
@@ -245,6 +245,7 @@ ${JSON.stringify(proposal, null, 2)}`;
         break;
 
       default:
+        console.error(`[VERTICAL-CREDIT] Unsupported mode: ${mode}`);
         return new Response(
           JSON.stringify({ success: false, error: 'Modo não suportado' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -272,17 +273,20 @@ ${JSON.stringify(proposal, null, 2)}`;
 
     if (!response.ok) {
       if (response.status === 429) {
+        console.error(`[VERTICAL-CREDIT] Rate limited mode=${mode}`);
         return new Response(
           JSON.stringify({ success: false, error: 'Limite de pedidos excedido. Aguarde alguns segundos.' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       if (response.status === 402) {
+        console.error(`[VERTICAL-CREDIT] Credits exhausted mode=${mode}`);
         return new Response(
           JSON.stringify({ success: false, error: 'Créditos IA esgotados.' }),
           { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      console.error(`[VERTICAL-CREDIT] AI API error status=${response.status} mode=${mode}`);
       throw new Error(`AI API error: ${response.status}`);
     }
 
@@ -290,10 +294,12 @@ ${JSON.stringify(proposal, null, 2)}`;
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
 
     if (!toolCall) {
+      console.error(`[VERTICAL-CREDIT] Invalid AI response mode=${mode} — no tool call`);
       throw new Error('Resposta inválida da IA');
     }
 
     const result = JSON.parse(toolCall.function.arguments);
+    console.log(`[VERTICAL-CREDIT] ai-credit-analysis success mode=${mode}`);
 
     // Return based on mode
     switch (mode) {
@@ -336,8 +342,8 @@ ${JSON.stringify(proposal, null, 2)}`;
     }
 
   } catch (error: unknown) {
-    console.error('Error in ai-credit-analysis:', error);
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error(`[VERTICAL-CREDIT] ai-credit-analysis error: ${errorMessage}`);
     return new Response(
       JSON.stringify({ success: false, error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
