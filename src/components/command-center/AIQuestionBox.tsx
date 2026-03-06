@@ -7,8 +7,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import { detectIntent, getConversationalResponse, ConversationalResponse } from "@/lib/conversationalIntent";
-import { MessageSquare, RotateCcw, Bot, User as UserIcon } from "lucide-react";
+import { detectIntent, getConversationalResponse } from "@/lib/conversationalIntent";
+import { MessageSquare, RotateCcw, Bot, User as UserIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 
@@ -32,6 +32,7 @@ export function AIQuestionBox() {
   const [slashResult, setSlashResult] = useState<SlashCommandResult | null>(null);
   const [focused, setFocused] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -54,6 +55,13 @@ export function AIQuestionBox() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Auto-open drawer when conversation has > 2 exchanges (4 messages)
+  useEffect(() => {
+    if (messages.length >= 4 && !drawerOpen) {
+      setDrawerOpen(true);
+    }
+  }, [messages.length, drawerOpen]);
+
   // When ask-fastcrm result comes in, add it to chat
   useEffect(() => {
     if (result) {
@@ -62,7 +70,6 @@ export function AIQuestionBox() {
       const content = subtext ? `**${headline}**\n\n${subtext}` : `**${headline}**`;
       
       setMessages(prev => {
-        // Avoid duplicates
         const lastMsg = prev[prev.length - 1];
         if (lastMsg?.role === 'assistant' && lastMsg?.content === content) return prev;
         return [...prev, {
@@ -78,7 +85,6 @@ export function AIQuestionBox() {
   const handleSubmit = useCallback((query: string) => {
     setSlashResult(null);
     
-    // Add user message to chat
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -87,7 +93,6 @@ export function AIQuestionBox() {
     };
     setMessages(prev => [...prev, userMsg]);
 
-    // Check conversational intent
     const intent = detectIntent(query);
     
     if (intent.type === 'conversational' && intent.subtype) {
@@ -103,7 +108,6 @@ export function AIQuestionBox() {
       return;
     }
 
-    // Business query — call ask-fastcrm
     ask(query);
   }, [ask, userName]);
 
@@ -124,6 +128,7 @@ export function AIQuestionBox() {
 
   const handleNewConversation = useCallback(() => {
     setMessages([]);
+    setDrawerOpen(false);
     clear();
     setSlashResult(null);
   }, [clear]);
@@ -133,167 +138,241 @@ export function AIQuestionBox() {
     setSlashResult(null);
   }, [clear]);
 
+  const handleCloseDrawer = useCallback(() => {
+    setDrawerOpen(false);
+  }, []);
+
   // Keyboard: Esc to close
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && (result || slashResult)) {
-        handleClose();
+      if (e.key === "Escape") {
+        if (drawerOpen) {
+          setDrawerOpen(false);
+        } else if (result || slashResult) {
+          handleClose();
+        }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [result, slashResult, handleClose]);
+  }, [result, slashResult, handleClose, drawerOpen]);
 
   const hasChat = messages.length > 0;
+  const showInlineChat = hasChat && !drawerOpen;
   const showOutput = !!(result || slashResult || isLoading) && !hasChat;
 
-  return (
-    <motion.div
-      ref={containerRef}
-      className="w-full space-y-3"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: 0.1 }}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-    >
-      {/* Chat thread */}
-      <AnimatePresence>
-        {hasChat && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden"
+  const chatThread = (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border/30">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <MessageSquare className="h-3.5 w-3.5" />
+          <span>{messages.length} mensagens</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
+            onClick={handleNewConversation}
           >
-            <div className="flex items-center justify-between px-4 py-2 border-b border-border/30">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <MessageSquare className="h-3.5 w-3.5" />
-                <span>{messages.length} mensagens</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
-                onClick={handleNewConversation}
-              >
-                <RotateCcw className="h-3 w-3" />
-                Nova conversa
-              </Button>
-            </div>
-            <div className="max-h-[400px] overflow-y-auto p-4 space-y-3">
-              {messages.map((msg) => (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={cn(
-                    "flex gap-2.5",
-                    msg.role === 'user' ? "justify-end" : "justify-start"
-                  )}
-                >
-                  {msg.role === 'assistant' && (
-                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                      <Bot className="h-3.5 w-3.5 text-primary" />
-                    </div>
-                  )}
-                  <div className={cn(
-                    "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm",
-                    msg.role === 'user'
-                      ? "bg-primary text-primary-foreground rounded-br-md"
-                      : "bg-muted/60 text-foreground rounded-bl-md"
-                  )}>
-                    {msg.role === 'assistant' ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      <p>{msg.content}</p>
-                    )}
-                    {/* Suggestion buttons */}
-                    {msg.suggestions && msg.suggestions.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-3 pt-2 border-t border-border/20">
-                        {msg.suggestions.map((s, i) => (
-                          <button
-                            key={i}
-                            onClick={() => handleSuggestionClick(s)}
-                            className="text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                          >
-                            {s}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {msg.role === 'user' && (
-                    <div className="h-7 w-7 rounded-full bg-primary/80 flex items-center justify-center shrink-0 mt-0.5">
-                      <UserIcon className="h-3.5 w-3.5 text-primary-foreground" />
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-              {isLoading && (
-                <div className="flex gap-2.5">
-                  <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Bot className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  <div className="bg-muted/60 rounded-2xl rounded-bl-md px-4 py-3">
-                    <div className="flex gap-1">
-                      <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:0ms]" />
-                      <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:150ms]" />
-                      <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:300ms]" />
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Input */}
-      <div
-        className={cn(
-          "rounded-2xl p-[1px] transition-all duration-300",
-          focused
-            ? "bg-gradient-to-r from-indigo-500 to-purple-500 shadow-[0_0_30px_-5px_hsl(var(--primary)/0.4)]"
-            : "bg-gradient-to-r from-indigo-500/40 to-purple-500/40"
-        )}
-      >
-        <div className="bg-background rounded-2xl">
-          <CommandInput
-            onSubmit={handleSubmit}
-            onSlashCommand={handleSlashCommand}
-            isLoading={isLoading}
-          />
+            <RotateCcw className="h-3 w-3" />
+            Nova conversa
+          </Button>
+          {drawerOpen && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+              onClick={handleCloseDrawer}
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
       </div>
-
-      {/* Legacy output (only when no chat mode) */}
-      <AnimatePresence>
-        {showOutput && (
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {messages.map((msg) => (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25 }}
+            key={msg.id}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn(
+              "flex gap-2.5",
+              msg.role === 'user' ? "justify-end" : "justify-start"
+            )}
           >
-            <CommandOutput
-              slashResult={slashResult}
-              askResult={result}
-              onAction={executeAction}
-              onItemClick={(item) => navigate(item.link)}
-              pendingAction={pendingAction}
-              onConfirmAction={confirmPendingAction}
-              onCancelAction={cancelPendingAction}
-              onConfirmAutomation={confirmAutomation}
-              onCancelAutomation={cancelAutomation}
-              isConfirmingAutomation={isConfirmingAutomation}
-            />
+            {msg.role === 'assistant' && (
+              <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                <Bot className="h-3.5 w-3.5 text-primary" />
+              </div>
+            )}
+            <div className={cn(
+              "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm",
+              msg.role === 'user'
+                ? "bg-primary text-primary-foreground rounded-br-md"
+                : "bg-muted/60 text-foreground rounded-bl-md"
+            )}>
+              {msg.role === 'assistant' ? (
+                <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1">
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                </div>
+              ) : (
+                <p>{msg.content}</p>
+              )}
+              {/* Suggestion chips — subtle indigo style */}
+              {msg.suggestions && msg.suggestions.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-3 pt-2 border-t border-border/20">
+                  {msg.suggestions.map((s, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleSuggestionClick(s)}
+                      className="text-xs px-3 py-1 rounded-md bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 hover:border-primary/50 transition-colors"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {msg.role === 'user' && (
+              <div className="h-7 w-7 rounded-full bg-primary/80 flex items-center justify-center shrink-0 mt-0.5">
+                <UserIcon className="h-3.5 w-3.5 text-primary-foreground" />
+              </div>
+            )}
           </motion.div>
+        ))}
+        {isLoading && (
+          <div className="flex gap-2.5">
+            <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <Bot className="h-3.5 w-3.5 text-primary" />
+            </div>
+            <div className="bg-muted/60 rounded-2xl rounded-bl-md px-4 py-3">
+              <div className="flex gap-1">
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:0ms]" />
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:150ms]" />
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:300ms]" />
+              </div>
+            </div>
+          </div>
+        )}
+        <div ref={chatEndRef} />
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <motion.div
+        ref={containerRef}
+        className="w-full space-y-3"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+      >
+        {/* Inline chat (max-height limited, before drawer kicks in) */}
+        <AnimatePresence>
+          {showInlineChat && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden"
+            >
+              <div className="max-h-[240px] overflow-hidden">
+                {chatThread}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Input */}
+        <div
+          className={cn(
+            "rounded-2xl p-[1px] transition-all duration-300",
+            focused
+              ? "bg-gradient-to-r from-indigo-500 to-purple-500 shadow-[0_0_30px_-5px_hsl(var(--primary)/0.4)]"
+              : "bg-gradient-to-r from-indigo-500/40 to-purple-500/40"
+          )}
+        >
+          <div className="bg-background rounded-2xl">
+            <CommandInput
+              onSubmit={handleSubmit}
+              onSlashCommand={handleSlashCommand}
+              isLoading={isLoading}
+            />
+          </div>
+        </div>
+
+        {/* Legacy output (only when no chat mode) */}
+        <AnimatePresence>
+          {showOutput && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25 }}
+            >
+              <CommandOutput
+                slashResult={slashResult}
+                askResult={result}
+                onAction={executeAction}
+                onItemClick={(item) => navigate(item.link)}
+                pendingAction={pendingAction}
+                onConfirmAction={confirmPendingAction}
+                onCancelAction={cancelPendingAction}
+                onConfirmAutomation={confirmAutomation}
+                onCancelAutomation={cancelAutomation}
+                isConfirmingAutomation={isConfirmingAutomation}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+
+      {/* Side drawer for conversation */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px]"
+              onClick={handleCloseDrawer}
+            />
+            {/* Drawer panel */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed right-0 top-0 bottom-0 z-50 w-[420px] max-w-[90vw] bg-card border-l border-border/50 shadow-2xl flex flex-col"
+            >
+              {chatThread}
+              {/* Input inside drawer */}
+              <div className="p-3 border-t border-border/30">
+                <div
+                  className={cn(
+                    "rounded-xl p-[1px] transition-all duration-300",
+                    "bg-gradient-to-r from-indigo-500/40 to-purple-500/40"
+                  )}
+                >
+                  <div className="bg-card rounded-xl">
+                    <CommandInput
+                      onSubmit={handleSubmit}
+                      onSlashCommand={handleSlashCommand}
+                      isLoading={isLoading}
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
-    </motion.div>
+    </>
   );
 }
