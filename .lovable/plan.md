@@ -1,66 +1,66 @@
 
 
-# Strategy-Brief — Kernel V2 Stabilization
+# Vertical-Credit — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | File(s) | Kernel Events | Logging |
 |------|---------|---------------|---------|
-| Weekly Brief Generation | `useStrategicBriefs.ts` | None | None |
-| Daily Brief Generation | `useDailyBrief.ts` | None | None |
-| Edge: strategic-intelligence-brief | `strategic-intelligence-brief/index.ts` | None | Bare `console.error` |
-| Edge: daily-revenue-brief | `daily-revenue-brief/index.ts` | None | Bare `console.error` |
-| Edge: compute-strategic-decisions | `compute-strategic-decisions/index.ts` | None | Bare `console.error` |
-| Strategic Decisions CRUD | `useStrategicDecisions.ts` | `DECISION.CREATED/DISMISSED/CONVERTED/BULK_CONVERTED` ✓ | `[STRATEGY]` prefix ✓ |
-| Smoke Tests | `system-run-smoke-tests` | — | Has `strategic_decisions` ✓, missing `weekly_briefs` + `daily_briefs` |
+| Create Proposal | `useCreditProposals.ts` | None | None |
+| Update Proposal | `useCreditProposals.ts` | None | None |
+| Delete Proposal | `useCreditProposals.ts` | None | None |
+| Bank Partners CRUD | `useBankPartners.ts` | None | None |
+| AI Viability Analysis | `useCreditAI.ts` | None | Toast only |
+| AI Bank Matching | `useCreditAI.ts` | None | Toast only |
+| AI Doc Extraction | `useCreditAI.ts` | `DOCINT.EXTRACTED` ✓ | `[AI-DOCINT]` ✓ |
+| AI Copilot / Optimize | `useCreditAI.ts` | None | Toast only |
+| Edge: ai-credit-analysis | `ai-credit-analysis/index.ts` | None | Bare `console.error` |
+| Smoke Tests | `system-run-smoke-tests` | — | No `credit_proposals` or `bank_partners` checks |
 
-The hooks for strategic decisions already have full kernel event coverage and logging. The three edge functions and both brief hooks have zero events and bare logging. No smoke test coverage for brief tables.
+Zero kernel events for the core credit vertical (case creation, doc upload, status changes). The AI document extraction already has `DOCINT.EXTRACTED` from the ai-docint stabilization. The edge function uses bare `console.error`. No smoke test coverage for credit tables.
 
 ## Implementation Plan
 
-### A) Kernel Events (source: `strategy-brief`)
+### A) Kernel Events (source: `vertical-credit`)
 
-**`strategic-intelligence-brief/index.ts`:**
-1. On successful brief insert → `STRATEGIC_BRIEF.GENERATED` (entity_kind: `weekly_brief`, payload: `leads_total`, `won_deals`, `revenue_this_week`)
+**`useCreditProposals.ts`:**
+1. `useCreateCreditProposal` onSuccess → `CREDIT.CASE_CREATED` (entity_kind: `credit_proposal`, payload: `reference_number`, `credit_type`, `amount_requested`, `entity_name`)
+2. `useUpdateCreditProposal` onSuccess → `CREDIT.CASE_UPDATED` (entity_kind: `credit_proposal`, payload: `status`, `fields_updated`)
+3. `useDeleteCreditProposal` onSuccess → `CREDIT.CASE_DELETED` (entity_kind: `credit_proposal`)
 
-**`daily-revenue-brief/index.ts`:**
-2. On successful brief insert → `STRATEGIC_BRIEF.GENERATED` (entity_kind: `daily_brief`, payload: `leads_today`, `deals_won`, `revenue_today`, `deals_stalled`)
+**`useCreditAI.ts`:**
+4. `analyzeViability` onSuccess → `CREDIT.AI_ANALYZED` (entity_kind: `credit_proposal`, payload: `viability_score`, `approval_probability`, `risk_level`)
+5. `matchBanks` onSuccess → `CREDIT.BANKS_MATCHED` (entity_kind: `credit_proposal`, payload: `recommendations_count`)
 
-**`compute-strategic-decisions/index.ts`:**
-3. On successful decisions insert → `STRATEGIC_DECISION.CREATED` (entity_kind: `strategic_decision`, payload: `count`, `rule_keys`)
+**`useBankPartners.ts`:**
+6. `useCreateBankPartner` onSuccess → `CREDIT.BANK_ADDED` (entity_kind: `bank_partner`, payload: `name`, `credit_types`)
 
-**`useStrategicBriefs.ts`:**
-4. `generateBrief` on success → `STRATEGIC_BRIEF.GENERATED` (entity_kind: `weekly_brief`, source_module: `strategy-brief`)
+**`ai-credit-analysis/index.ts`:**
+7. No kernel events from edge (no workspace_id available in request body; client-side hooks handle it)
 
-**`useDailyBrief.ts`:**
-5. `generateDailyBrief` on success → `STRATEGIC_BRIEF.GENERATED` (entity_kind: `daily_brief`, source_module: `strategy-brief`)
+### B) Logging (prefix: `[VERTICAL-CREDIT]`)
 
-### B) Logging (prefix: `[STRATEGY-BRIEF]`)
+**`useCreditProposals.ts`:** Add `[VERTICAL-CREDIT]` logging on create/update/delete success/error
 
-**`strategic-intelligence-brief/index.ts`:** Replace bare `console.error` with `[STRATEGY-BRIEF]` prefix; add success log with metrics summary
+**`useCreditAI.ts`:** Add `[VERTICAL-CREDIT]` prefix on viability/matching/copilot/optimize success/error (doc extraction already has `[AI-DOCINT]`)
 
-**`daily-revenue-brief/index.ts`:** Replace bare `console.error` with `[STRATEGY-BRIEF]`; add success log with daily metrics summary
+**`useBankPartners.ts`:** Add `[VERTICAL-CREDIT]` logging on create/update/delete success/error
 
-**`compute-strategic-decisions/index.ts`:** Replace bare `console.error` with `[STRATEGY-BRIEF]`; add success log with decisions count and rule keys
-
-**`useStrategicBriefs.ts`:** Add `[STRATEGY-BRIEF]` logging on generate success/error
-
-**`useDailyBrief.ts`:** Add `[STRATEGY-BRIEF]` logging on generate success/error
+**`ai-credit-analysis/index.ts`:** Replace bare `console.error` with `[VERTICAL-CREDIT]` prefix; add success log with mode and model inputs summary
 
 ### C) Smoke Tests
 
 Add to `system-run-smoke-tests`:
-- `weekly_briefs` (module: `strategy-brief`)
-- `daily_briefs` (module: `strategy-brief`)
+- `credit_proposals` (module: `vertical-credit`)
+- `bank_partners` (module: `vertical-credit`)
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `supabase/functions/strategic-intelligence-brief/index.ts` | Emit `STRATEGIC_BRIEF.GENERATED` via `kernel_events` insert; add `[STRATEGY-BRIEF]` prefix; log metrics summary on success |
-| `supabase/functions/daily-revenue-brief/index.ts` | Emit `STRATEGIC_BRIEF.GENERATED` via `kernel_events` insert; add `[STRATEGY-BRIEF]` prefix; log daily metrics on success |
-| `supabase/functions/compute-strategic-decisions/index.ts` | Emit `STRATEGIC_DECISION.CREATED` via `kernel_events` insert; add `[STRATEGY-BRIEF]` prefix; log decisions count |
-| `src/hooks/useStrategicBriefs.ts` | Import `emitKernelEvent`; emit `STRATEGIC_BRIEF.GENERATED` on success; add `[STRATEGY-BRIEF]` logging |
-| `src/hooks/useDailyBrief.ts` | Import `emitKernelEvent`; emit `STRATEGIC_BRIEF.GENERATED` on success; add `[STRATEGY-BRIEF]` logging |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `weekly_briefs` + `daily_briefs` checks under `strategy-brief` module |
+| `src/modules/credit-intermediation/hooks/useCreditProposals.ts` | Import `emitKernelEvent` + `useWorkspace`; emit `CREDIT.CASE_CREATED`, `CREDIT.CASE_UPDATED`, `CREDIT.CASE_DELETED`; add `[VERTICAL-CREDIT]` logging |
+| `src/modules/credit-intermediation/hooks/useCreditAI.ts` | Emit `CREDIT.AI_ANALYZED` + `CREDIT.BANKS_MATCHED` on respective successes; add `[VERTICAL-CREDIT]` logging for non-docint operations |
+| `src/modules/credit-intermediation/hooks/useBankPartners.ts` | Import `emitKernelEvent` + `useWorkspace`; emit `CREDIT.BANK_ADDED`; add `[VERTICAL-CREDIT]` logging |
+| `supabase/functions/ai-credit-analysis/index.ts` | Replace bare `console.error` with `[VERTICAL-CREDIT]` prefix; add success log with mode summary |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add `credit_proposals` + `bank_partners` checks under `vertical-credit` module |
 
