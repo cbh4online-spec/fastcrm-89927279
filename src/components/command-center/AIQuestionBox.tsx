@@ -189,6 +189,7 @@ export function AIQuestionBox() {
   const handleNewConversation = useCallback(() => {
     setMessages([]);
     setDrawerOpen(false);
+    autoOpenedRef.current = false;
     clear();
     setSlashResult(null);
   }, [clear]);
