@@ -1,86 +1,111 @@
 
 
-# Sales-Orders — Kernel V2 Stabilization
+# Mkt-Prospecting — Kernel V2 Stabilization
 
 ## Current State
 
-The "sales-orders" module has **three order subsystems** with zero kernel events and minimal logging:
+| Area | File(s) | Kernel Events | Logging |
+|------|---------|---------------|---------|
+| Search | `professional-prospecting-search` edge fn | None | Bare `console.error` |
+| Analyze | `professional-prospecting-analyze` edge fn | None | Bare `console.error` |
+| Message Gen | `generate-prospecting-message` edge fn | None | None |
+| Batch Messages | `batch-generate-prospecting-messages` edge fn | None | None |
+| Outreach Processor | `prospecting-outreach-processor` edge fn | None | Bare `console.error` |
+| Enrich Instagram | `enrich-instagram-profile` edge fn | None | Has `[ENRICH-INSTAGRAM]` prefix (good) |
+| Single Send | `PendingOutreachPanel.tsx` → `markSent` | None | Bare `console.error` |
+| Bulk Send | `BulkOutreachDialog.tsx` → `handleConfirmSent` | None | Bare `console.error` |
+| Convert Profile | `ProspectingResults.tsx` → `convertMutation` | None | Bare `console.error` |
+| Reject Profile | `ProspectingResults.tsx` → `rejectMutation` | None | Toast only |
+| Search UI | `ProspectingSearch.tsx` | None | Toast only |
+| Smoke Tests | `system-run-smoke-tests` | — | No prospecting checks |
 
-| Subsystem | Hooks / Edge Functions | Kernel Events | Logging |
-|-----------|----------------------|---------------|---------|
-| **Store Orders** | `useStoreOrders` (status update), `useStoreOrderEvents` (timeline), `useStoreOrderDetail` | None | Toast only; notification email catch has no prefix |
-| **Order Notes (B2B)** | `useOrderNotes` (list/detail/actions), `useCreateOrderNote`, `useClientOrders`, `useCompanyOrderNotes` | None | Toast only |
-| **Order Note Submit** | `order-note-submit` edge fn | None | Bare `console.error` |
-| **B2B Plan → Order** | `b2b-plan-generate-order` edge fn | None | None |
-| **Status Notification** | `send-order-status-notification` edge fn | N/A | Already has `[ORDER-STATUS-EMAIL]` prefix |
-| **Smoke Tests** | `system-run-smoke-tests` | — | No order table checks |
+Zero kernel events. Minimal structured logging.
 
 ## Implementation Plan
 
-### A) Kernel Events + Logging — Store Orders (`useStoreOrders.ts`)
+### A) Kernel Events — Outreach Sent
 
-Import `emitKernelEvent`. Events: `source_module: 'sales-orders'`, `entity_kind: 'store_order'`.
+**`PendingOutreachPanel.tsx` — `markSent`:**
+1. Import `emitKernelEvent` + `useWorkspace`. After successful `markSent`, emit `PROSPECT.OUTREACH_SENT` (payload: `profile_id`, `step_index`, `channel: 'instagram'`). Source: `mkt-prospecting`, entity_kind: `prospecting_profile`.
 
-1. `useUpdateStoreOrderStatus.onSuccess` → if status is `delivered` or `completed`, emit `ORDER.FULFILLED` (payload: `order_id`, `status`, `old_status`)
-2. `onSuccess` → `console.log('[ORDERS] Store order status updated: ${id} → ${status}')`
-3. `onError` → `console.warn('[ORDERS] STORE_ORDER_STATUS_FAILED', error.message)`
-4. Notification email catch → prefix with `[ORDERS]`
+**`BulkOutreachDialog.tsx` — `handleConfirmSent`:**
+2. After successful send confirmation, emit `PROSPECT.OUTREACH_SENT` (payload: `profile_id`, `step_index: 1`, `channel: 'instagram'`, `bulk: true`).
 
-### B) Kernel Events + Logging — Order Notes (`useOrderNotes.ts`, `useCreateOrderNote.ts`)
+### B) Kernel Events — Profile Converted (prospect → lead)
 
-Events: `source_module: 'sales-orders'`, `entity_kind: 'order_note'`.
+**`ProspectingResults.tsx` — `convertMutation.onSuccess`:**
+3. Emit `PROSPECT.CONVERTED` (payload: `profile_id`, `lead_id`, `source: 'manual'`).
 
-**`useCreateOrderNote.ts`:**
-1. `onSuccess` → emit `ORDER.CREATED` (payload: `order_number`, `total_gross`, `items_count`, `currency`)
-2. `onError` → `console.warn('[ORDERS] ORDER_NOTE_CREATE_FAILED')`
+**`BulkOutreachDialog.tsx` — `handleConfirmSent` (auto-convert):**
+4. After lead creation succeeds, emit `PROSPECT.CONVERTED` (payload: `profile_id`, `lead_id`, `source: 'auto_outreach'`).
 
-**`useOrderNotes.ts` — `useOrderNoteActions`:**
-3. `updateOrderMutation.onSuccess` → `console.log('[ORDERS] Order note updated: ${orderId}')`
-4. `updateOrderMutation.onError` → `console.warn('[ORDERS] ORDER_NOTE_UPDATE_FAILED')`
-5. `addAdminNote` catch → `console.warn('[ORDERS] ADMIN_NOTE_FAILED')`
+### C) Logging — Edge Functions
 
-### C) Logging — Client Portal Orders (`useClientOrders.ts`)
+**`professional-prospecting-search/index.ts`:**
+1. After search record created → `console.log('[PROSPECTING] Search started: profession=${profession}, location=${location}')`
+2. After results saved → `console.log('[PROSPECTING] Search completed: id=${search.id}, results=${results.length}')`
+3. Error → prefix `console.error` with `[PROSPECTING]`
 
-1. `createOrderMutation.onError` → `console.warn('[ORDERS] CLIENT_ORDER_CREATE_FAILED')`
-2. `addItemMutation.onError` → `console.warn('[ORDERS] CLIENT_ORDER_ADD_ITEM_FAILED')`
-3. `submitOrderMutation.onError` → `console.warn('[ORDERS] CLIENT_ORDER_SUBMIT_FAILED')`
-4. `submitOrderMutation.onSuccess` → `console.log('[ORDERS] Client order submitted')`
+**`professional-prospecting-analyze/index.ts`:**
+4. Before AI analysis → `console.log('[PROSPECTING] Analyze: ${profiles.length} profiles')`
+5. After analysis → `console.log('[PROSPECTING] Analyzed: ${successCount} ok, ${failCount} failed')`
+6. Error → prefix `console.error` with `[PROSPECTING]`
 
-### D) Logging — Store Order Events (`useStoreOrderEvents.ts`)
+**`generate-prospecting-message/index.ts`:**
+7. Before AI call → `console.log('[PROSPECTING] Generate msg: step=${sequenceStep}, tone=${tone}')`
+8. After success → `console.log('[PROSPECTING] Message generated: ${message.length} chars')`
+9. Error → `console.error('[PROSPECTING] MSG_GENERATE_FAILED', ...)`
 
-1. `useAddStoreOrderEvent.onError` → `console.warn('[ORDERS] ORDER_EVENT_ADD_FAILED')`
-2. `useAddStoreOrderEvent.onSuccess` → `console.log('[ORDERS] Event added to order: ${orderId}')`
+**`batch-generate-prospecting-messages/index.ts`:**
+10. Start → `console.log('[PROSPECTING] Batch generate: ${profiles.length} profiles')`
+11. End → `console.log('[PROSPECTING] Batch done: ${results.length} results, ${errors} errors')`
+12. Error → prefix with `[PROSPECTING]`
 
-### E) Logging — Edge Functions
+**`prospecting-outreach-processor/index.ts`:**
+13. Start → `console.log('[PROSPECTING] Processor: ${dueItems.length} due items')`
+14. Per item → `console.log('[PROSPECTING] Processed: profile=${profileName}, step=${item.step_index}')`
+15. Error → prefix with `[PROSPECTING]`
 
-**`order-note-submit/index.ts`:**
-1. After auth verification → `console.log('[ORDERS] Submit: order=${orderId}, user=${user.id}')`
-2. After status update → `console.log('[ORDERS] Submitted: order=${orderId}, status=${newStatus}, total=${totalGross}')`
-3. Error → prefix existing `console.error` with `[ORDERS]`
+### D) Logging — UI Components
 
-**`b2b-plan-generate-order/index.ts`:**
-4. Before insert → `console.log('[ORDERS] B2B plan order: run=${runId}, plan=${plan.name}')`
-5. After insert → `console.log('[ORDERS] B2B order created: id=${order.id}, number=${orderNumber}')`
-6. Error → `console.error('[ORDERS] B2B_PLAN_ORDER_FAILED', e.message)`
+**`PendingOutreachPanel.tsx`:**
+1. `generateMessage` error → `console.warn('[PROSPECTING] MSG_GENERATE_FAILED', err)`
+2. `markSent` success → `console.log('[PROSPECTING] Outreach sent: profile=${item.profile_id}')`
 
-### F) Smoke Tests
+**`BulkOutreachDialog.tsx`:**
+3. `handleReject` error → `console.warn('[PROSPECTING] BULK_REJECT_FAILED', err)`
+4. `handleConfirmSent` success → `console.log('[PROSPECTING] Bulk outreach sent: profile=${profile.id}')`
+5. Auto-lead creation error → `console.warn('[PROSPECTING] AUTO_LEAD_CREATE_FAILED', err)`
+
+**`ProspectingResults.tsx`:**
+6. `convertMutation.onError` → `console.warn('[PROSPECTING] CONVERT_FAILED', error.message)`
+7. `rejectMutation.onError` → `console.warn('[PROSPECTING] REJECT_FAILED')`
+8. `enrichProfile` error → `console.warn('[PROSPECTING] ENRICH_FAILED', error)`
+9. Bulk outreach error → `console.warn('[PROSPECTING] BULK_OUTREACH_FAILED', err)`
+
+**`ProspectingSearch.tsx`:**
+10. Search error → `console.warn('[PROSPECTING] SEARCH_FAILED', error)`
+11. Analyze error → `console.warn('[PROSPECTING] ANALYZE_FAILED', error)`
+
+### E) Smoke Tests
 
 Add to `system-run-smoke-tests`:
-- `store_orders` table check (module: `sales-orders`)
-- `store_order_events` table check (module: `sales-orders`)
-- `order_notes` table check (module: `sales-orders`)
-- `order_note_items` table check (module: `sales-orders`)
+- `professional_prospecting_searches` (module: `mkt-prospecting`)
+- `professional_prospecting_profiles` (module: `mkt-prospecting`)
+- `prospecting_outreach_queue` (module: `mkt-prospecting`)
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useStoreOrders.ts` | Import `emitKernelEvent`; emit `ORDER.FULFILLED`; add `[ORDERS]` logging |
-| `src/hooks/useCreateOrderNote.ts` | Import `emitKernelEvent`; emit `ORDER.CREATED`; add `[ORDERS]` logging |
-| `src/hooks/useOrderNotes.ts` | Add `[ORDERS]` logging to actions |
-| `src/hooks/client-portal/useClientOrders.ts` | Add `[ORDERS]` logging |
-| `src/hooks/useStoreOrderEvents.ts` | Add `[ORDERS]` logging |
-| `supabase/functions/order-note-submit/index.ts` | Add `[ORDERS]` prefixed logging |
-| `supabase/functions/b2b-plan-generate-order/index.ts` | Add `[ORDERS]` prefixed logging |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `store_orders`, `store_order_events`, `order_notes`, `order_note_items` checks |
+| `src/components/professional-prospecting/PendingOutreachPanel.tsx` | Import `emitKernelEvent`; emit `PROSPECT.OUTREACH_SENT`; add `[PROSPECTING]` logging |
+| `src/components/professional-prospecting/BulkOutreachDialog.tsx` | Import `emitKernelEvent`; emit `PROSPECT.OUTREACH_SENT` + `PROSPECT.CONVERTED`; add `[PROSPECTING]` logging |
+| `src/components/professional-prospecting/ProspectingResults.tsx` | Import `emitKernelEvent`; emit `PROSPECT.CONVERTED`; add `[PROSPECTING]` logging |
+| `src/components/professional-prospecting/ProspectingSearch.tsx` | Add `[PROSPECTING]` logging |
+| `supabase/functions/professional-prospecting-search/index.ts` | Add `[PROSPECTING]` prefixed logging |
+| `supabase/functions/professional-prospecting-analyze/index.ts` | Add `[PROSPECTING]` prefixed logging |
+| `supabase/functions/generate-prospecting-message/index.ts` | Add `[PROSPECTING]` prefixed logging |
+| `supabase/functions/batch-generate-prospecting-messages/index.ts` | Add `[PROSPECTING]` prefixed logging |
+| `supabase/functions/prospecting-outreach-processor/index.ts` | Add `[PROSPECTING]` prefixed logging |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add `professional_prospecting_searches`, `professional_prospecting_profiles`, `prospecting_outreach_queue` checks |
 
