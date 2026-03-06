@@ -2530,3 +2530,218 @@ async function queryPipelineComparison(client: any, workspaceId: string) {
     };
   }
 }
+
+// ---- Daily Priorities Handler ----
+async function queryDailyPriorities(client: any, workspaceId: string) {
+  const now = new Date();
+  const fiveDaysAgo = new Date(now.getTime() - 5 * 86400000).toISOString();
+  const threeDaysAgo = new Date(now.getTime() - 3 * 86400000).toISOString();
+
+  const [{ data: riskyDeals }, { data: staleLeads }, { data: decisions }, { data: driftItems }] = await Promise.all([
+    client.from("opportunities").select("id, title, value, updated_at").eq("workspace_id", workspaceId).eq("status", "open").lt("updated_at", fiveDaysAgo).order("value", { ascending: false }).limit(5),
+    client.from("leads").select("id, name, email, updated_at").eq("workspace_id", workspaceId).in("status", ["new", "contacted"]).lt("updated_at", threeDaysAgo).order("updated_at", { ascending: true }).limit(5),
+    client.from("kernel_decisions").select("id, summary, type, created_at").eq("workspace_id", workspaceId).eq("status", "open").order("created_at", { ascending: false }).limit(5),
+    client.from("context_drift").select("block_id, drift_score, severity, context_blocks(title)").eq("workspace_id", workspaceId).in("severity", ["risk", "critical"]).limit(5),
+  ]);
+
+  const items: any[] = [];
+  const sections: string[] = [];
+
+  if (riskyDeals?.length) {
+    const totalVal = riskyDeals.reduce((s: number, d: any) => s + (Number(d.value) || 0), 0);
+    sections.push(`**${riskyDeals.length} deals sem atividade** (€${totalVal.toLocaleString()})`);
+    riskyDeals.forEach((d: any) => {
+      const daysSince = differenceInDays(now, new Date(d.updated_at));
+      items.push({ id: d.id, title: d.title || "Deal", subtitle: `Sem atividade há ${daysSince}d · €${(Number(d.value) || 0).toLocaleString()}`, value: Number(d.value) || 0, health_label: "AT_RISK", link: `/dashboard/opportunities?deal=${d.id}` });
+    });
+  }
+
+  if (staleLeads?.length) {
+    sections.push(`**${staleLeads.length} leads sem resposta**`);
+    staleLeads.forEach((l: any) => {
+      const daysSince = differenceInDays(now, new Date(l.updated_at));
+      items.push({ id: l.id, title: l.name || l.email || "Lead", subtitle: `Sem resposta há ${daysSince}d`, value: 0, health_label: "WATCH", link: `/dashboard/leads` });
+    });
+  }
+
+  if (decisions?.length) {
+    sections.push(`**${decisions.length} decisões pendentes**`);
+    decisions.forEach((d: any) => {
+      items.push({ id: d.id, title: d.summary || "Decisão pendente", subtitle: d.type || "kernel", value: 0, link: `/dashboard/strategy` });
+    });
+  }
+
+  if (driftItems?.length) {
+    sections.push(`**${driftItems.length} blocos com drift crítico**`);
+  }
+
+  const total = (riskyDeals?.length || 0) + (staleLeads?.length || 0) + (decisions?.length || 0) + (driftItems?.length || 0);
+
+  if (total === 0) {
+    return {
+      headline: "Sem prioridades urgentes hoje.",
+      subtext: "Todos os deals têm atividade recente, leads respondidos e sem decisões pendentes. 🚀",
+      items: [],
+      actions: [{ id: "view_pipeline", label: "Ver pipeline", icon: "Eye", type: "navigate", payload: { link: "/dashboard/opportunities" } }],
+      metric: { label: "Prioridades", value: "0", trend: "neutral" as const },
+    };
+  }
+
+  const dealIds = (riskyDeals || []).map((d: any) => d.id);
+  return {
+    headline: `${total} prioridades para hoje.`,
+    subtext: sections.join(" · "),
+    items: items.slice(0, 10),
+    actions: [
+      ...(dealIds.length > 0 ? [{ id: "create_tasks_deals", label: "Criar follow-ups", icon: "ListTodo", type: "bulk_task" as const, payload: { deal_ids: dealIds, task_title: "Follow up deal prioritário", priority: "HIGH" } }] : []),
+      { id: "view_decisions", label: "Ver decisões", icon: "AlertCircle", type: "navigate" as const, payload: { link: "/dashboard/strategy" } },
+      { id: "view_leads", label: "Ver leads", icon: "Users", type: "navigate" as const, payload: { link: "/dashboard/leads" } },
+    ],
+    metric: { label: "Prioridades Hoje", value: String(total), trend: total > 3 ? "down" as const : "neutral" as const },
+  };
+}
+
+// ---- Kernel Decisions Handler ----
+async function queryKernelDecisions(client: any, workspaceId: string) {
+  const { data: decisions } = await client
+    .from("kernel_decisions")
+    .select("id, summary, rationale, type, status, created_at")
+    .eq("workspace_id", workspaceId)
+    .eq("status", "open")
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  const items = (decisions || []).map((d: any) => ({
+    id: d.id,
+    title: d.summary || "Decisão pendente",
+    subtitle: d.rationale || d.type || "",
+    value: 0,
+    link: `/dashboard/strategy`,
+  }));
+
+  return {
+    headline: items.length > 0
+      ? `${items.length} decisão${items.length !== 1 ? "ões" : ""} pendente${items.length !== 1 ? "s" : ""} do Kernel.`
+      : "Nenhuma decisão pendente do Kernel.",
+    subtext: items.length > 0 ? "Revê e aceita ou rejeita cada decisão." : "O Kernel está alinhado. ✅",
+    items,
+    actions: items.length > 0
+      ? [{ id: "view_decisions", label: "Gerir decisões", icon: "AlertCircle", type: "navigate", payload: { link: "/dashboard/strategy" } }]
+      : [],
+    metric: { label: "Decisões Pendentes", value: String(items.length), trend: items.length > 0 ? "down" as const : "neutral" as const },
+  };
+}
+
+// ---- Kernel Live Feed Handler ----
+async function queryKernelLiveFeed(client: any, workspaceId: string) {
+  const { data: events } = await client
+    .from("kernel_events")
+    .select("id, event_type, entity_type, created_at")
+    .eq("workspace_id", workspaceId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  const items = (events || []).map((e: any) => ({
+    id: e.id,
+    title: (e.event_type || "").replace(/\./g, " "),
+    subtitle: `${e.entity_type || ""} · ${new Date(e.created_at).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}`,
+    value: 0,
+    link: `/dashboard`,
+  }));
+
+  return {
+    headline: items.length > 0 ? `${items.length} eventos recentes.` : "Sem eventos recentes.",
+    subtext: items.length > 0 ? `Último: ${items[0]?.title}` : undefined,
+    items,
+    actions: [{ id: "view_dashboard", label: "Ver Command Center", icon: "Eye", type: "navigate", payload: { link: "/dashboard" } }],
+    metric: { label: "Eventos Recentes", value: String(items.length), trend: "neutral" as const },
+  };
+}
+
+// ---- Drift Overview Handler ----
+async function queryDriftOverview(client: any, workspaceId: string) {
+  const { data: driftItems } = await client
+    .from("context_drift")
+    .select("block_id, drift_score, severity, reasons_json, context_blocks(title, block_type)")
+    .eq("workspace_id", workspaceId)
+    .order("drift_score", { ascending: true })
+    .limit(10);
+
+  const items = (driftItems || []).map((d: any) => {
+    const block = d.context_blocks as any;
+    return {
+      id: d.block_id,
+      title: block?.title || "Bloco",
+      subtitle: `Drift: ${d.drift_score} · ${d.severity || "watch"}`,
+      value: d.drift_score || 0,
+      health_label: d.severity === "critical" ? "AT_RISK" : d.severity === "risk" ? "WATCH" : "HEALTHY",
+      link: `/dashboard/command-center?tab=context`,
+    };
+  });
+
+  const critical = (driftItems || []).filter((d: any) => d.severity === "critical" || d.severity === "risk").length;
+
+  return {
+    headline: items.length > 0 ? `${items.length} blocos com drift${critical > 0 ? ` (${critical} críticos)` : ""}.` : "Contexto actualizado. ✅",
+    subtext: items.length > 0 ? "Blocos desatualizados podem afetar decisões do Kernel." : undefined,
+    items,
+    actions: items.length > 0
+      ? [{ id: "view_context", label: "Ver Context OS", icon: "Eye", type: "navigate", payload: { link: "/dashboard/command-center?tab=context" } }]
+      : [],
+    metric: { label: "Drift Crítico", value: String(critical), trend: critical > 0 ? "down" as const : "neutral" as const },
+  };
+}
+
+// ---- Lead Drop Analysis Handler ----
+async function queryLeadDropAnalysis(client: any, workspaceId: string) {
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString();
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 86400000).toISOString();
+
+  const [{ count: thisWeek }, { count: lastWeek }] = await Promise.all([
+    client.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).gte("created_at", sevenDaysAgo),
+    client.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).gte("created_at", fourteenDaysAgo).lt("created_at", sevenDaysAgo),
+  ]);
+
+  const current = thisWeek ?? 0;
+  const previous = lastWeek ?? 0;
+  const delta = previous > 0 ? Math.round(((current - previous) / previous) * 100) : (current > 0 ? 100 : 0);
+  const dropped = delta < 0;
+
+  const { data: recentLeads } = await client
+    .from("leads")
+    .select("source")
+    .eq("workspace_id", workspaceId)
+    .gte("created_at", sevenDaysAgo);
+
+  const sources = new Map<string, number>();
+  (recentLeads || []).forEach((l: any) => {
+    const src = l.source || "Desconhecido";
+    sources.set(src, (sources.get(src) || 0) + 1);
+  });
+
+  const items = Array.from(sources.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([source, count], i) => ({
+      id: `source_${i}`,
+      title: source,
+      subtitle: `${count} lead${count !== 1 ? "s" : ""} esta semana`,
+      value: count,
+      link: `/dashboard/leads`,
+    }));
+
+  const headline = dropped
+    ? `Leads caíram ${Math.abs(delta)}% esta semana (${current} vs ${previous}).`
+    : current === previous
+      ? `Leads estáveis: ${current} esta semana, ${previous} na anterior.`
+      : `Leads subiram ${delta}% (${current} vs ${previous}).`;
+
+  return {
+    headline,
+    subtext: dropped ? "Verifica fontes de aquisição e campanhas activas." : current === 0 && previous === 0 ? "Sem leads nas últimas 2 semanas." : undefined,
+    items,
+    actions: [{ id: "view_leads", label: "Ver leads", icon: "Eye", type: "navigate", payload: { link: "/dashboard/leads" } }],
+    metric: { label: "Variação Semanal", value: `${delta >= 0 ? "+" : ""}${delta}%`, trend: dropped ? "down" as const : delta > 0 ? "up" as const : "neutral" as const },
+  };
+}

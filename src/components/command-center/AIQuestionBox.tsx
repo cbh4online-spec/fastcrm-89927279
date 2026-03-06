@@ -101,7 +101,7 @@ export function AIQuestionBox() {
     }
   }, [messages.length]);
 
-  // When ask-fastcrm result comes in, add it to chat with contextual suggestions
+  // When ask-fastcrm result comes in, add it to chat with contextual suggestions and actions
   useEffect(() => {
     if (result) {
       const headline = result.answer?.headline || result.header || 'Resultado';
@@ -130,6 +130,8 @@ export function AIQuestionBox() {
           content,
           suggestions,
           timestamp: new Date(),
+          actions: result.actions,
+          items: result.items?.slice(0, 5),
         }];
       });
     }
