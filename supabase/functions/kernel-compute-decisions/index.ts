@@ -219,6 +219,99 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Rule 6: HOT_LEAD_UNANSWERED — leads with status new/contacted, no activity in 48h, no pending tasks
+    const cutoff48h = new Date(Date.now() - 48 * 3600_000).toISOString();
+    const { data: hotLeads } = await supabase
+      .from("leads")
+      .select("id, name, status, updated_at, assigned_to")
+      .eq("workspace_id", workspace_id)
+      .in("status", ["new", "contacted"])
+      .lt("updated_at", cutoff48h)
+      .limit(20);
+
+    for (const lead of hotLeads ?? []) {
+      if (await isDuplicate("hot_lead_unanswered")) break;
+      // Check if there are pending tasks for this lead
+      const { data: pendingTasks } = await supabase
+        .from("tasks")
+        .select("id")
+        .eq("workspace_id", workspace_id)
+        .eq("related_type", "lead")
+        .eq("related_id", lead.id)
+        .in("status", ["pending", "in_progress"])
+        .limit(1);
+
+      if ((pendingTasks?.length ?? 0) > 0) continue;
+
+      const hoursInactive = Math.floor((Date.now() - new Date(lead.updated_at).getTime()) / 3600_000);
+      const policy = getPolicy("hot_lead_unanswered");
+      decisions.push({
+        decision: {
+          workspace_id,
+          type: "hot_lead_unanswered",
+          priority: 0.9,
+          summary: `Lead "${lead.name}" sem resposta há ${hoursInactive}h`,
+          rationale: `Lead com status "${lead.status}" sem atividade desde ${lead.updated_at}. Sem tarefas pendentes associadas.`,
+          recommended_actions: [
+            { action_key: "CREATE_TASK", params: { title: `Follow-up urgente: ${lead.name}`, related_type: "lead", related_id: lead.id, priority: "high" } },
+            { action_key: "NOTIFY_OWNER", params: { title: `Lead sem resposta: ${lead.name}`, severity: "risk", entity_type: "lead", entity_id: lead.id } },
+          ],
+          policy,
+          status: getStatusFromPolicy("hot_lead_unanswered"),
+        },
+        evidence: [
+          { evidence_type: "query", ref_kind: "lead", ref_id: lead.id, snippet: `Status: ${lead.status}, Última atividade: ${lead.updated_at}, Horas inativo: ${hoursInactive}` },
+          { evidence_type: "query", ref_kind: "task", ref_id: lead.id, snippet: `Tarefas pendentes: 0` },
+        ],
+      });
+    }
+
+    // Rule 7: LEAD_DROP_ALERT — >20% drop in new leads week-over-week
+    if (!(await isDuplicate("lead_drop_alert"))) {
+      const now = Date.now();
+      const thisWeekStart = new Date(now - 7 * 86400_000).toISOString();
+      const lastWeekStart = new Date(now - 14 * 86400_000).toISOString();
+
+      const { count: thisWeekCount } = await supabase
+        .from("leads")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", workspace_id)
+        .gte("created_at", thisWeekStart);
+
+      const { count: lastWeekCount } = await supabase
+        .from("leads")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", workspace_id)
+        .gte("created_at", lastWeekStart)
+        .lt("created_at", thisWeekStart);
+
+      const tw = thisWeekCount ?? 0;
+      const lw = lastWeekCount ?? 0;
+
+      if (lw > 0 && tw < lw * 0.8) {
+        const dropPct = Math.round((1 - tw / lw) * 100);
+        const policy = getPolicy("lead_drop_alert");
+        decisions.push({
+          decision: {
+            workspace_id,
+            type: "lead_drop_alert",
+            priority: 0.75,
+            summary: `Queda de ${dropPct}% em novos leads esta semana (${tw} vs ${lw})`,
+            rationale: `Volume de novos leads caiu mais de 20% em relação à semana anterior. Pode indicar problema no marketing ou sazonalidade.`,
+            recommended_actions: [
+              { action_key: "NOTIFY_OWNER", params: { title: `Alerta: queda de ${dropPct}% em leads`, severity: "warn" } },
+              { action_key: "OPEN_FILTERED_VIEW", params: { path: "/dashboard/leads", filters: { date_range: "last_14_days" } } },
+            ],
+            policy,
+            status: getStatusFromPolicy("lead_drop_alert"),
+          },
+          evidence: [
+            { evidence_type: "query", ref_kind: "leads", ref_id: workspace_id, snippet: `Esta semana: ${tw} leads, Semana anterior: ${lw} leads, Queda: ${dropPct}%` },
+          ],
+        });
+      }
+    }
+
     // Insert decisions + evidence
     let created = 0;
     for (const { decision, evidence } of decisions) {
@@ -249,7 +342,7 @@ Deno.serve(async (req) => {
     }).then(() => {});
 
     return new Response(
-      JSON.stringify({ created, total_rules_checked: 5 }),
+      JSON.stringify({ created, total_rules_checked: 7 }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
