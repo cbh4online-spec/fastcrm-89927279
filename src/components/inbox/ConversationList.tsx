@@ -36,6 +36,9 @@ import {
   Trash2,
   CheckSquare,
   Zap,
+  CheckCircle,
+  Clock,
+  Archive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { cleanEmailPreview } from "@/lib/cleanEmailPreview";
@@ -74,15 +77,9 @@ const channelColors: Record<ConversationChannel, string> = {
   other: "text-muted-foreground",
 };
 
-const channelFilterOptions: { id: ConversationChannel | "all"; label: string }[] = [
-  { id: "all", label: "Todos" },
-  { id: "email", label: "Email" },
-  { id: "whatsapp", label: "WhatsApp" },
-  { id: "instagram", label: "Instagram" },
-  { id: "ghl", label: "GHL" },
-  { id: "webchat", label: "Webchat" },
-  { id: "sms", label: "SMS" },
-];
+
+import { InboxCategory, ChannelFilter } from "./InboxSidebar";
+import { useUpdateConversationStatus } from "@/hooks/useConversations";
 
 type SimplifiedTab = "requires_response" | "follow_up" | "active" | "resolved";
 
@@ -90,19 +87,23 @@ interface ConversationListProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   defaultChannel?: ConversationChannel | null;
+  categoryFilter?: InboxCategory;
+  channelFilter?: ConversationChannel;
 }
 
 export function ConversationList({
   selectedId,
   onSelect,
   defaultChannel,
+  categoryFilter,
+  channelFilter: externalChannelFilter,
 }: ConversationListProps) {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<SimplifiedTab>("requires_response");
-  const [channelFilter, setChannelFilter] = useState<ConversationChannel | "all">("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
+  const updateStatus = useUpdateConversationStatus();
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
 
@@ -160,9 +161,25 @@ export function ConversationList({
     return "open";
   };
 
+  // Map category filter to tab
+  useEffect(() => {
+    if (!categoryFilter) return;
+    const categoryToTab: Partial<Record<InboxCategory, SimplifiedTab>> = {
+      all: "requires_response",
+      new: "requires_response",
+      assigned: "requires_response",
+      pending: "requires_response",
+      negotiations: "active",
+      closed: "resolved",
+      archives: "resolved",
+    };
+    const mapped = categoryToTab[categoryFilter];
+    if (mapped) setActiveTab(mapped);
+  }, [categoryFilter]);
+
   const { data: conversations, isLoading } = useConversations({
     status: getStatusFromTab(activeTab),
-    channel: defaultChannel || undefined,
+    channel: externalChannelFilter || defaultChannel || undefined,
   });
   const deleteConversations = useDeleteConversations();
 
@@ -204,23 +221,16 @@ export function ConversationList({
     return filtered;
   }, [conversations, search, activeTab]);
 
-  // Apply channel filter + sort
+  // Sort conversations
   const processedConversations = useMemo(() => {
-    let filtered = tabFilteredConversations;
-
-    if (channelFilter !== "all") {
-      filtered = filtered.filter(conv => conv.channel === channelFilter);
-    }
-
-    // Sort by last_message_at DESC (most recent first)
+    const filtered = [...tabFilteredConversations];
     filtered.sort((a, b) => {
       const dateA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
       const dateB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
       return dateB - dateA;
     });
-
     return filtered;
-  }, [tabFilteredConversations, channelFilter]);
+  }, [tabFilteredConversations]);
 
   const toggleSelect = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -273,29 +283,7 @@ export function ConversationList({
             </div>
           </div>
 
-          {/* Channel Filter Pills with counts */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
-            {channelFilterOptions.map((opt) => {
-              const count = opt.id === "all"
-                ? tabFilteredConversations.length
-                : tabFilteredConversations.filter(c => c.channel === opt.id).length;
-              if (opt.id !== "all" && count === 0) return null;
-              return (
-                <button
-                  key={opt.id}
-                  onClick={() => setChannelFilter(opt.id)}
-                  className={cn(
-                    "text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap border transition-colors",
-                    channelFilter === opt.id
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
-                  )}
-                >
-                  {opt.label} ({count})
-                </button>
-              );
-            })}
-          </div>
+          {/* Conversation count */}
 
           {/* Bulk Actions */}
           <div className="flex items-center justify-between">
@@ -352,7 +340,7 @@ export function ConversationList({
                   <div
                     key={conv.id}
                     className={cn(
-                      "px-3 py-2.5 hover:bg-accent/50 transition-colors cursor-pointer",
+                      "group relative px-3 py-2.5 hover:bg-accent/50 transition-colors cursor-pointer",
                       selectedId === conv.id && "bg-accent",
                       isSelected && "bg-primary/5"
                     )}
@@ -387,10 +375,57 @@ export function ConversationList({
                           </span>
                           <ChannelIcon className={cn("w-3 h-3 flex-shrink-0", channelColors[conv.channel])} />
                           {conv.last_message_at && (
-                            <span className="text-[11px] text-muted-foreground flex-shrink-0 whitespace-nowrap ml-auto">
+                            <span className="text-[11px] text-muted-foreground flex-shrink-0 whitespace-nowrap ml-auto group-hover:hidden">
                               {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false, locale: pt })}
                             </span>
                           )}
+                          {/* Hover Quick Actions */}
+                          <div className="hidden group-hover:flex items-center gap-0.5 ml-auto">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-green-500 transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateStatus.mutate({ conversationId: conv.id, status: "closed" });
+                                    toast.success("Conversa resolvida");
+                                  }}
+                                >
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Resolver</p></TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-amber-500 transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toast.success("Marcado para follow-up");
+                                  }}
+                                >
+                                  <Clock className="w-3.5 h-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Follow-up</p></TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateStatus.mutate({ conversationId: conv.id, status: "archived" });
+                                    toast.success("Conversa arquivada");
+                                  }}
+                                >
+                                  <Archive className="w-3.5 h-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Arquivar</p></TooltipContent>
+                            </Tooltip>
+                          </div>
                         </div>
 
                         {/* Line 2: Preview + Unread dot */}

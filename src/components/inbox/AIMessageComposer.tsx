@@ -19,6 +19,8 @@ import {
   CheckCircle2,
   Copy,
   Save,
+  Languages,
+  CheckSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -38,6 +40,7 @@ interface AIMessageComposerProps {
   channel: string;
   templateContext: VariableContext;
   onSend: (message: string) => Promise<void>;
+  onSendAndResolve?: (message: string) => Promise<void>;
   isSending?: boolean;
   disabled?: boolean;
 }
@@ -48,7 +51,7 @@ export interface AIMessageComposerRef {
 }
 
 export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageComposerProps>(
-  ({ conversationId, messages, leadData, opportunityData, channel, templateContext, onSend, isSending, disabled }, ref) => {
+  ({ conversationId, messages, leadData, opportunityData, channel, templateContext, onSend, onSendAndResolve, isSending, disabled }, ref) => {
     const [message, setMessage] = useState("");
     const [showAIPanel, setShowAIPanel] = useState(false);
     const [suggestions, setSuggestions] = useState<ReplySuggestion[]>([]);
@@ -287,6 +290,29 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
                 <p>Adiciona tom comercial focado em conversão</p>
               </TooltipContent>
             </Tooltip>
+
+            {/* Translate */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleModifyReply("formal" as ModifyAction)}
+                  disabled={isLoading || !message.trim()}
+                  className="h-7 text-xs gap-1"
+                >
+                  {isModifying && modifyingAction === ("formal" as ModifyAction) ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Languages className="w-3 h-3" />
+                  )}
+                  Traduzir
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Traduz a mensagem para o idioma do contacto</p>
+              </TooltipContent>
+            </Tooltip>
           </TooltipProvider>
 
           {/* Template Panel (NEW - with AI adaptation) */}
@@ -411,7 +437,15 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                if (onSendAndResolve && message.trim()) {
+                  onSendAndResolve(message.trim());
+                  setMessage("");
+                } else {
+                  handleSend();
+                }
+              } else if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 handleSend();
               }
@@ -420,17 +454,41 @@ export const AIMessageComposer = forwardRef<AIMessageComposerRef, AIMessageCompo
             rows={2}
             disabled={disabled}
           />
-          <Button
-            onClick={handleSend}
-            disabled={!message.trim() || isSending || disabled}
-            className="h-auto px-4"
-          >
-            {isSending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
+          <div className="flex flex-col gap-1">
+            <Button
+              onClick={handleSend}
+              disabled={!message.trim() || isSending || disabled}
+              className="h-auto px-4 flex-1"
+            >
+              {isSending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+            </Button>
+            {onSendAndResolve && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      if (message.trim()) {
+                        onSendAndResolve(message.trim());
+                        setMessage("");
+                      }
+                    }}
+                    disabled={!message.trim() || isSending || disabled}
+                    className="h-7 text-[10px] gap-1 px-2"
+                  >
+                    <CheckSquare className="w-3 h-3" />
+                    Resolver
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Enviar e Resolver (⌘+Enter)</p></TooltipContent>
+              </Tooltip>
             )}
-          </Button>
+          </div>
         </div>
 
         {/* Safety Notice */}
