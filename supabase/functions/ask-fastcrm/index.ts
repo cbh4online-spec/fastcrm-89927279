@@ -1315,30 +1315,30 @@ async function queryDealsInactive(
 
   return {
     headline: inactive.length > 0
-      ? `${inactive.length} deal${inactive.length !== 1 ? "s" : ""} with no activity in ${days}+ days.`
-      : `All deals had activity in the last ${days} days.`,
-    subtext: inactive.length > 0 ? "These deals may need immediate attention." : undefined,
+      ? `${inactive.length} deal${inactive.length !== 1 ? "s" : ""} sem atividade há ${days}+ dias.`
+      : `Todos os deals tiveram atividade nos últimos ${days} dias.`,
+    subtext: inactive.length > 0 ? "Estes deals podem precisar de atenção imediata." : undefined,
     items: inactive,
     actions: inactive.length > 0
       ? [
           {
             id: "create_tasks_all",
-            label: "Create follow-up tasks",
+            label: "Criar tarefas de follow-up",
             icon: "ListTodo",
             type: "bulk_task",
             payload: {
               deal_ids: inactive.map((i) => i.id),
-              task_title: "Re-engage inactive deal",
+              task_title: "Reengajar deal inativo",
               priority: "HIGH",
             },
           },
           {
             id: "save_view",
-            label: "Save as view",
+            label: "Guardar como vista",
             icon: "Bookmark",
             type: "create_saved_view",
             payload: {
-              view_name: `Inactive Deals (${days}d+)`,
+              view_name: `Deals Inativos (${days}d+)`,
               object_type_id: "opportunity",
               filters: { inactive_days: days },
               columns: ["title", "value", "updated_at"],
@@ -1346,7 +1346,7 @@ async function queryDealsInactive(
           },
           {
             id: "move_stage",
-            label: "Move stage",
+            label: "Mover etapa",
             icon: "ArrowRight",
             type: "bulk_move_stage",
             payload: {
@@ -1355,7 +1355,7 @@ async function queryDealsInactive(
           },
           {
             id: "view_as_list",
-            label: "View deals",
+            label: "Ver deals",
             icon: "Eye",
             type: "navigate",
             payload: { link: "/dashboard/opportunities" },
@@ -1363,7 +1363,7 @@ async function queryDealsInactive(
         ]
       : [],
     metric: {
-      label: "Inactive Deals",
+      label: "Deals Inativos",
       value: String(inactive.length),
       trend: inactive.length > 0 ? "down" : "neutral",
     },
@@ -1393,8 +1393,8 @@ async function queryClosingSoon(
     const daysLeft = differenceInDays(new Date(o.expected_close_date), now);
     return {
       id: o.id,
-      title: o.title || "Untitled Deal",
-      subtitle: `Closes in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`,
+      title: o.title || "Deal sem nome",
+      subtitle: `Fecha em ${daysLeft} dia${daysLeft !== 1 ? "s" : ""}`,
       value: Number(o.value) || 0,
       health_label: daysLeft <= 7 ? "WATCH" : "HEALTHY",
       link: `/dashboard/opportunities?deal=${o.id}`,
@@ -1405,15 +1405,15 @@ async function queryClosingSoon(
 
   return {
     headline: items.length > 0
-      ? `${items.length} deal${items.length !== 1 ? "s" : ""} closing in the next ${days} days.`
-      : `No deals closing in the next ${days} days.`,
-    subtext: items.length > 0 ? `Total expected: €${totalValue.toLocaleString()}.` : undefined,
+      ? `${items.length} deal${items.length !== 1 ? "s" : ""} a fechar nos próximos ${days} dias.`
+      : `Nenhum deal a fechar nos próximos ${days} dias.`,
+    subtext: items.length > 0 ? `Total esperado: €${totalValue.toLocaleString()}.` : undefined,
     items,
     actions: items.length > 0
       ? [
           {
             id: "view_as_list",
-            label: "View closing deals",
+            label: "Ver deals a fechar",
             icon: "Eye",
             type: "navigate",
             payload: { link: "/dashboard/opportunities" },
@@ -1421,7 +1421,7 @@ async function queryClosingSoon(
         ]
       : [],
     metric: {
-      label: "Expected Revenue",
+      label: "Receita Esperada",
       value: `€${totalValue.toLocaleString()}`,
       trend: "up",
     },
@@ -1439,12 +1439,12 @@ async function queryForecast(client: any, workspaceId: string) {
   const forecast = data?.[0];
   if (!forecast) {
     return {
-      headline: "No forecast data available yet.",
+      headline: "Ainda não há dados de previsão disponíveis.",
       items: [],
       actions: [
         {
           id: "view_as_list",
-          label: "Open pipeline",
+          label: "Abrir pipeline",
           icon: "Eye",
           type: "navigate",
           payload: { link: "/dashboard/opportunities" },
@@ -1533,7 +1533,7 @@ async function queryForecastRisk(client: any, workspaceId: string) {
 
   if (!opps || opps.length === 0) {
     return {
-      headline: "No deals in the forecast period.",
+      headline: "Nenhum deal no período de previsão.",
       items: [],
       actions: [],
     };
@@ -1562,8 +1562,8 @@ async function queryForecastRisk(client: any, workspaceId: string) {
       const daysLeft = differenceInDays(new Date(o.expected_close_date), now);
       return {
         id: o.id,
-        title: o.title || "Untitled Deal",
-        subtitle: `${health?.health_label || "WATCH"} · Closes in ${daysLeft}d · ${health?.top_reason || ""}`,
+        title: o.title || "Deal sem nome",
+        subtitle: `${health?.health_label || "WATCH"} · Fecha em ${daysLeft}d · ${health?.top_reason || ""}`,
         value: Number(o.value) || 0,
         health_label: health?.health_label || "WATCH",
         link: `/dashboard/opportunities?deal=${o.id}`,
@@ -1575,26 +1575,26 @@ async function queryForecastRisk(client: any, workspaceId: string) {
 
   return {
     headline: atRiskDeals.length > 0
-      ? `${atRiskDeals.length} deal${atRiskDeals.length !== 1 ? "s" : ""} blocking your forecast.`
-      : "No unhealthy deals in the forecast period.",
-    subtext: atRiskDeals.length > 0 ? `€${totalAtRiskValue.toLocaleString()} at risk value.` : undefined,
+      ? `${atRiskDeals.length} deal${atRiskDeals.length !== 1 ? "s" : ""} a bloquear a previsão.`
+      : "Nenhum deal problemático no período de previsão.",
+    subtext: atRiskDeals.length > 0 ? `€${totalAtRiskValue.toLocaleString()} em valor de risco.` : undefined,
     items: atRiskDeals,
     actions: atRiskDeals.length > 0
       ? [
           {
             id: "create_tasks_all",
-            label: "Create follow-ups",
+            label: "Criar follow-ups",
             icon: "ListTodo",
             type: "bulk_task",
             payload: {
               deal_ids: atRiskDeals.map((i) => i.id),
-              task_title: "Address forecast risk",
+              task_title: "Resolver risco na previsão",
               priority: "HIGH",
             },
           },
           {
             id: "save_view",
-            label: "Save as view",
+            label: "Guardar como vista",
             icon: "Bookmark",
             type: "create_saved_view",
             payload: {
@@ -1667,20 +1667,20 @@ async function queryPipeline(client: any, workspaceId: string) {
     });
 
   return {
-    headline: `${totalDeals} open deal${totalDeals !== 1 ? "s" : ""} worth €${totalValue.toLocaleString()}.`,
-    subtext: items.length > 0 ? `Distributed across ${items.length} stages.` : undefined,
+    headline: `${totalDeals} deal${totalDeals !== 1 ? "s" : ""} abertos no valor de €${totalValue.toLocaleString()}.`,
+    subtext: items.length > 0 ? `Distribuídos por ${items.length} etapas.` : undefined,
     items,
     actions: [
       {
         id: "view_as_list",
-        label: "Open pipeline",
+        label: "Abrir pipeline",
         icon: "Eye",
         type: "navigate",
         payload: { link: "/dashboard/opportunities" },
       },
     ],
     metric: {
-      label: "Total Pipeline",
+      label: "Pipeline Total",
       value: `€${totalValue.toLocaleString()}`,
       trend: "neutral",
     },
@@ -1706,8 +1706,8 @@ async function queryContactsInactive(
     const daysSince = differenceInDays(new Date(), new Date(c.updated_at));
     return {
       id: c.id,
-      title: c.name || c.email || "Unknown Contact",
-      subtitle: `Last updated ${daysSince} days ago`,
+      title: c.name || c.email || "Contacto desconhecido",
+      subtitle: `Última atualização há ${daysSince} dias`,
       value: 0,
       link: `/dashboard/contacts/${c.id}`,
     };
@@ -1715,14 +1715,14 @@ async function queryContactsInactive(
 
   return {
     headline: items.length > 0
-      ? `${items.length} contact${items.length !== 1 ? "s" : ""} without activity in ${days}+ days.`
-      : `All contacts had updates in the last ${days} days.`,
+      ? `${items.length} contacto${items.length !== 1 ? "s" : ""} sem atividade há ${days}+ dias.`
+      : `Todos os contactos tiveram atualizações nos últimos ${days} dias.`,
     items,
     actions: items.length > 0
       ? [
           {
             id: "view_as_list",
-            label: "View contacts",
+            label: "Ver contactos",
             icon: "Eye",
             type: "navigate",
             payload: { link: "/dashboard/contacts" },
@@ -1730,7 +1730,7 @@ async function queryContactsInactive(
         ]
       : [],
     metric: {
-      label: "Inactive Contacts",
+      label: "Contactos Inativos",
       value: String(items.length),
       trend: items.length > 0 ? "down" : "neutral",
     },
@@ -1751,7 +1751,7 @@ async function queryStageBottleneck(client: any, workspaceId: string) {
     .eq("status", "open");
 
   if (!stages || !opps) {
-    return { headline: "No pipeline data available.", items: [], actions: [] };
+    return { headline: "Sem dados de pipeline disponíveis.", items: [], actions: [] };
   }
 
   const now = new Date();
@@ -1858,10 +1858,10 @@ async function queryDealsNoNextStep(client: any, workspaceId: string) {
 
   if (!opps || opps.length === 0) {
     return {
-      headline: "All open deals have a next step defined.",
+      headline: "Todos os deals abertos têm próximo passo definido.",
       items: [],
       actions: [],
-      metric: { label: "No Next Step", value: "0", trend: "neutral" },
+      metric: { label: "Sem Próximo Passo", value: "0", trend: "neutral" },
     };
   }
 
@@ -1881,52 +1881,52 @@ async function queryDealsNoNextStep(client: any, workspaceId: string) {
 
   const items = noNextStep.map((o: any) => ({
     id: o.id,
-    title: o.title || "Untitled Deal",
-    subtitle: "No next action or pending tasks",
+    title: o.title || "Deal sem nome",
+    subtitle: "Sem próxima ação ou tarefas pendentes",
     value: Number(o.value) || 0,
     health_label: "WATCH" as const,
     link: `/dashboard/opportunities?deal=${o.id}`,
   }));
 
   const suggestion = items.length > 0 ? {
-    text: `${items.length} deal${items.length !== 1 ? "s" : ""} have no next step.`,
+    text: `${items.length} deal${items.length !== 1 ? "s" : ""} sem próximo passo.`,
     action: {
       id: "suggest_tasks",
-      label: "Create follow-ups",
+      label: "Criar follow-ups",
       icon: "ListTodo",
       type: "bulk_task",
       payload: {
         deal_ids: items.map((i) => i.id),
-        task_title: "Define next step for deal",
+        task_title: "Definir próximo passo do deal",
         priority: "MEDIUM",
       },
     },
   } : undefined;
 
   return {
-    headline: `${items.length} deal${items.length !== 1 ? "s" : ""} without a next step.`,
-    subtext: "These deals need defined next actions.",
+    headline: `${items.length} deal${items.length !== 1 ? "s" : ""} sem próximo passo.`,
+    subtext: "Estes deals precisam de ações definidas.",
     items,
     actions: items.length > 0
       ? [
           {
             id: "create_tasks_all",
-            label: "Create follow-up tasks",
+            label: "Criar tarefas de follow-up",
             icon: "ListTodo",
             type: "bulk_task",
             payload: {
               deal_ids: items.map((i) => i.id),
-              task_title: "Define next step for deal",
+              task_title: "Definir próximo passo do deal",
               priority: "MEDIUM",
             },
           },
           {
             id: "save_view",
-            label: "Save as view",
+            label: "Guardar como vista",
             icon: "Bookmark",
             type: "create_saved_view",
             payload: {
-              view_name: "Deals Without Next Step",
+              view_name: "Deals Sem Próximo Passo",
               object_type_id: "opportunity",
               filters: { no_next_step: true },
               columns: ["title", "value", "stage"],
@@ -1934,7 +1934,7 @@ async function queryDealsNoNextStep(client: any, workspaceId: string) {
           },
           {
             id: "view_as_list",
-            label: "View deals",
+            label: "Ver deals",
             icon: "Eye",
             type: "navigate",
             payload: { link: "/dashboard/opportunities" },
@@ -1942,7 +1942,7 @@ async function queryDealsNoNextStep(client: any, workspaceId: string) {
         ]
       : [],
     metric: {
-      label: "No Next Step",
+      label: "Sem Próximo Passo",
       value: String(items.length),
       trend: items.length > 0 ? "down" : "neutral",
     },
@@ -1965,7 +1965,7 @@ async function queryDealsStuckInStage(client: any, workspaceId: string) {
   ]);
 
   if (!stages || !opps) {
-    return { headline: "No pipeline data available.", items: [], actions: [] };
+    return { headline: "Sem dados de pipeline disponíveis.", items: [], actions: [] };
   }
 
   const stageMap = new Map(
@@ -1996,33 +1996,33 @@ async function queryDealsStuckInStage(client: any, workspaceId: string) {
 
   return {
     headline: stuck.length > 0
-      ? `${stuck.length} deal${stuck.length !== 1 ? "s" : ""} stuck in their current stage.`
-      : "No deals stuck beyond expected stage duration.",
-    subtext: stuck.length > 0 ? "Consider advancing or re-engaging these deals." : undefined,
+      ? `${stuck.length} deal${stuck.length !== 1 ? "s" : ""} parados na etapa actual.`
+      : "Nenhum deal parado além do tempo esperado.",
+    subtext: stuck.length > 0 ? "Considera avançar ou reengajar estes deals." : undefined,
     items: stuck,
     actions: stuck.length > 0
       ? [
           {
             id: "move_stage",
-            label: "Move stage",
+            label: "Mover etapa",
             icon: "ArrowRight",
             type: "bulk_move_stage",
             payload: { deal_ids: stuck.map((s: any) => s.id) },
           },
           {
             id: "create_tasks_all",
-            label: "Create follow-ups",
+            label: "Criar follow-ups",
             icon: "ListTodo",
             type: "bulk_task",
             payload: {
               deal_ids: stuck.map((s: any) => s.id),
-              task_title: "Follow up on stuck deal",
+              task_title: "Follow up deal parado",
               priority: "HIGH",
             },
           },
           {
             id: "create_automation",
-            label: "Create automation",
+            label: "Criar automação",
             icon: "Zap",
             type: "automation",
             payload: {
@@ -2032,7 +2032,7 @@ async function queryDealsStuckInStage(client: any, workspaceId: string) {
         ]
       : [],
     metric: {
-      label: "Stuck Deals",
+      label: "Deals Parados",
       value: String(stuck.length),
       trend: stuck.length > 0 ? "down" : "neutral",
     },
@@ -2050,10 +2050,10 @@ async function queryHighValueDeals(client: any, workspaceId: string) {
 
   const items = (opps || []).map((o: any) => ({
     id: o.id,
-    title: o.title || "Untitled Deal",
+    title: o.title || "Deal sem nome",
     subtitle: o.expected_close_date
-      ? `Closes ${new Date(o.expected_close_date).toLocaleDateString()}`
-      : "No close date set",
+      ? `Fecha em ${new Date(o.expected_close_date).toLocaleDateString('pt-PT')}`
+      : "Sem data de fecho",
     value: Number(o.value) || 0,
     health_label: "HEALTHY" as const,
     link: `/dashboard/opportunities?deal=${o.id}`,
@@ -2118,18 +2118,18 @@ async function queryOverdueInvoices(client: any, workspaceId: string) {
 
   if (!hasInvoicing) {
     return {
-      headline: "Invoicing extension is not active.",
+      headline: "Extensão de faturação não está activa.",
       items: [],
       actions: [
         {
           id: "enable_invoicing",
-          label: "Enable in Marketplace",
+          label: "Activar no Marketplace",
           icon: "Zap",
           type: "navigate",
           payload: { link: "/dashboard/marketplace" },
         },
       ],
-      metric: { label: "Overdue", value: "—", trend: "neutral" },
+      metric: { label: "Em atraso", value: "—", trend: "neutral" },
     };
   }
 
@@ -2146,8 +2146,8 @@ async function queryOverdueInvoices(client: any, workspaceId: string) {
       const daysOverdue = differenceInDays(new Date(), new Date(inv.due_date));
       return {
         id: inv.id,
-        title: `Invoice ${inv.number || inv.id.slice(0, 8)}`,
-        subtitle: `${daysOverdue} days overdue`,
+        title: `Fatura ${inv.number || inv.id.slice(0, 8)}`,
+        subtitle: `${daysOverdue} dias em atraso`,
         value: Number(inv.total) || 0,
         health_label: daysOverdue > 30 ? "AT_RISK" : "WATCH",
         link: `/dashboard/invoices/${inv.id}`,
@@ -2158,8 +2158,8 @@ async function queryOverdueInvoices(client: any, workspaceId: string) {
 
     return {
       headline: items.length > 0
-        ? `${items.length} overdue invoice${items.length !== 1 ? "s" : ""} totaling €${totalOverdue.toLocaleString()}.`
-        : "No overdue invoices.",
+        ? `${items.length} fatura${items.length !== 1 ? "s" : ""} em atraso no total de €${totalOverdue.toLocaleString()}.`
+        : "Nenhuma fatura em atraso.",
       items,
       actions: items.length > 0
         ? [
