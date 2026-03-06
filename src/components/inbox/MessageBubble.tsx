@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { MessageDeliveryStatus, getDeliveryStatus } from "./MessageDeliveryStatus";
 import { ResponseInfoSheet } from "./ResponseInfoSheet";
+import { cleanEmailPreview } from "@/lib/cleanEmailPreview";
 interface MessageBubbleProps {
   message: {
     id: string;
@@ -78,7 +79,7 @@ export function MessageBubble({
             "bg-card border rounded-2xl rounded-tr-sm p-3",
             isFailed ? "border-destructive/50 bg-destructive/5" : "border-border"
           )}>
-            <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+            <p className="text-sm whitespace-pre-wrap leading-relaxed">{cleanEmailPreview(message.content, 5000)}</p>
             
             {/* Attachments */}
             {attachments && attachments.length > 0 && (
@@ -159,7 +160,7 @@ export function MessageBubble({
         
         {/* Bubble */}
         <div className="bg-muted rounded-2xl rounded-tl-sm p-3 max-w-[85%]">
-          <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+          <p className="text-sm whitespace-pre-wrap leading-relaxed">{cleanEmailPreview(message.content, 5000)}</p>
           
           {/* Attachments */}
           {attachments && attachments.length > 0 && (

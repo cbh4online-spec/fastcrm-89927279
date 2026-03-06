@@ -11,6 +11,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronDown, ChevronUp, Mail, FileText } from "lucide-react";
 import { Message } from "@/hooks/useMessages";
+import { cleanEmailContent } from "@/lib/cleanEmailPreview";
 
 interface EmailMessageBubbleProps {
   message: Message;
@@ -95,10 +96,12 @@ export function EmailMessageBubble({ message }: EmailMessageBubbleProps) {
   // Fix encoding in subject
   const displaySubject = hasSubject ? fixEncoding(message.email_subject!) : null;
   
-  // Prepare content for display
-  const displayContent = hasHtmlContent && showHtml 
-    ? sanitizeHtml(message.content)
-    : plainTextToHtml(message.content);
+  // Clean MIME artifacts, then prepare for display
+  const cleanedContent = cleanEmailContent(message.content);
+  const hasHtmlContentCleaned = isHtmlContent(cleanedContent);
+  const displayContent = hasHtmlContentCleaned && showHtml 
+    ? sanitizeHtml(cleanedContent)
+    : plainTextToHtml(cleanedContent);
 
   // Check if content is long (more than 300 chars or more than 5 lines)
   const isLongContent = message.content.length > 300 || (message.content.match(/\n/g) || []).length > 5;
