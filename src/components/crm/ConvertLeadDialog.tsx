@@ -27,6 +27,8 @@ import { useCompanies } from "@/hooks/useCompanies";
 import { useDeleteLead, Lead } from "@/hooks/useLeads";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 type ConversionTarget = "contact" | "company";
 type EntityType = "consumidor_final" | "eni" | "empresa";
@@ -67,6 +69,7 @@ const ENTITY_TYPE_OPTIONS: Record<ConversionTarget, { value: EntityType; label: 
 
 export function ConvertLeadDialog({ lead, trigger }: ConvertLeadDialogProps) {
   const navigate = useNavigate();
+  const { currentWorkspace } = useWorkspace();
   const { createContact } = useContacts();
   const { createCompany } = useCompanies();
   const deleteLead = useDeleteLead();
@@ -220,6 +223,23 @@ export function ConvertLeadDialog({ lead, trigger }: ConvertLeadDialogProps) {
           description: `Histórico migrado${migrationNote}. ${deleteAfterConversion ? "Lead original removido." : "Lead original mantido."}`,
         }
       );
+
+      // Emit LEAD.CONVERTED kernel event
+      if (currentWorkspace?.id && newEntityId) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'LEAD.CONVERTED',
+          entity_kind: 'lead',
+          entity_id: lead.id,
+          source_module: 'crm-leads',
+          payload: {
+            target_type: target,
+            target_id: newEntityId,
+            delete_after: deleteAfterConversion,
+          },
+        });
+        console.log('[LEADS] Lead converted:', lead.id, '→', target, newEntityId);
+      }
 
       setOpen(false);
 
