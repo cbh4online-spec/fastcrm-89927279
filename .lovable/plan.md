@@ -1,66 +1,43 @@
 
 
-# Vertical-Credit — Kernel V2 Stabilization
+# Vertical-Clinic — Module Assessment
 
-## Current State
+## Finding: Module Does Not Exist
 
-| Area | File(s) | Kernel Events | Logging |
-|------|---------|---------------|---------|
-| Create Proposal | `useCreditProposals.ts` | None | None |
-| Update Proposal | `useCreditProposals.ts` | None | None |
-| Delete Proposal | `useCreditProposals.ts` | None | None |
-| Bank Partners CRUD | `useBankPartners.ts` | None | None |
-| AI Viability Analysis | `useCreditAI.ts` | None | Toast only |
-| AI Bank Matching | `useCreditAI.ts` | None | Toast only |
-| AI Doc Extraction | `useCreditAI.ts` | `DOCINT.EXTRACTED` ✓ | `[AI-DOCINT]` ✓ |
-| AI Copilot / Optimize | `useCreditAI.ts` | None | Toast only |
-| Edge: ai-credit-analysis | `ai-credit-analysis/index.ts` | None | Bare `console.error` |
-| Smoke Tests | `system-run-smoke-tests` | — | No `credit_proposals` or `bank_partners` checks |
+After thorough exploration of the codebase, **there is no `vertical-clinic` module**. The project has:
 
-Zero kernel events for the core credit vertical (case creation, doc upload, status changes). The AI document extraction already has `DOCINT.EXTRACTED` from the ai-docint stabilization. The edge function uses bare `console.error`. No smoke test coverage for credit tables.
+- **Two modules**: `credit-intermediation/` and `growth-seo/` under `src/modules/`
+- **No patient, appointment, treatment, or consent tables** in the database
+- **No clinical hooks or components** — only references to "clinic" as a business type label in prospecting, AI profiles, and landing pages
+- **Scheduling exists** (`SchedulingHub`, `useCalendarEvents`, `useMeetings`) but is a generic calendar/meeting system, not a clinical vertical
 
-## Implementation Plan
+The "consent" references found are exclusively GDPR cookie consent (`gdpr_consents` table), not medical consent forms.
 
-### A) Kernel Events (source: `vertical-credit`)
+## What Exists That Could Relate
 
-**`useCreditProposals.ts`:**
-1. `useCreateCreditProposal` onSuccess → `CREDIT.CASE_CREATED` (entity_kind: `credit_proposal`, payload: `reference_number`, `credit_type`, `amount_requested`, `entity_name`)
-2. `useUpdateCreditProposal` onSuccess → `CREDIT.CASE_UPDATED` (entity_kind: `credit_proposal`, payload: `status`, `fields_updated`)
-3. `useDeleteCreditProposal` onSuccess → `CREDIT.CASE_DELETED` (entity_kind: `credit_proposal`)
+| Feature | Location | Nature |
+|---------|----------|--------|
+| Calendar/Events | `useCalendarEvents.ts`, `SchedulingHub` | Generic scheduling, already has kernel events ✓ |
+| Meetings | `useMeetings` | Generic CRM meetings |
+| AI Profile type "clinica" | `useAIProfiles.ts` | Just a persona label, no clinical logic |
+| Health KPI type | `useKPIs.ts` | Stub with hardcoded `noShowRate: 0` |
+| Business type "clinic" | `BusinessTypeFilter.tsx` | B2B portal filter label |
 
-**`useCreditAI.ts`:**
-4. `analyzeViability` onSuccess → `CREDIT.AI_ANALYZED` (entity_kind: `credit_proposal`, payload: `viability_score`, `approval_probability`, `risk_level`)
-5. `matchBanks` onSuccess → `CREDIT.BANKS_MATCHED` (entity_kind: `credit_proposal`, payload: `recommendations_count`)
+## Options
 
-**`useBankPartners.ts`:**
-6. `useCreateBankPartner` onSuccess → `CREDIT.BANK_ADDED` (entity_kind: `bank_partner`, payload: `name`, `credit_types`)
+Since this module doesn't exist, there are two paths:
 
-**`ai-credit-analysis/index.ts`:**
-7. No kernel events from edge (no workspace_id available in request body; client-side hooks handle it)
+**Option A — Skip**: Mark `vertical-clinic` as "not implemented" in the stabilization tracker and move on.
 
-### B) Logging (prefix: `[VERTICAL-CREDIT]`)
+**Option B — Build**: Create the full vertical-clinic module from scratch, which would require:
+- New database tables: `patients`, `appointments`, `treatments`, `consent_forms`, `consent_signatures`
+- New hooks: `usePatients`, `useAppointments`, `useTreatments`, `useConsentForms`
+- New UI components for patient management, appointment scheduling, treatment tracking, consent signing
+- Kernel events: `PATIENT.CREATED`, `APPOINTMENT.SCHEDULED`, `TREATMENT.STARTED`, `CONSENT.SIGNED`
+- Integration with existing calendar system
+- Smoke tests for all new tables
 
-**`useCreditProposals.ts`:** Add `[VERTICAL-CREDIT]` logging on create/update/delete success/error
+Option B is a major feature build (not a stabilization task) and would require separate scoping.
 
-**`useCreditAI.ts`:** Add `[VERTICAL-CREDIT]` prefix on viability/matching/copilot/optimize success/error (doc extraction already has `[AI-DOCINT]`)
-
-**`useBankPartners.ts`:** Add `[VERTICAL-CREDIT]` logging on create/update/delete success/error
-
-**`ai-credit-analysis/index.ts`:** Replace bare `console.error` with `[VERTICAL-CREDIT]` prefix; add success log with mode and model inputs summary
-
-### C) Smoke Tests
-
-Add to `system-run-smoke-tests`:
-- `credit_proposals` (module: `vertical-credit`)
-- `bank_partners` (module: `vertical-credit`)
-
-## File Plan
-
-| File | Action |
-|------|--------|
-| `src/modules/credit-intermediation/hooks/useCreditProposals.ts` | Import `emitKernelEvent` + `useWorkspace`; emit `CREDIT.CASE_CREATED`, `CREDIT.CASE_UPDATED`, `CREDIT.CASE_DELETED`; add `[VERTICAL-CREDIT]` logging |
-| `src/modules/credit-intermediation/hooks/useCreditAI.ts` | Emit `CREDIT.AI_ANALYZED` + `CREDIT.BANKS_MATCHED` on respective successes; add `[VERTICAL-CREDIT]` logging for non-docint operations |
-| `src/modules/credit-intermediation/hooks/useBankPartners.ts` | Import `emitKernelEvent` + `useWorkspace`; emit `CREDIT.BANK_ADDED`; add `[VERTICAL-CREDIT]` logging |
-| `supabase/functions/ai-credit-analysis/index.ts` | Replace bare `console.error` with `[VERTICAL-CREDIT]` prefix; add success log with mode summary |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `credit_proposals` + `bank_partners` checks under `vertical-credit` module |
+**Recommendation**: This is a stabilization pass — Option A is appropriate. The vertical-clinic module should be scoped as a separate feature initiative.
 
