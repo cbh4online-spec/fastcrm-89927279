@@ -65,7 +65,6 @@ export function useClientOrders(clientUserId: string | undefined): UseClientOrde
   // Create new order
   const createOrderMutation = useMutation({
     mutationFn: async (data: CreateOrderNoteData) => {
-      // Generate order number (trigger will also set it, but we need it for TypeScript)
       const year = new Date().getFullYear();
       const tempNumber = `NE-${year}-TEMP-${Date.now()}`;
       
@@ -78,7 +77,7 @@ export function useClientOrders(clientUserId: string | undefined): UseClientOrde
           billing_address: JSON.parse(JSON.stringify(data.billing_address || {})),
           shipping_address: JSON.parse(JSON.stringify(data.shipping_address || {})),
           status: "draft" as const,
-          order_number: tempNumber, // Will be replaced by trigger
+          order_number: tempNumber,
         }])
         .select()
         .single();
@@ -89,6 +88,9 @@ export function useClientOrders(clientUserId: string | undefined): UseClientOrde
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client-orders"] });
       queryClient.invalidateQueries({ queryKey: ["client-draft-order"] });
+    },
+    onError: (error) => {
+      console.warn("[ORDERS] CLIENT_ORDER_CREATE_FAILED", error.message);
     },
   });
 
@@ -120,6 +122,9 @@ export function useClientOrders(clientUserId: string | undefined): UseClientOrde
       queryClient.invalidateQueries({ queryKey: ["client-orders"] });
       queryClient.invalidateQueries({ queryKey: ["client-draft-order"] });
     },
+    onError: (error) => {
+      console.warn("[ORDERS] CLIENT_ORDER_ADD_ITEM_FAILED", error.message);
+    },
   });
 
   // Submit order via edge function
@@ -141,11 +146,13 @@ export function useClientOrders(clientUserId: string | undefined): UseClientOrde
       return data;
     },
     onSuccess: () => {
+      console.log("[ORDERS] Client order submitted");
       toast.success("Encomenda enviada com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["client-orders"] });
       queryClient.invalidateQueries({ queryKey: ["client-draft-order"] });
     },
     onError: (error) => {
+      console.warn("[ORDERS] CLIENT_ORDER_SUBMIT_FAILED", error.message);
       toast.error("Erro ao enviar encomenda: " + error.message);
     },
   });
