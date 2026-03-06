@@ -1,71 +1,68 @@
 
 
-# Correcção: IA Conversacional sem Contexto e Routing Errado
+# Phase 5B — Command Center COMPLETO
 
-## Problemas Identificados
+## Gap Analysis: Current vs Spec
 
-1. **`/brief` chama `ask-fastcrm` em vez de `strategic-intelligence-brief`** — O comando `/brief` não existe no array `SLASH_COMMANDS`, então passa pelo `handleSubmit` normal e vai para `ask-fastcrm`.
-2. **Sem histórico de conversa** — `useAskFastCRM.ask()` envia apenas `{ question }` sem `conversation_history`, logo cada mensagem é isolada.
-3. **Resposta do `/brief` renderizada como texto plano** — Não há formatação estruturada para briefs.
-4. **Follow-ups sem contexto** — "mas o que posso fazer" não sabe que a conversa anterior falou de previsão €0.
-5. **"melhor cliente" confundido com deals** — `ask-fastcrm` não recebe dados CRM de contactos/empresas.
+The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
 
-## Plano de Implementação
+**Already implemented (needs enhancement):**
+- Header with greeting + 3 KPIs — needs larger font (32px), labels below
+- AI Question Box — needs slash command suggestions row below input
+- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
+- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
+- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
+- Drift Alerts — needs "Rever →" links to Context OS blocks
 
-### 1. Routing correcto de slash commands
+**New sections to build:**
+1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
+2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
+   - Change Events (last 5 from `useChangeEvents` with realtime)
+   - Entity Activity (top 3 entities from `useKernelEntities`)
+   - Impact Score (top 2 from `useImpactMapData`)
+3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
 
-**Ficheiros:** `src/hooks/useSlashCommands.ts`, `src/components/command-center/AIQuestionBox.tsx`
+**Enhanced Command Palette (⌘K):**
+- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
 
-- Adicionar `/brief`, `/forecast`, `/leads`, `/pipeline`, `/drift`, `/tarefas`, `/kernel` ao array `SLASH_COMMANDS`
-- `/brief` → invocar directamente `strategic-intelligence-brief` com `workspace_id`
-- `/forecast` → invocar `compute-revenue-forecast`
-- Os restantes (`/leads`, `/pipeline`, `/drift`, `/tarefas`, `/kernel`) → enviar query estruturada para `ask-fastcrm`
-- Renderizar resposta do `/brief` como card estruturado (summary, métricas, acções) dentro do chat thread
+**Spotlight (Space key):**
+- Opens AI Question Box as a modal from any page. New global component.
 
-### 2. Enviar conversation_history em cada chamada
+## Implementation Plan — 3 Sub-phases
 
-**Ficheiros:** `src/hooks/useAskFastCRM.ts`, `src/components/command-center/AIQuestionBox.tsx`, `supabase/functions/ask-fastcrm/index.ts`
+Given the scope, I recommend splitting into 3 batches:
 
-- Alterar `useAskFastCRM.ask()` para aceitar um segundo parâmetro `conversationHistory: {role, content}[]`
-- No `AIQuestionBox.handleSubmit`, passar o array `messages` actual ao chamar `ask(query, history)`
-- Limitar histórico a 20 mensagens (últimas 10 trocas)
-- Na edge function `ask-fastcrm`, receber `conversation_history` do body e injectá-lo no prompt do LLM para manter contexto
+### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
+| File | Action |
+|------|--------|
+| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
+| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
+| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
+| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
 
-### 3. Follow-ups contextuais automáticos
+### Batch 2: Enhance Existing Cards
+| File | Action |
+|------|--------|
+| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
+| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
+| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
+| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
+| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
+| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
 
-**Ficheiros:** `src/components/command-center/AIQuestionBox.tsx`
+### Batch 3: Spotlight Modal + Command Palette Enhancement
+| File | Action |
+|------|--------|
+| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
+| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
+| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
 
-- Após cada resposta da IA, gerar chips de sugestão contextual baseados no conteúdo:
-  - Resposta com €0 / confiança baixa → "O que posso fazer para melhorar?", "Como está o pipeline?"
-  - Resposta sobre leads → "Qual tem maior potencial?", "Ver todos os leads"
-  - Resposta sobre deals/pipeline → "Quais estão em risco?", "Como acelerar o fecho?"
-  - Default → "Explica mais", "O que devo fazer?"
+### Realtime subscriptions needed
+- `change_events` table for Kernel Live Feed auto-update
+- `kernel_action_runs` for Ações do Dia auto-update
+- Already have `kernel_decisions` and `conversations`
 
-### 4. Contexto CRM no payload
+No database migrations needed. All hooks, edge functions, and tables already exist.
 
-**Ficheiros:** `src/hooks/useAskFastCRM.ts`
-
-- Antes de chamar `ask-fastcrm`, fazer queries leves para obter:
-  - Top 5 contactos por actividade recente
-  - Top 5 empresas por valor de deals
-  - Contagem de leads activos
-- Incluir como `crm_summary` no body do request
-- Na edge function, incluir este resumo no prompt LLM para responder a perguntas como "melhor cliente"
-
-### 5. Renderização estruturada do /brief
-
-**Ficheiros:** `src/components/command-center/AIQuestionBox.tsx` (ou novo componente `BriefCard`)
-
-- Quando a resposta vem de `strategic-intelligence-brief`, renderizar um card com:
-  - Header "📋 Brief Executivo" + data
-  - Resumo executivo (markdown)
-  - Link "Ler brief completo →" para `/dashboard/strategic-brief`
-
-### Ordem de implementação
-
-1. Routing de slash commands (resolve problema mais visível)
-2. Conversation history (resolve follow-ups sem contexto)  
-3. Sugestões contextuais (melhoria de UX)
-4. CRM context no payload (melhoria de qualidade)
-5. Brief card estruturado (polimento visual)
+**Shall I start with Batch 1?**
 

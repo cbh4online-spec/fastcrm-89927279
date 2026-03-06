@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { detectIntent, getConversationalResponse } from "@/lib/conversationalIntent";
-import { MessageSquare, RotateCcw, Bot, User as UserIcon, X } from "lucide-react";
+import { MessageSquare, RotateCcw, Bot, User as UserIcon, X, FileText, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 
@@ -25,6 +25,37 @@ interface ChatMessage {
   content: string;
   suggestions?: string[];
   timestamp: Date;
+  type?: 'brief' | 'text';
+}
+
+/**
+ * Generate contextual follow-up suggestions based on AI response content.
+ */
+function getContextualSuggestions(content: string): string[] {
+  const lower = content.toLowerCase();
+
+  // Forecast / revenue with €0 or low confidence
+  if ((lower.includes("€0") || lower.includes("0 €") || lower.includes("confiança baixa") || lower.includes("sem receita"))) {
+    return ["O que posso fazer para melhorar?", "Como está o pipeline?", "/leads"];
+  }
+  // Lead-related
+  if (lower.includes("lead") || lower.includes("leads")) {
+    return ["Qual tem maior potencial?", "Ver todos os leads", "/pipeline"];
+  }
+  // Pipeline / deals
+  if (lower.includes("pipeline") || lower.includes("deal") || lower.includes("oportunidade")) {
+    return ["Quais estão em risco?", "Como acelerar o fecho?", "/forecast"];
+  }
+  // Brief
+  if (lower.includes("brief") || lower.includes("executivo") || lower.includes("resumo")) {
+    return ["Quais são as prioridades?", "/pipeline", "/forecast"];
+  }
+  // Forecast
+  if (lower.includes("previsão") || lower.includes("forecast") || lower.includes("receita")) {
+    return ["Que deals estão em risco?", "Como melhorar a previsão?", "/brief"];
+  }
+  // Default
+  return ["Explica mais", "O que devo fazer?", "/brief"];
 }
 
 export function AIQuestionBox() {
@@ -62,12 +93,13 @@ export function AIQuestionBox() {
     }
   }, [messages.length, drawerOpen]);
 
-  // When ask-fastcrm result comes in, add it to chat
+  // When ask-fastcrm result comes in, add it to chat with contextual suggestions
   useEffect(() => {
     if (result) {
       const headline = result.answer?.headline || result.header || 'Resultado';
       const subtext = result.answer?.subtext || '';
       const content = subtext ? `**${headline}**\n\n${subtext}` : `**${headline}**`;
+      const suggestions = getContextualSuggestions(content);
       
       setMessages(prev => {
         const lastMsg = prev[prev.length - 1];
@@ -76,11 +108,35 @@ export function AIQuestionBox() {
           id: crypto.randomUUID(),
           role: 'assistant',
           content,
+          suggestions,
           timestamp: new Date(),
         }];
       });
     }
   }, [result]);
+
+  // When slash command result comes in, add to chat
+  useEffect(() => {
+    if (slashResult && !slashResult.loading) {
+      setMessages(prev => {
+        const lastMsg = prev[prev.length - 1];
+        if (lastMsg?.role === 'assistant' && lastMsg?.content === slashResult.content) return prev;
+        return [...prev, {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: slashResult.content,
+          suggestions: getContextualSuggestions(slashResult.content),
+          timestamp: new Date(),
+          type: slashResult.type,
+        }];
+      });
+    }
+  }, [slashResult]);
+
+  // Build conversation history for AI context
+  const getConversationHistory = useCallback(() => {
+    return messages.map(m => ({ role: m.role, content: m.content }));
+  }, [messages]);
 
   const handleSubmit = useCallback((query: string) => {
     setSlashResult(null);
@@ -108,8 +164,10 @@ export function AIQuestionBox() {
       return;
     }
 
-    ask(query);
-  }, [ask, userName]);
+    // Pass conversation history for contextual follow-ups
+    const history = getConversationHistory();
+    ask(query, history);
+  }, [ask, userName, getConversationHistory]);
 
   const handleSlashCommand = useCallback((cmd: SlashCommand, args: string) => {
     setMessages(prev => [...prev, {
@@ -160,6 +218,24 @@ export function AIQuestionBox() {
   const hasChat = messages.length > 0;
   const showInlineChat = hasChat && !drawerOpen;
   const showOutput = !!(result || slashResult || isLoading) && !hasChat;
+
+  const renderBriefCard = (msg: ChatMessage) => (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 text-primary">
+        <FileText className="h-4 w-4" />
+        <span className="text-xs font-semibold uppercase tracking-wider">Brief Executivo</span>
+      </div>
+      <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1">
+        <ReactMarkdown>{msg.content}</ReactMarkdown>
+      </div>
+      <button
+        onClick={() => navigate("/dashboard/strategy")}
+        className="flex items-center gap-1 text-xs text-primary hover:underline mt-2"
+      >
+        Ler brief completo <ChevronRight className="h-3 w-3" />
+      </button>
+    </div>
+  );
 
   const chatThread = (
     <div className="flex flex-col h-full">
@@ -213,9 +289,11 @@ export function AIQuestionBox() {
                 : "bg-muted/60 text-foreground rounded-bl-md"
             )}>
               {msg.role === 'assistant' ? (
-                <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1">
-                  <ReactMarkdown>{msg.content}</ReactMarkdown>
-                </div>
+                msg.type === 'brief' ? renderBriefCard(msg) : (
+                  <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  </div>
+                )
               ) : (
                 <p>{msg.content}</p>
               )}
