@@ -10,7 +10,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CART-ABANDONMENT] ${step}${detailsStr}`);
+  console.log(`[ECOMMERCE] ${step}${detailsStr}`);
 };
 
 Deno.serve(async (req) => {

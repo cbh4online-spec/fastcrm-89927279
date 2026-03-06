@@ -11,7 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[DETECT-ABANDONED] ${step}${detailsStr}`);
+  console.log(`[ECOMMERCE] ${step}${detailsStr}`);
 };
 
 Deno.serve(async (req) => {
@@ -76,6 +76,31 @@ Deno.serve(async (req) => {
       if (insertError) {
         logStep('Insert error', { sessionId: session.session_id, error: insertError.message });
         continue;
+      }
+
+      // Emit CART.ABANDONED kernel event
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/kernel-ingest-event`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${supabaseKey}` },
+          body: JSON.stringify({
+            workspace_id: session.workspace_id,
+            type: 'CART.ABANDONED',
+            entity_kind: 'store_abandoned_cart',
+            entity_id: session.session_id,
+            actor_type: 'system',
+            source_module: 'store-ecommerce',
+            schema_version: 1,
+            occurred_at: new Date().toISOString(),
+            payload: {
+              session_id: session.session_id,
+              subtotal: subtotal,
+              items_count: cartItems.length,
+            },
+          }),
+        });
+      } catch (e) {
+        logStep('Kernel emit CART.ABANDONED failed', { error: (e as Error).message });
       }
 
       // Mark session as processed

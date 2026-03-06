@@ -82,7 +82,7 @@ export function StoreCartProvider({ children }: { children: ReactNode }) {
         } as any)
         .eq("session_id", sessionId)
         .then(({ error }) => {
-          if (error) console.error("[CartSync] error:", error.message);
+          if (error) console.warn("[ECOMMERCE] CART_SYNC_FAILED", error.message);
         });
     }, SYNC_DEBOUNCE_MS);
 
