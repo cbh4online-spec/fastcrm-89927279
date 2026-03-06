@@ -63,7 +63,7 @@ async function computeForecastForWorkspace(
   const [oppsResult, scoresResult, healthResult, stagesResult] = await Promise.all([
     supabase
       .from("opportunities")
-      .select("id, value, expected_close_date, status, current_stage_id")
+      .select("id, value, expected_close_date, status, stage_id")
       .eq("workspace_id", workspace_id)
       .eq("status", "open"),
     supabase
@@ -147,7 +147,7 @@ async function computeForecastForWorkspace(
     total_value += value;
     const score = scoreMap.get(opp.id);
     const health = healthMap.get(opp.id);
-    const stage = opp.current_stage_id ? stageMap.get(opp.current_stage_id) : null;
+    const stage = opp.stage_id ? stageMap.get(opp.stage_id) : null;
 
     // Stage probability (fallback 0.5)
     const stageProbability = stage?.probability ?? 0.5;
