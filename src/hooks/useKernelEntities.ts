@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -5,6 +6,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 export function useKernelEntities(kind?: string) {
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
+  const queryClient = useQueryClient();
 
   const { data: entities, isLoading } = useQuery({
     queryKey: ['kernel-entities', workspaceId, kind],
@@ -21,6 +23,23 @@ export function useKernelEntities(kind?: string) {
     },
     enabled: !!workspaceId,
   });
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!workspaceId) return;
+    const channel = supabase
+      .channel(`kernel-entities-rt-${workspaceId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'kernel_entities',
+        filter: `workspace_id=eq.${workspaceId}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ['kernel-entities', workspaceId] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [workspaceId, queryClient]);
 
   return { entities, isLoading };
 }

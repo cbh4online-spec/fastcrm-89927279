@@ -6,9 +6,8 @@ import { Activity, GitCommit, Target, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 
-// UUID pattern to detect raw IDs
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isLegibleName(value: string | null | undefined): boolean {
@@ -16,15 +15,50 @@ function isLegibleName(value: string | null | undefined): boolean {
   return !UUID_REGEX.test(value.trim());
 }
 
+const THROTTLE_MS = 5000;
+
 export function KernelLiveFeedCard({ delay = 0 }: { delay?: number }) {
   const { changeEvents, isLoading: eventsLoading } = useChangeEvents(5);
   const { entities, isLoading: entitiesLoading } = useKernelEntities();
   const { impactResults, isLoading: impactLoading } = useImpactMapData();
   const [timedOut, setTimedOut] = useState(false);
 
+  // Throttle: buffer data and only update displayed data every 5s
+  const [displayedEvents, setDisplayedEvents] = useState(changeEvents);
+  const [displayedEntities, setDisplayedEntities] = useState(entities);
+  const [displayedImpact, setDisplayedImpact] = useState(impactResults);
+  const lastUpdateRef = useRef(0);
+  const pendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const now = Date.now();
+    const elapsed = now - lastUpdateRef.current;
+
+    if (elapsed >= THROTTLE_MS) {
+      lastUpdateRef.current = now;
+      setDisplayedEvents(changeEvents);
+      setDisplayedEntities(entities);
+      setDisplayedImpact(impactResults);
+    } else if (!pendingRef.current) {
+      pendingRef.current = setTimeout(() => {
+        lastUpdateRef.current = Date.now();
+        setDisplayedEvents(changeEvents);
+        setDisplayedEntities(entities);
+        setDisplayedImpact(impactResults);
+        pendingRef.current = null;
+      }, THROTTLE_MS - elapsed);
+    }
+
+    return () => {
+      if (pendingRef.current) {
+        clearTimeout(pendingRef.current);
+        pendingRef.current = null;
+      }
+    };
+  }, [changeEvents, entities, impactResults]);
+
   const isLoading = eventsLoading || entitiesLoading;
 
-  // Skeleton timeout: 8 seconds
   useEffect(() => {
     if (!isLoading) {
       setTimedOut(false);
@@ -49,14 +83,13 @@ export function KernelLiveFeedCard({ delay = 0 }: { delay?: number }) {
     );
   }
 
-  // Filter out entries with UUID-only labels
-  const recentEvents = (changeEvents?.slice(0, 5) ?? []).filter(
+  const recentEvents = (displayedEvents?.slice(0, 5) ?? []).filter(
     (ev) => isLegibleName(ev.change_type) || isLegibleName(ev.entity_kind)
   );
-  const topEntities = (entities?.slice(0, 3) ?? []).filter(
+  const topEntities = (displayedEntities?.slice(0, 3) ?? []).filter(
     (ent) => isLegibleName(ent.title)
   );
-  const topImpact = (impactResults?.slice(0, 2) ?? []).filter(
+  const topImpact = (displayedImpact?.slice(0, 2) ?? []).filter(
     (imp) => isLegibleName(imp.title)
   );
 
@@ -95,7 +128,6 @@ export function KernelLiveFeedCard({ delay = 0 }: { delay?: number }) {
         </span>
       </div>
 
-      {/* Change Events */}
       {recentEvents.length > 0 && (
         <div className="space-y-1">
           <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
@@ -119,7 +151,6 @@ export function KernelLiveFeedCard({ delay = 0 }: { delay?: number }) {
         </div>
       )}
 
-      {/* Top Entities */}
       {topEntities.length > 0 && (
         <div className="space-y-1">
           <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
@@ -134,7 +165,6 @@ export function KernelLiveFeedCard({ delay = 0 }: { delay?: number }) {
         </div>
       )}
 
-      {/* Impact Scores */}
       {topImpact.length > 0 && (
         <div className="space-y-1">
           <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">

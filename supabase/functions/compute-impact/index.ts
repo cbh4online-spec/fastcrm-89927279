@@ -40,12 +40,16 @@ Deno.serve(async (req) => {
       blockMap[b.id] = { title: b.title, block_type: b.block_type };
     }
 
+    const MAX_DEPTH = 5;
+    const MIN_SCORE = 1;
+
     while (queue.length > 0) {
       const { blockId, depth, pathStrength } = queue.shift()!;
       if (visited.has(blockId)) continue;
+      if (depth > MAX_DEPTH) continue;
       visited.add(blockId);
 
-      if (depth > 0) {
+      if (depth > 0 && Math.round(pathStrength) >= MIN_SCORE) {
         const info = blockMap[blockId];
         impacts.push({
           block_id: blockId,

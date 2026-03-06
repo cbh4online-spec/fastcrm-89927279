@@ -15,7 +15,7 @@ const STATUS_CONFIG: Record<string, { icon: React.ReactNode; label: string }> = 
 };
 
 export function KernelActionsCard({ delay = 0 }: { delay?: number }) {
-  const { todayRuns, isLoading } = useKernelActions();
+  const { meaningfulRuns, successCount, todayRuns, isLoading } = useKernelActions();
 
   if (isLoading) {
     return (
@@ -32,7 +32,10 @@ export function KernelActionsCard({ delay = 0 }: { delay?: number }) {
     );
   }
 
-  if (!todayRuns.length) {
+  const failedCount = meaningfulRuns.filter(r => r.status === "failed").length;
+  const hasActivity = meaningfulRuns.length > 0 || successCount > 0;
+
+  if (!hasActivity) {
     return (
       <motion.div
         className="rounded-xl border border-border bg-card p-4"
@@ -48,9 +51,6 @@ export function KernelActionsCard({ delay = 0 }: { delay?: number }) {
       </motion.div>
     );
   }
-
-  const successCount = todayRuns.filter(r => r.status === "success").length;
-  const failedCount = todayRuns.filter(r => r.status === "failed").length;
 
   return (
     <motion.div
@@ -73,40 +73,46 @@ export function KernelActionsCard({ delay = 0 }: { delay?: number }) {
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        {todayRuns.slice(0, 5).map((run) => {
-          const config = STATUS_CONFIG[run.status] ?? STATUS_CONFIG.queued;
-          return (
-            <div
-              key={run.id}
-              className={cn(
-                "flex items-center gap-2 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors",
-                run.status === "failed" && "border-l-2 border-l-destructive"
-              )}
-            >
-              {config.icon}
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-foreground truncate">{run.action_key}</p>
-                {run.error && (
-                  <p className="text-[10px] text-destructive truncate">{run.error}</p>
+      {meaningfulRuns.length > 0 ? (
+        <div className="space-y-1.5">
+          {meaningfulRuns.slice(0, 5).map((run) => {
+            const config = STATUS_CONFIG[run.status] ?? STATUS_CONFIG.queued;
+            return (
+              <div
+                key={run.id}
+                className={cn(
+                  "flex items-center gap-2 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors",
+                  run.status === "failed" && "border-l-2 border-l-destructive"
+                )}
+              >
+                {config.icon}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-foreground truncate">{run.action_key}</p>
+                  {run.error && (
+                    <p className="text-[10px] text-destructive truncate">{run.error}</p>
+                  )}
+                </div>
+                <span className="text-[10px] text-muted-foreground shrink-0">
+                  {formatDistanceToNow(new Date(run.created_at), { addSuffix: true, locale: pt })}
+                </span>
+                {run.status === "failed" && (
+                  <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" title="Retry">
+                    <RotateCcw className="h-3 w-3 text-muted-foreground" />
+                  </Button>
                 )}
               </div>
-              <span className="text-[10px] text-muted-foreground shrink-0">
-                {formatDistanceToNow(new Date(run.created_at), { addSuffix: true, locale: pt })}
-              </span>
-              {run.status === "failed" && (
-                <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" title="Retry">
-                  <RotateCcw className="h-3 w-3 text-muted-foreground" />
-                </Button>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-[10px] text-muted-foreground">
+          Todas as {successCount} ações concluídas com sucesso ✓
+        </p>
+      )}
 
-      {todayRuns.length > 5 && (
+      {meaningfulRuns.length > 5 && (
         <p className="text-[10px] text-muted-foreground text-center pt-1">
-          +{todayRuns.length - 5} mais ações hoje
+          +{meaningfulRuns.length - 5} mais ações pendentes
         </p>
       )}
     </motion.div>
