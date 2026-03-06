@@ -516,7 +516,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { question, conversation_history, crm_summary } = body;
+    const { question, conversation_history, conversation_context, crm_summary } = body;
     if (!question || typeof question !== "string") {
       return new Response(
         JSON.stringify({ error: "Missing question field" }),
@@ -585,7 +585,12 @@ ${crm_summary ? `CRM Context (use to answer questions about clients, contacts, c
 - Top companies: ${JSON.stringify(crm_summary.top_companies || [])}
 - Active leads: ${crm_summary.active_leads_count ?? 'unknown'}
 ` : ''}
-
+${conversation_context ? `## Contexto da conversa anterior (use para interpretar follow-ups como "desses", "quais", "explica melhor"):
+- Última pergunta: ${conversation_context.last_question || 'N/A'}
+- Dados retornados: intent=${conversation_context.last_dataset?.intent || 'N/A'}, object_type=${conversation_context.last_dataset?.object_type || 'N/A'}, ${conversation_context.last_dataset?.items_count ?? 0} items
+- Última análise: ${conversation_context.last_analysis || 'N/A'}
+If the user asks a follow-up (e.g. pronouns, "desses", "quais", "explica"), use the same intent and object_type from last_dataset.
+` : ''}
 Available intents: deals_at_risk, deals_inactive, closing_soon, forecast_summary, forecast_risk, pipeline_summary, pipeline_comparison, contacts_inactive, stage_bottleneck, deals_no_next_step, deals_stuck_in_stage, high_value_deals, overdue_invoices, pending_approvals
 
 Intent descriptions:

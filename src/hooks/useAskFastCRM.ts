@@ -123,7 +123,7 @@ export function useAskFastCRM() {
   }, [currentWorkspace?.id]);
 
   const ask = useCallback(
-    async (question: string, conversationHistory?: { role: string; content: string }[]) => {
+    async (question: string, conversationHistory?: { role: string; content: string }[], conversationContext?: Record<string, any>) => {
       if (!currentWorkspace?.id || !question.trim()) return;
       setIsLoading(true);
       setError(null);
@@ -145,6 +145,7 @@ export function useAskFastCRM() {
             body: {
               question: question.trim(),
               conversation_history: history,
+              conversation_context: conversationContext || undefined,
               crm_summary: crmSummary,
             },
             headers: { "X-Workspace-Id": currentWorkspace.id },

@@ -88,6 +88,12 @@ export function AIQuestionBox() {
 
   // Auto-open drawer once when conversation has > 2 exchanges (4 messages)
   const autoOpenedRef = useRef(false);
+  const conversationContextRef = useRef<{
+    last_question?: string;
+    last_dataset?: { intent: string; object_type: string; items_count: number; metric?: any };
+    last_analysis?: string;
+  }>({});
+
   useEffect(() => {
     if (messages.length >= 4 && !autoOpenedRef.current) {
       setDrawerOpen(true);
@@ -102,6 +108,18 @@ export function AIQuestionBox() {
       const subtext = result.answer?.subtext || '';
       const content = subtext ? `**${headline}**\n\n${subtext}` : `**${headline}**`;
       const suggestions = getContextualSuggestions(content);
+
+      // Update conversation context for follow-up support
+      conversationContextRef.current = {
+        last_question: conversationContextRef.current.last_question,
+        last_dataset: {
+          intent: result.intent,
+          object_type: result.object_type,
+          items_count: result.items?.length || 0,
+          metric: result.metric,
+        },
+        last_analysis: `${headline}${subtext ? ' — ' + subtext.slice(0, 200) : ''}`,
+      };
       
       setMessages(prev => {
         const lastMsg = prev[prev.length - 1];
@@ -166,9 +184,12 @@ export function AIQuestionBox() {
       return;
     }
 
-    // Pass conversation history for contextual follow-ups
+    // Track last question in context
+    conversationContextRef.current.last_question = query;
+
+    // Pass conversation history + structured context for follow-ups
     const history = getConversationHistory();
-    ask(query, history);
+    ask(query, history, conversationContextRef.current);
   }, [ask, userName, getConversationHistory]);
 
   const handleSlashCommand = useCallback((cmd: SlashCommand, args: string) => {
@@ -190,6 +211,7 @@ export function AIQuestionBox() {
     setMessages([]);
     setDrawerOpen(false);
     autoOpenedRef.current = false;
+    conversationContextRef.current = {};
     clear();
     setSlashResult(null);
   }, [clear]);
