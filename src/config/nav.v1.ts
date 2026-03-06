@@ -78,8 +78,7 @@ const GROUP_COLORS: Record<string, string> = {
   "Marketplace C2C": "text-rose-500",
   "FastClub": "text-yellow-500",
   "Marketing": "text-indigo-500",
-  "Estratégia": "text-cyan-500",
-  "Relatórios": "text-sky-500",
+  "Estratégia & Relatórios": "text-cyan-500",
   "Ferramentas": "text-slate-500",
   "Student Journey": "text-teal-500",
   "Instagram Looter": "text-fuchsia-500",
@@ -90,6 +89,16 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   // Principal
   { name: "Início", href: "/dashboard", icon: Zap, group: "Principal", end: true },
   { name: "Mural Interno", href: "/dashboard/feed", icon: Newspaper, group: "Principal" },
+
+  // Estratégia & Relatórios
+  { name: "Brief Executivo", href: "/dashboard/strategy", icon: Brain, group: "Estratégia & Relatórios", separator: true },
+  { name: "Context OS", href: "/dashboard/context-os", icon: Brain, group: "Estratégia & Relatórios" },
+  { name: "Mapa de Impacto", href: "/dashboard/impact-map", icon: GitBranch, group: "Estratégia & Relatórios" },
+  { name: "Visão Geral", href: "/dashboard/reports", icon: BarChart3, group: "Estratégia & Relatórios" },
+  { name: "KPIs", href: "/dashboard/kpis", icon: Gauge, group: "Estratégia & Relatórios" },
+  { name: "Metas vs Resultados", href: "/dashboard/reports/goals", icon: Target, group: "Estratégia & Relatórios" },
+  { name: "Previsões", href: "/dashboard/reports/forecasts", icon: LineChart, group: "Estratégia & Relatórios" },
+  { name: "Consumo", href: "/dashboard/reports/consumption", icon: PieChart, group: "Estratégia & Relatórios" },
 
   // Comunicação
   { name: "WhatsApp", href: "/dashboard/inbox", icon: Phone, group: "Comunicação", separator: true },
@@ -164,19 +173,6 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Email Marketing", href: "/dashboard/email-campaigns", icon: Mail, group: "Marketing", separator: true, moduleSlug: "email-campaigns" },
   { name: "Google Local", href: "/dashboard/prospecting/google-local", icon: MapPin, group: "Marketing", moduleSlug: "google-local-services" },
   { name: "Bio OS", href: "/dashboard/bio", icon: Globe, group: "Marketing", moduleSlug: "bio-os" },
-
-  // Estratégia (só módulos)
-  { name: "Context OS", href: "/dashboard/context-os", icon: Brain, group: "Estratégia", separator: true },
-  { name: "Brief Executivo", href: "/dashboard/strategy", icon: Brain, group: "Estratégia", moduleSlug: "strategy-brief" },
-  { name: "Daily Brief", href: "/dashboard/daily-brief", icon: Newspaper, group: "Estratégia" },
-  { name: "Mapa de Impacto", href: "/dashboard/impact-map", icon: GitBranch, group: "Estratégia" },
-
-  // Relatórios
-  { name: "Visão Geral", href: "/dashboard/reports", icon: BarChart3, group: "Relatórios", separator: true },
-  { name: "KPIs", href: "/dashboard/kpis", icon: Gauge, group: "Relatórios" },
-  { name: "Metas vs Resultados", href: "/dashboard/reports/goals", icon: Target, group: "Relatórios" },
-  { name: "Previsões", href: "/dashboard/reports/forecasts", icon: LineChart, group: "Relatórios" },
-  { name: "Consumo", href: "/dashboard/reports/consumption", icon: PieChart, group: "Relatórios" },
 
   // Ferramentas
   { name: "Automações", href: "/dashboard/automations", icon: Zap, group: "Ferramentas", separator: true },

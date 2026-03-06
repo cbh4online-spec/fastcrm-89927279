@@ -99,7 +99,6 @@ export const NAV_V2_CORE: NavV2CoreItem[] = [
   { type: "item", name: "Mural", href: "/dashboard/feed", icon: Newspaper, iconColor: "text-violet-500" },
   { type: "item", name: "Inbox", href: "/dashboard/inbox", icon: Inbox, iconColor: "text-blue-500", badgeKey: "inbox-unread" },
   { type: "item", name: "Ask", href: "/dashboard/ask", icon: Sparkles, iconColor: "text-violet-500" },
-  { type: "item", name: "Reports", href: "/dashboard/reports", icon: BarChart3, iconColor: "text-sky-500" },
   { type: "item", name: "Leads", href: "/dashboard/leads", icon: UserSearch, iconColor: "text-emerald-500" },
   { type: "item", name: "Contactos", href: "/dashboard/contacts", icon: Users, iconColor: "text-emerald-500" },
   { type: "item", name: "Empresas", href: "/dashboard/companies", icon: Building2, iconColor: "text-emerald-500" },
@@ -111,6 +110,22 @@ export const NAV_V2_CORE: NavV2CoreItem[] = [
 // --- Collapsible groups (ALL require moduleSlug — hidden when no matching module installed) ---
 
 export const NAV_V2_GROUPS: NavV2Group[] = [
+  {
+    type: "group",
+    name: "Estratégia & Relatórios",
+    icon: Brain,
+    iconColor: "text-cyan-500",
+    children: [
+      { name: "Brief Executivo", href: "/dashboard/strategy", icon: Brain, iconColor: "text-cyan-500" },
+      { name: "Context OS", href: "/dashboard/context-os", icon: Brain, iconColor: "text-cyan-500" },
+      { name: "Mapa de Impacto", href: "/dashboard/impact-map", icon: GitBranch, iconColor: "text-cyan-500" },
+      { name: "Visão Geral", href: "/dashboard/reports", icon: BarChart3, iconColor: "text-sky-500" },
+      { name: "KPIs", href: "/dashboard/kpis", icon: Target, iconColor: "text-sky-500" },
+      { name: "Metas vs Resultados", href: "/dashboard/reports/goals", icon: Target, iconColor: "text-sky-500" },
+      { name: "Previsões", href: "/dashboard/reports/forecasts", icon: TrendingUp, iconColor: "text-sky-500" },
+      { name: "Consumo", href: "/dashboard/reports/consumption", icon: BarChart3, iconColor: "text-sky-500" },
+    ],
+  },
   {
     type: "group",
     name: "Vendas",
@@ -216,17 +231,6 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
       { name: "Email Marketing", href: "/dashboard/email-campaigns", icon: Mail, moduleSlug: "email-campaigns", iconColor: "text-indigo-500" },
       { name: "Google Local", href: "/dashboard/prospecting/google-local", icon: Globe, moduleSlug: "google-local-services", iconColor: "text-indigo-500" },
       { name: "Bio OS", href: "/dashboard/bio", icon: Globe, moduleSlug: "bio-os", iconColor: "text-indigo-500" },
-    ],
-  },
-  {
-    type: "group",
-    name: "Estratégia",
-    icon: Brain,
-    iconColor: "text-cyan-500",
-    children: [
-      { name: "Brief Executivo", href: "/dashboard/strategy", icon: Brain, iconColor: "text-cyan-500" },
-      { name: "Context OS", href: "/dashboard/context-os", icon: Brain, iconColor: "text-cyan-500" },
-      { name: "Mapa de Impacto", href: "/dashboard/impact-map", icon: GitBranch, iconColor: "text-cyan-500" },
     ],
   },
   {
