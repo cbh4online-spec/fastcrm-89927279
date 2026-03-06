@@ -97,6 +97,7 @@ export function useBillingAssistant() {
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Erro ao contactar assistente";
+      console.error('[B2B-FINANCE] BILLING_ASSISTANT_ERROR', errorMessage);
       setError(errorMessage);
       toast.error(errorMessage);
       return null;

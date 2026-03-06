@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import type {
   Subscription,
   CreateSubscriptionInput,
@@ -139,12 +140,21 @@ export function useCreateSubscription() {
       if (error) throw error;
       return data as Subscription;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
       toast.success("Subscrição criada com sucesso");
+      console.info('[B2B-FINANCE] SUBSCRIPTION_CREATED', data.id);
+      emitKernelEvent({
+        workspace_id: data.workspace_id,
+        type: 'B2B.SUBSCRIPTION_CREATED',
+        entity_kind: 'subscription',
+        entity_id: data.id,
+        source_module: 'b2b-finance',
+        payload: { contact_id: data.contact_id, company_id: data.company_id, mrr_amount: data.mrr_amount },
+      });
     },
     onError: (error) => {
-      console.error("Error creating subscription:", error);
+      console.error("[B2B-FINANCE] SUBSCRIPTION_CREATE_FAILED", error.message);
       toast.error("Erro ao criar subscrição");
     },
   });
@@ -176,9 +186,10 @@ export function useUpdateSubscription() {
       queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
       queryClient.invalidateQueries({ queryKey: ["subscription", data.id] });
       toast.success("Subscrição atualizada");
+      console.info('[B2B-FINANCE] SUBSCRIPTION_UPDATED', data.id);
     },
     onError: (error) => {
-      console.error("Error updating subscription:", error);
+      console.error("[B2B-FINANCE] SUBSCRIPTION_UPDATE_FAILED", error.message);
       toast.error("Erro ao atualizar subscrição");
     },
   });
@@ -205,9 +216,10 @@ export function useDeleteSubscription() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["subscriptions", currentWorkspace?.id] });
       toast.success("Subscrição eliminada");
+      console.info('[B2B-FINANCE] SUBSCRIPTION_DELETED');
     },
     onError: (error) => {
-      console.error("Error deleting subscription:", error);
+      console.error("[B2B-FINANCE] SUBSCRIPTION_DELETE_FAILED", error.message);
       toast.error("Erro ao eliminar subscrição");
     },
   });
@@ -249,14 +261,23 @@ export function useCancelSubscription() {
 
       return data as Subscription;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["subscriptions", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["subscription", data.id] });
       queryClient.invalidateQueries({ queryKey: ["subscription-events", data.id] });
       toast.success("Subscrição cancelada");
+      console.info('[B2B-FINANCE] SUBSCRIPTION_CANCELLED', data.id);
+      emitKernelEvent({
+        workspace_id: data.workspace_id,
+        type: 'B2B.SUBSCRIPTION_CANCELLED',
+        entity_kind: 'subscription',
+        entity_id: data.id,
+        source_module: 'b2b-finance',
+        payload: { reason: variables.reason },
+      });
     },
     onError: (error) => {
-      console.error("Error cancelling subscription:", error);
+      console.error("[B2B-FINANCE] SUBSCRIPTION_CANCEL_FAILED", error.message);
       toast.error("Erro ao cancelar subscrição");
     },
   });
@@ -290,9 +311,17 @@ export function useActivateSubscription() {
       queryClient.invalidateQueries({ queryKey: ["subscriptions", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["subscription", data.id] });
       toast.success("Subscrição ativada");
+      console.info('[B2B-FINANCE] SUBSCRIPTION_ACTIVATED', data.id);
+      emitKernelEvent({
+        workspace_id: data.workspace_id,
+        type: 'B2B.SUBSCRIPTION_ACTIVATED',
+        entity_kind: 'subscription',
+        entity_id: data.id,
+        source_module: 'b2b-finance',
+      });
     },
     onError: (error) => {
-      console.error("Error activating subscription:", error);
+      console.error("[B2B-FINANCE] SUBSCRIPTION_ACTIVATE_FAILED", error.message);
       toast.error("Erro ao ativar subscrição");
     },
   });
@@ -350,13 +379,22 @@ export function useConvertOpportunityToSubscription() {
 
       return subscription as Subscription;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
       queryClient.invalidateQueries({ queryKey: ["opportunities"] });
       toast.success("Oportunidade convertida em subscrição");
+      console.info('[B2B-FINANCE] SUBSCRIPTION_CONVERTED', data.id, 'from opportunity', variables.opportunityId);
+      emitKernelEvent({
+        workspace_id: data.workspace_id,
+        type: 'B2B.SUBSCRIPTION_CONVERTED',
+        entity_kind: 'subscription',
+        entity_id: data.id,
+        source_module: 'b2b-finance',
+        payload: { opportunity_id: variables.opportunityId },
+      });
     },
     onError: (error) => {
-      console.error("Error converting opportunity:", error);
+      console.error("[B2B-FINANCE] SUBSCRIPTION_CONVERT_FAILED", error.message);
       toast.error("Erro ao converter oportunidade");
     },
   });

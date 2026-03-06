@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import type { ClientUser, ClientUserStatus, UpdateClientUserData } from "@/types/client-user";
 import { toast } from "sonner";
 
@@ -112,6 +113,7 @@ export function useClientUserActions() {
       toast.success("Cliente atualizado com sucesso");
     },
     onError: (error) => {
+      console.error("[B2B-FINANCE] CLIENT_UPDATE_FAILED", error.message);
       toast.error("Erro ao atualizar cliente: " + error.message);
     },
   });
@@ -136,8 +138,20 @@ export function useClientUserActions() {
         clientId,
         updates: { credit_limit: creditLimit },
       });
+      console.info('[B2B-FINANCE] CREDIT_LIMIT_UPDATED', clientId, creditLimit);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'B2B.LIMIT_REACHED',
+          entity_kind: 'client_user',
+          entity_id: clientId,
+          source_module: 'b2b-finance',
+          payload: { credit_limit: creditLimit },
+        });
+      }
       return true;
-    } catch {
+    } catch (error) {
+      console.error('[B2B-FINANCE] CREDIT_LIMIT_UPDATE_FAILED', clientId, error);
       return false;
     }
   };
