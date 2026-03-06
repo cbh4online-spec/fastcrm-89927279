@@ -250,6 +250,55 @@ Deno.serve(async (req) => {
         } else {
           logStep("Order marked as paid", { orderId: order?.id });
 
+          // === Kernel Events ===
+          const isFirstPurchase = await (async () => {
+            if (!order?.contact_id) return false;
+            const { count } = await supabaseClient
+              .from('store_orders')
+              .select('id', { count: 'exact', head: true })
+              .eq('contact_id', order.contact_id)
+              .eq('workspace_id', workspaceId)
+              .in('status', ['paid', 'processing', 'shipped', 'delivered'])
+              .neq('id', order.id);
+            return count === 0;
+          })();
+
+          const emitKernel = async (type: string, payload: Record<string, unknown>) => {
+            try {
+              await fetch(`${supabaseUrl}/functions/v1/kernel-ingest-event`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${supabaseKey}` },
+                body: JSON.stringify({
+                  workspace_id: workspaceId,
+                  type,
+                  entity_kind: 'store_order',
+                  entity_id: order.id,
+                  actor_type: 'system',
+                  source_module: 'store-ecommerce',
+                  schema_version: 1,
+                  occurred_at: new Date().toISOString(),
+                  payload,
+                }),
+              });
+            } catch (e) {
+              logStep(`Kernel emit ${type} failed (non-blocking)`, { error: (e as Error).message });
+            }
+          };
+
+          await Promise.all([
+            emitKernel('CHECKOUT.COMPLETED', {
+              order_id: order.id,
+              total: order.total,
+              items_count: (order.items as any[])?.length || 0,
+              is_first_purchase: isFirstPurchase,
+            }),
+            emitKernel('PAYMENT.CONFIRMED', {
+              order_id: order.id,
+              payment_intent_id: session.payment_intent,
+              total: order.total,
+            }),
+          ]);
+
           // Decrement stock for tracked products
           if (order?.items) {
             const orderItems = order.items as Array<{ product_id: string; quantity: number }>;

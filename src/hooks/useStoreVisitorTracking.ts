@@ -66,7 +66,7 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
       .upsert(sessionData, { onConflict: "workspace_id,session_id" });
 
     if (error) {
-      console.error("[StoreTracking] upsert error:", error.message);
+      console.warn("[ECOMMERCE] VISITOR_SESSION_FAILED", error.message);
     }
 
     return { timeOnSite, productsCount: productsArray.length };
@@ -84,7 +84,7 @@ export function useStoreVisitorTracking({ workspaceId, currentPage, productId }:
         },
       });
     } catch (err) {
-      console.error("[StoreTracking] classification error:", err);
+      console.warn("[ECOMMERCE] VISITOR_CLASSIFY_FAILED", (err as Error).message);
       classifyTriggered.current = false; // allow retry
     }
   }, [workspaceId]);

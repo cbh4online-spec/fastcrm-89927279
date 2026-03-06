@@ -209,6 +209,11 @@ Deno.serve(async (req) => {
       runCheck(supabase, workspace_id, "mkt-bio-os", "bio_pages_query", "bio_pages"),
       runCheck(supabase, workspace_id, "mkt-bio-os", "bio_blocks_query", "bio_blocks"),
       runCheck(supabase, workspace_id, "mkt-bio-os", "bio_events_query", "bio_events"),
+      // Store Ecommerce
+      runCheck(supabase, workspace_id, "store-ecommerce", "store_abandoned_carts_query", "store_abandoned_carts"),
+      runCheck(supabase, workspace_id, "store-ecommerce", "store_automation_events_query", "store_automation_events"),
+      runCheck(supabase, workspace_id, "store-ecommerce", "store_visitor_sessions_query", "store_visitor_sessions"),
+      runCheck(supabase, workspace_id, "store-ecommerce", "return_requests_query", "return_requests"),
       // AI Conversational
       aiConversationalCheck(),
     ]);

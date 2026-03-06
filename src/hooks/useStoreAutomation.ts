@@ -230,6 +230,9 @@ export function useTrackCartAbandonment() {
       if (error) throw error;
       return data;
     },
+    onError: (err) => {
+      console.warn('[ECOMMERCE] CART_TRACK_FAILED', err instanceof Error ? err.message : err);
+    },
   });
 }
 
@@ -261,9 +264,11 @@ export function useSendCartRecovery() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['store_abandoned_carts'] });
+      console.log('[ECOMMERCE] Cart recovery initiated');
       toast.success('Tentativa de recuperação iniciada');
     },
     onError: (err) => {
+      console.warn('[ECOMMERCE] CART_RECOVERY_FAILED', err instanceof Error ? err.message : err);
       toast.error(`Erro: ${err instanceof Error ? err.message : 'Desconhecido'}`);
     },
   });

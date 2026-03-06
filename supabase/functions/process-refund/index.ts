@@ -103,6 +103,33 @@ Deno.serve(async (req) => {
 
     logStep("Stripe refund created", { refundId: refund.id, amount: refund.amount });
 
+    // Emit PAYMENT.REFUNDED kernel event
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/kernel-ingest-event`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${supabaseServiceKey}` },
+        body: JSON.stringify({
+          workspace_id: workspaceId,
+          type: 'PAYMENT.REFUNDED',
+          entity_kind: 'store_order',
+          entity_id: returnReq.order_id,
+          actor_type: 'user',
+          actor_id: user.id,
+          source_module: 'store-ecommerce',
+          schema_version: 1,
+          occurred_at: new Date().toISOString(),
+          payload: {
+            order_id: returnReq.order_id,
+            refund_id: refund.id,
+            amount: refund.amount / 100,
+            return_request_id: returnRequestId,
+          },
+        }),
+      });
+    } catch (e) {
+      logStep('Kernel emit PAYMENT.REFUNDED failed (non-blocking)', { error: (e as Error).message });
+    }
+
     // Update return request
     await supabaseClient.from("return_requests").update({
       status: "refunded",
