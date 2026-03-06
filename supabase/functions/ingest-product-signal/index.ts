@@ -175,8 +175,8 @@ Deno.serve(async (req) => {
             await supabaseAdmin.from("tasks").insert({
               workspace_id: workspaceId,
               title: (config?.title as string) || `Follow up: ${email}`,
-              entity_type: "lead",
-              entity_id: leadId,
+              related_type: "lead",
+              related_id: leadId,
               status: "pending",
               priority: "high",
               created_by: "00000000-0000-0000-0000-000000000000",

@@ -55,13 +55,11 @@ const stepExecutors: Record<string, (ctx: StepContext) => Promise<StepResult>> =
         title: input.title as string || 'Workflow Task',
         description: input.description as string,
         assigned_to: input.assignedTo as string || execution.initiated_by,
-        due_date: input.dueDate as string,
+        due_at: input.dueDate as string,
         priority: input.priority as string || 'medium',
         status: 'pending',
-        lead_id: execution.entity_type === 'lead' ? execution.entity_id : null,
-        contact_id: execution.entity_type === 'contact' ? execution.entity_id : null,
-        company_id: execution.entity_type === 'company' ? execution.entity_id : null,
-        opportunity_id: execution.entity_type === 'opportunity' ? execution.entity_id : null,
+        related_type: execution.entity_type || null,
+        related_id: execution.entity_id || null,
       })
       .select('id')
       .single();
