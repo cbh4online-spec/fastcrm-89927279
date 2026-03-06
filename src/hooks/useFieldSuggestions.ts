@@ -56,9 +56,11 @@ export function useFieldSuggestions(entityType: EntityType, entityId: string | u
         .eq("status", "pending")
         .order("confidence", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[AI-SUGGESTIONS] Failed to fetch field suggestions:', error.message);
+        throw error;
+      }
       
-      // Type assertion needed because the types file is read-only
       return (data || []) as unknown as FieldSuggestion[];
     },
     enabled: !!entityId && !!currentWorkspace?.id,
@@ -103,20 +105,21 @@ export function useGenerateFieldSuggestions() {
       queryClient.invalidateQueries({ 
         queryKey: ["field-suggestions", variables.entityType, variables.entityId] 
       });
-      console.log(`[CUSTOM-FIELDS] AI suggestions generated for ${variables.entityType}:${variables.entityId} — ${data.suggestions?.length ?? 0} suggestions`);
+      const count = data.suggestions?.length ?? 0;
+      console.log(`[AI-SUGGESTIONS] Field suggestions generated for ${variables.entityType}:${variables.entityId} — ${count} suggestions`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
-          type: 'CUSTOM_FIELD.AI_SUGGESTIONS_GENERATED',
+          type: 'SUGGESTION.CREATED',
           entity_kind: variables.entityType,
           entity_id: variables.entityId,
-          source_module: 'core-custom-fields',
-          payload: { suggestion_count: data.suggestions?.length ?? 0 },
+          source_module: 'ai-suggestions',
+          payload: { suggestion_count: count },
         });
       }
     },
     onError: (error: Error) => {
-      console.warn('[CUSTOM-FIELDS] AI_SUGGESTIONS_GENERATE_FAILED:', error.message);
+      console.error('[AI-SUGGESTIONS] Field suggestions generation failed:', error.message);
     },
   });
 }
@@ -133,7 +136,6 @@ export function useAcceptSuggestion() {
       suggestion: FieldSuggestion;
       onApply: (fieldName: string, value: unknown, fieldType: "standard" | "custom", customFieldId?: string) => Promise<void>;
     }) => {
-      // Apply the suggestion value
       await onApply(
         suggestion.field_name, 
         suggestion.suggested_value, 
@@ -141,7 +143,6 @@ export function useAcceptSuggestion() {
         suggestion.custom_field_id || undefined
       );
 
-      // Mark suggestion as accepted
       const { error } = await supabase
         .from("ai_field_suggestions")
         .update({ 
@@ -157,20 +158,20 @@ export function useAcceptSuggestion() {
         queryKey: ["field-suggestions", variables.suggestion.entity_type, variables.suggestion.entity_id] 
       });
       toast.success("Sugestão aplicada com sucesso");
-      console.log(`[CUSTOM-FIELDS] AI suggestion accepted: ${variables.suggestion.id}`);
+      console.log(`[AI-SUGGESTIONS] Field suggestion accepted: ${variables.suggestion.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
-          type: 'CUSTOM_FIELD.AI_SUGGESTION_ACCEPTED',
+          type: 'SUGGESTION.ACCEPTED',
           entity_kind: variables.suggestion.entity_type,
           entity_id: variables.suggestion.entity_id,
-          source_module: 'core-custom-fields',
+          source_module: 'ai-suggestions',
           payload: { field_name: variables.suggestion.field_name, field_type: variables.suggestion.field_type, confidence: variables.suggestion.confidence },
         });
       }
     },
     onError: (error: Error) => {
-      console.warn('[CUSTOM-FIELDS] AI_SUGGESTION_ACCEPT_FAILED:', error.message);
+      console.error('[AI-SUGGESTIONS] Field suggestion accept failed:', error.message);
       toast.error("Erro ao aplicar sugestão");
     },
   });
@@ -196,19 +197,19 @@ export function useRejectSuggestion() {
       queryClient.invalidateQueries({ 
         queryKey: ["field-suggestions", suggestion.entity_type, suggestion.entity_id] 
       });
-      console.log(`[CUSTOM-FIELDS] AI suggestion rejected: ${suggestion.id}`);
+      console.log(`[AI-SUGGESTIONS] Field suggestion rejected: ${suggestion.id}`);
       if (currentWorkspace?.id) {
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
-          type: 'CUSTOM_FIELD.AI_SUGGESTION_REJECTED',
+          type: 'SUGGESTION.REJECTED',
           entity_kind: suggestion.entity_type,
           entity_id: suggestion.entity_id,
-          source_module: 'core-custom-fields',
+          source_module: 'ai-suggestions',
         });
       }
     },
     onError: (error: Error) => {
-      console.warn('[CUSTOM-FIELDS] AI_SUGGESTION_REJECT_FAILED:', error.message);
+      console.error('[AI-SUGGESTIONS] Field suggestion reject failed:', error.message);
     },
   });
 }
@@ -240,6 +241,7 @@ export function useDismissAllSuggestions() {
       queryClient.invalidateQueries({ 
         queryKey: ["field-suggestions", variables.entityType, variables.entityId] 
       });
+      console.log(`[AI-SUGGESTIONS] All field suggestions dismissed for ${variables.entityType}:${variables.entityId}`);
     },
   });
 }

@@ -287,7 +287,7 @@ IMPORTANT:
         );
       }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("[AI-SUGGESTIONS] AI gateway error:", response.status, errorText);
       return new Response(
         JSON.stringify({ error: "AI service temporarily unavailable" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -363,7 +363,7 @@ IMPORTANT:
     );
 
   } catch (error) {
-    console.error("Field suggestions error:", error);
+    console.error("[AI-SUGGESTIONS] Field suggestions error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

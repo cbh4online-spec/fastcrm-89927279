@@ -3,6 +3,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface AutomationSuggestion {
   id: string;
@@ -54,7 +55,10 @@ export function useAutomationSuggestions(limit?: number) {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('[AI-SUGGESTIONS] Failed to fetch automation suggestions:', error.message);
+        throw error;
+      }
       return (data || []) as unknown as AutomationSuggestion[];
     },
     enabled: !!currentWorkspace?.id,
@@ -85,12 +89,24 @@ export function useGenerateAutomationSuggestions() {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["automation_suggestions", currentWorkspace?.id] });
+      const count = data?.suggestions?.length ?? 0;
+      console.log(`[AI-SUGGESTIONS] Automation suggestions generated — ${count} suggestions`);
       toast.success("Análise de padrões concluída");
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'SUGGESTION.GENERATED',
+          entity_kind: 'automation_suggestion',
+          entity_id: currentWorkspace.id,
+          source_module: 'ai-suggestions',
+          payload: { count },
+        });
+      }
     },
     onError: (error) => {
-      console.error("Error generating suggestions:", error);
+      console.error("[AI-SUGGESTIONS] Automation suggestions generation failed:", error);
       toast.error("Erro ao analisar padrões");
     },
   });
@@ -112,9 +128,20 @@ export function useAcceptAutomationSuggestion() {
         .eq("id", suggestionId);
 
       if (error) throw error;
+      return suggestionId;
     },
-    onSuccess: () => {
+    onSuccess: (suggestionId) => {
       queryClient.invalidateQueries({ queryKey: ["automation_suggestions", currentWorkspace?.id] });
+      console.log(`[AI-SUGGESTIONS] Automation suggestion accepted: ${suggestionId}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'SUGGESTION.ACCEPTED',
+          entity_kind: 'automation_suggestion',
+          entity_id: suggestionId,
+          source_module: 'ai-suggestions',
+        });
+      }
     },
   });
 }
@@ -135,10 +162,21 @@ export function useDismissAutomationSuggestion() {
         .eq("id", suggestionId);
 
       if (error) throw error;
+      return suggestionId;
     },
-    onSuccess: () => {
+    onSuccess: (suggestionId) => {
       queryClient.invalidateQueries({ queryKey: ["automation_suggestions", currentWorkspace?.id] });
+      console.log(`[AI-SUGGESTIONS] Automation suggestion dismissed: ${suggestionId}`);
       toast.success("Sugestão descartada");
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'SUGGESTION.DISMISSED',
+          entity_kind: 'automation_suggestion',
+          entity_id: suggestionId,
+          source_module: 'ai-suggestions',
+        });
+      }
     },
   });
 }
@@ -165,7 +203,17 @@ export function useDismissAllSuggestions() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["automation_suggestions", currentWorkspace?.id] });
+      console.log('[AI-SUGGESTIONS] All automation suggestions dismissed');
       toast.success("Todas as sugestões descartadas");
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'SUGGESTION.ALL_DISMISSED',
+          entity_kind: 'automation_suggestion',
+          entity_id: currentWorkspace.id,
+          source_module: 'ai-suggestions',
+        });
+      }
     },
   });
 }
