@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import type { AddressData, OrderNoteStatus } from "@/types/order-note";
 
 interface OrderLineItem {
@@ -113,14 +114,31 @@ export function useCreateOrderNote() {
 
       if (itemsError) throw itemsError;
 
+      // Emit ORDER.CREATED kernel event
+      emitKernelEvent({
+        workspace_id: input.workspace_id,
+        type: "ORDER.CREATED",
+        entity_kind: "order_note",
+        entity_id: orderNote.id,
+        source_module: "sales-orders",
+        payload: {
+          order_number: orderNumber,
+          total_gross: totalGross,
+          items_count: processedItems.length,
+          currency: "EUR",
+        },
+      });
+
       return orderNote.id;
     },
     onSuccess: (orderId) => {
       queryClient.invalidateQueries({ queryKey: ["order-notes"] });
+      console.log(`[ORDERS] Order note created: ${orderId}`);
       toast.success("Nota de encomenda criada com sucesso");
       navigate(`/dashboard/order-notes/${orderId}`);
     },
     onError: (error) => {
+      console.warn("[ORDERS] ORDER_NOTE_CREATE_FAILED", error.message);
       toast.error("Erro ao criar nota de encomenda: " + error.message);
     },
   });

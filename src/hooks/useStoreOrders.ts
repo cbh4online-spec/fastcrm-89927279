@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface StoreOrder {
   id: string;
@@ -73,6 +74,7 @@ export function useStoreOrders(filters?: { status?: string; search?: string }) {
 
 export function useUpdateStoreOrderStatus() {
   const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
 
   return useMutation({
     mutationFn: async ({ id, status, notes, oldStatus }: { id: string; status: string; notes?: string; oldStatus?: string }) => {
@@ -87,16 +89,30 @@ export function useUpdateStoreOrderStatus() {
 
       if (error) throw error;
 
+      // Emit ORDER.FULFILLED for terminal states
+      if ((status === "delivered" || status === "completed") && currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: "ORDER.FULFILLED",
+          entity_kind: "store_order",
+          entity_id: id,
+          source_module: "sales-orders",
+          payload: { order_id: id, status, old_status: oldStatus },
+        });
+      }
+
       // Send status notification email (non-blocking)
       supabase.functions.invoke("send-order-status-notification", {
         body: { orderId: id, newStatus: status, oldStatus },
-      }).catch((err) => console.warn("Status notification email failed:", err));
+      }).catch((err) => console.warn("[ORDERS] Status notification email failed:", err));
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["store-orders"] });
+      console.log(`[ORDERS] Store order status updated: ${vars.id} → ${vars.status}`);
       toast.success("Estado da encomenda atualizado");
     },
     onError: (error) => {
+      console.warn("[ORDERS] STORE_ORDER_STATUS_FAILED", error.message);
       toast.error("Erro ao atualizar encomenda: " + error.message);
     },
   });

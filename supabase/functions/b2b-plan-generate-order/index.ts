@@ -24,6 +24,8 @@ serve(async (req) => {
     if (!run || !run.plan) throw new Error("Run not found");
 
     const plan = run.plan;
+    console.log(`[ORDERS] B2B plan order: run=${runId}, plan=${plan.name}`);
+
     const year = new Date().getFullYear();
     const orderNumber = `NE-${year}-PLAN-${Date.now()}`;
 
@@ -68,10 +70,13 @@ serve(async (req) => {
       .update({ status: "ordered", order_id: order.id })
       .eq("id", runId);
 
+    console.log(`[ORDERS] B2B order created: id=${order.id}, number=${orderNumber}`);
+
     return new Response(JSON.stringify({ orderId: order.id, orderNumber }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
+    console.error("[ORDERS] B2B_PLAN_ORDER_FAILED", e.message);
     return new Response(JSON.stringify({ error: e.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

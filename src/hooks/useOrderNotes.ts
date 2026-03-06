@@ -126,9 +126,13 @@ export function useOrderNoteActions() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["order-notes"] });
       queryClient.invalidateQueries({ queryKey: ["order-note"] });
+      console.log(`[ORDERS] Order note updated: ${vars.orderId}`);
+    },
+    onError: (error) => {
+      console.warn("[ORDERS] ORDER_NOTE_UPDATE_FAILED", error.message);
     },
   });
 
@@ -154,6 +158,7 @@ export function useOrderNoteActions() {
       toast.success("Nota adicionada com sucesso");
       return true;
     } catch (error) {
+      console.warn("[ORDERS] ADMIN_NOTE_FAILED", (error as Error).message);
       toast.error("Erro ao adicionar nota");
       return false;
     }

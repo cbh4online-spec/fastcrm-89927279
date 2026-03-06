@@ -51,6 +51,8 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Order ID is required");
     }
 
+    console.log(`[ORDERS] Submit: order=${orderId}, user=${user.id}`);
+
     // Create admin client for privileged operations
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -127,6 +129,8 @@ const handler = async (req: Request): Promise<Response> => {
     if (updateError) {
       throw new Error("Failed to update order: " + updateError.message);
     }
+
+    console.log(`[ORDERS] Submitted: order=${orderId}, status=${newStatus}, total=${totalGross}`);
 
     // Get workspace info for email
     const { data: workspace } = await adminClient
@@ -262,7 +266,7 @@ const handler = async (req: Request): Promise<Response> => {
             html: emailHtml,
           });
         } catch (emailError) {
-          console.error("Failed to send email notification:", emailError);
+          console.error("[ORDERS] Failed to send email notification:", emailError);
           // Don't fail the order submission if email fails
         }
       }
@@ -282,7 +286,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: unknown) {
-    console.error("Error in order-note-submit:", error);
+    console.error("[ORDERS] order-note-submit failed:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: message }),

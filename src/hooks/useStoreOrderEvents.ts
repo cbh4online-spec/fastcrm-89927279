@@ -45,8 +45,12 @@ export function useAddStoreOrderEvent() {
     },
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["store-order-events", vars.orderId] });
+      console.log(`[ORDERS] Event added to order: ${vars.orderId}`);
       toast.success("Evento adicionado");
     },
-    onError: (err) => toast.error("Erro: " + err.message),
+    onError: (err) => {
+      console.warn("[ORDERS] ORDER_EVENT_ADD_FAILED", err.message);
+      toast.error("Erro: " + err.message);
+    },
   });
 }
