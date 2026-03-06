@@ -238,7 +238,36 @@ async function computeDecisionsForWorkspace(
 
   if (insertError) throw insertError;
 
-  return { inserted: inserted?.length ?? 0, decisions: inserted ?? [] };
+  const insertedCount = inserted?.length ?? 0;
+  const ruleKeys = decisions.map((d: any) => d.rule_key).filter(Boolean);
+
+  // Emit kernel event
+  if (insertedCount > 0) {
+    try {
+      await supabase.from("kernel_events").insert({
+        workspace_id,
+        type: "STRATEGIC_DECISION.CREATED",
+        entity_kind: "strategic_decision",
+        entity_id: workspace_id,
+        actor_type: "system",
+        source_module: "strategy-brief",
+        payload: { count: insertedCount, rule_keys: ruleKeys },
+        occurred_at: new Date().toISOString(),
+        ingested_at: new Date().toISOString(),
+        schema_version: 1,
+      });
+    } catch (e) {
+      console.warn("[STRATEGY-BRIEF] Failed to emit STRATEGIC_DECISION.CREATED event:", (e as Error).message);
+    }
+
+    console.log("[STRATEGY-BRIEF] Strategic decisions created", {
+      workspace_id,
+      count: insertedCount,
+      rule_keys: ruleKeys,
+    });
+  }
+
+  return { inserted: insertedCount, decisions: inserted ?? [] };
 }
 
 Deno.serve(async (req: Request) => {
@@ -294,7 +323,7 @@ Deno.serve(async (req: Request) => {
       status: 200,
     });
   } catch (err: any) {
-    console.error("compute-strategic-decisions error:", err);
+    console.error("[STRATEGY-BRIEF] compute-strategic-decisions error:", err);
     return new Response(
       JSON.stringify({ error: err.message || "Internal error" }),
       {

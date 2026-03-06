@@ -3,6 +3,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface WeeklyBrief {
   id: string;
@@ -71,8 +72,18 @@ export function useStrategicBriefs() {
       }
       await queryClient.invalidateQueries({ queryKey });
       toast.success("Brief executivo gerado com sucesso!");
+      console.log("[STRATEGY-BRIEF] Weekly brief generated successfully", { workspace_id: currentWorkspace.id });
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: "STRATEGIC_BRIEF.GENERATED",
+        entity_kind: "weekly_brief",
+        entity_id: currentWorkspace.id,
+        source_module: "strategy-brief",
+        payload: { trigger: "manual" },
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro ao gerar brief";
+      console.error("[STRATEGY-BRIEF] Weekly brief generation failed", { error: msg });
       toast.error(msg);
     } finally {
       setIsGenerating(false);

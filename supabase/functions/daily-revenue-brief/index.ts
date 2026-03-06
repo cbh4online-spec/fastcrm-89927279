@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
         const brief = await generateDailyBrief(supabase, wsId);
         if (wsId === workspaceId) lastBrief = brief;
       } catch (err) {
-        console.error(`Error generating daily brief for ${wsId}:`, err);
+        console.error(`[STRATEGY-BRIEF] Error generating daily brief for ${wsId}:`, err);
       }
     }
 
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("daily-revenue-brief error:", err);
+    console.error("[STRATEGY-BRIEF] daily-revenue-brief error:", err);
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -294,5 +294,38 @@ Gera o brief diário focado em ações imediatas.`,
     .single();
 
   if (error) throw error;
+
+  // Emit kernel event
+  try {
+    await supabase.from("kernel_events").insert({
+      workspace_id: workspaceId,
+      type: "STRATEGIC_BRIEF.GENERATED",
+      entity_kind: "daily_brief",
+      entity_id: inserted.id,
+      actor_type: "system",
+      source_module: "strategy-brief",
+      payload: {
+        leads_today: realMetrics.leads_today,
+        deals_won: realMetrics.deals_won,
+        revenue_today: realMetrics.revenue_today,
+        deals_stalled: realMetrics.deals_stalled,
+      },
+      occurred_at: new Date().toISOString(),
+      ingested_at: new Date().toISOString(),
+      schema_version: 1,
+    });
+  } catch (e) {
+    console.warn("[STRATEGY-BRIEF] Failed to emit STRATEGIC_BRIEF.GENERATED event:", (e as Error).message);
+  }
+
+  console.log("[STRATEGY-BRIEF] Daily brief generated", {
+    workspace_id: workspaceId,
+    brief_id: inserted.id,
+    leads_today: realMetrics.leads_today,
+    deals_won: realMetrics.deals_won,
+    revenue_today: realMetrics.revenue_today,
+    deals_stalled: realMetrics.deals_stalled,
+  });
+
   return inserted;
 }

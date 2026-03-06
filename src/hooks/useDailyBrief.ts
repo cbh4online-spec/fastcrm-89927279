@@ -1,9 +1,9 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface DailyBrief {
   id: string;
@@ -71,8 +71,18 @@ export function useDailyBrief() {
       }
       await queryClient.invalidateQueries({ queryKey });
       toast.success("Daily Brief gerado com sucesso!");
+      console.log("[STRATEGY-BRIEF] Daily brief generated successfully", { workspace_id: currentWorkspace.id });
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: "STRATEGIC_BRIEF.GENERATED",
+        entity_kind: "daily_brief",
+        entity_id: currentWorkspace.id,
+        source_module: "strategy-brief",
+        payload: { trigger: "manual" },
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro ao gerar daily brief";
+      console.error("[STRATEGY-BRIEF] Daily brief generation failed", { error: msg });
       toast.error(msg);
     } finally {
       setIsGenerating(false);
