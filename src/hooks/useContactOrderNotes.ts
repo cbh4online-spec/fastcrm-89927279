@@ -39,7 +39,10 @@ export function useContactOrderNotes(contactId: string | undefined) {
         .order("created_at", { ascending: false })
         .limit(10);
 
-      if (ordersError) throw ordersError;
+      if (ordersError) {
+        console.warn('[B2B-ORDERS] CONTACT_ORDERS_FAILED', ordersError.message);
+        throw ordersError;
+      }
       return orders as Partial<OrderNote>[];
     },
     enabled: !!contactId,

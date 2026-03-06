@@ -217,6 +217,8 @@ Deno.serve(async (req) => {
       // B2B Catalog
       runCheck(supabase, workspace_id, "b2b-catalog", "client_price_tiers_query", "client_price_tiers"),
       runCheck(supabase, workspace_id, "b2b-catalog", "product_tier_prices_query", "product_tier_prices"),
+      // B2B Orders
+      runCheck(supabase, workspace_id, "b2b-orders", "client_approval_requests_query", "client_approval_requests"),
       // Store Marketplace
       runCheck(supabase, workspace_id, "store-marketplace", "c2c_listings_query", "c2c_listings"),
       runCheck(supabase, workspace_id, "store-marketplace", "c2c_messages_query", "c2c_messages"),
