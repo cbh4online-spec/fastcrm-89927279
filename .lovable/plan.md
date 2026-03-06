@@ -1,83 +1,52 @@
 
 
-# B2B-Finance — Kernel V2 Stabilization
+# B2B-Support — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | File(s) | Kernel Events | Logging |
 |------|---------|---------------|---------|
-| Subscription CRUD | `useSubscriptions.ts` | None | `console.error` only |
-| Subscription Cancel/Activate | `useSubscriptions.ts` | None | `console.error` only |
-| Opp→Sub Conversion | `useSubscriptions.ts` | None | `console.error` only |
-| Subscription Events | `useSubscriptionEvents.ts` | None | `console.error` only |
-| SaaS Metrics (MRR/ARR/churn) | `useSaaSMetrics.ts` | None | None |
-| Credit Limit Update | `useClientUsers.ts` | None | Toast only |
-| Renewal Usage Ledger | `useRenewalUsage.ts` | None | Toast only |
-| Billing Assistant | `useBillingAssistant.ts` + edge fn | None | `[BILLING-ASSISTANT]` (good) |
-| Check Renewals | `check-renewals` edge fn | None | Minimal |
-| B2B Plan Notify | `b2b-plan-notify-cycle` edge fn | None | Unknown |
-| Smoke Tests | `system-run-smoke-tests` | — | No b2b-finance checks |
+| Ticket CRUD (client portal) | `useClientTickets.ts` | None | `console.error` only |
+| Ticket Messages | `useClientTickets.ts` → `useTicketMessages` | None | `console.error` only |
+| Ticket List Query | `useClientTickets.ts` | None | `console.error` only |
+| Admin Ticket Management | — | N/A | N/A (no admin hook exists) |
+| Smoke Tests | `system-run-smoke-tests` | — | No b2b-support checks |
 
-Zero kernel events across all finance hooks. No standardized logging.
+Only one hook file exists: `src/hooks/client-portal/useClientTickets.ts`. It handles ticket creation, listing, and messaging from the client portal. No admin-side ticket hooks, no SLA engine, no assignment logic exists in code yet.
 
 ## Implementation Plan
 
-### A) Kernel Events (source: `b2b-finance`)
+### A) Kernel Events (source: `b2b-support`)
 
-**`useSubscriptions.ts`:**
-1. `useCreateSubscription.onSuccess` → emit `B2B.SUBSCRIPTION_CREATED` (entity_kind: `subscription`, payload: `contact_id`, `company_id`, `mrr_amount`)
-2. `useCancelSubscription.onSuccess` → emit `B2B.SUBSCRIPTION_CANCELLED` (payload: `reason`)
-3. `useActivateSubscription.onSuccess` → emit `B2B.SUBSCRIPTION_ACTIVATED`
-4. `useConvertOpportunityToSubscription.onSuccess` → emit `B2B.SUBSCRIPTION_CONVERTED` (payload: `opportunity_id`)
+**`useClientTickets.ts`:**
+1. `createTicket.onSuccess` → emit `TICKET.CREATED` (entity_kind: `client_ticket`, payload: `subject`, `type`, `priority`, `company_id`)
+2. `sendMessage.onSuccess` → emit `TICKET.MESSAGE_SENT` (entity_kind: `client_ticket_message`, payload: `ticket_id`, `sender_type`)
 
-**`useClientUsers.ts`:**
-5. `updateCreditLimit` success → emit `B2B.LIMIT_REACHED` when new limit is set (entity_kind: `client_user`, payload: `credit_limit`)
+### B) Logging (prefix: `[B2B-SUPPORT]`)
 
-**`useRenewalUsage.ts`:**
-6. `useLogRenewalUsage.onSuccess` → emit `B2B.LEDGER_UPDATED` (entity_kind: `renewal_usage_ledger`, payload: `contract_id`, `amount`, `usage_type`)
-
-**`useSubscriptionEvents.ts`:**
-7. `useCreateSubscriptionEvent.onSuccess` → emit `B2B.SUBSCRIPTION_EVENT_LOGGED` (payload: `event_type`, `subscription_id`)
-
-### B) Logging (prefix: `[B2B-FINANCE]`)
-
-**`useSubscriptions.ts`:**
-- Create/update/delete/cancel/activate success + errors
-
-**`useSubscriptionEvents.ts`:**
-- Create event success/error
-
-**`useRenewalUsage.ts`:**
-- Log usage success/error, hours_remaining update
-
-**`useClientUsers.ts`:**
-- Credit limit update success/error
-
-**`useSaaSMetrics.ts`:**
-- No mutations, read-only — skip
-
-**`useBillingAssistant.ts`:**
-- Already has `[BILLING-ASSISTANT]` in edge fn — add `[B2B-FINANCE]` to hook errors
-
-**`check-renewals` edge fn:**
-- Align to `[B2B-FINANCE]` prefix
+**`useClientTickets.ts`:**
+- Ticket list query error → `console.warn('[B2B-SUPPORT] TICKETS_QUERY_FAILED')`
+- Create ticket success → `console.log('[B2B-SUPPORT] TICKET_CREATED id=...')`
+- Create ticket error → `console.error('[B2B-SUPPORT] TICKET_CREATE_FAILED')`
+- Messages query error → `console.warn('[B2B-SUPPORT] MESSAGES_QUERY_FAILED')`
+- Send message success → `console.log('[B2B-SUPPORT] MESSAGE_SENT ticket=...')`
+- Send message error → `console.error('[B2B-SUPPORT] MESSAGE_SEND_FAILED')`
 
 ### C) Smoke Tests
 
 Add to `system-run-smoke-tests`:
-- `subscriptions` (module: `b2b-finance`)
-- `subscription_events` (module: `b2b-finance`)
-- `renewal_usage_ledger` (module: `b2b-finance`)
+- `client_tickets` (module: `b2b-support`)
+- `client_ticket_messages` (module: `b2b-support`)
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useSubscriptions.ts` | Import `emitKernelEvent`; emit 4 events; add `[B2B-FINANCE]` logging |
-| `src/hooks/useSubscriptionEvents.ts` | Import `emitKernelEvent`; emit `B2B.SUBSCRIPTION_EVENT_LOGGED`; add `[B2B-FINANCE]` logging |
-| `src/hooks/useRenewalUsage.ts` | Import `emitKernelEvent`; emit `B2B.LEDGER_UPDATED`; add `[B2B-FINANCE]` logging |
-| `src/hooks/useClientUsers.ts` | Import `emitKernelEvent`; emit `B2B.LIMIT_REACHED` on credit limit update; add `[B2B-FINANCE]` logging |
-| `src/hooks/useBillingAssistant.ts` | Add `[B2B-FINANCE]` error logging |
-| `supabase/functions/check-renewals/index.ts` | Align logging to `[B2B-FINANCE]` prefix |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add 3 b2b-finance table checks |
+| `src/hooks/client-portal/useClientTickets.ts` | Import `emitKernelEvent`; emit `TICKET.CREATED` + `TICKET.MESSAGE_SENT`; add `[B2B-SUPPORT]` logging |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add 2 b2b-support table checks |
+
+## Notes
+
+- No admin-side ticket management hooks exist — only client portal CRUD. Events and logging are scoped to what exists today.
+- SLA timers, assignment, and AI replies are future work (no code paths exist yet to instrument).
 
