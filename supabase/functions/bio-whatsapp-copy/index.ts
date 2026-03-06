@@ -16,6 +16,8 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    console.log(`[BIO] WhatsApp copy: page=${pageName || "unknown"}`);
+
     const systemPrompt = `És um especialista em copywriting para WhatsApp Business em português de Portugal.
 
 O utilizador tem uma página bio/link-in-bio e quer configurar um botão de WhatsApp.
@@ -83,7 +85,7 @@ Gera o texto do botão e a mensagem pré-definida para o WhatsApp.`;
         });
       }
       const text = await response.text();
-      console.error("AI gateway error:", response.status, text);
+      console.error("[BIO] WhatsApp copy gateway error:", response.status, text);
       throw new Error("Erro ao gerar copy");
     }
 
@@ -103,7 +105,7 @@ Gera o texto do botão e a mensagem pré-definida para o WhatsApp.`;
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error:", error);
+    console.error("[BIO] WhatsApp copy error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Erro desconhecido" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

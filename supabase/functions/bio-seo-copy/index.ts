@@ -26,6 +26,8 @@ Deno.serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    console.log(`[BIO] SEO copy: page=${pageName}`);
+
     const prompt = `Gera um título SEO e uma meta description para uma página "link in bio" chamada "${pageName}".${vertical ? ` Contexto/vertical: ${vertical}.` : ""} O título deve ter no máximo 60 caracteres e a descrição no máximo 155 caracteres. Ambos devem ser persuasivos e optimizados para SEO em português.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -76,7 +78,7 @@ Deno.serve(async (req) => {
         });
       }
       const text = await response.text();
-      console.error("AI gateway error:", response.status, text);
+      console.error("[BIO] SEO copy gateway error:", response.status, text);
       throw new Error("AI gateway error");
     }
 
@@ -93,7 +95,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("bio-seo-copy error:", e);
+    console.error("[BIO] SEO copy error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

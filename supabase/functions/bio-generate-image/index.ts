@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
-      console.error("AI gateway error:", aiResponse.status, errText);
+      console.error("[BIO] Image generate AI error:", aiResponse.status, errText);
       if (aiResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded, try again later." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -89,11 +89,13 @@ Deno.serve(async (req) => {
       .from("bio-assets")
       .getPublicUrl(filePath);
 
+    console.log(`[BIO] Image generated: ${filePath}`);
+
     return new Response(JSON.stringify({ success: true, url: publicUrl }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("bio-generate-image error:", e);
+    console.error("[BIO] Image generate error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
