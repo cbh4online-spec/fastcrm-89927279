@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { emitKernelEvent } from '@/lib/kernelEmitter';
 import { toast } from 'sonner';
 import type { AIProfile, AIProfileType, DEFAULT_PROFILES } from '@/types/ai-profiles';
 import { DEFAULT_PROFILES as defaultProfilesConfig } from '@/types/ai-profiles';
@@ -31,7 +32,7 @@ export function useAIProfiles() {
       const mapped = (data || []).map(p => mapDbToProfile(p));
       setProfiles(mapped);
     } catch (error) {
-      console.error('Error fetching AI profiles:', error);
+      console.warn('[AI-PERSONAS] PROFILES_FETCH_FAILED', error);
       toast.error('Erro ao carregar perfis de IA');
     } finally {
       setIsLoading(false);
@@ -216,11 +217,21 @@ export function useAIProfiles() {
 
       if (error) throw error;
 
+      console.log(`[AI-PERSONAS] PERSONA_CREATED id=${result.id}`);
+      emitKernelEvent({
+        workspace_id: currentWorkspace.id,
+        type: 'PERSONA.CREATED',
+        entity_kind: 'ai_persona',
+        entity_id: result.id,
+        source_module: 'ai-personas',
+        payload: { name: result.name, persona_type: result.persona_type, is_active: result.is_active },
+      });
+
       toast.success('Perfil criado com sucesso!');
       await fetchProfiles();
       return mapDbToProfile(result);
     } catch (error) {
-      console.error('Error creating profile:', error);
+      console.error('[AI-PERSONAS] PERSONA_CREATE_FAILED', error);
       toast.error('Erro ao criar perfil');
       return null;
     }
@@ -266,11 +277,35 @@ export function useAIProfiles() {
 
       if (error) throw error;
 
+      console.log(`[AI-PERSONAS] PERSONA_UPDATED id=${id}`);
+      if (currentWorkspace?.id) {
+        // Check if this is a toggle activation
+        if (data.isActive !== undefined && Object.keys(data).length === 1) {
+          emitKernelEvent({
+            workspace_id: currentWorkspace.id,
+            type: data.isActive ? 'PERSONA.ACTIVATED' : 'PERSONA.DEACTIVATED',
+            entity_kind: 'ai_persona',
+            entity_id: id,
+            source_module: 'ai-personas',
+            payload: { is_active: data.isActive },
+          });
+        } else {
+          emitKernelEvent({
+            workspace_id: currentWorkspace.id,
+            type: 'PERSONA.UPDATED',
+            entity_kind: 'ai_persona',
+            entity_id: id,
+            source_module: 'ai-personas',
+            payload: { name: data.name, changed_fields: Object.keys(data) },
+          });
+        }
+      }
+
       toast.success('Perfil atualizado!');
       await fetchProfiles();
       return true;
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('[AI-PERSONAS] PERSONA_UPDATE_FAILED', error);
       toast.error('Erro ao atualizar perfil');
       return false;
     }
@@ -286,11 +321,22 @@ export function useAIProfiles() {
 
       if (error) throw error;
 
+      console.log(`[AI-PERSONAS] PERSONA_DELETED id=${id}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'PERSONA.DELETED',
+          entity_kind: 'ai_persona',
+          entity_id: id,
+          source_module: 'ai-personas',
+        });
+      }
+
       toast.success('Perfil eliminado!');
       await fetchProfiles();
       return true;
     } catch (error) {
-      console.error('Error deleting profile:', error);
+      console.error('[AI-PERSONAS] PERSONA_DELETE_FAILED', error);
       toast.error('Erro ao eliminar perfil');
       return false;
     }

@@ -173,6 +173,7 @@ async function fetchKnowledgeContext(
     
     if (personaData) {
       persona = personaData;
+      console.log(`[AI-PERSONAS] PERSONA_SELECTED id=${personaId} channel=inbox`);
     }
   }
 
