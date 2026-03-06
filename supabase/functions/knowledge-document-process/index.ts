@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     sourceId = body.sourceId;
     const { filePath, fileName, mimeType, knowledgeBaseId, workspaceId } = body;
 
-    console.log(`[AI-KNOWLEDGE] DOC_RECEIVED file=${fileName}`);
+    console.log(`[AI-DOCINT] DOC_RECEIVED file=${fileName}`);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -70,11 +70,25 @@ Deno.serve(async (req) => {
     const contentLength = parseInt(headResponse.headers.get('content-length') || '0');
     const fileSizeMB = contentLength / (1024 * 1024);
 
-    console.log(`[AI-KNOWLEDGE] DOC_SIZE ${fileSizeMB.toFixed(2)}MB`);
+    console.log(`[AI-DOCINT] DOC_SIZE ${fileSizeMB.toFixed(2)}MB`);
 
     // For files > 20MB, delegate to Trigger.dev for full processing
     if (contentLength > TRIGGER_THRESHOLD) {
-      console.log(`[AI-KNOWLEDGE] LARGE_FILE delegating to Trigger.dev...`);
+      console.log(`[AI-DOCINT] LARGE_FILE delegating to Trigger.dev file=${fileName} size=${fileSizeMB.toFixed(2)}MB`);
+
+      // Emit DOCINT.DELEGATED kernel event
+      await supabase.from('kernel_events').insert({
+        workspace_id: workspaceId,
+        type: 'DOCINT.DELEGATED',
+        entity_kind: 'knowledge_source',
+        entity_id: sourceId,
+        source_module: 'ai-docint',
+        actor_type: 'system',
+        payload: { file_name: fileName, file_size_mb: parseFloat(fileSizeMB.toFixed(2)) },
+        occurred_at: new Date().toISOString(),
+        ingested_at: new Date().toISOString(),
+        schema_version: 1,
+      }).then(() => {});
       
       // Get source details including fileName from the database
       const { data: sourceDetails, error: sourceError } = await supabase
@@ -117,11 +131,11 @@ Deno.serve(async (req) => {
       });
 
       if (triggerError) {
-        console.error('[AI-KNOWLEDGE] TRIGGER_DISPATCH_FAILED', triggerError);
+        console.error('[AI-DOCINT] TRIGGER_DISPATCH_FAILED', triggerError);
         throw new Error(`Failed to dispatch to Trigger.dev: ${triggerError.message}`);
       }
 
-      console.log(`[AI-KNOWLEDGE] TRIGGER_DISPATCHED`);
+      console.log(`[AI-DOCINT] TRIGGER_DISPATCHED file=${fileName}`);
 
       return new Response(
         JSON.stringify({
@@ -150,7 +164,7 @@ Deno.serve(async (req) => {
         knowledgeBaseId,
         workspaceId
       ).catch(async (error) => {
-        console.error("[AI-KNOWLEDGE] BACKGROUND_PROCESS_ERROR", error);
+        console.error("[AI-DOCINT] BACKGROUND_PROCESS_ERROR", error);
         await supabase
           .from('knowledge_sources')
           .update({
@@ -172,7 +186,29 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("[AI-KNOWLEDGE] DOC_ERROR", error);
+    console.error("[AI-DOCINT] DOC_ERROR", error);
+
+    // Emit DOCINT.OCR_FAILED kernel event
+    if (sourceId) {
+      try {
+        const sb = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+        await sb.from('kernel_events').insert({
+          workspace_id: 'unknown',
+          type: 'DOCINT.OCR_FAILED',
+          entity_kind: 'knowledge_source',
+          entity_id: sourceId,
+          source_module: 'ai-docint',
+          actor_type: 'system',
+          payload: { file_name: sourceId, error: error instanceof Error ? error.message : 'Unknown error' },
+          occurred_at: new Date().toISOString(),
+          ingested_at: new Date().toISOString(),
+          schema_version: 1,
+        }).then(() => {});
+      } catch {}
+    }
     
     if (sourceId) {
       try {
@@ -210,7 +246,7 @@ async function processDocumentInBackground(
   knowledgeBaseId: string,
   workspaceId: string
 ) {
-  console.log(`[AI-KNOWLEDGE] DOC_BACKGROUND_START file=${fileName}`);
+  console.log(`[AI-DOCINT] DOC_BACKGROUND_START file=${fileName}`);
   
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) {
@@ -247,7 +283,7 @@ async function processDocumentInBackground(
   }
 
   const fileData = await response.blob();
-  console.log(`[AI-KNOWLEDGE] DOC_DOWNLOADED ${(fileData.size / 1024 / 1024).toFixed(2)}MB`);
+  console.log(`[AI-DOCINT] DOC_DOWNLOADED ${(fileData.size / 1024 / 1024).toFixed(2)}MB`);
   
   await updateProgress(`Ficheiro obtido. A extrair texto...`);
 
@@ -267,7 +303,7 @@ async function processDocumentInBackground(
     throw new Error('Não foi possível extrair texto do documento');
   }
 
-  console.log(`[AI-KNOWLEDGE] DOC_TEXT_EXTRACTED chars=${textContent.length}`);
+  console.log(`[AI-DOCINT] DOC_TEXT_EXTRACTED chars=${textContent.length}`);
   await updateProgress(`Texto extraído (${textContent.length} caracteres). A processar com IA...`);
 
   // Get knowledge base type
@@ -281,13 +317,13 @@ async function processDocumentInBackground(
   const totalContent = textContent.slice(0, MAX_TOTAL_CHARS);
   const chunks = splitIntoChunks(totalContent, CHUNK_SIZE);
   
-  console.log(`[AI-KNOWLEDGE] DOC_CHUNKS count=${chunks.length}`);
+  console.log(`[AI-DOCINT] DOC_CHUNKS count=${chunks.length}`);
 
   const allResults: ChunkResult[] = [];
 
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
-    console.log(`[AI-KNOWLEDGE] DOC_CHUNK ${i + 1}/${chunks.length} chars=${chunk.length}`);
+    console.log(`[AI-DOCINT] DOC_CHUNK ${i + 1}/${chunks.length} chars=${chunk.length}`);
     
     await updateProgress(`A processar bloco ${i + 1} de ${chunks.length}...`);
 
@@ -305,9 +341,28 @@ async function processDocumentInBackground(
 
   const mergedResult = mergeChunkResults(allResults);
 
-  console.log(`[AI-KNOWLEDGE] DOC_COMPLETE faqs=${mergedResult.faqs.length} topics=${mergedResult.topics.length} chars=${totalContent.length}`);
+  console.log(`[AI-DOCINT] DOC_COMPLETE faqs=${mergedResult.faqs.length} topics=${mergedResult.topics.length} chars=${totalContent.length}`);
 
-  await updateProgress('A guardar resultados...');
+    // Emit DOCINT.EXTRACTED kernel event
+    await supabase.from('kernel_events').insert({
+      workspace_id: workspaceId,
+      type: 'DOCINT.EXTRACTED',
+      entity_kind: 'knowledge_source',
+      entity_id: sourceId,
+      source_module: 'ai-docint',
+      actor_type: 'system',
+      payload: {
+        file_name: fileName,
+        chars_extracted: totalContent.length,
+        faqs_count: mergedResult.faqs.length,
+        topics_count: mergedResult.topics.length,
+      },
+      occurred_at: new Date().toISOString(),
+      ingested_at: new Date().toISOString(),
+      schema_version: 1,
+    }).then(() => {});
+
+    await updateProgress('A guardar resultados...');
 
   // Update source with processed content
   await supabase
@@ -348,7 +403,7 @@ async function processDocumentInBackground(
 
     const { error: insertError } = await supabase.from('knowledge_entries').insert(entries);
     if (insertError) {
-      console.error('[AI-KNOWLEDGE] DOC_ENTRIES_INSERT_FAILED', insertError);
+      console.error('[AI-DOCINT] DOC_ENTRIES_INSERT_FAILED', insertError);
     }
   }
 
@@ -368,10 +423,10 @@ async function processDocumentInBackground(
   });
 
   if (articleError) {
-    console.error('[AI-KNOWLEDGE] DOC_ARTICLE_INSERT_FAILED', articleError);
+    console.error('[AI-DOCINT] DOC_ARTICLE_INSERT_FAILED', articleError);
   }
 
-  console.log(`[AI-KNOWLEDGE] DOC_SUCCESS file=${fileName}`);
+  console.log(`[AI-DOCINT] DOC_SUCCESS file=${fileName}`);
 }
 
 // PDF extraction using AI vision
@@ -416,7 +471,7 @@ async function extractPDFContent(
   });
 
   if (!response.ok) {
-    console.warn(`[AI-KNOWLEDGE] PDF_EXTRACTION_FAILED status=${response.status}`);
+    console.warn(`[AI-DOCINT] PDF_EXTRACTION_FAILED status=${response.status}`);
     return "PDF document - text extraction requires manual review";
   }
 
@@ -626,7 +681,7 @@ async function extractDocxContent(data: Uint8Array): Promise<string> {
     
     return cleanText.slice(0, 50000);
   } catch (error) {
-    console.error('[AI-KNOWLEDGE] DOCX_EXTRACTION_ERROR', error);
+    console.error('[AI-DOCINT] DOCX_EXTRACTION_ERROR', error);
     return 'Could not extract DOCX content';
   }
 }
