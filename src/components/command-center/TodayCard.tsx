@@ -10,6 +10,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 export function TodayCard({ delay = 0 }: { delay?: number }) {
+  const navigate = useNavigate();
   const { data: tasks, isLoading: tasksLoading, isError: tasksError } = useTasks({ status: "pending" });
   const { calendars } = useCalendars();
   const calendarIds = useMemo(() => calendars?.map((c) => c.id) ?? [], [calendars]);
