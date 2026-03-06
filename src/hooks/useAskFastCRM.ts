@@ -22,7 +22,7 @@ export interface AskResultAction {
   id: string;
   label: string;
   icon: string;
-  type: "bulk_task" | "navigate" | "automation" | "bulk_move_stage" | "bulk_assign_owner" | "create_saved_view";
+  type: "bulk_task" | "navigate" | "automation" | "bulk_move_stage" | "bulk_assign_owner" | "create_saved_view" | "send_followup" | "open_filtered_view";
   payload?: Record<string, any>;
 }
 
