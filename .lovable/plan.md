@@ -1,68 +1,96 @@
 
 
-# Phase 5B — Command Center COMPLETO
+# Kernel Event Layer Validation Plan
 
-## Gap Analysis: Current vs Spec
+## Current State Assessment
 
-The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
+### 1. Event Emission Consistency
+- **105 files** emit kernel events via `emitKernelEvent()` across all major modules (CRM, Companies, Leads, Decisions, Briefs, FastMatch, etc.)
+- The emitter is fire-and-forget with error suppression (`console.warn` only)
+- The `kernel-ingest-event` edge function inserts into `kernel_events` and upserts `kernel_entities`
+- **Issue found**: No validation that all critical CRUD operations emit events. Some modules may have gaps.
 
-**Already implemented (needs enhancement):**
-- Header with greeting + 3 KPIs — needs larger font (32px), labels below
-- AI Question Box — needs slash command suggestions row below input
-- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
-- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
-- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
-- Drift Alerts — needs "Rever →" links to Context OS blocks
+### 2. Realtime Subscriptions -- NOT ENABLED
+- **Critical finding**: None of the kernel tables have realtime enabled. No migrations add `kernel_events`, `kernel_entities`, `kernel_action_runs`, `change_events`, or `context_blocks` to `supabase_realtime`.
+- **No Supabase channels** are used anywhere in the frontend (`supabase.channel()` has zero matches). All data is fetched via polling (`useQuery` with `refetchInterval` or manual refetch).
+- The "Live Feed" card is **not actually live** — it polls `change_events` with default React Query stale time.
 
-**New sections to build:**
-1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
-2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
-   - Change Events (last 5 from `useChangeEvents` with realtime)
-   - Entity Activity (top 3 entities from `useKernelEntities`)
-   - Impact Score (top 2 from `useImpactMapData`)
-3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
+### 3. Live Feed Throttling
+- `KernelLiveFeedCard` fetches 5 `change_events` via `useChangeEvents(5)` and shows them. No throttling or deduplication exists. If realtime were enabled, rapid events would cause excessive re-renders.
 
-**Enhanced Command Palette (⌘K):**
-- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
+### 4. Kernel Actions Filtering
+- `useKernelActions` fetches the last 50 `kernel_action_runs` unfiltered — it shows everything (success, failed, running, queued). The card shows all statuses equally, making it noisy. Should prioritize failures and manual actions.
 
-**Spotlight (Space key):**
-- Opens AI Question Box as a modal from any page. New global component.
+### 5. Impact Score Calculation
+- `compute-impact` uses BFS traversal through `context_dependencies` with strength-based decay (`pathStrength * strength/100`). Logic is sound: visits connected blocks, accumulates weighted scores, avoids cycles via `visited` set. No issues found in the algorithm itself.
 
-## Implementation Plan — 3 Sub-phases
+---
 
-Given the scope, I recommend splitting into 3 batches:
+## Implementation Plan
 
-### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
-| File | Action |
-|------|--------|
-| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
-| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
-| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
-| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
+### Task 1: Enable Realtime for Kernel Tables
+Create a migration to add realtime for the core kernel tables:
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.kernel_events;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.kernel_entities;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.kernel_action_runs;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.change_events;
+```
 
-### Batch 2: Enhance Existing Cards
-| File | Action |
-|------|--------|
-| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
-| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
-| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
-| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
-| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
-| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
+### Task 2: Add Realtime Subscriptions to Hooks
+Update key hooks to subscribe to Supabase channels and invalidate queries on changes:
 
-### Batch 3: Spotlight Modal + Command Palette Enhancement
-| File | Action |
-|------|--------|
-| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
-| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
-| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
+- **`useKernelEvents`**: Subscribe to `kernel_events` inserts, invalidate query on new events
+- **`useChangeEvents`**: Subscribe to `change_events` inserts for Live Feed
+- **`useKernelActions`**: Subscribe to `kernel_action_runs` changes
+- **`useKernelEntities`**: Subscribe to `kernel_entities` updates
 
-### Realtime subscriptions needed
-- `change_events` table for Kernel Live Feed auto-update
-- `kernel_action_runs` for Ações do Dia auto-update
-- Already have `kernel_decisions` and `conversations`
+Pattern per hook:
+```typescript
+useEffect(() => {
+  if (!workspaceId) return;
+  const channel = supabase
+    .channel(`kernel-events-${workspaceId}`)
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'kernel_events',
+      filter: `workspace_id=eq.${workspaceId}`,
+    }, () => queryClient.invalidateQueries({ queryKey: ['kernel-events'] }))
+    .subscribe();
+  return () => { supabase.removeChannel(channel); };
+}, [workspaceId]);
+```
 
-No database migrations needed. All hooks, edge functions, and tables already exist.
+### Task 3: Add Event Throttling to Live Feed
+In `KernelLiveFeedCard`, add a throttle mechanism:
+- Track last render timestamp
+- If new data arrives within 5 seconds of last update, debounce the state update
+- Use a `useRef` + `setTimeout` pattern to batch renders (max 1 update per 5 seconds)
+- This prevents UI flicker when many events arrive rapidly
 
-**Shall I start with Batch 1?**
+### Task 4: Filter KernelActionsCard to Meaningful Actions
+Update `useKernelActions` to filter `kernel_action_runs`:
+- Default view: show only `failed` and `running` status runs
+- Add a toggle/tab to see "all" if needed
+- Prioritize: failed first, then running, then queued
+- Exclude `success` from the default daily feed (show only as count in header)
+
+### Task 5: Validate Impact Score Logic
+The `compute-impact` BFS is correct. Two minor improvements:
+- Add a **max depth cap** (e.g., depth 5) to prevent deep traversals in large graphs
+- Add a **minimum score threshold** (e.g., discard impacts < 1) to reduce noise
+- Both changes in `supabase/functions/compute-impact/index.ts`
+
+---
+
+## Files to Modify
+1. **New migration** — enable realtime on 4 kernel tables
+2. **`src/hooks/useKernelEvents.ts`** — add realtime subscription
+3. **`src/hooks/useChangeEvents.ts`** — add realtime subscription
+4. **`src/hooks/useKernelActions.ts`** — add realtime subscription + filter meaningful actions
+5. **`src/hooks/useKernelEntities.ts`** — add realtime subscription
+6. **`src/components/command-center/KernelLiveFeedCard.tsx`** — add throttle logic
+7. **`src/components/command-center/KernelActionsCard.tsx`** — filter to failures/manual only by default
+8. **`supabase/functions/compute-impact/index.ts`** — add depth cap + min score threshold
 
