@@ -1,95 +1,123 @@
 
 
-# Store-Ecommerce — Kernel V2 Stabilization
+# Store-Marketplace — Kernel V2 Stabilization
 
 ## Current State
 
 | Area | File(s) | Kernel Events | Logging |
 |------|---------|---------------|---------|
-| Checkout | `create-store-checkout` edge fn | None | Has `[STORE-CHECKOUT]` prefix (good) |
-| Webhook (payment confirm) | `store-webhook` edge fn | None | Has `[STORE-WEBHOOK]` prefix (good) |
-| Cart Context | `StoreCartContext.tsx` | None | Bare `console.error` |
-| Cart Abandonment Detect | `detect-abandoned-carts` edge fn | None | Has `[DETECT-ABANDONED]` prefix |
-| Cart Abandonment Process | `store-cart-abandonment` edge fn | None | Has `[CART-ABANDONMENT]` prefix |
-| Store Automation | `useStoreAutomation.ts` | None | Toast only |
-| Visitor Tracking | `useStoreVisitorTracking.ts` | None | Bare `console.error` |
-| Order Status Update | `useStoreOrders.ts` | `ORDER.FULFILLED` (done) | `[ORDERS]` prefix (done) |
-| Returns/Refunds | `useReturnRequests.ts` + `process-refund` edge fn | None | Has `[PROCESS-REFUND]` prefix |
-| Smoke Tests | `system-run-smoke-tests` | — | No store-ecommerce checks |
+| Listing CRUD | `useC2CListings.ts` | None | Toast only |
+| Messages (send/offer/respond) | `useC2CMessages.ts` | None | Toast only |
+| Realtime subscription | `useC2CMessages.ts` → `useC2CThread` | None | None |
+| Offers CRUD | `useC2COffers.ts` | None | Toast only |
+| Reviews | `useC2CReviews.ts` | None | Toast only |
+| Sellers CRUD | `useC2CSellers.ts` | None | Toast only |
+| Affiliates | `useC2CAffiliates.ts` | None | Toast only |
+| Referrals | `useC2CReferrals.ts` | None | Toast only |
+| Payouts | `useC2CPayouts.ts` | None | Toast only |
+| Checkout | `create-c2c-checkout` edge fn | None | `[C2C-CHECKOUT]` (good) |
+| Webhook | `c2c-webhook` edge fn | None | `[C2C-WEBHOOK]` (good) |
+| Track Click | `marketplace-track-click` edge fn | None | `[TRACK-CLICK]` |
+| Attribute Sale | `marketplace-attribute-sale` edge fn | None | `[ATTRIBUTE-SALE]` |
+| Boost Checkout | `create-c2c-boost-checkout` edge fn | None | `[C2C-BOOST-CHECKOUT]` |
+| AI Listing Assistant | `ai-c2c-listing-assistant` edge fn | None | None |
+| Payout Execute | `marketplace-payout-execute` edge fn | None | `[PAYOUT-EXECUTE]` |
+| Process Payouts | `marketplace-process-payouts` edge fn | None | Unknown |
+| Smoke Tests | `system-run-smoke-tests` | — | No marketplace checks |
 
-Partially logged edge functions. Zero kernel events for checkout/payment/cart lifecycle.
+Zero kernel events. Edge functions have partial logging with inconsistent prefixes.
 
 ## Implementation Plan
 
-### A) Kernel Events — Webhook (`store-webhook/index.ts`)
+### A) Kernel Events — UI Hooks (source: `store-marketplace`)
 
-After order marked as paid (line ~251):
-1. Emit `CHECKOUT.COMPLETED` (entity_kind: `store_order`, payload: `order_id`, `total`, `items_count`, `is_first_purchase`)
-2. Emit `PAYMENT.CONFIRMED` (entity_kind: `store_order`, payload: `order_id`, `payment_intent_id`, `total`)
+**`useC2CListings.ts`:**
+1. `useCreateC2CListing.onSuccess` → emit `LISTING.CREATED` (entity_kind: `c2c_listing`, payload: `title`, `price`, `condition`)
 
-Source: `store-ecommerce` for all events in this module.
+**`useC2CMessages.ts`:**
+2. `useSendC2CMessage.onSuccess` → emit `MARKETPLACE.MESSAGE_SENT` (entity_kind: `c2c_message`, payload: `listing_id`, `message_type`)
+3. `useSendC2COfferMessage.onSuccess` → emit `MARKETPLACE.OFFER_SENT` (entity_kind: `c2c_offer`, payload: `listing_id`, `offer_price`)
+4. `useRespondToOfferInChat.onSuccess` → emit `MARKETPLACE.OFFER_RESPONDED` (payload: `action`, `listing_id`)
+5. `useUpdateListingStatusInChat.onSuccess` → emit `LISTING.STATUS_CHANGED` (payload: `new_status`, `listing_id`)
 
-### B) Kernel Events — Cart Abandonment (`detect-abandoned-carts/index.ts`)
+**`useC2CReviews.ts`:**
+6. `useSubmitReview.onSuccess` → emit `RATING.SUBMITTED` (entity_kind: `c2c_review`, payload: `listing_id`, `seller_id`, `rating`)
 
-After abandoned cart record created (line ~74):
-3. Emit `CART.ABANDONED` (entity_kind: `store_abandoned_cart`, payload: `session_id`, `subtotal`, `items_count`)
+### B) Kernel Events — Edge Functions (via internal fetch to `kernel-ingest-event`)
 
-### C) Kernel Events — Refund (`process-refund/index.ts`)
+**`c2c-webhook/index.ts`:**
+7. After `c2c_purchase` completed → emit `MARKETPLACE.SALE_COMPLETED` (payload: `listing_id`, `sale_amount`)
 
-After Stripe refund created (line ~104):
-4. Emit `PAYMENT.REFUNDED` (entity_kind: `store_order`, payload: `order_id`, `refund_id`, `amount`, `return_request_id`)
+**`marketplace-attribute-sale/index.ts`:**
+8. After affiliate attribution → emit `MARKETPLACE.AFFILIATE_ATTRIBUTED` (payload: `listing_id`, `affiliate_id`, `commission`)
 
-### D) Logging — UI Hooks
+### C) Logging — UI Hooks (prefix: `[MARKETPLACE]`)
 
-**`useStoreAutomation.ts`:**
-1. `useTrackCartAbandonment` error → `console.warn('[ECOMMERCE] CART_TRACK_FAILED')`
-2. `useSendCartRecovery.onSuccess` → `console.log('[ECOMMERCE] Cart recovery initiated')`
-3. `useSendCartRecovery.onError` → `console.warn('[ECOMMERCE] CART_RECOVERY_FAILED')`
+**`useC2CListings.ts`:**
+- Create success/error, Update error, Report error
 
-**`useReturnRequests.ts`:**
-4. `useCreateReturnRequest.onSuccess` → `console.log('[ECOMMERCE] Return request created')`
-5. `useCreateReturnRequest.onError` → `console.warn('[ECOMMERCE] RETURN_CREATE_FAILED')`
-6. `useProcessReturn.onSuccess` → `console.log('[ECOMMERCE] Return processed: ${data.status}')`
-7. `useProcessReturn.onError` → `console.warn('[ECOMMERCE] RETURN_PROCESS_FAILED')`
+**`useC2CMessages.ts`:**
+- Send success/error, Offer sent/error, Respond error, Status update error
+- Realtime subscribe/unsubscribe logs
 
-**`StoreCartContext.tsx`:**
-8. Cart sync error → `console.warn('[ECOMMERCE] CART_SYNC_FAILED')`
+**`useC2COffers.ts`:**
+- Create success/error, Respond success/error
 
-**`useStoreVisitorTracking.ts`:**
-9. Upsert error → `console.warn('[ECOMMERCE] VISITOR_SESSION_FAILED')`
-10. Classification error → `console.warn('[ECOMMERCE] VISITOR_CLASSIFY_FAILED')`
+**`useC2CReviews.ts`:**
+- Submit success/error
 
-### E) Logging — Edge Functions (prefix alignment)
+**`useC2CSellers.ts`:**
+- Register success/error, Status update error
 
-**`detect-abandoned-carts/index.ts`:** Change prefix from `[DETECT-ABANDONED]` to `[ECOMMERCE]` for consistency.
+**`useC2CAffiliates.ts`:**
+- Join success/error, Link create error
 
-**`store-cart-abandonment/index.ts`:** Change prefix from `[CART-ABANDONMENT]` to `[ECOMMERCE]`.
+**`useC2CReferrals.ts`:**
+- Create success/error
 
-**`store-webhook/index.ts`:** Keep `[STORE-WEBHOOK]` (already good), add kernel event emit calls.
+**`useC2CPayouts.ts`:**
+- Execute success/error, Process success/error
 
-**`process-refund/index.ts`:** Keep `[PROCESS-REFUND]` (already good), add kernel event emit.
+### D) Logging — Edge Functions (align all to `[MARKETPLACE]`)
 
-### F) Smoke Tests
+**`ai-c2c-listing-assistant/index.ts`:** Add `[MARKETPLACE]` logging for AI calls and errors (currently has none).
+
+**`marketplace-track-click`:** Align `[TRACK-CLICK]` → `[MARKETPLACE]`
+
+**`marketplace-attribute-sale`:** Align `[ATTRIBUTE-SALE]` → `[MARKETPLACE]`
+
+**`marketplace-process-payouts`:** Align to `[MARKETPLACE]`
+
+**`marketplace-payout-execute`:** Align `[PAYOUT-EXECUTE]` → `[MARKETPLACE]`
+
+Keep `[C2C-CHECKOUT]`, `[C2C-WEBHOOK]`, `[C2C-BOOST-CHECKOUT]` as-is (already consistent within their domain).
+
+### E) Smoke Tests
 
 Add to `system-run-smoke-tests`:
-- `store_abandoned_carts` (module: `store-ecommerce`)
-- `store_automation_events` (module: `store-ecommerce`)
-- `store_visitor_sessions` (module: `store-ecommerce`)
-- `return_requests` (module: `store-ecommerce`)
+- `c2c_listings` (module: `store-marketplace`)
+- `c2c_messages` (module: `store-marketplace`)
+- `c2c_reviews` (module: `store-marketplace`)
+- `c2c_offers` (module: `store-marketplace`)
+- `c2c_sellers` (module: `store-marketplace`)
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `supabase/functions/store-webhook/index.ts` | Emit `CHECKOUT.COMPLETED` + `PAYMENT.CONFIRMED` via kernel-ingest-event fetch |
-| `supabase/functions/detect-abandoned-carts/index.ts` | Emit `CART.ABANDONED`; align prefix to `[ECOMMERCE]` |
-| `supabase/functions/store-cart-abandonment/index.ts` | Align prefix to `[ECOMMERCE]` |
-| `supabase/functions/process-refund/index.ts` | Emit `PAYMENT.REFUNDED` via kernel-ingest-event fetch |
-| `src/hooks/useStoreAutomation.ts` | Add `[ECOMMERCE]` logging |
-| `src/hooks/useReturnRequests.ts` | Add `[ECOMMERCE]` logging |
-| `src/contexts/StoreCartContext.tsx` | Align cart sync error to `[ECOMMERCE]` |
-| `src/hooks/useStoreVisitorTracking.ts` | Align errors to `[ECOMMERCE]` |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add 4 store-ecommerce table checks |
-
-Note: Edge functions emit kernel events by calling `kernel-ingest-event` via internal fetch (same pattern as other edge-to-kernel integrations), since they cannot import the client-side `emitKernelEvent` helper.
+| `src/hooks/useC2CListings.ts` | Import `emitKernelEvent`; emit `LISTING.CREATED`; add `[MARKETPLACE]` logging |
+| `src/hooks/useC2CMessages.ts` | Import `emitKernelEvent`; emit `MARKETPLACE.MESSAGE_SENT`, `MARKETPLACE.OFFER_SENT`, `MARKETPLACE.OFFER_RESPONDED`, `LISTING.STATUS_CHANGED`; add `[MARKETPLACE]` logging + realtime logs |
+| `src/hooks/useC2CReviews.ts` | Import `emitKernelEvent`; emit `RATING.SUBMITTED`; add `[MARKETPLACE]` logging |
+| `src/hooks/useC2COffers.ts` | Add `[MARKETPLACE]` logging |
+| `src/hooks/useC2CSellers.ts` | Add `[MARKETPLACE]` logging |
+| `src/hooks/useC2CAffiliates.ts` | Add `[MARKETPLACE]` logging |
+| `src/hooks/useC2CReferrals.ts` | Add `[MARKETPLACE]` logging |
+| `src/hooks/useC2CPayouts.ts` | Add `[MARKETPLACE]` logging |
+| `supabase/functions/c2c-webhook/index.ts` | Emit `MARKETPLACE.SALE_COMPLETED` via kernel-ingest-event |
+| `supabase/functions/marketplace-attribute-sale/index.ts` | Emit `MARKETPLACE.AFFILIATE_ATTRIBUTED`; align prefix to `[MARKETPLACE]` |
+| `supabase/functions/marketplace-track-click/index.ts` | Align prefix to `[MARKETPLACE]` |
+| `supabase/functions/marketplace-payout-execute/index.ts` | Align prefix to `[MARKETPLACE]` |
+| `supabase/functions/marketplace-process-payouts/index.ts` | Align prefix to `[MARKETPLACE]` |
+| `supabase/functions/ai-c2c-listing-assistant/index.ts` | Add `[MARKETPLACE]` logging for AI calls |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add 5 store-marketplace table checks |
 
