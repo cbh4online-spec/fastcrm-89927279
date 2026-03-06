@@ -17,6 +17,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { HelpSupportDropdown } from "./HelpSupportDropdown";
+import { ContextScoreIndicator } from "./ContextScoreIndicator";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { LanguageSelector } from "@/components/ui/LanguageSelector";
 
