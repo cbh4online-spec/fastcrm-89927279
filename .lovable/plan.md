@@ -1,65 +1,86 @@
 
 
-# Sales-Bundles — Kernel V2 Stabilization
+# Sales-Orders — Kernel V2 Stabilization
 
-## Scope
+## Current State
 
-The "sales-bundles" module spans three layers:
-1. **Product Components** (`useProductComponents.ts`) — bundle composition (already has `[PRODUCTS]` error logging from prior stabilization)
-2. **Protocols/Kits** (`useProtocols.ts`) — protocol bundles with discount rules, cross-sells
-3. **Marketplace Bundles** (`useMarketplaceBundles.ts`) — purchasable module bundles + checkout
-4. **Bundle Checkout** (`bundle-checkout/index.ts`) — edge function (already has `[BUNDLE-CHECKOUT]` logging)
+The "sales-orders" module has **three order subsystems** with zero kernel events and minimal logging:
 
-Product components already received `[PRODUCTS]` logging under the sales-products stabilization. This plan focuses on the **protocol/kit layer**, **marketplace bundles**, and **bundle pricing calculation** — the pieces with zero kernel events and zero structured logging.
+| Subsystem | Hooks / Edge Functions | Kernel Events | Logging |
+|-----------|----------------------|---------------|---------|
+| **Store Orders** | `useStoreOrders` (status update), `useStoreOrderEvents` (timeline), `useStoreOrderDetail` | None | Toast only; notification email catch has no prefix |
+| **Order Notes (B2B)** | `useOrderNotes` (list/detail/actions), `useCreateOrderNote`, `useClientOrders`, `useCompanyOrderNotes` | None | Toast only |
+| **Order Note Submit** | `order-note-submit` edge fn | None | Bare `console.error` |
+| **B2B Plan → Order** | `b2b-plan-generate-order` edge fn | None | None |
+| **Status Notification** | `send-order-status-notification` edge fn | N/A | Already has `[ORDER-STATUS-EMAIL]` prefix |
+| **Smoke Tests** | `system-run-smoke-tests` | — | No order table checks |
 
 ## Implementation Plan
 
-### A) Kernel Events + Logging — `src/hooks/useProtocols.ts`
+### A) Kernel Events + Logging — Store Orders (`useStoreOrders.ts`)
 
-Import `emitKernelEvent`. Events: `source_module: 'sales-bundles'`, `entity_kind: 'protocol'`.
+Import `emitKernelEvent`. Events: `source_module: 'sales-orders'`, `entity_kind: 'store_order'`.
 
-1. `createProtocol.onSuccess` → `BUNDLE.CREATED` (payload: `has_discount`, `discount_percentage`)
-2. `createProtocol.onError` → `console.warn('[BUNDLES] PROTOCOL_CREATE_FAILED')`
-3. `updateProtocol.onSuccess` → `BUNDLE.UPDATED` (payload: `protocol_id`); `console.log('[BUNDLES] Protocol updated')`
-4. `updateProtocol.onError` → `console.warn('[BUNDLES] PROTOCOL_UPDATE_FAILED')`
-5. `deleteProtocol.onSuccess` → `console.log('[BUNDLES] Protocol deleted')`
-6. `deleteProtocol.onError` → `console.warn('[BUNDLES] PROTOCOL_DELETE_FAILED')`
-7. `addProduct.onSuccess` → `console.log('[BUNDLES] Product added to protocol')`
-8. `addProduct.onError` → `console.warn('[BUNDLES] PROTOCOL_ADD_PRODUCT_FAILED')`
-9. `removeProduct.onSuccess` → `console.log('[BUNDLES] Product removed from protocol')`
-10. `removeProduct.onError` → `console.warn('[BUNDLES] PROTOCOL_REMOVE_PRODUCT_FAILED')`
-11. `addCrossSell.onError` → `console.warn('[BUNDLES] CROSS_SELL_ADD_FAILED')`
-12. `removeCrossSell.onError` → `console.warn('[BUNDLES] CROSS_SELL_REMOVE_FAILED')`
+1. `useUpdateStoreOrderStatus.onSuccess` → if status is `delivered` or `completed`, emit `ORDER.FULFILLED` (payload: `order_id`, `status`, `old_status`)
+2. `onSuccess` → `console.log('[ORDERS] Store order status updated: ${id} → ${status}')`
+3. `onError` → `console.warn('[ORDERS] STORE_ORDER_STATUS_FAILED', error.message)`
+4. Notification email catch → prefix with `[ORDERS]`
 
-### B) Logging — `src/hooks/useMarketplaceBundles.ts`
+### B) Kernel Events + Logging — Order Notes (`useOrderNotes.ts`, `useCreateOrderNote.ts`)
 
-No kernel events (marketplace is platform-level, not workspace entity). Add `[BUNDLES]` prefix:
+Events: `source_module: 'sales-orders'`, `entity_kind: 'order_note'`.
 
-1. `usePurchaseBundle.onError` → `console.warn('[BUNDLES] PURCHASE_FAILED', error.message)` (replace bare `console.error`)
+**`useCreateOrderNote.ts`:**
+1. `onSuccess` → emit `ORDER.CREATED` (payload: `order_number`, `total_gross`, `items_count`, `currency`)
+2. `onError` → `console.warn('[ORDERS] ORDER_NOTE_CREATE_FAILED')`
 
-### C) Logging — `src/hooks/useProductComponents.ts` (calculateBundleTotals)
+**`useOrderNotes.ts` — `useOrderNoteActions`:**
+3. `updateOrderMutation.onSuccess` → `console.log('[ORDERS] Order note updated: ${orderId}')`
+4. `updateOrderMutation.onError` → `console.warn('[ORDERS] ORDER_NOTE_UPDATE_FAILED')`
+5. `addAdminNote` catch → `console.warn('[ORDERS] ADMIN_NOTE_FAILED')`
 
-Add price rule evaluation logging to `calculateBundleTotals`:
+### C) Logging — Client Portal Orders (`useClientOrders.ts`)
 
-1. Add `console.log('[BUNDLES] Price calc: components=${count}, mode=${bundlePriceMode}, total=${finalPrice}')` at end of calculation
+1. `createOrderMutation.onError` → `console.warn('[ORDERS] CLIENT_ORDER_CREATE_FAILED')`
+2. `addItemMutation.onError` → `console.warn('[ORDERS] CLIENT_ORDER_ADD_ITEM_FAILED')`
+3. `submitOrderMutation.onError` → `console.warn('[ORDERS] CLIENT_ORDER_SUBMIT_FAILED')`
+4. `submitOrderMutation.onSuccess` → `console.log('[ORDERS] Client order submitted')`
 
-### D) Logging — `supabase/functions/bundle-checkout/index.ts`
+### D) Logging — Store Order Events (`useStoreOrderEvents.ts`)
 
-Already has `[BUNDLE-CHECKOUT]` prefix — consistent. No changes needed.
+1. `useAddStoreOrderEvent.onError` → `console.warn('[ORDERS] ORDER_EVENT_ADD_FAILED')`
+2. `useAddStoreOrderEvent.onSuccess` → `console.log('[ORDERS] Event added to order: ${orderId}')`
 
-### E) Smoke Tests
+### E) Logging — Edge Functions
+
+**`order-note-submit/index.ts`:**
+1. After auth verification → `console.log('[ORDERS] Submit: order=${orderId}, user=${user.id}')`
+2. After status update → `console.log('[ORDERS] Submitted: order=${orderId}, status=${newStatus}, total=${totalGross}')`
+3. Error → prefix existing `console.error` with `[ORDERS]`
+
+**`b2b-plan-generate-order/index.ts`:**
+4. Before insert → `console.log('[ORDERS] B2B plan order: run=${runId}, plan=${plan.name}')`
+5. After insert → `console.log('[ORDERS] B2B order created: id=${order.id}, number=${orderNumber}')`
+6. Error → `console.error('[ORDERS] B2B_PLAN_ORDER_FAILED', e.message)`
+
+### F) Smoke Tests
 
 Add to `system-run-smoke-tests`:
-- `product_protocols` table check (module: `sales-bundles`)
-- `protocol_products` table check (module: `sales-bundles`)
-- `product_components` table check (module: `sales-bundles`)
+- `store_orders` table check (module: `sales-orders`)
+- `store_order_events` table check (module: `sales-orders`)
+- `order_notes` table check (module: `sales-orders`)
+- `order_note_items` table check (module: `sales-orders`)
 
 ## File Plan
 
 | File | Action |
 |------|--------|
-| `src/hooks/useProtocols.ts` | Import `emitKernelEvent`; emit `BUNDLE.CREATED`, `BUNDLE.UPDATED`; add `[BUNDLES]` logging to all mutations + cross-sells |
-| `src/hooks/useMarketplaceBundles.ts` | Replace bare `console.error` with `[BUNDLES]` prefixed `console.warn` |
-| `src/hooks/useProductComponents.ts` | Add price calc logging to `calculateBundleTotals` |
-| `supabase/functions/system-run-smoke-tests/index.ts` | Add `product_protocols`, `protocol_products`, `product_components` checks under `sales-bundles` |
+| `src/hooks/useStoreOrders.ts` | Import `emitKernelEvent`; emit `ORDER.FULFILLED`; add `[ORDERS]` logging |
+| `src/hooks/useCreateOrderNote.ts` | Import `emitKernelEvent`; emit `ORDER.CREATED`; add `[ORDERS]` logging |
+| `src/hooks/useOrderNotes.ts` | Add `[ORDERS]` logging to actions |
+| `src/hooks/client-portal/useClientOrders.ts` | Add `[ORDERS]` logging |
+| `src/hooks/useStoreOrderEvents.ts` | Add `[ORDERS]` logging |
+| `supabase/functions/order-note-submit/index.ts` | Add `[ORDERS]` prefixed logging |
+| `supabase/functions/b2b-plan-generate-order/index.ts` | Add `[ORDERS]` prefixed logging |
+| `supabase/functions/system-run-smoke-tests/index.ts` | Add `store_orders`, `store_order_events`, `order_notes`, `order_note_items` checks |
 
