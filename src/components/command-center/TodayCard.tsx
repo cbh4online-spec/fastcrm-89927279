@@ -2,31 +2,38 @@ import { useTasks } from "@/hooks/useTasks";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { useCalendars } from "@/hooks/useCalendars";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, CheckSquare, Plus } from "lucide-react";
+import { Calendar, CheckSquare, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react";
 
 export function TodayCard({ delay = 0 }: { delay?: number }) {
-  const { data: tasks, isLoading: tasksLoading } = useTasks({ status: "pending" });
+  const { data: tasks, isLoading: tasksLoading, isError: tasksError } = useTasks({ status: "pending" });
   const { calendars } = useCalendars();
   const calendarIds = calendars?.map((c) => c.id) ?? [];
   const today = new Date();
-  const { events, isLoading: eventsLoading } = useCalendarEvents(calendarIds, {
+  const { events, isLoading: eventsLoading, error: eventsErrorMsg } = useCalendarEvents(calendarIds, {
     start: startOfDay(today),
     end: endOfDay(today),
   });
 
   const isLoading = tasksLoading || eventsLoading;
+  const isError = tasksError || !!eventsErrorMsg;
 
-  // Tasks due today
-  const todayStr = format(today, "yyyy-MM-dd");
-  const todayTasks = (tasks ?? [])
-    .filter((t) => t.due_at && t.due_at.startsWith(todayStr))
-    .slice(0, 4);
+  const [timedOut, setTimedOut] = useState(false);
 
-  if (isLoading) {
+  // 8-second skeleton timeout
+  useEffect(() => {
+    if (!isLoading) {
+      setTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => setTimedOut(true), 8000);
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
+  if (isLoading && !timedOut) {
     return (
       <motion.div
         className="rounded-xl border border-border bg-card p-4 space-y-3"
@@ -41,6 +48,45 @@ export function TodayCard({ delay = 0 }: { delay?: number }) {
     );
   }
 
+  // Error or timeout state
+  if (isError || (isLoading && timedOut)) {
+    return (
+      <motion.div
+        className="rounded-xl border border-border bg-card p-4 space-y-3"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: delay / 1000 }}
+      >
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-primary" />
+          <h3 className="font-semibold text-sm text-foreground">
+            Hoje — {format(today, "d 'de' MMMM")}
+          </h3>
+        </div>
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30">
+          <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
+          <p className="text-xs text-muted-foreground">
+            Não foi possível carregar os dados. 
+          </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs h-7 ml-auto"
+            onClick={() => window.location.reload()}
+          >
+            Tentar novamente
+          </Button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Tasks due today
+  const todayStr = format(today, "yyyy-MM-dd");
+  const todayTasks = (tasks ?? [])
+    .filter((t) => t.due_at && t.due_at.startsWith(todayStr))
+    .slice(0, 4);
+
   const hasContent = events.length > 0 || todayTasks.length > 0;
 
   return (
@@ -53,12 +99,18 @@ export function TodayCard({ delay = 0 }: { delay?: number }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-primary" />
-          <h3 className="font-semibold text-sm text-foreground">Hoje</h3>
+          <h3 className="font-semibold text-sm text-foreground">
+            Hoje — {format(today, "d 'de' MMMM")}
+          </h3>
         </div>
       </div>
 
       {!hasContent && (
-        <p className="text-xs text-muted-foreground">Dia livre — sem reuniões nem tarefas 🎉</p>
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">Sem reuniões agendadas para hoje.</p>
+          <p className="text-xs text-muted-foreground">Sem tarefas para hoje.</p>
+          <p className="text-xs text-muted-foreground/60">Dia livre 🎉</p>
+        </div>
       )}
 
       {/* Meetings */}

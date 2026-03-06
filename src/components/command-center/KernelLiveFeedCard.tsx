@@ -6,15 +6,35 @@ import { Activity, GitCommit, Target, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
+import { useState, useEffect } from "react";
+
+// UUID pattern to detect raw IDs
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isLegibleName(value: string | null | undefined): boolean {
+  if (!value) return false;
+  return !UUID_REGEX.test(value.trim());
+}
 
 export function KernelLiveFeedCard({ delay = 0 }: { delay?: number }) {
   const { changeEvents, isLoading: eventsLoading } = useChangeEvents(5);
   const { entities, isLoading: entitiesLoading } = useKernelEntities();
   const { impactResults, isLoading: impactLoading } = useImpactMapData();
+  const [timedOut, setTimedOut] = useState(false);
 
   const isLoading = eventsLoading || entitiesLoading;
 
-  if (isLoading) {
+  // Skeleton timeout: 8 seconds
+  useEffect(() => {
+    if (!isLoading) {
+      setTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => setTimedOut(true), 8000);
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
+  if (isLoading && !timedOut) {
     return (
       <motion.div
         className="rounded-xl border border-border bg-card p-4 space-y-3"
@@ -29,9 +49,16 @@ export function KernelLiveFeedCard({ delay = 0 }: { delay?: number }) {
     );
   }
 
-  const recentEvents = changeEvents?.slice(0, 5) ?? [];
-  const topEntities = entities?.slice(0, 3) ?? [];
-  const topImpact = impactResults?.slice(0, 2) ?? [];
+  // Filter out entries with UUID-only labels
+  const recentEvents = (changeEvents?.slice(0, 5) ?? []).filter(
+    (ev) => isLegibleName(ev.change_type) || isLegibleName(ev.entity_kind)
+  );
+  const topEntities = (entities?.slice(0, 3) ?? []).filter(
+    (ent) => isLegibleName(ent.title)
+  );
+  const topImpact = (impactResults?.slice(0, 2) ?? []).filter(
+    (imp) => isLegibleName(imp.title)
+  );
 
   const hasContent = recentEvents.length > 0 || topEntities.length > 0 || topImpact.length > 0;
 
@@ -77,9 +104,11 @@ export function KernelLiveFeedCard({ delay = 0 }: { delay?: number }) {
           {recentEvents.map((ev) => (
             <div key={ev.id} className="flex items-center justify-between py-1 px-2 rounded bg-muted/20">
               <div className="flex-1 min-w-0">
-              <p className="text-[11px] text-foreground truncate">
+                <p className="text-[11px] text-foreground truncate">
                   <span className="font-medium">{ev.change_type}</span>
-                  {ev.entity_kind && <span className="text-muted-foreground"> · {ev.entity_kind}</span>}
+                  {ev.entity_kind && isLegibleName(ev.entity_kind) && (
+                    <span className="text-muted-foreground"> · {ev.entity_kind}</span>
+                  )}
                 </p>
               </div>
               <span className="text-[10px] text-muted-foreground shrink-0">
@@ -98,7 +127,7 @@ export function KernelLiveFeedCard({ delay = 0 }: { delay?: number }) {
           </p>
           {topEntities.map((ent) => (
             <div key={ent.id} className="flex items-center justify-between py-1 px-2 rounded bg-muted/20">
-              <span className="text-[11px] text-foreground truncate">{ent.title ?? ent.kind}</span>
+              <span className="text-[11px] text-foreground truncate">{ent.title}</span>
               <span className="text-[10px] text-muted-foreground">{ent.kind}</span>
             </div>
           ))}
@@ -113,7 +142,7 @@ export function KernelLiveFeedCard({ delay = 0 }: { delay?: number }) {
           </p>
           {topImpact.map((imp) => (
             <div key={imp.block_id} className="flex items-center justify-between py-1 px-2 rounded bg-muted/20">
-              <span className="text-[11px] text-foreground truncate">{imp.title ?? imp.block_id}</span>
+              <span className="text-[11px] text-foreground truncate">{imp.title}</span>
               <span className="text-[10px] font-medium text-primary">{imp.impact_score}</span>
             </div>
           ))}
