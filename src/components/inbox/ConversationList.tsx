@@ -38,6 +38,7 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { cleanEmailPreview } from "@/lib/cleanEmailPreview";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
@@ -401,7 +402,9 @@ export function ConversationList({
                             {(conv as any).last_message_direction === "outbound" && (
                               <span className="text-muted-foreground">Tu: </span>
                             )}
-                            {conv.last_message_preview || "Sem mensagens"}
+                            {conv.channel === 'email' 
+                              ? cleanEmailPreview(conv.last_message_preview) 
+                              : (conv.last_message_preview || "Sem mensagens")}
                           </p>
                           {hasUnread && (
                             <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />

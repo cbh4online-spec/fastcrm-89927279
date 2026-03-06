@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useConversation, useMarkConversationRead, useUpdateConversationStatus, useAssignConversation } from "@/hooks/useConversations";
 import { isToday, isYesterday, format as formatDateFns, isSameDay } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -28,7 +28,9 @@ import {
   Globe,
   Calendar,
   Clock,
+  UserPlus,
 } from "lucide-react";
+import { useCreateLead } from "@/hooks/useLeads";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { VariableContext } from "@/lib/templateVariables";
@@ -67,6 +69,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
   const markRead = useMarkConversationRead();
   const updateStatus = useUpdateConversationStatus();
   const { trackConversationOpened } = useCRMAnalytics();
+  const createLead = useCreateLead();
 
   const [showProposalDialog, setShowProposalDialog] = useState(false);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
@@ -233,6 +236,30 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                  conversation.status === "closed" ? "Fechada" : "Arquivada"}
               </Badge>
               {priorityScore > 0 && <PriorityScoreBadge score={priorityScore} />}
+              {/* Unknown contact: show create lead button */}
+              {!conversation.lead && !conversation.contact_id && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-5 text-[10px] px-2 gap-1"
+                  disabled={createLead.isPending}
+                  onClick={() => {
+                    const meta = (conversation as any).channel_metadata || {};
+                    const email = meta?.email || meta?.from_email ||
+                                  conversation.external_thread_id || '';
+                    createLead.mutate({
+                      name: email.split('@')[0] || 'Novo Lead',
+                      email: email || undefined,
+                      source: conversation.channel,
+                    }, {
+                      onSuccess: () => toast.success("Lead criado com sucesso"),
+                    });
+                  }}
+                >
+                  <UserPlus className="w-3 h-3" />
+                  Criar Lead
+                </Button>
+              )}
             </div>
             <span className="text-xs text-muted-foreground capitalize">{conversation.channel}</span>
           </div>
