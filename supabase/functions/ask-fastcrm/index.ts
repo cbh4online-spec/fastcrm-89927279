@@ -51,6 +51,8 @@ const ACTIONS_ENUM = {
   MOVE_STAGE_BULK: "MOVE_STAGE_BULK",
   CREATE_AUTOMATION_FROM_TEMPLATE: "CREATE_AUTOMATION_FROM_TEMPLATE",
   NAVIGATE: "NAVIGATE",
+  SEND_FOLLOWUP: "SEND_FOLLOWUP",
+  OPEN_FILTERED_VIEW: "OPEN_FILTERED_VIEW",
 } as const;
 
 const DID_YOU_MEAN_DEFAULTS = ["Deals em risco", "Sem atividade", "A fechar este mês", "Resumo do pipeline", "Deals de alto valor", "Sem próximo passo"];
@@ -527,22 +529,22 @@ function getActionsAvailable(intent: string, hasItems: boolean): string[] {
     case "deals_at_risk":
     case "deals_inactive":
     case "deals_no_next_step":
-      return [ACTIONS_ENUM.CREATE_TASKS_BULK, ...base, ACTIONS_ENUM.ASSIGN_OWNER_BULK];
+      return [ACTIONS_ENUM.CREATE_TASKS_BULK, ACTIONS_ENUM.SEND_FOLLOWUP, ...base, ACTIONS_ENUM.ASSIGN_OWNER_BULK, ACTIONS_ENUM.OPEN_FILTERED_VIEW];
     case "deals_stuck_in_stage":
     case "stage_bottleneck":
-      return [ACTIONS_ENUM.MOVE_STAGE_BULK, ACTIONS_ENUM.CREATE_TASKS_BULK, ...base, ACTIONS_ENUM.CREATE_AUTOMATION_FROM_TEMPLATE];
+      return [ACTIONS_ENUM.MOVE_STAGE_BULK, ACTIONS_ENUM.CREATE_TASKS_BULK, ACTIONS_ENUM.SEND_FOLLOWUP, ...base, ACTIONS_ENUM.CREATE_AUTOMATION_FROM_TEMPLATE, ACTIONS_ENUM.OPEN_FILTERED_VIEW];
     case "high_value_deals":
-      return [...base, ACTIONS_ENUM.ASSIGN_OWNER_BULK];
+      return [...base, ACTIONS_ENUM.ASSIGN_OWNER_BULK, ACTIONS_ENUM.OPEN_FILTERED_VIEW];
     case "closing_soon":
     case "forecast_summary":
     case "forecast_risk":
     case "pipeline_summary":
     case "pipeline_comparison":
-      return [ACTIONS_ENUM.NAVIGATE, ...base];
+      return [ACTIONS_ENUM.NAVIGATE, ...base, ACTIONS_ENUM.OPEN_FILTERED_VIEW];
     case "daily_priorities":
-      return [ACTIONS_ENUM.CREATE_TASKS_BULK, ACTIONS_ENUM.NAVIGATE];
+      return [ACTIONS_ENUM.CREATE_TASKS_BULK, ACTIONS_ENUM.SEND_FOLLOWUP, ACTIONS_ENUM.NAVIGATE];
     case "leads_inactive":
-      return [ACTIONS_ENUM.CREATE_TASKS_BULK, ACTIONS_ENUM.NAVIGATE];
+      return [ACTIONS_ENUM.CREATE_TASKS_BULK, ACTIONS_ENUM.SEND_FOLLOWUP, ACTIONS_ENUM.NAVIGATE, ACTIONS_ENUM.OPEN_FILTERED_VIEW];
     case "kernel_decisions":
     case "kernel_live_feed":
     case "drift_overview":
@@ -1502,6 +1504,27 @@ async function queryDealsAtRisk(client: any, workspaceId: string) {
             },
           },
           {
+            id: "send_followup",
+            label: "Enviar follow-up",
+            icon: "Send",
+            type: "send_followup",
+            payload: {
+              entity_ids: items.map((i: any) => i.id),
+              entity_type: "opportunity",
+              task_title: "Follow-up deal em risco",
+            },
+          },
+          {
+            id: "open_filtered",
+            label: "Ver filtrados",
+            icon: "Filter",
+            type: "open_filtered_view",
+            payload: {
+              path: "/dashboard/opportunities",
+              query_params: { health: "at_risk" },
+            },
+          },
+          {
             id: "view_as_list",
             label: "Ver no pipeline",
             icon: "Eye",
@@ -1626,6 +1649,27 @@ async function queryDealsInactive(
             type: "bulk_move_stage",
             payload: {
               deal_ids: inactive.map((i) => i.id),
+            },
+          },
+          {
+            id: "send_followup",
+            label: "Enviar follow-up",
+            icon: "Send",
+            type: "send_followup",
+            payload: {
+              entity_ids: inactive.map((i) => i.id),
+              entity_type: "opportunity",
+              task_title: "Reengajar deal inativo",
+            },
+          },
+          {
+            id: "open_filtered",
+            label: "Ver filtrados",
+            icon: "Filter",
+            type: "open_filtered_view",
+            payload: {
+              path: "/dashboard/opportunities",
+              query_params: { inactive_days: String(days) },
             },
           },
           {
@@ -2065,6 +2109,27 @@ async function queryLeadsInactive(
             icon: "Eye",
             type: "navigate",
             payload: { link: "/dashboard/leads" },
+          },
+          {
+            id: "send_followup",
+            label: "Enviar follow-up",
+            icon: "Send",
+            type: "send_followup",
+            payload: {
+              entity_ids: items.map((i: any) => i.id),
+              entity_type: "lead",
+              task_title: "Follow-up lead sem resposta",
+            },
+          },
+          {
+            id: "open_filtered",
+            label: "Ver filtrados",
+            icon: "Filter",
+            type: "open_filtered_view",
+            payload: {
+              path: "/dashboard/leads",
+              query_params: { inactive_days: String(days) },
+            },
           },
         ]
       : [],

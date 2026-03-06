@@ -3,6 +3,7 @@ import { CommandInput } from "./CommandInput";
 import { CommandOutput } from "./CommandOutput";
 import { useAskFastCRM, AskResultAction, AskResultItem } from "@/hooks/useAskFastCRM";
 import { useSlashCommands, SlashCommand, SlashCommandResult } from "@/hooks/useSlashCommands";
+import { useConversationMemory } from "@/hooks/useConversationMemory";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -73,8 +74,19 @@ export function AIQuestionBox() {
 
   const { ask, result, isLoading, clear, executeAction, pendingAction, confirmPendingAction, cancelPendingAction, confirmAutomation, cancelAutomation, isConfirmingAutomation } = useAskFastCRM();
   const { executeCommand } = useSlashCommands();
+  const { restored, restoredMessages, restoredContext, persist, startNewConversation } = useConversationMemory();
 
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
+
+  // Restore conversation from DB on mount
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restored && !restoredRef.current && restoredMessages.length > 0) {
+      restoredRef.current = true;
+      setMessages(restoredMessages);
+      conversationContextRef.current = restoredContext as any;
+    }
+  }, [restored, restoredMessages, restoredContext]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -87,6 +99,17 @@ export function AIQuestionBox() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Persist messages to DB on change (debounced)
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => {
+    if (messages.length === 0) return;
+    clearTimeout(persistTimerRef.current);
+    persistTimerRef.current = setTimeout(() => {
+      persist(messages, conversationContextRef.current);
+    }, 1500);
+    return () => clearTimeout(persistTimerRef.current);
+  }, [messages, persist]);
 
   // Auto-open drawer once when conversation has > 2 exchanges (4 messages)
   const autoOpenedRef = useRef(false);
@@ -218,9 +241,10 @@ export function AIQuestionBox() {
     setDrawerOpen(false);
     autoOpenedRef.current = false;
     conversationContextRef.current = {};
+    startNewConversation();
     clear();
     setSlashResult(null);
-  }, [clear]);
+  }, [clear, startNewConversation]);
 
   const handleClose = useCallback(() => {
     clear();

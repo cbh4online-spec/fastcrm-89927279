@@ -7120,6 +7120,91 @@ export type Database = {
           },
         ]
       }
+      command_actions: {
+        Row: {
+          action_config: Json | null
+          action_key: string
+          action_type: string
+          created_at: string | null
+          group_name: string
+          id: string
+          is_active: boolean | null
+          keywords: string[] | null
+          title: string
+          workspace_id: string
+        }
+        Insert: {
+          action_config?: Json | null
+          action_key: string
+          action_type?: string
+          created_at?: string | null
+          group_name?: string
+          id?: string
+          is_active?: boolean | null
+          keywords?: string[] | null
+          title: string
+          workspace_id: string
+        }
+        Update: {
+          action_config?: Json | null
+          action_key?: string
+          action_type?: string
+          created_at?: string | null
+          group_name?: string
+          id?: string
+          is_active?: boolean | null
+          keywords?: string[] | null
+          title?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "command_actions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      command_conversations: {
+        Row: {
+          context: Json | null
+          id: string
+          last_message_at: string | null
+          messages: Json | null
+          started_at: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          context?: Json | null
+          id?: string
+          last_message_at?: string | null
+          messages?: Json | null
+          started_at?: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          context?: Json | null
+          id?: string
+          last_message_at?: string | null
+          messages?: Json | null
+          started_at?: string | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "command_conversations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communication_template_variants: {
         Row: {
           body: string

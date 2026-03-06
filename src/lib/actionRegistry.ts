@@ -28,7 +28,7 @@ export interface Action {
   run: (ctx: ActionContext, params?: Record<string, unknown>) => Promise<void>;
 }
 
-// Registry of all actions
+// Registry of all in-memory actions
 const actions: Action[] = [
   // ── Navigate ──
   {
@@ -171,7 +171,6 @@ const actions: Action[] = [
     group: 'Automate',
     keywords: ['tasks', 'drift', 'outdated', 'ações', 'criar'],
     run: async (ctx) => {
-      // Fetch blocks with risk/critical drift
       const { data: driftItems } = await supabase
         .from('context_drift')
         .select('block_id, drift_score, severity, reasons_json, context_blocks(title, block_type)')
@@ -363,20 +362,86 @@ const actions: Action[] = [
     run: async (ctx) => ctx.navigate?.('/dashboard/command-center?tab=context'),
   },
 ];
+
+// ── DB-synced actions cache ──
+let dbActionsCache: Action[] = [];
+let dbActionsFetched = false;
+
+/**
+ * Fetch actions from the command_actions DB table and merge with in-memory.
+ * DB actions with action_type 'navigate' create navigation actions.
+ * DB actions with action_type 'invoke_function' invoke edge functions.
+ */
+async function fetchDbActions(workspaceId: string): Promise<Action[]> {
+  if (dbActionsFetched) return dbActionsCache;
+
+  try {
+    const { data } = await supabase
+      .from("command_actions")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .eq("is_active", true);
+
+    if (!data || data.length === 0) {
+      dbActionsFetched = true;
+      return [];
+    }
+
+    dbActionsCache = data.map((row: any) => ({
+      id: `db.${row.action_key}`,
+      title: row.title,
+      group: (row.group_name || "Navigate") as ActionGroup,
+      keywords: row.keywords || [],
+      run: async (ctx: ActionContext) => {
+        switch (row.action_type) {
+          case "navigate":
+            ctx.navigate?.(row.action_config?.path || "/dashboard");
+            break;
+          case "invoke_function":
+            toast.info(`A executar ${row.title}...`);
+            const { error } = await supabase.functions.invoke(
+              row.action_config?.function_name || "",
+              { body: { workspace_id: ctx.workspaceId, ...row.action_config?.params } }
+            );
+            if (error) toast.error(`Erro: ${row.title}`);
+            else toast.success(`${row.title} concluído`);
+            break;
+          case "mutation":
+            // DB mutations via edge functions for safety
+            if (row.action_config?.function_name) {
+              const { error: mutErr } = await supabase.functions.invoke(
+                row.action_config.function_name,
+                { body: { workspace_id: ctx.workspaceId, ...row.action_config.params } }
+              );
+              if (mutErr) toast.error(`Erro: ${row.title}`);
+              else toast.success(`${row.title} concluído`);
+            }
+            break;
+        }
+      },
+    }));
+
+    dbActionsFetched = true;
+    return dbActionsCache;
+  } catch {
+    dbActionsFetched = true;
+    return [];
+  }
+}
+
 // ── Public API ──
 export function getActions(): Action[] {
-  return actions;
+  return [...actions, ...dbActionsCache];
 }
 
 export function getFilteredActions(
   query: string,
   ctx: Partial<ActionContext> = {}
 ): Action[] {
+  const all = getActions();
   const q = query.toLowerCase().trim();
-  return actions.filter((a) => {
-    // Check requires
+  return all.filter((a) => {
     if (a.requires?.activeBlock && !ctx.activeBlockId) return false;
-    // Keyword/title match
     if (!q) return true;
     return (
       a.title.toLowerCase().includes(q) ||
@@ -384,6 +449,16 @@ export function getFilteredActions(
       a.group.toLowerCase().includes(q)
     );
   });
+}
+
+/**
+ * Initialize the action registry by fetching DB actions for the given workspace.
+ * Should be called once when the workspace loads.
+ */
+export async function initActionRegistry(workspaceId: string): Promise<void> {
+  dbActionsFetched = false;
+  dbActionsCache = [];
+  await fetchDbActions(workspaceId);
 }
 
 export async function executeAction(

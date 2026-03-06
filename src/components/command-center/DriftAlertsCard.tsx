@@ -1,12 +1,14 @@
-import { useDriftScores } from "@/hooks/useDriftScores";
+import { useCommandData } from "@/hooks/useCommandData";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, Shield } from "lucide-react";
+import { AlertTriangle, Shield, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 export function DriftAlertsCard({ delay = 0 }: { delay?: number }) {
-  const { scores, workspaceScore, isLoading } = useDriftScores();
+  const navigate = useNavigate();
+  const { data, isLoading } = useCommandData("drift overview", { staleTime: 120_000 });
 
   if (isLoading) {
     return (
@@ -22,9 +24,10 @@ export function DriftAlertsCard({ delay = 0 }: { delay?: number }) {
     );
   }
 
-  const outdated = scores?.filter((s) => s.scope_type !== "workspace" && (s.score ?? 0) < 50) ?? [];
+  const items = data?.items || [];
+  const workspaceScore = data?.metric?.value ? parseInt(data.metric.value) : 100;
 
-  if (outdated.length === 0) return null;
+  if (items.length === 0) return null;
 
   const scoreColor = workspaceScore >= 70 ? "text-emerald-500" : workspaceScore >= 40 ? "text-amber-500" : "text-red-500";
 
@@ -46,16 +49,23 @@ export function DriftAlertsCard({ delay = 0 }: { delay?: number }) {
       <Progress value={workspaceScore} className="h-1.5" />
 
       <div className="space-y-1">
-        {outdated.slice(0, 4).map((s) => (
-          <div key={s.id} className="flex items-center justify-between text-xs">
+        {items.slice(0, 4).map((s: any, i: number) => (
+          <div key={s.id || i} className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <AlertTriangle className="h-3 w-3 text-amber-500" />
-              <span className="truncate max-w-[140px]">{s.scope_type}</span>
+              <span className="truncate max-w-[140px]">{s.title || s.subtitle || "Bloco"}</span>
             </div>
-            <span className="text-foreground font-medium">{s.score ?? 0}%</span>
+            <span className="text-foreground font-medium">{s.value ?? 0}%</span>
           </div>
         ))}
       </div>
+
+      <button
+        onClick={() => navigate("/dashboard/command-center?tab=context")}
+        className="flex items-center gap-1 text-[10px] text-primary hover:underline"
+      >
+        Ver Context OS <ChevronRight className="h-3 w-3" />
+      </button>
     </motion.div>
   );
 }

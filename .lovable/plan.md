@@ -1,128 +1,68 @@
 
 
-# Command Center: Operational Hub Upgrade
+# Phase 5B — Command Center COMPLETO
 
-## Current State (What Already Works)
+## Gap Analysis: Current vs Spec
 
-After thorough codebase analysis, the system **already has** most of the requested architecture:
+The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
 
-| Component | Status | Detail |
-|-----------|--------|--------|
-| Intent Router | **Exists** | `classifyByKeyword()` + LLM fallback with 20+ intents |
-| Action Registry | **Exists (in-memory)** | `actionRegistry.ts` with 20+ executable actions |
-| Data Engine | **Exists** | 15 real query handlers (pipeline, risk, forecast, leads, etc.) |
-| Response Builder | **Exists** | `buildResponse()` with strict contract |
-| Quick Actions | **Partial** | `bulk_task`, `bulk_move_stage`, `bulk_assign_owner`, `create_saved_view` work; `send_followup` and `open_filtered_view` missing |
-| Conversation Memory | **In-memory only** | `conversationContextRef` in React, not persisted |
-| Kernel Events | **Exists** | 3 events emitted per query (INTENT_DETECTED, ACTION_EXECUTED, RESPONSE_GENERATED) |
+**Already implemented (needs enhancement):**
+- Header with greeting + 3 KPIs — needs larger font (32px), labels below
+- AI Question Box — needs slash command suggestions row below input
+- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
+- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
+- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
+- Drift Alerts — needs "Rever →" links to Context OS blocks
 
-## Real Gaps to Fix
+**New sections to build:**
+1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
+2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
+   - Change Events (last 5 from `useChangeEvents` with realtime)
+   - Entity Activity (top 3 entities from `useKernelEntities`)
+   - Impact Score (top 2 from `useImpactMapData`)
+3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
 
-### 1. Persist Action Registry to Database
-Currently actions are hardcoded in `actionRegistry.ts`. Create a `command_actions` table so the registry is queryable and extensible.
+**Enhanced Command Palette (⌘K):**
+- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
 
-**Migration:**
-```sql
-CREATE TABLE public.command_actions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL,
-  action_key TEXT NOT NULL,
-  title TEXT NOT NULL,
-  group_name TEXT NOT NULL DEFAULT 'Navigate',
-  keywords TEXT[] DEFAULT '{}',
-  action_type TEXT NOT NULL, -- 'navigate', 'mutation', 'invoke_function'
-  action_config JSONB DEFAULT '{}',
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(workspace_id, action_key)
-);
-ALTER TABLE public.command_actions ENABLE ROW LEVEL SECURITY;
-```
+**Spotlight (Space key):**
+- Opens AI Question Box as a modal from any page. New global component.
 
-Seed with existing actions from `actionRegistry.ts` and sync the frontend to query this table first, falling back to in-memory registry.
+## Implementation Plan — 3 Sub-phases
 
-### 2. Add Missing Quick Actions (Executable, Not Visual)
+Given the scope, I recommend splitting into 3 batches:
 
-**a) `send_followup` action type in `useAskFastCRM`:**
-- New case in `executeActionInternal` that creates a task of type "followup" with the entity linked
-- Uses existing `tasks` table with `related_type` + `related_id`
-
-**b) `open_filtered_view` action type:**
-- Navigate to the entity list page with query params encoding the active filters
-- e.g., `/dashboard/leads?status=new&inactive_days=14`
-
-**c) Wire these into `ask-fastcrm` responses:**
-- Add `send_followup` actions to `queryLeadsInactive`, `queryDealsInactive`, `queryDailyPriorities`
-- Add `open_filtered_view` to pipeline/forecast/risk handlers
-
-### 3. Persist Conversation Memory
-
-**Migration:**
-```sql
-CREATE TABLE public.command_conversations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL,
-  user_id UUID NOT NULL,
-  messages JSONB DEFAULT '[]',
-  context JSONB DEFAULT '{}',
-  started_at TIMESTAMPTZ DEFAULT now(),
-  last_message_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE public.command_conversations ENABLE ROW LEVEL SECURITY;
-```
-
-**Frontend changes:**
-- `AIQuestionBox`: On each message, upsert current session to `command_conversations`
-- On mount, load the last active conversation (< 30 min old) to resume context
-- "Nova conversa" button creates a new row
-
-### 4. Add `command_center.quick_action_clicked` Kernel Event
-
-Currently only 3 events are emitted. Add a 4th when a user clicks any quick action button in the chat:
-
-**In `useAskFastCRM.executeActionInternal`:**
-```typescript
-// Before executing the action
-await supabase.from('kernel_events').insert({
-  workspace_id: currentWorkspace.id,
-  event_type: 'COMMAND_CENTER.QUICK_ACTION_CLICKED',
-  actor_type: 'user',
-  actor_id: user.id,
-  entity_type: action.type,
-  entity_id: action.id,
-  payload: { action_label: action.label, action_type: action.type },
-});
-```
-
-### 5. Unify Dashboard Widgets with Data Engine
-
-The Command Center cards (`TodayCard`, `PipelineRiskCard`, `DriftAlertsCard`) each fetch their own data independently. Refactor them to use the same query handlers exposed by `ask-fastcrm`:
-
-- Create a shared `useCommandData(intent)` hook that calls `ask-fastcrm` with a specific intent
-- `PipelineRiskCard` → uses `deals_at_risk` intent data
-- `DriftAlertsCard` → uses `drift_overview` intent data
-- This eliminates duplicate queries and ensures consistency between chat answers and card data
-
----
-
-## Files to Create/Modify
-
+### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
 | File | Action |
 |------|--------|
-| **New migration** | Create `command_actions` + `command_conversations` tables |
-| `src/hooks/useAskFastCRM.ts` | Add `send_followup`, `open_filtered_view` action types + kernel event emission |
-| `src/hooks/useCommandData.ts` | **New** — shared hook for widget data via ask-fastcrm intents |
-| `src/components/command-center/AIQuestionBox.tsx` | Persist/restore conversation memory |
-| `supabase/functions/ask-fastcrm/index.ts` | Add `send_followup` and `open_filtered_view` actions to handler responses |
-| `src/components/command-center/PipelineRiskCard.tsx` | Use `useCommandData('deals_at_risk')` |
-| `src/components/command-center/DriftAlertsCard.tsx` | Use `useCommandData('drift_overview')` |
-| `src/lib/actionRegistry.ts` | Add DB sync — query `command_actions` and merge with in-memory actions |
+| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
+| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
+| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
+| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
 
-## Execution Order
+### Batch 2: Enhance Existing Cards
+| File | Action |
+|------|--------|
+| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
+| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
+| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
+| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
+| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
+| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
 
-1. Database migration (tables + RLS)
-2. Persist conversation memory
-3. Add missing quick actions (`send_followup`, `open_filtered_view`)
-4. Add kernel event for quick action clicks
-5. Create `useCommandData` hook and unify widgets
+### Batch 3: Spotlight Modal + Command Palette Enhancement
+| File | Action |
+|------|--------|
+| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
+| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
+| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
+
+### Realtime subscriptions needed
+- `change_events` table for Kernel Live Feed auto-update
+- `kernel_action_runs` for Ações do Dia auto-update
+- Already have `kernel_decisions` and `conversations`
+
+No database migrations needed. All hooks, edge functions, and tables already exist.
+
+**Shall I start with Batch 1?**
 
