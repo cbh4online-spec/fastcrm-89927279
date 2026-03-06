@@ -107,9 +107,9 @@ export function KernelDebugPanel() {
                     {statusIcon(a.status)}
                     <span className="text-muted-foreground">{fmt(a.created_at)}</span>
                     <span className="font-mono truncate flex-1">{a.action_key}</span>
-                    {a.error_message && (
-                      <span className="text-destructive truncate max-w-[120px]" title={a.error_message}>
-                        <AlertTriangle className="h-3 w-3 inline" /> {a.error_message.slice(0, 30)}
+                    {a.error && (
+                      <span className="text-destructive truncate max-w-[120px]" title={a.error}>
+                        <AlertTriangle className="h-3 w-3 inline" /> {a.error.slice(0, 30)}
                       </span>
                     )}
                   </div>
