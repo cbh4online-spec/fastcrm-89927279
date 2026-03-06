@@ -10,6 +10,7 @@ import type {
 } from "@/types/pricing-tier";
 import { getEffectivePrice } from "@/types/pricing-tier";
 import { toast } from "sonner";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 // Hook for managing price tiers
 export function usePriceTiers() {
@@ -45,11 +46,23 @@ export function usePriceTiers() {
       if (error) throw error;
       return tier;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('[B2B-CATALOG] Tier created:', data.id);
       toast.success("Escalão criado com sucesso");
       queryClient.invalidateQueries({ queryKey: ["price-tiers"] });
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: "B2B.TIER_CREATED",
+          entity_kind: "client_price_tier",
+          entity_id: data.id,
+          source_module: "b2b-catalog",
+          payload: { name: data.name, code: data.code, discount_percentage: data.discount_percentage },
+        });
+      }
     },
     onError: (error) => {
+      console.error('[B2B-CATALOG] TIER_CREATE_FAILED:', error.message);
       toast.error("Erro ao criar escalão: " + error.message);
     },
   });
@@ -62,12 +75,25 @@ export function usePriceTiers() {
         .eq("id", id);
 
       if (error) throw error;
+      return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
+      console.log('[B2B-CATALOG] Tier updated:', id);
       toast.success("Escalão atualizado");
       queryClient.invalidateQueries({ queryKey: ["price-tiers"] });
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: "B2B.TIER_UPDATED",
+          entity_kind: "client_price_tier",
+          entity_id: id,
+          source_module: "b2b-catalog",
+          payload: { id },
+        });
+      }
     },
     onError: (error) => {
+      console.error('[B2B-CATALOG] TIER_UPDATE_FAILED:', error.message);
       toast.error("Erro ao atualizar escalão: " + error.message);
     },
   });
@@ -80,12 +106,25 @@ export function usePriceTiers() {
         .eq("id", id);
 
       if (error) throw error;
+      return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
+      console.log('[B2B-CATALOG] Tier deleted:', id);
       toast.success("Escalão eliminado");
       queryClient.invalidateQueries({ queryKey: ["price-tiers"] });
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: "B2B.TIER_DELETED",
+          entity_kind: "client_price_tier",
+          entity_id: id,
+          source_module: "b2b-catalog",
+          payload: { id },
+        });
+      }
     },
     onError: (error) => {
+      console.error('[B2B-CATALOG] TIER_DELETE_FAILED:', error.message);
       toast.error("Erro ao eliminar escalão: " + error.message);
     },
   });
@@ -129,7 +168,6 @@ export function useProductTierPrices(productId: string | undefined) {
 
   const setTierPrice = useMutation({
     mutationFn: async (data: SetTierPriceData) => {
-      // Upsert - update if exists, insert if not
       const { error } = await supabase
         .from("product_tier_prices")
         .upsert({
@@ -145,12 +183,25 @@ export function useProductTierPrices(productId: string | undefined) {
         });
 
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('[B2B-CATALOG] Tier price set:', data.product_id, data.tier_id, data.price_net);
       toast.success("Preço de escalão definido");
       queryClient.invalidateQueries({ queryKey: ["product-tier-prices"] });
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: "B2B.PRICE_UPDATED",
+          entity_kind: "product_tier_price",
+          entity_id: `${data.product_id}_${data.tier_id}`,
+          source_module: "b2b-catalog",
+          payload: { product_id: data.product_id, tier_id: data.tier_id, price_net: data.price_net },
+        });
+      }
     },
     onError: (error) => {
+      console.error('[B2B-CATALOG] PRICE_SET_FAILED:', error.message);
       toast.error("Erro ao definir preço: " + error.message);
     },
   });
@@ -163,10 +214,25 @@ export function useProductTierPrices(productId: string | undefined) {
         .eq("id", id);
 
       if (error) throw error;
+      return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
+      console.log('[B2B-CATALOG] Tier price removed:', id);
       toast.success("Preço de escalão removido");
       queryClient.invalidateQueries({ queryKey: ["product-tier-prices"] });
+      if (workspaceId) {
+        emitKernelEvent({
+          workspace_id: workspaceId,
+          type: "B2B.PRICE_REMOVED",
+          entity_kind: "product_tier_price",
+          entity_id: id,
+          source_module: "b2b-catalog",
+          payload: { id },
+        });
+      }
+    },
+    onError: (error) => {
+      console.error('[B2B-CATALOG] PRICE_REMOVE_FAILED:', error.message);
     },
   });
 

@@ -21,7 +21,10 @@ export function useContactPricing(contactId: string | undefined) {
         .eq("id", contactId)
         .single();
 
-      if (contactError || !contact?.price_tier_id) return null;
+      if (contactError || !contact?.price_tier_id) {
+        if (contactError) console.warn('[B2B-CATALOG] CONTACT_PRICING_FAILED:', contactError.message);
+        return null;
+      }
 
       // Then fetch the tier details
       const { data: tier, error: tierError } = await supabase
@@ -30,7 +33,10 @@ export function useContactPricing(contactId: string | undefined) {
         .eq("id", contact.price_tier_id)
         .single();
 
-      if (tierError) return null;
+      if (tierError) {
+        console.warn('[B2B-CATALOG] CONTACT_PRICING_FAILED:', tierError.message);
+        return null;
+      }
       return tier as ClientPriceTier;
     },
     enabled: !!contactId,
@@ -108,7 +114,10 @@ export function useClientUserPricing(clientUserId: string | undefined) {
         .eq("id", clientUserId)
         .single();
 
-      if (clientError || !clientUser?.price_tier_id) return null;
+      if (clientError || !clientUser?.price_tier_id) {
+        if (clientError) console.warn('[B2B-CATALOG] CLIENT_USER_PRICING_FAILED:', clientError.message);
+        return null;
+      }
 
       // Fetch the tier details
       const { data: tier, error: tierError } = await supabase
@@ -117,7 +126,10 @@ export function useClientUserPricing(clientUserId: string | undefined) {
         .eq("id", clientUser.price_tier_id)
         .single();
 
-      if (tierError) return null;
+      if (tierError) {
+        console.warn('[B2B-CATALOG] CLIENT_USER_PRICING_FAILED:', tierError.message);
+        return null;
+      }
       return tier as ClientPriceTier;
     },
     enabled: !!clientUserId,
@@ -135,7 +147,10 @@ export function useClientUserPricing(clientUserId: string | undefined) {
         .eq("tier_id", tierData.id)
         .eq("is_active", true);
 
-      if (error) return [];
+      if (error) {
+        console.warn('[B2B-CATALOG] CLIENT_USER_PRICING_FAILED:', error.message);
+        return [];
+      }
       return data as ProductTierPrice[];
     },
     enabled: !!tierData?.id,

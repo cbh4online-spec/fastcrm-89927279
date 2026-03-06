@@ -89,6 +89,9 @@ export function usePricingOptimizer() {
       if (!data.success) throw new Error(data.error || "Erro ao otimizar tabela");
       return data.data;
     },
+    onError: (error) => {
+      console.warn('[B2B-CATALOG] OPTIMIZE_TABLE_FAILED:', error.message);
+    },
   });
 
   const suggestCustomerPricing = useMutation({
@@ -105,6 +108,9 @@ export function usePricingOptimizer() {
       if (!data.success) throw new Error(data.error || "Erro ao sugerir preços");
       return data.data;
     },
+    onError: (error) => {
+      console.warn('[B2B-CATALOG] SUGGEST_CUSTOMER_PRICING_FAILED:', error.message);
+    },
   });
 
   const analyzeMargins = useMutation({
@@ -119,6 +125,9 @@ export function usePricingOptimizer() {
       if (error) throw error;
       if (!data.success) throw new Error(data.error || "Erro ao analisar margens");
       return data.data;
+    },
+    onError: (error) => {
+      console.warn('[B2B-CATALOG] ANALYZE_MARGINS_FAILED:', error.message);
     },
   });
 
@@ -135,6 +144,9 @@ export function usePricingOptimizer() {
       if (error) throw error;
       if (!data.success) throw new Error(data.error || "Erro ao ajustar preços");
       return data.data;
+    },
+    onError: (error) => {
+      console.warn('[B2B-CATALOG] BULK_ADJUST_FAILED:', error.message);
     },
   });
 
