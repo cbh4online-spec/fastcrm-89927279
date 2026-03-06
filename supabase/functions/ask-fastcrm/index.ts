@@ -1794,7 +1794,7 @@ async function queryStageBottleneck(client: any, workspaceId: string) {
     return {
       id: b.name,
       title: b.name,
-      subtitle: `Avg ${avg} days vs ${b.expected} expected · ${b.count} deal${b.count !== 1 ? "s" : ""}`,
+      subtitle: `Média ${avg} dias vs ${b.expected} esperados · ${b.count} deal${b.count !== 1 ? "s" : ""}`,
       value: b.count,
       health_label: avg > b.expected * 2 ? "AT_RISK" : "WATCH",
       link: "/dashboard/opportunities",
@@ -1803,33 +1803,33 @@ async function queryStageBottleneck(client: any, workspaceId: string) {
 
   return {
     headline: items.length > 0
-      ? `${items.length} stage${items.length !== 1 ? "s" : ""} with bottlenecks.`
-      : "No stage bottlenecks detected.",
-    subtext: items.length > 0 ? "Deals are staying longer than expected." : undefined,
+      ? `${items.length} etapa${items.length !== 1 ? "s" : ""} com gargalo.`
+      : "Nenhum gargalo detectado.",
+    subtext: items.length > 0 ? "Deals estão a demorar mais do que o esperado." : undefined,
     items,
     actions: items.length > 0
       ? [
           {
             id: "move_stage",
-            label: "Move stuck deals",
+            label: "Mover deals parados",
             icon: "ArrowRight",
             type: "bulk_move_stage",
             payload: { deal_ids: stuckDealIds },
           },
           {
             id: "create_tasks_all",
-            label: "Create follow-ups",
+            label: "Criar follow-ups",
             icon: "ListTodo",
             type: "bulk_task",
             payload: {
               deal_ids: stuckDealIds,
-              task_title: "Follow up on stuck deal",
+              task_title: "Follow up deal parado",
               priority: "HIGH",
             },
           },
           {
             id: "create_automation",
-            label: "Create stale alert rule",
+            label: "Criar alerta de estagnação",
             icon: "Zap",
             type: "automation",
             payload: {
@@ -1839,7 +1839,7 @@ async function queryStageBottleneck(client: any, workspaceId: string) {
         ]
       : [],
     metric: {
-      label: "Bottleneck Stages",
+      label: "Etapas com Gargalo",
       value: String(items.length),
       trend: items.length > 0 ? "down" : "neutral",
     },
