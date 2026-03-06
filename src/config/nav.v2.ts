@@ -56,6 +56,9 @@ import {
   FileSpreadsheet,
   FolderKanban,
   ArrowDownToLine,
+  Gauge,
+  LineChart,
+  PieChart,
 } from "lucide-react";
 
 // --- Types ---
@@ -92,38 +95,56 @@ export interface NavV2Group {
 
 export type NavV2Entry = NavV2CoreItem | NavV2Group;
 
-// --- Core items (always visible, flat) ---
+// --- Core items (always visible, flat — PRINCIPAL) ---
 
 export const NAV_V2_CORE: NavV2CoreItem[] = [
   { type: "item", name: "Início", href: "/dashboard", icon: Zap, end: true, iconColor: "text-violet-500" },
-  { type: "item", name: "Mural", href: "/dashboard/feed", icon: Newspaper, iconColor: "text-violet-500" },
-  { type: "item", name: "Inbox", href: "/dashboard/inbox", icon: Inbox, iconColor: "text-blue-500", badgeKey: "inbox-unread" },
-  { type: "item", name: "Ask", href: "/dashboard/ask", icon: Sparkles, iconColor: "text-violet-500" },
-  { type: "item", name: "Leads", href: "/dashboard/leads", icon: UserSearch, iconColor: "text-emerald-500" },
-  { type: "item", name: "Contactos", href: "/dashboard/contacts", icon: Users, iconColor: "text-emerald-500" },
-  { type: "item", name: "Empresas", href: "/dashboard/companies", icon: Building2, iconColor: "text-emerald-500" },
-  { type: "item", name: "Tarefas", href: "/dashboard/tasks", icon: CheckSquare, iconColor: "text-emerald-500" },
-  { type: "item", name: "Agendamento", href: "/dashboard/scheduling", icon: Calendar, iconColor: "text-emerald-500" },
-  { type: "item", name: "Produtos", href: "/dashboard/products", icon: Package, iconColor: "text-emerald-500" },
+  { type: "item", name: "Brief Executivo", href: "/dashboard/strategy", icon: Brain, iconColor: "text-violet-500" },
+  { type: "item", name: "Context OS", href: "/dashboard/context-os", icon: Brain, iconColor: "text-violet-500" },
+  { type: "item", name: "Mapa de Impacto", href: "/dashboard/impact-map", icon: GitBranch, iconColor: "text-violet-500" },
 ];
 
-// --- Collapsible groups (ALL require moduleSlug — hidden when no matching module installed) ---
+// --- Collapsible groups ---
 
 export const NAV_V2_GROUPS: NavV2Group[] = [
   {
     type: "group",
-    name: "Estratégia & Relatórios",
-    icon: Brain,
-    iconColor: "text-cyan-500",
+    name: "Relatórios",
+    icon: BarChart3,
+    iconColor: "text-sky-500",
     children: [
-      { name: "Brief Executivo", href: "/dashboard/strategy", icon: Brain, iconColor: "text-cyan-500" },
-      { name: "Context OS", href: "/dashboard/context-os", icon: Brain, iconColor: "text-cyan-500" },
-      { name: "Mapa de Impacto", href: "/dashboard/impact-map", icon: GitBranch, iconColor: "text-cyan-500" },
       { name: "Visão Geral", href: "/dashboard/reports", icon: BarChart3, iconColor: "text-sky-500" },
-      { name: "KPIs", href: "/dashboard/kpis", icon: Target, iconColor: "text-sky-500" },
+      { name: "KPIs", href: "/dashboard/kpis", icon: Gauge, iconColor: "text-sky-500" },
       { name: "Metas vs Resultados", href: "/dashboard/reports/goals", icon: Target, iconColor: "text-sky-500" },
-      { name: "Previsões", href: "/dashboard/reports/forecasts", icon: TrendingUp, iconColor: "text-sky-500" },
-      { name: "Consumo", href: "/dashboard/reports/consumption", icon: BarChart3, iconColor: "text-sky-500" },
+      { name: "Previsões", href: "/dashboard/reports/forecasts", icon: LineChart, iconColor: "text-sky-500" },
+      { name: "Consumo", href: "/dashboard/reports/consumption", icon: PieChart, iconColor: "text-sky-500" },
+    ],
+  },
+  {
+    type: "group",
+    name: "CRM",
+    icon: Users,
+    iconColor: "text-emerald-500",
+    children: [
+      { name: "Leads", href: "/dashboard/leads", icon: UserSearch, iconColor: "text-emerald-500" },
+      { name: "Contactos", href: "/dashboard/contacts", icon: Users, iconColor: "text-emerald-500" },
+      { name: "Empresas", href: "/dashboard/companies", icon: Building2, iconColor: "text-emerald-500" },
+      { name: "Pipeline", href: "/dashboard/opportunities", icon: TrendingUp, iconColor: "text-emerald-500" },
+      { name: "Ciclo de Vida", href: "/dashboard/lifecycle", icon: GitBranch, iconColor: "text-emerald-500" },
+      { name: "FastMatch", href: "/dashboard/fastmatch", icon: Star, iconColor: "text-emerald-500" },
+    ],
+  },
+  {
+    type: "group",
+    name: "Comunicação",
+    icon: Inbox,
+    iconColor: "text-blue-500",
+    children: [
+      { name: "Inbox", href: "/dashboard/inbox", icon: Inbox, iconColor: "text-blue-500" },
+      { name: "WhatsApp", href: "/dashboard/inbox", icon: Phone, iconColor: "text-blue-500" },
+      { name: "Email", href: "/dashboard/email-campaigns", icon: Mail, moduleSlug: "email-campaigns", iconColor: "text-blue-500" },
+      { name: "Mural Interno", href: "/dashboard/feed", icon: Newspaper, iconColor: "text-blue-500" },
+      { name: "Templates", href: "/dashboard/communication/templates", icon: FileText, iconColor: "text-blue-500" },
     ],
   },
   {
@@ -132,12 +153,45 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
     icon: TrendingUp,
     iconColor: "text-amber-500",
     children: [
-      { name: "Pipeline", href: "/dashboard/revenue", icon: TrendingUp, iconColor: "text-amber-500" },
-      { name: "Oportunidades", href: "/dashboard/opportunities", icon: Target, iconColor: "text-amber-500" },
       { name: "Propostas", href: "/dashboard/proposals", icon: Presentation, iconColor: "text-amber-500" },
       { name: "Faturas", href: "/dashboard/invoices", icon: Receipt, iconColor: "text-amber-500" },
-      { name: "Notas Encomenda", href: "/dashboard/order-notes", icon: FileText, iconColor: "text-amber-500" },
-      { name: "Renovações", href: "/dashboard/renewals", icon: RotateCcw, iconColor: "text-amber-500" },
+      { name: "Produtos", href: "/dashboard/products", icon: Package, iconColor: "text-amber-500" },
+      { name: "Notas de Encomenda", href: "/dashboard/order-notes", icon: FileText, iconColor: "text-amber-500" },
+      { name: "Pacotes & Bundles", href: "/dashboard/bundles", icon: Package, iconColor: "text-amber-500" },
+    ],
+  },
+  {
+    type: "group",
+    name: "Marketing",
+    icon: Megaphone,
+    iconColor: "text-indigo-500",
+    children: [
+      { name: "Campanhas Email", href: "/dashboard/email-campaigns", icon: Mail, moduleSlug: "email-campaigns", iconColor: "text-indigo-500" },
+      { name: "Landing Pages", href: "/dashboard/landing-pages", icon: Globe, iconColor: "text-indigo-500" },
+      { name: "Bio OS", href: "/dashboard/bio", icon: Globe, moduleSlug: "bio-os", iconColor: "text-indigo-500" },
+      { name: "Prospecção", href: "/dashboard/prospecting", icon: Search, iconColor: "text-indigo-500" },
+      { name: "Funis", href: "/dashboard/funnels", icon: GitBranch, iconColor: "text-indigo-500" },
+    ],
+  },
+  {
+    type: "group",
+    name: "Compras",
+    icon: Truck,
+    moduleSlug: "procurement",
+    iconColor: "text-emerald-600",
+    children: [
+      { name: "Dashboard Compras", href: "/dashboard/procurement", icon: LayoutDashboard, iconColor: "text-emerald-600" },
+      { name: "Necessidades", href: "/dashboard/procurement/needs", icon: ClipboardList, iconColor: "text-emerald-600" },
+      { name: "Fornecedores", href: "/dashboard/procurement/suppliers", icon: Building2, iconColor: "text-emerald-600" },
+      { name: "Requisições", href: "/dashboard/procurement/requests", icon: FileText, iconColor: "text-emerald-600" },
+      { name: "Ordens de Compra", href: "/dashboard/procurement/orders", icon: ShoppingCart, iconColor: "text-emerald-600" },
+      { name: "Receção", href: "/dashboard/procurement/receipts", icon: ArrowDownToLine, iconColor: "text-emerald-600" },
+      { name: "Faturas Fornecedor", href: "/dashboard/procurement/invoices", icon: Receipt, iconColor: "text-emerald-600" },
+      { name: "Catálogo", href: "/dashboard/procurement/catalog", icon: Package, iconColor: "text-emerald-600" },
+      { name: "Importar Preços", href: "/dashboard/procurement/price-import", icon: FileSpreadsheet, iconColor: "text-emerald-600" },
+      { name: "Projetos", href: "/dashboard/procurement/projects", icon: FolderKanban, iconColor: "text-emerald-600" },
+      { name: "RFQs", href: "/dashboard/procurement/rfqs", icon: ScanBarcode, iconColor: "text-emerald-600" },
+      { name: "Dashboard RFQs", href: "/dashboard/procurement/rfqs-dashboard", icon: BarChart3, iconColor: "text-emerald-600" },
     ],
   },
   {
@@ -203,45 +257,19 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
   },
   {
     type: "group",
-    name: "Compras",
-    icon: Truck,
-    moduleSlug: "procurement",
-    iconColor: "text-emerald-600",
-    children: [
-      { name: "Dashboard Compras", href: "/dashboard/procurement", icon: LayoutDashboard, iconColor: "text-emerald-600" },
-      { name: "Necessidades", href: "/dashboard/procurement/needs", icon: ClipboardList, iconColor: "text-emerald-600" },
-      { name: "Fornecedores", href: "/dashboard/procurement/suppliers", icon: Building2, iconColor: "text-emerald-600" },
-      { name: "Requisições", href: "/dashboard/procurement/requests", icon: FileText, iconColor: "text-emerald-600" },
-      { name: "Ordens de Compra", href: "/dashboard/procurement/orders", icon: ShoppingCart, iconColor: "text-emerald-600" },
-      { name: "Receção", href: "/dashboard/procurement/receipts", icon: ArrowDownToLine, iconColor: "text-emerald-600" },
-      { name: "Faturas Fornecedor", href: "/dashboard/procurement/invoices", icon: Receipt, iconColor: "text-emerald-600" },
-      { name: "Catálogo", href: "/dashboard/procurement/catalog", icon: Package, iconColor: "text-emerald-600" },
-      { name: "Importar Preços", href: "/dashboard/procurement/price-import", icon: FileSpreadsheet, iconColor: "text-emerald-600" },
-      { name: "Projetos", href: "/dashboard/procurement/projects", icon: FolderKanban, iconColor: "text-emerald-600" },
-      { name: "RFQs", href: "/dashboard/procurement/rfqs", icon: ScanBarcode, iconColor: "text-emerald-600" },
-      { name: "Dashboard RFQs", href: "/dashboard/procurement/rfqs-dashboard", icon: BarChart3, iconColor: "text-emerald-600" },
-    ],
-  },
-  {
-    type: "group",
-    name: "Marketing",
-    icon: Megaphone,
-    iconColor: "text-indigo-500",
-    children: [
-      { name: "Email Marketing", href: "/dashboard/email-campaigns", icon: Mail, moduleSlug: "email-campaigns", iconColor: "text-indigo-500" },
-      { name: "Google Local", href: "/dashboard/prospecting/google-local", icon: Globe, moduleSlug: "google-local-services", iconColor: "text-indigo-500" },
-      { name: "Bio OS", href: "/dashboard/bio", icon: Globe, moduleSlug: "bio-os", iconColor: "text-indigo-500" },
-    ],
-  },
-  {
-    type: "group",
     name: "Ferramentas",
     icon: Zap,
     iconColor: "text-slate-500",
     children: [
+      { name: "Automações", href: "/dashboard/automations", icon: Zap, iconColor: "text-slate-500" },
+      { name: "Assistentes IA", href: "/dashboard/ai-assistants", icon: Brain, iconColor: "text-slate-500" },
+      { name: "AI Employees", href: "/dashboard/ai-employees", icon: Bot, iconColor: "text-slate-500" },
+      { name: "Knowledge Base", href: "/dashboard/knowledge", icon: BookOpen, iconColor: "text-slate-500" },
+      { name: "Integrações", href: "/settings/integrations", icon: Plug, iconColor: "text-slate-500" },
       { name: "SEO & Growth", href: "/dashboard/seo", icon: Search, moduleSlug: "seo-growth", iconColor: "text-slate-500" },
       { name: "Motor Conversacional", href: "/dashboard/conversational-engine", icon: MessageSquare, moduleSlug: "conversational-engine", iconColor: "text-slate-500" },
       { name: "System Health", href: "/dashboard/system/health", icon: ShieldCheck, iconColor: "text-slate-500" },
+      { name: "Configurações", href: "/settings", icon: Settings, iconColor: "text-slate-500" },
     ],
   },
   {
