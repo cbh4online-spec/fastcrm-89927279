@@ -7777,6 +7777,7 @@ export type Database = {
           ai_next_action_type: string | null
           ai_opportunities: Json | null
           ai_pain_points: Json | null
+          ai_revenue_analyzed_at: string | null
           ai_risk_flags: Json | null
           ai_summary: string | null
           ai_tags: Json | null
@@ -7791,6 +7792,7 @@ export type Database = {
           birth_date: string | null
           business_model: string | null
           business_status: string | null
+          buying_signal: string | null
           cae_codes: string[] | null
           cae_description: string | null
           capital_social: string | null
@@ -7798,6 +7800,7 @@ export type Database = {
           city: string | null
           client_number: string | null
           company_context: Json | null
+          company_growth_stage: string | null
           company_score: number | null
           company_status: string | null
           connection_strength: string | null
@@ -7816,8 +7819,10 @@ export type Database = {
           email: string | null
           employee_count: number | null
           entity_type: string | null
+          estimated_arr: number | null
           estimated_ltv: number | null
           estimated_value: number | null
+          expansion_probability: number | null
           facebook_url: string | null
           fax: string | null
           founded_year: number | null
@@ -7883,6 +7888,7 @@ export type Database = {
           ai_next_action_type?: string | null
           ai_opportunities?: Json | null
           ai_pain_points?: Json | null
+          ai_revenue_analyzed_at?: string | null
           ai_risk_flags?: Json | null
           ai_summary?: string | null
           ai_tags?: Json | null
@@ -7897,6 +7903,7 @@ export type Database = {
           birth_date?: string | null
           business_model?: string | null
           business_status?: string | null
+          buying_signal?: string | null
           cae_codes?: string[] | null
           cae_description?: string | null
           capital_social?: string | null
@@ -7904,6 +7911,7 @@ export type Database = {
           city?: string | null
           client_number?: string | null
           company_context?: Json | null
+          company_growth_stage?: string | null
           company_score?: number | null
           company_status?: string | null
           connection_strength?: string | null
@@ -7922,8 +7930,10 @@ export type Database = {
           email?: string | null
           employee_count?: number | null
           entity_type?: string | null
+          estimated_arr?: number | null
           estimated_ltv?: number | null
           estimated_value?: number | null
+          expansion_probability?: number | null
           facebook_url?: string | null
           fax?: string | null
           founded_year?: number | null
@@ -7989,6 +7999,7 @@ export type Database = {
           ai_next_action_type?: string | null
           ai_opportunities?: Json | null
           ai_pain_points?: Json | null
+          ai_revenue_analyzed_at?: string | null
           ai_risk_flags?: Json | null
           ai_summary?: string | null
           ai_tags?: Json | null
@@ -8003,6 +8014,7 @@ export type Database = {
           birth_date?: string | null
           business_model?: string | null
           business_status?: string | null
+          buying_signal?: string | null
           cae_codes?: string[] | null
           cae_description?: string | null
           capital_social?: string | null
@@ -8010,6 +8022,7 @@ export type Database = {
           city?: string | null
           client_number?: string | null
           company_context?: Json | null
+          company_growth_stage?: string | null
           company_score?: number | null
           company_status?: string | null
           connection_strength?: string | null
@@ -8028,8 +8041,10 @@ export type Database = {
           email?: string | null
           employee_count?: number | null
           entity_type?: string | null
+          estimated_arr?: number | null
           estimated_ltv?: number | null
           estimated_value?: number | null
+          expansion_probability?: number | null
           facebook_url?: string | null
           fax?: string | null
           founded_year?: number | null
@@ -12305,6 +12320,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "dashboard_layouts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_ai_insights: {
+        Row: {
+          closing_probability: number | null
+          created_at: string
+          deal_health_score: number | null
+          deal_id: string
+          generated_at: string
+          id: string
+          recommended_actions: Json | null
+          risk_signals: Json | null
+          stakeholder_map: Json | null
+          timeline_prediction: Json | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          closing_probability?: number | null
+          created_at?: string
+          deal_health_score?: number | null
+          deal_id: string
+          generated_at?: string
+          id?: string
+          recommended_actions?: Json | null
+          risk_signals?: Json | null
+          stakeholder_map?: Json | null
+          timeline_prediction?: Json | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          closing_probability?: number | null
+          created_at?: string
+          deal_health_score?: number | null
+          deal_id?: string
+          generated_at?: string
+          id?: string
+          recommended_actions?: Json | null
+          risk_signals?: Json | null
+          stakeholder_map?: Json | null
+          timeline_prediction?: Json | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_ai_insights_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

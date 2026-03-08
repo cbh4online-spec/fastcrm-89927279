@@ -37,7 +37,10 @@ import {
   Building2,
   Globe,
   Factory,
-  Users
+  Users,
+  TrendingUp,
+  Signal,
+  Rocket
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import React from "react";
@@ -277,6 +280,79 @@ export function SmartCompanyRow({
           </TooltipTrigger><TooltipContent>
             <p className="text-xs max-w-[250px]"><span className="font-medium">{t("insightQuickSummary")}</span><br />{company.ai_insight}</p>
           </TooltipContent></Tooltip></TooltipProvider>
+        ) : <span className="text-xs text-muted-foreground">—</span>}
+      </TableCell>
+    ),
+    client_number: () => (
+      <TableCell key="client_number"><span className="text-sm font-mono">{(company as any).client_number || "—"}</span></TableCell>
+    ),
+    // AI Revenue Engine columns
+    icp_fit: () => (
+      <TableCell key="icp_fit">
+        <TooltipProvider><Tooltip><TooltipTrigger asChild>
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className={cn("h-full rounded-full transition-all", company.icp_fit_score >= 70 ? "bg-emerald-500" : company.icp_fit_score >= 40 ? "bg-amber-500" : "bg-muted-foreground")} style={{ width: `${company.icp_fit_score}%` }} />
+            </div>
+            <span className={cn("text-xs font-medium tabular-nums", company.icp_fit_score >= 70 ? "text-emerald-600" : company.icp_fit_score >= 40 ? "text-amber-600" : "text-muted-foreground")}>{company.icp_fit_score}</span>
+          </div>
+        </TooltipTrigger><TooltipContent><p className="text-xs">ICP Fit Score — adequação ao perfil ideal</p></TooltipContent></Tooltip></TooltipProvider>
+      </TableCell>
+    ),
+    estimated_arr: () => (
+      <TableCell key="estimated_arr">
+        <span className="text-sm font-medium text-emerald-600">
+          {company.estimated_arr ? formatCurrency(company.estimated_arr) : "—"}
+        </span>
+      </TableCell>
+    ),
+    buying_signal: () => {
+      const signalConfig: Record<string, { label: string; color: string; bg: string }> = {
+        strong: { label: "Forte", color: "text-emerald-600", bg: "bg-emerald-500/10" },
+        moderate: { label: "Moderado", color: "text-amber-600", bg: "bg-amber-500/10" },
+        weak: { label: "Fraco", color: "text-muted-foreground", bg: "bg-muted" },
+        none: { label: "Nenhum", color: "text-muted-foreground", bg: "bg-muted" },
+      };
+      const cfg = signalConfig[company.buying_signal || "none"] || signalConfig.none;
+      return (
+        <TableCell key="buying_signal">
+          {company.buying_signal ? (
+            <div className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium", cfg.bg, cfg.color)}>
+              <Signal className="w-3 h-3" />{cfg.label}
+            </div>
+          ) : <span className="text-xs text-muted-foreground">—</span>}
+        </TableCell>
+      );
+    },
+    growth_stage: () => {
+      const stageLabels: Record<string, string> = {
+        startup: "Startup",
+        growth: "Growth",
+        scale_up: "Scale-up",
+        mature: "Mature",
+        enterprise: "Enterprise",
+        declining: "Declining",
+      };
+      return (
+        <TableCell key="growth_stage">
+          {company.company_growth_stage ? (
+            <div className="flex items-center gap-1 text-xs">
+              <Rocket className="w-3 h-3 text-primary" />
+              <span>{stageLabels[company.company_growth_stage] || company.company_growth_stage}</span>
+            </div>
+          ) : <span className="text-xs text-muted-foreground">—</span>}
+        </TableCell>
+      );
+    },
+    expansion_prob: () => (
+      <TableCell key="expansion_prob">
+        {company.expansion_probability != null ? (
+          <div className="flex items-center gap-1.5">
+            <div className="w-8 h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className="h-full bg-primary rounded-full" style={{ width: `${company.expansion_probability}%` }} />
+            </div>
+            <span className="text-xs text-muted-foreground tabular-nums">{company.expansion_probability}%</span>
+          </div>
         ) : <span className="text-xs text-muted-foreground">—</span>}
       </TableCell>
     ),

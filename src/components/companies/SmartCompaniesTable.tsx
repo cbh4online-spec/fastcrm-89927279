@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { SmartListsPanel } from "@/components/objects/SmartListsPanel";
 import { useSmartCompanies, useAnalyzeCompany, useBulkAnalyzeCompanies, SmartCompaniesFilters } from "@/hooks/useSmartCompanies";
+import { useBulkAnalyzeRevenue } from "@/hooks/useAIRevenueEngine";
 import { useCompanies } from "@/hooks/useCompanies";
 import { useBulkSocialMediaAnalysis } from "@/hooks/useSocialMediaAnalysis";
 import { SmartCompanyRow } from "./SmartCompanyRow";
@@ -15,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Sparkles, Trash2, Building2, RefreshCw, Download, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Activity, Clock, Users, Factory, Briefcase, Linkedin } from "lucide-react";
+import { Plus, Sparkles, Trash2, Building2, RefreshCw, Download, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Activity, Clock, Users, Factory, Briefcase, Linkedin, Zap, TrendingUp } from "lucide-react";
 import { UnifiedDuplicateDialog } from "@/components/crm/UnifiedDuplicateDialog";
 import { TableSkeleton, SearchEmptyState, EmptyState } from "@/components/design-system";
 import { toast } from "sonner";
@@ -52,6 +53,12 @@ export function SmartCompaniesTable() {
     { id: "contacts_count", label: t("col_contactsCount"), category: "relations", defaultVisible: true, description: t("col_contactsCountDesc") },
     { id: "opportunities_count", label: t("col_opportunitiesCount"), category: "relations", defaultVisible: true, description: t("col_opportunitiesCountDesc") },
     { id: "social_presence", label: t("col_socialPresence"), category: "relations", defaultVisible: false },
+    // AI Revenue Engine columns
+    { id: "icp_fit", label: "ICP Fit", category: "ai", defaultVisible: false, description: "Score de adequação ao perfil ideal de cliente" },
+    { id: "estimated_arr", label: "ARR Est.", category: "ai", defaultVisible: false, description: "Estimativa de receita recorrente anual" },
+    { id: "buying_signal", label: "Buying Signal", category: "ai", defaultVisible: false, description: "Nível de sinais de compra detetados" },
+    { id: "growth_stage", label: "Growth Stage", category: "ai", defaultVisible: false, description: "Estágio de crescimento da empresa" },
+    { id: "expansion_prob", label: "Expansion %", category: "ai", defaultVisible: false, description: "Probabilidade de expansão" },
   ], [t]);
 
   const filterGroups: FilterGroup[] = useMemo(() => [
@@ -127,6 +134,20 @@ export function SmartCompaniesTable() {
   const analyze = useAnalyzeCompany();
   const bulkAnalyze = useBulkAnalyzeCompanies();
   const bulkSocialAnalyze = useBulkSocialMediaAnalysis();
+  const bulkRevenue = useBulkAnalyzeRevenue();
+
+  const handleBulkRevenueAnalyze = async () => {
+    toast.loading("A analisar revenue intelligence...", { id: "revenue-analyze" });
+    try {
+      const result = await bulkRevenue.mutateAsync(Array.from(selectedIds));
+      toast.dismiss("revenue-analyze");
+      toast.success(`${result.successful} empresa(s) analisadas com Revenue Intelligence`);
+      setSelectedIds(new Set());
+    } catch {
+      toast.dismiss("revenue-analyze");
+      toast.error("Erro na análise de revenue");
+    }
+  };
 
   const handleBulkSocialAnalyze = async () => {
     const selected = companies?.filter(c => selectedIds.has(c.id) && c.linkedin_url) || [];
@@ -243,6 +264,7 @@ export function SmartCompaniesTable() {
           <div className="flex items-center gap-3 p-3 mt-4 bg-muted/50 rounded-lg border flex-wrap">
             <span className="text-sm text-muted-foreground">{selectedIds.size} {t("selectedFem")}</span>
             <Button variant="outline" size="sm" onClick={handleBulkAnalyze} disabled={bulkAnalyze.isPending}><Sparkles className="w-4 h-4 mr-2" />{t("analyzeAI")}</Button>
+            <Button variant="outline" size="sm" onClick={handleBulkRevenueAnalyze} disabled={bulkRevenue.isPending}><TrendingUp className="w-4 h-4 mr-2" />Revenue Intelligence</Button>
             <Button variant="outline" size="sm" onClick={handleBulkSocialAnalyze} disabled={isBulkSocialAnalyzing}><Linkedin className="w-4 h-4 mr-2" />{t("analyzeLinkedIn")}</Button>
             <Button variant="outline" size="sm" onClick={handleExport}><Download className="w-4 h-4 mr-2" />{t("export")}</Button>
             <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}><Trash2 className="w-4 h-4 mr-2" />{t("delete")}</Button>
