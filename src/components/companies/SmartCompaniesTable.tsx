@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { SmartListsPanel } from "@/components/objects/SmartListsPanel";
 import { useSmartCompanies, useAnalyzeCompany, useBulkAnalyzeCompanies, SmartCompaniesFilters } from "@/hooks/useSmartCompanies";
+import { useBulkAnalyzeRevenue } from "@/hooks/useAIRevenueEngine";
 import { useCompanies } from "@/hooks/useCompanies";
 import { useBulkSocialMediaAnalysis } from "@/hooks/useSocialMediaAnalysis";
 import { SmartCompanyRow } from "./SmartCompanyRow";
