@@ -262,6 +262,7 @@ export function SmartCompaniesTable() {
           <div className="flex items-center gap-3 p-3 mt-4 bg-muted/50 rounded-lg border flex-wrap">
             <span className="text-sm text-muted-foreground">{selectedIds.size} {t("selectedFem")}</span>
             <Button variant="outline" size="sm" onClick={handleBulkAnalyze} disabled={bulkAnalyze.isPending}><Sparkles className="w-4 h-4 mr-2" />{t("analyzeAI")}</Button>
+            <Button variant="outline" size="sm" onClick={handleBulkRevenueAnalyze} disabled={bulkRevenue.isPending}><TrendingUp className="w-4 h-4 mr-2" />Revenue Intelligence</Button>
             <Button variant="outline" size="sm" onClick={handleBulkSocialAnalyze} disabled={isBulkSocialAnalyzing}><Linkedin className="w-4 h-4 mr-2" />{t("analyzeLinkedIn")}</Button>
             <Button variant="outline" size="sm" onClick={handleExport}><Download className="w-4 h-4 mr-2" />{t("export")}</Button>
             <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}><Trash2 className="w-4 h-4 mr-2" />{t("delete")}</Button>
