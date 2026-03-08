@@ -53,6 +53,12 @@ export function SmartCompaniesTable() {
     { id: "contacts_count", label: t("col_contactsCount"), category: "relations", defaultVisible: true, description: t("col_contactsCountDesc") },
     { id: "opportunities_count", label: t("col_opportunitiesCount"), category: "relations", defaultVisible: true, description: t("col_opportunitiesCountDesc") },
     { id: "social_presence", label: t("col_socialPresence"), category: "relations", defaultVisible: false },
+    // AI Revenue Engine columns
+    { id: "icp_fit", label: "ICP Fit", category: "ai", defaultVisible: false, description: "Score de adequação ao perfil ideal de cliente" },
+    { id: "estimated_arr", label: "ARR Est.", category: "ai", defaultVisible: false, description: "Estimativa de receita recorrente anual" },
+    { id: "buying_signal", label: "Buying Signal", category: "ai", defaultVisible: false, description: "Nível de sinais de compra detetados" },
+    { id: "growth_stage", label: "Growth Stage", category: "ai", defaultVisible: false, description: "Estágio de crescimento da empresa" },
+    { id: "expansion_prob", label: "Expansion %", category: "ai", defaultVisible: false, description: "Probabilidade de expansão" },
   ], [t]);
 
   const filterGroups: FilterGroup[] = useMemo(() => [
