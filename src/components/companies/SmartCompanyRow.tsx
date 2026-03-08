@@ -37,7 +37,10 @@ import {
   Building2,
   Globe,
   Factory,
-  Users
+  Users,
+  TrendingUp,
+  Signal,
+  Rocket
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import React from "react";
