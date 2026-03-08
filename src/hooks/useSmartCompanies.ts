@@ -142,6 +142,12 @@ export function useSmartCompanies(filters?: SmartCompaniesFilters) {
           facebook_url: c.facebook_url || null,
           instagram_url: c.instagram_url || null,
           google_rating: c.google_rating || null,
+          icp_fit_score: c.icp_fit_score || 0,
+          estimated_arr: c.estimated_arr || null,
+          buying_signal: c.buying_signal || null,
+          expansion_probability: c.expansion_probability || null,
+          company_growth_stage: c.company_growth_stage || null,
+          ai_revenue_analyzed_at: c.ai_revenue_analyzed_at || null,
         } as SmartCompany;
       });
 
