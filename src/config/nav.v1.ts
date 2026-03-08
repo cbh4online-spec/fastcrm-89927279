@@ -99,6 +99,7 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "KPIs", href: "/dashboard/kpis", icon: Gauge, group: "Relatórios" },
   { name: "Metas vs Resultados", href: "/dashboard/reports/goals", icon: Target, group: "Relatórios" },
   { name: "Previsões", href: "/dashboard/reports/forecasts", icon: LineChart, group: "Relatórios" },
+  { name: "Revenue Intelligence", href: "/dashboard/revenue", icon: TrendingUp, group: "Relatórios" },
   { name: "Consumo", href: "/dashboard/reports/consumption", icon: PieChart, group: "Relatórios" },
 
   // ── CRM ──
