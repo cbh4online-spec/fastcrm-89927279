@@ -38,13 +38,13 @@ export function useTopGrowthAccounts(limit = 10) {
     queryFn: async () => {
       if (!currentWorkspace) return [];
 
-      // Get companies with AI data
+      // Get companies with AI data - cast to any since AI columns may not be in generated types yet
       const { data: companies, error } = await supabase
         .from("companies")
-        .select("id, name, icp_score, estimated_arr, buying_signal, expansion_probability, company_growth_stage")
+        .select("id, name, icp_score, estimated_arr, buying_signal, expansion_probability, company_growth_stage" as any)
         .eq("workspace_id", currentWorkspace.id)
-        .not("icp_score", "is", null)
-        .order("icp_score", { ascending: false })
+        .not("icp_score" as any, "is", null)
+        .order("icp_score" as any, { ascending: false })
         .limit(limit);
 
       if (error) throw error;
@@ -65,8 +65,14 @@ export function useTopGrowthAccounts(limit = 10) {
         pipelineMap.set(o.company_id, existing);
       });
 
-      return (companies || []).map((c) => ({
-        ...c,
+      return ((companies as any[]) || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        icp_score: c.icp_score,
+        estimated_arr: c.estimated_arr,
+        buying_signal: c.buying_signal,
+        expansion_probability: c.expansion_probability,
+        company_growth_stage: c.company_growth_stage,
         pipeline_value: pipelineMap.get(c.id)?.value || 0,
         deal_count: pipelineMap.get(c.id)?.count || 0,
       }));

@@ -1,5 +1,6 @@
 import { TrendingUp, AlertTriangle, Target, BarChart3, ShieldCheck, Flame } from "lucide-react";
-import { KPICard, KPIGrid, KPIGridSkeleton } from "@/components/design-system/KPICard";
+import { KPICard, KPIGrid } from "@/components/design-system/KPICard";
+import { KPIGridSkeleton } from "@/components/design-system/LoadingState";
 import { useRevenueForecast, formatCurrency } from "@/hooks/useRevenueForecast";
 import { usePipelineRiskAnalysis } from "@/hooks/useRevenueIntelligenceDashboard";
 
