@@ -134,8 +134,20 @@ export function SmartCompaniesTable() {
   const analyze = useAnalyzeCompany();
   const bulkAnalyze = useBulkAnalyzeCompanies();
   const bulkSocialAnalyze = useBulkSocialMediaAnalysis();
+  const bulkRevenue = useBulkAnalyzeRevenue();
 
-  const handleBulkSocialAnalyze = async () => {
+  const handleBulkRevenueAnalyze = async () => {
+    toast.loading("A analisar revenue intelligence...", { id: "revenue-analyze" });
+    try {
+      const result = await bulkRevenue.mutateAsync(Array.from(selectedIds));
+      toast.dismiss("revenue-analyze");
+      toast.success(`${result.successful} empresa(s) analisadas com Revenue Intelligence`);
+      setSelectedIds(new Set());
+    } catch {
+      toast.dismiss("revenue-analyze");
+      toast.error("Erro na análise de revenue");
+    }
+  };
     const selected = companies?.filter(c => selectedIds.has(c.id) && c.linkedin_url) || [];
     if (selected.length === 0) { toast.error(t("noLinkedInUrlCompanies")); return; }
     await bulkSocialAnalyze.mutateAsync(selected.map(c => ({ id: c.id, name: c.name, linkedin_url: c.linkedin_url })));
