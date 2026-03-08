@@ -50,6 +50,13 @@ export interface SmartCompany {
   facebook_url: string | null;
   instagram_url: string | null;
   google_rating: number | null;
+  // AI Revenue Engine fields
+  icp_fit_score: number;
+  estimated_arr: number | null;
+  buying_signal: string | null;
+  expansion_probability: number | null;
+  company_growth_stage: string | null;
+  ai_revenue_analyzed_at: string | null;
 }
 
 export interface SmartCompaniesFilters {
