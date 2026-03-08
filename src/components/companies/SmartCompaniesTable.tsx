@@ -148,6 +148,8 @@ export function SmartCompaniesTable() {
       toast.error("Erro na análise de revenue");
     }
   };
+
+  const handleBulkSocialAnalyze = async () => {
     const selected = companies?.filter(c => selectedIds.has(c.id) && c.linkedin_url) || [];
     if (selected.length === 0) { toast.error(t("noLinkedInUrlCompanies")); return; }
     await bulkSocialAnalyze.mutateAsync(selected.map(c => ({ id: c.id, name: c.name, linkedin_url: c.linkedin_url })));
