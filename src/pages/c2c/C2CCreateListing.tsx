@@ -400,12 +400,29 @@ export default function C2CCreateListing() {
                     {generateImage.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                     Gerar fotos com IA
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSearchWebImages}
+                    disabled={searchWebImages.isPending || !title.trim()}
+                    className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+                  >
+                    {searchWebImages.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+                    Buscar na internet
+                  </Button>
                 </div>
 
                 {generateImage.isPending && (
                   <div className="mt-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 animate-pulse">
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
                     <span className="text-sm font-medium text-primary">A gerar imagens com IA (pode demorar ~30s)...</span>
+                  </div>
+                )}
+
+                {searchWebImages.isPending && (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 animate-pulse">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-sm font-medium text-primary">A pesquisar imagens na internet...</span>
                   </div>
                 )}
               </TabsContent>
