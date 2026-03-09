@@ -51,7 +51,7 @@ export function useMeetingIntelligence(recordingId: string | undefined) {
         return null;
       }
       
-      return data as MeetingAIAnalysis | null;
+      return (data as unknown) as MeetingAIAnalysis | null;
     },
     enabled: !!recordingId,
   });
