@@ -416,7 +416,8 @@ function CRMRoutes() {
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/onboarding" element={<Onboarding />} />
-                <Route path="/dashboard" element={<CommandCenter />} />
+                <Route path="/dashboard" element={<WeeklyDashboard />} />
+                <Route path="/dashboard/command-center" element={<CommandCenter />} />
                 <Route path="/dashboard/objects" element={<Navigate to="/objects" replace />} />
                 
                 {/* Objects MVP routes */}
@@ -426,8 +427,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/intelligence" element={<IntelligencePage />} />
                 <Route path="/dashboard/context-os" element={<ContextOSPage />} />
                 <Route path="/dashboard/revenue" element={<RevenueOverviewPage />} />
-                <Route path="/dashboard/ask" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/dashboard/command-center" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard/ask" element={<Navigate to="/dashboard/command-center" replace />} />
                 <Route path="/dashboard/tasks" element={<TasksPage />} />
                 <Route path="/dashboard/alerts" element={<AlertsPage />} />
                 <Route path="/dashboard/impact-map" element={<ImpactMapPage />} />
