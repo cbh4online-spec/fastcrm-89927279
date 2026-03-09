@@ -6,6 +6,6 @@
  * @param slug - The slug(s) for the page. For bio/landing: "workspaceSlug/pageSlug"
  */
 export function getShareUrl(type: string, slug: string): string {
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "eumnfkccyvlyoyjchiwe";
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "xqepxufdrsuxlnubuatz";
   return `https://${projectId}.supabase.co/functions/v1/og-proxy?type=${encodeURIComponent(type)}&slug=${encodeURIComponent(slug)}`;
 }

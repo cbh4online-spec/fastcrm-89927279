@@ -343,7 +343,7 @@ export default function C2CPublicMarketplace() {
   const ogDescription = storeSettings?.store_description || `Explora o marketplace de ${workspace?.name || ""}. Compra e vende entre utilizadores reais.`;
   const ogImage = storeSettings?.logo_url || `${getPublicBaseUrl()}/og-image.png`;
   const ogUrl = `${getPublicBaseUrl()}/marketplace/${workspaceSlug}`;
-  const shareUrl = `${getPublicBaseUrl()}/marketplace/${workspaceSlug}`;
+  const shareUrl = getShareUrl("store", workspaceSlug || "");
 
   const featuredListings = useMemo(() => listings.filter((l) => l.is_featured), [listings]);
   const recentListings = useMemo(() =>

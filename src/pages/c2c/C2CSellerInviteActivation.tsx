@@ -106,7 +106,7 @@ export default function C2CSellerInviteActivation() {
 
       setTimeout(() => {
         if (workspace?.slug) {
-          navigate(`/c2c/${(workspace as any).slug}`);
+          navigate(`/marketplace/${(workspace as any).slug}`);
         } else {
           navigate("/");
         }

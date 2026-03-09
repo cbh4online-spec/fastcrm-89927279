@@ -152,7 +152,7 @@ export default function C2CPublicListingDetail() {
               <ArrowLeft className="h-4 w-4 mr-2" /> Marketplace
             </Button>
             <ShareButtons
-              url={window.location.href}
+              url={getShareUrl("c2c-listing", `${workspaceSlug}/${id}`)}
               title={listing.title}
               description={ogDesc}
             />
