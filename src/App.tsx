@@ -77,6 +77,7 @@ import ImpactMapPage from "./pages/ImpactMapPage";
 import SystemHealthPage from "./pages/SystemHealthPage";
 import EventMapPage from "./pages/EventMapPage";
 import EventMatrixPage from "./pages/EventMatrixPage";
+import EventTestsPage from "./pages/EventTestsPage";
 
 // Client Portal
 import { CartProvider } from "@/contexts/CartContext";
