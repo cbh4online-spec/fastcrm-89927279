@@ -36,7 +36,7 @@ export default function PerformanceDashboardPage() {
       else if (metricKey === "pipeline") totalValue += sc.pipeline_generated;
       else if (metricKey === "meetings") totalValue += sc.meetings_booked;
       else if (metricKey === "proposals") totalValue += sc.proposals_sent;
-      else if (metricKey === "leads") totalValue += sc.leads_converted;
+      else if (metricKey === "leads") totalValue += sc.leads_generated;
       else totalValue += sc.score_total;
     }
     return Math.min(Math.round((totalValue / ch.target_value) * 100), 100);
