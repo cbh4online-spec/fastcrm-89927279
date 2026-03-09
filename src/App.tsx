@@ -172,6 +172,7 @@ import EmailCampaignsPage from "./pages/EmailCampaignsPage";
 import IMOAIPage from "./pages/IMOAIPage";
 import ZapierPage from "./pages/ZapierPage";
 import CEOCopilotPage from "./pages/CEOCopilotPage";
+import CommandCenterV2Page from "./pages/CommandCenterV2Page";
 
 // Renewals
 import RenewalsPage from "./pages/RenewalsPage";
