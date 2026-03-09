@@ -37,6 +37,12 @@ export function ShareButtons({ url, title, description }: ShareButtonsProps) {
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, "_blank", "width=600,height=400");
   };
 
+  const handleEmail = () => {
+    const subject = title;
+    const body = `${shareText}\n${url}`;
+    window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+  };
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(url);
