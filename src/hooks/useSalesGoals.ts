@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { startOfMonth, format } from "date-fns";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface SalesGoal {
   id: string;
