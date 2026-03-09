@@ -13204,6 +13204,69 @@ export type Database = {
           },
         ]
       }
+      event_decision_matrix: {
+        Row: {
+          action_type: string | null
+          auto_execute: boolean
+          created_at: string
+          decision_type: string | null
+          domain: string
+          entity_type: string
+          event_name: string
+          id: string
+          is_active: boolean
+          is_user_visible: boolean
+          minimum_payload_json: Json
+          notes: string | null
+          priority: string
+          signal_type: string | null
+          source_module: string
+          target_module: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          action_type?: string | null
+          auto_execute?: boolean
+          created_at?: string
+          decision_type?: string | null
+          domain: string
+          entity_type: string
+          event_name: string
+          id?: string
+          is_active?: boolean
+          is_user_visible?: boolean
+          minimum_payload_json: Json
+          notes?: string | null
+          priority?: string
+          signal_type?: string | null
+          source_module: string
+          target_module?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          action_type?: string | null
+          auto_execute?: boolean
+          created_at?: string
+          decision_type?: string | null
+          domain?: string
+          entity_type?: string
+          event_name?: string
+          id?: string
+          is_active?: boolean
+          is_user_visible?: boolean
+          minimum_payload_json?: Json
+          notes?: string | null
+          priority?: string
+          signal_type?: string | null
+          source_module?: string
+          target_module?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       event_registry: {
         Row: {
           created_at: string | null
