@@ -590,6 +590,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/client-users" element={<ClientUsersPage />} />
                 <Route path="/dashboard/b2b-clients" element={<ClientUsersPage />} />
                 <Route path="/dashboard/b2b-portal" element={<B2BPortalSettingsPage />} />
+                <Route path="/dashboard/b2b-config" element={<B2BPortalSettingsPage />} />
                 <Route path="/dashboard/b2b-stock" element={<B2BStockPage />} />
                 <Route path="/dashboard/store-orders" element={<StoreOrdersPage />} />
                 <Route path="/dashboard/store-orders/:id" element={<StoreOrderDetailPage />} />
