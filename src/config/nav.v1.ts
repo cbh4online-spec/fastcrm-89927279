@@ -81,6 +81,7 @@ const GROUP_COLORS: Record<string, string> = {
   "Loja Online": "text-pink-500",
   "Marketplace C2C": "text-rose-500",
   "FastClub": "text-yellow-500",
+  "Performance": "text-yellow-500",
   "Ferramentas": "text-slate-500",
   "Student Journey": "text-teal-500",
   "Instagram Looter": "text-fuchsia-500",
@@ -124,6 +125,15 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Produtos", href: "/dashboard/products", icon: ShoppingBag, group: "Vendas" },
   { name: "Notas de Encomenda", href: "/dashboard/order-notes", icon: FileText, group: "Vendas" },
   { name: "Pacotes & Bundles", href: "/dashboard/bundles", icon: Package, group: "Vendas" },
+
+  // ── PERFORMANCE ──
+  { name: "Performance", href: "/dashboard/performance", icon: BarChart3, group: "Performance", separator: true },
+  { name: "Metas", href: "/dashboard/performance/goals", icon: Target, group: "Performance" },
+  { name: "Leaderboard", href: "/dashboard/performance/leaderboard", icon: Trophy, group: "Performance" },
+  { name: "Desafios", href: "/dashboard/performance/challenges", icon: Zap, group: "Performance" },
+  { name: "Reconhecimentos", href: "/dashboard/performance/recognition", icon: Trophy, group: "Performance" },
+  { name: "TV Mode", href: "/dashboard/performance/tv-mode", icon: Presentation, group: "Performance" },
+  { name: "Configurações", href: "/dashboard/performance/settings", icon: Settings, group: "Performance" },
 
   // ── MARKETING ──
   { name: "Campanhas Email", href: "/dashboard/email-campaigns", icon: Mail, group: "Marketing", separator: true, moduleSlug: "email-campaigns" },
