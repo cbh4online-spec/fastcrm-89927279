@@ -14322,6 +14322,10 @@ export type Database = {
         Row: {
           action_config: Json | null
           action_type: string | null
+          ai_input_source: string | null
+          ai_model: string | null
+          ai_output_variable: string | null
+          ai_prompt: string | null
           condition_false_step_id: string | null
           condition_field: string | null
           condition_operator:
@@ -14350,6 +14354,10 @@ export type Database = {
         Insert: {
           action_config?: Json | null
           action_type?: string | null
+          ai_input_source?: string | null
+          ai_model?: string | null
+          ai_output_variable?: string | null
+          ai_prompt?: string | null
           condition_false_step_id?: string | null
           condition_field?: string | null
           condition_operator?:
@@ -14378,6 +14386,10 @@ export type Database = {
         Update: {
           action_config?: Json | null
           action_type?: string | null
+          ai_input_source?: string | null
+          ai_model?: string | null
+          ai_output_variable?: string | null
+          ai_prompt?: string | null
           condition_false_step_id?: string | null
           condition_field?: string | null
           condition_operator?:
@@ -20642,6 +20654,66 @@ export type Database = {
           version?: string
         }
         Relationships: []
+      }
+      meeting_ai_analysis: {
+        Row: {
+          buying_signals: Json | null
+          competitor_mentions: Json | null
+          created_at: string
+          deal_impact: string | null
+          engagement_score: number | null
+          follow_up_suggestions: Json | null
+          id: string
+          objections_detected: Json | null
+          recording_id: string
+          talk_ratio: Json | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          buying_signals?: Json | null
+          competitor_mentions?: Json | null
+          created_at?: string
+          deal_impact?: string | null
+          engagement_score?: number | null
+          follow_up_suggestions?: Json | null
+          id?: string
+          objections_detected?: Json | null
+          recording_id: string
+          talk_ratio?: Json | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          buying_signals?: Json | null
+          competitor_mentions?: Json | null
+          created_at?: string
+          deal_impact?: string | null
+          engagement_score?: number | null
+          follow_up_suggestions?: Json | null
+          id?: string
+          objections_detected?: Json | null
+          recording_id?: string
+          talk_ratio?: Json | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_ai_analysis_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_recordings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_ai_analysis_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       meeting_attendees: {
         Row: {
