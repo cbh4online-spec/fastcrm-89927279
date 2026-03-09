@@ -231,6 +231,26 @@ Deno.serve(async (req) => {
             });
           } else {
             signalId = signal?.id ?? null;
+            // Emit SIGNAL.CREATED event (direct insert, no recursion)
+            if (signalId) {
+              supabase.from("kernel_events").insert({
+                workspace_id,
+                type: "SIGNAL.CREATED",
+                event_name: "strategy.kernel.signal_created",
+                entity_kind: "kernel_signal",
+                entity_id: signalId,
+                actor_type: "system",
+                payload: { signal_type: matrixEntry.signal_type, source_event: type, event_id: event.id },
+                source_module: "kernel",
+                occurred_at: new Date().toISOString(),
+                ingested_at: new Date().toISOString(),
+                schema_version: 1,
+                status: "processed",
+                correlation_id: correlation_id ?? null,
+                causation_id: event.id,
+                metadata_json: {},
+              }).then(() => {});
+            }
           }
         } catch (e) {
           await logFailure(supabase, {
