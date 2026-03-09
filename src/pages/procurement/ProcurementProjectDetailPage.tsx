@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useParams, useNavigate } from "react-router-dom";
 import { useProcurementProject } from "@/hooks/useProcurementProjects";
 import { useRFQs, useCreateRFQFromNeeds } from "@/hooks/useRFQ";
