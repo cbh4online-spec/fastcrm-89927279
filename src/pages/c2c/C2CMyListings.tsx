@@ -104,6 +104,16 @@ export default function C2CMyListings() {
           </div>
         </div>
 
+        {/* Marketplace Share Card */}
+        {!isLoading && currentWorkspace && (
+          <div className="mb-6">
+            <MarketplaceShareCard
+              marketplaceUrl={`${getPublicBaseUrl()}/marketplace/${currentWorkspace.slug || currentWorkspace.id}`}
+              marketplaceName={currentWorkspace.name}
+            />
+          </div>
+        )}
+
         {/* KPI Cards */}
         {!isLoading && listings.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">

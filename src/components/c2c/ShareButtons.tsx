@@ -66,6 +66,9 @@ export function ShareButtons({ url, title, description }: ShareButtonsProps) {
       <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={handleFacebook} title="Facebook">
         <FacebookIcon className="h-4 w-4" />
       </Button>
+      <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={handleEmail} title="Email">
+        <Mail className="h-4 w-4" />
+      </Button>
       <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={handleCopy} title="Copiar link">
         {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
       </Button>
