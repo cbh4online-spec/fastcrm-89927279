@@ -23837,6 +23837,50 @@ export type Database = {
         }
         Relationships: []
       }
+      performance_targets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          metric_type: string
+          period_end: string
+          period_start: string
+          period_type: string
+          target_value: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metric_type: string
+          period_end: string
+          period_start: string
+          period_type?: string
+          target_value?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metric_type?: string
+          period_end?: string
+          period_start?: string
+          period_type?: string
+          target_value?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_targets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       persona_benchmarks: {
         Row: {
           avg_conversion_score: number | null
