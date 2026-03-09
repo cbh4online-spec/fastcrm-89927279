@@ -432,8 +432,8 @@ export default function C2CPublicMarketplace() {
 
             <div className="flex items-center gap-2 shrink-0">
               <ShareButtons url={shareUrl} title={ogTitle} />
-              <Button variant="outline" size="sm" className="rounded-full hidden sm:flex" onClick={() => navigate(`/login?redirect=/marketplace/${workspaceSlug}`)}>
-                Entrar
+              <Button variant="outline" size="sm" className="rounded-full hidden sm:flex" onClick={() => navigate(isAuthenticated ? '/dashboard/c2c/seller-area' : `/login?redirect=/marketplace/${workspaceSlug}`)}>
+                {isAuthenticated ? 'Gerir' : 'Entrar'}
               </Button>
               <Button size="sm" className="gap-1 rounded-full" onClick={handleSell}>
                 <Plus className="h-4 w-4" />
