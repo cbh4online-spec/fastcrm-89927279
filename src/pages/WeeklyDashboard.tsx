@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { CommandCenterHeader } from "@/components/command-center/CommandCenterHeader";
+import { AIQuestionBox } from "@/components/command-center/AIQuestionBox";
 import { WeeklyPerformanceStrip } from "@/components/weekly-dashboard/WeeklyPerformanceStrip";
 import { AIStrategyPanel } from "@/components/weekly-dashboard/AIStrategyPanel";
 import { WeeklyQuickActions } from "@/components/weekly-dashboard/WeeklyQuickActions";
@@ -10,27 +12,43 @@ import { PipelineHealthCard } from "@/components/dashboard/PipelineHealthCard";
 import { AIActionSuggestions } from "@/components/dashboard/AIActionSuggestions";
 import { useWeeklyPerformance } from "@/hooks/useWeeklyPerformance";
 import { useWeeklyStrategy } from "@/hooks/useWeeklyStrategy";
+import { useDailyBrief } from "@/hooks/useDailyBrief";
+import { useKernelDecisions } from "@/hooks/useKernelDecisions";
 import { Button } from "@/components/ui/button";
 import { Brain, RefreshCw } from "lucide-react";
 
 export default function WeeklyDashboard() {
   const { data, isLoading } = useWeeklyPerformance();
   const { strategy, isLoading: strategyLoading, generate } = useWeeklyStrategy();
+  const { todaysBrief, generateDailyBrief } = useDailyBrief();
+  const { openDecisions } = useKernelDecisions();
 
-  // Auto-generate strategy on mount if none
+  const briefMetrics = todaysBrief?.key_metrics;
+
+  // Auto-generate daily brief on mount if none exists today
   useEffect(() => {
-    if (!strategyLoading && !strategy && data) {
-      // Don't auto-generate, let user trigger
+    if (!todaysBrief) {
+      generateDailyBrief();
     }
-  }, [data]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
+        {/* Greeting Header */}
+        <CommandCenterHeader
+          revenueToday={briefMetrics?.revenue_today ?? null}
+          hotLeadsCount={briefMetrics?.leads_today ?? 0}
+          pendingDecisions={openDecisions.length}
+        />
+
+        {/* AI Command Input */}
+        <AIQuestionBox />
+
+        {/* Weekly Section Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Weekly Revenue Brief</h1>
+            <h2 className="text-lg font-semibold text-foreground">Weekly Revenue Brief</h2>
             <p className="text-sm text-muted-foreground">
               Semana {data?.weekLabel || "..."}
             </p>
