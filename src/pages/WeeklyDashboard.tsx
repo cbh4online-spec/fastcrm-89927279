@@ -20,13 +20,17 @@ import { Brain, RefreshCw } from "lucide-react";
 export default function WeeklyDashboard() {
   const { data, isLoading } = useWeeklyPerformance();
   const { strategy, isLoading: strategyLoading, generate } = useWeeklyStrategy();
+  const { todaysBrief, generateDailyBrief } = useDailyBrief();
+  const { openDecisions } = useKernelDecisions();
 
-  // Auto-generate strategy on mount if none
+  const briefMetrics = todaysBrief?.key_metrics;
+
+  // Auto-generate daily brief on mount if none exists today
   useEffect(() => {
-    if (!strategyLoading && !strategy && data) {
-      // Don't auto-generate, let user trigger
+    if (!todaysBrief) {
+      generateDailyBrief();
     }
-  }, [data]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <DashboardLayout>
