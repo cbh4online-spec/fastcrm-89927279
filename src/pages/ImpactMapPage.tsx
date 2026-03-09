@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import {
   ReactFlow, Background, Controls, MiniMap,
-  type Node, type Edge,
+  type Node, type Edge, type NodeDragHandler,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useImpactMapData } from '@/hooks/useImpactMapData';
@@ -11,10 +11,11 @@ import { useChangeEvents } from '@/hooks/useChangeEvents';
 import { ImpactMapNode, type ImpactMapNodeData } from '@/components/impact-map/ImpactMapNode';
 import { ImpactMapSidebar } from '@/components/impact-map/ImpactMapSidebar';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Network, RotateCcw, Layers } from 'lucide-react';
+import { Loader2, Network, RotateCcw, Layers, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -41,6 +42,8 @@ export default function ImpactMapPage() {
     blocks, dependencies, driftMap,
     impactedIds, impactResults, simulatingId,
     simulateImpact, clearImpact, isLoading,
+    getPosition, savePosition,
+    snapshots, restoreSnapshot,
   } = useImpactMapData();
 
   const { entities } = useKernelEntities();
@@ -69,26 +72,31 @@ export default function ImpactMapPage() {
   const [viewMode, setViewMode] = useState<'context' | 'kernel'>('context');
 
   const handleSimulate = useCallback((id: string) => {
-    simulateImpact.mutate(id);
+    simulateImpact.mutate({ sourceBlockId: id, direction: 'bidirectional' });
   }, [simulateImpact]);
 
   const handleSelect = useCallback((id: string) => {
     setSelectedBlockId(id);
   }, []);
 
-  // Context OS view (existing)
+  // Persist position on drag end
+  const handleNodeDragStop: NodeDragHandler = useCallback((_event, node) => {
+    savePosition(node.id, viewMode, node.position.x, node.position.y);
+  }, [savePosition, viewMode]);
+
+  // Context OS view with persisted positions
   const contextView = useMemo(() => {
     const nodes: Node[] = blocks.map((b, i) => {
       const drift = driftMap.get(b.id);
       const isSource = simulatingId === b.id || (impactedIds.has(b.id) && impactResults.every(r => r.block_id !== b.id));
       const isStale = staleIds.has(b.id);
+      const fallbackX = (i % COLS) * GAP_X + 60;
+      const fallbackY = Math.floor(i / COLS) * GAP_Y + 60;
+      const pos = getPosition(b.id, 'context', fallbackX, fallbackY);
       return {
         id: b.id,
         type: 'impact',
-        position: {
-          x: (i % COLS) * GAP_X + 60,
-          y: Math.floor(i / COLS) * GAP_Y + 60,
-        },
+        position: pos,
         data: {
           label: b.title,
           blockType: b.block_type,
@@ -99,6 +107,7 @@ export default function ImpactMapPage() {
           isImpacted: impactedIds.has(b.id),
           isSource,
           isStale,
+          impactDirection: impactResults.find(r => r.block_id === b.id)?.direction,
           onSimulate: handleSimulate,
           onSelect: handleSelect,
         } satisfies ImpactMapNodeData,
@@ -123,29 +132,32 @@ export default function ImpactMapPage() {
     }));
 
     return { nodes, edges };
-  }, [blocks, dependencies, driftMap, impactedIds, impactResults, simulatingId, staleIds, handleSimulate, handleSelect]);
+  }, [blocks, dependencies, driftMap, impactedIds, impactResults, simulatingId, staleIds, handleSimulate, handleSelect, getPosition]);
 
-  // Kernel entities view
+  // Kernel entities view with persisted positions
   const kernelView = useMemo(() => {
     if (!entities?.length) return { nodes: [], edges: [] };
 
-    const nodes: Node[] = entities.map((e, i) => ({
-      id: `${e.kind}:${e.entity_id}`,
-      type: 'impact',
-      position: {
-        x: (i % COLS) * GAP_X + 60,
-        y: Math.floor(i / COLS) * GAP_Y + 60,
-      },
-      data: {
-        label: e.title ?? e.entity_id,
-        blockType: e.kind,
-        isStale: staleIds.has(e.entity_id),
-        isImpacted: staleIds.has(e.entity_id),
-        onSelect: () => {},
-        onSimulate: () => {},
-      } as ImpactMapNodeData,
-      draggable: true,
-    }));
+    const nodes: Node[] = entities.map((e, i) => {
+      const nodeKey = `${e.kind}:${e.entity_id}`;
+      const fallbackX = (i % COLS) * GAP_X + 60;
+      const fallbackY = Math.floor(i / COLS) * GAP_Y + 60;
+      const pos = getPosition(nodeKey, 'kernel', fallbackX, fallbackY);
+      return {
+        id: nodeKey,
+        type: 'impact',
+        position: pos,
+        data: {
+          label: e.title ?? e.entity_id,
+          blockType: e.kind,
+          isStale: staleIds.has(e.entity_id),
+          isImpacted: staleIds.has(e.entity_id),
+          onSelect: () => {},
+          onSimulate: () => {},
+        } as ImpactMapNodeData,
+        draggable: true,
+      };
+    });
 
     const edges: Edge[] = (links ?? []).map((l) => ({
       id: l.id,
@@ -162,7 +174,7 @@ export default function ImpactMapPage() {
     }));
 
     return { nodes, edges };
-  }, [entities, links, staleIds]);
+  }, [entities, links, staleIds, getPosition]);
 
   const activeView = viewMode === 'context' ? contextView : kernelView;
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId);
@@ -177,7 +189,7 @@ export default function ImpactMapPage() {
             <div>
               <h1 className="text-xl font-semibold text-foreground">Mapa de Impacto</h1>
               <p className="text-sm text-muted-foreground">
-                Visualize dependências entre blocos e entidades · Duplo clique para simular
+                Visualize dependências entre blocos e entidades · Duplo clique para simular (bidirecional)
               </p>
             </div>
           </div>
@@ -192,6 +204,36 @@ export default function ImpactMapPage() {
                 </TabsTrigger>
               </TabsList>
             </Tabs>
+
+            {/* Snapshot history */}
+            {snapshots.length > 0 && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+                    <History className="h-3 w-3" />
+                    Histórico ({snapshots.length})
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 p-2" align="end">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Simulações recentes</p>
+                  <div className="space-y-1 max-h-60 overflow-y-auto">
+                    {snapshots.map((s: any) => (
+                      <button
+                        key={s.id}
+                        onClick={() => restoreSnapshot(s)}
+                        className="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-muted/50 transition-colors"
+                      >
+                        <span className="font-medium text-foreground">{s.source_block_id.slice(0, 8)}…</span>
+                        <span className="text-muted-foreground ml-1">
+                          · {s.direction} · {new Date(s.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+
             {impactedIds.size > 0 && (
               <>
                 <Badge variant="destructive" className="text-xs">
@@ -232,6 +274,7 @@ export default function ImpactMapPage() {
               edges={activeView.edges}
               nodeTypes={nodeTypes}
               nodesConnectable={false}
+              onNodeDragStop={handleNodeDragStop}
               fitView
               fitViewOptions={{ padding: 0.3 }}
               proOptions={{ hideAttribution: true }}
