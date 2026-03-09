@@ -19445,6 +19445,89 @@ export type Database = {
           },
         ]
       }
+      lead_duplicate_group_items: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          is_master_candidate: boolean
+          lead_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          is_master_candidate?: boolean
+          lead_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_master_candidate?: boolean
+          lead_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_duplicate_group_items_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "lead_duplicate_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_duplicate_group_items_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_duplicate_groups: {
+        Row: {
+          confidence_score: number
+          created_at: string
+          duplicate_reason: string
+          id: string
+          match_type: string
+          matched_fields: string[] | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          confidence_score?: number
+          created_at?: string
+          duplicate_reason: string
+          id?: string
+          match_type: string
+          matched_fields?: string[] | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          confidence_score?: number
+          created_at?: string
+          duplicate_reason?: string
+          id?: string
+          match_type?: string
+          matched_fields?: string[] | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_duplicate_groups_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_enricher_settings: {
         Row: {
           auto_enrich_enabled: boolean
@@ -19608,6 +19691,44 @@ export type Database = {
           },
           {
             foreignKeyName: "lead_linkedin_data_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_merge_audit: {
+        Row: {
+          created_at: string
+          id: string
+          master_lead_id: string
+          merge_summary_json: Json
+          merged_by: string | null
+          merged_lead_ids: string[]
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          master_lead_id: string
+          merge_summary_json?: Json
+          merged_by?: string | null
+          merged_lead_ids?: string[]
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          master_lead_id?: string
+          merge_summary_json?: Json
+          merged_by?: string | null
+          merged_lead_ids?: string[]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_merge_audit_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
