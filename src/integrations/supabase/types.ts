@@ -18351,6 +18351,7 @@ export type Database = {
           actor_id: string | null
           actor_type: string
           causation_id: string | null
+          correlation_id: string | null
           created_at: string
           entity_id: string
           entity_kind: string
@@ -18373,6 +18374,7 @@ export type Database = {
           actor_id?: string | null
           actor_type?: string
           causation_id?: string | null
+          correlation_id?: string | null
           created_at?: string
           entity_id: string
           entity_kind: string
@@ -18395,6 +18397,7 @@ export type Database = {
           actor_id?: string | null
           actor_type?: string
           causation_id?: string | null
+          correlation_id?: string | null
           created_at?: string
           entity_id?: string
           entity_kind?: string

@@ -1,0 +1,1 @@
+ALTER TABLE public.kernel_events ADD COLUMN IF NOT EXISTS correlation_id TEXT;
