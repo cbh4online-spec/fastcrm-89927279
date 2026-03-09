@@ -1,144 +1,72 @@
 
 
-# Revenue Intelligence Dashboard — Weekly Performance + AI Strategy
+# Command Center — `/command-center`
 
-## Overview
+## What exists today
 
-Replace the current `/dashboard` landing page (CommandCenter) with a new **Weekly Revenue Performance Dashboard** that shows goal progress with traffic-light indicators and AI-generated strategy to close gaps. The existing CommandCenter moves to `/dashboard/command-center`.
+The platform already has a robust AI chat at `/dashboard` powered by `ask-fastcrm` (2900-line edge function) with keyword-based intent routing, slash commands, conversation memory, and action execution. However, it lacks the **deep contextual command types** requested (prepare-meeting, analyze-company, win-deal, etc.) that require cross-entity data aggregation and AI synthesis.
 
----
+## What will be built
 
-## Database
+### 1. Edge Function: `ai-command-orchestrator`
 
-### New table: `performance_targets`
+A new edge function that handles 7 structured command types. For each command, it:
+- Identifies the command intent from natural language
+- Fetches deep CRM context (companies, contacts, opportunities, meetings, emails, notes, proposals, activity_logs)
+- Calls Lovable AI (Gemini 3 Flash) with full context to generate strategic analysis
+- Returns structured output via tool calling
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid PK | |
-| workspace_id | uuid FK | |
-| metric_type | text | `revenue`, `leads`, `meetings`, `proposals`, `deals` |
-| target_value | numeric | The target number |
-| period_type | text | `weekly` / `monthly` |
-| period_start | date | |
-| period_end | date | |
-| created_by | uuid | |
-| created_at | timestamptz | |
+**Command handlers:**
 
-RLS: workspace members only (read/write).
+| Command | Data fetched | AI output |
+|---------|-------------|-----------|
+| `prepare-meeting` | Company profile, deal status, recent interactions, contact history | Talking points, company summary, risk signals |
+| `analyze-company` | Company data, ICP score, revenue potential, deal history | Profile analysis, ICP fit, growth assessment |
+| `analyze-deal` | Deal details, stage history, activities, stakeholders | Health assessment, risk signals, next actions |
+| `win-deal` | Deal data, competitor mentions, stakeholder map | Closing probability, blockers, recommended strategy |
+| `send-followup` | Last interactions, deal context, contact preferences | Follow-up draft, timing recommendation |
+| `generate-proposal` | Company needs, deal value, offers catalog | Proposal outline, pricing suggestions |
+| `pipeline-status` | All open deals, stage distribution, velocity | Pipeline health, bottlenecks, forecast |
 
----
+### 2. Page: `/command-center` (`CommandCenterPage.tsx`)
 
-## Edge Function: `ai-weekly-strategy`
+Layout:
+- **Top**: Large AI command input with auto-complete for the 7 commands
+- **Middle**: AI response area with markdown rendering, structured data cards, and entity links
+- **Bottom**: Quick action buttons (contextual based on last response)
+- **Sidebar suggestion chips**: The 7 command types as clickable cards when idle
 
-Receives workspace metrics (pipeline, targets, deal stages, conversion rates, activity counts) and returns structured output via tool calling:
+### 3. Hook: `useCommandOrchestrator.ts`
 
-- **Gap analysis** per metric (target vs actual, % shortfall)
-- **Required activities** to close gaps
-- **Risk alerts** (deals stalling, pipeline coverage < 3x)
-- **Strategic recommendations** (priority deals, actions)
-- **Quick action suggestions** (call hot leads, revive stalled deals)
+- Sends commands to `ai-command-orchestrator`
+- Manages conversation state and loading
+- Handles action execution (navigate, create task, etc.)
 
-Uses Lovable AI Gateway with `google/gemini-3-flash-preview`.
+### 4. Components (`src/components/command-center-v2/`)
 
----
+- `CommandHero.tsx` — Full-width command input with gradient border and command suggestions
+- `CommandResponseCard.tsx` — Renders AI response with sections (summary, data points, actions)
+- `CommandQuickActions.tsx` — Contextual action buttons based on command type
+- `CommandSuggestionGrid.tsx` — Grid of 7 command type cards shown when idle
 
-## New Hook: `useWeeklyPerformance`
+### 5. Route + Nav
 
-Calculates live metrics from existing tables for the current week:
+- Add `/command-center` route in `App.tsx`
+- Add "Command Center" nav item in `nav.v1.ts`
 
-- `leads_created` — from `leads` table
-- `meetings_scheduled` — from `meetings` table
-- `proposals_sent` — from `proposals` table (status = published)
-- `deals_won` — from `opportunities` table (status = won)
-- `revenue_closed` — sum of won deal values
-- `pipeline_value` — sum of open deal values
-- `pipeline_coverage` — pipeline_value / revenue_target
+## Implementation order
 
-Compares each against `performance_targets` to compute % completion and status (green/yellow/red).
+1. Edge function: `ai-command-orchestrator` with all 7 command handlers
+2. Hook: `useCommandOrchestrator`
+3. Components: CommandHero, CommandResponseCard, CommandQuickActions, CommandSuggestionGrid
+4. Page: `CommandCenterPage.tsx`
+5. Route + nav updates
 
----
+## Files
 
-## New Hook: `useWeeklyStrategy`
-
-Calls `ai-weekly-strategy` edge function, caches result. Provides `generate()` and cached `strategy` object.
-
----
-
-## New Page: `WeeklyDashboard.tsx`
-
-Replaces CommandCenter as the `/dashboard` route. Layout:
-
-### Section 1 — Header
-- "Weekly Revenue Brief" title with current week dates
-- Auto-generates AI strategy on mount if none exists for this week
-- "Atualizar Estratégia" button
-
-### Section 2 — Weekly Performance KPI Strip
-6 cards using existing `KPICard` component with progress bars:
-- Revenue Target (actual/target + gap)
-- Deals Closed
-- Pipeline Coverage ratio
-- Meetings Scheduled
-- Lead Generation
-- Proposals Sent
-
-Each card shows green/yellow/red based on % completion (>80% green, 50-80% yellow, <50% red).
-
-### Section 3 — Two-column grid
-**Left: AI Strategy Panel**
-- Gap analysis summary
-- Required activities list
-- Strategic recommendations
-- Priority deals to focus on
-
-**Right: Pipeline Risk**
-- Deals at risk (reuses existing `DealsAtRiskList`)
-- Pipeline coverage ratio visualization
-
-### Section 4 — Quick Actions
-Row of action buttons:
-- Call hot leads → navigate to leads filtered by hot
-- Prepare meeting → create task
-- Send follow-up → create task
-- Revive stalled deals → navigate to stalled deals
-
-### Section 5 — Existing widgets
-Keep `AIActionSuggestions`, `DailyBriefWidget`, `PipelineHealthCard` below.
-
----
-
-## Targets Settings UI
-
-Add a "Metas Semanais" section in Settings page or as a sheet accessible from the dashboard header, allowing users to set weekly/monthly targets for each metric.
-
----
-
-## Route Changes
-
-| Route | Before | After |
-|-------|--------|-------|
-| `/dashboard` | CommandCenter | WeeklyDashboard |
-| `/dashboard/command-center` | Redirect to /dashboard | CommandCenter (standalone) |
-
----
-
-## Implementation Order
-
-1. DB migration: `performance_targets` table + RLS
-2. Edge function: `ai-weekly-strategy`
-3. Hooks: `useWeeklyPerformance`, `useWeeklyStrategy`
-4. Components: `WeeklyPerformanceStrip`, `AIStrategyPanel`, `WeeklyQuickActions`, `TargetsSettingsSheet`
-5. Page: `WeeklyDashboard.tsx`
-6. Route update in `App.tsx`
-
----
-
-## Files to create/modify
-
-- **New migration** — `performance_targets` table
-- **New edge function** — `supabase/functions/ai-weekly-strategy/index.ts`
-- **New hooks** — `useWeeklyPerformance.ts`, `useWeeklyStrategy.ts`
-- **New components** — `src/components/weekly-dashboard/` (5-6 components)
-- **New page** — `src/pages/WeeklyDashboard.tsx`
-- **Modified** — `App.tsx` (route swap), `supabase/config.toml` (new function), `CommandCenter.tsx` (keep as standalone)
+- **New**: `supabase/functions/ai-command-orchestrator/index.ts`
+- **New**: `src/hooks/useCommandOrchestrator.ts`
+- **New**: `src/components/command-center-v2/` (4 components)
+- **New**: `src/pages/CommandCenterPage.tsx`
+- **Modified**: `src/App.tsx`, `src/config/nav.v1.ts`, `supabase/config.toml`
 
