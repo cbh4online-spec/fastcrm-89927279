@@ -77,6 +77,7 @@ import ImpactMapPage from "./pages/ImpactMapPage";
 import SystemHealthPage from "./pages/SystemHealthPage";
 import EventMapPage from "./pages/EventMapPage";
 import EventMatrixPage from "./pages/EventMatrixPage";
+import EventTestsPage from "./pages/EventTestsPage";
 
 // Client Portal
 import { CartProvider } from "@/contexts/CartContext";
@@ -437,6 +438,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/system/health" element={<SystemHealthPage />} />
                 <Route path="/dashboard/system/events" element={<EventMapPage />} />
                 <Route path="/dashboard/system/event-matrix" element={<EventMatrixPage />} />
+                <Route path="/dashboard/system/event-tests" element={<EventTestsPage />} />
                 
                 {/* Settings redirect to /settings */}
                 <Route path="/dashboard/settings" element={<Navigate to="/settings" replace />} />
