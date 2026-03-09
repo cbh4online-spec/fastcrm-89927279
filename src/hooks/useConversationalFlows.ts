@@ -309,6 +309,10 @@ export function useConversationalFlows() {
       if (data.positionY !== undefined) updateData.position_y = data.positionY;
       if (data.isEntryPoint !== undefined) updateData.is_entry_point = data.isEntryPoint;
       if (data.position !== undefined) updateData.position = data.position;
+      if (data.aiModel !== undefined) updateData.ai_model = data.aiModel;
+      if (data.aiPrompt !== undefined) updateData.ai_prompt = data.aiPrompt;
+      if (data.aiInputSource !== undefined) updateData.ai_input_source = data.aiInputSource;
+      if (data.aiOutputVariable !== undefined) updateData.ai_output_variable = data.aiOutputVariable;
 
       const { data: updated, error } = await supabase
         .from('flow_steps')
