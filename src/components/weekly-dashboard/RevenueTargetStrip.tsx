@@ -63,7 +63,19 @@ export function RevenueTargetStrip({ metrics, pipelineValue, isLoading }: Props)
             <Crosshair className="h-4 w-4 text-primary" />
             WAR ROOM — Situação Semanal
           </CardTitle>
-          <Badge variant={statusBadge as any} className="text-[10px]">{statusLabel}</Badge>
+          <div className="flex items-center gap-2">
+            <div className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-full border",
+              probRounded >= 80 ? "bg-success/10 border-success/30 text-success" :
+              probRounded >= 50 ? "bg-warning/10 border-warning/30 text-warning" :
+              "bg-destructive/10 border-destructive/30 text-destructive"
+            )}>
+              <Target className="h-3.5 w-3.5" />
+              <span className="text-sm font-bold">{probRounded}%</span>
+              <span className="text-[10px] font-medium">de atingir meta</span>
+            </div>
+            <Badge variant={statusBadge as any} className="text-[10px]">{statusLabel}</Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
