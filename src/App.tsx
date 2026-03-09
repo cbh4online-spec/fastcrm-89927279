@@ -176,6 +176,11 @@ import ZapierPage from "./pages/ZapierPage";
 import CEOCopilotPage from "./pages/CEOCopilotPage";
 import CommandCenterV2Page from "./pages/CommandCenterV2Page";
 import BundlesPage from "./pages/BundlesPage";
+import RevenueFlightControlPage from "./pages/RevenueFlightControlPage";
+import RFCDealsPage from "./pages/RFCDealsPage";
+import RFCForecastPage from "./pages/RFCForecastPage";
+import RFCScenariosPage from "./pages/RFCScenariosPage";
+import RFCSettingsPage from "./pages/RFCSettingsPage";
 
 // Renewals
 import RenewalsPage from "./pages/RenewalsPage";
