@@ -16875,6 +16875,82 @@ export type Database = {
           },
         ]
       }
+      impact_map_positions: {
+        Row: {
+          id: string
+          node_key: string
+          updated_at: string
+          view_mode: string
+          workspace_id: string
+          x: number
+          y: number
+        }
+        Insert: {
+          id?: string
+          node_key: string
+          updated_at?: string
+          view_mode?: string
+          workspace_id: string
+          x?: number
+          y?: number
+        }
+        Update: {
+          id?: string
+          node_key?: string
+          updated_at?: string
+          view_mode?: string
+          workspace_id?: string
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impact_map_positions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      impact_simulation_snapshots: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          direction: string
+          id: string
+          results: Json
+          source_block_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          id?: string
+          results?: Json
+          source_block_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          id?: string
+          results?: Json
+          source_block_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impact_simulation_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_history: {
         Row: {
           column_mapping: Json | null
