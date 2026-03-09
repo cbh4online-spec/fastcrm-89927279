@@ -256,7 +256,11 @@ export function useConversationalFlows() {
         position_x: data.positionX || 0,
         position_y: data.positionY || 0,
         is_entry_point: data.isEntryPoint || false,
-        position: data.position || steps.length
+        position: data.position || steps.length,
+        ai_model: data.aiModel,
+        ai_prompt: data.aiPrompt,
+        ai_input_source: data.aiInputSource,
+        ai_output_variable: data.aiOutputVariable,
       };
 
       // Use generic query since types may not be updated yet
