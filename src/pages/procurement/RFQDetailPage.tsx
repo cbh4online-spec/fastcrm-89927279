@@ -605,6 +605,7 @@ export default function RFQDetailPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </DashboardLayout>
   );
 }
 
