@@ -80,7 +80,7 @@ export default function ImpactMapPage() {
   }, []);
 
   // Persist position on drag end
-  const handleNodeDragStop: NodeDragHandler = useCallback((_event, node) => {
+  const handleNodeDragStop = useCallback((_event: React.MouseEvent, node: Node) => {
     savePosition(node.id, viewMode, node.position.x, node.position.y);
   }, [savePosition, viewMode]);
 
