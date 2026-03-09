@@ -132,6 +132,7 @@ import C2CPublicListingDetail from "./pages/c2c/C2CPublicListingDetail";
 import C2CSellerRegistration from "./pages/c2c/C2CSellerRegistration";
 import C2CSellersAdmin from "./pages/c2c/C2CSellersAdmin";
 import MarketplaceAdmin from "./pages/admin/MarketplaceAdmin";
+import ProspectingHub from "./pages/ProspectingHub";
 import GoogleLocalProspecting from "./pages/GoogleLocalProspecting";
 import WebSearchProspecting from "./pages/WebSearchProspecting";
 import ProfessionalProspecting from "./pages/ProfessionalProspecting";
