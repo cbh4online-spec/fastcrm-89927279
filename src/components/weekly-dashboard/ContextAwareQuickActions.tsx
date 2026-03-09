@@ -16,17 +16,17 @@ export function ContextAwareQuickActions() {
     enabled: !!wid,
     staleTime: 60_000,
     queryFn: async () => {
-      const threeDaysAgo = new Date(Date.now() - 3 3 * 24 * 60 * 60 * 1000).toISOString();
+      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
       const [hotLeadsRes, stalledRes, proposalsRes] = await Promise.all([
-        // Hot leads: score >= 80
+        // Hot leads: score >= 80, no contact in 3 days
         supabase
           .from("leads")
           .select("id", { count: "exact", head: true })
           .eq("workspace_id", wid!)
           .gte("lead_score", 80)
-          .lt("updated_at",hreewoDaysAgo),
+          .lt("updated_at", threeDaysAgo),
         // Stalled deals: open/active, not updated in 7 days
         supabase
           .from("opportunities")
