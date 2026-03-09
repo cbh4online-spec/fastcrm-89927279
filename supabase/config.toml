@@ -11,3 +11,5 @@ project_id = "xqepxufdrsuxlnubuatz"
     verify_jwt = false
   [functions.ai-pipeline-risk]
     verify_jwt = false
+  [functions.ai-command-orchestrator]
+    verify_jwt = false
