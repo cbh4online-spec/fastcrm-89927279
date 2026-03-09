@@ -102,6 +102,7 @@ export const NAV_V2_CORE: NavV2CoreItem[] = [
   { type: "item", name: "Início", href: "/dashboard", icon: Zap, end: true, iconColor: "text-violet-500" },
   { type: "item", name: "Command Center", href: "/dashboard/command-center", icon: LayoutDashboard, iconColor: "text-violet-500" },
   { type: "item", name: "Brief Executivo", href: "/dashboard/strategy", icon: Brain, iconColor: "text-violet-500" },
+  { type: "item", name: "AI CEO Copilot", href: "/dashboard/ceo-copilot", icon: Sparkles, iconColor: "text-violet-500" },
   { type: "item", name: "Context OS", href: "/dashboard/context-os", icon: Brain, iconColor: "text-violet-500" },
   { type: "item", name: "Mapa de Impacto", href: "/dashboard/impact-map", icon: GitBranch, iconColor: "text-violet-500" },
 ];
