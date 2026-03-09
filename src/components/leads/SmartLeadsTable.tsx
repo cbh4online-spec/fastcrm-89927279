@@ -318,7 +318,9 @@ export function SmartLeadsTable() {
           className="mt-4"
         />
 
-        {activeTab === "automations" ? (
+        {activeTab === "duplicates" ? (
+          <div className="mt-4 flex-1 px-4"><LeadDuplicateReviewPanel /></div>
+        ) : activeTab === "automations" ? (
           <div className="mt-4 flex-1"><EntityAutomationsSection entityType="lead" showHeader={false} /></div>
         ) : activeTab === "smart-lists" ? (
           <div className="mt-4 flex-1 flex items-center justify-center text-muted-foreground">
