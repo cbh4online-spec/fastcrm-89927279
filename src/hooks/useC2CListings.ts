@@ -149,11 +149,15 @@ export function useCreateC2CListing(workspaceId: string | undefined) {
       if (!workspaceId || !user) throw new Error("Sem workspace ou utilizador");
 
       // Auto-moderation: check banned words
-      const { data: settings } = await supabase
+      const { data: settings, error: settingsError } = await supabase
         .from("c2c_moderation_settings")
         .select("banned_words, min_description_length, require_photo")
         .eq("workspace_id", workspaceId)
-        .single();
+        .maybeSingle();
+      
+      if (settingsError) {
+        console.warn('[MARKETPLACE] Failed to load moderation settings:', settingsError.message);
+      }
 
       let moderationStatus = "approved";
       let moderationNotes = null;
