@@ -16,7 +16,7 @@ export function ContextAwareQuickActions() {
     enabled: !!wid,
     staleTime: 60_000,
     queryFn: async () => {
-      const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
       const [hotLeadsRes, stalledRes, proposalsRes] = await Promise.all([
