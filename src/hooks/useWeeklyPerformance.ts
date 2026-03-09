@@ -69,7 +69,7 @@ export function useWeeklyPerformance() {
           .eq("workspace_id", wid!).in("status", ["open", "active", "negotiation"]),
       ]);
 
-      const wonDeals = (oppsRes.data || []).filter((o: any) => o.status === "won");
+      const wonDeals = oppsRes.data || [];
       const revenue = wonDeals.reduce((s: number, d: any) => s + (d.value || 0), 0);
       const pipelineValue = (pipelineRes.data || []).reduce((s: number, d: any) => s + (d.value || 0), 0);
       const revenueTarget = tMap.revenue || 0;
