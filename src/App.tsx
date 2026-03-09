@@ -652,7 +652,7 @@ function CRMRoutes() {
                 <Route path="/empresas" element={<VerticalLandingPage />} />
                 <Route path="/event-rsvp" element={<EventRsvpResponse />} />
                 <Route path="/invite/:token" element={<AcceptWorkspaceInvite />} />
-                <Route path="/marketplace" element={<Navigate to="/dashboard/marketplace" replace />} />
+                
                 <Route path="/:slug" element={<VerticalLandingPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
@@ -687,6 +687,7 @@ const App = () => (
               <Route path="/marketplace/:workspaceSlug/listing/:id" element={<C2CPublicListingDetail />} />
               <Route path="/marketplace/:workspaceSlug/:id" element={<C2CPublicListingDetail />} />
               <Route path="/marketplace/:workspaceSlug" element={<C2CPublicMarketplace />} />
+              <Route path="/marketplace" element={<Navigate to="/dashboard/marketplace" replace />} />
               <Route path="/c2c/:workspaceSlug/listing/:id" element={<C2CPublicListingDetail />} />
               <Route path="/c2c/:workspaceSlug/:id" element={<C2CPublicListingDetail />} />
               <Route path="/c2c/:workspaceSlug" element={<C2CPublicMarketplace />} />
