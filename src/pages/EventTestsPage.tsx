@@ -28,8 +28,11 @@ interface TestCase {
 }
 
 const testTypeLabels: Record<string, string> = {
+  valid: "Valid",
   valid_payload: "Valid Payload",
+  invalid: "Invalid",
   invalid_payload: "Invalid Payload",
+  conditional: "Conditional",
   conditional_branch: "Conditional",
   idempotency: "Idempotency",
   failure_path: "Failure Path",
@@ -40,6 +43,14 @@ const resultConfig: Record<string, { icon: typeof CheckCircle2; className: strin
   reject: { icon: XCircle, className: "text-destructive" },
   skip: { icon: AlertTriangle, className: "text-yellow-500" },
   error: { icon: AlertTriangle, className: "text-orange-500" },
+};
+
+// Map expected_result to display — handle both old and new conventions
+const getResultDisplay = (result: string) => {
+  if (result.includes("failure") || result.includes("error")) return resultConfig.error;
+  if (result.includes("schema_validation") || result.includes("reject")) return resultConfig.reject;
+  if (result.includes("without") || result.includes("skip") || result.includes("single_") || result.includes("once")) return resultConfig.skip;
+  return resultConfig.accept;
 };
 
 const statusConfig: Record<string, { label: string; variant: "default" | "destructive" | "secondary" | "outline" }> = {
@@ -203,7 +214,7 @@ export default function EventTestsPage() {
                   </TableRow>
                 ) : (
                   filtered.map((t) => {
-                    const rc = resultConfig[t.expected_result] ?? resultConfig.accept;
+                    const rc = getResultDisplay(t.expected_result);
                     const ResultIcon = rc.icon;
                     return (
                       <TableRow key={t.id}>
