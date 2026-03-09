@@ -30,6 +30,7 @@ export interface ImpactMapNodeData {
   isImpacted?: boolean;
   isSource?: boolean;
   isStale?: boolean;
+  impactDirection?: string;
   onSimulate: (id: string) => void;
   onSelect: (id: string) => void;
   [key: string]: unknown;
