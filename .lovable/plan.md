@@ -1,68 +1,42 @@
 
 
-# Phase 5B — Command Center COMPLETO
+## Diagnóstico: Erro ao Scan Duplicados
 
-## Gap Analysis: Current vs Spec
+### Problemas Identificados
 
-The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
+1. **CORS Headers Incompletos** — As edge functions `detect-lead-duplicates` e `merge-leads` têm headers CORS que não incluem todos os headers necessários enviados pelo cliente Supabase (`x-supabase-client-platform`, etc.). Isto causa falha na preflight request do browser.
 
-**Already implemented (needs enhancement):**
-- Header with greeting + 3 KPIs — needs larger font (32px), labels below
-- AI Question Box — needs slash command suggestions row below input
-- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
-- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
-- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
-- Drift Alerts — needs "Rever →" links to Context OS blocks
+2. **Função não registada em config.toml** — Embora não seja obrigatório para `verify_jwt = true` (o default), adicionar as funções garante que são reconhecidas e deployadas corretamente.
 
-**New sections to build:**
-1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
-2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
-   - Change Events (last 5 from `useChangeEvents` with realtime)
-   - Entity Activity (top 3 entities from `useKernelEntities`)
-   - Impact Score (top 2 from `useImpactMapData`)
-3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
+### Plano de Correção
 
-**Enhanced Command Palette (⌘K):**
-- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
+**1. Corrigir CORS em ambas as edge functions**
 
-**Spotlight (Space key):**
-- Opens AI Question Box as a modal from any page. New global component.
+Atualizar os `corsHeaders` em `detect-lead-duplicates/index.ts` e `merge-leads/index.ts` para incluir todos os headers:
+```typescript
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+```
 
-## Implementation Plan — 3 Sub-phases
+**2. Adicionar funções ao config.toml**
 
-Given the scope, I recommend splitting into 3 batches:
+Registar `detect-lead-duplicates` e `merge-leads` com `verify_jwt = false` (as funções já validam auth manualmente no código):
+```toml
+[functions.detect-lead-duplicates]
+  verify_jwt = false
+[functions.merge-leads]
+  verify_jwt = false
+```
 
-### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
-| File | Action |
-|------|--------|
-| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
-| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
-| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
-| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
+**3. Melhorar error handling no frontend**
 
-### Batch 2: Enhance Existing Cards
-| File | Action |
-|------|--------|
-| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
-| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
-| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
-| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
-| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
-| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
+Atualizar `useDetectLeadDuplicates` para mostrar a mensagem de erro real ao utilizador em vez de uma genérica.
 
-### Batch 3: Spotlight Modal + Command Palette Enhancement
-| File | Action |
-|------|--------|
-| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
-| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
-| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
-
-### Realtime subscriptions needed
-- `change_events` table for Kernel Live Feed auto-update
-- `kernel_action_runs` for Ações do Dia auto-update
-- Already have `kernel_decisions` and `conversations`
-
-No database migrations needed. All hooks, edge functions, and tables already exist.
-
-**Shall I start with Batch 1?**
+### Ficheiros a alterar
+- `supabase/functions/detect-lead-duplicates/index.ts` — CORS fix
+- `supabase/functions/merge-leads/index.ts` — CORS fix  
+- `supabase/config.toml` — registar funções
+- `src/hooks/useLeadDuplicateEngine.ts` — melhorar toast de erro
 
