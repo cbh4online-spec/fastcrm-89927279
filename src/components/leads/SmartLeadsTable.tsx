@@ -9,6 +9,7 @@ import {
 } from "@/hooks/useSmartLeads";
 import { useBulkAnalyzeEntityLinkedIn } from "@/hooks/useEntitySocialMediaAnalysis";
 import { useDeleteLeads } from "@/hooks/useLeads";
+import { useLeadDuplicateGroupsPersisted } from "@/hooks/useLeadDuplicateEngine";
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
@@ -19,11 +20,12 @@ import { DynamicTableCell } from "@/components/common/DynamicTableCell";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Sparkles, Trash2, RefreshCw, Download, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Clock, UserX, MessageSquare, Target, Activity, Linkedin, ExternalLink, MoreHorizontal, Reply, Settings2, Archive, Building2, Users } from "lucide-react";
+import { Plus, Sparkles, Trash2, RefreshCw, Download, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Clock, UserX, MessageSquare, Target, Activity, Linkedin, ExternalLink, MoreHorizontal, Reply, Settings2, Archive, Building2, Users, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { EmptyState, SearchEmptyState, LoadingSpinner, TableSkeleton } from "@/components/design-system";
@@ -173,6 +175,18 @@ export function SmartLeadsTable() {
   const analyzeLead = useAnalyzeLead();
   const bulkAnalyze = useBulkAnalyzeLeads();
   const bulkAnalyzeLinkedIn = useBulkAnalyzeEntityLinkedIn('lead');
+  const { data: duplicateGroups = [] } = useLeadDuplicateGroupsPersisted();
+
+  // Build a map of leadId -> duplicate group count
+  const duplicateLeadIds = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const group of duplicateGroups) {
+      for (const item of group.items) {
+        map.set(item.lead_id, (map.get(item.lead_id) || 0) + 1);
+      }
+    }
+    return map;
+  }, [duplicateGroups]);
 
   const filteredLeads = useMemo(() => {
     if (!leads) return [];
@@ -311,7 +325,7 @@ export function SmartLeadsTable() {
           rightActions={
             <div className="flex items-center gap-2">
               <ColumnSelector columns={LEAD_COLUMNS} visibleColumns={visibleColumns} columnOrder={columnOrder} onVisibleColumnsChange={setVisibleColumns} onColumnOrderChange={setColumnOrder} />
-              <Button variant="outline" size="sm" onClick={() => setIsDuplicatesOpen(true)} className="gap-2"><Users className="w-4 h-4" />Duplicados</Button>
+              <Button variant="outline" size="sm" onClick={() => setActiveTab("duplicates")} className={cn("gap-2", duplicateGroups.length > 0 && "border-warning/40")}><Users className="w-4 h-4" />Duplicados{duplicateGroups.length > 0 && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-warning/10 text-warning">{duplicateGroups.length}</Badge>}</Button>
               <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2"><RefreshCw className="w-4 h-4" />{t("refresh")}</Button>
             </div>
           }
@@ -370,6 +384,7 @@ export function SmartLeadsTable() {
                   ) : (
                     paginatedLeads.map((lead) => {
                       const initials = lead.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+                      const dupCount = duplicateLeadIds.get(lead.id);
                       return (
                         <TableRow key={lead.id} className={cn("group transition-colors cursor-pointer", selectedIds.has(lead.id) && "bg-muted/50", lead.slaBreach && "bg-destructive/5")} onClick={() => navigate(`/dashboard/leads/${lead.id}`)}>
                           <TableCell className={cn("w-[40px]", stickyCheckboxStyles)} onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedIds.has(lead.id)} onCheckedChange={() => toggleSelect(lead.id)} /></TableCell>
@@ -377,7 +392,19 @@ export function SmartLeadsTable() {
                             <div className="flex items-center gap-3">
                               <Avatar className="h-9 w-9"><AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground text-xs font-medium">{initials}</AvatarFallback></Avatar>
                               <div className="min-w-0">
-                                <a href={`/dashboard/leads/${lead.id}`} className="font-medium text-foreground hover:text-primary hover:underline truncate block relative z-10">{lead.name}</a>
+                                <div className="flex items-center gap-1.5">
+                                  <a href={`/dashboard/leads/${lead.id}`} className="font-medium text-foreground hover:text-primary hover:underline truncate block relative z-10">{lead.name}</a>
+                                  {dupCount && (
+                                    <Badge 
+                                      variant="outline" 
+                                      className="text-[9px] px-1.5 py-0 h-4 border-warning/40 bg-warning/10 text-warning cursor-pointer shrink-0"
+                                      onClick={(e) => { e.stopPropagation(); setActiveTab("duplicates"); }}
+                                    >
+                                      <Copy className="h-2.5 w-2.5 mr-0.5" />
+                                      {dupCount}
+                                    </Badge>
+                                  )}
+                                </div>
                                 {(lead as any).company_name && <div className="flex items-center gap-1 text-xs text-muted-foreground"><Building2 className="w-3 h-3" /><span className="truncate">{(lead as any).company_name}</span></div>}
                               </div>
                             </div>
