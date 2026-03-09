@@ -15,6 +15,8 @@ import { TranscriptKeyMoments } from "./TranscriptKeyMoments";
 import { TranscriptSegmentRow } from "./TranscriptSegmentRow";
 import { RecordingUploadCard } from "./RecordingUploadCard";
 import { RecordingCrmLinks } from "./RecordingCrmLinks";
+import { MeetingIntelligencePanel } from "./MeetingIntelligencePanel";
+import { MeetingLiveRecorder } from "./MeetingLiveRecorder";
 
 interface Props {
   meetingId: string;
