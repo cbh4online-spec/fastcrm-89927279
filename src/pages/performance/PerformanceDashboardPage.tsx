@@ -197,7 +197,7 @@ export default function PerformanceDashboardPage() {
                           <Badge variant="secondary" className="text-xs">{daysLeft}d restantes</Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">{ch.description}</p>
-                        <Progress value={45} className="h-1.5" />
+                        <Progress value={getChallengeProgress(ch)} className="h-1.5" />
                       </div>
                     );
                   })}
