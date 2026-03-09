@@ -269,6 +269,7 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
       { name: "SEO & Growth", href: "/dashboard/seo", icon: Search, moduleSlug: "seo-growth", iconColor: "text-slate-500" },
       { name: "Motor Conversacional", href: "/dashboard/conversational-engine", icon: MessageSquare, moduleSlug: "conversational-engine", iconColor: "text-slate-500" },
       { name: "System Health", href: "/dashboard/system/health", icon: ShieldCheck, iconColor: "text-slate-500" },
+      { name: "Event Map", href: "/dashboard/system/events", icon: Radio, iconColor: "text-slate-500" },
       { name: "Configurações", href: "/settings", icon: Settings, iconColor: "text-slate-500" },
     ],
   },
