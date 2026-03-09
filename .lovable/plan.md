@@ -1,68 +1,144 @@
 
 
-# Phase 5B — Command Center COMPLETO
+# Revenue Intelligence Dashboard — Weekly Performance + AI Strategy
 
-## Gap Analysis: Current vs Spec
+## Overview
 
-The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
+Replace the current `/dashboard` landing page (CommandCenter) with a new **Weekly Revenue Performance Dashboard** that shows goal progress with traffic-light indicators and AI-generated strategy to close gaps. The existing CommandCenter moves to `/dashboard/command-center`.
 
-**Already implemented (needs enhancement):**
-- Header with greeting + 3 KPIs — needs larger font (32px), labels below
-- AI Question Box — needs slash command suggestions row below input
-- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
-- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
-- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
-- Drift Alerts — needs "Rever →" links to Context OS blocks
+---
 
-**New sections to build:**
-1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
-2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
-   - Change Events (last 5 from `useChangeEvents` with realtime)
-   - Entity Activity (top 3 entities from `useKernelEntities`)
-   - Impact Score (top 2 from `useImpactMapData`)
-3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
+## Database
 
-**Enhanced Command Palette (⌘K):**
-- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
+### New table: `performance_targets`
 
-**Spotlight (Space key):**
-- Opens AI Question Box as a modal from any page. New global component.
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| workspace_id | uuid FK | |
+| metric_type | text | `revenue`, `leads`, `meetings`, `proposals`, `deals` |
+| target_value | numeric | The target number |
+| period_type | text | `weekly` / `monthly` |
+| period_start | date | |
+| period_end | date | |
+| created_by | uuid | |
+| created_at | timestamptz | |
 
-## Implementation Plan — 3 Sub-phases
+RLS: workspace members only (read/write).
 
-Given the scope, I recommend splitting into 3 batches:
+---
 
-### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
-| File | Action |
-|------|--------|
-| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
-| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
-| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
-| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
+## Edge Function: `ai-weekly-strategy`
 
-### Batch 2: Enhance Existing Cards
-| File | Action |
-|------|--------|
-| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
-| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
-| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
-| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
-| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
-| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
+Receives workspace metrics (pipeline, targets, deal stages, conversion rates, activity counts) and returns structured output via tool calling:
 
-### Batch 3: Spotlight Modal + Command Palette Enhancement
-| File | Action |
-|------|--------|
-| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
-| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
-| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
+- **Gap analysis** per metric (target vs actual, % shortfall)
+- **Required activities** to close gaps
+- **Risk alerts** (deals stalling, pipeline coverage < 3x)
+- **Strategic recommendations** (priority deals, actions)
+- **Quick action suggestions** (call hot leads, revive stalled deals)
 
-### Realtime subscriptions needed
-- `change_events` table for Kernel Live Feed auto-update
-- `kernel_action_runs` for Ações do Dia auto-update
-- Already have `kernel_decisions` and `conversations`
+Uses Lovable AI Gateway with `google/gemini-3-flash-preview`.
 
-No database migrations needed. All hooks, edge functions, and tables already exist.
+---
 
-**Shall I start with Batch 1?**
+## New Hook: `useWeeklyPerformance`
+
+Calculates live metrics from existing tables for the current week:
+
+- `leads_created` — from `leads` table
+- `meetings_scheduled` — from `meetings` table
+- `proposals_sent` — from `proposals` table (status = published)
+- `deals_won` — from `opportunities` table (status = won)
+- `revenue_closed` — sum of won deal values
+- `pipeline_value` — sum of open deal values
+- `pipeline_coverage` — pipeline_value / revenue_target
+
+Compares each against `performance_targets` to compute % completion and status (green/yellow/red).
+
+---
+
+## New Hook: `useWeeklyStrategy`
+
+Calls `ai-weekly-strategy` edge function, caches result. Provides `generate()` and cached `strategy` object.
+
+---
+
+## New Page: `WeeklyDashboard.tsx`
+
+Replaces CommandCenter as the `/dashboard` route. Layout:
+
+### Section 1 — Header
+- "Weekly Revenue Brief" title with current week dates
+- Auto-generates AI strategy on mount if none exists for this week
+- "Atualizar Estratégia" button
+
+### Section 2 — Weekly Performance KPI Strip
+6 cards using existing `KPICard` component with progress bars:
+- Revenue Target (actual/target + gap)
+- Deals Closed
+- Pipeline Coverage ratio
+- Meetings Scheduled
+- Lead Generation
+- Proposals Sent
+
+Each card shows green/yellow/red based on % completion (>80% green, 50-80% yellow, <50% red).
+
+### Section 3 — Two-column grid
+**Left: AI Strategy Panel**
+- Gap analysis summary
+- Required activities list
+- Strategic recommendations
+- Priority deals to focus on
+
+**Right: Pipeline Risk**
+- Deals at risk (reuses existing `DealsAtRiskList`)
+- Pipeline coverage ratio visualization
+
+### Section 4 — Quick Actions
+Row of action buttons:
+- Call hot leads → navigate to leads filtered by hot
+- Prepare meeting → create task
+- Send follow-up → create task
+- Revive stalled deals → navigate to stalled deals
+
+### Section 5 — Existing widgets
+Keep `AIActionSuggestions`, `DailyBriefWidget`, `PipelineHealthCard` below.
+
+---
+
+## Targets Settings UI
+
+Add a "Metas Semanais" section in Settings page or as a sheet accessible from the dashboard header, allowing users to set weekly/monthly targets for each metric.
+
+---
+
+## Route Changes
+
+| Route | Before | After |
+|-------|--------|-------|
+| `/dashboard` | CommandCenter | WeeklyDashboard |
+| `/dashboard/command-center` | Redirect to /dashboard | CommandCenter (standalone) |
+
+---
+
+## Implementation Order
+
+1. DB migration: `performance_targets` table + RLS
+2. Edge function: `ai-weekly-strategy`
+3. Hooks: `useWeeklyPerformance`, `useWeeklyStrategy`
+4. Components: `WeeklyPerformanceStrip`, `AIStrategyPanel`, `WeeklyQuickActions`, `TargetsSettingsSheet`
+5. Page: `WeeklyDashboard.tsx`
+6. Route update in `App.tsx`
+
+---
+
+## Files to create/modify
+
+- **New migration** — `performance_targets` table
+- **New edge function** — `supabase/functions/ai-weekly-strategy/index.ts`
+- **New hooks** — `useWeeklyPerformance.ts`, `useWeeklyStrategy.ts`
+- **New components** — `src/components/weekly-dashboard/` (5-6 components)
+- **New page** — `src/pages/WeeklyDashboard.tsx`
+- **Modified** — `App.tsx` (route swap), `supabase/config.toml` (new function), `CommandCenter.tsx` (keep as standalone)
 
