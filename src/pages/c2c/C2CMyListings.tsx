@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
-import { getShareUrl } from "@/utils/getShareUrl";
+
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
