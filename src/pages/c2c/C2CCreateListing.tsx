@@ -185,6 +185,26 @@ export default function C2CCreateListing() {
     );
   };
 
+  const handleSearchWebImages = () => {
+    if (!title.trim()) {
+      toast.error("Introduz um título primeiro para pesquisar.");
+      return;
+    }
+    searchWebImages.mutate(
+      { title, description, condition },
+      {
+        onSuccess: (images) => {
+          if (images.length === 0) {
+            toast.info("Nenhuma imagem encontrada na internet para este produto.");
+            return;
+          }
+          setPhotos((prev) => [...prev, ...images]);
+          toast.success(`${images.length} imagem(ns) encontrada(s) na internet!`);
+        },
+      }
+    );
+  };
+
   const handleAnalyzeWithAI = async () => {
     const firstPhoto = photos[0];
     analyzePhoto.mutate(
