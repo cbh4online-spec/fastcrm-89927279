@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCreateC2CListing, useC2CCategories } from "@/hooks/useC2CListings";
 import { useAnalyzePhoto, useGenerateTitle, useGenerateDescription, useSuggestPrice, useSuggestCategory, useGenerateListingImage, useGenerate360, useSearchWebImages } from "@/hooks/useC2CListingAI";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { ArrowLeft, ImagePlus, X, Sparkles, TrendingUp, Loader2, Wand2, Zap, Camera, Video, RotateCw } from "lucide-react";
+import { ArrowLeft, ImagePlus, X, Sparkles, TrendingUp, Loader2, Wand2, Zap, Camera, Video, RotateCw, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
