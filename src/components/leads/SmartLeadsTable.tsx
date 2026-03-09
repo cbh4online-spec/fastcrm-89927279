@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { EmptyState, SearchEmptyState, LoadingSpinner, TableSkeleton } from "@/components/design-system";
 import { EntityAutomationsSection } from "@/components/automations/EntityAutomationsSection";
 import { UnifiedDuplicateDialog } from "@/components/crm/UnifiedDuplicateDialog";
+import { LeadDuplicateReviewPanel } from "@/components/leads/LeadDuplicateReviewPanel";
 import { useTranslation } from "react-i18next";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -120,6 +121,7 @@ export function SmartLeadsTable() {
 
   const pageTabs = useMemo(() => [
     { id: "leads", label: t("tabLeads") },
+    { id: "duplicates", label: "Duplicate Review" },
     { id: "smart-lists", label: t("tabSmartLists") },
     { id: "automations", label: t("tabAutomations") },
     { id: "import", label: t("tabImport") },
@@ -316,7 +318,9 @@ export function SmartLeadsTable() {
           className="mt-4"
         />
 
-        {activeTab === "automations" ? (
+        {activeTab === "duplicates" ? (
+          <div className="mt-4 flex-1 px-4"><LeadDuplicateReviewPanel /></div>
+        ) : activeTab === "automations" ? (
           <div className="mt-4 flex-1"><EntityAutomationsSection entityType="lead" showHeader={false} /></div>
         ) : activeTab === "smart-lists" ? (
           <div className="mt-4 flex-1 flex items-center justify-center text-muted-foreground">
