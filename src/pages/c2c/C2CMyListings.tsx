@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
-import { getShareUrl } from "@/utils/getShareUrl";
+
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -180,7 +180,7 @@ export default function C2CMyListings() {
                   const st = statusLabels[listing.status] || statusLabels.active;
                   const timeAgo = formatDistanceToNow(new Date(listing.created_at), { addSuffix: true, locale: pt });
                   const condition = conditionLabels[listing.condition] || listing.condition;
-                  const listingUrl = getShareUrl("c2c-listing", (currentWorkspace?.slug || "") + "/" + listing.id);
+                  const listingUrl = `${getPublicBaseUrl()}/marketplace/${currentWorkspace?.slug || currentWorkspace?.id}/${listing.id}`;
 
                   return (
                     <div

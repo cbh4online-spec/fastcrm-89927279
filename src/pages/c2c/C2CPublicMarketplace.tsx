@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
-import { getShareUrl } from "@/utils/getShareUrl";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -342,8 +342,8 @@ export default function C2CPublicMarketplace() {
   const ogTitle = storeSettings?.store_name ? `${storeSettings.store_name} — Marketplace C2C` : `${workspace?.name || "Marketplace"} — C2C`;
   const ogDescription = storeSettings?.store_description || `Explora o marketplace de ${workspace?.name || ""}. Compra e vende entre utilizadores reais.`;
   const ogImage = storeSettings?.logo_url || `${getPublicBaseUrl()}/og-image.png`;
-  const ogUrl = `${getPublicBaseUrl()}/c2c/${workspaceSlug}`;
-  const shareUrl = getShareUrl("c2c", workspaceSlug || "");
+  const ogUrl = `${getPublicBaseUrl()}/marketplace/${workspaceSlug}`;
+  const shareUrl = `${getPublicBaseUrl()}/marketplace/${workspaceSlug}`;
 
   const featuredListings = useMemo(() => listings.filter((l) => l.is_featured), [listings]);
   const recentListings = useMemo(() =>
@@ -478,7 +478,7 @@ export default function C2CPublicMarketplace() {
                       listing={listing}
                       isFavorite={false}
                       onToggleFavorite={() => {}}
-                      onClick={() => navigate(`/c2c/${workspaceSlug}/${listing.id}`)}
+                      onClick={() => navigate(`/marketplace/${workspaceSlug}/${listing.id}`)}
                       isSponsored={sponsoredIds.includes(listing.id)}
                     />
                   ))}
@@ -500,7 +500,7 @@ export default function C2CPublicMarketplace() {
                 title="Destaques"
                 icon={<Sparkles className="h-5 w-5 text-primary" />}
                 listings={featuredListings}
-                onNavigate={(id) => navigate(`/c2c/${workspaceSlug}/${id}`)}
+                onNavigate={(id) => navigate(`/marketplace/${workspaceSlug}/${id}`)}
                 sponsoredIds={sponsoredIds}
               />
             )}
@@ -509,7 +509,7 @@ export default function C2CPublicMarketplace() {
                 title="Mais Recentes"
                 icon={<Clock className="h-5 w-5 text-primary" />}
                 listings={recentListings}
-                onNavigate={(id) => navigate(`/c2c/${workspaceSlug}/${id}`)}
+                onNavigate={(id) => navigate(`/marketplace/${workspaceSlug}/${id}`)}
                 sponsoredIds={sponsoredIds}
               />
             )}
