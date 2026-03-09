@@ -1,32 +1,68 @@
 
 
-## Diagnóstico
+# Phase 5B — Command Center COMPLETO
 
-O screenshot mostra a página pública C2C a funcionar correctamente (layout METODOPARE com tema amarelo), o que indica que o routing `/marketplace/:workspaceSlug` já está activo **no preview**.
+## Gap Analysis: Current vs Spec
 
-O código do botão "Entrar" está correcto:
-```tsx
-onClick={() => navigate(`/login?redirect=/c2c/${workspaceSlug}`)}
-```
+The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
 
-Isto navega para `/login` (que existe dentro de `CRMRoutes`) com redirect de volta ao marketplace após login. O `Login.tsx` lê o parâmetro `redirect` e redirecciona correctamente.
+**Already implemented (needs enhancement):**
+- Header with greeting + 3 KPIs — needs larger font (32px), labels below
+- AI Question Box — needs slash command suggestions row below input
+- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
+- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
+- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
+- Drift Alerts — needs "Rever →" links to Context OS blocks
 
-**Causa provável**: A app precisa de ser **republicada** para que as alterações de routing entrem em vigor no domínio custom `fastcrm.metodopare.ai`. No preview do Lovable, o botão deve funcionar.
+**New sections to build:**
+1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
+2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
+   - Change Events (last 5 from `useChangeEvents` with realtime)
+   - Entity Activity (top 3 entities from `useKernelEntities`)
+   - Impact Score (top 2 from `useImpactMapData`)
+3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
 
-**Melhoria adicional**: O redirect após login aponta para `/c2c/${workspaceSlug}` em vez de `/marketplace/${workspaceSlug}`. Embora ambas as rotas existam, devemos uniformizar para `/marketplace/` já que é o path público canónico.
+**Enhanced Command Palette (⌘K):**
+- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
 
-## Plano
+**Spotlight (Space key):**
+- Opens AI Question Box as a modal from any page. New global component.
 
-### 1. Corrigir o redirect do botão "Entrar" para usar `/marketplace/`
-**Ficheiro**: `src/pages/c2c/C2CPublicMarketplace.tsx`
-- Linha 427: Alterar `/login?redirect=/c2c/${workspaceSlug}` → `/login?redirect=/marketplace/${workspaceSlug}`
+## Implementation Plan — 3 Sub-phases
 
-### 2. Corrigir o path do botão "Vender" para consistência
-**Ficheiro**: `src/pages/c2c/C2CPublicMarketplace.tsx`
-- Linha 358: Alterar `navigate('/c2c/${workspaceSlug}/sell')` → Adicionar rota `/marketplace/:workspaceSlug/sell` em `App.tsx`, ou manter `/c2c/` para sell (que já tem rota na linha 694)
+Given the scope, I recommend splitting into 3 batches:
 
-### 3. Republicar a app
-Após as alterações, a app deve ser republicada para o domínio custom.
+### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
+| File | Action |
+|------|--------|
+| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
+| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
+| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
+| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
 
-**Total**: 1 ficheiro editado, ~2 linhas alteradas.
+### Batch 2: Enhance Existing Cards
+| File | Action |
+|------|--------|
+| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
+| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
+| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
+| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
+| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
+| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
+
+### Batch 3: Spotlight Modal + Command Palette Enhancement
+| File | Action |
+|------|--------|
+| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
+| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
+| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
+
+### Realtime subscriptions needed
+- `change_events` table for Kernel Live Feed auto-update
+- `kernel_action_runs` for Ações do Dia auto-update
+- Already have `kernel_decisions` and `conversations`
+
+No database migrations needed. All hooks, edge functions, and tables already exist.
+
+**Shall I start with Batch 1?**
 

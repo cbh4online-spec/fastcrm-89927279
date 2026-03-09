@@ -355,7 +355,7 @@ export default function C2CPublicMarketplace() {
   const showBrowse = showListings || hasActiveFilters;
 
   const handleSell = () => {
-    navigate(`/c2c/${workspaceSlug}/sell`);
+    navigate(`/marketplace/${workspaceSlug}/sell`);
   };
 
   const handleExplore = () => {
@@ -424,7 +424,7 @@ export default function C2CPublicMarketplace() {
 
             <div className="flex items-center gap-2 shrink-0">
               <ShareButtons url={shareUrl} title={ogTitle} />
-              <Button variant="outline" size="sm" className="rounded-full hidden sm:flex" onClick={() => navigate(`/login?redirect=/c2c/${workspaceSlug}`)}>
+              <Button variant="outline" size="sm" className="rounded-full hidden sm:flex" onClick={() => navigate(`/login?redirect=/marketplace/${workspaceSlug}`)}>
                 Entrar
               </Button>
               <Button size="sm" className="gap-1 rounded-full" onClick={handleSell}>
