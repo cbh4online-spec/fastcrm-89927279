@@ -17,8 +17,10 @@ export async function emitKernelEvent(params: {
   source_route?: string;
   idempotency_key?: string;
   correlation_id?: string;
+  causation_id?: string;
   occurred_at?: string;
   schema_version?: number;
+  metadata?: Record<string, unknown>;
 }) {
   try {
     const correlation_id = params.correlation_id ?? generateRequestId();

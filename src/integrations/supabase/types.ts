@@ -13204,6 +13204,48 @@ export type Database = {
           },
         ]
       }
+      event_registry: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          domain: string
+          entity_type: string
+          event_name: string
+          id: string
+          is_active: boolean | null
+          payload_schema_json: Json | null
+          source_module: string
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          domain: string
+          entity_type: string
+          event_name: string
+          id?: string
+          is_active?: boolean | null
+          payload_schema_json?: Json | null
+          source_module: string
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          domain?: string
+          entity_type?: string
+          event_name?: string
+          id?: string
+          is_active?: boolean | null
+          payload_schema_json?: Json | null
+          source_module?: string
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: []
+      }
       event_rsvps: {
         Row: {
           contact_id: string | null
@@ -18308,12 +18350,15 @@ export type Database = {
         Row: {
           actor_id: string | null
           actor_type: string
+          causation_id: string | null
           created_at: string
           entity_id: string
           entity_kind: string
+          event_name: string | null
           id: string
           idempotency_key: string | null
           ingested_at: string | null
+          metadata_json: Json | null
           occurred_at: string | null
           payload: Json | null
           processed_at: string | null
@@ -18327,12 +18372,15 @@ export type Database = {
         Insert: {
           actor_id?: string | null
           actor_type?: string
+          causation_id?: string | null
           created_at?: string
           entity_id: string
           entity_kind: string
+          event_name?: string | null
           id?: string
           idempotency_key?: string | null
           ingested_at?: string | null
+          metadata_json?: Json | null
           occurred_at?: string | null
           payload?: Json | null
           processed_at?: string | null
@@ -18346,12 +18394,15 @@ export type Database = {
         Update: {
           actor_id?: string | null
           actor_type?: string
+          causation_id?: string | null
           created_at?: string
           entity_id?: string
           entity_kind?: string
+          event_name?: string | null
           id?: string
           idempotency_key?: string | null
           ingested_at?: string | null
+          metadata_json?: Json | null
           occurred_at?: string | null
           payload?: Json | null
           processed_at?: string | null

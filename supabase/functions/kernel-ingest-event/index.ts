@@ -16,6 +16,7 @@ Deno.serve(async (req) => {
       workspace_id, type, entity_kind, entity_id,
       actor_type, actor_id, payload, source_module, source_route,
       idempotency_key, occurred_at, schema_version, correlation_id,
+      causation_id, metadata,
     } = body;
 
     if (!workspace_id || !type || !entity_kind || !entity_id) {
@@ -29,12 +30,33 @@ Deno.serve(async (req) => {
 
     const eventOccurredAt = occurred_at ?? new Date().toISOString();
 
+    // Validate event against registry (soft — doesn't block)
+    let eventStatus = "pending";
+    let eventName: string | null = null;
+
+    const { data: registryEntry } = await supabase
+      .from("event_registry")
+      .select("event_name, is_active")
+      .eq("event_name", type)
+      .maybeSingle();
+
+    if (registryEntry) {
+      eventName = registryEntry.event_name;
+      if (!registryEntry.is_active) {
+        eventStatus = "inactive";
+      }
+    } else {
+      // Not registered — still ingest but flag
+      eventStatus = "unregistered";
+    }
+
     // Insert event with processing status
     const { data: event, error: evErr } = await supabase
       .from("kernel_events")
       .insert({
         workspace_id,
         type,
+        event_name: eventName ?? type,
         entity_kind,
         entity_id,
         actor_type: actor_type ?? "system",
@@ -46,7 +68,10 @@ Deno.serve(async (req) => {
         occurred_at: eventOccurredAt,
         ingested_at: new Date().toISOString(),
         schema_version: schema_version ?? 1,
-        status: "pending",
+        status: eventStatus === "pending" ? "pending" : eventStatus,
+        correlation_id: correlation_id ?? null,
+        causation_id: causation_id ?? null,
+        metadata_json: metadata ?? {},
       })
       .select("id")
       .single();
@@ -97,7 +122,7 @@ Deno.serve(async (req) => {
     }).then(() => {});
 
     return new Response(
-      JSON.stringify({ status: "ok", event_id: event.id }),
+      JSON.stringify({ status: "ok", event_id: event.id, validation: eventStatus }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
