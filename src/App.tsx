@@ -74,6 +74,7 @@ import Sequences from "./pages/Sequences";
 import AlertsPage from "./pages/AlertsPage";
 import ImpactMapPage from "./pages/ImpactMapPage";
 import SystemHealthPage from "./pages/SystemHealthPage";
+import EventMapPage from "./pages/EventMapPage";
 
 // Client Portal
 import { CartProvider } from "@/contexts/CartContext";
