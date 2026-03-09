@@ -429,121 +429,83 @@ Deno.serve(async (req) => {
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const sb = createClient(supabaseUrl, supabaseKey);
 
-      // Step 1: Use AI to generate optimal search queries
+      // Step 1: Use AI to generate a single optimized search query
       const queryResult = await callAI(
         [
-          { role: "system", content: "Gera queries de pesquisa otimizadas para encontrar imagens oficiais de produtos. Responde apenas com as queries." },
-          { role: "user", content: `Preciso de encontrar imagens reais/oficiais deste produto para um anúncio:\nTítulo: ${title}\nDescrição: ${description || ""}\nCondição: ${condition || "new"}\n\nGera 3 queries de pesquisa em inglês para encontrar fotos oficiais do produto (imagens de produto, press shots, etc). Inclui marca, modelo e specs no query.` },
+          { role: "system", content: "Generate a single English search query to find official product images. Return only the query text, optimized for Google Image results." },
+          { role: "user", content: `Product: ${title}\n${description ? `Description: ${description}` : ""}\nGenerate ONE search query to find official/press product photos.` },
         ],
         [{
           type: "function",
           function: {
-            name: "generate_queries",
-            description: "Retorna queries de pesquisa",
+            name: "generate_query",
+            description: "Returns a search query",
             parameters: {
               type: "object",
-              properties: {
-                queries: {
-                  type: "array",
-                  items: { type: "string" },
-                  description: "3 search queries for product images"
-                },
-              },
-              required: ["queries"],
+              properties: { query: { type: "string" } },
+              required: ["query"],
               additionalProperties: false,
             },
           },
         }],
-        { type: "function", function: { name: "generate_queries" } }
+        { type: "function", function: { name: "generate_query" } }
       );
 
       const queryToolCall = queryResult.choices?.[0]?.message?.tool_calls?.[0];
-      if (!queryToolCall) throw new Error("Não foi possível gerar queries de pesquisa");
-      const { queries } = JSON.parse(queryToolCall.function.arguments);
+      const searchQuery = queryToolCall
+        ? JSON.parse(queryToolCall.function.arguments).query
+        : `${title} product photo`;
 
-      // Step 2: Use Firecrawl to scrape product pages and find images
+      // Step 2: Single Firecrawl search with scrape to get page HTML
+      const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: `${searchQuery} high resolution product image`,
+          limit: 5,
+          scrapeOptions: { formats: ["html"] },
+        }),
+      });
+
+      if (!searchRes.ok) {
+        const errText = await searchRes.text();
+        console.error("Firecrawl error:", searchRes.status, errText);
+        throw new Error("Pesquisa web falhou");
+      }
+
+      const searchData = await searchRes.json();
+      const results = searchData.data || [];
+
+      // Extract image URLs from all scraped HTML
       const allImages: string[] = [];
       const seenUrls = new Set<string>();
 
-      for (const query of (queries as string[]).slice(0, 3)) {
-        try {
-          const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              query: `${query} product image high resolution`,
-              limit: 3,
-              scrapeOptions: { formats: ["links"] },
-            }),
-          });
-
-          if (!searchRes.ok) {
-            console.error("Firecrawl search error:", searchRes.status);
-            continue;
+      for (const result of results) {
+        const html = result.html || "";
+        const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+        let match;
+        while ((match = imgRegex.exec(html)) !== null) {
+          const imgUrl = match[1];
+          if (
+            imgUrl &&
+            !seenUrls.has(imgUrl) &&
+            imgUrl.startsWith("http") &&
+            !imgUrl.includes("icon") &&
+            !imgUrl.includes("logo") &&
+            !imgUrl.includes("avatar") &&
+            !imgUrl.includes("svg") &&
+            !imgUrl.includes("1x1") &&
+            !imgUrl.includes("pixel") &&
+            !imgUrl.includes("tracking") &&
+            (imgUrl.includes(".jpg") || imgUrl.includes(".jpeg") || imgUrl.includes(".png") || imgUrl.includes(".webp") ||
+             imgUrl.includes("image") || imgUrl.includes("photo") || imgUrl.includes("product"))
+          ) {
+            seenUrls.add(imgUrl);
+            allImages.push(imgUrl);
           }
-
-          const searchData = await searchRes.json();
-          const results = searchData.data || [];
-
-          // Get URLs from search results to scrape for images
-          for (const result of results.slice(0, 2)) {
-            const pageUrl = result.url;
-            if (!pageUrl || seenUrls.has(pageUrl)) continue;
-            seenUrls.add(pageUrl);
-
-            try {
-              const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
-                method: "POST",
-                headers: {
-                  "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  url: pageUrl,
-                  formats: ["html"],
-                  onlyMainContent: true,
-                  waitFor: 2000,
-                }),
-              });
-
-              if (!scrapeRes.ok) continue;
-
-              const scrapeData = await scrapeRes.json();
-              const html = scrapeData.data?.html || scrapeData.html || "";
-
-              // Extract image URLs from HTML
-              const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
-              let match;
-              while ((match = imgRegex.exec(html)) !== null) {
-                const imgUrl = match[1];
-                if (
-                  imgUrl &&
-                  !seenUrls.has(imgUrl) &&
-                  (imgUrl.startsWith("http://") || imgUrl.startsWith("https://")) &&
-                  !imgUrl.includes("icon") &&
-                  !imgUrl.includes("logo") &&
-                  !imgUrl.includes("avatar") &&
-                  !imgUrl.includes("svg") &&
-                  !imgUrl.includes("1x1") &&
-                  !imgUrl.includes("pixel") &&
-                  !imgUrl.includes("tracking") &&
-                  !imgUrl.includes("banner") &&
-                  (imgUrl.includes(".jpg") || imgUrl.includes(".jpeg") || imgUrl.includes(".png") || imgUrl.includes(".webp") ||
-                   imgUrl.includes("image") || imgUrl.includes("photo") || imgUrl.includes("product"))
-                ) {
-                  seenUrls.add(imgUrl);
-                  allImages.push(imgUrl);
-                }
-              }
-            } catch (e) {
-              console.error("Scrape error:", e);
-            }
-          }
-        } catch (e) {
-          console.error("Search error:", e);
         }
       }
 
@@ -553,58 +515,22 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Step 3: Use AI to pick the best product images (up to 6)
-      const selectionResult = await callAI(
-        [
-          { role: "system", content: "You are an image selector for a product marketplace. Pick the best product images from a list of URLs. Prefer high-resolution, clean product shots. Avoid lifestyle images, icons, ads, thumbnails, or unrelated images." },
-          { role: "user", content: `Product: ${title}\n\nHere are candidate image URLs. Select the top ${Math.min(6, allImages.length)} that are most likely to be high-quality product images:\n\n${allImages.slice(0, 20).map((url, i) => `${i + 1}. ${url}`).join("\n")}` },
-        ],
-        [{
-          type: "function",
-          function: {
-            name: "select_images",
-            description: "Select the best product images",
-            parameters: {
-              type: "object",
-              properties: {
-                selected_indices: {
-                  type: "array",
-                  items: { type: "number" },
-                  description: "1-based indices of selected images"
-                },
-              },
-              required: ["selected_indices"],
-              additionalProperties: false,
-            },
-          },
-        }],
-        { type: "function", function: { name: "select_images" } }
-      );
-
-      let selectedImages = allImages.slice(0, 6); // fallback
-      const selToolCall = selectionResult.choices?.[0]?.message?.tool_calls?.[0];
-      if (selToolCall) {
-        const { selected_indices } = JSON.parse(selToolCall.function.arguments);
-        if (Array.isArray(selected_indices) && selected_indices.length > 0) {
-          selectedImages = selected_indices
-            .map((i: number) => allImages[i - 1])
-            .filter((url: string | undefined): url is string => !!url)
-            .slice(0, 6);
-        }
-      }
-
-      // Step 4: Download and re-upload to our storage
+      // Step 3: Download and re-upload top images (max 6, skip AI selection to save time)
       const uploadedUrls: string[] = [];
-      for (const imgUrl of selectedImages) {
+      for (const imgUrl of allImages.slice(0, 8)) {
+        if (uploadedUrls.length >= 6) break;
         try {
-          const imgRes = await fetch(imgUrl, { headers: { "User-Agent": "Mozilla/5.0" } });
+          const imgRes = await fetch(imgUrl, {
+            headers: { "User-Agent": "Mozilla/5.0" },
+            signal: AbortSignal.timeout(5000),
+          });
           if (!imgRes.ok) continue;
 
           const contentType = imgRes.headers.get("content-type") || "image/jpeg";
           if (!contentType.startsWith("image/")) continue;
 
           const buffer = await imgRes.arrayBuffer();
-          if (buffer.byteLength < 5000) continue; // Skip tiny images (likely icons)
+          if (buffer.byteLength < 5000 || buffer.byteLength > 10_000_000) continue;
 
           const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
           const filePath = `web-search/${crypto.randomUUID()}.${ext}`;
