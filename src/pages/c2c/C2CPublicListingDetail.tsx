@@ -147,7 +147,7 @@ export default function C2CPublicListingDetail() {
               variant="ghost"
               size="sm"
               className="text-zinc-400 hover:text-amber-400"
-              onClick={() => navigate(`/c2c/${workspaceSlug}`)}
+              onClick={() => navigate(`/marketplace/${workspaceSlug}`)}
             >
               <ArrowLeft className="h-4 w-4 mr-2" /> Marketplace
             </Button>
