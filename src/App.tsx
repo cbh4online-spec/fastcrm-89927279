@@ -662,6 +662,7 @@ const App = () => (
               <Route path="/store/*" element={<StoreRoutes />} />
               
               {/* C2C Public Marketplace */}
+              <Route path="/c2c/:workspaceSlug/listing/:id" element={<C2CPublicListingDetail />} />
               <Route path="/c2c/:workspaceSlug/:id" element={<C2CPublicListingDetail />} />
               <Route path="/c2c/:workspaceSlug" element={<C2CPublicMarketplace />} />
               <Route path="/c2c/:workspaceSlug/sell" element={<AuthProvider><C2CSellerRegistration /></AuthProvider>} />
