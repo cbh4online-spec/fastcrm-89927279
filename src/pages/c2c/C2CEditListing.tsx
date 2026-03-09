@@ -57,6 +57,7 @@ export default function C2CEditListing() {
   const suggestCategory = useSuggestCategory();
   const generateImage = useGenerateListingImage();
   const generate360 = useGenerate360();
+  const searchWebImages = useSearchWebImages();
 
   const isAnyAILoading = analyzePhoto.isPending || generateTitle.isPending || generateDescription.isPending || suggestPrice.isPending || suggestCategory.isPending || generateImage.isPending || generate360.isPending;
 

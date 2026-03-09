@@ -57,6 +57,7 @@ export default function C2CCreateListing() {
   const suggestCategory = useSuggestCategory();
   const generateImage = useGenerateListingImage();
   const generate360 = useGenerate360();
+  const searchWebImages = useSearchWebImages();
 
   // Auto-trigger AI analysis when first photo is uploaded and title is empty
   useEffect(() => {
