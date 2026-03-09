@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Merge, AlertTriangle, Loader2, CheckCircle2, User, Mail, Phone,
-  Building2, Globe, Hash, MapPin, Tag, FileText, Zap,
+  Building2, Globe, Hash, MapPin, Tag, FileText, Zap, Clock, MessageSquare,
+  Target, StickyNote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -59,10 +60,11 @@ const FIELD_CONFIGS: FieldConfig[] = [
   { key: "facebook_url", label: "Facebook", category: "Social", icon: Globe },
   { key: "instagram_url", label: "Instagram", category: "Social", icon: Globe },
   // AI
-  { key: "ai_temperature", label: "Temperatura IA", category: "IA", icon: Zap },
-  { key: "lead_score", label: "Score IA", category: "IA", icon: Zap },
-  { key: "ai_next_action", label: "Próxima ação IA", category: "IA", icon: Zap },
-  { key: "ai_insight", label: "Insight IA", category: "IA", icon: Zap },
+  { key: "ai_temperature", label: "Temperatura IA", category: "Campos IA", icon: Zap },
+  { key: "lead_score", label: "Score IA", category: "Campos IA", icon: Zap },
+  { key: "ai_next_action", label: "Próxima ação IA", category: "Campos IA", icon: Zap },
+  { key: "ai_insight", label: "Insight IA", category: "Campos IA", icon: Zap },
+  { key: "ai_lead_type", label: "Tipo IA", category: "Campos IA", icon: Zap },
 ];
 
 export function LeadMergeComparisonDialog({ open, onOpenChange, group }: Props) {
@@ -76,7 +78,6 @@ export function LeadMergeComparisonDialog({ open, onOpenChange, group }: Props) 
   const [selections, setSelections] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     for (const fc of FIELD_CONFIGS) {
-      // Default: prefer master's non-empty value, then first non-empty
       const masterVal = leads.find(l => l.id === masterItem.lead_id)?.[fc.key];
       if (masterVal != null && masterVal !== "") {
         init[fc.key] = masterItem.lead_id;
@@ -98,7 +99,6 @@ export function LeadMergeComparisonDialog({ open, onOpenChange, group }: Props) 
   const categories = useMemo(() => {
     const cats = new Map<string, FieldConfig[]>();
     for (const fc of FIELD_CONFIGS) {
-      // Only show fields that have data in at least one lead
       const hasData = leads.some(l => l[fc.key] != null && l[fc.key] !== "");
       if (!hasData) continue;
       const arr = cats.get(fc.category) || [];
@@ -111,12 +111,18 @@ export function LeadMergeComparisonDialog({ open, onOpenChange, group }: Props) 
   // Compute merge summary
   const summary = useMemo(() => {
     const allTags = new Set<string>();
+    const allEmails = new Set<string>();
+    const allPhones = new Set<string>();
     let notesCount = 0;
     let totalRelations = 0;
 
     leads.forEach(l => {
       (l.tags || []).forEach((t: string) => allTags.add(t));
       if (l.notes?.trim()) notesCount++;
+      if (l.email) allEmails.add(l.email);
+      if (l.external_email) allEmails.add(l.external_email);
+      if (l.phone) allPhones.add(l.phone);
+      if (l.fax) allPhones.add(l.fax);
       totalRelations += (l._relatedCounts?.opportunities || 0) + (l._relatedCounts?.conversations || 0);
     });
 
@@ -124,6 +130,8 @@ export function LeadMergeComparisonDialog({ open, onOpenChange, group }: Props) 
       leadsCount: leads.length,
       tagsCount: allTags.size,
       notesCount,
+      emailsCount: allEmails.size,
+      phonesCount: allPhones.size,
       totalRelations,
       selectedMasterName: leads.find(l => l.id === selectedMaster)?.name || "—",
     };
@@ -179,6 +187,20 @@ export function LeadMergeComparisonDialog({ open, onOpenChange, group }: Props) 
 
           <ScrollArea className="flex-1 pr-4">
             <div className="space-y-4">
+              {/* Column Headers */}
+              <div className="grid grid-cols-[140px_1fr_1fr_1fr] gap-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2">
+                <span>Campo</span>
+                {leads.slice(0, 2).map(l => (
+                  <span key={l.id} className="flex items-center gap-1">
+                    {l.id === selectedMaster && <Badge variant="default" className="text-[8px] px-1 py-0">Master</Badge>}
+                    {l.name}
+                  </span>
+                ))}
+                <span>Resultado Final</span>
+              </div>
+
+              <Separator />
+
               {Array.from(categories).map(([category, fields]) => (
                 <div key={category}>
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
@@ -225,27 +247,53 @@ export function LeadMergeComparisonDialog({ open, onOpenChange, group }: Props) 
                 </div>
               ))}
 
-              {/* List fields summary */}
+              {/* Combined fields summary */}
               <div>
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   Campos combinados (união automática)
                 </h4>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="p-2 rounded-lg border border-border/50">
-                    <span className="text-muted-foreground">Tags preservadas:</span>
-                    <span className="font-medium ml-1">{summary.tagsCount}</span>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg border border-border/50">
+                    <Tag className="h-3.5 w-3.5 text-primary" />
+                    <div>
+                      <span className="text-muted-foreground">Tags preservadas</span>
+                      <span className="font-semibold ml-1">{summary.tagsCount}</span>
+                    </div>
                   </div>
-                  <div className="p-2 rounded-lg border border-border/50">
-                    <span className="text-muted-foreground">Notas preservadas:</span>
-                    <span className="font-medium ml-1">{summary.notesCount}</span>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg border border-border/50">
+                    <StickyNote className="h-3.5 w-3.5 text-primary" />
+                    <div>
+                      <span className="text-muted-foreground">Notas preservadas</span>
+                      <span className="font-semibold ml-1">{summary.notesCount}</span>
+                    </div>
                   </div>
-                  <div className="p-2 rounded-lg border border-border/50">
-                    <span className="text-muted-foreground">Relações migradas:</span>
-                    <span className="font-medium ml-1">{summary.totalRelations}</span>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg border border-border/50">
+                    <Mail className="h-3.5 w-3.5 text-primary" />
+                    <div>
+                      <span className="text-muted-foreground">Emails preservados</span>
+                      <span className="font-semibold ml-1">{summary.emailsCount}</span>
+                    </div>
                   </div>
-                  <div className="p-2 rounded-lg border border-border/50">
-                    <span className="text-muted-foreground">Owner final:</span>
-                    <span className="font-medium ml-1">{summary.selectedMasterName}</span>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg border border-border/50">
+                    <Phone className="h-3.5 w-3.5 text-primary" />
+                    <div>
+                      <span className="text-muted-foreground">Telefones preservados</span>
+                      <span className="font-semibold ml-1">{summary.phonesCount}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg border border-border/50">
+                    <Target className="h-3.5 w-3.5 text-primary" />
+                    <div>
+                      <span className="text-muted-foreground">Relações migradas</span>
+                      <span className="font-semibold ml-1">{summary.totalRelations}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg border border-border/50">
+                    <User className="h-3.5 w-3.5 text-primary" />
+                    <div>
+                      <span className="text-muted-foreground">Owner final</span>
+                      <span className="font-semibold ml-1 truncate">{summary.selectedMasterName}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -285,11 +333,13 @@ export function LeadMergeComparisonDialog({ open, onOpenChange, group }: Props) 
                 <p>• <strong>{summary.leadsCount}</strong> leads a fundir</p>
                 <p>• <strong>{summary.tagsCount}</strong> tags preservadas</p>
                 <p>• <strong>{summary.notesCount}</strong> notas preservadas</p>
+                <p>• <strong>{summary.emailsCount}</strong> emails preservados</p>
+                <p>• <strong>{summary.phonesCount}</strong> telefones preservados</p>
                 <p>• <strong>{summary.totalRelations}</strong> relações migradas</p>
                 <p>• Owner final: <strong>{summary.selectedMasterName}</strong></p>
               </div>
               <p className="text-sm text-warning font-medium">
-                Os registos duplicados serão marcados como inativos (soft delete).
+                Esta ação consolidará os registos mas preservará toda a informação histórica. Os registos duplicados serão marcados como inativos (soft delete).
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
