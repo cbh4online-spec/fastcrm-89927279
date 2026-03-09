@@ -15,6 +15,7 @@ export default function CommandCenterV2Page() {
   };
 
   return (
+    <DashboardLayout>
     <div className="space-y-6 p-4 md:p-6 max-w-5xl mx-auto">
       <PageHeader
         title="Command Center"
