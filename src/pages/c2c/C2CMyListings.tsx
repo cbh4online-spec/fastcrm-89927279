@@ -18,6 +18,7 @@ import { useMyC2CListings, useUpdateC2CListing } from "@/hooks/useC2CListings";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { ListingStats } from "@/components/c2c/ListingStats";
 import { MarketplaceShareCard } from "@/components/c2c/MarketplaceShareCard";
+import { ShareButtons } from "@/components/c2c/ShareButtons";
 import {
   ArrowLeft,
   Plus,
