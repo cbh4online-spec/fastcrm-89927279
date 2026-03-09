@@ -71,5 +71,6 @@ export default function CommandCenterV2Page() {
         </div>
       )}
     </div>
+    </DashboardLayout>
   );
 }
