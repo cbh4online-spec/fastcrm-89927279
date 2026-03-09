@@ -171,6 +171,7 @@ import AIDocumentOCRPage from "./pages/AIDocumentOCRPage";
 import EmailCampaignsPage from "./pages/EmailCampaignsPage";
 import IMOAIPage from "./pages/IMOAIPage";
 import ZapierPage from "./pages/ZapierPage";
+import CEOCopilotPage from "./pages/CEOCopilotPage";
 
 // Renewals
 import RenewalsPage from "./pages/RenewalsPage";
