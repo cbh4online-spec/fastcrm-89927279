@@ -13415,6 +13415,57 @@ export type Database = {
         }
         Relationships: []
       }
+      event_test_cases: {
+        Row: {
+          created_at: string
+          event_name: string
+          expected_action: string | null
+          expected_decision: string | null
+          expected_result: string
+          expected_signal: string | null
+          id: string
+          input_payload: Json
+          is_active: boolean
+          last_run_at: string | null
+          last_run_status: string | null
+          priority: string
+          test_name: string
+          test_type: string
+        }
+        Insert: {
+          created_at?: string
+          event_name: string
+          expected_action?: string | null
+          expected_decision?: string | null
+          expected_result: string
+          expected_signal?: string | null
+          id?: string
+          input_payload?: Json
+          is_active?: boolean
+          last_run_at?: string | null
+          last_run_status?: string | null
+          priority?: string
+          test_name: string
+          test_type: string
+        }
+        Update: {
+          created_at?: string
+          event_name?: string
+          expected_action?: string | null
+          expected_decision?: string | null
+          expected_result?: string
+          expected_signal?: string | null
+          id?: string
+          input_payload?: Json
+          is_active?: boolean
+          last_run_at?: string | null
+          last_run_status?: string | null
+          priority?: string
+          test_name?: string
+          test_type?: string
+        }
+        Relationships: []
+      }
       exclusive_content: {
         Row: {
           content: string
