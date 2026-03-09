@@ -68,7 +68,7 @@ export default function C2CCreateListing() {
     prevPhotosLen.current = photos.length;
   }, [photos]);
 
-  const isAnyAILoading = analyzePhoto.isPending || generateTitle.isPending || generateDescription.isPending || suggestPrice.isPending || suggestCategory.isPending || generateImage.isPending || generate360.isPending;
+  const isAnyAILoading = analyzePhoto.isPending || generateTitle.isPending || generateDescription.isPending || suggestPrice.isPending || suggestCategory.isPending || generateImage.isPending || generate360.isPending || searchWebImages.isPending;
 
   // Progress calculation
   const progress = useMemo(() => {
