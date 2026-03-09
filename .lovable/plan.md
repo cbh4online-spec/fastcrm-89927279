@@ -1,80 +1,68 @@
 
 
-# AI CEO Copilot — Unified Executive Intelligence Hub
+# Phase 5B — Command Center COMPLETO
 
-## What Already Exists
+## Gap Analysis: Current vs Spec
 
-All four AI report engines are **already built**:
+The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
 
-| Report | Edge Function | Hook | Page |
-|--------|--------------|------|------|
-| Daily Brief | `daily-revenue-brief` | `useDailyBrief` | `DailyBriefPage` |
-| Weekly Strategy | `ai-weekly-strategy` | `useWeeklyStrategy` | (inline in `WeeklyDashboard`) |
-| Pipeline Risk | — (client-side) | `usePipelineRiskAnalysis` | `PipelineRiskCard` component |
-| Growth Insights | `ai-growth-insights` | `useGrowthInsights` | `GrowthInsightsModule` |
+**Already implemented (needs enhancement):**
+- Header with greeting + 3 KPIs — needs larger font (32px), labels below
+- AI Question Box — needs slash command suggestions row below input
+- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
+- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
+- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
+- Drift Alerts — needs "Rever →" links to Context OS blocks
 
-No new edge functions or database tables are needed. This is a **frontend composition task** — creating a unified page that orchestrates existing hooks and adds auto-generation on mount.
+**New sections to build:**
+1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
+2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
+   - Change Events (last 5 from `useChangeEvents` with realtime)
+   - Entity Activity (top 3 entities from `useKernelEntities`)
+   - Impact Score (top 2 from `useImpactMapData`)
+3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
 
-## Implementation
+**Enhanced Command Palette (⌘K):**
+- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
 
-### 1. New Page: `src/pages/CEOCopilotPage.tsx`
+**Spotlight (Space key):**
+- Opens AI Question Box as a modal from any page. New global component.
 
-Route: `/dashboard/ceo-copilot`
+## Implementation Plan — 3 Sub-phases
 
-Four-tab layout using existing components and hooks:
+Given the scope, I recommend splitting into 3 batches:
 
-**Tab 1 — Daily Brief**: Reuses `useDailyBrief` hook. Shows KPI strip (leads, revenue, stalled deals, tasks) + AI summary sections (hot leads, stuck deals, revenue highlight, action suggestions). Auto-generates on mount if no brief exists for today.
-
-**Tab 2 — Weekly Strategy**: Reuses `useWeeklyStrategy` hook. Shows gap analysis table (metric/actual/target/status), risk alerts, recommendations with priority badges, and quick wins list.
-
-**Tab 3 — Pipeline Health**: Reuses `usePipelineRiskAnalysis` hook + queries stalled/declining opportunities directly. Shows risk buckets pie chart, stalled deals list, low-probability deals, inactive leads count.
-
-**Tab 4 — Growth Insights**: Reuses `useGrowthInsights` hook. Shows top customers, top sellers, need matching panel, AI analysis.
-
-**Auto-generation**: On mount, if `todaysBrief` is null, automatically call `generateDailyBrief()`. This satisfies the "generate on login" requirement since the dashboard is the first page users see.
-
-### 2. Route Addition in `App.tsx`
-
-```tsx
-import CEOCopilotPage from "./pages/CEOCopilotPage";
-// ...
-<Route path="/dashboard/ceo-copilot" element={<CEOCopilotPage />} />
-```
-
-### 3. Navigation in `nav.v2.ts`
-
-Add "AI CEO Copilot" item in the intelligence/strategy section, between "Brief Executivo" and "Context OS":
-
-```ts
-{ type: "item", name: "AI CEO Copilot", href: "/dashboard/ceo-copilot", icon: Brain, iconColor: "text-violet-500" },
-```
-
-### 4. New Pipeline Risk Edge Function: `ai-pipeline-risk`
-
-While client-side pipeline analysis exists, we need a dedicated AI-powered analysis function for deeper risk detection (declining opportunities, inactive leads, probability analysis). This function will:
-
-- Query open opportunities with last activity dates
-- Detect stalled deals (>5 days no activity)
-- Detect declining opportunities (score drops, stage regression)
-- Identify inactive leads (no engagement >7 days)
-- Identify low probability deals (<30% close probability)
-- Call Lovable AI to generate risk assessment and recommended actions via tool calling
-- Return structured risk report
-
-### Files to Create/Modify
-
+### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
 | File | Action |
 |------|--------|
-| `src/pages/CEOCopilotPage.tsx` | New — unified 4-tab page |
-| `src/hooks/usePipelineRiskReport.ts` | New — calls `ai-pipeline-risk` |
-| `supabase/functions/ai-pipeline-risk/index.ts` | New — AI pipeline risk analysis |
-| `src/App.tsx` | Modified — add route + import |
-| `src/config/nav.v2.ts` | Modified — add nav item |
+| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
+| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
+| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
+| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
 
-### Implementation Order
+### Batch 2: Enhance Existing Cards
+| File | Action |
+|------|--------|
+| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
+| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
+| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
+| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
+| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
+| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
 
-1. Edge function: `ai-pipeline-risk`
-2. Hook: `usePipelineRiskReport`
-3. Page: `CEOCopilotPage` with 4 tabs + auto-generate
-4. Route + nav updates
+### Batch 3: Spotlight Modal + Command Palette Enhancement
+| File | Action |
+|------|--------|
+| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
+| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
+| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
+
+### Realtime subscriptions needed
+- `change_events` table for Kernel Live Feed auto-update
+- `kernel_action_runs` for Ações do Dia auto-update
+- Already have `kernel_decisions` and `conversations`
+
+No database migrations needed. All hooks, edge functions, and tables already exist.
+
+**Shall I start with Batch 1?**
 
