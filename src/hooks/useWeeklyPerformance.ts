@@ -63,8 +63,8 @@ export function useWeeklyPerformance() {
           .eq("workspace_id", wid!).gte("created_at", start).lte("created_at", end),
         supabase.from("proposals").select("id", { count: "exact", head: true })
           .eq("workspace_id", wid!).eq("status", "published").gte("created_at", start).lte("created_at", end),
-        supabase.from("opportunities").select("id, value, status")
-          .eq("workspace_id", wid!).gte("created_at", start).lte("created_at", end),
+        supabase.from("opportunities").select("id, value, status, updated_at")
+          .eq("workspace_id", wid!).eq("status", "won").gte("updated_at", start).lte("updated_at", end),
         supabase.from("opportunities").select("id, value")
           .eq("workspace_id", wid!).in("status", ["open", "active", "negotiation"]),
       ]);
