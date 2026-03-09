@@ -120,6 +120,7 @@ export function SmartLeadsTable() {
 
   const pageTabs = useMemo(() => [
     { id: "leads", label: t("tabLeads") },
+    { id: "duplicates", label: "Duplicate Review" },
     { id: "smart-lists", label: t("tabSmartLists") },
     { id: "automations", label: t("tabAutomations") },
     { id: "import", label: t("tabImport") },
