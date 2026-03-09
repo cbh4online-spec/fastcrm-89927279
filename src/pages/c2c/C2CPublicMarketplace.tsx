@@ -478,7 +478,7 @@ export default function C2CPublicMarketplace() {
                       listing={listing}
                       isFavorite={false}
                       onToggleFavorite={() => {}}
-                      onClick={() => navigate(`/c2c/${workspaceSlug}/${listing.id}`)}
+                      onClick={() => navigate(`/marketplace/${workspaceSlug}/${listing.id}`)}
                       isSponsored={sponsoredIds.includes(listing.id)}
                     />
                   ))}
