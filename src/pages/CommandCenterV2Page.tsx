@@ -1,3 +1,4 @@
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { CommandHero } from "@/components/command-center-v2/CommandHero";
 import { CommandResponseCard } from "@/components/command-center-v2/CommandResponseCard";
