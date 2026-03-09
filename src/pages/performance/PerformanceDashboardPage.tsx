@@ -52,7 +52,7 @@ export default function PerformanceDashboardPage() {
       else if (goalType === "pipeline") totalValue += sc.pipeline_generated;
       else if (goalType === "meetings") totalValue += sc.meetings_booked;
       else if (goalType === "proposals") totalValue += sc.proposals_sent;
-      else if (goalType === "leads") totalValue += sc.leads_converted;
+      else if (goalType === "leads") totalValue += sc.leads_generated;
       else totalValue += sc.score_total;
     }
     return Math.min(Math.round((totalValue / g.target_value) * 100), 100);
