@@ -85,7 +85,8 @@ export default function RFQsDashboardPage() {
   if (isLoading) return <PageLoading />;
 
   return (
-    <div className="space-y-6 p-6">
+    <DashboardLayout>
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Dashboard RFQs</h1>
