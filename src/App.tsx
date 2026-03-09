@@ -172,6 +172,7 @@ import EmailCampaignsPage from "./pages/EmailCampaignsPage";
 import IMOAIPage from "./pages/IMOAIPage";
 import ZapierPage from "./pages/ZapierPage";
 import CEOCopilotPage from "./pages/CEOCopilotPage";
+import CommandCenterV2Page from "./pages/CommandCenterV2Page";
 
 // Renewals
 import RenewalsPage from "./pages/RenewalsPage";
@@ -514,6 +515,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/credit" element={<CreditIntermediation />} />
                 <Route path="/dashboard/strategy" element={<StrategyPage />} />
                 <Route path="/dashboard/ceo-copilot" element={<CEOCopilotPage />} />
+                <Route path="/command-center" element={<CommandCenterV2Page />} />
                 <Route path="/dashboard/daily-brief" element={<DailyBriefPage />} />
                 <Route path="/dashboard/lifecycle" element={<CustomerLifecyclePage />} />
                 <Route path="/dashboard/events" element={<EventsManagementPage />} />

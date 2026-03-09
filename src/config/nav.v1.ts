@@ -91,6 +91,7 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   // ── PRINCIPAL ──
   { name: "Início", href: "/dashboard", icon: Zap, group: "Principal", end: true },
   { name: "Brief Executivo", href: "/dashboard/strategy", icon: Brain, group: "Principal" },
+  { name: "Command Center", href: "/command-center", icon: Zap, group: "Principal" },
   { name: "Context OS", href: "/dashboard/context-os", icon: Brain, group: "Principal" },
   { name: "Mapa de Impacto", href: "/dashboard/impact-map", icon: GitBranch, group: "Principal" },
 
