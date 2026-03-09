@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { CommandCenterHeader } from "@/components/command-center/CommandCenterHeader";
+import { AIQuestionBox } from "@/components/command-center/AIQuestionBox";
 import { WeeklyPerformanceStrip } from "@/components/weekly-dashboard/WeeklyPerformanceStrip";
 import { AIStrategyPanel } from "@/components/weekly-dashboard/AIStrategyPanel";
 import { WeeklyQuickActions } from "@/components/weekly-dashboard/WeeklyQuickActions";
@@ -10,6 +12,8 @@ import { PipelineHealthCard } from "@/components/dashboard/PipelineHealthCard";
 import { AIActionSuggestions } from "@/components/dashboard/AIActionSuggestions";
 import { useWeeklyPerformance } from "@/hooks/useWeeklyPerformance";
 import { useWeeklyStrategy } from "@/hooks/useWeeklyStrategy";
+import { useDailyBrief } from "@/hooks/useDailyBrief";
+import { useKernelDecisions } from "@/hooks/useKernelDecisions";
 import { Button } from "@/components/ui/button";
 import { Brain, RefreshCw } from "lucide-react";
 
