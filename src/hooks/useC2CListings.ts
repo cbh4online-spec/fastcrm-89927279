@@ -95,6 +95,7 @@ export function useC2CListings(workspaceId: string | undefined, filters?: C2CLis
       query = query.order("is_featured", { ascending: false }).order("created_at", { ascending: false });
 
       const { data, error } = await query;
+      console.log('[MARKETPLACE] useC2CListings result:', { workspaceId, count: data?.length, error, filters });
       if (error) throw error;
       return data as C2CListing[];
     },
