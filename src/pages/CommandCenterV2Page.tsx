@@ -1,3 +1,4 @@
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { CommandHero } from "@/components/command-center-v2/CommandHero";
 import { CommandResponseCard } from "@/components/command-center-v2/CommandResponseCard";
@@ -14,6 +15,7 @@ export default function CommandCenterV2Page() {
   };
 
   return (
+    <DashboardLayout>
     <div className="space-y-6 p-4 md:p-6 max-w-5xl mx-auto">
       <PageHeader
         title="Command Center"
@@ -69,5 +71,6 @@ export default function CommandCenterV2Page() {
         </div>
       )}
     </div>
+    </DashboardLayout>
   );
 }
