@@ -89,14 +89,14 @@ export default function EventMapPage() {
 /* ---- Tab Components ---- */
 
 function CatalogTab({ registry, isLoading, search, setSearch }: { registry: any[]; isLoading: boolean; search: string; setSearch: (s: string) => void }) {
-  const grouped = useMemo(() => {
-    const filtered = registry.filter(e =>
+  const grouped = useMemo((): Record<string, any[]> => {
+    const filtered = registry.filter((e: any) =>
       !search || e.event_name.toLowerCase().includes(search.toLowerCase()) || e.description?.toLowerCase().includes(search.toLowerCase())
     );
-    return filtered.reduce((acc: Record<string, any[]>, e) => {
+    return filtered.reduce((acc: Record<string, any[]>, e: any) => {
       (acc[e.domain] ??= []).push(e);
       return acc;
-    }, {});
+    }, {} as Record<string, any[]>);
   }, [registry, search]);
 
   if (isLoading) return <LoadingSkeleton />;
