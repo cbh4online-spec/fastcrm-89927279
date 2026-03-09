@@ -182,7 +182,15 @@ import RFCForecastPage from "./pages/RFCForecastPage";
 import RFCScenariosPage from "./pages/RFCScenariosPage";
 import RFCSettingsPage from "./pages/RFCSettingsPage";
 
-// Renewals
+// Performance Engine
+import PerformanceDashboardPage from "./pages/performance/PerformanceDashboardPage";
+import PerformanceGoalsPage from "./pages/performance/PerformanceGoalsPage";
+import PerformanceLeaderboardPage from "./pages/performance/PerformanceLeaderboardPage";
+import PerformanceChallengesPage from "./pages/performance/PerformanceChallengesPage";
+import PerformanceRecognitionPage from "./pages/performance/PerformanceRecognitionPage";
+import PerformanceTVModePage from "./pages/performance/PerformanceTVModePage";
+import PerformanceSettingsPage from "./pages/performance/PerformanceSettingsPage";
+
 import RenewalsPage from "./pages/RenewalsPage";
 import RenewalDetailPage from "./pages/RenewalDetailPage";
 
