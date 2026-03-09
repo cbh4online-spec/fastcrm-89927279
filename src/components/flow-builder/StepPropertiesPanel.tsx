@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { FlowStep, FlowVariable, FlowStepType, ActionType, FlowConditionOperator, STEP_TYPE_CONFIG, ACTION_TYPE_CONFIG, CONDITION_OPERATOR_CONFIG } from '@/types/conversational-flows';
+import { FlowStep, FlowVariable, FlowStepType, ActionType, FlowConditionOperator, STEP_TYPE_CONFIG, ACTION_TYPE_CONFIG, CONDITION_OPERATOR_CONFIG, isAIStepType, AI_MODEL_OPTIONS, AI_INPUT_SOURCE_OPTIONS } from '@/types/conversational-flows';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,6 +37,7 @@ export function StepPropertiesPanel({ step, variables, onUpdate, onClose }: Step
   };
 
   const config = STEP_TYPE_CONFIG[localStep.stepType];
+  const isAI = isAIStepType(localStep.stepType);
 
   return (
     <div className="w-80 border-l bg-background flex flex-col h-full">
@@ -301,6 +302,78 @@ export function StepPropertiesPanel({ step, variables, onUpdate, onClose }: Step
                 rows={3}
               />
             </div>
+          )}
+
+          {/* AI Step fields */}
+          {isAI && (
+            <>
+              <div className="p-3 rounded-lg bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800">
+                <p className="text-xs font-semibold text-cyan-700 dark:text-cyan-300 mb-1">⚡ Configuração AI</p>
+                <p className="text-[10px] text-cyan-600 dark:text-cyan-400">
+                  Este passo executa IA automaticamente durante o fluxo.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Modelo AI</Label>
+                <Select
+                  value={localStep.aiModel || 'google/gemini-3-flash-preview'}
+                  onValueChange={(v) => handleChange('aiModel', v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleciona modelo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AI_MODEL_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Fonte de Dados</Label>
+                <Select
+                  value={localStep.aiInputSource || ''}
+                  onValueChange={(v) => handleChange('aiInputSource', v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleciona fonte..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AI_INPUT_SOURCE_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Prompt Personalizado</Label>
+                <Textarea
+                  value={localStep.aiPrompt || ''}
+                  onChange={(e) => handleChange('aiPrompt', e.target.value)}
+                  placeholder="Instruções adicionais para a IA..."
+                  rows={4}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Usa {'{variavel}'} para dados dinâmicos
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Guardar resultado em variável</Label>
+                <Input
+                  value={localStep.aiOutputVariable || ''}
+                  onChange={(e) => handleChange('aiOutputVariable', e.target.value)}
+                  placeholder="Ex: ai_analysis_result"
+                />
+              </div>
+            </>
           )}
         </div>
       </ScrollArea>

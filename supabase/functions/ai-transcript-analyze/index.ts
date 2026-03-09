@@ -53,6 +53,13 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Get recording for workspace_id
+    const { data: recording } = await supabase
+      .from("meeting_recordings")
+      .select("workspace_id")
+      .eq("id", recording_id)
+      .single();
+
     // Build transcript text
     const transcriptText = segments
       .map((s: any) => {
@@ -74,12 +81,11 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: "system",
-            content:
-              "You are a meeting analysis AI. Analyze the transcript and extract structured insights. Always respond using the provided tool.",
+            content: "You are a meeting analysis AI specialized in sales intelligence. Analyze the transcript and extract structured insights including sales-specific signals. Always respond using the provided tool.",
           },
           {
             role: "user",
-            content: `Analyze this meeting transcript and extract: a summary, action items with assignees, topics discussed, key moments (decisions, objections, insights, commitments, questions), and overall sentiment.\n\nTranscript:\n${transcriptText}`,
+            content: `Analyze this meeting transcript and extract: summary, action items, topics, key moments, sentiment, AND sales intelligence (objections, buying signals, competitor mentions, talk ratio per speaker, engagement score, deal impact, follow-up suggestions).\n\nTranscript:\n${transcriptText}`,
           },
         ],
         tools: [
@@ -87,17 +93,13 @@ Deno.serve(async (req) => {
             type: "function",
             function: {
               name: "analyze_transcript",
-              description: "Return structured analysis of the meeting transcript",
+              description: "Return structured analysis of the meeting transcript including sales intelligence",
               parameters: {
                 type: "object",
                 properties: {
                   summary: { type: "string", description: "Brief meeting summary (2-3 sentences)" },
                   sentiment: { type: "string", enum: ["positive", "neutral", "negative", "mixed"] },
-                  topics: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "Main topics discussed",
-                  },
+                  topics: { type: "array", items: { type: "string" } },
                   action_items: {
                     type: "array",
                     items: {
@@ -124,8 +126,68 @@ Deno.serve(async (req) => {
                       additionalProperties: false,
                     },
                   },
+                  objections_detected: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        text: { type: "string" },
+                        severity: { type: "string", enum: ["low", "medium", "high"] },
+                        timestamp_ms: { type: "number" },
+                        speaker: { type: "string" },
+                      },
+                      required: ["text", "severity"],
+                      additionalProperties: false,
+                    },
+                  },
+                  buying_signals: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        signal: { type: "string" },
+                        strength: { type: "string", enum: ["weak", "moderate", "strong"] },
+                        timestamp_ms: { type: "number" },
+                      },
+                      required: ["signal", "strength"],
+                      additionalProperties: false,
+                    },
+                  },
+                  competitor_mentions: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        name: { type: "string" },
+                        context: { type: "string" },
+                        sentiment: { type: "string", enum: ["positive", "neutral", "negative"] },
+                      },
+                      required: ["name", "context"],
+                      additionalProperties: false,
+                    },
+                  },
+                  talk_ratio: {
+                    type: "object",
+                    description: "Speaker name to percentage of talk time",
+                    additionalProperties: { type: "number" },
+                  },
+                  engagement_score: { type: "number", description: "0-100 engagement score" },
+                  deal_impact: { type: "string", enum: ["positive", "neutral", "negative"] },
+                  follow_up_suggestions: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        action: { type: "string" },
+                        priority: { type: "string", enum: ["low", "medium", "high"] },
+                        deadline_days: { type: "number" },
+                      },
+                      required: ["action", "priority"],
+                      additionalProperties: false,
+                    },
+                  },
                 },
-                required: ["summary", "sentiment", "topics", "action_items", "key_moments"],
+                required: ["summary", "sentiment", "topics", "action_items", "key_moments", "objections_detected", "buying_signals", "competitor_mentions", "talk_ratio", "engagement_score", "deal_impact", "follow_up_suggestions"],
                 additionalProperties: false,
               },
             },
@@ -138,21 +200,18 @@ Deno.serve(async (req) => {
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded, try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "Payment required." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const t = await response.text();
       console.error("AI error:", response.status, t);
       return new Response(JSON.stringify({ error: "AI analysis failed" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -160,8 +219,7 @@ Deno.serve(async (req) => {
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
       return new Response(JSON.stringify({ error: "No tool call in AI response" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -182,20 +240,12 @@ Deno.serve(async (req) => {
 
     // Insert highlights
     if (analysis.key_moments && analysis.key_moments.length > 0) {
-      // Delete old highlights first
-      await supabase
-        .from("meeting_transcript_highlights")
-        .delete()
-        .eq("recording_id", recording_id);
+      await supabase.from("meeting_transcript_highlights").delete().eq("recording_id", recording_id);
 
       const highlights = analysis.key_moments.map((m: any) => {
-        // Find closest segment
         const closest = segments.reduce((prev: any, curr: any) =>
-          Math.abs(curr.start_time_ms - m.timestamp_ms) < Math.abs(prev.start_time_ms - m.timestamp_ms)
-            ? curr
-            : prev
+          Math.abs(curr.start_time_ms - m.timestamp_ms) < Math.abs(prev.start_time_ms - m.timestamp_ms) ? curr : prev
         );
-
         return {
           recording_id,
           segment_id: closest?.id || null,
@@ -209,14 +259,26 @@ Deno.serve(async (req) => {
 
       await supabase.from("meeting_transcript_highlights").insert(highlights);
 
-      // Mark key moment segments
       const segmentIds = highlights.map((h: any) => h.segment_id).filter(Boolean);
       if (segmentIds.length > 0) {
-        await supabase
-          .from("meeting_transcript_segments")
-          .update({ is_key_moment: true })
-          .in("id", segmentIds);
+        await supabase.from("meeting_transcript_segments").update({ is_key_moment: true }).in("id", segmentIds);
       }
+    }
+
+    // Insert meeting_ai_analysis with sales intelligence
+    if (recording?.workspace_id) {
+      await supabase.from("meeting_ai_analysis").upsert({
+        recording_id,
+        workspace_id: recording.workspace_id,
+        objections_detected: analysis.objections_detected || [],
+        buying_signals: analysis.buying_signals || [],
+        competitor_mentions: analysis.competitor_mentions || [],
+        follow_up_suggestions: analysis.follow_up_suggestions || [],
+        talk_ratio: analysis.talk_ratio || {},
+        engagement_score: analysis.engagement_score || null,
+        deal_impact: analysis.deal_impact || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "recording_id" });
     }
 
     return new Response(JSON.stringify({ success: true, analysis }), {

@@ -256,7 +256,11 @@ export function useConversationalFlows() {
         position_x: data.positionX || 0,
         position_y: data.positionY || 0,
         is_entry_point: data.isEntryPoint || false,
-        position: data.position || steps.length
+        position: data.position || steps.length,
+        ai_model: data.aiModel,
+        ai_prompt: data.aiPrompt,
+        ai_input_source: data.aiInputSource,
+        ai_output_variable: data.aiOutputVariable,
       };
 
       // Use generic query since types may not be updated yet
@@ -305,6 +309,10 @@ export function useConversationalFlows() {
       if (data.positionY !== undefined) updateData.position_y = data.positionY;
       if (data.isEntryPoint !== undefined) updateData.is_entry_point = data.isEntryPoint;
       if (data.position !== undefined) updateData.position = data.position;
+      if (data.aiModel !== undefined) updateData.ai_model = data.aiModel;
+      if (data.aiPrompt !== undefined) updateData.ai_prompt = data.aiPrompt;
+      if (data.aiInputSource !== undefined) updateData.ai_input_source = data.aiInputSource;
+      if (data.aiOutputVariable !== undefined) updateData.ai_output_variable = data.aiOutputVariable;
 
       const { data: updated, error } = await supabase
         .from('flow_steps')
