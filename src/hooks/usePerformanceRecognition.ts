@@ -70,7 +70,7 @@ export function useCreateRecognition() {
     mutationFn: async (recognition: Partial<PerformanceRecognition>) => {
       const { data, error } = await supabase
         .from("performance_recognition")
-        .insert({ ...recognition, workspace_id: currentWorkspace!.id })
+        .insert([{ ...recognition, workspace_id: currentWorkspace!.id } as any])
         .select()
         .single();
       if (error) throw error;

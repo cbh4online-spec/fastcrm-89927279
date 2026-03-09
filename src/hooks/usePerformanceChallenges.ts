@@ -94,7 +94,7 @@ export function useCreateChallenge() {
     mutationFn: async (challenge: Partial<PerformanceChallenge>) => {
       const { data, error } = await supabase
         .from("performance_challenges")
-        .insert({ ...challenge, workspace_id: currentWorkspace!.id })
+        .insert([{ ...challenge, workspace_id: currentWorkspace!.id } as any])
         .select()
         .single();
       if (error) throw error;

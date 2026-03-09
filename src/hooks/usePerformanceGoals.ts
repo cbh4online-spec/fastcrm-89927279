@@ -45,7 +45,7 @@ export function useCreateGoal() {
     mutationFn: async (goal: Partial<PerformanceGoal>) => {
       const { data, error } = await supabase
         .from("performance_goals")
-        .insert({ ...goal, workspace_id: currentWorkspace!.id })
+        .insert([{ ...goal, workspace_id: currentWorkspace!.id } as any])
         .select()
         .single();
       if (error) throw error;
