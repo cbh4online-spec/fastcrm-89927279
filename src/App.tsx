@@ -466,6 +466,7 @@ function CRMRoutes() {
                 <Route path="/settings/:section" element={<Settings />} />
                 <Route path="/dashboard/leads" element={<Leads />} />
                 <Route path="/dashboard/leads/:id" element={<LeadDetail />} />
+                <Route path="/dashboard/prospecting" element={<ProspectingHub />} />
                 <Route path="/dashboard/prospecting/google-local" element={<GoogleLocalProspecting />} />
                 <Route path="/dashboard/prospecting/web-search" element={<WebSearchProspecting />} />
                 <Route path="/dashboard/prospecting/professionals" element={<ProfessionalProspecting />} />
