@@ -182,7 +182,15 @@ import RFCForecastPage from "./pages/RFCForecastPage";
 import RFCScenariosPage from "./pages/RFCScenariosPage";
 import RFCSettingsPage from "./pages/RFCSettingsPage";
 
-// Renewals
+// Performance Engine
+import PerformanceDashboardPage from "./pages/performance/PerformanceDashboardPage";
+import PerformanceGoalsPage from "./pages/performance/PerformanceGoalsPage";
+import PerformanceLeaderboardPage from "./pages/performance/PerformanceLeaderboardPage";
+import PerformanceChallengesPage from "./pages/performance/PerformanceChallengesPage";
+import PerformanceRecognitionPage from "./pages/performance/PerformanceRecognitionPage";
+import PerformanceTVModePage from "./pages/performance/PerformanceTVModePage";
+import PerformanceSettingsPage from "./pages/performance/PerformanceSettingsPage";
+
 import RenewalsPage from "./pages/RenewalsPage";
 import RenewalDetailPage from "./pages/RenewalDetailPage";
 
@@ -544,6 +552,15 @@ function CRMRoutes() {
                 <Route path="/dashboard/revenue-flight-control/forecast" element={<RFCForecastPage />} />
                 <Route path="/dashboard/revenue-flight-control/scenarios" element={<RFCScenariosPage />} />
                 <Route path="/dashboard/revenue-flight-control/settings" element={<RFCSettingsPage />} />
+                
+                {/* Performance Engine */}
+                <Route path="/dashboard/performance" element={<PerformanceDashboardPage />} />
+                <Route path="/dashboard/performance/goals" element={<PerformanceGoalsPage />} />
+                <Route path="/dashboard/performance/leaderboard" element={<PerformanceLeaderboardPage />} />
+                <Route path="/dashboard/performance/challenges" element={<PerformanceChallengesPage />} />
+                <Route path="/dashboard/performance/recognition" element={<PerformanceRecognitionPage />} />
+                <Route path="/dashboard/performance/tv-mode" element={<PerformanceTVModePage />} />
+                <Route path="/dashboard/performance/settings" element={<PerformanceSettingsPage />} />
                 
                 {/* Procurement Routes */}
                 <Route path="/dashboard/procurement" element={<ProcurementDashboardPage />} />
