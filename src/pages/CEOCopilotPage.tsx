@@ -53,5 +53,6 @@ export default function CEOCopilotPage() {
         </TabsContent>
       </Tabs>
     </div>
+    </DashboardLayout>
   );
 }
