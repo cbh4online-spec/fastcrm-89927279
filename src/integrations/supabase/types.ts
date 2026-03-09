@@ -12410,6 +12410,123 @@ export type Database = {
         }
         Relationships: []
       }
+      deal_probability_scores: {
+        Row: {
+          computed_at: string
+          confidence_score: number
+          explanation_json: Json | null
+          health_score: number
+          id: string
+          model_version: string
+          momentum_score: number
+          opportunity_id: string
+          probability_score: number
+          recommended_action: string | null
+          risk_score: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          computed_at?: string
+          confidence_score?: number
+          explanation_json?: Json | null
+          health_score?: number
+          id?: string
+          model_version?: string
+          momentum_score?: number
+          opportunity_id: string
+          probability_score?: number
+          recommended_action?: string | null
+          risk_score?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          computed_at?: string
+          confidence_score?: number
+          explanation_json?: Json | null
+          health_score?: number
+          id?: string
+          model_version?: string
+          momentum_score?: number
+          opportunity_id?: string
+          probability_score?: number
+          recommended_action?: string | null
+          risk_score?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_probability_scores_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_probability_scores_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_risk_signals: {
+        Row: {
+          created_at: string
+          evidence_json: Json | null
+          id: string
+          opportunity_id: string
+          reason: string
+          resolved_at: string | null
+          severity: string
+          signal_score: number
+          signal_type: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          evidence_json?: Json | null
+          id?: string
+          opportunity_id: string
+          reason: string
+          resolved_at?: string | null
+          severity?: string
+          signal_score?: number
+          signal_type: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          evidence_json?: Json | null
+          id?: string
+          opportunity_id?: string
+          reason?: string
+          resolved_at?: string | null
+          severity?: string
+          signal_score?: number
+          signal_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_risk_signals_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_risk_signals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_scores: {
         Row: {
           category: string
@@ -29005,6 +29122,68 @@ export type Database = {
           },
         ]
       }
+      revenue_forecast_snapshots: {
+        Row: {
+          best_case_revenue: number
+          closed_revenue: number
+          created_at: string
+          forecast_confidence: number
+          forecast_gap: number
+          id: string
+          most_likely_revenue: number
+          period_end: string
+          period_start: string
+          period_type: string
+          target_hit_probability: number
+          target_revenue: number
+          weighted_pipeline: number
+          workspace_id: string
+          worst_case_revenue: number
+        }
+        Insert: {
+          best_case_revenue?: number
+          closed_revenue?: number
+          created_at?: string
+          forecast_confidence?: number
+          forecast_gap?: number
+          id?: string
+          most_likely_revenue?: number
+          period_end: string
+          period_start: string
+          period_type?: string
+          target_hit_probability?: number
+          target_revenue?: number
+          weighted_pipeline?: number
+          workspace_id: string
+          worst_case_revenue?: number
+        }
+        Update: {
+          best_case_revenue?: number
+          closed_revenue?: number
+          created_at?: string
+          forecast_confidence?: number
+          forecast_gap?: number
+          id?: string
+          most_likely_revenue?: number
+          period_end?: string
+          period_start?: string
+          period_type?: string
+          target_hit_probability?: number
+          target_revenue?: number
+          weighted_pipeline?: number
+          workspace_id?: string
+          worst_case_revenue?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_forecast_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       revenue_forecasts: {
         Row: {
           at_risk_revenue: number | null
@@ -29090,6 +29269,203 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "revenue_forecasts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revenue_model_config: {
+        Row: {
+          avg_deal_value: number | null
+          avg_sales_cycle_days: number | null
+          hot_deal_threshold: number | null
+          hot_lead_threshold: number | null
+          id: string
+          lead_to_meeting_rate: number | null
+          meeting_to_proposal_rate: number | null
+          proposal_to_close_rate: number | null
+          stalled_threshold_days: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          avg_deal_value?: number | null
+          avg_sales_cycle_days?: number | null
+          hot_deal_threshold?: number | null
+          hot_lead_threshold?: number | null
+          id?: string
+          lead_to_meeting_rate?: number | null
+          meeting_to_proposal_rate?: number | null
+          proposal_to_close_rate?: number | null
+          stalled_threshold_days?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          avg_deal_value?: number | null
+          avg_sales_cycle_days?: number | null
+          hot_deal_threshold?: number | null
+          hot_lead_threshold?: number | null
+          id?: string
+          lead_to_meeting_rate?: number | null
+          meeting_to_proposal_rate?: number | null
+          proposal_to_close_rate?: number | null
+          stalled_threshold_days?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_model_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revenue_recommendations: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          impact_estimate: number | null
+          linked_entity_id: string | null
+          linked_entity_type: string | null
+          period_end: string | null
+          period_start: string | null
+          period_type: string
+          priority: string
+          recommendation_type: string
+          status: string
+          title: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          impact_estimate?: number | null
+          linked_entity_id?: string | null
+          linked_entity_type?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          period_type?: string
+          priority?: string
+          recommendation_type: string
+          status?: string
+          title: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          impact_estimate?: number | null
+          linked_entity_id?: string | null
+          linked_entity_type?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          period_type?: string
+          priority?: string
+          recommendation_type?: string
+          status?: string
+          title?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_recommendations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revenue_scenarios: {
+        Row: {
+          created_at: string
+          id: string
+          input_json: Json | null
+          output_json: Json | null
+          scenario_name: string
+          scenario_type: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          input_json?: Json | null
+          output_json?: Json | null
+          scenario_name: string
+          scenario_type?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          input_json?: Json | null
+          output_json?: Json | null
+          scenario_name?: string
+          scenario_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_scenarios_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revenue_targets: {
+        Row: {
+          created_at: string
+          id: string
+          period_end: string
+          period_start: string
+          period_type: string
+          target_deals: number
+          target_meetings: number
+          target_proposals: number
+          target_revenue: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          period_end: string
+          period_start: string
+          period_type?: string
+          target_deals?: number
+          target_meetings?: number
+          target_proposals?: number
+          target_revenue?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          period_type?: string
+          target_deals?: number
+          target_meetings?: number
+          target_proposals?: number
+          target_revenue?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_targets_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
