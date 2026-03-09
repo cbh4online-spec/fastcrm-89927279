@@ -9,9 +9,9 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useC2CListingDetail, useUpdateC2CListing, useC2CCategories } from "@/hooks/useC2CListings";
-import { useAnalyzePhoto, useGenerateTitle, useGenerateDescription, useSuggestPrice, useSuggestCategory, useGenerateListingImage, useGenerate360 } from "@/hooks/useC2CListingAI";
+import { useAnalyzePhoto, useGenerateTitle, useGenerateDescription, useSuggestPrice, useSuggestCategory, useGenerateListingImage, useGenerate360, useSearchWebImages } from "@/hooks/useC2CListingAI";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { ArrowLeft, ImagePlus, X, Sparkles, TrendingUp, Loader2, Wand2, Zap, Camera, Video, RotateCw, Save } from "lucide-react";
+import { ArrowLeft, ImagePlus, X, Sparkles, TrendingUp, Loader2, Wand2, Zap, Camera, Video, RotateCw, Save, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -57,8 +57,9 @@ export default function C2CEditListing() {
   const suggestCategory = useSuggestCategory();
   const generateImage = useGenerateListingImage();
   const generate360 = useGenerate360();
+  const searchWebImages = useSearchWebImages();
 
-  const isAnyAILoading = analyzePhoto.isPending || generateTitle.isPending || generateDescription.isPending || suggestPrice.isPending || suggestCategory.isPending || generateImage.isPending || generate360.isPending;
+  const isAnyAILoading = analyzePhoto.isPending || generateTitle.isPending || generateDescription.isPending || suggestPrice.isPending || suggestCategory.isPending || generateImage.isPending || generate360.isPending || searchWebImages.isPending;
 
   useEffect(() => {
     if (listing) {
@@ -189,6 +190,26 @@ export default function C2CEditListing() {
         onSuccess: (images) => {
           setPhotos((prev) => [...prev, ...images]);
           toast.success(`${images.length} imagem(ns) gerada(s) com IA!`);
+        },
+      }
+    );
+  };
+
+  const handleSearchWebImages = () => {
+    if (!title.trim()) {
+      toast.error("Introduz um título primeiro para pesquisar.");
+      return;
+    }
+    searchWebImages.mutate(
+      { title, description, condition },
+      {
+        onSuccess: (images) => {
+          if (images.length === 0) {
+            toast.info("Nenhuma imagem encontrada na internet para este produto.");
+            return;
+          }
+          setPhotos((prev) => [...prev, ...images]);
+          toast.success(`${images.length} imagem(ns) encontrada(s) na internet!`);
         },
       }
     );
@@ -392,12 +413,29 @@ export default function C2CEditListing() {
                     {generateImage.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                     Gerar fotos com IA
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSearchWebImages}
+                    disabled={searchWebImages.isPending || !title.trim()}
+                    className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+                  >
+                    {searchWebImages.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+                    Buscar na internet
+                  </Button>
                 </div>
 
                 {generateImage.isPending && (
                   <div className="mt-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 animate-pulse">
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
                     <span className="text-sm font-medium text-primary">A gerar imagens com IA (pode demorar ~30s)...</span>
+                  </div>
+                )}
+
+                {searchWebImages.isPending && (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 animate-pulse">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-sm font-medium text-primary">A pesquisar imagens na internet...</span>
                   </div>
                 )}
               </TabsContent>
