@@ -500,7 +500,7 @@ export default function C2CPublicMarketplace() {
                 title="Destaques"
                 icon={<Sparkles className="h-5 w-5 text-primary" />}
                 listings={featuredListings}
-                onNavigate={(id) => navigate(`/c2c/${workspaceSlug}/${id}`)}
+                onNavigate={(id) => navigate(`/marketplace/${workspaceSlug}/${id}`)}
                 sponsoredIds={sponsoredIds}
               />
             )}
