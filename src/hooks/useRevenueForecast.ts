@@ -85,16 +85,20 @@ export function useGenerateRevenueForecast() {
       console.log("[AI-ANALYTICS] FORECAST_GENERATED", { forecast_confidence: result?.forecast_confidence, expected_case: result?.expected_case });
 
       if (currentWorkspace && result?.id) {
+        // Emit both FORECAST.UPDATED and FORECAST.COMPUTED for matrix compatibility
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
-          type: "FORECAST.UPDATED",
+          type: "FORECAST.COMPUTED",
           entity_kind: "revenue_forecast",
           entity_id: result.id,
           source_module: "ai-analytics",
           payload: {
             expected_case: result.expected_case,
+            best_case: result.best_case,
+            worst_case: result.worst_case,
             forecast_confidence: result.forecast_confidence,
             opportunity_count: result.opportunity_count,
+            risk_index: result.risk_index,
           },
         });
       }

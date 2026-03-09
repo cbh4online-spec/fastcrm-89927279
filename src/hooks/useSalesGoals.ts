@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { startOfMonth, format } from "date-fns";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export interface SalesGoal {
   id: string;
@@ -126,8 +127,23 @@ export function useUpdateSalesGoal() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["sales-goals"] });
+      if (data?.workspace_id) {
+        emitKernelEvent({
+          workspace_id: data.workspace_id,
+          type: "GOAL.UPDATED",
+          entity_kind: "sales_goal",
+          entity_id: data.id,
+          actor_type: "user",
+          source_module: "strategy",
+          payload: {
+            month: data.month,
+            revenue_target: data.revenue_target,
+            leads_target: data.leads_target,
+          },
+        });
+      }
     },
   });
 }
@@ -166,8 +182,23 @@ export function useUpsertSalesGoal() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["sales-goals"] });
+      if (data?.workspace_id) {
+        emitKernelEvent({
+          workspace_id: data.workspace_id,
+          type: "GOAL.UPDATED",
+          entity_kind: "sales_goal",
+          entity_id: data.id,
+          actor_type: "user",
+          source_module: "strategy",
+          payload: {
+            month: data.month,
+            revenue_target: data.revenue_target,
+            leads_target: data.leads_target,
+          },
+        });
+      }
     },
   });
 }

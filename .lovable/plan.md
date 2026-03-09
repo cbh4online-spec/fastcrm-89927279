@@ -1,88 +1,68 @@
 
 
-# Implementar Emitters em Falta na Event Decision Matrix
+# Phase 5B — Command Center COMPLETO
 
-## Audit: Estado Atual dos 21 Eventos
+## Gap Analysis: Current vs Spec
 
-```text
-EVENT NAME                              | EMITTER EXISTS? | LOCATION
-----------------------------------------|-----------------|----------------------------------
-crm.lead.created                        | YES             | useLeads.ts
-crm.lead.scored                         | YES             | useLeadScores.ts, useSmartLeads.ts
-crm.company.enriched                    | NO              | useCompanyEnrichment.ts (missing)
-crm.company.icp_scored                  | NO              | useCompanyScores.ts (missing)
-crm.opportunity.created                 | YES             | useOpportunitiesEnhanced.ts
-crm.opportunity.stage_changed           | YES             | useOpportunitiesEnhanced.ts
-crm.opportunity.deal_score_computed     | YES             | compute-deal-score EF
-crm.opportunity.stalled_detected        | YES             | compute-deal-score EF
-crm.opportunity.closed_won              | PARTIAL         | useCloseOpportunity (emits CLOSED)
-sales.proposal.sent                     | YES             | useProposals.ts (PROPOSAL.SENT)
-sales.proposal.viewed                   | NO              | No emitter exists
-sales.proposal.accepted                 | YES             | useProposals.ts (PROPOSAL.SIGNED)
-sales.invoice.paid                      | NO              | useInvoices.ts (missing)
-calendar.meeting.completed              | YES             | useMeetings.ts
-calendar.meeting.action_items_extracted | NO              | useMeetingTranscript.ts (missing)
-comm.message.received                   | YES             | ConversationList.tsx
-comm.email.received                     | NO              | No emitter exists
-strategy.goal.updated                   | NO              | useSalesGoals.ts (missing)
-strategy.forecast.computed              | NO              | useRevenueForecast.ts (missing)
-strategy.kernel.signal_created          | NO              | Edge function (missing)
-strategy.kernel.decision_created        | NO              | Edge function (missing)
-```
+The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
 
-## 11 Emitters em Falta a Implementar
+**Already implemented (needs enhancement):**
+- Header with greeting + 3 KPIs — needs larger font (32px), labels below
+- AI Question Box — needs slash command suggestions row below input
+- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
+- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
+- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
+- Drift Alerts — needs "Rever →" links to Context OS blocks
 
-### Grupo 1 — Hooks Frontend (7 ficheiros)
+**New sections to build:**
+1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
+2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
+   - Change Events (last 5 from `useChangeEvents` with realtime)
+   - Entity Activity (top 3 entities from `useKernelEntities`)
+   - Impact Score (top 2 from `useImpactMapData`)
+3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
 
-1. **`src/hooks/useCompanyEnrichment.ts`** — Adicionar `emitKernelEvent` no `onSuccess` de `useCompanyEnrichment()` com tipo `COMPANY.ENRICHED`
+**Enhanced Command Palette (⌘K):**
+- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
 
-2. **`src/hooks/useCompanyScores.ts`** — Adicionar `emitKernelEvent` no `onSuccess` de `useUpdateCompanyScores()` com tipo `COMPANY.ICP_SCORED`
+**Spotlight (Space key):**
+- Opens AI Question Box as a modal from any page. New global component.
 
-3. **`src/hooks/useOpportunitiesEnhanced.ts`** — No `useCloseOpportunity`, emitir `OPPORTUNITY.CLOSED_WON` quando `status === 'won'` (atualmente emite genérico `OPPORTUNITY.CLOSED`)
+## Implementation Plan — 3 Sub-phases
 
-4. **`src/hooks/useInvoices.ts`** — Adicionar `emitKernelEvent` no `onSuccess` de `useMarkInvoicePaid()` com tipo `INVOICE.PAID`
+Given the scope, I recommend splitting into 3 batches:
 
-5. **`src/hooks/useMeetingTranscript.ts`** — Adicionar `emitKernelEvent` após `analyzeTranscript` completar, com tipo `MEETING.ACTION_ITEMS_EXTRACTED`
+### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
+| File | Action |
+|------|--------|
+| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
+| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
+| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
+| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
 
-6. **`src/hooks/useSalesGoals.ts`** — Adicionar `emitKernelEvent` no `onSuccess` de `useUpdateSalesGoal()` e `useUpsertSalesGoal()` com tipo `GOAL.UPDATED`
+### Batch 2: Enhance Existing Cards
+| File | Action |
+|------|--------|
+| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
+| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
+| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
+| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
+| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
+| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
 
-7. **`src/hooks/useRevenueForecast.ts`** — Adicionar `emitKernelEvent` no `onSuccess` da mutation de forecast com tipo `FORECAST.COMPUTED`
+### Batch 3: Spotlight Modal + Command Palette Enhancement
+| File | Action |
+|------|--------|
+| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
+| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
+| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
 
-### Grupo 2 — Edge Functions (2 funções)
+### Realtime subscriptions needed
+- `change_events` table for Kernel Live Feed auto-update
+- `kernel_action_runs` for Ações do Dia auto-update
+- Already have `kernel_decisions` and `conversations`
 
-8. **`supabase/functions/kernel-ingest-event/index.ts`** — Após gerar sinal com sucesso, inserir evento `SIGNAL.CREATED` na tabela `kernel_events` (self-referencing, sem recursão pois não passa pela matrix)
+No database migrations needed. All hooks, edge functions, and tables already exist.
 
-9. **`supabase/functions/kernel-ingest-event/index.ts`** — Após criar decisão, inserir evento `DECISION.CREATED` na tabela `kernel_events`
-
-### Grupo 3 — Emitters Não-Triviais (2 casos)
-
-10. **`sales.proposal.viewed`** — Requer emissão na página pública de proposta quando o cliente visualiza. Procurar o componente de visualização pública e adicionar `emitKernelEvent` ou chamada à edge function.
-
-11. **`comm.email.received`** — Depende de webhook externo (email provider). Adicionar emissão no handler de recepção de emails se existir, ou documentar como pendente de integração.
-
-### Padrão de Implementação
-
-Cada emitter segue o mesmo padrão:
-```typescript
-emitKernelEvent({
-  workspace_id: currentWorkspace.id,
-  type: 'ENTITY.ACTION',        // ex: COMPANY.ENRICHED
-  entity_kind: 'entity_type',   // ex: company
-  entity_id: data.id,
-  actor_type: 'user',           // ou 'system' para EFs
-  actor_id: user?.id,
-  source_module: 'module-name',
-  payload: { /* dados relevantes */ },
-});
-```
-
-### Imports necessários em cada ficheiro
-- `import { emitKernelEvent } from "@/lib/kernelEmitter";`
-- Contextos: `useWorkspace`, `useAuth` (onde ainda não existam)
-
-### Estimativa
-- 7 hooks frontend: alterações pequenas (~10-20 linhas cada)
-- 2 inserções na edge function: ~15 linhas cada
-- 1 página pública de proposta: ~10 linhas
-- 1 email webhook: documentar como pendente
+**Shall I start with Batch 1?**
 

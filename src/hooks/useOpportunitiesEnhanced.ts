@@ -354,17 +354,31 @@ export function useCloseOpportunity() {
       queryClient.invalidateQueries({ queryKey: ["opportunities-enhanced", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["opportunities", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["opportunity-kpis", currentWorkspace?.id] });
-      // Kernel event: opportunity closed
       if (currentWorkspace?.id) {
+        const correlationId = generateRequestId();
+        // Emit specific event for won/lost
+        if (data.status === "won") {
+          emitKernelEvent({
+            workspace_id: currentWorkspace.id,
+            type: "OPPORTUNITY.CLOSED_WON",
+            entity_kind: "opportunity",
+            entity_id: data.id,
+            actor_type: "user",
+            payload: { status: data.status, title: data.title, value: (data as any).value },
+            source_module: "crm-opportunities",
+            correlation_id: correlationId,
+          });
+        }
+        // Always emit generic closed event
         emitKernelEvent({
           workspace_id: currentWorkspace.id,
           type: "OPPORTUNITY.CLOSED",
           entity_kind: "opportunity",
           entity_id: data.id,
-          actor_type: 'user',
+          actor_type: "user",
           payload: { status: data.status, title: data.title },
           source_module: "crm-opportunities",
-          correlation_id: generateRequestId(),
+          correlation_id: correlationId,
         });
       }
     },

@@ -3,6 +3,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { toast } from "sonner";
 import { trackPaymentReceived } from "@/modules/growth-seo/lib/gtmEvents";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue" | "cancelled";
 
@@ -375,6 +376,23 @@ export function useMarkInvoicePaid() {
         currency: 'EUR',
         customer_id: data.company_id || data.contact_id || data.lead_id || undefined,
         workspace_id: data.workspace_id,
+      });
+
+      // Kernel event: invoice paid
+      emitKernelEvent({
+        workspace_id: data.workspace_id,
+        type: "INVOICE.PAID",
+        entity_kind: "invoice",
+        entity_id: data.id,
+        actor_type: "user",
+        source_module: "billing",
+        payload: {
+          invoice_number: data.invoice_number,
+          total: data.total,
+          currency: data.currency,
+          company_id: data.company_id,
+          opportunity_id: data.opportunity_id,
+        },
       });
     },
     onError: (error) => {

@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { toast } from "sonner";
 
 export interface EnrichmentField {
@@ -60,10 +61,11 @@ export function useCompanyEnrichment() {
 
       return data.data;
     },
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       const fieldsFound = result ? Object.keys(result) : [];
       const hasSocialLinks = !!(result?.socialLinks);
       console.log(`[COMPANIES] Company enriched: fields=${fieldsFound.join(', ')}, social=${hasSocialLinks}`);
+      // Note: workspace_id not available here (no context), emitter deferred to caller
     },
     onError: (error) => {
       console.warn('[COMPANIES] ENRICH_FAILED', error.message);
