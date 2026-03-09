@@ -348,5 +348,6 @@ export default function FastClubApplicationsPage() {
         </CardContent>
       </Card>
     </div>
+    </DashboardLayout>
   );
 }
