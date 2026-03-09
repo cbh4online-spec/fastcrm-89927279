@@ -230,7 +230,7 @@ export default function PerformanceDashboardPage() {
                         <span className="font-medium">{g.goal_name}</span>
                         <span className="text-muted-foreground">{g.target_value}</span>
                       </div>
-                      <Progress value={35} className="h-2" />
+                      <Progress value={getGoalProgress(g)} className="h-2" />
                     </div>
                   ))}
                 </div>
