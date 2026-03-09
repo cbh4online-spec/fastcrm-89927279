@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Brain, Briefcase, ShieldAlert, TrendingUp, Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +12,7 @@ import { CEOGrowthInsightsTab } from "@/components/ceo-copilot/CEOGrowthInsights
 
 export default function CEOCopilotPage() {
   return (
+    <DashboardLayout>
     <div className="space-y-6 p-4 md:p-6">
       <PageHeader
         title="AI CEO Copilot"
@@ -51,5 +53,6 @@ export default function CEOCopilotPage() {
         </TabsContent>
       </Tabs>
     </div>
+    </DashboardLayout>
   );
 }
