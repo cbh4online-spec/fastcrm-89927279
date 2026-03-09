@@ -175,6 +175,7 @@ import IMOAIPage from "./pages/IMOAIPage";
 import ZapierPage from "./pages/ZapierPage";
 import CEOCopilotPage from "./pages/CEOCopilotPage";
 import CommandCenterV2Page from "./pages/CommandCenterV2Page";
+import BundlesPage from "./pages/BundlesPage";
 
 // Renewals
 import RenewalsPage from "./pages/RenewalsPage";
@@ -553,6 +554,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/order-notes/create" element={<CreateOrderNotePage />} />
                 <Route path="/dashboard/order-notes/:id" element={<OrderNoteDetailPage />} />
                 <Route path="/dashboard/order-approvals" element={<OrderApprovalsPage />} />
+                <Route path="/dashboard/bundles" element={<BundlesPage />} />
                 <Route path="/dashboard/client-users" element={<ClientUsersPage />} />
                 <Route path="/dashboard/b2b-portal" element={<B2BPortalSettingsPage />} />
                 <Route path="/dashboard/b2b-stock" element={<B2BStockPage />} />
