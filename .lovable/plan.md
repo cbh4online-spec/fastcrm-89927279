@@ -1,31 +1,68 @@
 
 
-## Problema
+# Phase 5B — Command Center COMPLETO
 
-A partilha no Marketplace C2C usa o componente `ShareButtons` — uma linha simples com ícones (WhatsApp, Facebook, Copiar). A loja online tem o `StoreShareCard`, muito mais completo: QR Code, URL copiável visível, botões de WhatsApp, Email e Abrir Loja.
+## Gap Analysis: Current vs Spec
 
-## Plano
+The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
 
-### 1. Criar `MarketplaceShareCard` baseado no `StoreShareCard`
+**Already implemented (needs enhancement):**
+- Header with greeting + 3 KPIs — needs larger font (32px), labels below
+- AI Question Box — needs slash command suggestions row below input
+- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
+- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
+- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
+- Drift Alerts — needs "Rever →" links to Context OS blocks
 
-Novo ficheiro `src/components/c2c/MarketplaceShareCard.tsx` — um Card com:
-- QR Code do marketplace com botão de download
-- URL visível com botão de copiar
-- Botões de partilha rápida: WhatsApp, Email, Facebook, Abrir Marketplace
-- Props: `marketplaceUrl`, `marketplaceName`
+**New sections to build:**
+1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
+2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
+   - Change Events (last 5 from `useChangeEvents` with realtime)
+   - Entity Activity (top 3 entities from `useKernelEntities`)
+   - Impact Score (top 2 from `useImpactMapData`)
+3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
 
-Reutiliza o mesmo padrão visual do `StoreShareCard` (layout flex com QR à esquerda e ações à direita).
+**Enhanced Command Palette (⌘K):**
+- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
 
-### 2. Atualizar `ShareButtons` para incluir Email
+**Spotlight (Space key):**
+- Opens AI Question Box as a modal from any page. New global component.
 
-Adicionar botão de Email ao `ShareButtons` inline (usado nas páginas públicas e detalhe de anúncio), mantendo-o compacto.
+## Implementation Plan — 3 Sub-phases
 
-### 3. Integrar `MarketplaceShareCard` nas configurações/gestão do C2C
+Given the scope, I recommend splitting into 3 batches:
 
-Usar o `MarketplaceShareCard` nas páginas de gestão do marketplace (ex: `C2CMyListings` ou painel de configuração do workspace), onde faz sentido ter a versão completa com QR — semelhante a como o `StoreShareCard` aparece nas definições da loja.
+### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
+| File | Action |
+|------|--------|
+| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
+| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
+| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
+| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
 
-### Ficheiros a criar/alterar
-- **Criar** `src/components/c2c/MarketplaceShareCard.tsx` — card completo com QR + partilha
-- **Alterar** `src/components/c2c/ShareButtons.tsx` — adicionar botão de Email
-- **Alterar** `src/pages/c2c/C2CMyListings.tsx` — incluir `MarketplaceShareCard` no topo da página de gestão
+### Batch 2: Enhance Existing Cards
+| File | Action |
+|------|--------|
+| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
+| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
+| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
+| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
+| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
+| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
+
+### Batch 3: Spotlight Modal + Command Palette Enhancement
+| File | Action |
+|------|--------|
+| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
+| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
+| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
+
+### Realtime subscriptions needed
+- `change_events` table for Kernel Live Feed auto-update
+- `kernel_action_runs` for Ações do Dia auto-update
+- Already have `kernel_decisions` and `conversations`
+
+No database migrations needed. All hooks, edge functions, and tables already exist.
+
+**Shall I start with Batch 1?**
 

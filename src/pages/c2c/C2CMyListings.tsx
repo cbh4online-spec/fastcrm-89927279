@@ -17,6 +17,7 @@ import {
 import { useMyC2CListings, useUpdateC2CListing } from "@/hooks/useC2CListings";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { ListingStats } from "@/components/c2c/ListingStats";
+import { MarketplaceShareCard } from "@/components/c2c/MarketplaceShareCard";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
 import {
   ArrowLeft,
@@ -101,6 +102,16 @@ export default function C2CMyListings() {
             </Button>
           </div>
         </div>
+
+        {/* Marketplace Share Card */}
+        {!isLoading && currentWorkspace && (
+          <div className="mb-6">
+            <MarketplaceShareCard
+              marketplaceUrl={`${getPublicBaseUrl()}/marketplace/${currentWorkspace.slug || currentWorkspace.id}`}
+              marketplaceName={currentWorkspace.name}
+            />
+          </div>
+        )}
 
         {/* KPI Cards */}
         {!isLoading && listings.length > 0 && (
