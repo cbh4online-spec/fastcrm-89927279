@@ -126,6 +126,15 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Notas de Encomenda", href: "/dashboard/order-notes", icon: FileText, group: "Vendas" },
   { name: "Pacotes & Bundles", href: "/dashboard/bundles", icon: Package, group: "Vendas" },
 
+  // ── PERFORMANCE ──
+  { name: "Performance", href: "/dashboard/performance", icon: BarChart3, group: "Performance", separator: true },
+  { name: "Metas", href: "/dashboard/performance/goals", icon: Target, group: "Performance" },
+  { name: "Leaderboard", href: "/dashboard/performance/leaderboard", icon: Trophy, group: "Performance" },
+  { name: "Desafios", href: "/dashboard/performance/challenges", icon: Zap, group: "Performance" },
+  { name: "Reconhecimentos", href: "/dashboard/performance/recognition", icon: Trophy, group: "Performance" },
+  { name: "TV Mode", href: "/dashboard/performance/tv-mode", icon: Presentation, group: "Performance" },
+  { name: "Configurações", href: "/dashboard/performance/settings", icon: Settings, group: "Performance" },
+
   // ── MARKETING ──
   { name: "Campanhas Email", href: "/dashboard/email-campaigns", icon: Mail, group: "Marketing", separator: true, moduleSlug: "email-campaigns" },
   { name: "Landing Pages", href: "/dashboard/landing-pages", icon: Globe, group: "Marketing" },
