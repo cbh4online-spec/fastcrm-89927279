@@ -25,6 +25,7 @@ import Signup from "./pages/Signup";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import CommandCenter from "./pages/CommandCenter";
+import WeeklyDashboard from "./pages/WeeklyDashboard";
 import TasksPage from "./pages/TasksPage";
 import Settings from "./pages/Settings";
 import Leads from "./pages/Leads";
