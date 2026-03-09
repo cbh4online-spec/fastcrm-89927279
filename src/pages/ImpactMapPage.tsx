@@ -39,7 +39,7 @@ export default function ImpactMapPage() {
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const {
-    blocks, dependencies, driftMap,
+    blocks, dependencies, driftMap, healthMap,
     impactedIds, impactResults, simulatingId,
     simulateImpact, clearImpact, isLoading,
     getPosition, savePosition,
@@ -100,7 +100,9 @@ export default function ImpactMapPage() {
         data: {
           label: b.title,
           blockType: b.block_type,
-          contextScore: b.context_score,
+          contextScore: b.score,
+          fillPercent: healthMap.get(b.id)?.fillPercent,
+          healthState: healthMap.get(b.id)?.state,
           driftSeverity: drift?.severity,
           driftScore: drift?.drift_score,
           staleDays: drift?.stale_days,
@@ -108,6 +110,7 @@ export default function ImpactMapPage() {
           isSource,
           isStale,
           impactDirection: impactResults.find(r => r.block_id === b.id)?.direction,
+          dependencyCount: dependencies.filter(d => d.source_block_id === b.id || d.target_block_id === b.id).length,
           onSimulate: handleSimulate,
           onSelect: handleSelect,
         } satisfies ImpactMapNodeData,
@@ -296,7 +299,11 @@ export default function ImpactMapPage() {
             <ImpactMapSidebar
               block={selectedBlock}
               drift={driftMap.get(selectedBlock.id)}
+              healthState={healthMap.get(selectedBlock.id)?.state}
+              fillPercent={healthMap.get(selectedBlock.id)?.fillPercent}
               impactResults={impactResults}
+              dependencies={dependencies}
+              blocks={blocks}
               isSimulating={simulatingId === selectedBlock.id}
               onSimulate={() => handleSimulate(selectedBlock.id)}
               onClose={() => setSelectedBlockId(null)}

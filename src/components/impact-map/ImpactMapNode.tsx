@@ -3,7 +3,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '@/lib/utils';
 import {
   Brain, Target, Package, Users, TrendingUp, Banknote,
-  ListChecks, Cog, Zap,
+  ListChecks, Cog, Zap, CheckCircle2, AlertTriangle, XCircle, Circle,
 } from 'lucide-react';
 import { ContextDriftBadge } from '@/components/context-os/ContextDriftBadge';
 
@@ -20,10 +20,19 @@ const BLOCK_TYPE_CONFIG: Record<string, { icon: typeof Brain; color: string; bg:
 
 const DEFAULT_CONFIG = { icon: Zap, color: 'text-muted-foreground', bg: 'bg-muted/50', border: 'border-border' };
 
+const HEALTH_STATE_CONFIG: Record<string, { icon: typeof CheckCircle2; color: string; label: string }> = {
+  filled: { icon: CheckCircle2, color: 'text-emerald-400', label: 'OK' },
+  aging: { icon: AlertTriangle, color: 'text-amber-400', label: 'Envelhecendo' },
+  stale: { icon: XCircle, color: 'text-red-400', label: 'Desatualizado' },
+  empty: { icon: Circle, color: 'text-muted-foreground', label: 'Vazio' },
+};
+
 export interface ImpactMapNodeData {
   label: string;
   blockType: string;
   contextScore?: number;
+  fillPercent?: number;
+  healthState?: 'filled' | 'aging' | 'stale' | 'empty';
   driftSeverity?: string;
   driftScore?: number;
   staleDays?: number;
@@ -31,6 +40,7 @@ export interface ImpactMapNodeData {
   isSource?: boolean;
   isStale?: boolean;
   impactDirection?: string;
+  dependencyCount?: number;
   onSimulate: (id: string) => void;
   onSelect: (id: string) => void;
   [key: string]: unknown;
@@ -40,6 +50,8 @@ function ImpactMapNodeComponent({ id, data }: NodeProps) {
   const d = data as unknown as ImpactMapNodeData;
   const cfg = BLOCK_TYPE_CONFIG[d.blockType] || DEFAULT_CONFIG;
   const Icon = cfg.icon;
+  const healthCfg = d.healthState ? HEALTH_STATE_CONFIG[d.healthState] : null;
+  const HealthIcon = healthCfg?.icon;
 
   return (
     <div
@@ -67,14 +79,36 @@ function ImpactMapNodeComponent({ id, data }: NodeProps) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between mt-2">
-        {d.contextScore != null && (
-          <span className="text-[10px] text-muted-foreground">
-            Score: {d.contextScore}%
-          </span>
+      {/* Health & fill bar */}
+      <div className="mt-2 space-y-1.5">
+        {d.fillPercent != null && (
+          <div className="w-full h-1 rounded-full bg-muted/50 overflow-hidden">
+            <div
+              className={cn(
+                'h-full rounded-full transition-all duration-500',
+                d.fillPercent >= 70 ? 'bg-emerald-500' : d.fillPercent >= 30 ? 'bg-amber-500' : 'bg-red-500',
+              )}
+              style={{ width: `${Math.min(d.fillPercent, 100)}%` }}
+            />
+          </div>
         )}
-        {d.driftSeverity && (
-          <ContextDriftBadge severity={d.driftSeverity} score={d.driftScore} compact className="ml-auto" />
+
+        <div className="flex items-center justify-between">
+          {healthCfg && HealthIcon && (
+            <div className="flex items-center gap-1">
+              <HealthIcon className={cn('h-3 w-3', healthCfg.color)} />
+              <span className={cn('text-[10px] font-medium', healthCfg.color)}>{healthCfg.label}</span>
+            </div>
+          )}
+          {d.driftSeverity && (
+            <ContextDriftBadge severity={d.driftSeverity} score={d.driftScore} compact className="ml-auto" />
+          )}
+        </div>
+
+        {d.dependencyCount != null && d.dependencyCount > 0 && (
+          <p className="text-[9px] text-muted-foreground">
+            {d.dependencyCount} dependência{d.dependencyCount !== 1 ? 's' : ''}
+          </p>
         )}
       </div>
     </div>
