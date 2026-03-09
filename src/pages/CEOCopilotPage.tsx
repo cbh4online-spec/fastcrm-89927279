@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Brain, Briefcase, ShieldAlert, TrendingUp, Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
