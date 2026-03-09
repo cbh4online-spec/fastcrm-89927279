@@ -39,7 +39,7 @@ export default function ImpactMapPage() {
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const {
-    blocks, dependencies, driftMap,
+    blocks, dependencies, driftMap, healthMap,
     impactedIds, impactResults, simulatingId,
     simulateImpact, clearImpact, isLoading,
     getPosition, savePosition,
