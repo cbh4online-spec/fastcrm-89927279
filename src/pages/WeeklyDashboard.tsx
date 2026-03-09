@@ -35,10 +35,20 @@ export default function WeeklyDashboard() {
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
+        {/* Greeting Header */}
+        <CommandCenterHeader
+          revenueToday={briefMetrics?.revenue_today ?? null}
+          hotLeadsCount={briefMetrics?.leads_today ?? 0}
+          pendingDecisions={openDecisions.length}
+        />
+
+        {/* AI Command Input */}
+        <AIQuestionBox />
+
+        {/* Weekly Section Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Weekly Revenue Brief</h1>
+            <h2 className="text-lg font-semibold text-foreground">Weekly Revenue Brief</h2>
             <p className="text-sm text-muted-foreground">
               Semana {data?.weekLabel || "..."}
             </p>
