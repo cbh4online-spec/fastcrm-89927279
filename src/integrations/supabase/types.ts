@@ -13376,6 +13376,45 @@ export type Database = {
           },
         ]
       }
+      event_runtime_failures: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          error_message: string | null
+          event_name: string
+          failure_stage: string
+          id: string
+          raw_payload: Json | null
+          source_module: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          error_message?: string | null
+          event_name: string
+          failure_stage: string
+          id?: string
+          raw_payload?: Json | null
+          source_module?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          error_message?: string | null
+          event_name?: string
+          failure_stage?: string
+          id?: string
+          raw_payload?: Json | null
+          source_module?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       exclusive_content: {
         Row: {
           content: string
