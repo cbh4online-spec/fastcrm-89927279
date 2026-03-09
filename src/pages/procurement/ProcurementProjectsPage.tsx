@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useProcurementProjects } from "@/hooks/useProcurementProjects";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +23,8 @@ export default function ProcurementProjectsPage() {
   const { projects, isLoading } = useProcurementProjects(currentWorkspace?.id);
 
   return (
-    <div className="space-y-6 p-6">
+    <DashboardLayout>
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <FolderOpen className="h-6 w-6" /> Projetos de Compras
@@ -70,5 +72,6 @@ export default function ProcurementProjectsPage() {
         </CardContent>
       </Card>
     </div>
+    </DashboardLayout>
   );
 }

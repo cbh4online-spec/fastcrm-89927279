@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useRFQs } from "@/hooks/useRFQ";
@@ -84,7 +85,8 @@ export default function RFQsDashboardPage() {
   if (isLoading) return <PageLoading />;
 
   return (
-    <div className="space-y-6 p-6">
+    <DashboardLayout>
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Dashboard RFQs</h1>
@@ -219,5 +221,6 @@ export default function RFQsDashboardPage() {
         </Card>
       )}
     </div>
+    </DashboardLayout>
   );
 }

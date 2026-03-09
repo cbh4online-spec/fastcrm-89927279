@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useParams, useNavigate } from "react-router-dom";
 import { useProcurementProject } from "@/hooks/useProcurementProjects";
 import { useRFQs, useCreateRFQFromNeeds } from "@/hooks/useRFQ";
@@ -73,7 +74,8 @@ export default function ProcurementProjectDetailPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <DashboardLayout>
+    <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/procurement/projects")}>
           <ArrowLeft className="h-4 w-4" />
@@ -275,5 +277,6 @@ export default function ProcurementProjectDetailPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </DashboardLayout>
   );
 }

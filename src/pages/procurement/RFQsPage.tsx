@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useNavigate } from "react-router-dom";
 import { useRFQs } from "@/hooks/useRFQ";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -83,7 +84,8 @@ export default function RFQsPage() {
   const hasFilters = statusFilter !== "all";
 
   return (
-    <div className="space-y-6 p-6">
+    <DashboardLayout>
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
@@ -174,5 +176,6 @@ export default function RFQsPage() {
         </CardContent>
       </Card>
     </div>
+    </DashboardLayout>
   );
 }
