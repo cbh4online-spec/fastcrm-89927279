@@ -181,6 +181,14 @@ export function TranscriptViewer({ meetingId, meetingTitle, workspaceId, onBack 
       {/* AI Summary Panel */}
       <TranscriptSummaryPanel recording={recording} />
 
+      {/* Meeting Intelligence */}
+      <MeetingIntelligencePanel recordingId={recording.id} />
+
+      {/* Live Recorder */}
+      {!recording.file_url && (
+        <MeetingLiveRecorder meetingId={meetingId} workspaceId={workspaceId} />
+      )}
+
       {/* Key Moments Timeline */}
       <TranscriptKeyMoments highlights={highlights} onClickMoment={scrollToSegment} />
 
