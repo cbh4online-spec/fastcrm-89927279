@@ -304,6 +304,26 @@ Deno.serve(async (req) => {
             });
           } else {
             decisionId = decision?.id ?? null;
+            // Emit DECISION.CREATED event (direct insert, no recursion)
+            if (decisionId) {
+              supabase.from("kernel_events").insert({
+                workspace_id,
+                type: "DECISION.CREATED",
+                event_name: "strategy.kernel.decision_created",
+                entity_kind: "kernel_decision",
+                entity_id: decisionId,
+                actor_type: "system",
+                payload: { decision_type: matrixEntry.decision_type, signal_id: signalId, source_event: type, event_id: event.id },
+                source_module: "kernel",
+                occurred_at: new Date().toISOString(),
+                ingested_at: new Date().toISOString(),
+                schema_version: 1,
+                status: "processed",
+                correlation_id: correlation_id ?? null,
+                causation_id: event.id,
+                metadata_json: {},
+              }).then(() => {});
+            }
           }
         } catch (e) {
           await logFailure(supabase, {

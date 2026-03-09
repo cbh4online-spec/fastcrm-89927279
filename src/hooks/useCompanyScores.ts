@@ -29,10 +29,22 @@ export function useUpdateCompanyScores() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["companies"] });
       queryClient.invalidateQueries({ queryKey: ["company"] });
       toast.success("Scores atualizados");
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: "COMPANY.ICP_SCORED",
+          entity_kind: "company",
+          entity_id: variables.companyId,
+          actor_type: "user",
+          actor_id: user?.id,
+          source_module: "crm-companies",
+          payload: { ...variables.scores },
+        });
+      }
     },
     onError: () => {
       toast.error("Erro ao atualizar scores");

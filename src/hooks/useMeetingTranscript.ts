@@ -145,11 +145,28 @@ export function useMeetingTranscript(meetingId: string | undefined) {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["meeting-recording", meetingId] });
       queryClient.invalidateQueries({ queryKey: ["transcript-highlights", recordingId] });
       queryClient.invalidateQueries({ queryKey: ["transcript-segments", recordingId] });
       toast.success("Transcript analysis completed");
+
+      // Kernel event: action items extracted
+      if (recording?.workspace_id && meetingId) {
+        emitKernelEvent({
+          workspace_id: recording.workspace_id,
+          type: "MEETING.ACTION_ITEMS_EXTRACTED",
+          entity_kind: "meeting",
+          entity_id: meetingId,
+          actor_type: "system",
+          source_module: "calendar",
+          payload: {
+            recording_id: recordingId,
+            action_items_count: data?.action_items?.length ?? 0,
+            topics: data?.topics ?? [],
+          },
+        });
+      }
     },
     onError: (err: any) => {
       toast.error(err?.message || "Failed to analyze transcript");

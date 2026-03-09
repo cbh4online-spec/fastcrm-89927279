@@ -182,8 +182,23 @@ export function useUpsertSalesGoal() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["sales-goals"] });
+      if (data?.workspace_id) {
+        emitKernelEvent({
+          workspace_id: data.workspace_id,
+          type: "GOAL.UPDATED",
+          entity_kind: "sales_goal",
+          entity_id: data.id,
+          actor_type: "user",
+          source_module: "strategy",
+          payload: {
+            month: data.month,
+            revenue_target: data.revenue_target,
+            leads_target: data.leads_target,
+          },
+        });
+      }
     },
   });
 }
