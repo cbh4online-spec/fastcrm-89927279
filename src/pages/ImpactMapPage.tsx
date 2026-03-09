@@ -299,7 +299,11 @@ export default function ImpactMapPage() {
             <ImpactMapSidebar
               block={selectedBlock}
               drift={driftMap.get(selectedBlock.id)}
+              healthState={healthMap.get(selectedBlock.id)?.state}
+              fillPercent={healthMap.get(selectedBlock.id)?.fillPercent}
               impactResults={impactResults}
+              dependencies={dependencies}
+              blocks={blocks}
               isSimulating={simulatingId === selectedBlock.id}
               onSimulate={() => handleSimulate(selectedBlock.id)}
               onClose={() => setSelectedBlockId(null)}
