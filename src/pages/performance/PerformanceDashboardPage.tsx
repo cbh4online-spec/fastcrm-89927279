@@ -26,6 +26,38 @@ export default function PerformanceDashboardPage() {
   const { data: goals } = usePerformanceGoals();
   const recalculate = useRecalculateScores();
 
+  // Compute challenge progress from scores
+  const getChallengeProgress = (ch: any) => {
+    if (!scores?.length || !ch.target_value) return 0;
+    const metricKey = ch.metric_type as string;
+    let totalValue = 0;
+    for (const sc of scores) {
+      if (metricKey === "revenue") totalValue += sc.revenue_generated;
+      else if (metricKey === "pipeline") totalValue += sc.pipeline_generated;
+      else if (metricKey === "meetings") totalValue += sc.meetings_booked;
+      else if (metricKey === "proposals") totalValue += sc.proposals_sent;
+      else if (metricKey === "leads") totalValue += sc.leads_generated;
+      else totalValue += sc.score_total;
+    }
+    return Math.min(Math.round((totalValue / ch.target_value) * 100), 100);
+  };
+
+  // Compute goal progress from scores
+  const getGoalProgress = (g: any) => {
+    if (!scores?.length || !g.target_value) return 0;
+    const goalType = g.goal_type as string;
+    let totalValue = 0;
+    for (const sc of scores) {
+      if (goalType === "revenue") totalValue += sc.revenue_generated;
+      else if (goalType === "pipeline") totalValue += sc.pipeline_generated;
+      else if (goalType === "meetings") totalValue += sc.meetings_booked;
+      else if (goalType === "proposals") totalValue += sc.proposals_sent;
+      else if (goalType === "leads") totalValue += sc.leads_generated;
+      else totalValue += sc.score_total;
+    }
+    return Math.min(Math.round((totalValue / g.target_value) * 100), 100);
+  };
+
   const totalRevenue = scores?.reduce((s, sc) => s + sc.revenue_generated, 0) || 0;
   const totalPipeline = scores?.reduce((s, sc) => s + sc.pipeline_generated, 0) || 0;
   const totalMeetings = scores?.reduce((s, sc) => s + sc.meetings_booked, 0) || 0;
@@ -165,7 +197,7 @@ export default function PerformanceDashboardPage() {
                           <Badge variant="secondary" className="text-xs">{daysLeft}d restantes</Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">{ch.description}</p>
-                        <Progress value={45} className="h-1.5" />
+                        <Progress value={getChallengeProgress(ch)} className="h-1.5" />
                       </div>
                     );
                   })}
@@ -198,7 +230,7 @@ export default function PerformanceDashboardPage() {
                         <span className="font-medium">{g.goal_name}</span>
                         <span className="text-muted-foreground">{g.target_value}</span>
                       </div>
-                      <Progress value={35} className="h-2" />
+                      <Progress value={getGoalProgress(g)} className="h-2" />
                     </div>
                   ))}
                 </div>

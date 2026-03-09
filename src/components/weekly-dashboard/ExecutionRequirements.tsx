@@ -103,14 +103,28 @@ export function ExecutionRequirements({ metrics, pipelineValue, isLoading }: Pro
       <CardContent className="space-y-4">
         {/* Gap-based requirements banner */}
         {hasGap && avgDealValue > 0 && (
-          <div className="rounded-lg bg-primary/5 border border-primary/10 p-3">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Para atingir a meta semanal, o sistema estima que precisa de:
-              <span className="font-semibold text-foreground"> +{leadsNeeded} leads</span>,
-              <span className="font-semibold text-foreground"> +{meetingsNeeded} reuniões</span>,
-              <span className="font-semibold text-foreground"> +{proposalsNeeded} propostas</span> e
-              <span className="font-semibold text-foreground"> +{dealsNeeded} deals</span> adicionais.
+          <div className="rounded-lg bg-primary/5 border border-primary/10 p-4">
+            <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">
+              🎯 Para atingir a meta esta semana precisamos de:
             </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="text-center p-2 rounded-md bg-background/60">
+                <p className="text-xl font-bold text-foreground">+{leadsNeeded}</p>
+                <p className="text-[10px] text-muted-foreground">Leads</p>
+              </div>
+              <div className="text-center p-2 rounded-md bg-background/60">
+                <p className="text-xl font-bold text-foreground">+{meetingsNeeded}</p>
+                <p className="text-[10px] text-muted-foreground">Reuniões</p>
+              </div>
+              <div className="text-center p-2 rounded-md bg-background/60">
+                <p className="text-xl font-bold text-foreground">+{proposalsNeeded}</p>
+                <p className="text-[10px] text-muted-foreground">Propostas</p>
+              </div>
+              <div className="text-center p-2 rounded-md bg-background/60">
+                <p className="text-xl font-bold text-foreground">+{dealsNeeded}</p>
+                <p className="text-[10px] text-muted-foreground">Negócios</p>
+              </div>
+            </div>
           </div>
         )}
 
