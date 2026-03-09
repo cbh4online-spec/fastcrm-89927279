@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Brain, AlertTriangle, Zap, Target, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Brain, AlertTriangle, Zap, Target, Loader2, Lightbulb, Star } from "lucide-react";
 import { WeeklyStrategy } from "@/hooks/useWeeklyStrategy";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const statusColors = {
   on_track: "bg-success/10 text-success border-success/20",
@@ -20,33 +20,32 @@ const priorityColors = {
 interface Props {
   strategy: WeeklyStrategy | null;
   isLoading: boolean;
-  onGenerate: () => void;
 }
 
-export function AIStrategyPanel({ strategy, isLoading, onGenerate }: Props) {
-  if (!strategy && !isLoading) {
+export function AIStrategyPanel({ strategy, isLoading }: Props) {
+  if (isLoading || !strategy) {
     return (
       <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12 gap-4">
-          <Brain className="h-10 w-10 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground text-center">
-            Gere uma análise estratégica com IA para esta semana
-          </p>
-          <Button onClick={onGenerate} disabled={isLoading}>
-            <Brain className="h-4 w-4 mr-2" />
-            Gerar Estratégia
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
-          <span className="text-sm text-muted-foreground">A analisar performance...</span>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Brain className="h-4 w-4 text-primary" />
+            Estratégia Semanal IA
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {isLoading ? (
+            <>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 gap-2">
+              <Brain className="h-8 w-8 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">A carregar estratégia...</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -59,16 +58,62 @@ export function AIStrategyPanel({ strategy, isLoading, onGenerate }: Props) {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Brain className="h-4 w-4 text-primary" />
-            Resumo Estratégico
+            Estratégia Semanal IA
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-foreground leading-relaxed">{strategy!.summary}</p>
+          <p className="text-sm text-foreground leading-relaxed">{strategy.summary}</p>
         </CardContent>
       </Card>
 
+      {/* Week Priorities (from recommendations top 3) */}
+      {strategy.recommendations.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Star className="h-4 w-4 text-warning" />
+              Prioridades da Semana
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {strategy.recommendations.slice(0, 3).map((r, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <Badge className={cn("text-[10px] shrink-0 mt-0.5", priorityColors[r.priority])}>
+                  {i + 1}
+                </Badge>
+                <div>
+                  <p className="text-sm font-medium">{r.action}</p>
+                  <p className="text-xs text-muted-foreground">{r.impact}</p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Today Actions (from quick_wins top 3) */}
+      {strategy.quick_wins.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Zap className="h-4 w-4 text-primary" />
+              Ações para Hoje
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-1.5">
+              {strategy.quick_wins.slice(0, 3).map((w, i) => (
+                <li key={i} className="text-sm text-muted-foreground flex gap-2">
+                  <span className="text-primary font-medium">{i + 1}.</span> {w}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Gap Analysis */}
-      {strategy!.gap_analysis.length > 0 && (
+      {strategy.gap_analysis.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -77,7 +122,7 @@ export function AIStrategyPanel({ strategy, isLoading, onGenerate }: Props) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {strategy!.gap_analysis.map((g, i) => (
+            {strategy.gap_analysis.map((g, i) => (
               <div key={i} className={cn("p-3 rounded-lg border", statusColors[g.status])}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-medium capitalize">{g.metric}</span>
@@ -92,64 +137,31 @@ export function AIStrategyPanel({ strategy, isLoading, onGenerate }: Props) {
         </Card>
       )}
 
-      {/* Risk Alerts */}
-      {strategy!.risk_alerts.length > 0 && (
+      {/* Risk + Opportunity */}
+      {strategy.risk_alerts.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-destructive" />
-              Alertas de Risco
+              Risco Principal
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-1.5">
-              {strategy!.risk_alerts.map((r, i) => (
-                <li key={i} className="text-sm text-muted-foreground flex gap-2">
-                  <span className="text-destructive">•</span> {r}
-                </li>
-              ))}
-            </ul>
+            <p className="text-sm text-muted-foreground">{strategy.risk_alerts[0]}</p>
           </CardContent>
         </Card>
       )}
 
-      {/* Recommendations */}
-      {strategy!.recommendations.length > 0 && (
+      {strategy.risk_alerts.length > 1 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Zap className="h-4 w-4 text-warning" />
-              Recomendações
+              <Lightbulb className="h-4 w-4 text-warning" />
+              Oportunidade Escondida
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {strategy!.recommendations.map((r, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <Badge className={cn("text-[10px] shrink-0 mt-0.5", priorityColors[r.priority])}>
-                  {r.priority}
-                </Badge>
-                <div>
-                  <p className="text-sm font-medium">{r.action}</p>
-                  <p className="text-xs text-muted-foreground">{r.impact}</p>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Quick Wins */}
-      {strategy!.quick_wins.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">⚡ Quick Wins</CardTitle>
-          </CardHeader>
           <CardContent>
-            <ul className="space-y-1">
-              {strategy!.quick_wins.map((w, i) => (
-                <li key={i} className="text-sm text-muted-foreground">• {w}</li>
-              ))}
-            </ul>
+            <p className="text-sm text-muted-foreground">{strategy.risk_alerts[1]}</p>
           </CardContent>
         </Card>
       )}

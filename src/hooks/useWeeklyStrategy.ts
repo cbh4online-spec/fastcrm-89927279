@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
@@ -30,6 +30,7 @@ export function useWeeklyStrategy() {
   const { currentWorkspace } = useWorkspace();
   const [strategy, setStrategy] = useState<WeeklyStrategy | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const hasGenerated = useRef(false);
 
   const generate = useCallback(async () => {
     if (!currentWorkspace?.id || isLoading) return;
@@ -57,6 +58,13 @@ export function useWeeklyStrategy() {
       setIsLoading(false);
     }
   }, [currentWorkspace?.id, isLoading]);
+
+  // Auto-generate on mount
+  useEffect(() => {
+    if (!currentWorkspace?.id || hasGenerated.current || strategy) return;
+    hasGenerated.current = true;
+    generate();
+  }, [currentWorkspace?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { strategy, isLoading, generate };
 }

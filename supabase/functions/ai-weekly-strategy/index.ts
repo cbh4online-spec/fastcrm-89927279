@@ -113,7 +113,10 @@ serve(async (req) => {
     const systemPrompt = `You are a Revenue Strategy AI for a CRM system. Analyze weekly performance metrics and provide actionable strategy.
 You receive metrics with actual vs target values. The week is ${metrics.week_progress_pct}% complete.
 Be concise, data-driven, and actionable. Focus on what matters most to close the gap.
-All monetary values are in EUR. Respond in Portuguese (pt-PT).`;
+All monetary values are in EUR. Respond in Portuguese (pt-PT).
+IMPORTANT: In risk_alerts, put the MAIN RISK as the first item and a HIDDEN OPPORTUNITY as the second item.
+In recommendations, put the top 3 WEEK PRIORITIES first.
+In quick_wins, put the top 3 ACTIONS FOR TODAY.`;
 
     const userPrompt = `Weekly Performance Data:
 ${JSON.stringify(metrics, null, 2)}
