@@ -176,6 +176,11 @@ import ZapierPage from "./pages/ZapierPage";
 import CEOCopilotPage from "./pages/CEOCopilotPage";
 import CommandCenterV2Page from "./pages/CommandCenterV2Page";
 import BundlesPage from "./pages/BundlesPage";
+import RevenueFlightControlPage from "./pages/RevenueFlightControlPage";
+import RFCDealsPage from "./pages/RFCDealsPage";
+import RFCForecastPage from "./pages/RFCForecastPage";
+import RFCScenariosPage from "./pages/RFCScenariosPage";
+import RFCSettingsPage from "./pages/RFCSettingsPage";
 
 // Renewals
 import RenewalsPage from "./pages/RenewalsPage";
@@ -532,6 +537,13 @@ function CRMRoutes() {
                 <Route path="/dashboard/email-campaigns" element={<EmailCampaignsPage />} />
                 <Route path="/dashboard/imo-ai" element={<IMOAIPage />} />
                 <Route path="/dashboard/zapier" element={<ZapierPage />} />
+                
+                {/* Revenue Flight Control */}
+                <Route path="/dashboard/revenue-flight-control" element={<RevenueFlightControlPage />} />
+                <Route path="/dashboard/revenue-flight-control/deals" element={<RFCDealsPage />} />
+                <Route path="/dashboard/revenue-flight-control/forecast" element={<RFCForecastPage />} />
+                <Route path="/dashboard/revenue-flight-control/scenarios" element={<RFCScenariosPage />} />
+                <Route path="/dashboard/revenue-flight-control/settings" element={<RFCSettingsPage />} />
                 
                 {/* Procurement Routes */}
                 <Route path="/dashboard/procurement" element={<ProcurementDashboardPage />} />
