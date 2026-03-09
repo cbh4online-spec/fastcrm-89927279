@@ -5,6 +5,8 @@ import { AIQuestionBox } from "@/components/command-center/AIQuestionBox";
 import { RevenueTargetStrip } from "@/components/weekly-dashboard/RevenueTargetStrip";
 import { ExecutionRequirements } from "@/components/weekly-dashboard/ExecutionRequirements";
 import { ContextAwareQuickActions } from "@/components/weekly-dashboard/ContextAwareQuickActions";
+import { PriorityDealsTable } from "@/components/weekly-dashboard/PriorityDealsTable";
+import { TodayActionPlan } from "@/components/weekly-dashboard/TodayActionPlan";
 import { AIStrategyPanel } from "@/components/weekly-dashboard/AIStrategyPanel";
 import { TargetsSettingsSheet } from "@/components/weekly-dashboard/TargetsSettingsSheet";
 import { DealsAtRiskList } from "@/components/dashboard/DealsAtRiskList";
@@ -15,7 +17,7 @@ import { useWeeklyStrategy } from "@/hooks/useWeeklyStrategy";
 import { useDailyBrief } from "@/hooks/useDailyBrief";
 import { useKernelDecisions } from "@/hooks/useKernelDecisions";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Settings } from "lucide-react";
+import { RefreshCw, Crosshair } from "lucide-react";
 
 export default function WeeklyDashboard() {
   const { data, isLoading } = useWeeklyPerformance();
@@ -45,13 +47,16 @@ export default function WeeklyDashboard() {
         {/* AI Command Input */}
         <AIQuestionBox />
 
-        {/* Section Header */}
+        {/* WAR ROOM Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Dashboard Operacional</h2>
-            <p className="text-sm text-muted-foreground">
-              Semana {data?.weekLabel || "..."}
-            </p>
+          <div className="flex items-center gap-3">
+            <Crosshair className="h-5 w-5 text-primary" />
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">War Room</h2>
+              <p className="text-sm text-muted-foreground">
+                Semana {data?.weekLabel || "..."} · Dashboard de decisão operacional
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <TargetsSettingsSheet />
@@ -68,34 +73,40 @@ export default function WeeklyDashboard() {
           </div>
         </div>
 
-        {/* 1. Revenue Target Strip */}
+        {/* SECTION 1 — Weekly Situation Engine */}
         <RevenueTargetStrip
           metrics={data?.metrics || []}
           pipelineValue={data?.pipelineValue ?? 0}
           isLoading={isLoading}
         />
 
-        {/* 2. Execution Requirements */}
-        <ExecutionRequirements metrics={data?.metrics || []} isLoading={isLoading} />
+        {/* SECTION 2 — Execution Requirements */}
+        <ExecutionRequirements
+          metrics={data?.metrics || []}
+          pipelineValue={data?.pipelineValue ?? 0}
+          isLoading={isLoading}
+        />
 
-        {/* 3. Context-Aware Quick Actions */}
+        {/* SECTION 7 — Smart Quick Actions */}
         <ContextAwareQuickActions />
 
-        {/* 4+5+6. Strategy left, Deals + Pipeline right */}
+        {/* SECTIONS 3+4 — Priority Deals + Today Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="space-y-4">
-            <AIStrategyPanel
-              strategy={strategy}
-              isLoading={strategyLoading}
-            />
-          </div>
-          <div className="space-y-4">
-            <DealsAtRiskList />
-            <PipelineHealthCard />
-          </div>
+          <PriorityDealsTable />
+          <TodayActionPlan />
         </div>
 
-        {/* 7. Executive Daily Brief (full width) */}
+        {/* SECTIONS 5+6 — Deals at Risk + Pipeline Health + AI Strategy */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <DealsAtRiskList />
+          <PipelineHealthCard />
+          <AIStrategyPanel
+            strategy={strategy}
+            isLoading={strategyLoading}
+          />
+        </div>
+
+        {/* SECTION 8 — Executive Daily Brief (full width) */}
         <DailyBriefWidget />
       </div>
     </DashboardLayout>
