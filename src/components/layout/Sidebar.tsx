@@ -94,7 +94,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           if (!isFlagEnabled(c.featureFlag)) return false;
           if (groupHasSlug) return true; // inherit from group
           // No group slug — child must have its own moduleSlug and it must be installed
-          return c.moduleSlug ? installedModuleIds.includes(c.moduleSlug) : false;
+          return c.moduleSlug ? installedModuleIds.includes(c.moduleSlug) : true;
         });
 
         if (visibleChildren.length === 0) return null;
