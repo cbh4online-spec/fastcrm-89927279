@@ -17,9 +17,7 @@ import {
 import { useMyC2CListings, useUpdateC2CListing } from "@/hooks/useC2CListings";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { ListingStats } from "@/components/c2c/ListingStats";
-import { ShareButtons } from "@/components/c2c/ShareButtons";
 import { MarketplaceShareCard } from "@/components/c2c/MarketplaceShareCard";
-import { getPublicBaseUrl as _getPublicBaseUrl } from "@/utils/getPublicDomain";
 import {
   ArrowLeft,
   Plus,
