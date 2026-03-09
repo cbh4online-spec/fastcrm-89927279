@@ -175,6 +175,7 @@ import IMOAIPage from "./pages/IMOAIPage";
 import ZapierPage from "./pages/ZapierPage";
 import CEOCopilotPage from "./pages/CEOCopilotPage";
 import CommandCenterV2Page from "./pages/CommandCenterV2Page";
+import BundlesPage from "./pages/BundlesPage";
 
 // Renewals
 import RenewalsPage from "./pages/RenewalsPage";
