@@ -5774,6 +5774,44 @@ export type Database = {
           },
         ]
       }
+      challenge_participants: {
+        Row: {
+          challenge_id: string
+          current_value: number
+          id: string
+          points: number
+          rank_position: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          current_value?: number
+          id?: string
+          points?: number
+          rank_position?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          current_value?: number
+          id?: string
+          points?: number
+          rank_position?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_participants_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "performance_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       change_events: {
         Row: {
           change_type: string
@@ -24185,6 +24223,287 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: []
+      }
+      performance_challenges: {
+        Row: {
+          challenge_name: string
+          challenge_type: string
+          created_at: string
+          description: string | null
+          end_date: string
+          id: string
+          metric_type: string
+          reward_type: string | null
+          reward_value: string | null
+          scope_id: string | null
+          scope_type: string
+          start_date: string
+          status: string
+          target_value: number
+          workspace_id: string
+        }
+        Insert: {
+          challenge_name: string
+          challenge_type?: string
+          created_at?: string
+          description?: string | null
+          end_date: string
+          id?: string
+          metric_type?: string
+          reward_type?: string | null
+          reward_value?: string | null
+          scope_id?: string | null
+          scope_type?: string
+          start_date: string
+          status?: string
+          target_value?: number
+          workspace_id: string
+        }
+        Update: {
+          challenge_name?: string
+          challenge_type?: string
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          id?: string
+          metric_type?: string
+          reward_type?: string | null
+          reward_value?: string | null
+          scope_id?: string | null
+          scope_type?: string
+          start_date?: string
+          status?: string
+          target_value?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_challenges_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_goals: {
+        Row: {
+          created_at: string
+          goal_name: string
+          goal_type: string
+          id: string
+          kpi_id: string | null
+          period_end: string
+          period_start: string
+          period_type: string
+          scope_id: string | null
+          scope_type: string
+          target_value: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          goal_name: string
+          goal_type?: string
+          id?: string
+          kpi_id?: string | null
+          period_end: string
+          period_start: string
+          period_type?: string
+          scope_id?: string | null
+          scope_type?: string
+          target_value?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          goal_name?: string
+          goal_type?: string
+          id?: string
+          kpi_id?: string | null
+          period_end?: string
+          period_start?: string
+          period_type?: string
+          scope_id?: string | null
+          scope_type?: string
+          target_value?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_goals_kpi_id_fkey"
+            columns: ["kpi_id"]
+            isOneToOne: false
+            referencedRelation: "performance_kpis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_goals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_kpis: {
+        Row: {
+          calculation_method: string
+          created_at: string
+          entity_source: string
+          id: string
+          kpi_name: string
+          kpi_type: string
+          updated_at: string
+          weight: number
+          workspace_id: string
+        }
+        Insert: {
+          calculation_method?: string
+          created_at?: string
+          entity_source: string
+          id?: string
+          kpi_name: string
+          kpi_type?: string
+          updated_at?: string
+          weight?: number
+          workspace_id: string
+        }
+        Update: {
+          calculation_method?: string
+          created_at?: string
+          entity_source?: string
+          id?: string
+          kpi_name?: string
+          kpi_type?: string
+          updated_at?: string
+          weight?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_kpis_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_recognition: {
+        Row: {
+          created_at: string
+          criteria_json: Json | null
+          description: string | null
+          id: string
+          period_end: string | null
+          period_start: string | null
+          recognition_type: string
+          reward_type: string | null
+          title: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          criteria_json?: Json | null
+          description?: string | null
+          id?: string
+          period_end?: string | null
+          period_start?: string | null
+          recognition_type?: string
+          reward_type?: string | null
+          title: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          criteria_json?: Json | null
+          description?: string | null
+          id?: string
+          period_end?: string | null
+          period_start?: string | null
+          recognition_type?: string
+          reward_type?: string | null
+          title?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_recognition_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_scores: {
+        Row: {
+          conversion_rate: number
+          created_at: string
+          id: string
+          leads_generated: number
+          meetings_booked: number
+          period_end: string
+          period_start: string
+          period_type: string
+          pipeline_generated: number
+          proposals_sent: number
+          revenue_generated: number
+          score_total: number
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          conversion_rate?: number
+          created_at?: string
+          id?: string
+          leads_generated?: number
+          meetings_booked?: number
+          period_end: string
+          period_start: string
+          period_type?: string
+          pipeline_generated?: number
+          proposals_sent?: number
+          revenue_generated?: number
+          score_total?: number
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          conversion_rate?: number
+          created_at?: string
+          id?: string
+          leads_generated?: number
+          meetings_booked?: number
+          period_end?: string
+          period_start?: string
+          period_type?: string
+          pipeline_generated?: number
+          proposals_sent?: number
+          revenue_generated?: number
+          score_total?: number
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_scores_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       performance_targets: {
         Row: {
