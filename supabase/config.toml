@@ -13,3 +13,9 @@ project_id = "xqepxufdrsuxlnubuatz"
     verify_jwt = false
   [functions.ai-command-orchestrator]
     verify_jwt = false
+  [functions.compute-deal-probability]
+    verify_jwt = false
+  [functions.compute-revenue-flight-control]
+    verify_jwt = false
+  [functions.run-revenue-scenario]
+    verify_jwt = false

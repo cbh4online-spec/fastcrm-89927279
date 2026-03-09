@@ -106,6 +106,7 @@ export const NAV_V2_CORE: NavV2CoreItem[] = [
   { type: "item", name: "AI CEO Copilot", href: "/dashboard/ceo-copilot", icon: Sparkles, iconColor: "text-violet-500" },
   { type: "item", name: "Context OS", href: "/dashboard/context-os", icon: Brain, iconColor: "text-violet-500" },
   { type: "item", name: "Mapa de Impacto", href: "/dashboard/impact-map", icon: GitBranch, iconColor: "text-violet-500" },
+  { type: "item", name: "Revenue Flight Control", href: "/dashboard/revenue-flight-control", icon: Gauge, iconColor: "text-amber-500" },
 ];
 
 // --- Collapsible groups ---
