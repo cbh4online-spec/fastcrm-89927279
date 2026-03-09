@@ -175,6 +175,18 @@ export function SmartLeadsTable() {
   const analyzeLead = useAnalyzeLead();
   const bulkAnalyze = useBulkAnalyzeLeads();
   const bulkAnalyzeLinkedIn = useBulkAnalyzeEntityLinkedIn('lead');
+  const { data: duplicateGroups = [] } = useLeadDuplicateGroupsPersisted();
+
+  // Build a map of leadId -> duplicate group count
+  const duplicateLeadIds = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const group of duplicateGroups) {
+      for (const item of group.items) {
+        map.set(item.lead_id, (map.get(item.lead_id) || 0) + 1);
+      }
+    }
+    return map;
+  }, [duplicateGroups]);
 
   const filteredLeads = useMemo(() => {
     if (!leads) return [];
