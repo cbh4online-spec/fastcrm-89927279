@@ -81,6 +81,7 @@ const GROUP_COLORS: Record<string, string> = {
   "Loja Online": "text-pink-500",
   "Marketplace C2C": "text-rose-500",
   "FastClub": "text-yellow-500",
+  "Performance": "text-yellow-500",
   "Ferramentas": "text-slate-500",
   "Student Journey": "text-teal-500",
   "Instagram Looter": "text-fuchsia-500",
