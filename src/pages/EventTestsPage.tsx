@@ -214,7 +214,7 @@ export default function EventTestsPage() {
                   </TableRow>
                 ) : (
                   filtered.map((t) => {
-                    const rc = resultConfig[t.expected_result] ?? resultConfig.accept;
+                    const rc = getResultDisplay(t.expected_result);
                     const ResultIcon = rc.icon;
                     return (
                       <TableRow key={t.id}>
