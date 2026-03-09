@@ -509,7 +509,7 @@ export default function C2CPublicMarketplace() {
                 title="Mais Recentes"
                 icon={<Clock className="h-5 w-5 text-primary" />}
                 listings={recentListings}
-                onNavigate={(id) => navigate(`/c2c/${workspaceSlug}/${id}`)}
+                onNavigate={(id) => navigate(`/marketplace/${workspaceSlug}/${id}`)}
                 sponsoredIds={sponsoredIds}
               />
             )}
