@@ -687,6 +687,7 @@ const App = () => (
               <Route path="/marketplace/:workspaceSlug/listing/:id" element={<C2CPublicListingDetail />} />
               <Route path="/marketplace/:workspaceSlug/:id" element={<C2CPublicListingDetail />} />
               <Route path="/marketplace/:workspaceSlug" element={<C2CPublicMarketplace />} />
+              <Route path="/marketplace" element={<Navigate to="/dashboard/marketplace" replace />} />
               <Route path="/c2c/:workspaceSlug/listing/:id" element={<C2CPublicListingDetail />} />
               <Route path="/c2c/:workspaceSlug/:id" element={<C2CPublicListingDetail />} />
               <Route path="/c2c/:workspaceSlug" element={<C2CPublicMarketplace />} />
