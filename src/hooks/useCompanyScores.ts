@@ -7,6 +7,7 @@ import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export function useUpdateCompanyScores() {
   const { workspaceClient } = useWorkspaceInstance();
+  const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
