@@ -23,7 +23,8 @@ export default function ProcurementProjectsPage() {
   const { projects, isLoading } = useProcurementProjects(currentWorkspace?.id);
 
   return (
-    <div className="space-y-6 p-6">
+    <DashboardLayout>
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <FolderOpen className="h-6 w-6" /> Projetos de Compras
