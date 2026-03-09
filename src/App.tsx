@@ -538,6 +538,13 @@ function CRMRoutes() {
                 <Route path="/dashboard/imo-ai" element={<IMOAIPage />} />
                 <Route path="/dashboard/zapier" element={<ZapierPage />} />
                 
+                {/* Revenue Flight Control */}
+                <Route path="/dashboard/revenue-flight-control" element={<RevenueFlightControlPage />} />
+                <Route path="/dashboard/revenue-flight-control/deals" element={<RFCDealsPage />} />
+                <Route path="/dashboard/revenue-flight-control/forecast" element={<RFCForecastPage />} />
+                <Route path="/dashboard/revenue-flight-control/scenarios" element={<RFCScenariosPage />} />
+                <Route path="/dashboard/revenue-flight-control/settings" element={<RFCSettingsPage />} />
+                
                 {/* Procurement Routes */}
                 <Route path="/dashboard/procurement" element={<ProcurementDashboardPage />} />
                 <Route path="/dashboard/procurement/suppliers" element={<SuppliersPage />} />
