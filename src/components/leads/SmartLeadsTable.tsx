@@ -325,7 +325,7 @@ export function SmartLeadsTable() {
           rightActions={
             <div className="flex items-center gap-2">
               <ColumnSelector columns={LEAD_COLUMNS} visibleColumns={visibleColumns} columnOrder={columnOrder} onVisibleColumnsChange={setVisibleColumns} onColumnOrderChange={setColumnOrder} />
-              <Button variant="outline" size="sm" onClick={() => setIsDuplicatesOpen(true)} className="gap-2"><Users className="w-4 h-4" />Duplicados</Button>
+              <Button variant="outline" size="sm" onClick={() => setActiveTab("duplicates")} className={cn("gap-2", duplicateGroups.length > 0 && "border-warning/40")}><Users className="w-4 h-4" />Duplicados{duplicateGroups.length > 0 && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-warning/10 text-warning">{duplicateGroups.length}</Badge>}</Button>
               <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2"><RefreshCw className="w-4 h-4" />{t("refresh")}</Button>
             </div>
           }
