@@ -1,4 +1,5 @@
-import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -24,8 +25,21 @@ const statusConfig = {
 
 export default function C2CSellerArea() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, workspaces, setCurrentWorkspace } = useWorkspace();
+
+  // Auto-switch workspace if ?ws= slug is provided
+  const wsSlug = searchParams.get("ws");
+  useEffect(() => {
+    if (wsSlug && currentWorkspace?.slug !== wsSlug) {
+      const target = workspaces.find((w) => w.slug === wsSlug);
+      if (target) {
+        setCurrentWorkspace(target);
+      }
+    }
+  }, [wsSlug, currentWorkspace?.slug, workspaces, setCurrentWorkspace]);
+
   const workspaceId = currentWorkspace?.id;
   const workspaceSlug = currentWorkspace?.slug;
 
