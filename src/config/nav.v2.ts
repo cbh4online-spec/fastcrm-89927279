@@ -154,6 +154,21 @@ export const NAV_V2_GROUPS: NavV2Group[] = [
   },
   {
     type: "group",
+    name: "Performance",
+    icon: Trophy,
+    iconColor: "text-yellow-500",
+    children: [
+      { name: "Dashboard", href: "/dashboard/performance", icon: BarChart3, iconColor: "text-yellow-500" },
+      { name: "Metas", href: "/dashboard/performance/goals", icon: Target, iconColor: "text-yellow-500" },
+      { name: "Leaderboard", href: "/dashboard/performance/leaderboard", icon: Trophy, iconColor: "text-yellow-500" },
+      { name: "Desafios", href: "/dashboard/performance/challenges", icon: Zap, iconColor: "text-yellow-500" },
+      { name: "Reconhecimentos", href: "/dashboard/performance/recognition", icon: Award, iconColor: "text-yellow-500" },
+      { name: "TV Mode", href: "/dashboard/performance/tv-mode", icon: Presentation, iconColor: "text-yellow-500" },
+      { name: "Configurações", href: "/dashboard/performance/settings", icon: Settings, iconColor: "text-yellow-500" },
+    ],
+  },
+  {
+    type: "group",
     name: "Vendas",
     icon: TrendingUp,
     iconColor: "text-amber-500",

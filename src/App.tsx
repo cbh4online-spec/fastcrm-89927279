@@ -553,6 +553,15 @@ function CRMRoutes() {
                 <Route path="/dashboard/revenue-flight-control/scenarios" element={<RFCScenariosPage />} />
                 <Route path="/dashboard/revenue-flight-control/settings" element={<RFCSettingsPage />} />
                 
+                {/* Performance Engine */}
+                <Route path="/dashboard/performance" element={<PerformanceDashboardPage />} />
+                <Route path="/dashboard/performance/goals" element={<PerformanceGoalsPage />} />
+                <Route path="/dashboard/performance/leaderboard" element={<PerformanceLeaderboardPage />} />
+                <Route path="/dashboard/performance/challenges" element={<PerformanceChallengesPage />} />
+                <Route path="/dashboard/performance/recognition" element={<PerformanceRecognitionPage />} />
+                <Route path="/dashboard/performance/tv-mode" element={<PerformanceTVModePage />} />
+                <Route path="/dashboard/performance/settings" element={<PerformanceSettingsPage />} />
+                
                 {/* Procurement Routes */}
                 <Route path="/dashboard/procurement" element={<ProcurementDashboardPage />} />
                 <Route path="/dashboard/procurement/suppliers" element={<SuppliersPage />} />
