@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useNavigate } from "react-router-dom";
 import { useRFQs } from "@/hooks/useRFQ";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
