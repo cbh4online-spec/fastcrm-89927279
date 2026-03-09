@@ -658,7 +658,6 @@ function CRMRoutes() {
                 <Route path="/event-rsvp" element={<EventRsvpResponse />} />
                 <Route path="/invite/:token" element={<AcceptWorkspaceInvite />} />
                 <Route path="/marketplace" element={<Navigate to="/dashboard/marketplace" replace />} />
-                <Route path="/marketplace/:workspaceSlug" element={<MarketplaceSlugRedirect />} />
                 <Route path="/:slug" element={<VerticalLandingPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
