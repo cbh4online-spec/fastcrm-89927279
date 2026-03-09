@@ -359,17 +359,17 @@ Deno.serve(async (req) => {
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const sb = createClient(supabaseUrl, supabaseKey);
 
-      const images: string[] = [];
       const angles = ["front view", "slight angle view", "detail close-up view"];
 
-      for (let i = 0; i < count; i++) {
+      // Generate all images in parallel for speed
+      const imagePromises = Array.from({ length: count }, async (_, i) => {
         const anglePrompt = count > 1 ? `${prompt} Show from ${angles[i] || "different angle"}.` : prompt;
         
         const aiRes = await fetch(AI_URL, {
           method: "POST",
           headers,
           body: JSON.stringify({
-            model: "google/gemini-3-pro-image-preview",
+            model: "google/gemini-2.5-flash-image",
             messages: [{ role: "user", content: anglePrompt }],
             modalities: ["image", "text"],
           }),
@@ -378,16 +378,14 @@ Deno.serve(async (req) => {
         if (!aiRes.ok) {
           if (aiRes.status === 429) throw new Error("RATE_LIMITED");
           if (aiRes.status === 402) throw new Error("PAYMENT_REQUIRED");
-          const errText = await aiRes.text();
-          console.error(`AI image gen error:`, aiRes.status, errText);
-          continue;
+          console.error(`AI image gen error:`, aiRes.status, await aiRes.text());
+          return null;
         }
 
         const aiData = await aiRes.json();
         const imageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-        if (!imageUrl) continue;
+        if (!imageUrl) return null;
 
-        // Upload to c2c-photos storage
         const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, "");
         const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
         const filePath = `ai-generated/${crypto.randomUUID()}.png`;
@@ -398,12 +396,15 @@ Deno.serve(async (req) => {
 
         if (uploadError) {
           console.error("Upload error:", uploadError);
-          continue;
+          return null;
         }
 
         const { data: publicUrlData } = sb.storage.from("c2c-photos").getPublicUrl(filePath);
-        images.push(publicUrlData.publicUrl);
-      }
+        return publicUrlData.publicUrl;
+      });
+
+      const results = await Promise.all(imagePromises);
+      const images = results.filter((url): url is string => url !== null);
 
       if (images.length === 0) throw new Error("Não foi possível gerar imagens");
 
