@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import {
   ReactFlow, Background, Controls, MiniMap,
-  type Node, type Edge, type NodeDragHandler,
+  type Node, type Edge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useImpactMapData } from '@/hooks/useImpactMapData';
