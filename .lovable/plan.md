@@ -1,68 +1,71 @@
 
 
-# Phase 5B — Command Center COMPLETO
+# Tier 1 Event Test Matrix
 
-## Gap Analysis: Current vs Spec
+## Overview
+Create a test cases registry table, insert comprehensive test cases for all 21 Tier 1 events (5 test types each = 105 rows), and build an admin diagnostics page.
 
-The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
+## Step 1 — Database Migration
 
-**Already implemented (needs enhancement):**
-- Header with greeting + 3 KPIs — needs larger font (32px), labels below
-- AI Question Box — needs slash command suggestions row below input
-- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
-- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
-- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
-- Drift Alerts — needs "Rever →" links to Context OS blocks
+Create `event_test_cases` table with RLS policies for authenticated users.
 
-**New sections to build:**
-1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
-2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
-   - Change Events (last 5 from `useChangeEvents` with realtime)
-   - Entity Activity (top 3 entities from `useKernelEntities`)
-   - Impact Score (top 2 from `useImpactMapData`)
-3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
+```sql
+CREATE TABLE public.event_test_cases (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_name text NOT NULL,
+  test_name text NOT NULL,
+  test_type text NOT NULL, -- valid_payload, invalid_payload, conditional_branch, idempotency, failure_path
+  input_payload jsonb NOT NULL DEFAULT '{}',
+  expected_signal text,
+  expected_decision text,
+  expected_action text,
+  expected_result text NOT NULL, -- accept, reject, skip, error
+  priority text NOT NULL DEFAULT 'medium',
+  is_active boolean NOT NULL DEFAULT true,
+  last_run_at timestamptz,
+  last_run_status text, -- pass, fail, skipped
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+```
 
-**Enhanced Command Palette (⌘K):**
-- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
+## Step 2 — Insert 105 Test Cases
 
-**Spotlight (Space key):**
-- Opens AI Question Box as a modal from any page. New global component.
+For each of the 21 events, insert 5 test types:
 
-## Implementation Plan — 3 Sub-phases
+| Test Type | Purpose | Expected Result |
+|-----------|---------|-----------------|
+| `valid_payload` | Full valid payload → signal + decision + action | `accept` |
+| `invalid_payload` | Missing required keys → runtime failure logged | `reject` |
+| `conditional_branch` | Edge case (e.g., score=0, stage unchanged) → skipped action | `skip` |
+| `idempotency` | Duplicate idempotency_key → second event ignored | `skip` |
+| `failure_path` | Action execution fails → error logged in deadletter | `error` |
 
-Given the scope, I recommend splitting into 3 batches:
+Each row includes realistic `input_payload` matching the `minimum_payload_json` from the decision matrix.
 
-### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
+## Step 3 — Admin UI Page
+
+**Route:** `/dashboard/system/event-tests`
+
+**File:** `src/pages/EventTestsPage.tsx`
+
+**Layout:**
+- **Stats row:** Total tests, pass rate, failing events, coverage %
+- **Filters:** by test_type, event_name domain prefix, status
+- **Table columns:** event_name, test_name, test_type, expected_signal, expected_decision, expected_action, expected_result, last_run_status
+- **Color coding:** pass=green, fail=red, skipped=yellow, never_run=gray
+
+Uses existing `DashboardLayout`, `PageHeader`, shadcn Table, Badge components — same pattern as `EventMatrixPage.tsx`.
+
+## Step 4 — Route Registration
+
+Add lazy import and route in `src/App.tsx` alongside the existing system routes.
+
+## Files to Create/Edit
+
 | File | Action |
 |------|--------|
-| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
-| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
-| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
-| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
-
-### Batch 2: Enhance Existing Cards
-| File | Action |
-|------|--------|
-| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
-| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
-| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
-| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
-| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
-| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
-
-### Batch 3: Spotlight Modal + Command Palette Enhancement
-| File | Action |
-|------|--------|
-| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
-| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
-| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
-
-### Realtime subscriptions needed
-- `change_events` table for Kernel Live Feed auto-update
-- `kernel_action_runs` for Ações do Dia auto-update
-- Already have `kernel_decisions` and `conversations`
-
-No database migrations needed. All hooks, edge functions, and tables already exist.
-
-**Shall I start with Batch 1?**
+| Migration SQL | Create `event_test_cases` table + RLS |
+| Data insert | 105 test case rows via insert tool |
+| `src/pages/EventTestsPage.tsx` | New admin diagnostics page |
+| `src/App.tsx` | Add route `/dashboard/system/event-tests` |
 
