@@ -332,6 +332,13 @@ export default function C2CPublicMarketplace() {
   const [filters, setFilters] = useState<C2CListingFilters>({});
   const [searchOpen, setSearchOpen] = useState(false);
   const [showListings, setShowListings] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session?.user);
+    });
+  }, []);
 
   const { data: workspace, isLoading: wsLoading } = usePublicWorkspace(workspaceSlug);
   const workspaceId = workspace?.id;
