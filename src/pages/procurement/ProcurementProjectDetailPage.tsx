@@ -277,5 +277,6 @@ export default function ProcurementProjectDetailPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </DashboardLayout>
   );
 }

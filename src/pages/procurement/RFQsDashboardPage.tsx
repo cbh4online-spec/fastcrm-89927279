@@ -221,5 +221,6 @@ export default function RFQsDashboardPage() {
         </Card>
       )}
     </div>
+    </DashboardLayout>
   );
 }

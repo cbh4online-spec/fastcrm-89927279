@@ -72,5 +72,6 @@ export default function ProcurementProjectsPage() {
         </CardContent>
       </Card>
     </div>
+    </DashboardLayout>
   );
 }

@@ -155,7 +155,8 @@ export default function RFQDetailPage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <DashboardLayout>
+    <div className="space-y-6">
       {/* Top bar */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/procurement")}>

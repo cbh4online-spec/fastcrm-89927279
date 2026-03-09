@@ -176,5 +176,6 @@ export default function RFQsPage() {
         </CardContent>
       </Card>
     </div>
+    </DashboardLayout>
   );
 }
