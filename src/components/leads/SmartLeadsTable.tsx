@@ -384,6 +384,7 @@ export function SmartLeadsTable() {
                   ) : (
                     paginatedLeads.map((lead) => {
                       const initials = lead.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+                      const dupCount = duplicateLeadIds.get(lead.id);
                       return (
                         <TableRow key={lead.id} className={cn("group transition-colors cursor-pointer", selectedIds.has(lead.id) && "bg-muted/50", lead.slaBreach && "bg-destructive/5")} onClick={() => navigate(`/dashboard/leads/${lead.id}`)}>
                           <TableCell className={cn("w-[40px]", stickyCheckboxStyles)} onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedIds.has(lead.id)} onCheckedChange={() => toggleSelect(lead.id)} /></TableCell>
@@ -391,7 +392,19 @@ export function SmartLeadsTable() {
                             <div className="flex items-center gap-3">
                               <Avatar className="h-9 w-9"><AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground text-xs font-medium">{initials}</AvatarFallback></Avatar>
                               <div className="min-w-0">
-                                <a href={`/dashboard/leads/${lead.id}`} className="font-medium text-foreground hover:text-primary hover:underline truncate block relative z-10">{lead.name}</a>
+                                <div className="flex items-center gap-1.5">
+                                  <a href={`/dashboard/leads/${lead.id}`} className="font-medium text-foreground hover:text-primary hover:underline truncate block relative z-10">{lead.name}</a>
+                                  {dupCount && (
+                                    <Badge 
+                                      variant="outline" 
+                                      className="text-[9px] px-1.5 py-0 h-4 border-warning/40 bg-warning/10 text-warning cursor-pointer shrink-0"
+                                      onClick={(e) => { e.stopPropagation(); setActiveTab("duplicates"); }}
+                                    >
+                                      <Copy className="h-2.5 w-2.5 mr-0.5" />
+                                      {dupCount}
+                                    </Badge>
+                                  )}
+                                </div>
                                 {(lead as any).company_name && <div className="flex items-center gap-1 text-xs text-muted-foreground"><Building2 className="w-3 h-3" /><span className="truncate">{(lead as any).company_name}</span></div>}
                               </div>
                             </div>
