@@ -59,6 +59,7 @@ import {
   Gauge,
   LineChart,
   PieChart,
+  Radio,
 } from "lucide-react";
 
 // --- Types ---
