@@ -1,68 +1,52 @@
 
 
-# Phase 5B — Command Center COMPLETO
+## Correção dos Links do Marketplace C2C
 
-## Gap Analysis: Current vs Spec
+### Problemas identificados
 
-The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
+1. **Botão "Vender" na página pública** — navega para `/marketplace/:slug/sell` mas essa rota **não existe**. Só existe `/c2c/:slug/sell`.
 
-**Already implemented (needs enhancement):**
-- Header with greeting + 3 KPIs — needs larger font (32px), labels below
-- AI Question Box — needs slash command suggestions row below input
-- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
-- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
-- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
-- Drift Alerts — needs "Rever →" links to Context OS blocks
+2. **Rotas `/marketplace/` incompletas** — faltam equivalentes `/marketplace/` para: `sell`, `sponsor`, `invite/:token`, `seller/:sellerId`.
 
-**New sections to build:**
-1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
-2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
-   - Change Events (last 5 from `useChangeEvents` with realtime)
-   - Entity Activity (top 3 entities from `useKernelEntities`)
-   - Impact Score (top 2 from `useImpactMapData`)
-3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
+3. **Links de partilha (WhatsApp/Facebook)** — `C2CPublicListingDetail` usa `window.location.href` em vez do `getShareUrl()` que passa pelo `og-proxy` para gerar previews com metadados OG corretos.
 
-**Enhanced Command Palette (⌘K):**
-- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
+4. **`C2CSellerInviteActivation`** — após activação, navega para `/c2c/${slug}` em vez de `/marketplace/${slug}`.
 
-**Spotlight (Space key):**
-- Opens AI Question Box as a modal from any page. New global component.
+5. **`getShareUrl` usa project ID antigo** — o fallback hardcoded é `eumnfkccyvlyoyjchiwe` mas o projecto actual é `xqepxufdrsuxlnubuatz`.
 
-## Implementation Plan — 3 Sub-phases
+---
 
-Given the scope, I recommend splitting into 3 batches:
+### Plano de alterações
 
-### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
-| File | Action |
-|------|--------|
-| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
-| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
-| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
-| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
+#### 1. `src/App.tsx` — Adicionar rotas `/marketplace/` em falta
+Duplicar as rotas `/c2c/` existentes com o prefixo `/marketplace/`:
+```tsx
+<Route path="/marketplace/:workspaceSlug/sell" element={<AuthProvider><C2CSellerRegistration /></AuthProvider>} />
+<Route path="/marketplace/:workspaceSlug/sponsor" element={<AuthProvider><C2CSponsorPortal /></AuthProvider>} />
+<Route path="/marketplace/:workspaceSlug/invite/:token" element={<C2CSellerInviteActivation />} />
+<Route path="/marketplace/:workspaceSlug/seller/:sellerId" element={<C2CPublicSellerProfile />} />
+```
 
-### Batch 2: Enhance Existing Cards
-| File | Action |
-|------|--------|
-| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
-| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
-| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
-| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
-| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
-| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
+#### 2. `src/utils/getShareUrl.ts` — Corrigir project ID fallback
+Alterar `eumnfkccyvlyoyjchiwe` → `xqepxufdrsuxlnubuatz` (ou melhor, usar `import.meta.env.VITE_SUPABASE_PROJECT_ID` sem fallback errado).
 
-### Batch 3: Spotlight Modal + Command Palette Enhancement
-| File | Action |
-|------|--------|
-| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
-| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
-| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
+#### 3. `src/pages/c2c/C2CPublicListingDetail.tsx` — Usar `getShareUrl` nos ShareButtons
+Substituir `window.location.href` por `getShareUrl("c2c-listing", workspaceSlug + "/" + id)` para que previews sociais funcionem.
 
-### Realtime subscriptions needed
-- `change_events` table for Kernel Live Feed auto-update
-- `kernel_action_runs` for Ações do Dia auto-update
-- Already have `kernel_decisions` and `conversations`
+#### 4. `src/pages/c2c/C2CSellerInviteActivation.tsx` — Corrigir redirect pós-activação
+Alterar `navigate(/c2c/${slug})` → `navigate(/marketplace/${slug})`.
 
-No database migrations needed. All hooks, edge functions, and tables already exist.
+#### 5. `src/pages/c2c/C2CPublicMarketplace.tsx` — Usar `getShareUrl` no shareUrl
+Substituir `getPublicBaseUrl()/marketplace/${slug}` por `getShareUrl("store", workspaceSlug)` para que os botões de partilha gerem links com OG proxy.
 
-**Shall I start with Batch 1?**
+---
+
+### Ficheiros a editar (5)
+| Ficheiro | Alteração |
+|---|---|
+| `src/App.tsx` | +4 rotas `/marketplace/` |
+| `src/utils/getShareUrl.ts` | Corrigir project ID |
+| `src/pages/c2c/C2CPublicListingDetail.tsx` | ShareButtons com `getShareUrl` |
+| `src/pages/c2c/C2CPublicMarketplace.tsx` | shareUrl com `getShareUrl` |
+| `src/pages/c2c/C2CSellerInviteActivation.tsx` | Redirect `/marketplace/` |
 
