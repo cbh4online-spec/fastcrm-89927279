@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { EmptyState, SearchEmptyState, LoadingSpinner, TableSkeleton } from "@/components/design-system";
 import { EntityAutomationsSection } from "@/components/automations/EntityAutomationsSection";
 import { UnifiedDuplicateDialog } from "@/components/crm/UnifiedDuplicateDialog";
+import { LeadDuplicateReviewPanel } from "@/components/leads/LeadDuplicateReviewPanel";
 import { useTranslation } from "react-i18next";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
