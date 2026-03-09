@@ -48,6 +48,7 @@ export const LEGACY_ROUTES = [
   { path: "/dashboard/c2c", label: "C2C Marketplace", hidden: true },
   { path: "/dashboard/fastmatch", label: "FastMatch", hidden: true },
   { path: "/dashboard/student-journey", label: "Student Journey", hidden: true },
+  { path: "/dashboard/prospecting", label: "Prospecção", hidden: true },
   { path: "/dashboard/prospecting/google-local", label: "Google Local Prospecting", hidden: true },
   { path: "/dashboard/prospecting/web-search", label: "Web Search Prospecting", hidden: true },
   { path: "/dashboard/prospecting/professionals", label: "Professional Prospecting", hidden: true },
