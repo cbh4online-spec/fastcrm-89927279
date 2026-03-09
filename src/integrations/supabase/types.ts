@@ -31078,6 +31078,8 @@ export type Database = {
           event_data: Json | null
           event_type: string
           id: string
+          page_type: string | null
+          page_url: string | null
           referrer: string | null
           session_id: string | null
           utm_campaign: string | null
@@ -31086,6 +31088,7 @@ export type Database = {
           utm_source: string | null
           utm_term: string | null
           visitor_id: string | null
+          workspace_id: string | null
         }
         Insert: {
           comparison_id?: string | null
@@ -31096,6 +31099,8 @@ export type Database = {
           event_data?: Json | null
           event_type: string
           id?: string
+          page_type?: string | null
+          page_url?: string | null
           referrer?: string | null
           session_id?: string | null
           utm_campaign?: string | null
@@ -31104,6 +31109,7 @@ export type Database = {
           utm_source?: string | null
           utm_term?: string | null
           visitor_id?: string | null
+          workspace_id?: string | null
         }
         Update: {
           comparison_id?: string | null
@@ -31114,6 +31120,8 @@ export type Database = {
           event_data?: Json | null
           event_type?: string
           id?: string
+          page_type?: string | null
+          page_url?: string | null
           referrer?: string | null
           session_id?: string | null
           utm_campaign?: string | null
@@ -31122,6 +31130,7 @@ export type Database = {
           utm_source?: string | null
           utm_term?: string | null
           visitor_id?: string | null
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -31136,6 +31145,13 @@ export type Database = {
             columns: ["entity_id"]
             isOneToOne: false
             referencedRelation: "seo_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_page_analytics_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
