@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Play, Pause, ChevronRight, ChevronLeft, CheckCircle, Clock, Sparkles, Plus, X, Loader2 } from "lucide-react";
 import { useCreateBriefing, useVisionSprints } from "@/hooks/useVision";
+import { useSendDuoNotification } from "@/hooks/useVisionDuo";
 
 interface Props {
   visionId: string;
