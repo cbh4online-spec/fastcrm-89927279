@@ -18,9 +18,10 @@ import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useWorkspaceModules } from "@/hooks/useWorkspaceModules";
 import { getExtensionObjectTabsGrouped } from "@/config/extensionRegistry";
 import { useSidebarFavorites } from "@/hooks/useSidebarFavorites";
-import { X, Puzzle, ChevronRight, Star, Command } from "lucide-react";
+import { X, Puzzle, ChevronRight, Star, Command, Search } from "lucide-react";
 import { useMemo, useState, useCallback } from "react";
 import { useUnreadInboxCount } from "@/hooks/useUnreadInboxCount";
+import { useSidebarBadges } from "@/hooks/useSidebarBadges";
 import {
   Tooltip,
   TooltipContent,
@@ -48,6 +49,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { installedModuleIds } = useWorkspaceModules();
   const { favorites, toggleFavorite, isFavorite } = useSidebarFavorites();
   const unreadInboxCount = useUnreadInboxCount();
+  const badges = useSidebarBadges();
+  const [navSearch, setNavSearch] = useState("");
 
   // Translated nav items
   const navCore = useMemo(() => getNavV2Core(t), [t]);
@@ -90,23 +93,34 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         const groupHasSlug = !!g.moduleSlug;
         const groupVisible = groupHasSlug ? installedModuleIds.includes(g.moduleSlug!) : true;
 
-        // If group has moduleSlug and it's not installed, hide entire group
         if (groupHasSlug && !groupVisible) return null;
 
-        // Filter children: if group has moduleSlug, children inherit (always visible)
-        // If group has NO moduleSlug, each child must have its own moduleSlug installed
-        const visibleChildren = g.children.filter((c) => {
+        let visibleChildren = g.children.filter((c) => {
           if (!isFlagEnabled(c.featureFlag)) return false;
-          if (groupHasSlug) return true; // inherit from group
-          // No group slug — child must have its own moduleSlug and it must be installed
+          if (groupHasSlug) return true;
           return c.moduleSlug ? installedModuleIds.includes(c.moduleSlug) : true;
         });
+
+        // Apply nav search filter
+        if (navSearch) {
+          const lower = navSearch.toLowerCase();
+          visibleChildren = visibleChildren.filter((c) =>
+            c.name.toLowerCase().includes(lower)
+          );
+        }
 
         if (visibleChildren.length === 0) return null;
         return { ...g, children: visibleChildren };
       })
       .filter(Boolean) as (NavV2Group & { children: NavV2GroupChild[] })[];
-  }, [isFlagEnabled, installedModuleIds, navGroups]);
+  }, [isFlagEnabled, installedModuleIds, navGroups, navSearch]);
+
+  // Filter core items by search
+  const filteredCore = useMemo(() => {
+    if (!navSearch) return navCore;
+    const lower = navSearch.toLowerCase();
+    return navCore.filter((item) => item.name.toLowerCase().includes(lower));
+  }, [navCore, navSearch]);
 
   const extensionGroups = useMemo(() => {
     return getExtensionObjectTabsGrouped(installedModuleIds);
@@ -121,10 +135,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   const isGroupOpen = useCallback(
     (groupName: string, group: NavV2Group) => {
+      // When searching, auto-open all groups
+      if (navSearch) return true;
       if (openGroups[groupName] !== undefined) return openGroups[groupName];
       return groupHasActiveRoute(group);
     },
-    [openGroups, groupHasActiveRoute]
+    [openGroups, groupHasActiveRoute, navSearch]
   );
 
   const toggleGroup = useCallback((name: string) => {
@@ -144,33 +160,64 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     [favorites, allItems]
   );
 
+  // Badge lookup
+  const getBadgeCount = useCallback((href: string): number => {
+    if (href === "/dashboard/inbox") return unreadInboxCount;
+    if (href === "/dashboard/leads") return badges.pendingLeads;
+    if (href === "/dashboard/invoices") return badges.overdueInvoices;
+    return 0;
+  }, [unreadInboxCount, badges]);
+
   // --- Render helpers ---
 
-  const renderLink = (item: { name: string; href: string; icon: any; iconColor?: string }, end?: boolean, indent = false) => {
+  const renderBadge = (count: number) => {
+    if (count <= 0) return null;
+    return (
+      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+        {count > 99 ? "99+" : count}
+      </span>
+    );
+  };
+
+  const renderLink = (item: { name: string; href: string; icon: any; iconColor?: string; badgeKey?: string }, end?: boolean, indent = false, showPinButton = false) => {
     const active = isActive(item.href, end);
     const Icon = item.icon;
+    const badgeCount = getBadgeCount(item.href);
+    const pinned = isFavorite(item.href);
     return (
       <Tooltip key={item.href}>
         <TooltipTrigger asChild>
-          <Link
-            to={item.href}
-            onClick={onClose}
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
-              indent && "pl-9",
-              active
-                ? "bg-primary/20 text-primary shadow-sm"
-                : "text-white/60 hover:bg-white/5 hover:text-white/90"
+          <div className="group/pin relative flex items-center">
+            <Link
+              to={item.href}
+              onClick={onClose}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 flex-1",
+                indent && "pl-9",
+                active
+                  ? "bg-primary/20 text-primary shadow-sm"
+                  : "text-white/60 hover:bg-white/5 hover:text-white/90"
+              )}
+            >
+              <Icon className={cn("w-[18px] h-[18px] shrink-0", active ? "text-primary" : item.iconColor)} />
+              <span className="truncate">{item.name}</span>
+              {renderBadge(badgeCount)}
+            </Link>
+            {showPinButton && (
+              <button
+                onClick={(e) => { e.stopPropagation(); toggleFavorite(item.href); }}
+                className={cn(
+                  "absolute right-1 p-1 rounded transition-all",
+                  pinned
+                    ? "text-amber-400 opacity-100"
+                    : "text-white/20 opacity-0 group-hover/pin:opacity-100 hover:text-amber-400"
+                )}
+                title={pinned ? t("removeFavorite") : t("addFavorite")}
+              >
+                <Star className={cn("w-3 h-3", pinned && "fill-amber-400")} />
+              </button>
             )}
-          >
-            <Icon className={cn("w-[18px] h-[18px] shrink-0", active ? "text-primary" : item.iconColor)} />
-            <span className="truncate">{item.name}</span>
-            {(item as any).badgeKey === "inbox-unread" && unreadInboxCount > 0 && (
-              <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
-                {unreadInboxCount > 99 ? "99+" : unreadInboxCount}
-              </span>
-            )}
-          </Link>
+          </div>
         </TooltipTrigger>
         <TooltipContent side="right" className="text-xs">
           {item.name}
@@ -210,7 +257,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </div>
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-0.5 mt-0.5">
-          {group.children.map((child) => renderLink(child, false, true))}
+          {group.children.map((child) => renderLink(child, false, true, true))}
         </CollapsibleContent>
       </Collapsible>
     );
@@ -268,8 +315,22 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               />
             </div>
 
-            {/* Quick Actions */}
+            {/* Search bar */}
             <div className="px-3 pt-3 pb-1">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                <input
+                  type="text"
+                  value={navSearch}
+                  onChange={(e) => setNavSearch(e.target.value)}
+                  placeholder={t("searchMenu")}
+                  className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 placeholder:text-white/30 focus:outline-none focus:border-white/20 focus:bg-white/10 transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="px-3 pb-1">
               <button
                 onClick={() => {
                   document.dispatchEvent(
@@ -292,7 +353,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               style={{ colorScheme: "dark" }}
             >
               {/* Favorites */}
-              {favoriteItems.length > 0 && (
+              {favoriteItems.length > 0 && !navSearch && (
                 <div className="pb-2 mb-2">
                   <div className="flex items-center gap-2 px-3 pt-1 pb-1.5">
                     <Star className="w-3 h-3 text-amber-400/70" />
@@ -306,7 +367,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
               {/* Core items */}
               <div className="pb-2 mb-1">
-                {navCore.map((item) => renderLink(item, item.end))}
+                {filteredCore.map((item) => renderLink(item, item.end))}
               </div>
 
               {/* Collapsible groups */}
@@ -315,7 +376,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               </div>
 
               {/* Extension groups */}
-              {extensionGroups.length > 0 &&
+              {!navSearch && extensionGroups.length > 0 &&
                 extensionGroups.map((group) => (
                   <div key={group.category}>
                     <div className="flex items-center gap-2 px-3 pt-4 pb-1">
@@ -357,6 +418,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     })}
                   </div>
                 ))}
+
+              {/* No results */}
+              {navSearch && filteredCore.length === 0 && filteredGroups.length === 0 && (
+                <div className="text-center py-6">
+                  <p className="text-xs text-white/30">{t("noResults")}</p>
+                </div>
+              )}
             </nav>
 
             {/* Footer: Settings */}

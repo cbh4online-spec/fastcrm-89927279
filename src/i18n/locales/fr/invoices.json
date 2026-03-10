@@ -84,5 +84,11 @@
   "csvIssueDate": "Date Émission",
   "csvDueDate": "Échéance",
   "csvTotal": "Total",
-  "csvStatus": "Statut"
+  "csvStatus": "Statut",
+  "bulkSend": "Envoyer",
+  "bulkMarkPaid": "Marquer comme payée",
+  "bulkSent": "{{count}} factures envoyées",
+  "bulkPaid": "{{count}} factures marquées comme payées",
+  "noDraftToSend": "Aucune facture brouillon sélectionnée",
+  "noInvoicesToPay": "Aucune facture envoyée/échue sélectionnée"
 }
