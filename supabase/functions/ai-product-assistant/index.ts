@@ -1821,6 +1821,7 @@ Responda com um array JSON: [entry1, entry2, ...]`;
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
 
     return new Response(JSON.stringify({
       success: false,
