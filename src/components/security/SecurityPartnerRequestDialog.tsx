@@ -4,12 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useTranslation } from "react-i18next";
 import { useSecurityPartners } from "@/hooks/security/useSecurityPartners";
 import { useSecurityPartnerRequests } from "@/hooks/security/useSecurityPartnerRequests";
 import { useState } from "react";
-import { Plus, UserPlus } from "lucide-react";
+import { Plus, UserPlus, Sparkles } from "lucide-react";
 import { SecurityPartnerDialog } from "./SecurityPartnerDialog";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
   open: boolean;
@@ -20,12 +22,14 @@ const CHANNELS = ["whatsapp", "telegram", "email", "phone", "manual", "site"];
 
 export function SecurityPartnerRequestDialog({ open, onOpenChange }: Props) {
   const { t } = useTranslation("security");
+  const navigate = useNavigate();
   const { partners } = useSecurityPartners();
-  const { createRequest } = useSecurityPartnerRequests();
+  const { createRequest, extractData } = useSecurityPartnerRequests();
   const [partnerId, setPartnerId] = useState<string>("");
   const [channel, setChannel] = useState("whatsapp");
   const [rawText, setRawText] = useState("");
   const [notes, setNotes] = useState("");
+  const [autoExtract, setAutoExtract] = useState(true);
   const [partnerDialogOpen, setPartnerDialogOpen] = useState(false);
 
   const handleSubmit = () => {
@@ -38,7 +42,11 @@ export function SecurityPartnerRequestDialog({ open, onOpenChange }: Props) {
         notes: notes || undefined,
       },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
+          if (autoExtract && data?.id) {
+            extractData.mutate(data.id);
+            navigate(`/dashboard/security/partner-requests/${data.id}`);
+          }
           setRawText("");
           setNotes("");
           setPartnerId("");
@@ -111,6 +119,18 @@ export function SecurityPartnerRequestDialog({ open, onOpenChange }: Props) {
             <div>
               <Label>{t("notes")}</Label>
               <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </div>
+
+            {/* Auto-extract toggle */}
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">{t("reqAutoExtract")}</p>
+                  <p className="text-xs text-muted-foreground">{t("reqAutoExtractDesc")}</p>
+                </div>
+              </div>
+              <Switch checked={autoExtract} onCheckedChange={setAutoExtract} />
             </div>
           </div>
 
