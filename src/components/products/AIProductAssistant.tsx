@@ -44,12 +44,14 @@ export function AIProductAssistant({
   productName,
   currentCategory,
   currentProductType,
+  currentBillingType,
   existingCategories,
   onApplyCategory,
   onApplyExistingCategory,
   onApplyPrice,
   onApplyDescription,
   onApplyProductType,
+  onApplyBillingType,
 }: AIProductAssistantProps) {
   const [isActive, setIsActive] = useState(true);
   const [appliedItems, setAppliedItems] = useState<Set<string>>(new Set());
