@@ -255,6 +255,7 @@ export function CreateProposalDialog({
       cta_text: ctaText,
       cta_color: ctaColor,
       price: price ? parseFloat(price) : selectedOpportunity?.value || undefined,
+      currency: workspaceCurrency,
       expires_at: expiresAt || undefined,
     });
 
