@@ -1,52 +1,68 @@
 
 
-# Plan: AI Assistant for Product Settings Configuration
+# Phase 5B — Command Center COMPLETO
 
-## Problem
-The product settings page (Tipos de Produto, Cobrança, Categorias, Condições Pagamento, etc.) requires manual entry. The user wants AI to suggest common configuration entries automatically.
+## Gap Analysis: Current vs Spec
 
-## Solution
-Add an "AI Suggest" button to the `ProductSettingsTabContent` header that calls a new mode in the `ai-product-assistant` edge function. The AI analyzes the workspace context (industry, existing products) and suggests missing configuration entries for the active tab.
+The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
 
-## Changes
+**Already implemented (needs enhancement):**
+- Header with greeting + 3 KPIs — needs larger font (32px), labels below
+- AI Question Box — needs slash command suggestions row below input
+- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
+- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
+- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
+- Drift Alerts — needs "Rever →" links to Context OS blocks
 
-### 1. Edge Function — `ai-product-assistant/index.ts`
-Add a new mode `"suggest-settings"` that:
-- Receives the `settingsType` (types, billing, categories, payment-conditions, payment-methods, consumption, delivery, frequencies)
-- Receives existing entries for that tab
-- Returns an array of suggested new entries with all required fields (code, label, description, icon, color, etc.)
-- Uses Lovable AI (Gemini Flash) to generate contextual suggestions
+**New sections to build:**
+1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
+2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
+   - Change Events (last 5 from `useChangeEvents` with realtime)
+   - Entity Activity (top 3 entities from `useKernelEntities`)
+   - Impact Score (top 2 from `useImpactMapData`)
+3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
 
-### 2. New Component — `src/components/products/settings/AISettingsSuggestions.tsx`
-- A panel/dialog that shows AI-suggested entries for the current settings tab
-- Each suggestion has a "Adicionar" button to create it via the existing hooks
-- Shows loading state, error handling
-- Appears when user clicks "Sugerir com IA" button
+**Enhanced Command Palette (⌘K):**
+- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
 
-### 3. Update `ProductSettingsTabContent.tsx`
-- Add a "Sugerir com IA" (Sparkles icon) button next to the header
-- Pass the active tab and existing data to the AI suggestions component
-- Wire up the create mutations from each settings hook
+**Spotlight (Space key):**
+- Opens AI Question Box as a modal from any page. New global component.
 
-### 4. Update `useProductAIAssistant.ts`
-- Add a new `suggestSettings` mutation that calls mode `"suggest-settings"`
+## Implementation Plan — 3 Sub-phases
 
-## Flow
-```text
-User clicks "Sugerir com IA" on Settings page
-  → Edge function receives settingsType + existing entries
-  → AI returns suggested entries (e.g., 3-5 new types/billing/etc.)
-  → Dialog shows suggestions with "Adicionar" buttons
-  → User clicks → entry is created via existing hook
-```
+Given the scope, I recommend splitting into 3 batches:
 
-## Scope per tab
-- **Tipos de Produto**: suggest codes like `consultoria`, `licenciamento`, `suporte`, etc.
-- **Cobrança**: suggest `one-off`, `monthly`, `yearly`, etc. with is_recurring + frequency
-- **Categorias**: suggest industry-relevant categories
-- **Condições Pagamento**: suggest `net-30`, `net-60`, `pronto-pagamento`, etc. with days
-- **Métodos Pagamento**: suggest `transferencia`, `cartao`, `mbway`, etc.
-- **Modelos Consumo**: suggest `por-hora`, `por-utilizador`, `ilimitado`, etc.
-- **Modos Entrega**: suggest `online`, `presencial`, `hibrido`, etc.
-- **Frequências**: suggest `semanal`, `mensal`, `trimestral`, etc. with interval_days
+### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
+| File | Action |
+|------|--------|
+| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
+| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
+| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
+| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
+
+### Batch 2: Enhance Existing Cards
+| File | Action |
+|------|--------|
+| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
+| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
+| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
+| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
+| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
+| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
+
+### Batch 3: Spotlight Modal + Command Palette Enhancement
+| File | Action |
+|------|--------|
+| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
+| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
+| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
+
+### Realtime subscriptions needed
+- `change_events` table for Kernel Live Feed auto-update
+- `kernel_action_runs` for Ações do Dia auto-update
+- Already have `kernel_decisions` and `conversations`
+
+No database migrations needed. All hooks, edge functions, and tables already exist.
+
+**Shall I start with Batch 1?**
 

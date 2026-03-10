@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface AssistantRequest {
-  mode: "suggest" | "sku-search" | "generate-description" | "generate-store-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details" | "generate-product-image" | "search-video" | "suggest-relations" | "image-to-product" | "generate-store-banner" | "suggest-brand-colors" | "ensure-store-category";
+  mode: "suggest" | "sku-search" | "generate-description" | "generate-store-description" | "price-analysis" | "compare-sources" | "generate-category" | "generate-category-image" | "suggest-category-details" | "generate-product-image" | "search-video" | "suggest-relations" | "image-to-product" | "generate-store-banner" | "suggest-brand-colors" | "ensure-store-category" | "suggest-settings";
   storeName?: string;
   productId?: string;
   workspaceId?: string;
@@ -21,6 +21,9 @@ interface AssistantRequest {
   description?: string;
   existingCategories?: string[];
   imageBase64?: string;
+  settingsType?: string;
+  existingEntries?: any[];
+  industryContext?: string;
 }
 
 interface VideoResult {
@@ -136,7 +139,7 @@ interface SKUSearchResult {
   }
 
   try {
-    const { mode, productName, sku, category, productType, context, theme, categoryName, description, existingCategories, productId: reqProductId, workspaceId: reqWorkspaceId, imageBase64, storeName } = await req.json() as AssistantRequest & { storeName?: string };
+    const { mode, productName, sku, category, productType, context, theme, categoryName, description, existingCategories, productId: reqProductId, workspaceId: reqWorkspaceId, imageBase64, storeName, settingsType, existingEntries, industryContext } = await req.json() as AssistantRequest & { storeName?: string };
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
@@ -1728,6 +1731,97 @@ Responda APENAS em JSON válido:
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     }
+
+    } else if (mode === 'suggest-settings' && settingsType) {
+      const existingCodes = (existingEntries || []).map((e: any) => e.code || e.name).filter(Boolean);
+      
+      const settingsSchemas: Record<string, string> = {
+        types: '{ "code": "string (slug)", "label": "string", "description": "string", "icon": "lucide icon name", "color": "hex color" }',
+        billing: '{ "code": "string (slug)", "label": "string", "description": "string", "is_recurring": boolean, "frequency": "monthly|quarterly|yearly|null", "icon": "lucide icon name", "color": "hex color" }',
+        categories: '{ "name": "string", "description": "string", "color": "hex color", "icon": "lucide icon name" }',
+        'payment-conditions': '{ "code": "string (slug)", "label": "string", "description": "string", "days": number, "discount_pct": number|null, "icon": "lucide icon name", "color": "hex color" }',
+        'payment-methods': '{ "code": "string (slug)", "label": "string", "description": "string", "icon": "lucide icon name", "color": "hex color" }',
+        consumption: '{ "code": "string (slug)", "label": "string", "description": "string", "is_trackable": boolean, "unit_name": "string|null", "icon": "lucide icon name", "color": "hex color" }',
+        delivery: '{ "code": "string (slug)", "label": "string", "description": "string", "icon": "lucide icon name", "color": "hex color" }',
+        frequencies: '{ "code": "string (slug)", "label": "string", "description": "string", "interval_days": number, "icon": "lucide icon name", "color": "hex color" }',
+      };
+
+      const settingsLabels: Record<string, string> = {
+        types: 'tipos de produto',
+        billing: 'tipos de cobrança',
+        categories: 'categorias de produto',
+        'payment-conditions': 'condições de pagamento',
+        'payment-methods': 'métodos de pagamento',
+        consumption: 'modelos de consumo',
+        delivery: 'modos de entrega',
+        frequencies: 'frequências de cobrança',
+      };
+
+      const schema = settingsSchemas[settingsType] || settingsSchemas.types;
+      const label = settingsLabels[settingsType] || settingsType;
+
+      const systemPrompt = `Você é um consultor de negócios especializado em configuração de catálogos de produtos e serviços B2B/B2C em Portugal.
+Sugira ${label} que sejam relevantes para o negócio do utilizador, considerando o contexto da indústria.
+NÃO sugira entradas que já existam. Use códigos slug válidos (sem espaços, minúsculas, com hífens).
+Use ícones do Lucide React válidos. Use cores hex variadas e distinguíveis.
+Responda APENAS com um array JSON válido, sem markdown.`;
+
+      const userPrompt = `${industryContext ? `Contexto do negócio: ${industryContext}\n` : ''}
+Entradas já existentes (NÃO repetir): ${existingCodes.length > 0 ? existingCodes.join(', ') : 'nenhuma'}
+
+Sugira 3 a 5 novas ${label} relevantes.
+Cada entrada deve seguir este schema: ${schema}
+
+Responda com um array JSON: [entry1, entry2, ...]`;
+
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-flash-preview',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
+            status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw new Error(`AI gateway error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '[]';
+      
+      let suggestions: any[];
+      try {
+        const jsonMatch = content.match(/\[[\s\S]*\]/);
+        suggestions = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+      } catch {
+        suggestions = [];
+      }
+
+      // Filter out any that match existing codes
+      suggestions = suggestions.filter((s: any) => {
+        const code = s.code || s.name;
+        return code && !existingCodes.includes(code);
+      });
+
+      return new Response(JSON.stringify({
+        success: true,
+        data: { suggestions, settingsType }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
 
     return new Response(JSON.stringify({
       success: false,
