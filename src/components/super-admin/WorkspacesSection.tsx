@@ -722,6 +722,15 @@ export function WorkspacesSection() {
                           <ArrowUpCircle className="h-4 w-4 mr-2" />
                           Alterar plano
                         </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => setActionDialog({ 
+                            type: "assign-credits", 
+                            workspace: ws 
+                          })}
+                        >
+                          <Coins className="h-4 w-4 mr-2" />
+                          Gerir créditos
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         {ws.status === "suspended" ? (
                           <DropdownMenuItem 
