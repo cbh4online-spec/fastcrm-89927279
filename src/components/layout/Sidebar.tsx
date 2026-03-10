@@ -84,7 +84,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   );
 
   const filteredGroups = useMemo(() => {
-    return NAV_V2_GROUPS
+    return navGroups
       .filter((g) => isFlagEnabled(g.featureFlag))
       .map((g) => {
         const groupHasSlug = !!g.moduleSlug;
