@@ -4,7 +4,7 @@
  * to Objects, Intelligence, and Automations pages.
  */
 
-import { LucideIcon, FileText, Receipt, Building2, ShoppingCart, GraduationCap, Landmark, Store, Users, Sparkles, Search, Globe, Instagram, BarChart3, Bot, Brain, MessageSquare, BookOpen, Lightbulb, Trophy, ScanText, Mail, Phone, Zap, Cpu, FileBarChart } from "lucide-react";
+import { LucideIcon, FileText, Receipt, Building2, ShoppingCart, GraduationCap, Landmark, Store, Users, Sparkles, Search, Globe, Instagram, BarChart3, Bot, Brain, MessageSquare, BookOpen, Lightbulb, Trophy, ScanText, Mail, Phone, Zap, Cpu, FileBarChart, Shield, Camera, Wrench, AlertTriangle } from "lucide-react";
 
 export interface ExtensionObjectTab {
   key: string;
