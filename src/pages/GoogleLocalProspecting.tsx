@@ -935,8 +935,8 @@ export default function GoogleLocalProspecting() {
             </DialogContent>
           </Dialog>
           <Badge variant="outline" className="gap-2 py-2 px-3">
-            <CreditCard className="h-4 w-4" />
-            {usage.used}/{usage.total} créditos
+            <Coins className="h-4 w-4" />
+            {balance} créditos ({searchCost}/pesquisa)
           </Badge>
         </div>
       </div>
