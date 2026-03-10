@@ -10,6 +10,7 @@ import { ListingFilters } from "@/components/c2c/ListingFilters";
 import { MarketplaceSearchOverlay } from "@/components/c2c/MarketplaceSearchOverlay";
 import { useC2CListings, useC2CCategories, useC2CFavorites, useToggleC2CFavorite, type C2CListingFilters } from "@/hooks/useC2CListings";
 import { useUnreadCount } from "@/hooks/useC2CNotifications";
+import { useC2CRealtimeNotifications } from "@/hooks/useC2CRealtimeNotifications";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import {
@@ -151,6 +152,7 @@ export default function C2CMarketplace() {
   const { data: favoriteIds = [] } = useC2CFavorites(workspaceId);
   const toggleFavorite = useToggleC2CFavorite(workspaceId);
   const { data: unreadCount = 0 } = useUnreadCount(workspaceId);
+  useC2CRealtimeNotifications(workspaceId);
 
   const featuredListings = listings.filter((l) => l.is_featured);
   const recentListings = [...listings].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 12);
