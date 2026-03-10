@@ -3,7 +3,6 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { KPICard, KPIGrid } from "@/components/design-system/KPICard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,13 +10,14 @@ import { usePerformanceScores, useLeaderboard, useRecalculateScores } from "@/ho
 import { usePerformanceChallenges } from "@/hooks/usePerformanceChallenges";
 import { usePerformanceRecognition, RECOGNITION_TYPES } from "@/hooks/usePerformanceRecognition";
 import { usePerformanceGoals } from "@/hooks/usePerformanceGoals";
-import { TrendingUp, Target, Trophy, Zap, Users, DollarSign, Calendar, BarChart3, RefreshCw } from "lucide-react";
+import { TrendingUp, Target, Trophy, Zap, Users, DollarSign, Calendar, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatDistanceToNow } from "date-fns";
-import { pt } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
+import { formatCurrency } from "@/lib/formatters";
 
 export default function PerformanceDashboardPage() {
+  const { t } = useTranslation("performance");
   const navigate = useNavigate();
   const { data: scores, isLoading: scoresLoading } = usePerformanceScores("weekly");
   const { data: leaderboard, isLoading: lbLoading } = useLeaderboard("score_total", "weekly");
@@ -26,7 +26,6 @@ export default function PerformanceDashboardPage() {
   const { data: goals } = usePerformanceGoals();
   const recalculate = useRecalculateScores();
 
-  // Compute challenge progress from scores
   const getChallengeProgress = (ch: any) => {
     if (!scores?.length || !ch.target_value) return 0;
     const metricKey = ch.metric_type as string;
@@ -42,7 +41,6 @@ export default function PerformanceDashboardPage() {
     return Math.min(Math.round((totalValue / ch.target_value) * 100), 100);
   };
 
-  // Compute goal progress from scores
   const getGoalProgress = (g: any) => {
     if (!scores?.length || !g.target_value) return 0;
     const goalType = g.goal_type as string;
@@ -63,16 +61,13 @@ export default function PerformanceDashboardPage() {
   const totalMeetings = scores?.reduce((s, sc) => s + sc.meetings_booked, 0) || 0;
   const totalDeals = scores?.length || 0;
 
-  const formatCurrency = (v: number) =>
-    new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
-
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         <div className="flex items-center justify-between">
           <PageHeader
-            title="Sales Performance Engine"
-            description="Desempenho de vendas alinhado com receita"
+            title={t("title")}
+            description={t("description")}
           />
           <Button
             variant="outline"
@@ -81,32 +76,31 @@ export default function PerformanceDashboardPage() {
             disabled={recalculate.isPending}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${recalculate.isPending ? "animate-spin" : ""}`} />
-            Recalcular
+            {t("recalculate")}
           </Button>
         </div>
 
-        {/* Company KPIs */}
         <KPIGrid columns={4}>
           <KPICard
-            title="Receita Fechada"
+            title={t("closedRevenue")}
             value={formatCurrency(totalRevenue)}
             icon={<DollarSign className="h-4 w-4" />}
             variant="success"
           />
           <KPICard
-            title="Pipeline Gerado"
+            title={t("pipelineGenerated")}
             value={formatCurrency(totalPipeline)}
             icon={<TrendingUp className="h-4 w-4" />}
             variant="primary"
           />
           <KPICard
-            title="Reuniões Realizadas"
+            title={t("meetingsHeld")}
             value={totalMeetings}
             icon={<Calendar className="h-4 w-4" />}
             variant="warning"
           />
           <KPICard
-            title="Performers Ativos"
+            title={t("activePerformers")}
             value={totalDeals}
             icon={<Users className="h-4 w-4" />}
             variant="default"
@@ -114,15 +108,14 @@ export default function PerformanceDashboardPage() {
         </KPIGrid>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Leaderboard */}
           <Card className="lg:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-yellow-500" />
-                Leaderboard Semanal
+                {t("weeklyLeaderboard")}
               </CardTitle>
               <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/performance/leaderboard")}>
-                Ver tudo
+                {t("viewAll")}
               </Button>
             </CardHeader>
             <CardContent>
@@ -132,7 +125,7 @@ export default function PerformanceDashboardPage() {
                 </div>
               ) : !leaderboard?.length ? (
                 <p className="text-sm text-muted-foreground py-8 text-center">
-                  Sem dados de performance. Clica em "Recalcular" para gerar scores.
+                  {t("noPerformanceData")} {t("noPerformanceDataHint")}
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -153,12 +146,12 @@ export default function PerformanceDashboardPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{entry.user_name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {formatCurrency(entry.revenue_generated)} receita · {entry.meetings_booked} reuniões
+                          {formatCurrency(entry.revenue_generated)} {t("revenue")} · {entry.meetings_booked} {t("meetings")}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-bold">{Math.round(entry.score_total)}</p>
-                        <p className="text-xs text-muted-foreground">pontos</p>
+                        <p className="text-xs text-muted-foreground">{t("points")}</p>
                       </div>
                     </div>
                   ))}
@@ -167,23 +160,22 @@ export default function PerformanceDashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Active Challenges */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Zap className="h-5 w-5 text-amber-500" />
-                Desafios Ativos
+                {t("activeChallenges")}
               </CardTitle>
               <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/performance/challenges")}>
-                Ver tudo
+                {t("viewAll")}
               </Button>
             </CardHeader>
             <CardContent>
               {!challenges?.length ? (
                 <div className="text-center py-8">
-                  <p className="text-sm text-muted-foreground mb-3">Nenhum desafio ativo</p>
+                  <p className="text-sm text-muted-foreground mb-3">{t("noChallenges")}</p>
                   <Button size="sm" variant="outline" onClick={() => navigate("/dashboard/performance/challenges")}>
-                    Criar Desafio
+                    {t("createChallenge")}
                   </Button>
                 </div>
               ) : (
@@ -194,7 +186,7 @@ export default function PerformanceDashboardPage() {
                       <div key={ch.id} className="p-3 rounded-lg border border-border/50 space-y-2">
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-medium">{ch.challenge_name}</p>
-                          <Badge variant="secondary" className="text-xs">{daysLeft}d restantes</Badge>
+                          <Badge variant="secondary" className="text-xs">{t("daysRemaining", { count: daysLeft })}</Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">{ch.description}</p>
                         <Progress value={getChallengeProgress(ch)} className="h-1.5" />
@@ -208,20 +200,19 @@ export default function PerformanceDashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Goals Progress */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Target className="h-5 w-5 text-primary" />
-                Metas Ativas
+                {t("activeGoals")}
               </CardTitle>
               <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/performance/goals")}>
-                Gerir
+                {t("manage")}
               </Button>
             </CardHeader>
             <CardContent>
               {!goals?.length ? (
-                <p className="text-sm text-muted-foreground py-6 text-center">Nenhuma meta definida</p>
+                <p className="text-sm text-muted-foreground py-6 text-center">{t("noGoals")}</p>
               ) : (
                 <div className="space-y-3">
                   {goals.slice(0, 4).map(g => (
@@ -238,20 +229,19 @@ export default function PerformanceDashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Recent Recognitions */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-yellow-500" />
-                Reconhecimentos
+                {t("recognitions")}
               </CardTitle>
               <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/performance/recognition")}>
-                Ver tudo
+                {t("viewAll")}
               </Button>
             </CardHeader>
             <CardContent>
               {!recognitions?.length ? (
-                <p className="text-sm text-muted-foreground py-6 text-center">Sem reconhecimentos ainda</p>
+                <p className="text-sm text-muted-foreground py-6 text-center">{t("noRecognitions")}</p>
               ) : (
                 <div className="space-y-3">
                   {recognitions.slice(0, 4).map(r => {

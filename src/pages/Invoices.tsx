@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,9 +44,8 @@ import { SaftExportTab } from "@/components/invoices/SaftExportTab";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
-import { format } from "date-fns";
-import { pt } from "date-fns/locale";
 import { toast } from "sonner";
+import { formatDate, formatCurrency } from "@/lib/formatters";
 import {
   FileText,
   Plus,
@@ -72,85 +72,10 @@ import {
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
-const statusConfig: Record<InvoiceStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof FileText }> = {
-  draft: { label: "Rascunho", variant: "secondary", icon: FileText },
-  sent: { label: "Enviada", variant: "default", icon: Send },
-  paid: { label: "Paga", variant: "outline", icon: CheckCircle },
-  overdue: { label: "Vencida", variant: "destructive", icon: AlertTriangle },
-  cancelled: { label: "Cancelada", variant: "secondary", icon: FileText },
-};
-
-const pageTabs = [
-  { id: "invoices", label: "Faturas" },
-  { id: "recurring", label: "Recorrentes" },
-  { id: "fiscal", label: "Fiscalidade" },
-  { id: "saft", label: "SAF-T" },
-  { id: "settings", label: "Configurações" },
-];
-
-const sortOptions = [
-  { value: "date_desc", label: "Mais recentes" },
-  { value: "date_asc", label: "Mais antigas" },
-  { value: "value_desc", label: "Maior valor" },
-  { value: "value_asc", label: "Menor valor" },
-  { value: "due_asc", label: "Vencimento próximo" },
-  { value: "number_asc", label: "Número (A-Z)" },
-];
-
-const filterGroups: FilterGroup[] = [
-  {
-    id: "status",
-    label: "Estado",
-    icon: <FileText className="h-4 w-4" />,
-    defaultOpen: true,
-    items: [
-      { id: "status_draft", label: "Rascunho", icon: <FileText className="h-4 w-4" /> },
-      { id: "status_sent", label: "Enviada", icon: <Send className="h-4 w-4 text-blue-500" /> },
-      { id: "status_paid", label: "Paga", icon: <CheckCircle className="h-4 w-4 text-green-500" /> },
-      { id: "status_overdue", label: "Vencida", icon: <AlertTriangle className="h-4 w-4 text-red-500" /> },
-      { id: "status_cancelled", label: "Cancelada", icon: <FileX className="h-4 w-4" /> },
-    ],
-  },
-  {
-    id: "value",
-    label: "Valor",
-    icon: <CircleDollarSign className="h-4 w-4" />,
-    defaultOpen: false,
-    items: [
-      { id: "value_high", label: "Alto (>5.000€)" },
-      { id: "value_medium", label: "Médio (1.000-5.000€)" },
-      { id: "value_low", label: "Baixo (<1.000€)" },
-    ],
-  },
-  {
-    id: "timing",
-    label: "Período",
-    icon: <Calendar className="h-4 w-4" />,
-    defaultOpen: false,
-    items: [
-      { id: "timing_today", label: "Hoje" },
-      { id: "timing_week", label: "Esta semana" },
-      { id: "timing_month", label: "Este mês" },
-      { id: "timing_quarter", label: "Este trimestre" },
-    ],
-  },
-  {
-    id: "smart",
-    label: "Filtros Inteligentes",
-    icon: <TrendingUp className="h-4 w-4" />,
-    defaultOpen: false,
-    items: [
-      { id: "smart_due_soon", label: "Vence em 7 dias" },
-      { id: "smart_high_value", label: "Alto valor pendente" },
-      { id: "smart_recurring", label: "Clientes recorrentes" },
-    ],
-  },
-];
-
 export default function Invoices() {
+  const { t } = useTranslation("invoices");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  // New state for reorganized UI
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -161,6 +86,81 @@ export default function Invoices() {
   const [sortValue, setSortValue] = useState("date_desc");
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | undefined>();
 
+  const statusConfig: Record<InvoiceStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof FileText }> = useMemo(() => ({
+    draft: { label: t("statusDraft"), variant: "secondary", icon: FileText },
+    sent: { label: t("statusSent"), variant: "default", icon: Send },
+    paid: { label: t("statusPaid"), variant: "outline", icon: CheckCircle },
+    overdue: { label: t("statusOverdue"), variant: "destructive", icon: AlertTriangle },
+    cancelled: { label: t("statusCancelled"), variant: "secondary", icon: FileText },
+  }), [t]);
+
+  const pageTabs = useMemo(() => [
+    { id: "invoices", label: t("tabInvoices") },
+    { id: "recurring", label: t("tabRecurring") },
+    { id: "fiscal", label: t("tabFiscal") },
+    { id: "saft", label: t("tabSaft") },
+    { id: "settings", label: t("tabSettings") },
+  ], [t]);
+
+  const sortOptions = useMemo(() => [
+    { value: "date_desc", label: t("sortNewest") },
+    { value: "date_asc", label: t("sortOldest") },
+    { value: "value_desc", label: t("sortHighestValue") },
+    { value: "value_asc", label: t("sortLowestValue") },
+    { value: "due_asc", label: t("sortDueSoon") },
+    { value: "number_asc", label: t("sortNumberAsc") },
+  ], [t]);
+
+  const filterGroups: FilterGroup[] = useMemo(() => [
+    {
+      id: "status",
+      label: t("filterStatus"),
+      icon: <FileText className="h-4 w-4" />,
+      defaultOpen: true,
+      items: [
+        { id: "status_draft", label: t("statusDraft"), icon: <FileText className="h-4 w-4" /> },
+        { id: "status_sent", label: t("statusSent"), icon: <Send className="h-4 w-4 text-blue-500" /> },
+        { id: "status_paid", label: t("statusPaid"), icon: <CheckCircle className="h-4 w-4 text-green-500" /> },
+        { id: "status_overdue", label: t("statusOverdue"), icon: <AlertTriangle className="h-4 w-4 text-red-500" /> },
+        { id: "status_cancelled", label: t("statusCancelled"), icon: <FileX className="h-4 w-4" /> },
+      ],
+    },
+    {
+      id: "value",
+      label: t("filterValue"),
+      icon: <CircleDollarSign className="h-4 w-4" />,
+      defaultOpen: false,
+      items: [
+        { id: "value_high", label: t("valueHigh") },
+        { id: "value_medium", label: t("valueMedium") },
+        { id: "value_low", label: t("valueLow") },
+      ],
+    },
+    {
+      id: "timing",
+      label: t("filterPeriod"),
+      icon: <Calendar className="h-4 w-4" />,
+      defaultOpen: false,
+      items: [
+        { id: "timing_today", label: t("timingToday") },
+        { id: "timing_week", label: t("timingWeek") },
+        { id: "timing_month", label: t("timingMonth") },
+        { id: "timing_quarter", label: t("timingQuarter") },
+      ],
+    },
+    {
+      id: "smart",
+      label: t("filterSmart"),
+      icon: <TrendingUp className="h-4 w-4" />,
+      defaultOpen: false,
+      items: [
+        { id: "smart_due_soon", label: t("dueSoon7") },
+        { id: "smart_high_value", label: t("highValuePending") },
+        { id: "smart_recurring", label: t("recurringClients") },
+      ],
+    },
+  ], [t]);
+
   const { data: invoices, isLoading, refetch } = useInvoices(
     statusFilter ? { status: statusFilter } : undefined
   );
@@ -169,7 +169,6 @@ export default function Invoices() {
   const sendInvoice = useSendInvoice();
   const deleteInvoice = useDeleteInvoice();
 
-  // Filter and search
   const filteredInvoices = useMemo(() => {
     if (!invoices) return [];
     if (!searchValue) return invoices;
@@ -181,7 +180,6 @@ export default function Invoices() {
     );
   }, [invoices, searchValue]);
 
-  // Pagination
   const totalInvoices = filteredInvoices.length;
   const totalPages = Math.ceil(totalInvoices / pageSize);
   const paginatedInvoices = useMemo(() => {
@@ -189,19 +187,11 @@ export default function Invoices() {
     return filteredInvoices.slice(start, start + pageSize);
   }, [filteredInvoices, currentPage, pageSize]);
 
-  // Calculate total value
   const totalValue = useMemo(() => {
     return filteredInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
   }, [filteredInvoices]);
 
   const filtersActive = !!statusFilter || !!activeFilterId;
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-PT", {
-      style: "currency",
-      currency: "EUR",
-    }).format(value);
-  };
 
   const getStatusBadge = (status: InvoiceStatus) => {
     const config = statusConfig[status];
@@ -240,14 +230,14 @@ export default function Invoices() {
     const selected = invoices?.filter((inv) => selectedIds.includes(inv.id)) || [];
     if (selected.length === 0) return;
     const csv = [
-      ["Número", "Cliente", "Email", "Data Emissão", "Vencimento", "Total", "Estado"].join(","),
+      [t("csvNumber"), t("csvClient"), t("csvEmail"), t("csvIssueDate"), t("csvDueDate"), t("csvTotal"), t("csvStatus")].join(","),
       ...selected.map((inv) =>
         [
           inv.invoice_number,
           inv.client_name,
           inv.client_email || "",
-          format(new Date(inv.issue_date), "dd/MM/yyyy"),
-          format(new Date(inv.due_date), "dd/MM/yyyy"),
+          formatDate(inv.issue_date, "dd/MM/yyyy"),
+          formatDate(inv.due_date, "dd/MM/yyyy"),
           inv.total,
           statusConfig[inv.status].label,
         ].join(",")
@@ -257,15 +247,14 @@ export default function Invoices() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `faturas_${new Date().toISOString().split("T")[0]}.csv`;
+    a.download = `invoices_${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
-    toast.success(`${selected.length} faturas exportadas`);
+    toast.success(t("invoicesExported", { count: selected.length }));
   };
 
   return (
     <DashboardLayout>
       <div className="flex h-full -m-6">
-        {/* Filter Sidebar */}
         <FilterSidebar
           filterGroups={filterGroups}
           activeFilterId={activeFilterId}
@@ -278,26 +267,23 @@ export default function Invoices() {
           onClose={() => setShowFilterSidebar(false)}
         />
 
-        {/* Main Content */}
         <div className="flex-1 flex flex-col min-w-0 p-6">
-          {/* Page Header */}
           <PageHeader
-            title="Faturas"
+            title={t("title")}
             count={totalInvoices}
-            description={`Total: ${formatCurrency(totalValue)}`}
+            description={`${t("total")}: ${formatCurrency(totalValue)}`}
             tabs={pageTabs}
             activeTab={activeTab}
             onTabChange={setActiveTab}
             actions={[
               {
-                label: "Nova Fatura",
+                label: t("newInvoice"),
                 icon: <Plus className="h-4 w-4" />,
                 onClick: () => setCreateDialogOpen(true),
               },
             ]}
           />
 
-          {/* Render content based on active tab */}
           {activeTab === "settings" ? (
             <InvoiceSettingsTab />
           ) : activeTab === "recurring" ? (
@@ -308,12 +294,11 @@ export default function Invoices() {
             <SaftExportTab />
           ) : (
             <>
-              {/* KPI Cards */}
               <div className="grid gap-4 md:grid-cols-4 mb-4">
                 <Card className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Rascunho</p>
+                      <p className="text-sm text-muted-foreground">{t("kpiDraft")}</p>
                       <p className="text-2xl font-bold">{stats.totalDraft}</p>
                       <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountDraft)}</p>
                     </div>
@@ -324,7 +309,7 @@ export default function Invoices() {
                 <Card className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Enviadas</p>
+                      <p className="text-sm text-muted-foreground">{t("kpiSent")}</p>
                       <p className="text-2xl font-bold text-blue-600">{stats.totalSent}</p>
                       <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountSent)}</p>
                     </div>
@@ -335,7 +320,7 @@ export default function Invoices() {
                 <Card className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Pagas</p>
+                      <p className="text-sm text-muted-foreground">{t("kpiPaid")}</p>
                       <p className="text-2xl font-bold text-green-600">{stats.totalPaid}</p>
                       <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountPaid)}</p>
                     </div>
@@ -346,7 +331,7 @@ export default function Invoices() {
                 <Card className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Vencidas</p>
+                      <p className="text-sm text-muted-foreground">{t("kpiOverdue")}</p>
                       <p className="text-2xl font-bold text-destructive">{stats.totalOverdue}</p>
                       <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountOverdue)}</p>
                     </div>
@@ -355,10 +340,9 @@ export default function Invoices() {
                 </Card>
               </div>
 
-          {/* Toolbar */}
           <Toolbar
             searchValue={searchValue}
-            searchPlaceholder="Pesquisar faturas..."
+            searchPlaceholder={t("searchInvoices")}
             onSearchChange={setSearchValue}
             showFilters={true}
             filtersActive={filtersActive}
@@ -391,21 +375,19 @@ export default function Invoices() {
             }
           />
 
-          {/* Bulk Actions */}
           {selectedIds.length > 0 && (
             <div className="flex items-center gap-2 py-2 px-4 bg-muted/50 rounded-lg mb-4">
               <span className="text-sm text-muted-foreground">
-                {selectedIds.length} {selectedIds.length === 1 ? "selecionada" : "selecionadas"}
+                {t("selectedCount", { count: selectedIds.length })}
               </span>
               <div className="flex-1" />
               <Button variant="outline" size="sm" onClick={handleBulkExport} className="gap-2">
                 <Download className="h-4 w-4" />
-                Exportar
+                {t("export")}
               </Button>
             </div>
           )}
 
-          {/* Table */}
           <Card className="flex-1 overflow-hidden">
             <CardContent className="p-0">
               {isLoading ? (
@@ -427,12 +409,12 @@ export default function Invoices() {
                           onCheckedChange={handleSelectAll}
                         />
                       </TableHead>
-                      <TableHead>Número</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Data Emissão</TableHead>
-                      <TableHead>Vencimento</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead>Estado</TableHead>
+                      <TableHead>{t("colNumber")}</TableHead>
+                      <TableHead>{t("colClient")}</TableHead>
+                      <TableHead>{t("colIssueDate")}</TableHead>
+                      <TableHead>{t("colDueDate")}</TableHead>
+                      <TableHead className="text-right">{t("colTotal")}</TableHead>
+                      <TableHead>{t("colStatus")}</TableHead>
                       <TableHead className="w-[70px]"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -461,10 +443,10 @@ export default function Invoices() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {format(new Date(invoice.issue_date), "dd MMM yyyy", { locale: pt })}
+                          {formatDate(invoice.issue_date)}
                         </TableCell>
                         <TableCell>
-                          {format(new Date(invoice.due_date), "dd MMM yyyy", { locale: pt })}
+                          {formatDate(invoice.due_date)}
                         </TableCell>
                         <TableCell className="text-right font-medium">
                           {formatCurrency(invoice.total)}
@@ -480,11 +462,11 @@ export default function Invoices() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem className="gap-2">
                                 <Eye className="h-4 w-4" />
-                                Ver detalhes
+                                {t("viewDetails")}
                               </DropdownMenuItem>
                               <DropdownMenuItem className="gap-2">
                                 <Download className="h-4 w-4" />
-                                Descarregar PDF
+                                {t("downloadPdf")}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               {invoice.status === "draft" && (
@@ -493,7 +475,7 @@ export default function Invoices() {
                                   onClick={() => sendInvoice.mutate(invoice.id)}
                                 >
                                   <Send className="h-4 w-4" />
-                                  Marcar como enviada
+                                  {t("markAsSent")}
                                 </DropdownMenuItem>
                               )}
                               {(invoice.status === "sent" || invoice.status === "overdue") && (
@@ -502,20 +484,20 @@ export default function Invoices() {
                                   onClick={() => markPaid.mutate({ id: invoice.id })}
                                 >
                                   <CheckCircle className="h-4 w-4" />
-                                  Marcar como paga
+                                  {t("markAsPaid")}
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="gap-2 text-destructive"
                                 onClick={() => {
-                                  if (confirm("Tem a certeza que pretende eliminar esta fatura?")) {
+                                  if (confirm(t("confirmDelete"))) {
                                     deleteInvoice.mutate(invoice.id);
                                   }
                                 }}
                               >
                                 <Trash2 className="h-4 w-4" />
-                                Eliminar
+                                {t("deleteInvoice")}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -527,24 +509,23 @@ export default function Invoices() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <FileCheck className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                  <h3 className="text-lg font-medium text-foreground">Sem faturas</h3>
+                  <h3 className="text-lg font-medium text-foreground">{t("noInvoices")}</h3>
                   <p className="text-muted-foreground mt-1 mb-4">
-                    Crie a sua primeira fatura para começar a gerir recebimentos.
+                    {t("noInvoicesDesc")}
                   </p>
                   <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
                     <Plus className="h-4 w-4" />
-                    Criar Fatura
+                    {t("createFirstInvoice")}
                   </Button>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Pagination */}
           {totalPages > 0 && (
             <div className="flex items-center justify-between pt-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Mostrar</span>
+                <span className="text-sm text-muted-foreground">{t("show")}</span>
                 <Select
                   value={pageSize.toString()}
                   onValueChange={(v) => {
@@ -563,12 +544,12 @@ export default function Invoices() {
                     ))}
                   </SelectContent>
                 </Select>
-                <span className="text-sm text-muted-foreground">por página</span>
+                <span className="text-sm text-muted-foreground">{t("perPage")}</span>
               </div>
 
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">
-                  Página {currentPage} de {totalPages}
+                  {t("pageOf", { current: currentPage, total: totalPages })}
                 </span>
                 <Button
                   variant="outline"
