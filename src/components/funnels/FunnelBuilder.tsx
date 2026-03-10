@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Share2, HelpCircle } from "lucide-react";
+import { ArrowLeft, Share2, HelpCircle, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFunnel } from "@/hooks/useFunnels";
