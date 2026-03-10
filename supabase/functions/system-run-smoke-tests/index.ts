@@ -255,6 +255,18 @@ Deno.serve(async (req) => {
       // Vertical Credit
       runCheck(supabase, workspace_id, "vertical-credit", "credit_proposals_query", "credit_proposals"),
       runCheck(supabase, workspace_id, "vertical-credit", "bank_partners_query", "bank_partners"),
+      // Security Ops
+      runCheck(supabase, workspace_id, "security-sites", "security_sites_query", "security_installation_sites"),
+      runCheck(supabase, workspace_id, "security-systems", "security_systems_query", "security_systems"),
+      runCheck(supabase, workspace_id, "security-devices", "security_devices_query", "security_installed_devices"),
+      runCheck(supabase, workspace_id, "security-zones", "security_zones_query", "security_system_zones"),
+      runCheck(supabase, workspace_id, "security-equipment", "security_equipment_query", "security_equipment_catalog"),
+      runCheck(supabase, workspace_id, "security-contracts", "security_contracts_query", "security_contracts"),
+      runCheck(supabase, workspace_id, "security-documents", "security_documents_query", "security_documents"),
+      runCheck(supabase, workspace_id, "security-occurrences", "security_occurrences_query", "security_occurrences"),
+      runCheck(supabase, workspace_id, "security-maintenance-plans", "security_maint_plans_query", "security_maintenance_plans"),
+      runCheck(supabase, workspace_id, "security-maintenance-visits", "security_maint_visits_query", "security_maintenance_visits"),
+      runCheck(supabase, workspace_id, "security-partner-requests", "security_partner_reqs_query", "security_partner_requests"),
     ]);
 
     // Log failures
