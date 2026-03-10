@@ -742,7 +742,7 @@ const App = () => (
             <MetaPixelLoader />
             <Routes>
               {/* Public Funnel Pages */}
-              <Route path="/funnel/:slug" element={<PublicFunnelPage />} />
+              <Route path="/funnel/:slug" element={<AuthProvider><PublicFunnelPage /></AuthProvider>} />
 
               {/* Public Bio Pages */}
               <Route path="/bio/:workspaceSlug/:pageSlug" element={<PublicBioPage />} />
