@@ -84,5 +84,11 @@
   "csvIssueDate": "Data Emissão",
   "csvDueDate": "Vencimento",
   "csvTotal": "Total",
-  "csvStatus": "Estado"
+  "csvStatus": "Estado",
+  "bulkSend": "Enviar",
+  "bulkMarkPaid": "Marcar como paga",
+  "bulkSent": "{{count}} faturas enviadas",
+  "bulkPaid": "{{count}} faturas marcadas como pagas",
+  "noDraftToSend": "Nenhuma fatura em rascunho selecionada",
+  "noInvoicesToPay": "Nenhuma fatura enviada/vencida selecionada"
 }

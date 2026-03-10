@@ -84,5 +84,11 @@
   "csvIssueDate": "Issue Date",
   "csvDueDate": "Due Date",
   "csvTotal": "Total",
-  "csvStatus": "Status"
+  "csvStatus": "Status",
+  "bulkSend": "Send",
+  "bulkMarkPaid": "Mark as paid",
+  "bulkSent": "{{count}} invoices sent",
+  "bulkPaid": "{{count}} invoices marked as paid",
+  "noDraftToSend": "No draft invoices selected",
+  "noInvoicesToPay": "No sent/overdue invoices selected"
 }
