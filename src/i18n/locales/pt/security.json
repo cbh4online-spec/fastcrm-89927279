@@ -160,6 +160,17 @@
   "renewalStageLost": "Perdido",
   "renewalStageExpired": "Expirado",
 
+  "renewalDaysRemaining": "Dias Restantes",
+  "renewalContactAttempts": "Contactos",
+  "renewalDueDate": "Data de Vencimento",
+  "renewalValue": "Valor Renovação",
+  "renewalLogContact": "Registar Contacto",
+  "renewalAddNote": "Adicionar Nota",
+  "renewalClientResponse": "Resposta do Cliente",
+  "renewalTimeline": "Timeline",
+  "renewalAutoDetect": "Detetar Renovações",
+  "renewalTotalValue": "Valor Total",
+
   "kpiLeadsByOrigin": "Leads por Origem",
   "kpiDealsByPartner": "Negócios por Parceiro",
   "kpiAdjudicationRate": "Taxa de Adjudicação",
