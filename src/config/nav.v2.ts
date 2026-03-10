@@ -55,6 +55,11 @@ import {
   Radio,
   Phone,
   FileX,
+  Shield,
+  Camera,
+  Wrench,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 
 // --- Types ---
