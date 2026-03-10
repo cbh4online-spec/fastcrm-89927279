@@ -138,7 +138,7 @@ export function useCreditWallet() {
         p_idempotency_key: idempotencyKey || null,
         p_reference_type: referenceType || null,
         p_reference_id: referenceId || null,
-        p_metadata: (metadata || {}) as unknown as Record<string, unknown>,
+        p_metadata: (metadata || {}) as Json,
       });
 
       if (error) throw error;
