@@ -11880,6 +11880,65 @@ export type Database = {
           },
         ]
       }
+      credit_ledger: {
+        Row: {
+          action_key: string
+          created_at: string
+          credits_amount: number
+          description: string | null
+          direction: string
+          id: string
+          idempotency_key: string | null
+          metadata: Json | null
+          module: string
+          reference_id: string | null
+          reference_type: string | null
+          status: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          action_key: string
+          created_at?: string
+          credits_amount: number
+          description?: string | null
+          direction: string
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json | null
+          module?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          action_key?: string
+          created_at?: string
+          credits_amount?: number
+          description?: string | null
+          direction?: string
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json | null
+          module?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_ledger_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_packages: {
         Row: {
           created_at: string
@@ -11919,6 +11978,48 @@ export type Database = {
           name?: string
           price?: number
           stripe_price_id?: string | null
+        }
+        Relationships: []
+      }
+      credit_pricing_rules: {
+        Row: {
+          action_key: string
+          category: string
+          created_at: string
+          credits_cost: number
+          description: string | null
+          id: string
+          is_active: boolean
+          label: string
+          metadata: Json | null
+          module: string
+          updated_at: string
+        }
+        Insert: {
+          action_key: string
+          category?: string
+          created_at?: string
+          credits_cost?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          metadata?: Json | null
+          module?: string
+          updated_at?: string
+        }
+        Update: {
+          action_key?: string
+          category?: string
+          created_at?: string
+          credits_cost?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          metadata?: Json | null
+          module?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -12126,6 +12227,91 @@ export type Database = {
             foreignKeyName: "credit_purchases_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_usage_limits: {
+        Row: {
+          created_at: string
+          current_usage: number
+          id: string
+          max_credits: number
+          period: string
+          period_end: string
+          period_start: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_usage?: number
+          id?: string
+          max_credits: number
+          period: string
+          period_end: string
+          period_start?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          current_usage?: number
+          id?: string
+          max_credits?: number
+          period?: string
+          period_end?: string
+          period_start?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_usage_limits_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          daily_limit: number | null
+          id: string
+          monthly_limit: number | null
+          reserved_balance: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          daily_limit?: number | null
+          id?: string
+          monthly_limit?: number | null
+          reserved_balance?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          daily_limit?: number | null
+          id?: string
+          monthly_limit?: number | null
+          reserved_balance?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_wallets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
@@ -42211,6 +42397,23 @@ export type Database = {
         Returns: {
           message: string
           source: string
+          success: boolean
+        }[]
+      }
+      consume_funnel_credits: {
+        Args: {
+          p_action_key: string
+          p_idempotency_key?: string
+          p_metadata?: Json
+          p_reference_id?: string
+          p_reference_type?: string
+          p_user_id: string
+          p_workspace_id: string
+        }
+        Returns: {
+          balance_remaining: number
+          credits_consumed: number
+          message: string
           success: boolean
         }[]
       }

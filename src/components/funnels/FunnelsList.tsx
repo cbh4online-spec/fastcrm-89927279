@@ -4,7 +4,7 @@ import { getShareUrl } from "@/utils/getShareUrl";
 import {
   Plus, Trash2, Pencil, Globe, GlobeLock, ExternalLink,
   MoreHorizontal, Sparkles, Eye, FileText, TrendingUp,
-  Layers, Copy, Check, Wand2, Target, Zap, BarChart3, DollarSign
+  Layers, Copy, Check, Wand2, Target, Zap, BarChart3, DollarSign, Coins
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +36,8 @@ import { VerticalTemplateBuilder } from "@/components/landing-pages/VerticalTemp
 import { VerticalFunnelManager } from "./VerticalFunnelManager";
 import { AIFunnelBuilder } from "./ai-builder/AIFunnelBuilder";
 import { DomainManager } from "./domains/DomainManager";
+import { CreditWalletBadge } from "./credits/CreditWalletBadge";
+import { CreditLedgerPanel } from "./credits/CreditLedgerPanel";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
@@ -191,11 +193,14 @@ export function FunnelsList() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold">Funis</h1>
-          <p className="text-sm text-muted-foreground">
-            Constrói funis de conversão inteligentes com IA, templates e domínios próprios
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold">Funis</h1>
+            <p className="text-sm text-muted-foreground">
+              Constrói funis de conversão inteligentes com IA, templates e domínios próprios
+            </p>
+          </div>
+          <CreditWalletBadge />
         </div>
         <div className="hidden sm:flex items-center gap-2">
           <Button
@@ -337,6 +342,10 @@ export function FunnelsList() {
             <TabsTrigger value="domains" className="gap-1.5">
               <Globe className="h-4 w-4" />
               Domínios
+            </TabsTrigger>
+            <TabsTrigger value="credits" className="gap-1.5">
+              <Coins className="h-4 w-4" />
+              Créditos
             </TabsTrigger>
           </TabsList>
         </div>
@@ -743,6 +752,11 @@ export function FunnelsList() {
         {/* Domains Tab */}
         <TabsContent value="domains" className="mt-4">
           <DomainManager />
+        </TabsContent>
+
+        {/* Credits Tab */}
+        <TabsContent value="credits" className="mt-4">
+          <CreditLedgerPanel />
         </TabsContent>
       </Tabs>
 

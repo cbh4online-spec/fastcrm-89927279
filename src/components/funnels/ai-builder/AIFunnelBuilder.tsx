@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { ArrowLeft, MessageSquare, ListChecks } from "lucide-react";
+import { ArrowLeft, MessageSquare, ListChecks, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AIFunnelChat } from "./AIFunnelChat";
 import { AIFunnelWizard } from "./AIFunnelWizard";
 import { AISummaryPanel } from "./AISummaryPanel";
+import { CreditWalletBadge } from "../credits/CreditWalletBadge";
 
 export interface AIFunnelRecommendation {
   vertical: string;
@@ -42,12 +43,13 @@ export function AIFunnelBuilder({ onBack, onApply }: Props) {
         <Button variant="ghost" size="icon" onClick={onBack}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold">Criar Funil com IA</h1>
           <p className="text-sm text-muted-foreground">
             Descreve o teu objectivo e a IA constrói o funil por ti
           </p>
         </div>
+        <CreditWalletBadge />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, ArrowLeft, Sparkles, Check } from "lucide-react";
+import { ArrowRight, ArrowLeft, Sparkles, Check, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useCreditWallet } from "@/hooks/useCreditWallet";
 import type { AIFunnelRecommendation } from "./AIFunnelBuilder";
 
 interface WizardStep {
@@ -114,6 +115,8 @@ export function AIFunnelWizard({ onRecommendation }: Props) {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [isGenerating, setIsGenerating] = useState(false);
+  const { getCost } = useCreditWallet();
+  const funnelCost = getCost("ai_funnel_essential");
 
   const step = WIZARD_STEPS[currentStep];
   const isLast = currentStep === WIZARD_STEPS.length - 1;
@@ -291,6 +294,10 @@ export function AIFunnelWizard({ onRecommendation }: Props) {
                 <>
                   <Sparkles className="h-4 w-4" />
                   Gerar Funil com IA
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+                    <Coins className="h-2.5 w-2.5 mr-0.5" />
+                    {funnelCost}
+                  </Badge>
                 </>
               )}
             </Button>
