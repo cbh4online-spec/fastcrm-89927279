@@ -325,5 +325,27 @@
   "noSavedSearches": "Nenhuma pesquisa guardada.",
   "savedSearchDefault": "Pesquisa sem nome",
 
-  "autocompleteSuggestions": "Sugestões"
+  "autocompleteSuggestions": "Sugestões",
+
+  "reviewsTitle": "Avaliações",
+  "writeReview": "Avaliar",
+  "yourRating": "A tua avaliação",
+  "reviewCommentPlaceholder": "Escreve um comentário sobre a tua experiência...",
+  "submitReview": "Submeter Avaliação",
+  "noReviewsYet": "Ainda sem avaliações.",
+  "ratingExcellent": "Excelente",
+  "ratingVeryGood": "Muito Bom",
+  "ratingGood": "Bom",
+  "ratingFair": "Regular",
+
+  "badgeVerified": "Verificado",
+  "badgeVerifiedDesc": "Identidade verificada pela equipa",
+  "badgeSuperSeller": "Super Vendedor",
+  "badgeSuperSellerDesc": "Mais de 20 vendas, rating ≥ 4.5 e 10+ avaliações",
+  "badgeTopRated": "Mais Bem Avaliado",
+  "badgeTopRatedDesc": "Rating médio ≥ 4.0 com 5+ avaliações",
+  "badgeTrusted": "De Confiança",
+  "badgeTrustedDesc": "Mais de 5 vendas concluídas",
+  "badgeRookie": "Novato",
+  "badgeRookieDesc": "Novo no marketplace"
 }
