@@ -4337,6 +4337,7 @@ export type Database = {
           cpc_total_spent: number | null
           created_at: string
           currency: string | null
+          delivery_mode: string | null
           description: string
           favorites_count: number | null
           id: string
@@ -4366,6 +4367,7 @@ export type Database = {
           cpc_total_spent?: number | null
           created_at?: string
           currency?: string | null
+          delivery_mode?: string | null
           description: string
           favorites_count?: number | null
           id?: string
@@ -4395,6 +4397,7 @@ export type Database = {
           cpc_total_spent?: number | null
           created_at?: string
           currency?: string | null
+          delivery_mode?: string | null
           description?: string
           favorites_count?: number | null
           id?: string
