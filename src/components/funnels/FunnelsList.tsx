@@ -38,6 +38,7 @@ import { AIFunnelBuilder } from "./ai-builder/AIFunnelBuilder";
 import { DomainManager } from "./domains/DomainManager";
 import { CreditWalletBadge } from "./credits/CreditWalletBadge";
 import { CreditLedgerPanel } from "./credits/CreditLedgerPanel";
+import { CreditPurchasePanel } from "./credits/CreditPurchasePanel";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
