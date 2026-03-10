@@ -325,5 +325,27 @@
   "noSavedSearches": "No saved searches.",
   "savedSearchDefault": "Unnamed search",
 
-  "autocompleteSuggestions": "Suggestions"
+  "autocompleteSuggestions": "Suggestions",
+
+  "reviewsTitle": "Reviews",
+  "writeReview": "Write Review",
+  "yourRating": "Your rating",
+  "reviewCommentPlaceholder": "Write a comment about your experience...",
+  "submitReview": "Submit Review",
+  "noReviewsYet": "No reviews yet.",
+  "ratingExcellent": "Excellent",
+  "ratingVeryGood": "Very Good",
+  "ratingGood": "Good",
+  "ratingFair": "Fair",
+
+  "badgeVerified": "Verified",
+  "badgeVerifiedDesc": "Identity verified by the team",
+  "badgeSuperSeller": "Super Seller",
+  "badgeSuperSellerDesc": "20+ sales, rating ≥ 4.5 and 10+ reviews",
+  "badgeTopRated": "Top Rated",
+  "badgeTopRatedDesc": "Average rating ≥ 4.0 with 5+ reviews",
+  "badgeTrusted": "Trusted",
+  "badgeTrustedDesc": "5+ completed sales",
+  "badgeRookie": "Rookie",
+  "badgeRookieDesc": "New to the marketplace"
 }

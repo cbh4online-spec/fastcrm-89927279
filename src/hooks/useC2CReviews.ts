@@ -83,7 +83,7 @@ export function useSubmitReview() {
       qc.invalidateQueries({ queryKey: ["c2c-reviews-listing", vars.listing_id] });
       qc.invalidateQueries({ queryKey: ["c2c-reviews-seller", vars.seller_id] });
       toast.success("Avaliação submetida!");
-      console.log('[MARKETPLACE] Review submitted', { listing_id: vars.listing_id, rating: vars.rating });
+      console.log('[MARKETPLACE] Review submitted', { listing_id: vars.listing_id, rating: vars.rating, seller_id: vars.seller_id });
       emitKernelEvent({
         workspace_id: vars.workspace_id,
         type: "RATING.SUBMITTED",

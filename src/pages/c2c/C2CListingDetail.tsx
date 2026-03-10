@@ -16,6 +16,8 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { OfferDialog } from "@/components/c2c/OfferDialog";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
 import { ListingCard } from "@/components/c2c/ListingCard";
+import { SellerBadges, SellerRatingInline } from "@/components/c2c/SellerBadges";
+import { ListingReviews } from "@/components/c2c/ListingReviews";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -312,16 +314,25 @@ export default function C2CListingDetail() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="font-semibold text-sm truncate">{sellerProfile?.display_name || t('seller')}</span>
-                      {sellerProfile?.is_verified && (<ShieldCheck className="h-4 w-4 text-primary shrink-0" />)}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {sellerReviews && sellerReviews.count > 0 && (
-                        <span className="flex items-center gap-0.5"><Star className="h-3 w-3 text-amber-500 fill-amber-500" />{sellerReviews.average} ({sellerReviews.count})</span>
-                      )}
-                      {sellerProfile?.created_at && (<span>{t('memberSince')} {format(new Date(sellerProfile.created_at), "MMM yyyy", { locale })}</span>)}
-                    </div>
+                    <SellerRatingInline
+                      avgRating={sellerProfile?.avg_rating || sellerReviews?.average || 0}
+                      totalReviews={sellerProfile?.total_reviews || sellerReviews?.count || 0}
+                    />
+                    {sellerProfile?.created_at && (
+                      <span className="text-xs text-muted-foreground">{t('memberSince')} {format(new Date(sellerProfile.created_at), "MMM yyyy", { locale })}</span>
+                    )}
                   </div>
                 </div>
+                {sellerProfile && (
+                  <SellerBadges
+                    avgRating={sellerProfile.avg_rating || 0}
+                    totalReviews={sellerProfile.total_reviews || 0}
+                    totalSales={sellerProfile.total_sales || 0}
+                    isVerified={sellerProfile.is_verified || false}
+                    memberSince={sellerProfile.created_at}
+                  />
+                )}
                 <div className="grid grid-cols-2 gap-2">
                   <Button variant="outline" size="sm" className="w-full" onClick={() => navigate(`/dashboard/c2c/seller/${listing.seller_id}`)}>
                     {t('viewProfile')}
@@ -440,6 +451,13 @@ export default function C2CListingDetail() {
               )}
             </div>
           </div>
+
+          {/* Reviews */}
+          {workspaceId && listing && (
+            <section className="mt-10">
+              <ListingReviews listingId={listing.id} sellerId={listing.seller_id} workspaceId={workspaceId} />
+            </section>
+          )}
 
           {/* Related */}
           {relatedListings.length > 0 && (
