@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useCreditWallet } from "@/hooks/useCreditWallet";
 import type { AIFunnelRecommendation } from "./AIFunnelBuilder";
 
 interface WizardStep {
