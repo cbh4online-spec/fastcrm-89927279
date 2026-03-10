@@ -722,6 +722,7 @@ function CRMRoutes() {
                 <Route path="/empresas" element={<VerticalLandingPage />} />
                 <Route path="/event-rsvp" element={<EventRsvpResponse />} />
                 <Route path="/invite/:token" element={<AcceptWorkspaceInvite />} />
+                <Route path="/vision/duo/accept/:token" element={<VisionDuoAcceptPage />} />
                 
                 <Route path="/:slug" element={<VerticalLandingPage />} />
                 <Route path="*" element={<NotFound />} />
