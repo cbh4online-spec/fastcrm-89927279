@@ -23,5 +23,7 @@ project_id = "xqepxufdrsuxlnubuatz"
     verify_jwt = false
   [functions.merge-leads]
     verify_jwt = false
+  [functions.extension-provisioner]
+    verify_jwt = false
   [functions.seo-track]
     verify_jwt = false
