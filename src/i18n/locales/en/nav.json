@@ -149,5 +149,17 @@
   "searchMenu": "Search menu...",
   "noResults": "No results found",
   "addFavorite": "Add to favorites",
-  "removeFavorite": "Remove from favorites"
+  "removeFavorite": "Remove from favorites",
+  "groupSecurity": "Security",
+  "securityDashboard": "Dashboard",
+  "securityPartnerRequests": "Partner Requests",
+  "securitySites": "Installation Sites",
+  "securitySystems": "Systems",
+  "securityEquipment": "Equipment",
+  "securityContracts": "Contracts",
+  "securityDocuments": "Documents",
+  "securityMaintenance": "Maintenance",
+  "securityOccurrences": "Occurrences",
+  "securityRenewals": "Renewals",
+  "securityManagement": "Management"
 }
