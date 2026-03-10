@@ -19812,6 +19812,7 @@ export type Database = {
           county: string | null
           created_at: string
           created_by: string | null
+          deleted_at: string | null
           email: string | null
           email_verified: boolean | null
           engagement_score: number | null
@@ -19899,6 +19900,7 @@ export type Database = {
           county?: string | null
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
           email?: string | null
           email_verified?: boolean | null
           engagement_score?: number | null
@@ -19986,6 +19988,7 @@ export type Database = {
           county?: string | null
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
           email?: string | null
           email_verified?: boolean | null
           engagement_score?: number | null
