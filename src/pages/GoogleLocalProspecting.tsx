@@ -751,12 +751,11 @@ export default function GoogleLocalProspecting() {
         return;
       }
 
-      // Consume 1 credit for the search
+      // Consume credits for the search
       try {
         await consumeCredits.mutateAsync({
-          credits: 1,
-          actionKey: "search",
-          actionDescription: `Pesquisa: ${query} em ${selectedLocation || "Portugal"}`,
+          actionKey: "prospecting_google_local_search",
+          metadata: { query, location: selectedLocation || "Portugal" },
         });
       } catch (creditError) {
         console.error("Error consuming credits:", creditError);
