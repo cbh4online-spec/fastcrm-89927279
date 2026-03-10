@@ -110,8 +110,8 @@ Deno.serve(async (req) => {
             },
             quantity: 1
           }],
-      success_url: `${origin}/dashboard/marketplace?purchase=success&credits=${creditPackage.credits_amount}`,
-      cancel_url: `${origin}/dashboard/marketplace?purchase=cancelled`,
+      success_url: `${origin}/dashboard/funnels?purchase=success&session_id={CHECKOUT_SESSION_ID}&credits=${creditPackage.credits_amount}`,
+      cancel_url: `${origin}/dashboard/funnels?purchase=cancelled`,
       metadata: {
         type: 'credit_purchase',
         workspace_id: workspaceId,
