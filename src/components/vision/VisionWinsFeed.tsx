@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trophy, Plus, PartyPopper, Star, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useVisionWins, useCreateWin, useCelebrateWin } from "@/hooks/useVision";
+import { useSendDuoNotification } from "@/hooks/useVisionDuo";
 
 interface Props {
   visionId: string;
