@@ -98,6 +98,8 @@ export default function SecuritySystemsPage() {
           </div>
         )}
       </div>
+
+      <SecuritySystemDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </DashboardLayout>
   );
 }
