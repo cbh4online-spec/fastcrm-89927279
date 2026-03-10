@@ -134,8 +134,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   // All favoritable items (flat list)
   const allItems = useMemo(() => {
     const items: NavV2GroupChild[] = [];
-    NAV_V2_CORE.forEach((i) => items.push({ name: i.name, href: i.href, icon: i.icon }));
-    NAV_V2_GROUPS.forEach((g) => g.children.forEach((c) => items.push(c)));
+    navCore.forEach((i) => items.push({ name: i.name, href: i.href, icon: i.icon }));
+    navGroups.forEach((g) => g.children.forEach((c) => items.push(c)));
     return items;
   }, []);
 
