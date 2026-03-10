@@ -7,9 +7,9 @@ import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
 import { PlanBadge } from "@/components/subscription/FeatureGate";
 import {
-  NAV_V2_CORE,
-  NAV_V2_GROUPS,
-  NAV_V2_FOOTER,
+  getNavV2Core,
+  getNavV2Groups,
+  getNavV2Footer,
   NavV2CoreItem,
   NavV2Group,
   NavV2GroupChild,
@@ -49,6 +49,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { favorites, toggleFavorite, isFavorite } = useSidebarFavorites();
   const unreadInboxCount = useUnreadInboxCount();
 
+  // Translated nav items
+  const navCore = useMemo(() => getNavV2Core(t), [t]);
+  const navGroups = useMemo(() => getNavV2Groups(t), [t]);
+  const navFooter = useMemo(() => getNavV2Footer(t), [t]);
+
   // Collapsible group state — auto-open group containing active route
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
@@ -79,7 +84,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   );
 
   const filteredGroups = useMemo(() => {
-    return NAV_V2_GROUPS
+    return navGroups
       .filter((g) => isFlagEnabled(g.featureFlag))
       .map((g) => {
         const groupHasSlug = !!g.moduleSlug;
@@ -101,7 +106,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         return { ...g, children: visibleChildren };
       })
       .filter(Boolean) as (NavV2Group & { children: NavV2GroupChild[] })[];
-  }, [isFlagEnabled, installedModuleIds]);
+  }, [isFlagEnabled, installedModuleIds, navGroups]);
 
   const extensionGroups = useMemo(() => {
     return getExtensionObjectTabsGrouped(installedModuleIds);
@@ -129,10 +134,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   // All favoritable items (flat list)
   const allItems = useMemo(() => {
     const items: NavV2GroupChild[] = [];
-    NAV_V2_CORE.forEach((i) => items.push({ name: i.name, href: i.href, icon: i.icon }));
-    NAV_V2_GROUPS.forEach((g) => g.children.forEach((c) => items.push(c)));
+    navCore.forEach((i) => items.push({ name: i.name, href: i.href, icon: i.icon }));
+    navGroups.forEach((g) => g.children.forEach((c) => items.push(c)));
     return items;
-  }, []);
+  }, [navCore, navGroups]);
 
   const favoriteItems = useMemo(
     () => favorites.map((href) => allItems.find((i) => i.href === href)).filter(Boolean) as NavV2GroupChild[],
@@ -274,7 +279,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-white/40 hover:bg-white/5 hover:text-white/70 transition-colors"
               >
                 <Command className="w-4 h-4" />
-                <span className="flex-1 text-left">Quick Actions</span>
+                <span className="flex-1 text-left">{t("quickActions")}</span>
                 <kbd className="text-[10px] bg-white/10 rounded px-1.5 py-0.5 text-white/30">
                   ⌘K
                 </kbd>
@@ -292,7 +297,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                   <div className="flex items-center gap-2 px-3 pt-1 pb-1.5">
                     <Star className="w-3 h-3 text-amber-400/70" />
                     <span className="text-[10px] uppercase tracking-wider text-white/30 font-semibold">
-                      Favoritos
+                      {t("favorites")}
                     </span>
                   </div>
                   {favoriteItems.map((item) => renderLink(item))}
@@ -301,7 +306,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
               {/* Core items */}
               <div className="pb-2 mb-1">
-                {NAV_V2_CORE.map((item) => renderLink(item, item.end))}
+                {navCore.map((item) => renderLink(item, item.end))}
               </div>
 
               {/* Collapsible groups */}
@@ -356,7 +361,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
             {/* Footer: Settings */}
             <div className="px-3 py-2 border-t border-white/5">
-              {renderLink(NAV_V2_FOOTER)}
+              {renderLink(navFooter)}
             </div>
 
             {/* Role badge */}
