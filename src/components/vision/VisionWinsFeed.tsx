@@ -25,6 +25,7 @@ export function VisionWinsFeed({ visionId }: Props) {
   const { data: wins = [], isLoading } = useVisionWins(visionId);
   const createWin = useCreateWin();
   const celebrateWin = useCelebrateWin();
+  const sendDuoNotification = useSendDuoNotification();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
