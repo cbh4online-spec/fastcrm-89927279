@@ -59,6 +59,7 @@ import esMeetings from './locales/es/meetings.json';
 import esAsk from './locales/es/ask.json';
 import esProcurement from './locales/es/procurement.json';
 import esPerformance from './locales/es/performance.json';
+import esMarketplace from './locales/es/marketplace.json';
 
 // FR
 import frCommon from './locales/fr/common.json';
