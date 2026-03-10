@@ -20,6 +20,7 @@ import ptMeetings from './locales/pt/meetings.json';
 import ptAsk from './locales/pt/ask.json';
 import ptProcurement from './locales/pt/procurement.json';
 import ptPerformance from './locales/pt/performance.json';
+import ptMarketplace from './locales/pt/marketplace.json';
 // EN
 import enCommon from './locales/en/common.json';
 import enNav from './locales/en/nav.json';
