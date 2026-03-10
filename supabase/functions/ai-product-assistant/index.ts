@@ -21,6 +21,9 @@ interface AssistantRequest {
   description?: string;
   existingCategories?: string[];
   imageBase64?: string;
+  settingsType?: string;
+  existingEntries?: any[];
+  industryContext?: string;
 }
 
 interface VideoResult {
