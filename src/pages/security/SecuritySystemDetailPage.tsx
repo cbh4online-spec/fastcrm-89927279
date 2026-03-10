@@ -113,6 +113,10 @@ export default function SecuritySystemDetailPage() {
               Marcar como Instalado
             </Button>
           )}
+          <Button variant="outline" onClick={() => setDocDialogOpen(true)} className="gap-2">
+            <FileText className="h-4 w-4" />
+            Gerar Documento
+          </Button>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
