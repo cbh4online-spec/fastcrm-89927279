@@ -19,10 +19,10 @@ import {
   ArrowLeft, Plus, Pencil, Pause, Play, Trash2, Rocket, MoreVertical,
   Eye, Heart, MessageCircle, Package, TrendingUp, ShieldCheck, Zap,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, type Locale as DateLocale } from "date-fns";
 import { pt, enUS, es, fr } from "date-fns/locale";
 
-const dateLocales: Record<string, Locale> = { pt, en: enUS, es, fr };
+const dateLocales: Record<string, DateLocale> = { pt, en: enUS, es, fr };
 
 type StatusFilter = "all" | "active" | "paused" | "sold";
 

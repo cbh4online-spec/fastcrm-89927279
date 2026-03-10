@@ -3,11 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { C2CListing } from "@/hooks/useC2CListings";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, type Locale as DateLocale } from "date-fns";
 import { pt, enUS, es, fr } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 
-const dateLocales: Record<string, Locale> = { pt, en: enUS, es, fr };
+const dateLocales: Record<string, DateLocale> = { pt, en: enUS, es, fr };
 
 interface ListingCardProps {
   listing: C2CListing;

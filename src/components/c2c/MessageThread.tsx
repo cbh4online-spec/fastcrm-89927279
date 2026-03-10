@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import type { C2CMessage } from "@/hooks/useC2CMessages";
-import { format } from "date-fns";
+import { format, type Locale as DateLocale } from "date-fns";
 import { pt, enUS, es, fr } from "date-fns/locale";
 
-const dateLocales: Record<string, Locale> = { pt, en: enUS, es, fr };
+const dateLocales: Record<string, DateLocale> = { pt, en: enUS, es, fr };
 
 interface MessageThreadProps {
   messages: C2CMessage[];
