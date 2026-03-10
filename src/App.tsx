@@ -662,6 +662,8 @@ function CRMRoutes() {
                 <Route path="/dashboard/security/contracts" element={<SecurityContractsPage />} />
                 <Route path="/dashboard/security/contracts/:id" element={<SecurityContractsPage />} />
                 <Route path="/dashboard/security/proposals" element={<SecurityProposalsPage />} />
+                <Route path="/dashboard/security/documents" element={<SecurityDocumentsPage />} />
+                <Route path="/dashboard/security/documents/:id" element={<SecurityDocumentDetailPage />} />
 
                 {/* Student Journey Module Routes */}
                 <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />
