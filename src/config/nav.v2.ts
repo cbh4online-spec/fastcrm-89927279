@@ -1,4 +1,4 @@
-import { LucideIcon, TFunction } from "lucide-react";
+import { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   Inbox,
