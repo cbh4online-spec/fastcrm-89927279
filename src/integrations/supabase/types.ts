@@ -31924,10 +31924,63 @@ export type Database = {
           },
         ]
       }
+      security_occurrence_activities: {
+        Row: {
+          activity_type: string
+          created_at: string
+          description: string
+          id: string
+          metadata: Json | null
+          occurrence_id: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          activity_type?: string
+          created_at?: string
+          description: string
+          id?: string
+          metadata?: Json | null
+          occurrence_id: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json | null
+          occurrence_id?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_occurrence_activities_occurrence_id_fkey"
+            columns: ["occurrence_id"]
+            isOneToOne: false
+            referencedRelation: "security_occurrences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_occurrence_activities_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_occurrences: {
         Row: {
+          assigned_to: string | null
           created_at: string
           description: string | null
+          escalated_at: string | null
+          escalation_level: number | null
+          escalation_reason: string | null
+          first_response_at: string | null
           id: string
           impact_on_client: string | null
           installed_device_id: string | null
@@ -31935,11 +31988,18 @@ export type Database = {
           occurred_at: string | null
           occurrence_origin: string
           occurrence_type: string
+          priority_score: number | null
           resolution_summary: string | null
           resolved_at: string | null
           resolved_by: string | null
           severity: string
           site_id: string | null
+          sla_resolution_deadline: string | null
+          sla_resolution_hours: number | null
+          sla_resolution_met: boolean | null
+          sla_response_deadline: string | null
+          sla_response_hours: number | null
+          sla_response_met: boolean | null
           status: string
           system_id: string | null
           title: string
@@ -31948,8 +32008,13 @@ export type Database = {
           zone_id: string | null
         }
         Insert: {
+          assigned_to?: string | null
           created_at?: string
           description?: string | null
+          escalated_at?: string | null
+          escalation_level?: number | null
+          escalation_reason?: string | null
+          first_response_at?: string | null
           id?: string
           impact_on_client?: string | null
           installed_device_id?: string | null
@@ -31957,11 +32022,18 @@ export type Database = {
           occurred_at?: string | null
           occurrence_origin?: string
           occurrence_type?: string
+          priority_score?: number | null
           resolution_summary?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
           severity?: string
           site_id?: string | null
+          sla_resolution_deadline?: string | null
+          sla_resolution_hours?: number | null
+          sla_resolution_met?: boolean | null
+          sla_response_deadline?: string | null
+          sla_response_hours?: number | null
+          sla_response_met?: boolean | null
           status?: string
           system_id?: string | null
           title: string
@@ -31970,8 +32042,13 @@ export type Database = {
           zone_id?: string | null
         }
         Update: {
+          assigned_to?: string | null
           created_at?: string
           description?: string | null
+          escalated_at?: string | null
+          escalation_level?: number | null
+          escalation_reason?: string | null
+          first_response_at?: string | null
           id?: string
           impact_on_client?: string | null
           installed_device_id?: string | null
@@ -31979,11 +32056,18 @@ export type Database = {
           occurred_at?: string | null
           occurrence_origin?: string
           occurrence_type?: string
+          priority_score?: number | null
           resolution_summary?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
           severity?: string
           site_id?: string | null
+          sla_resolution_deadline?: string | null
+          sla_resolution_hours?: number | null
+          sla_resolution_met?: boolean | null
+          sla_response_deadline?: string | null
+          sla_response_hours?: number | null
+          sla_response_met?: boolean | null
           status?: string
           system_id?: string | null
           title?: string
