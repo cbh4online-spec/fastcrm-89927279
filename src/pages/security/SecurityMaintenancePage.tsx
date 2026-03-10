@@ -5,8 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wrench, Calendar, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { Wrench, Calendar, AlertTriangle, CheckCircle2, Clock, Plus } from "lucide-react";
 import { format, isPast, isToday } from "date-fns";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { SecurityMaintenancePlanDialog } from "@/components/security/SecurityMaintenancePlanDialog";
+import { SecurityVisitDialog } from "@/components/security/SecurityVisitDialog";
 
 const visitStatusIcon: Record<string, any> = {
   scheduled: Clock,
@@ -22,25 +26,54 @@ const visitStatusColor: Record<string, string> = {
   cancelled: "destructive",
 };
 
+const visitStatusLabels: Record<string, string> = {
+  scheduled: "Agendada",
+  in_progress: "Em Curso",
+  completed: "Concluída",
+  cancelled: "Cancelada",
+};
+
+const frequencyLabels: Record<string, string> = {
+  monthly: "Mensal",
+  bimonthly: "Bimestral",
+  quarterly: "Trimestral",
+  semiannual: "Semestral",
+  annual: "Anual",
+};
+
 export default function SecurityMaintenancePage() {
   const { t } = useTranslation("security");
+  const navigate = useNavigate();
   const { plans, isLoading: plansLoading } = useSecurityMaintenancePlans();
   const { visits, isLoading: visitsLoading } = useSecurityMaintenanceVisits();
+  const [planDialogOpen, setPlanDialogOpen] = useState(false);
+  const [visitDialogOpen, setVisitDialogOpen] = useState(false);
 
   const overdueVisits = visits.filter((v: any) => v.visit_status === "scheduled" && v.scheduled_at && isPast(new Date(v.scheduled_at)) && !isToday(new Date(v.scheduled_at)));
   const upcomingVisits = visits.filter((v: any) => v.visit_status === "scheduled" && v.scheduled_at && !isPast(new Date(v.scheduled_at)));
+  const inProgressVisits = visits.filter((v: any) => v.visit_status === "in_progress");
   const completedVisits = visits.filter((v: any) => v.visit_status === "completed");
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <Wrench className="h-7 w-7 text-primary" />
-          <h1 className="text-2xl font-bold">{t("maintenance")}</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Wrench className="h-7 w-7 text-primary" />
+            <h1 className="text-2xl font-bold">{t("maintenance")}</h1>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setPlanDialogOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" /> Plano
+            </Button>
+            <Button onClick={() => setVisitDialogOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" /> Visita
+            </Button>
+          </div>
         </div>
 
         {/* KPI Row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold">{plans.length}</p>
@@ -50,19 +83,25 @@ export default function SecurityMaintenancePage() {
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-destructive">{overdueVisits.length}</p>
-              <p className="text-xs text-muted-foreground">Visitas em Atraso</p>
+              <p className="text-xs text-muted-foreground">Em Atraso</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-primary">{inProgressVisits.length}</p>
+              <p className="text-xs text-muted-foreground">Em Curso</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold">{upcomingVisits.length}</p>
-              <p className="text-xs text-muted-foreground">Visitas Agendadas</p>
+              <p className="text-xs text-muted-foreground">Agendadas</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold">{completedVisits.length}</p>
-              <p className="text-xs text-muted-foreground">Visitas Concluídas</p>
+              <p className="text-xs text-muted-foreground">Concluídas</p>
             </CardContent>
           </Card>
         </div>
@@ -70,23 +109,36 @@ export default function SecurityMaintenancePage() {
         <Tabs defaultValue="visits">
           <TabsList>
             <TabsTrigger value="visits">Visitas</TabsTrigger>
-            <TabsTrigger value="plans">Planos</TabsTrigger>
+            <TabsTrigger value="plans">Planos ({plans.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="visits" className="space-y-3 mt-4">
             {visitsLoading ? (
               <div className="text-center py-12 text-muted-foreground">A carregar...</div>
             ) : visits.length === 0 ? (
-              <Card><CardContent className="py-12 text-center"><p className="text-muted-foreground">Nenhuma visita agendada</p></CardContent></Card>
+              <Card><CardContent className="py-12 text-center">
+                <Wrench className="h-12 w-12 mx-auto mb-4 text-muted-foreground/40" />
+                <p className="text-muted-foreground">Nenhuma visita agendada</p>
+                <Button variant="outline" className="mt-4 gap-2" onClick={() => setVisitDialogOpen(true)}>
+                  <Plus className="h-4 w-4" /> Agendar Visita
+                </Button>
+              </CardContent></Card>
             ) : (
               <>
-                {/* Overdue first */}
                 {overdueVisits.length > 0 && (
                   <div className="space-y-2">
                     <h3 className="text-sm font-semibold text-destructive flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4" /> Em Atraso ({overdueVisits.length})
                     </h3>
-                    {overdueVisits.map((v: any) => <VisitCard key={v.id} visit={v} t={t} />)}
+                    {overdueVisits.map((v: any) => <VisitCard key={v.id} visit={v} onClick={() => navigate(`/dashboard/security/maintenance/${v.id}`)} />)}
+                  </div>
+                )}
+                {inProgressVisits.length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
+                      <Wrench className="h-4 w-4" /> Em Curso ({inProgressVisits.length})
+                    </h3>
+                    {inProgressVisits.map((v: any) => <VisitCard key={v.id} visit={v} onClick={() => navigate(`/dashboard/security/maintenance/${v.id}`)} />)}
                   </div>
                 )}
                 {upcomingVisits.length > 0 && (
@@ -94,7 +146,7 @@ export default function SecurityMaintenancePage() {
                     <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
                       <Calendar className="h-4 w-4" /> Agendadas ({upcomingVisits.length})
                     </h3>
-                    {upcomingVisits.map((v: any) => <VisitCard key={v.id} visit={v} t={t} />)}
+                    {upcomingVisits.map((v: any) => <VisitCard key={v.id} visit={v} onClick={() => navigate(`/dashboard/security/maintenance/${v.id}`)} />)}
                   </div>
                 )}
                 {completedVisits.length > 0 && (
@@ -102,7 +154,7 @@ export default function SecurityMaintenancePage() {
                     <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4" /> Concluídas ({completedVisits.length})
                     </h3>
-                    {completedVisits.slice(0, 10).map((v: any) => <VisitCard key={v.id} visit={v} t={t} />)}
+                    {completedVisits.slice(0, 10).map((v: any) => <VisitCard key={v.id} visit={v} onClick={() => navigate(`/dashboard/security/maintenance/${v.id}`)} />)}
                   </div>
                 )}
               </>
@@ -113,22 +165,28 @@ export default function SecurityMaintenancePage() {
             {plansLoading ? (
               <div className="text-center py-12 text-muted-foreground">A carregar...</div>
             ) : plans.length === 0 ? (
-              <Card><CardContent className="py-12 text-center"><p className="text-muted-foreground">Nenhum plano de manutenção</p></CardContent></Card>
+              <Card><CardContent className="py-12 text-center">
+                <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/40" />
+                <p className="text-muted-foreground">Nenhum plano de manutenção</p>
+                <Button variant="outline" className="mt-4 gap-2" onClick={() => setPlanDialogOpen(true)}>
+                  <Plus className="h-4 w-4" /> Criar Plano
+                </Button>
+              </CardContent></Card>
             ) : (
               plans.map((p: any) => {
                 const sys = p.security_systems as any;
                 const site = sys?.security_installation_sites as any;
                 return (
-                  <Card key={p.id}>
+                  <Card key={p.id} className="hover:border-primary/50 transition-colors">
                     <CardContent className="p-4 flex items-center justify-between">
                       <div>
                         <p className="font-medium">{site?.site_name || "Plano"}</p>
                         <p className="text-sm text-muted-foreground">
-                          {p.frequency_type} · {sys?.system_type || "—"}
+                          {frequencyLabels[p.frequency_type] || p.frequency_type} · {sys?.system_type || "—"}
                           {p.next_visit_at && ` · Próxima: ${format(new Date(p.next_visit_at), "dd/MM/yyyy")}`}
                         </p>
                       </div>
-                      <Badge variant={p.status === "active" ? "default" : "secondary"}>{p.status}</Badge>
+                      <Badge variant={p.status === "active" ? "default" : "secondary"}>{p.status === "active" ? "Ativo" : p.status}</Badge>
                     </CardContent>
                   </Card>
                 );
@@ -137,18 +195,21 @@ export default function SecurityMaintenancePage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <SecurityMaintenancePlanDialog open={planDialogOpen} onOpenChange={setPlanDialogOpen} />
+      <SecurityVisitDialog open={visitDialogOpen} onOpenChange={setVisitDialogOpen} />
     </DashboardLayout>
   );
 }
 
-function VisitCard({ visit, t }: { visit: any; t: any }) {
+function VisitCard({ visit, onClick }: { visit: any; onClick: () => void }) {
   const sys = visit.security_systems as any;
   const site = sys?.security_installation_sites as any;
   const isOverdue = visit.visit_status === "scheduled" && visit.scheduled_at && isPast(new Date(visit.scheduled_at)) && !isToday(new Date(visit.scheduled_at));
   const StatusIcon = visitStatusIcon[visit.visit_status] || Clock;
 
   return (
-    <Card className={isOverdue ? "border-destructive/50" : ""}>
+    <Card className={`cursor-pointer hover:border-primary/50 transition-colors ${isOverdue ? "border-destructive/50" : ""}`} onClick={onClick}>
       <CardContent className="p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <StatusIcon className={`h-4 w-4 ${isOverdue ? "text-destructive" : "text-muted-foreground"}`} />
@@ -161,7 +222,7 @@ function VisitCard({ visit, t }: { visit: any; t: any }) {
           </div>
         </div>
         <Badge variant={(visitStatusColor[visit.visit_status] || "secondary") as any}>
-          {visit.visit_status}
+          {visitStatusLabels[visit.visit_status] || visit.visit_status}
         </Badge>
       </CardContent>
     </Card>
