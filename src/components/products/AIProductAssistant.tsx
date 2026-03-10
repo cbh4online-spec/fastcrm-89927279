@@ -282,19 +282,20 @@ export function AIProductAssistant({
           )}
 
           {/* Product Type */}
-          {suggestFromName.data.productType && suggestFromName.data.productType !== currentProductType && (
+          {suggestFromName.data.productType && (
             <div className="space-y-2">
               <span className="text-xs text-muted-foreground">Tipo sugerido:</span>
               <Button
                 type="button"
-                variant={appliedItems.has("productType") ? "secondary" : "outline"}
+                variant={appliedItems.has("productType") || suggestFromName.data.productType === currentProductType ? "secondary" : "outline"}
                 size="sm"
                 className="h-7 text-xs"
                 onClick={handleApplyProductType}
+                disabled={suggestFromName.data.productType === currentProductType}
               >
-                {appliedItems.has("productType") ? (
+                {appliedItems.has("productType") || suggestFromName.data.productType === currentProductType ? (
                   <>
-                    <Check className="h-3 w-3 mr-1" /> Aplicado
+                    <Check className="h-3 w-3 mr-1" /> {productTypeLabels[suggestFromName.data.productType] || suggestFromName.data.productType}
                   </>
                 ) : (
                   `Usar "${productTypeLabels[suggestFromName.data.productType] || suggestFromName.data.productType}"`
@@ -304,19 +305,20 @@ export function AIProductAssistant({
           )}
 
           {/* Billing Type */}
-          {suggestFromName.data.billingType && suggestFromName.data.billingType !== currentBillingType && onApplyBillingType && (
+          {suggestFromName.data.billingType && onApplyBillingType && (
             <div className="space-y-2">
               <span className="text-xs text-muted-foreground">Cobrança sugerida:</span>
               <Button
                 type="button"
-                variant={appliedItems.has("billingType") ? "secondary" : "outline"}
+                variant={appliedItems.has("billingType") || suggestFromName.data.billingType === currentBillingType ? "secondary" : "outline"}
                 size="sm"
                 className="h-7 text-xs"
                 onClick={handleApplyBillingType}
+                disabled={suggestFromName.data.billingType === currentBillingType}
               >
-                {appliedItems.has("billingType") ? (
+                {appliedItems.has("billingType") || suggestFromName.data.billingType === currentBillingType ? (
                   <>
-                    <Check className="h-3 w-3 mr-1" /> Aplicado
+                    <Check className="h-3 w-3 mr-1" /> {billingTypeLabels[suggestFromName.data.billingType] || suggestFromName.data.billingType}
                   </>
                 ) : (
                   `Usar "${billingTypeLabels[suggestFromName.data.billingType] || suggestFromName.data.billingType}"`
