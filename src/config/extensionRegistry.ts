@@ -301,6 +301,24 @@ export const EXTENSION_REGISTRY: ExtensionDefinition[] = [
       { key: "zapier-integration", label: "Zapier", icon: Zap, route: "/dashboard/zapier" },
     ],
   },
+  {
+    moduleSlug: "security-ops",
+    name: "Security Ops",
+    category: "Operações",
+    objectTabs: [
+      { key: "security-dashboard", label: "Security Ops", icon: Shield, route: "/dashboard/security" },
+      { key: "security-partner-requests", label: "Pedidos Parceiro", icon: FileText, route: "/dashboard/security/partner-requests" },
+      { key: "security-systems", label: "Sistemas", icon: Camera, route: "/dashboard/security/systems" },
+    ],
+    intelligenceCapabilities: [
+      { key: "security-extraction", label: "Extração de Pedidos", description: "Extração automática de dados de mensagens de parceiros", icon: ScanText },
+    ],
+    automationTemplates: [
+      { key: "security-request-validated", label: "Pedido Validado → Lead", description: "Criar lead/oportunidade quando pedido é validado", trigger: "security.partner_request.validated" },
+      { key: "security-contract-renewal", label: "Renovação de Contrato", description: "Alertar sobre contratos a renovar", trigger: "security.contract.renewal_due" },
+      { key: "security-occurrence-critical", label: "Ocorrência Crítica", description: "Alertar imediatamente sobre ocorrências críticas", trigger: "security.occurrence.critical" },
+    ],
+  },
 ];
 
 /**
