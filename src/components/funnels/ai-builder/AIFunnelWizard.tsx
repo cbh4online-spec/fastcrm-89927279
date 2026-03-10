@@ -115,6 +115,8 @@ export function AIFunnelWizard({ onRecommendation }: Props) {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [isGenerating, setIsGenerating] = useState(false);
+  const { getCost } = useCreditWallet();
+  const funnelCost = getCost("ai_funnel_essential");
 
   const step = WIZARD_STEPS[currentStep];
   const isLast = currentStep === WIZARD_STEPS.length - 1;
