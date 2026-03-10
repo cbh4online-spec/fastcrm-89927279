@@ -71,8 +71,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify workspace membership
-    const { data: membership } = await supabase
+    // Verify workspace membership (use serviceClient to bypass RLS)
+    const { data: membership } = await serviceClient
       .from("workspace_members")
       .select("id")
       .eq("workspace_id", workspaceId)
