@@ -225,9 +225,85 @@ export function useSecurityConversions() {
     onError: (e: any) => toast.error("Erro na adjudicação: " + e.message),
   });
 
+  /**
+   * Convert Contract (Adjudicação) → Installation (System)
+   */
+  const convertContractToInstallation = useMutation({
+    mutationFn: async (contract: any) => {
+      if (!workspaceId) throw new Error("Workspace não encontrado");
+      const { data: user } = await supabase.auth.getUser();
+
+      // Determine system type from lead or default
+      let systemType = "cctv";
+      let siteId = null;
+      let clientId = contract.client_id;
+
+      if (contract.lead_id) {
+        const { data: lead } = await supabase
+          .from("security_leads")
+          .select("system_type, site_id, client_id")
+          .eq("id", contract.lead_id)
+          .single();
+        if (lead) {
+          systemType = lead.system_type || systemType;
+          siteId = lead.site_id;
+          if (!clientId) clientId = lead.client_id;
+        }
+      }
+
+      // If no site from lead, try to find from contract's system
+      if (!siteId && contract.system_id) {
+        const { data: existingSys } = await supabase
+          .from("security_systems")
+          .select("site_id")
+          .eq("id", contract.system_id)
+          .single();
+        if (existingSys) siteId = existingSys.site_id;
+      }
+
+      const { data: system, error } = await supabase
+        .from("security_systems")
+        .insert({
+          workspace_id: workspaceId,
+          site_id: siteId,
+          contract_id: contract.id,
+          client_id: clientId,
+          system_type: systemType,
+          lifecycle_type: "new_installation",
+          status: "draft",
+          technical_notes: contract.notes || "",
+        } as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update contract with system_id and activate
+      await supabase
+        .from("security_contracts")
+        .update({
+          system_id: system.id,
+          contract_status: "active",
+        } as any)
+        .eq("id", contract.id);
+
+      return system;
+    },
+    onSuccess: (system) => {
+      qc.invalidateQueries({ queryKey: ["security-contracts"] });
+      qc.invalidateQueries({ queryKey: ["security-systems"] });
+      toast.success("Instalação criada", {
+        description: "Contrato convertido em instalação — preencha os dados do sistema",
+        action: { label: "Ver Instalação", onClick: () => navigate(`/dashboard/security/systems/${system.id}`) },
+      });
+    },
+    onError: (e: any) => toast.error("Erro ao criar instalação: " + e.message),
+  });
+
   return {
     convertRequestToLead,
     convertLeadToProposal,
     convertProposalToContract,
+    convertContractToInstallation,
   };
 }

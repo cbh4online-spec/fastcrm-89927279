@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { Camera, Plus, Search } from "lucide-react";
 import { useState } from "react";
+import { SecuritySystemDialog } from "@/components/security/SecuritySystemDialog";
 
 const systemTypeBadge: Record<string, string> = {
   cctv: "CCTV",
@@ -32,6 +33,7 @@ export default function SecuritySystemsPage() {
   const { systems, isLoading } = useSecuritySystems();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const filtered = systems.filter((s: any) =>
     [s.main_brand, s.main_model, (s.security_installation_sites as any)?.site_name]
@@ -46,7 +48,7 @@ export default function SecuritySystemsPage() {
             <Camera className="h-7 w-7 text-primary" />
             <h1 className="text-2xl font-bold">{t("systems")}</h1>
           </div>
-          <Button onClick={() => navigate("/dashboard/security/systems/new")} className="gap-2">
+          <Button onClick={() => setDialogOpen(true)} className="gap-2">
             <Plus className="h-4 w-4" />
             {t("addNew")}
           </Button>
@@ -96,6 +98,8 @@ export default function SecuritySystemsPage() {
           </div>
         )}
       </div>
+
+      <SecuritySystemDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </DashboardLayout>
   );
 }
