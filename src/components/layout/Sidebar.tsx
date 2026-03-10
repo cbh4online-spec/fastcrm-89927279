@@ -306,7 +306,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
               {/* Core items */}
               <div className="pb-2 mb-1">
-                {NAV_V2_CORE.map((item) => renderLink(item, item.end))}
+                {navCore.map((item) => renderLink(item, item.end))}
               </div>
 
               {/* Collapsible groups */}
