@@ -1,68 +1,56 @@
 
 
-# Phase 5B — Command Center COMPLETO
+# Fix: Global Super Admin RLS Bypass for All Workspace Tables
 
-## Gap Analysis: Current vs Spec
+## Problem
+There are 150+ tables that check `workspace_members` for access but have no `is_super_admin()` bypass. The super admin user gets security errors on almost every operation across the system.
 
-The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
+## Solution
+Create a single SQL migration that **dynamically** adds a permissive "Super admin full access" policy to every table that:
+1. Has existing RLS policies referencing `workspace_members`
+2. Does NOT already have an `is_super_admin` bypass
 
-**Already implemented (needs enhancement):**
-- Header with greeting + 3 KPIs — needs larger font (32px), labels below
-- AI Question Box — needs slash command suggestions row below input
-- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
-- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
-- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
-- Drift Alerts — needs "Rever →" links to Context OS blocks
+This is done with a PL/pgSQL `DO` block that iterates over the affected tables and creates a single `FOR ALL` policy on each.
 
-**New sections to build:**
-1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
-2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
-   - Change Events (last 5 from `useChangeEvents` with realtime)
-   - Entity Activity (top 3 entities from `useKernelEntities`)
-   - Impact Score (top 2 from `useImpactMapData`)
-3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
+### Migration SQL (single file)
 
-**Enhanced Command Palette (⌘K):**
-- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
+```sql
+DO $$
+DECLARE
+  tbl TEXT;
+BEGIN
+  FOR tbl IN
+    SELECT DISTINCT p.tablename
+    FROM pg_policies p
+    WHERE p.schemaname = 'public'
+      AND (p.qual::text LIKE '%workspace_members%' OR p.with_check::text LIKE '%workspace_members%')
+      AND p.tablename NOT IN (
+        SELECT DISTINCT p2.tablename
+        FROM pg_policies p2
+        WHERE p2.schemaname = 'public'
+          AND (p2.qual::text LIKE '%is_super_admin%' OR p2.with_check::text LIKE '%is_super_admin%')
+      )
+  LOOP
+    -- Drop if exists (idempotent)
+    EXECUTE format('DROP POLICY IF EXISTS "Super admin full access" ON public.%I', tbl);
+    -- Create permissive ALL policy
+    EXECUTE format(
+      'CREATE POLICY "Super admin full access" ON public.%I FOR ALL TO authenticated USING (public.is_super_admin(auth.uid())) WITH CHECK (public.is_super_admin(auth.uid()))',
+      tbl
+    );
+  END LOOP;
+END;
+$$;
+```
 
-**Spotlight (Space key):**
-- Opens AI Question Box as a modal from any page. New global component.
+### Why this works
+- `PERMISSIVE` policies (default) combine with `OR` logic — if any permissive policy passes, access is granted
+- A single `FOR ALL` policy covers SELECT, INSERT, UPDATE, DELETE
+- The `is_super_admin()` function is already `SECURITY DEFINER` and correctly checks `user_roles` via `profiles`
+- Dynamic approach ensures we catch all affected tables without manually listing 150+ names
 
-## Implementation Plan — 3 Sub-phases
-
-Given the scope, I recommend splitting into 3 batches:
-
-### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
-| File | Action |
-|------|--------|
-| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
-| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
-| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
-| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
-
-### Batch 2: Enhance Existing Cards
-| File | Action |
-|------|--------|
-| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
-| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
-| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
-| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
-| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
-| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
-
-### Batch 3: Spotlight Modal + Command Palette Enhancement
-| File | Action |
-|------|--------|
-| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
-| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
-| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
-
-### Realtime subscriptions needed
-- `change_events` table for Kernel Live Feed auto-update
-- `kernel_action_runs` for Ações do Dia auto-update
-- Already have `kernel_decisions` and `conversations`
-
-No database migrations needed. All hooks, edge functions, and tables already exist.
-
-**Shall I start with Batch 1?**
+### What changes
+- **1 migration file** — no code changes needed
+- All workspace-scoped tables will be accessible to super admins
+- Normal users are unaffected (existing policies remain)
 
