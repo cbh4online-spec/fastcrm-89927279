@@ -302,6 +302,28 @@ export function AIProductAssistant({
               </Button>
             </div>
           )}
+
+          {/* Billing Type */}
+          {suggestFromName.data.billingType && suggestFromName.data.billingType !== currentBillingType && onApplyBillingType && (
+            <div className="space-y-2">
+              <span className="text-xs text-muted-foreground">Cobrança sugerida:</span>
+              <Button
+                type="button"
+                variant={appliedItems.has("billingType") ? "secondary" : "outline"}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={handleApplyBillingType}
+              >
+                {appliedItems.has("billingType") ? (
+                  <>
+                    <Check className="h-3 w-3 mr-1" /> Aplicado
+                  </>
+                ) : (
+                  `Usar "${billingTypeLabels[suggestFromName.data.billingType] || suggestFromName.data.billingType}"`
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       ) : suggestFromName.isError ? (
         <div className="text-sm text-destructive py-2">

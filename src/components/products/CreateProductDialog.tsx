@@ -1171,12 +1171,14 @@ export function CreateProductDialog({
                     productName={name}
                     currentCategory={category}
                     currentProductType={productType}
+                    currentBillingType={billingType}
                     existingCategories={existingCategories}
                     onApplyCategory={handleApplyCategory}
                     onApplyExistingCategory={(cat) => setCategory(cat.name)}
                     onApplyPrice={handleApplyPrice}
                     onApplyDescription={handleApplyDescription}
                     onApplyProductType={handleApplyProductType}
+                    onApplyBillingType={(type) => setBillingType(type as BillingType)}
                   />
                   
                   <SKUSearchPanel

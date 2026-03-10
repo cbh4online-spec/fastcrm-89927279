@@ -158,7 +158,8 @@ Analise o nome do produto fornecido e sugira:
 3. Um preço sugerido dentro do range
 4. Uma descrição curta profissional (máximo 100 caracteres)
 5. Tipo de produto mais adequado
-${hasExistingCategories ? '6. Se alguma das categorias existentes for adequada, identifique-a' : ''}
+6. Tipo de cobrança mais adequado (one-off=pagamento único, monthly=mensal, quarterly=trimestral, yearly=anual, per-session=por sessão)
+${hasExistingCategories ? '7. Se alguma das categorias existentes for adequada, identifique-a' : ''}
 
 Responda APENAS em JSON válido sem markdown.`;
 
@@ -174,7 +175,8 @@ Responda no formato JSON:
   "priceRange": { "min": 100, "max": 500 },
   "suggestedPrice": 300,
   "description": "Descrição curta do produto",
-  "productType": "simple|formacao|sessions|physical|programa|recurring|composite"${hasExistingCategories ? `,
+  "productType": "simple|formacao|sessions|physical|programa|recurring|composite",
+  "billingType": "one-off|monthly|quarterly|yearly|per-session"${hasExistingCategories ? `,
   "matchedCategoryName": "Nome da categoria existente que melhor se aplica (ou null se nenhuma for adequada)"` : ''}
 }`;
 
