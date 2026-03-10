@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { getShareUrl } from "@/utils/getShareUrl";
 import {
@@ -147,9 +148,34 @@ export function FunnelsList() {
     return (
       <AIFunnelBuilder
         onBack={() => setShowAIBuilder(false)}
-        onApply={(rec) => {
-          toast.success("Funil gerado com sucesso! A configurar...");
-          setShowAIBuilder(false);
+        onApply={async (rec) => {
+          try {
+            const result = await createFunnel.mutateAsync({
+              name: rec.headline || rec.vertical || "Funil IA",
+              slug: rec.slug || `funil-ia-${Date.now()}`,
+            });
+            if (result?.id && rec.funnelSteps?.length) {
+              // Remove default steps
+              await supabase.from("funnel_steps").delete().eq("funnel_id", result.id);
+              // Insert AI-recommended steps
+              await supabase.from("funnel_steps").insert(
+                rec.funnelSteps.map((step, i) => ({
+                  funnel_id: result.id,
+                  workspace_id: currentWorkspace!.id,
+                  name: step.name,
+                  step_type: step.type || "page",
+                  sort_order: i,
+                }))
+              );
+            }
+            setShowAIBuilder(false);
+            if (result?.id) {
+              setEditingFunnelId(result.id);
+            }
+            toast.success("Funil criado com sucesso!");
+          } catch (e: any) {
+            toast.error("Erro ao criar funil: " + (e?.message || "Erro desconhecido"));
+          }
         }}
       />
     );
