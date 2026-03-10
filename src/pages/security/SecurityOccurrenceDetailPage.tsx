@@ -17,22 +17,22 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   ArrowLeft, AlertTriangle, MapPin, Clock, CheckCircle,
-  ArrowUpCircle, MessageSquare, Send, Wrench, Timer, ShieldAlert
+  ArrowUpCircle, MessageSquare, Send, Wrench, Timer, ShieldAlert,
+  Package, Play, FileText, Zap
 } from "lucide-react";
-import { format, differenceInHours, differenceInMinutes, isPast } from "date-fns";
+import { format, differenceInHours, differenceInMinutes, isPast, formatDistanceToNow } from "date-fns";
+import { pt } from "date-fns/locale";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { OccurrenceWorkflowStepper } from "@/components/security/OccurrenceWorkflowStepper";
 
-const severityConfig: Record<string, { color: string; slaResponse: number; slaResolution: number }> = {
-  critical: { color: "destructive", slaResponse: 1, slaResolution: 4 },
-  high: { color: "destructive", slaResponse: 4, slaResolution: 24 },
-  medium: { color: "default", slaResponse: 8, slaResolution: 48 },
-  low: { color: "secondary", slaResponse: 24, slaResolution: 72 },
-};
-
-const activityIcons: Record<string, any> = {
-  status_change: ArrowUpCircle,
-  note: MessageSquare,
-  escalation: ShieldAlert,
+const activityConfig: Record<string, { icon: any; color: string; bgColor: string }> = {
+  status_change: { icon: ArrowUpCircle, color: "text-primary", bgColor: "bg-primary/10" },
+  note: { icon: MessageSquare, color: "text-muted-foreground", bgColor: "bg-muted" },
+  escalation: { icon: ShieldAlert, color: "text-destructive", bgColor: "bg-destructive/10" },
+  resolution: { icon: CheckCircle, color: "text-emerald-600", bgColor: "bg-emerald-500/10" },
+  assignment: { icon: Zap, color: "text-primary", bgColor: "bg-primary/10" },
 };
 
 export default function SecurityOccurrenceDetailPage() {
@@ -107,6 +107,47 @@ export default function SecurityOccurrenceDetailPage() {
     setEscalateReason("");
   };
 
+  // Build merged timeline from activities + occurrence lifecycle events
+  const timelineEvents = [
+    { type: "creation", date: occ.created_at, description: "Ocorrência registada", icon: AlertTriangle, color: "text-destructive", bgColor: "bg-destructive/10" },
+    ...(occ.occurred_at && occ.occurred_at !== occ.created_at
+      ? [{ type: "event", date: occ.occurred_at, description: `Ocorrência detectada`, icon: Zap, color: "text-primary", bgColor: "bg-primary/10" }]
+      : []),
+    ...(firstResponseAt
+      ? [{ type: "response", date: firstResponseAt, description: `Primeira resposta${slaResponseMet ? " (dentro do SLA)" : " (fora do SLA)"}`, icon: CheckCircle, color: slaResponseMet ? "text-emerald-600" : "text-destructive", bgColor: slaResponseMet ? "bg-emerald-500/10" : "bg-destructive/10" }]
+      : []),
+    ...activities.map((act: any) => {
+      const cfg = activityConfig[act.activity_type] || activityConfig.note;
+      return {
+        type: act.activity_type,
+        date: act.created_at,
+        description: act.description,
+        icon: cfg.icon,
+        color: cfg.color,
+        bgColor: cfg.bgColor,
+        metadata: act.metadata,
+      };
+    }),
+    ...((occ as any).escalated_at
+      ? [{ type: "escalation_event", date: (occ as any).escalated_at, description: `Escalada para Nível ${escalationLevel}${(occ as any).escalation_reason ? `: ${(occ as any).escalation_reason}` : ""}`, icon: ShieldAlert, color: "text-destructive", bgColor: "bg-destructive/10" }]
+      : []),
+    ...(occ.resolved_at
+      ? [{ type: "resolved", date: occ.resolved_at, description: `Ocorrência resolvida${slaResolutionMet !== null ? (slaResolutionMet ? " (dentro do SLA)" : " (fora do SLA)") : ""}`, icon: CheckCircle, color: "text-emerald-600", bgColor: "bg-emerald-500/10" }]
+      : []),
+  ]
+    .filter((e) => e.date)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // Deduplicate escalation entries (avoid double from activities + occurrence field)
+  const seenTypes = new Set<string>();
+  const dedupedTimeline = timelineEvents.filter((e) => {
+    if (e.type === "escalation_event") {
+      if (seenTypes.has("escalation")) return false;
+    }
+    if (e.type === "escalation") seenTypes.add("escalation");
+    return true;
+  });
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -128,7 +169,7 @@ export default function SecurityOccurrenceDetailPage() {
               </Badge>
             )}
             {occ.severity && (
-              <Badge variant={occ.severity === "critical" ? "destructive" : "outline"}>
+              <Badge variant={occ.severity === "critical" ? "destructive" : "outline"} className="capitalize">
                 {occ.severity}
               </Badge>
             )}
@@ -137,6 +178,18 @@ export default function SecurityOccurrenceDetailPage() {
             </Badge>
           </div>
         </div>
+
+        {/* Workflow Stepper */}
+        <Card>
+          <CardContent className="py-5 px-6">
+            <OccurrenceWorkflowStepper
+              currentStatus={occ.status}
+              escalationLevel={escalationLevel}
+              slaResponseMet={slaResponseMet}
+              slaResolutionMet={slaResolutionMet}
+            />
+          </CardContent>
+        </Card>
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Main Content */}
@@ -154,7 +207,6 @@ export default function SecurityOccurrenceDetailPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Response SLA */}
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-muted-foreground">Tempo de Resposta</span>
@@ -174,7 +226,6 @@ export default function SecurityOccurrenceDetailPage() {
                       className={`h-2 ${firstResponseAt ? "[&>div]:bg-emerald-500" : responseTimeLeft !== null && responseTimeLeft <= 0 ? "[&>div]:bg-destructive" : ""}`}
                     />
                   </div>
-                  {/* Resolution SLA */}
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-muted-foreground">Tempo de Resolução</span>
@@ -201,9 +252,7 @@ export default function SecurityOccurrenceDetailPage() {
             {isClosed && (slaResponseMet !== null || slaResolutionMet !== null) && (
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Timer className="h-4 w-4" /> Resultado SLA
-                  </CardTitle>
+                  <CardTitle className="text-base flex items-center gap-2"><Timer className="h-4 w-4" /> Resultado SLA</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex gap-6">
@@ -266,7 +315,7 @@ export default function SecurityOccurrenceDetailPage() {
 
             {/* Resolution */}
             {occ.resolution_summary && (
-              <Card>
+              <Card className="border-emerald-500/30">
                 <CardHeader><CardTitle className="text-base flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-500" /> Resolução</CardTitle></CardHeader>
                 <CardContent className="text-sm">
                   <p>{occ.resolution_summary}</p>
@@ -275,31 +324,34 @@ export default function SecurityOccurrenceDetailPage() {
               </Card>
             )}
 
-            {/* Activity Timeline */}
+            {/* Enhanced Activity Timeline */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Clock className="h-4 w-4" /> Histórico de Atividade
+                  <Clock className="h-4 w-4" /> Timeline de Resolução
+                  <Badge variant="secondary" className="text-[10px] ml-auto">{dedupedTimeline.length} eventos</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {activities.length === 0 ? (
+                {dedupedTimeline.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Sem atividade registada</p>
                 ) : (
-                  <div className="relative pl-6 space-y-4">
-                    <div className="absolute left-2.5 top-1 bottom-1 w-px bg-border" />
-                    {activities.map((act: any) => {
-                      const Icon = activityIcons[act.activity_type] || MessageSquare;
-                      const isEscalation = act.activity_type === "escalation";
+                  <div className="relative pl-8 space-y-0">
+                    <div className="absolute left-3.5 top-2 bottom-2 w-px bg-border" />
+                    {dedupedTimeline.map((evt, idx) => {
+                      const Icon = evt.icon;
+                      const isLast = idx === dedupedTimeline.length - 1;
                       return (
-                        <div key={act.id} className="relative">
-                          <div className={`absolute -left-6 top-0.5 w-5 h-5 rounded-full flex items-center justify-center ${isEscalation ? "bg-destructive/10" : "bg-muted"}`}>
-                            <Icon className={`h-3 w-3 ${isEscalation ? "text-destructive" : "text-muted-foreground"}`} />
+                        <div key={`${evt.type}-${idx}`} className={`relative pb-5 ${isLast ? "pb-0" : ""}`}>
+                          <div className={`absolute -left-8 top-0.5 w-7 h-7 rounded-full flex items-center justify-center border-2 border-background ${evt.bgColor}`}>
+                            <Icon className={`h-3.5 w-3.5 ${evt.color}`} />
                           </div>
-                          <div>
-                            <p className="text-sm">{act.description}</p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
-                              {format(new Date(act.created_at), "dd/MM/yyyy HH:mm")}
+                          <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
+                            <p className="text-sm font-medium">{evt.description}</p>
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              {format(new Date(evt.date), "dd/MM/yyyy HH:mm")}
+                              {" · "}
+                              {formatDistanceToNow(new Date(evt.date), { addSuffix: true, locale: pt })}
                             </p>
                           </div>
                         </div>
@@ -314,7 +366,7 @@ export default function SecurityOccurrenceDetailPage() {
                     <Input
                       value={noteText}
                       onChange={(e) => setNoteText(e.target.value)}
-                      placeholder="Adicionar nota..."
+                      placeholder="Adicionar nota à timeline..."
                       onKeyDown={(e) => e.key === "Enter" && handleAddNote()}
                     />
                     <Button size="icon" onClick={handleAddNote} disabled={!noteText.trim() || addOccurrenceNote.isPending}>
@@ -343,13 +395,11 @@ export default function SecurityOccurrenceDetailPage() {
                     </SelectContent>
                   </Select>
 
-                  {/* Escalate */}
                   <Button variant="outline" className="w-full gap-2 text-destructive" onClick={() => setEscalateOpen(true)}>
                     <ShieldAlert className="h-4 w-4" />
                     Escalar (Nível {escalationLevel + 1})
                   </Button>
 
-                  {/* Create maintenance visit */}
                   <Button
                     variant="outline"
                     className="w-full gap-2"
@@ -408,9 +458,9 @@ export default function SecurityOccurrenceDetailPage() {
               </Card>
             )}
 
-            {/* Timeline */}
+            {/* Quick Timeline */}
             <Card>
-              <CardHeader><CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4" /> Timeline</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4" /> Resumo</CardTitle></CardHeader>
               <CardContent className="text-xs space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Criada</span>
@@ -438,6 +488,12 @@ export default function SecurityOccurrenceDetailPage() {
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Resolvida</span>
                     <span>{format(new Date(occ.resolved_at), "dd/MM/yyyy HH:mm")}</span>
+                  </div>
+                )}
+                {occ.resolved_at && occ.created_at && (
+                  <div className="flex justify-between pt-2 border-t font-medium">
+                    <span>Tempo Total</span>
+                    <span>{differenceInHours(new Date(occ.resolved_at), new Date(occ.created_at))}h</span>
                   </div>
                 )}
               </CardContent>
