@@ -1,7 +1,11 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, FileText, Target, Calendar, BarChart3, TrendingUp } from "lucide-react";
+
+interface Props {
+  visionId: string;
+}
 
 const aiActions = [
   { key: "manifesto", label: "Gerar Manifesto", description: "Cria um manifesto personalizado com base nos teus objetivos", icon: FileText, credits: 5 },
@@ -11,16 +15,14 @@ const aiActions = [
   { key: "funnel_analysis", label: "Analisar Funil", description: "Analisa o funil ligado à visão e sugere melhorias", icon: BarChart3, credits: 3 },
 ];
 
-export function VisionAICopilot() {
+export function VisionAICopilot({ visionId }: Props) {
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-violet-500" />IA Copilot
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Usa inteligência artificial para acelerar a tua visão. Cada ação consome créditos.
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">Usa inteligência artificial para acelerar a tua visão. Cada ação consome créditos.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

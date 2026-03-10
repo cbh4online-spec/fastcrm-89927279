@@ -2,6 +2,7 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Eye, Target, Calendar, Trophy, Sparkles, Users, Settings, BarChart3 } from "lucide-react";
+import { useVisionProfile } from "@/hooks/useVision";
 import { VisionCorePanel } from "./VisionCorePanel";
 import { ManifestoEditor } from "./ManifestoEditor";
 import { VisionBoardCanvas } from "./VisionBoardCanvas";
@@ -12,14 +13,33 @@ import { VisionWinsFeed } from "./VisionWinsFeed";
 import { VisionDuoCard } from "./VisionDuoCard";
 import { VisionAICopilot } from "./VisionAICopilot";
 import { VisionSettingsPanel } from "./VisionSettingsPanel";
+import { VisionOnboarding } from "./VisionOnboarding";
 
 export function VisionDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
+  const { data: vision, isLoading } = useVisionProfile();
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-pulse text-muted-foreground">A carregar...</div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!vision) {
+    return (
+      <DashboardLayout>
+        <VisionOnboarding />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
@@ -46,16 +66,16 @@ export function VisionDashboard() {
             <TabsTrigger value="settings" className="gap-2 text-xs"><Settings className="h-3.5 w-3.5" />Definições</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview"><VisionCorePanel /></TabsContent>
-          <TabsContent value="manifesto"><ManifestoEditor /></TabsContent>
-          <TabsContent value="board"><VisionBoardCanvas /></TabsContent>
-          <TabsContent value="sprints"><VisionSprintTimeline /></TabsContent>
-          <TabsContent value="daily"><VisionDailyWizard /></TabsContent>
-          <TabsContent value="wins"><VisionWinsFeed /></TabsContent>
-          <TabsContent value="duo"><VisionDuoCard /></TabsContent>
-          <TabsContent value="ai"><VisionAICopilot /></TabsContent>
-          <TabsContent value="metrics"><VisionMetricsPanel /></TabsContent>
-          <TabsContent value="settings"><VisionSettingsPanel /></TabsContent>
+          <TabsContent value="overview"><VisionCorePanel vision={vision} /></TabsContent>
+          <TabsContent value="manifesto"><ManifestoEditor vision={vision} /></TabsContent>
+          <TabsContent value="board"><VisionBoardCanvas visionId={vision.id} /></TabsContent>
+          <TabsContent value="sprints"><VisionSprintTimeline visionId={vision.id} /></TabsContent>
+          <TabsContent value="daily"><VisionDailyWizard visionId={vision.id} /></TabsContent>
+          <TabsContent value="wins"><VisionWinsFeed visionId={vision.id} /></TabsContent>
+          <TabsContent value="duo"><VisionDuoCard visionId={vision.id} /></TabsContent>
+          <TabsContent value="ai"><VisionAICopilot visionId={vision.id} /></TabsContent>
+          <TabsContent value="metrics"><VisionMetricsPanel visionId={vision.id} /></TabsContent>
+          <TabsContent value="settings"><VisionSettingsPanel vision={vision} /></TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
