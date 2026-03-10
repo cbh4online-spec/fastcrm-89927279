@@ -4,12 +4,13 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useSuppliers } from "@/hooks/useProcurement";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Upload } from "lucide-react";
 import { useState } from "react";
 import { SupplierForm } from "@/components/procurement/SupplierForm";
 import { PageHeader } from "@/components/common/PageHeader";
 import { ProcurementStatusBadge } from "@/components/procurement/ProcurementStatusBadge";
 import { ProcurementEmptyState } from "@/components/procurement/ProcurementEmptyState";
+import { SupplierImportModal } from "@/components/procurement/SupplierImportModal";
 import { Loader2 } from "lucide-react";
 
 export default function SuppliersPage() {
@@ -18,6 +19,7 @@ export default function SuppliersPage() {
   const { data: suppliers = [], isLoading, create, update, remove } = useSuppliers(currentWorkspace?.id);
   const [editingSupplier, setEditingSupplier] = useState<any>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
 
   return (
     <DashboardLayout>
@@ -26,6 +28,12 @@ export default function SuppliersPage() {
           title={t("suppliers")}
           count={suppliers.length}
           actions={[
+            {
+              label: t("importSuppliers"),
+              icon: <Upload className="h-4 w-4" />,
+              onClick: () => setShowImport(true),
+              variant: "outline" as const,
+            },
             {
               label: t("addSupplier"),
               icon: <Plus className="h-4 w-4" />,
@@ -42,6 +50,7 @@ export default function SuppliersPage() {
           <ProcurementEmptyState
             icon={<Users className="h-8 w-8 text-muted-foreground" />}
             title={t("noSuppliers")}
+            description={t("noSuppliersHint")}
             actionLabel={t("addSupplier")}
             onAction={() => { setEditingSupplier(null); setShowForm(true); }}
           />
@@ -53,7 +62,7 @@ export default function SuppliersPage() {
                 <TableHead>{t("vatNumber")}</TableHead>
                 <TableHead>{t("category")}</TableHead>
                 <TableHead>{t("status")}</TableHead>
-                <TableHead>Email</TableHead>
+                <TableHead>{t("email")}</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -93,6 +102,13 @@ export default function SuppliersPage() {
             }
             setShowForm(false);
           }}
+        />
+
+        <SupplierImportModal
+          open={showImport}
+          onOpenChange={setShowImport}
+          workspaceId={currentWorkspace?.id}
+          onComplete={() => {}}
         />
       </div>
     </DashboardLayout>

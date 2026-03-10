@@ -4,11 +4,12 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useSupplierProducts } from "@/hooks/useProcurement";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Star, Edit2, Trash2, Loader2, Package } from "lucide-react";
+import { Plus, Star, Edit2, Trash2, Loader2, Package, Upload } from "lucide-react";
 import { useState } from "react";
 import { SupplierProductForm } from "@/components/procurement/SupplierProductForm";
 import { PageHeader } from "@/components/common/PageHeader";
 import { ProcurementEmptyState } from "@/components/procurement/ProcurementEmptyState";
+import { CatalogBulkPriceModal } from "@/components/procurement/CatalogBulkPriceModal";
 
 export default function SupplierProductsPage() {
   const { t } = useTranslation("procurement");
@@ -16,6 +17,7 @@ export default function SupplierProductsPage() {
   const { data: catalog = [], isLoading, create, update, remove } = useSupplierProducts(currentWorkspace?.id);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
+  const [showBulkPrice, setShowBulkPrice] = useState(false);
 
   return (
     <DashboardLayout>
@@ -24,6 +26,12 @@ export default function SupplierProductsPage() {
           title={t("supplierProducts")}
           count={(catalog as any[]).length}
           actions={[
+            {
+              label: t("importCatalogPrices"),
+              icon: <Upload className="h-4 w-4" />,
+              onClick: () => setShowBulkPrice(true),
+              variant: "outline" as const,
+            },
             {
               label: t("addCatalogEntry"),
               icon: <Plus className="h-4 w-4" />,
@@ -40,6 +48,7 @@ export default function SupplierProductsPage() {
           <ProcurementEmptyState
             icon={<Package className="h-8 w-8 text-muted-foreground" />}
             title={t("noCatalogEntries")}
+            description={t("noCatalogEntriesHint")}
             actionLabel={t("addCatalogEntry")}
             onAction={() => { setEditItem(null); setShowForm(true); }}
           />
@@ -51,7 +60,7 @@ export default function SupplierProductsPage() {
                 <TableHead>{t("supplier")}</TableHead>
                 <TableHead>{t("catalogPrice")}</TableHead>
                 <TableHead>{t("leadTime")}</TableHead>
-                <TableHead>MOQ</TableHead>
+                <TableHead>{t("moq")}</TableHead>
                 <TableHead>{t("preferred")}</TableHead>
                 <TableHead>{t("qualityScore")}</TableHead>
                 <TableHead>{t("reliabilityScore")}</TableHead>
@@ -99,6 +108,13 @@ export default function SupplierProductsPage() {
             setShowForm(false);
             setEditItem(null);
           }}
+        />
+
+        <CatalogBulkPriceModal
+          open={showBulkPrice}
+          onOpenChange={setShowBulkPrice}
+          workspaceId={currentWorkspace?.id}
+          onComplete={() => {}}
         />
       </div>
     </DashboardLayout>
