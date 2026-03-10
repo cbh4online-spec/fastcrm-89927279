@@ -26,7 +26,7 @@ import {
   ExternalLink,
   Loader2,
   Settings,
-  CreditCard,
+  Coins,
   CheckCircle2,
   History,
   ChevronsUpDown,
