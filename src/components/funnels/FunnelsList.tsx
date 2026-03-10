@@ -193,11 +193,14 @@ export function FunnelsList() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold">Funis</h1>
-          <p className="text-sm text-muted-foreground">
-            Constrói funis de conversão inteligentes com IA, templates e domínios próprios
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold">Funis</h1>
+            <p className="text-sm text-muted-foreground">
+              Constrói funis de conversão inteligentes com IA, templates e domínios próprios
+            </p>
+          </div>
+          <CreditWalletBadge />
         </div>
         <div className="hidden sm:flex items-center gap-2">
           <Button
