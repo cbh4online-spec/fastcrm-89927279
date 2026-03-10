@@ -25,9 +25,10 @@ export function useSecuritySites() {
 
   const createSite = useMutation({
     mutationFn: async (values: Record<string, any>) => {
+      const payload = { ...values, workspace_id: workspaceId } as any;
       const { data, error } = await supabase
         .from("security_installation_sites")
-        .insert({ ...values, workspace_id: workspaceId })
+        .insert(payload)
         .select()
         .single();
       if (error) throw error;

@@ -25,9 +25,10 @@ export function useSecurityEquipmentCatalog() {
 
   const createItem = useMutation({
     mutationFn: async (values: Record<string, any>) => {
+      const payload = { ...values, workspace_id: workspaceId } as any;
       const { data, error } = await supabase
         .from("security_equipment_catalog")
-        .insert({ ...values, workspace_id: workspaceId })
+        .insert(payload)
         .select()
         .single();
       if (error) throw error;
