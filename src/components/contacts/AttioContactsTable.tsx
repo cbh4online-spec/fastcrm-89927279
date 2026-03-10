@@ -217,7 +217,7 @@ export function AttioContactsTable() {
   const handleExport = () => {
     const selected = contacts?.filter(c => selectedIds.has(c.id)) || filteredContacts;
     const csv = [
-      ["Nome", "Email", "Telefone", "Empresa", "Temperatura", "Score"].join(","),
+      [t("name"), t("email"), t("phone"), t("company"), t("temperature"), t("score")].join(","),
       ...selected.map(c => [c.name, c.email || "", c.phone || "", c.company || "", c.ai_temperature || "", c.contact_score || ""].join(","))
     ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
