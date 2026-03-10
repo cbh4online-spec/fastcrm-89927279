@@ -52,7 +52,7 @@ export default function PublicFunnelPage() {
 
       let query = supabase.from("funnels").select("id, name, slug").eq("slug", slug);
       if (!isPreview) query = query.eq("is_published", true);
-      const { data: f, error: fErr } = await query.single();
+      const { data: f, error: fErr } = await query.maybeSingle();
 
       if (fErr || !f) { setError("Funil não encontrado ou não publicado"); setLoading(false); return; }
 
