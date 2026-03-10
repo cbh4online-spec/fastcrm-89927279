@@ -40321,6 +40321,73 @@ export type Database = {
           },
         ]
       }
+      vision_duo_notifications: {
+        Row: {
+          created_at: string | null
+          duo_link_id: string
+          id: string
+          is_read: boolean | null
+          message: string | null
+          metadata: Json | null
+          recipient_id: string
+          sender_id: string
+          title: string
+          type: string
+          vision_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          duo_link_id: string
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          metadata?: Json | null
+          recipient_id: string
+          sender_id: string
+          title: string
+          type: string
+          vision_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          duo_link_id?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          metadata?: Json | null
+          recipient_id?: string
+          sender_id?: string
+          title?: string
+          type?: string
+          vision_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vision_duo_notifications_duo_link_id_fkey"
+            columns: ["duo_link_id"]
+            isOneToOne: false
+            referencedRelation: "vision_duo_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vision_duo_notifications_vision_id_fkey"
+            columns: ["vision_id"]
+            isOneToOne: false
+            referencedRelation: "vision_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vision_duo_notifications_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vision_profiles: {
         Row: {
           created_at: string
