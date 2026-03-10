@@ -35,6 +35,7 @@ import { useOpportunities, useOpportunity } from "@/hooks/useOpportunities";
 import { useGenerateProposalCopy, ProposalTone } from "@/hooks/useGenerateProposalCopy";
 import type { ContentBlock } from "@/types/proposal";
 import { toast } from "sonner";
+import { useInvoiceSettings } from "@/hooks/useInvoiceSettings";
 
 interface CreateProposalDialogProps {
   open: boolean;
@@ -119,6 +120,8 @@ export function CreateProposalDialog({
   const createProposal = useCreateProposal();
   const updateProposalItems = useUpdateProposalItems();
   const { isLoading: aiLoading, generateCopy } = useGenerateProposalCopy();
+  const { settings: invoiceSettings } = useInvoiceSettings();
+  const workspaceCurrency = invoiceSettings?.default_currency || "EUR";
 
   // Callback estável para atualização de itens do carrinho
   const handleCartItemsChange = useCallback((items: CartItem[]) => {
@@ -139,9 +142,9 @@ export function CreateProposalDialog({
   if (selectedOpportunity) {
     variables["opportunity.title"] = selectedOpportunity.title;
     variables["opportunity.value"] = selectedOpportunity.value
-      ? new Intl.NumberFormat("pt-BR", {
+      ? new Intl.NumberFormat("pt-PT", {
           style: "currency",
-          currency: "BRL",
+          currency: workspaceCurrency,
         }).format(selectedOpportunity.value)
       : "";
     if (selectedOpportunity.lead) {
@@ -201,7 +204,7 @@ export function CreateProposalDialog({
             title: result.offer.title,
             description: result.offer.description,
             price: selectedOpportunity?.value 
-              ? new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(selectedOpportunity.value)
+              ? new Intl.NumberFormat("pt-PT", { style: "currency", currency: workspaceCurrency }).format(selectedOpportunity.value)
               : "{{opportunity.value}}",
             features: result.offer.features,
           },
@@ -252,6 +255,7 @@ export function CreateProposalDialog({
       cta_text: ctaText,
       cta_color: ctaColor,
       price: price ? parseFloat(price) : selectedOpportunity?.value || undefined,
+      currency: workspaceCurrency,
       expires_at: expiresAt || undefined,
     });
 
