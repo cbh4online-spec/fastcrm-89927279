@@ -199,6 +199,13 @@ import RenewalDetailPage from "./pages/RenewalDetailPage";
 import SecurityDashboardPage from "./pages/security/SecurityDashboardPage";
 import SecurityPartnerRequestsPage from "./pages/security/SecurityPartnerRequestsPage";
 import SecurityPartnerRequestDetailPage from "./pages/security/SecurityPartnerRequestDetailPage";
+import SecuritySitesPage from "./pages/security/SecuritySitesPage";
+import SecuritySiteDetailPage from "./pages/security/SecuritySiteDetailPage";
+import SecuritySystemsPage from "./pages/security/SecuritySystemsPage";
+import SecuritySystemDetailPage from "./pages/security/SecuritySystemDetailPage";
+import SecurityEquipmentPage from "./pages/security/SecurityEquipmentPage";
+import SecurityContractsPage from "./pages/security/SecurityContractsPage";
+import SecurityProposalsPage from "./pages/security/SecurityProposalsPage";
 
 // Procurement
 import ProcurementDashboardPage from "./pages/procurement/ProcurementDashboardPage";
