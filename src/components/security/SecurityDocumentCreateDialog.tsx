@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultSystemId?: string;
 }
 
 export function SecurityDocumentCreateDialog({ open, onOpenChange }: Props) {
