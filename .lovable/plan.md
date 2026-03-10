@@ -1,68 +1,37 @@
 
 
-# Phase 5B — Command Center COMPLETO
+## Plan: Preview de Funil
 
-## Gap Analysis: Current vs Spec
+### Problema
+Não existe uma página pública nem um mecanismo de pré-visualização para os funis. O botão ExternalLink no step overview não faz nada.
 
-The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
+### Solução
+Criar uma página pública de renderização do funil (`/funnel/:slug`) e ligar o botão de preview no editor a ela.
 
-**Already implemented (needs enhancement):**
-- Header with greeting + 3 KPIs — needs larger font (32px), labels below
-- AI Question Box — needs slash command suggestions row below input
-- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
-- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
-- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
-- Drift Alerts — needs "Rever →" links to Context OS blocks
+### Alterações
 
-**New sections to build:**
-1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
-2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
-   - Change Events (last 5 from `useChangeEvents` with realtime)
-   - Entity Activity (top 3 entities from `useKernelEntities`)
-   - Impact Score (top 2 from `useImpactMapData`)
-3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
+**1. Criar `src/pages/PublicFunnelPage.tsx`**
+- Rota pública `/funnel/:slug` (sem autenticação)
+- Busca o funil pelo slug via `supabase.from("funnels").select("*").eq("slug", slug).eq("is_published", true)`
+- Busca os steps ordenados por `sort_order`
+- Renderiza o primeiro step (ou o step indicado por query param `?step=0`) com o conteúdo (headline, subheadline, body, CTA) usando os estilos de `design/appearance`
+- Navegação entre steps via CTA (avança para o próximo step)
+- Modo preview: se query param `?preview=true`, ignora o filtro `is_published` (para permitir preview de funis não publicados — valida que o user está autenticado)
 
-**Enhanced Command Palette (⌘K):**
-- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
+**2. Registar rota em `src/App.tsx`**
+- Adicionar `<Route path="/funnel/:slug" element={<PublicFunnelPage />} />` nas rotas públicas
 
-**Spotlight (Space key):**
-- Opens AI Question Box as a modal from any page. New global component.
+**3. Atualizar `FunnelStepsTab.tsx`**
+- No botão `ExternalLink` (linha 206-208): adicionar `onClick` que abre `/funnel/${funnel.slug}?preview=true` numa nova tab
+- Precisa receber o `funnelId` já disponível como prop, buscar o slug do funil
 
-## Implementation Plan — 3 Sub-phases
+**4. Atualizar `FunnelBuilder.tsx`**
+- Adicionar botão "Preview" no header ao lado do Share, que abre `/funnel/${funnel.slug}?preview=true` numa nova tab
+- Passar o slug do funil para `FunnelStepsTab` como prop
 
-Given the scope, I recommend splitting into 3 batches:
-
-### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
-| File | Action |
-|------|--------|
-| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
-| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
-| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
-| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
-
-### Batch 2: Enhance Existing Cards
-| File | Action |
-|------|--------|
-| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
-| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
-| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
-| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
-| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
-| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
-
-### Batch 3: Spotlight Modal + Command Palette Enhancement
-| File | Action |
-|------|--------|
-| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
-| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
-| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
-
-### Realtime subscriptions needed
-- `change_events` table for Kernel Live Feed auto-update
-- `kernel_action_runs` for Ações do Dia auto-update
-- Already have `kernel_decisions` and `conversations`
-
-No database migrations needed. All hooks, edge functions, and tables already exist.
-
-**Shall I start with Batch 1?**
+### Ficheiros
+- **Criar:** `src/pages/PublicFunnelPage.tsx`
+- **Editar:** `src/App.tsx` (adicionar rota)
+- **Editar:** `src/components/funnels/FunnelBuilder.tsx` (botão preview no header, passar slug)
+- **Editar:** `src/components/funnels/tabs/FunnelStepsTab.tsx` (onClick no ExternalLink)
 
