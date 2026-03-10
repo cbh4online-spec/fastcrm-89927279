@@ -195,6 +195,11 @@ import PerformanceSettingsPage from "./pages/performance/PerformanceSettingsPage
 import RenewalsPage from "./pages/RenewalsPage";
 import RenewalDetailPage from "./pages/RenewalDetailPage";
 
+// Security Ops
+import SecurityDashboardPage from "./pages/security/SecurityDashboardPage";
+import SecurityPartnerRequestsPage from "./pages/security/SecurityPartnerRequestsPage";
+import SecurityPartnerRequestDetailPage from "./pages/security/SecurityPartnerRequestDetailPage";
+
 // Procurement
 import ProcurementDashboardPage from "./pages/procurement/ProcurementDashboardPage";
 import SuppliersPage from "./pages/procurement/SuppliersPage";
