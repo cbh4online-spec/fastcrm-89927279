@@ -1,68 +1,112 @@
 
 
-# Phase 5B — Command Center COMPLETO
+# Plan: Procurement Module — i18n, Flows & Import Improvements
 
-## Gap Analysis: Current vs Spec
+## Scope Summary
 
-The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
+This is a large set of changes across 3 areas. I'll break it into phases.
 
-**Already implemented (needs enhancement):**
-- Header with greeting + 3 KPIs — needs larger font (32px), labels below
-- AI Question Box — needs slash command suggestions row below input
-- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
-- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
-- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
-- Drift Alerts — needs "Rever →" links to Context OS blocks
+---
 
-**New sections to build:**
-1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
-2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
-   - Change Events (last 5 from `useChangeEvents` with realtime)
-   - Entity Activity (top 3 entities from `useKernelEntities`)
-   - Impact Score (top 2 from `useImpactMapData`)
-3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
+## Phase 1: Complete i18n (RFQsPage + RFQDetailPage + useProcurement toasts)
 
-**Enhanced Command Palette (⌘K):**
-- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
+**Problem**: `RFQsPage.tsx` has ~30 hardcoded Portuguese strings (status labels, sort options, headers, empty states). `RFQDetailPage.tsx` has ~60+ hardcoded strings (buttons, labels, modals, sections). `useProcurement.ts` has ~20 hardcoded toast messages.
 
-**Spotlight (Space key):**
-- Opens AI Question Box as a modal from any page. New global component.
+**Changes**:
 
-## Implementation Plan — 3 Sub-phases
+### 1a. Add ~40 new translation keys to `procurement.json` (all 4 locales)
+New keys needed (examples):
+- `paymentTermsLabel`, `deliveryLocationLabel`, `incotermLabel`, `quoteValidityLabel`, `currencyLabel`
+- `exportPDFButton`, `sendRFQButton`, `registerQuoteTableButton`, `importQuotePDFButton`, `individualQuoteButton`
+- `awardButton`, `cancelButton`, `addButton`, `saveButton`
+- `supplierCreated`, `supplierUpdated`, `supplierRemoved`, `requestCreated`, `requestApproved`, `requestRejected`, `orderCreated`, `statusUpdated`, `receiptRegistered`, `invoiceRegistered`, `invoiceStatusUpdated`, `catalogEntryCreated`, `catalogEntryUpdated`, `catalogEntryRemoved`, `ordersCreatedCount`, `errorCreatingSupplier`, `errorUpdatingSupplier`, etc.
+- `proposalLabel`, `moq`
 
-Given the scope, I recommend splitting into 3 batches:
+### 1b. Refactor `RFQsPage.tsx`
+- Remove `statusColors` and `statusLabels` constants — use `ProcurementStatusBadge` and `t()` keys already in procurement.json
+- Replace `sortOptions` labels with `t('sortCreatedDesc')` etc. (keys already exist)
+- Replace all hardcoded strings with `t()` calls
+- Use `PageHeader` + `ProcurementEmptyState` for consistency
 
-### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
-| File | Action |
-|------|--------|
-| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
-| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
-| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
-| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
+### 1c. Refactor `RFQDetailPage.tsx` (~673 lines)
+- Add `useTranslation("procurement")` 
+- Replace all ~60 hardcoded strings with `t()` calls
+- Use `ProcurementStatusBadge` for status badges
+- Update `GeneratedPOsCard` sub-component similarly
 
-### Batch 2: Enhance Existing Cards
-| File | Action |
-|------|--------|
-| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
-| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
-| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
-| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
-| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
-| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
+### 1d. Refactor `useProcurement.ts` toast messages
+- Replace all `toast.success("Fornecedor criado")` etc. with a pattern using `i18next.t()` directly (import `i18next` from the library), since hooks don't have React context for `useTranslation`
 
-### Batch 3: Spotlight Modal + Command Palette Enhancement
-| File | Action |
-|------|--------|
-| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
-| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
-| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
+---
 
-### Realtime subscriptions needed
-- `change_events` table for Kernel Live Feed auto-update
-- `kernel_action_runs` for Ações do Dia auto-update
-- Already have `kernel_decisions` and `conversations`
+## Phase 2: Conversion Flows (Order → Invoice)
 
-No database migrations needed. All hooks, edge functions, and tables already exist.
+**What exists**: Request → PO conversion already works via `procurement-create-po-from-request` edge function. PO status updates on goods receipt already work.
 
-**Shall I start with Batch 1?**
+**What's missing**: PO → Supplier Invoice conversion.
+
+### 2a. Add "Convert to Invoice" button on `PurchaseOrdersPage`
+- For orders with status `received`, show a button to create a supplier invoice
+- Create a `useConvertPOToInvoice` hook that:
+  - Creates a `supplier_invoices` row linked to the PO
+  - Copies total amount from PO
+  - Updates PO status to `closed`
+
+### 2b. Add `awaiting_receipt` status
+- Add to `ProcurementStatusBadge` config (already has styling patterns)
+- Add translation keys
+- When a PO is `sent` or `confirmed`, the "Awaiting Receipt" state is shown after the supplier confirms
+
+---
+
+## Phase 3: Import Modals (CSV/Excel for Suppliers and Catalog)
+
+### 3a. Supplier Import Modal
+- New component `SupplierImportModal.tsx`
+- Uses `papaparse` (already installed) for CSV and `xlsx` (already installed) for Excel
+- Steps: Upload → Preview table → Validate (name required, email format) → Import
+- Add "Import" button to `SuppliersPage` header
+
+### 3b. Catalog Bulk Price Update
+- New component `CatalogBulkPriceModal.tsx` 
+- Upload CSV/Excel with columns: supplier, product/SKU, new price
+- Preview with match status → Confirm to update `supplier_products`
+- Add "Import Prices" button to `SupplierProductsPage` header (already has the price import page, but this is a quick inline modal)
+
+---
+
+## Phase 4: Dashboard Enhancements
+
+### 4a. Empty state guidance on `ProcurementDashboardPage`
+- When no orders/invoices exist, show instructional cards instead of empty charts
+- "Start by adding suppliers, then create purchase requests"
+
+### 4b. Export CSV/PDF buttons
+- Add export buttons to orders and invoices tables
+- CSV export using `papaparse` unparse
+- PDF export using `jspdf` (already installed)
+
+---
+
+## Files to Create
+- `src/components/procurement/SupplierImportModal.tsx`
+- `src/components/procurement/CatalogBulkPriceModal.tsx`
+- `src/hooks/useConvertPOToInvoice.ts`
+
+## Files to Edit
+- `src/i18n/locales/{pt,en,es,fr}/procurement.json` — ~40 new keys each
+- `src/pages/procurement/RFQsPage.tsx` — full i18n + PageHeader + ProcurementStatusBadge
+- `src/pages/procurement/RFQDetailPage.tsx` — full i18n + ProcurementStatusBadge
+- `src/hooks/useProcurement.ts` — i18n toast messages
+- `src/components/procurement/ProcurementStatusBadge.tsx` — add `awaiting_receipt` status
+- `src/pages/procurement/PurchaseOrdersPage.tsx` — add convert-to-invoice button
+- `src/pages/procurement/SuppliersPage.tsx` — add import button
+- `src/pages/procurement/SupplierProductsPage.tsx` — add bulk price button
+- `src/pages/procurement/ProcurementDashboardPage.tsx` — empty state guidance + export
+
+## Execution Order
+1. i18n (translations + RFQsPage + RFQDetailPage + toasts) — largest batch
+2. Status badge + conversion flow
+3. Import modals
+4. Dashboard enhancements
 
