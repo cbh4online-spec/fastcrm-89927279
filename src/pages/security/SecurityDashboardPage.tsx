@@ -8,11 +8,12 @@ import { useSecurityDashboard } from "@/hooks/security/useSecurityDashboard";
 import { useSecurityDashboardCharts } from "@/hooks/security/useSecurityDashboardCharts";
 import {
   Shield, FileText, AlertTriangle, Wrench, ClipboardList,
-  Building2, Camera, RefreshCw, Plus, ArrowRight, TrendingUp, TrendingDown, Activity
+  Building2, Camera, RefreshCw, Plus, ArrowRight, TrendingUp, TrendingDown, Activity,
+  Zap, Target, ArrowDown
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend, LineChart, Line
+  PieChart, Pie, Cell, Legend, FunnelChart, Funnel, LabelList
 } from "recharts";
 
 const COLORS = [
@@ -22,6 +23,19 @@ const COLORS = [
   "hsl(var(--chart-4))",
   "hsl(var(--chart-5))",
 ];
+
+const severityColors: Record<string, string> = {
+  critical: "destructive",
+  high: "destructive",
+  medium: "default",
+  low: "secondary",
+};
+
+const alertTypeIcons: Record<string, any> = {
+  maintenance: Wrench,
+  occurrence: AlertTriangle,
+  request: ClipboardList,
+};
 
 export default function SecurityDashboardPage() {
   const { t } = useTranslation("security");
@@ -79,6 +93,115 @@ export default function SecurityDashboardPage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* Critical Alerts + Pipeline Funnel */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Critical Alerts */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Zap className="h-4 w-4 text-destructive" />
+                Alertas Críticos
+              </CardTitle>
+              <CardDescription>Itens que requerem atenção imediata</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {chartsLoading ? (
+                <div className="h-[240px] flex items-center justify-center text-muted-foreground text-sm">A carregar...</div>
+              ) : charts.alerts.length === 0 ? (
+                <div className="h-[240px] flex flex-col items-center justify-center text-muted-foreground">
+                  <Shield className="h-10 w-10 mb-3 text-emerald-500/50" />
+                  <p className="text-sm font-medium">Sem alertas críticos</p>
+                  <p className="text-xs">Todas as operações estão em dia</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[280px] overflow-y-auto">
+                  {charts.alerts.map((alert: any) => {
+                    const Icon = alertTypeIcons[alert.type] || AlertTriangle;
+                    return (
+                      <div
+                        key={alert.id}
+                        className="flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors"
+                        onClick={() => navigate(alert.href)}
+                      >
+                        <Icon className={`h-4 w-4 shrink-0 ${alert.severity === "critical" ? "text-destructive" : alert.severity === "high" ? "text-orange-500" : "text-muted-foreground"}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{alert.title}</p>
+                          {alert.subtitle && <p className="text-xs text-muted-foreground truncate">{alert.subtitle}</p>}
+                        </div>
+                        <Badge variant={(severityColors[alert.severity] || "secondary") as any} className="text-[10px] shrink-0">
+                          {alert.severity}
+                        </Badge>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Pipeline Funnel */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Target className="h-4 w-4" />
+                Pipeline Comercial
+              </CardTitle>
+              <CardDescription>Funil de conversão do módulo</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {chartsLoading ? (
+                <div className="h-[240px] flex items-center justify-center text-muted-foreground text-sm">A carregar...</div>
+              ) : charts.pipeline.every((p: any) => p.count === 0) ? (
+                <div className="h-[240px] flex items-center justify-center text-muted-foreground text-sm">Sem dados</div>
+              ) : (
+                <div className="space-y-3">
+                  {charts.pipeline.map((stage: any, i: number) => {
+                    const maxCount = Math.max(...charts.pipeline.map((p: any) => p.count), 1);
+                    const width = Math.max((stage.count / maxCount) * 100, 12);
+                    return (
+                      <div key={stage.stage} className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground w-24 text-right shrink-0">{stage.label}</span>
+                        <div className="flex-1 relative">
+                          <div
+                            className="h-8 rounded flex items-center justify-center text-xs font-bold transition-all"
+                            style={{
+                              width: `${width}%`,
+                              backgroundColor: COLORS[i % COLORS.length],
+                              color: "white",
+                              opacity: 0.85 + (i * 0.03),
+                            }}
+                          >
+                            {stage.count}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {/* Conversion rates */}
+                  <div className="pt-3 border-t grid grid-cols-4 gap-2 text-center">
+                    <div>
+                      <p className="text-lg font-bold text-primary">{charts.conversionRates.requestToLead}%</p>
+                      <p className="text-[10px] text-muted-foreground">Pedido → Lead</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-primary">{charts.conversionRates.leadToProposal}%</p>
+                      <p className="text-[10px] text-muted-foreground">Lead → Proposta</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-primary">{charts.conversionRates.proposalToContract}%</p>
+                      <p className="text-[10px] text-muted-foreground">Proposta → Contrato</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-emerald-500">{charts.conversionRates.leadWinRate}%</p>
+                      <p className="text-[10px] text-muted-foreground">Win Rate</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Charts Row */}
@@ -221,6 +344,9 @@ export default function SecurityDashboardPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: t("partnerRequests"), href: "/dashboard/security/partner-requests", icon: ClipboardList },
+            { label: t("securityLeads"), href: "/dashboard/security/leads", icon: Target },
+            { label: t("proposals"), href: "/dashboard/security/proposals", icon: FileText },
+            { label: t("contracts"), href: "/dashboard/security/contracts", icon: FileText },
             { label: t("sites"), href: "/dashboard/security/sites", icon: Building2 },
             { label: t("systems"), href: "/dashboard/security/systems", icon: Camera },
             { label: t("documents"), href: "/dashboard/security/documents", icon: FileText },
@@ -228,14 +354,15 @@ export default function SecurityDashboardPage() {
             { label: t("occurrences"), href: "/dashboard/security/occurrences", icon: AlertTriangle },
             { label: t("renewals"), href: "/dashboard/security/renewals", icon: RefreshCw },
             { label: t("catalog"), href: "/dashboard/security/equipment", icon: Camera },
+            { label: t("partners"), href: "/dashboard/security/clients", icon: Building2 },
           ].map((item) => (
             <Button
               key={item.href}
               variant="outline"
-              className="h-auto py-4 flex flex-col items-center gap-2"
+              className="h-auto py-3 flex flex-col items-center gap-1.5"
               onClick={() => navigate(item.href)}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className="h-4 w-4" />
               <span className="text-xs font-medium">{item.label}</span>
             </Button>
           ))}
