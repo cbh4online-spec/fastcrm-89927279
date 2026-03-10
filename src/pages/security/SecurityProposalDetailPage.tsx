@@ -3,11 +3,13 @@ import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSecurityProposal } from "@/hooks/security/useSecurityProposals";
 import { useSecurityConversions } from "@/hooks/security/useSecurityConversions";
+import { useSecurityProposals } from "@/hooks/security/useSecurityProposals";
+import { useSecurityContracts } from "@/hooks/security/useSecurityContracts";
+import { SecurityPipelineStepper } from "@/components/security/SecurityPipelineStepper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, CheckCircle, Send } from "lucide-react";
-import { useSecurityProposals } from "@/hooks/security/useSecurityProposals";
+import { ArrowLeft, FileText, CheckCircle, Send, XCircle, Target, ArrowRight } from "lucide-react";
 
 const statusLabels: Record<string, string> = {
   draft: "Rascunho", sent: "Enviada", under_review: "Em Análise",
@@ -21,6 +23,7 @@ export default function SecurityProposalDetailPage() {
   const { data: proposal, isLoading } = useSecurityProposal(id);
   const { convertProposalToContract } = useSecurityConversions();
   const { updateProposal } = useSecurityProposals();
+  const { contracts } = useSecurityContracts();
 
   if (isLoading || !proposal) {
     return (
@@ -30,8 +33,13 @@ export default function SecurityProposalDetailPage() {
     );
   }
 
+  // Find linked contract
+  const linkedContract = contracts.find((c: any) => c.proposal_id === proposal.id);
+
   const canSend = proposal.status === "draft";
   const canAccept = ["sent", "under_review"].includes(proposal.status);
+  const canReject = ["sent", "under_review"].includes(proposal.status);
+  const isFailed = proposal.status === "rejected";
 
   const handleSend = () => {
     updateProposal.mutate({
@@ -45,11 +53,20 @@ export default function SecurityProposalDetailPage() {
     convertProposalToContract.mutate(proposal);
   };
 
+  const handleReject = () => {
+    updateProposal.mutate({
+      id: proposal.id,
+      status: "rejected",
+    });
+  };
+
   const equipmentItems = Array.isArray(proposal.equipment_json) ? proposal.equipment_json : [];
+  const lead = proposal.security_leads as any;
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/security/proposals")}>
             <ArrowLeft className="h-5 w-5" />
@@ -65,6 +82,21 @@ export default function SecurityProposalDetailPage() {
             </p>
           </div>
           <Badge>{statusLabels[proposal.status] || proposal.status}</Badge>
+        </div>
+
+        {/* Pipeline Stepper */}
+        <SecurityPipelineStepper
+          currentStage="proposal"
+          requestId={lead?.partner_request_id}
+          leadId={proposal.lead_id}
+          proposalId={id}
+          contractId={linkedContract?.id}
+          systemId={linkedContract?.system_id}
+          isFailed={isFailed}
+        />
+
+        {/* Actions */}
+        <div className="flex gap-2 flex-wrap">
           {canSend && (
             <Button onClick={handleSend} disabled={updateProposal.isPending} className="gap-2">
               <Send className="h-4 w-4" />
@@ -72,12 +104,60 @@ export default function SecurityProposalDetailPage() {
             </Button>
           )}
           {canAccept && (
-            <Button onClick={handleAccept} disabled={convertProposalToContract.isPending} className="gap-2" variant="default">
+            <Button onClick={handleAccept} disabled={convertProposalToContract.isPending} className="gap-2">
               <CheckCircle className="h-4 w-4" />
               Adjudicar
             </Button>
           )}
+          {canReject && (
+            <Button variant="outline" onClick={handleReject} disabled={updateProposal.isPending} className="gap-2 text-destructive hover:text-destructive">
+              <XCircle className="h-4 w-4" />
+              Rejeitar
+            </Button>
+          )}
         </div>
+
+        {/* Origin Lead Card */}
+        {lead && (
+          <Card
+            className="cursor-pointer hover:border-primary/50 transition-colors"
+            onClick={() => navigate(`/dashboard/security/leads/${proposal.lead_id}`)}
+          >
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Target className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium text-sm">Lead de Origem</p>
+                  <p className="text-xs text-muted-foreground">
+                    {lead.client_name} · {lead.system_type} · {lead.status}
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Linked Contract */}
+        {linkedContract && (
+          <Card
+            className="cursor-pointer hover:border-primary/50 transition-colors"
+            onClick={() => navigate(`/dashboard/security/contracts/${linkedContract.id}`)}
+          >
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <div>
+                  <p className="font-medium text-sm">Contrato Adjudicado</p>
+                  <p className="text-xs text-muted-foreground">
+                    {linkedContract.contract_type} · {linkedContract.contract_status}
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>

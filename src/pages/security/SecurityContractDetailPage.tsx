@@ -2,11 +2,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useTranslation } from "react-i18next";
 import { useSecurityContract } from "@/hooks/security/useSecurityContracts";
+import { useSecurityContracts } from "@/hooks/security/useSecurityContracts";
 import { useSecurityConversions } from "@/hooks/security/useSecurityConversions";
+import { useSecurityProposal } from "@/hooks/security/useSecurityProposals";
+import { SecurityPipelineStepper } from "@/components/security/SecurityPipelineStepper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, Wrench, ArrowRight } from "lucide-react";
+import { ArrowLeft, FileText, Wrench, ArrowRight, Target, CheckCircle, PlayCircle } from "lucide-react";
 import { format } from "date-fns";
 
 const statusLabels: Record<string, string> = {
@@ -24,7 +27,11 @@ export default function SecurityContractDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: contract, isLoading } = useSecurityContract(id);
+  const { updateContract } = useSecurityContracts();
   const { convertContractToInstallation } = useSecurityConversions();
+
+  // Load linked proposal details
+  const { data: linkedProposal } = useSecurityProposal(contract?.proposal_id);
 
   if (isLoading || !contract) {
     return (
@@ -38,11 +45,26 @@ export default function SecurityContractDetailPage() {
   const site = sys?.security_installation_sites as any;
   const terms = (contract.commercial_terms_json || {}) as any;
   const canCreateInstallation = !contract.system_id && ["draft", "active"].includes(contract.contract_status);
+  const canActivate = contract.contract_status === "draft";
   const hasSystem = !!contract.system_id;
+
+  // Resolve lead info from proposal
+  const leadFromProposal = linkedProposal?.security_leads as any;
+  const leadId = contract.lead_id || linkedProposal?.lead_id;
+  const requestId = leadFromProposal?.partner_request_id;
+
+  const handleActivate = () => {
+    updateContract.mutate({
+      id: contract.id,
+      contract_status: "active",
+      start_date: new Date().toISOString().split("T")[0],
+    });
+  };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/security/contracts")}>
             <ArrowLeft className="h-5 w-5" />
@@ -57,8 +79,29 @@ export default function SecurityContractDetailPage() {
             </p>
           </div>
           <Badge>{statusLabels[contract.contract_status] || contract.contract_status}</Badge>
+        </div>
+
+        {/* Pipeline Stepper */}
+        <SecurityPipelineStepper
+          currentStage="contract"
+          requestId={requestId}
+          leadId={leadId}
+          proposalId={contract.proposal_id}
+          contractId={id}
+          systemId={contract.system_id}
+        />
+
+        {/* Actions */}
+        <div className="flex gap-2 flex-wrap">
+          {canActivate && (
+            <Button onClick={handleActivate} disabled={updateContract.isPending} className="gap-2">
+              <PlayCircle className="h-4 w-4" />
+              Ativar Contrato
+            </Button>
+          )}
           {canCreateInstallation && (
             <Button
+              variant={canActivate ? "outline" : "default"}
               onClick={() => convertContractToInstallation.mutate(contract)}
               disabled={convertContractToInstallation.isPending}
               className="gap-2"
@@ -76,6 +119,48 @@ export default function SecurityContractDetailPage() {
               Ver Instalação
               <ArrowRight className="h-4 w-4" />
             </Button>
+          )}
+        </div>
+
+        {/* Cross-links */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {leadId && (
+            <Card
+              className="cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => navigate(`/dashboard/security/leads/${leadId}`)}
+            >
+              <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Target className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-medium text-sm">Lead de Origem</p>
+                    <p className="text-xs text-muted-foreground">
+                      {leadFromProposal?.client_name || "Ver lead"}
+                    </p>
+                  </div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
+          )}
+          {contract.proposal_id && (
+            <Card
+              className="cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => navigate(`/dashboard/security/proposals/${contract.proposal_id}`)}
+            >
+              <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <div>
+                    <p className="font-medium text-sm">Proposta Adjudicada</p>
+                    <p className="text-xs text-muted-foreground">
+                      {linkedProposal?.title || linkedProposal?.proposal_number || "Ver proposta"}
+                    </p>
+                  </div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              </CardContent>
+            </Card>
           )}
         </div>
 
