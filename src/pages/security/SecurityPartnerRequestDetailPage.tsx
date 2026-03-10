@@ -102,9 +102,15 @@ export default function SecurityPartnerRequestDetailPage() {
                 {t("validate")}
               </Button>
             )}
-            {request.extraction_status === "validated" && (
-              <Button onClick={handleConvertToLead} className="gap-2">
+            {request.extraction_status === "validated" && !alreadyConverted && (
+              <Button onClick={handleConvertToLead} disabled={isConverting} className="gap-2">
+                {isConverting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {t("convertToLead")}
+              </Button>
+            )}
+            {alreadyConverted && (
+              <Button variant="outline" onClick={() => navigate(`/dashboard/security/leads/${(request as any).linked_security_lead_id}`)} className="gap-2">
+                Ver Lead
               </Button>
             )}
           </div>
