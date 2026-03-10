@@ -128,7 +128,7 @@ i18n
         settings: frSettings, landing: frLanding, inbox: frInbox,
         automations: frAutomations, intelligence: frIntelligence,
         invoices: frInvoices, products: frProducts, auth: frAuth, reports: frReports, meetings: frMeetings, ask: frAsk,
-        procurement: frProcurement, performance: frPerformance,
+        procurement: frProcurement, performance: frPerformance, marketplace: frMarketplace,
       },
     },
   });
