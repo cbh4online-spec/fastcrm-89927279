@@ -55,6 +55,11 @@ import {
   Radio,
   Phone,
   FileX,
+  Shield,
+  Camera,
+  Wrench,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 
 // --- Types ---
@@ -305,6 +310,27 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
         { nameKey: "systemHealth", name: t("systemHealth"), href: "/dashboard/system/health", icon: BarChart3, iconColor: "text-slate-500" },
         { nameKey: "eventMap", name: t("eventMap"), href: "/dashboard/system/events", icon: Radio, iconColor: "text-slate-500" },
         { nameKey: "toolsSettings", name: t("toolsSettings"), href: "/settings", icon: Settings, iconColor: "text-slate-500" },
+      ],
+    },
+    {
+      type: "group",
+      nameKey: "groupSecurity",
+      name: t("groupSecurity"),
+      icon: Shield,
+      moduleSlug: "security-ops",
+      iconColor: "text-red-600",
+      children: [
+        { nameKey: "securityDashboard", name: t("securityDashboard"), href: "/dashboard/security", icon: LayoutDashboard, iconColor: "text-red-600" },
+        { nameKey: "securityPartnerRequests", name: t("securityPartnerRequests"), href: "/dashboard/security/partner-requests", icon: ClipboardList, iconColor: "text-red-600" },
+        { nameKey: "securitySites", name: t("securitySites"), href: "/dashboard/security/sites", icon: Building2, iconColor: "text-red-600" },
+        { nameKey: "securitySystems", name: t("securitySystems"), href: "/dashboard/security/systems", icon: Camera, iconColor: "text-red-600" },
+        { nameKey: "securityEquipment", name: t("securityEquipment"), href: "/dashboard/security/equipment", icon: Camera, iconColor: "text-red-600" },
+        { nameKey: "securityContracts", name: t("securityContracts"), href: "/dashboard/security/contracts", icon: FileText, iconColor: "text-red-600" },
+        { nameKey: "securityDocuments", name: t("securityDocuments"), href: "/dashboard/security/documents", icon: FileText, iconColor: "text-red-600" },
+        { nameKey: "securityMaintenance", name: t("securityMaintenance"), href: "/dashboard/security/maintenance", icon: Wrench, iconColor: "text-red-600" },
+        { nameKey: "securityOccurrences", name: t("securityOccurrences"), href: "/dashboard/security/occurrences", icon: AlertTriangle, iconColor: "text-red-600" },
+        { nameKey: "securityRenewals", name: t("securityRenewals"), href: "/dashboard/security/renewals", icon: RefreshCw, iconColor: "text-red-600" },
+        { nameKey: "securityManagement", name: t("securityManagement"), href: "/dashboard/security/management", icon: BarChart3, iconColor: "text-red-600" },
       ],
     },
     {

@@ -195,6 +195,11 @@ import PerformanceSettingsPage from "./pages/performance/PerformanceSettingsPage
 import RenewalsPage from "./pages/RenewalsPage";
 import RenewalDetailPage from "./pages/RenewalDetailPage";
 
+// Security Ops
+import SecurityDashboardPage from "./pages/security/SecurityDashboardPage";
+import SecurityPartnerRequestsPage from "./pages/security/SecurityPartnerRequestsPage";
+import SecurityPartnerRequestDetailPage from "./pages/security/SecurityPartnerRequestDetailPage";
+
 // Procurement
 import ProcurementDashboardPage from "./pages/procurement/ProcurementDashboardPage";
 import SuppliersPage from "./pages/procurement/SuppliersPage";
@@ -635,6 +640,11 @@ function CRMRoutes() {
                 
                 {/* FastMatch Discovery (CRM) */}
                 <Route path="/dashboard/fastmatch" element={<FastMatchDiscoveryPage />} />
+
+                {/* Security Ops Routes */}
+                <Route path="/dashboard/security" element={<SecurityDashboardPage />} />
+                <Route path="/dashboard/security/partner-requests" element={<SecurityPartnerRequestsPage />} />
+                <Route path="/dashboard/security/partner-requests/:id" element={<SecurityPartnerRequestDetailPage />} />
 
                 {/* Student Journey Module Routes */}
                 <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />

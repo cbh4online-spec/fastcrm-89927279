@@ -31080,6 +31080,1040 @@ export type Database = {
           },
         ]
       }
+      security_audit_events: {
+        Row: {
+          action_type: string
+          correlation_id: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          new_state_json: Json | null
+          previous_state_json: Json | null
+          source: string | null
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action_type: string
+          correlation_id?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          new_state_json?: Json | null
+          previous_state_json?: Json | null
+          source?: string | null
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action_type?: string
+          correlation_id?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          new_state_json?: Json | null
+          previous_state_json?: Json | null
+          source?: string | null
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_audit_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_contracts: {
+        Row: {
+          commercial_terms_json: Json | null
+          company_id: string | null
+          contact_id: string | null
+          contract_status: string
+          contract_type: string
+          created_at: string
+          end_date: string | null
+          id: string
+          renewal_notice_days: number | null
+          signed_document_file_id: string | null
+          sla_json: Json | null
+          start_date: string | null
+          system_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          commercial_terms_json?: Json | null
+          company_id?: string | null
+          contact_id?: string | null
+          contract_status?: string
+          contract_type?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          renewal_notice_days?: number | null
+          signed_document_file_id?: string | null
+          sla_json?: Json | null
+          start_date?: string | null
+          system_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          commercial_terms_json?: Json | null
+          company_id?: string | null
+          contact_id?: string | null
+          contract_status?: string
+          contract_type?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          renewal_notice_days?: number | null
+          signed_document_file_id?: string | null
+          sla_json?: Json | null
+          start_date?: string | null
+          system_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_contracts_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "security_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_contracts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_documents: {
+        Row: {
+          contract_id: string | null
+          created_at: string
+          document_type: string
+          emitted_at: string | null
+          emitted_by: string | null
+          id: string
+          preview_file_id: string | null
+          rendered_file_id: string | null
+          signed_file_id: string | null
+          site_id: string | null
+          source_data_json: Json | null
+          status: string
+          system_id: string | null
+          template_key: string | null
+          updated_at: string
+          validation_notes: string | null
+          version_number: number | null
+          workspace_id: string
+        }
+        Insert: {
+          contract_id?: string | null
+          created_at?: string
+          document_type?: string
+          emitted_at?: string | null
+          emitted_by?: string | null
+          id?: string
+          preview_file_id?: string | null
+          rendered_file_id?: string | null
+          signed_file_id?: string | null
+          site_id?: string | null
+          source_data_json?: Json | null
+          status?: string
+          system_id?: string | null
+          template_key?: string | null
+          updated_at?: string
+          validation_notes?: string | null
+          version_number?: number | null
+          workspace_id: string
+        }
+        Update: {
+          contract_id?: string | null
+          created_at?: string
+          document_type?: string
+          emitted_at?: string | null
+          emitted_by?: string | null
+          id?: string
+          preview_file_id?: string | null
+          rendered_file_id?: string | null
+          signed_file_id?: string | null
+          site_id?: string | null
+          source_data_json?: Json | null
+          status?: string
+          system_id?: string | null
+          template_key?: string | null
+          updated_at?: string
+          validation_notes?: string | null
+          version_number?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_documents_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "security_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_documents_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "security_installation_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_documents_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "security_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_documents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_equipment_catalog: {
+        Row: {
+          active: boolean | null
+          brand: string
+          category: string
+          compatibility_notes: string | null
+          created_at: string
+          datasheet_file_id: string | null
+          id: string
+          model: string
+          reference: string | null
+          subtype: string | null
+          technical_specs_json: Json | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          brand: string
+          category?: string
+          compatibility_notes?: string | null
+          created_at?: string
+          datasheet_file_id?: string | null
+          id?: string
+          model: string
+          reference?: string | null
+          subtype?: string | null
+          technical_specs_json?: Json | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean | null
+          brand?: string
+          category?: string
+          compatibility_notes?: string | null
+          created_at?: string
+          datasheet_file_id?: string | null
+          id?: string
+          model?: string
+          reference?: string | null
+          subtype?: string | null
+          technical_specs_json?: Json | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_equipment_catalog_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_installation_sites: {
+        Row: {
+          access_notes: string | null
+          address_line_1: string | null
+          address_line_2: string | null
+          company_id: string | null
+          contact_id: string | null
+          country: string | null
+          county: string | null
+          created_at: string
+          district: string | null
+          establishment_type: string | null
+          id: string
+          locality: string | null
+          notes: string | null
+          onsite_responsible_email: string | null
+          onsite_responsible_name: string | null
+          onsite_responsible_phone: string | null
+          partner_id: string | null
+          postal_code: string | null
+          site_name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          access_notes?: string | null
+          address_line_1?: string | null
+          address_line_2?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          country?: string | null
+          county?: string | null
+          created_at?: string
+          district?: string | null
+          establishment_type?: string | null
+          id?: string
+          locality?: string | null
+          notes?: string | null
+          onsite_responsible_email?: string | null
+          onsite_responsible_name?: string | null
+          onsite_responsible_phone?: string | null
+          partner_id?: string | null
+          postal_code?: string | null
+          site_name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          access_notes?: string | null
+          address_line_1?: string | null
+          address_line_2?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          country?: string | null
+          county?: string | null
+          created_at?: string
+          district?: string | null
+          establishment_type?: string | null
+          id?: string
+          locality?: string | null
+          notes?: string | null
+          onsite_responsible_email?: string | null
+          onsite_responsible_name?: string | null
+          onsite_responsible_phone?: string | null
+          partner_id?: string | null
+          postal_code?: string | null
+          site_name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_installation_sites_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "security_partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_installation_sites_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_installed_devices: {
+        Row: {
+          brand: string | null
+          catalog_item_id: string | null
+          created_at: string
+          device_type: string
+          id: string
+          location_description: string | null
+          model: string | null
+          notes: string | null
+          quantity: number | null
+          reference: string | null
+          serial_number: string | null
+          system_id: string
+          updated_at: string
+          workspace_id: string
+          zone_id: string | null
+        }
+        Insert: {
+          brand?: string | null
+          catalog_item_id?: string | null
+          created_at?: string
+          device_type: string
+          id?: string
+          location_description?: string | null
+          model?: string | null
+          notes?: string | null
+          quantity?: number | null
+          reference?: string | null
+          serial_number?: string | null
+          system_id: string
+          updated_at?: string
+          workspace_id: string
+          zone_id?: string | null
+        }
+        Update: {
+          brand?: string | null
+          catalog_item_id?: string | null
+          created_at?: string
+          device_type?: string
+          id?: string
+          location_description?: string | null
+          model?: string | null
+          notes?: string | null
+          quantity?: number | null
+          reference?: string | null
+          serial_number?: string | null
+          system_id?: string
+          updated_at?: string
+          workspace_id?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_installed_devices_catalog_item_id_fkey"
+            columns: ["catalog_item_id"]
+            isOneToOne: false
+            referencedRelation: "security_equipment_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_installed_devices_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "security_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_installed_devices_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_installed_devices_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "security_system_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_maintenance_plans: {
+        Row: {
+          checklist_template_json: Json | null
+          contract_id: string | null
+          created_at: string
+          frequency_type: string
+          frequency_value: number | null
+          id: string
+          next_visit_at: string | null
+          responsible_team_id: string | null
+          sla_json: Json | null
+          status: string
+          system_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          checklist_template_json?: Json | null
+          contract_id?: string | null
+          created_at?: string
+          frequency_type?: string
+          frequency_value?: number | null
+          id?: string
+          next_visit_at?: string | null
+          responsible_team_id?: string | null
+          sla_json?: Json | null
+          status?: string
+          system_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          checklist_template_json?: Json | null
+          contract_id?: string | null
+          created_at?: string
+          frequency_type?: string
+          frequency_value?: number | null
+          id?: string
+          next_visit_at?: string | null
+          responsible_team_id?: string | null
+          sla_json?: Json | null
+          status?: string
+          system_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_maintenance_plans_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "security_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_maintenance_plans_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "security_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_maintenance_plans_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_maintenance_visits: {
+        Row: {
+          checklist_result_json: Json | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          maintenance_plan_id: string | null
+          notes: string | null
+          photos_json: Json | null
+          scheduled_at: string | null
+          started_at: string | null
+          system_id: string | null
+          technician_id: string | null
+          updated_at: string
+          visit_status: string
+          workspace_id: string
+        }
+        Insert: {
+          checklist_result_json?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          maintenance_plan_id?: string | null
+          notes?: string | null
+          photos_json?: Json | null
+          scheduled_at?: string | null
+          started_at?: string | null
+          system_id?: string | null
+          technician_id?: string | null
+          updated_at?: string
+          visit_status?: string
+          workspace_id: string
+        }
+        Update: {
+          checklist_result_json?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          maintenance_plan_id?: string | null
+          notes?: string | null
+          photos_json?: Json | null
+          scheduled_at?: string | null
+          started_at?: string | null
+          system_id?: string | null
+          technician_id?: string | null
+          updated_at?: string
+          visit_status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_maintenance_visits_maintenance_plan_id_fkey"
+            columns: ["maintenance_plan_id"]
+            isOneToOne: false
+            referencedRelation: "security_maintenance_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_maintenance_visits_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "security_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_maintenance_visits_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_occurrences: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          impact_on_client: string | null
+          installed_device_id: string | null
+          maintenance_visit_id: string | null
+          occurred_at: string | null
+          occurrence_origin: string
+          occurrence_type: string
+          resolution_summary: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          site_id: string | null
+          status: string
+          system_id: string | null
+          title: string
+          updated_at: string
+          workspace_id: string
+          zone_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          impact_on_client?: string | null
+          installed_device_id?: string | null
+          maintenance_visit_id?: string | null
+          occurred_at?: string | null
+          occurrence_origin?: string
+          occurrence_type?: string
+          resolution_summary?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          site_id?: string | null
+          status?: string
+          system_id?: string | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+          zone_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          impact_on_client?: string | null
+          installed_device_id?: string | null
+          maintenance_visit_id?: string | null
+          occurred_at?: string | null
+          occurrence_origin?: string
+          occurrence_type?: string
+          resolution_summary?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          site_id?: string | null
+          status?: string
+          system_id?: string | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_occurrences_installed_device_id_fkey"
+            columns: ["installed_device_id"]
+            isOneToOne: false
+            referencedRelation: "security_installed_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_occurrences_maintenance_visit_id_fkey"
+            columns: ["maintenance_visit_id"]
+            isOneToOne: false
+            referencedRelation: "security_maintenance_visits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_occurrences_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "security_installation_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_occurrences_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "security_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_occurrences_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_occurrences_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "security_system_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_partner_requests: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          extraction_confidence: number | null
+          extraction_status: string
+          id: string
+          linked_company_id: string | null
+          linked_lead_id: string | null
+          linked_opportunity_id: string | null
+          linked_site_id: string | null
+          missing_fields_json: Json | null
+          notes: string | null
+          parsed_payload_json: Json | null
+          partner_id: string | null
+          raw_text: string | null
+          source_channel: string
+          updated_at: string
+          updated_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          extraction_confidence?: number | null
+          extraction_status?: string
+          id?: string
+          linked_company_id?: string | null
+          linked_lead_id?: string | null
+          linked_opportunity_id?: string | null
+          linked_site_id?: string | null
+          missing_fields_json?: Json | null
+          notes?: string | null
+          parsed_payload_json?: Json | null
+          partner_id?: string | null
+          raw_text?: string | null
+          source_channel?: string
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          extraction_confidence?: number | null
+          extraction_status?: string
+          id?: string
+          linked_company_id?: string | null
+          linked_lead_id?: string | null
+          linked_opportunity_id?: string | null
+          linked_site_id?: string | null
+          missing_fields_json?: Json | null
+          notes?: string | null
+          parsed_payload_json?: Json | null
+          partner_id?: string | null
+          raw_text?: string | null
+          source_channel?: string
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_partner_requests_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "security_partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_partner_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_partners: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          default_contact_id: string | null
+          id: string
+          metadata: Json | null
+          name: string
+          notes: string | null
+          origin_channel_default: string | null
+          partner_code: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+          workspace_id: string
+          zone: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          default_contact_id?: string | null
+          id?: string
+          metadata?: Json | null
+          name: string
+          notes?: string | null
+          origin_channel_default?: string | null
+          partner_code?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id: string
+          zone?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          default_contact_id?: string | null
+          id?: string
+          metadata?: Json | null
+          name?: string
+          notes?: string | null
+          origin_channel_default?: string | null
+          partner_code?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id?: string
+          zone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_partners_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_renewals: {
+        Row: {
+          contract_id: string | null
+          created_at: string
+          id: string
+          owner_user_id: string | null
+          renewal_due_date: string | null
+          renewal_proposal_id: string | null
+          renewal_stage: string
+          result_notes: string | null
+          system_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          contract_id?: string | null
+          created_at?: string
+          id?: string
+          owner_user_id?: string | null
+          renewal_due_date?: string | null
+          renewal_proposal_id?: string | null
+          renewal_stage?: string
+          result_notes?: string | null
+          system_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          contract_id?: string | null
+          created_at?: string
+          id?: string
+          owner_user_id?: string | null
+          renewal_due_date?: string | null
+          renewal_proposal_id?: string | null
+          renewal_stage?: string
+          result_notes?: string | null
+          system_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_renewals_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "security_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_renewals_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "security_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_renewals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_system_zones: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          sort_order: number | null
+          system_id: string
+          updated_at: string
+          workspace_id: string
+          zone_name: string
+          zone_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          sort_order?: number | null
+          system_id: string
+          updated_at?: string
+          workspace_id: string
+          zone_name: string
+          zone_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          sort_order?: number | null
+          system_id?: string
+          updated_at?: string
+          workspace_id?: string
+          zone_name?: string
+          zone_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_system_zones_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "security_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_system_zones_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_systems: {
+        Row: {
+          commissioning_date: string | null
+          contract_id: string | null
+          created_at: string
+          id: string
+          installation_date: string | null
+          installer_company_name: string | null
+          installer_technician_id: string | null
+          integration_notes: string | null
+          lead_technician_id: string | null
+          lifecycle_type: string
+          main_brand: string | null
+          main_model: string | null
+          maintenance_company_name: string | null
+          opportunity_id: string | null
+          proposal_id: string | null
+          protected_zones_summary: string | null
+          site_id: string | null
+          status: string
+          system_type: string
+          technical_notes: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          commissioning_date?: string | null
+          contract_id?: string | null
+          created_at?: string
+          id?: string
+          installation_date?: string | null
+          installer_company_name?: string | null
+          installer_technician_id?: string | null
+          integration_notes?: string | null
+          lead_technician_id?: string | null
+          lifecycle_type?: string
+          main_brand?: string | null
+          main_model?: string | null
+          maintenance_company_name?: string | null
+          opportunity_id?: string | null
+          proposal_id?: string | null
+          protected_zones_summary?: string | null
+          site_id?: string | null
+          status?: string
+          system_type?: string
+          technical_notes?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          commissioning_date?: string | null
+          contract_id?: string | null
+          created_at?: string
+          id?: string
+          installation_date?: string | null
+          installer_company_name?: string | null
+          installer_technician_id?: string | null
+          integration_notes?: string | null
+          lead_technician_id?: string | null
+          lifecycle_type?: string
+          main_brand?: string | null
+          main_model?: string | null
+          maintenance_company_name?: string | null
+          opportunity_id?: string | null
+          proposal_id?: string | null
+          protected_zones_summary?: string | null
+          site_id?: string | null
+          status?: string
+          system_type?: string
+          technical_notes?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_systems_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "security_installation_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_systems_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seo_comparisons: {
         Row: {
           content: Json | null

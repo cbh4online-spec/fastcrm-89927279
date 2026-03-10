@@ -4,7 +4,7 @@
  * to Objects, Intelligence, and Automations pages.
  */
 
-import { LucideIcon, FileText, Receipt, Building2, ShoppingCart, GraduationCap, Landmark, Store, Users, Sparkles, Search, Globe, Instagram, BarChart3, Bot, Brain, MessageSquare, BookOpen, Lightbulb, Trophy, ScanText, Mail, Phone, Zap, Cpu, FileBarChart } from "lucide-react";
+import { LucideIcon, FileText, Receipt, Building2, ShoppingCart, GraduationCap, Landmark, Store, Users, Sparkles, Search, Globe, Instagram, BarChart3, Bot, Brain, MessageSquare, BookOpen, Lightbulb, Trophy, ScanText, Mail, Phone, Zap, Cpu, FileBarChart, Shield, Camera, Wrench, AlertTriangle } from "lucide-react";
 
 export interface ExtensionObjectTab {
   key: string;
@@ -30,7 +30,7 @@ export interface ExtensionAutomationTemplate {
   trigger: string;
 }
 
-export type ExtensionCategory = "Vendas" | "Comércio" | "Prospecção" | "Marketing" | "Educação" | "Portal" | "Comunidade" | "IA" | "Integrações";
+export type ExtensionCategory = "Vendas" | "Comércio" | "Prospecção" | "Marketing" | "Educação" | "Portal" | "Comunidade" | "IA" | "Integrações" | "Operações";
 
 export interface ExtensionDefinition {
   moduleSlug: string;
@@ -299,6 +299,24 @@ export const EXTENSION_REGISTRY: ExtensionDefinition[] = [
     category: "Integrações",
     objectTabs: [
       { key: "zapier-integration", label: "Zapier", icon: Zap, route: "/dashboard/zapier" },
+    ],
+  },
+  {
+    moduleSlug: "security-ops",
+    name: "Security Ops",
+    category: "Operações",
+    objectTabs: [
+      { key: "security-dashboard", label: "Security Ops", icon: Shield, route: "/dashboard/security" },
+      { key: "security-partner-requests", label: "Pedidos Parceiro", icon: FileText, route: "/dashboard/security/partner-requests" },
+      { key: "security-systems", label: "Sistemas", icon: Camera, route: "/dashboard/security/systems" },
+    ],
+    intelligenceCapabilities: [
+      { key: "security-extraction", label: "Extração de Pedidos", description: "Extração automática de dados de mensagens de parceiros", icon: ScanText },
+    ],
+    automationTemplates: [
+      { key: "security-request-validated", label: "Pedido Validado → Lead", description: "Criar lead/oportunidade quando pedido é validado", trigger: "security.partner_request.validated" },
+      { key: "security-contract-renewal", label: "Renovação de Contrato", description: "Alertar sobre contratos a renovar", trigger: "security.contract.renewal_due" },
+      { key: "security-occurrence-critical", label: "Ocorrência Crítica", description: "Alertar imediatamente sobre ocorrências críticas", trigger: "security.occurrence.critical" },
     ],
   },
 ];
