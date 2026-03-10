@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Play, Pause, ChevronRight, ChevronLeft, CheckCircle, Clock, Sparkles, Plus, X, Loader2 } from "lucide-react";
 import { useCreateBriefing, useVisionSprints } from "@/hooks/useVision";
+import { useSendDuoNotification } from "@/hooks/useVisionDuo";
 
 interface Props {
   visionId: string;
@@ -34,6 +35,7 @@ export function VisionDailyWizard({ visionId }: Props) {
   const startTimeRef = useRef<Date | null>(null);
 
   const createBriefing = useCreateBriefing();
+  const sendDuoNotification = useSendDuoNotification();
   const { data: sprints = [] } = useVisionSprints(visionId);
   const activeSprint = sprints.find(s => s.status === "active");
 
@@ -63,6 +65,13 @@ export function VisionDailyWizard({ visionId }: Props) {
       sprint_id: activeSprint?.id,
     }, {
       onSuccess: () => {
+        // Notify duo partners
+        sendDuoNotification.mutate({
+          visionId,
+          type: "briefing_completed",
+          title: "Briefing diário concluído ✅",
+          message: `O teu parceiro completou o briefing diário com energia ${energy}/10.`,
+        });
         setStarted(false);
         setCurrentStep(0);
         setTimer(50 * 60);

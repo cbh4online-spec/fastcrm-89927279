@@ -14,6 +14,7 @@ import { VisionDuoCard } from "./VisionDuoCard";
 import { VisionAICopilot } from "./VisionAICopilot";
 import { VisionSettingsPanel } from "./VisionSettingsPanel";
 import { VisionOnboarding } from "./VisionOnboarding";
+import { VisionDuoPartnerView } from "./VisionDuoPartnerView";
 
 export function VisionDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -72,7 +73,12 @@ export function VisionDashboard() {
           <TabsContent value="sprints"><VisionSprintTimeline visionId={vision.id} /></TabsContent>
           <TabsContent value="daily"><VisionDailyWizard visionId={vision.id} /></TabsContent>
           <TabsContent value="wins"><VisionWinsFeed visionId={vision.id} /></TabsContent>
-          <TabsContent value="duo"><VisionDuoCard visionId={vision.id} /></TabsContent>
+          <TabsContent value="duo">
+            <VisionDuoCard visionId={vision.id} />
+            <div className="mt-6">
+              <VisionDuoPartnerView />
+            </div>
+          </TabsContent>
           <TabsContent value="ai"><VisionAICopilot visionId={vision.id} /></TabsContent>
           <TabsContent value="metrics"><VisionMetricsPanel visionId={vision.id} /></TabsContent>
           <TabsContent value="settings"><VisionSettingsPanel vision={vision} /></TabsContent>

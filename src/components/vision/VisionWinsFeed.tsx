@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trophy, Plus, PartyPopper, Star, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useVisionWins, useCreateWin, useCelebrateWin } from "@/hooks/useVision";
+import { useSendDuoNotification } from "@/hooks/useVisionDuo";
 
 interface Props {
   visionId: string;
@@ -24,6 +25,7 @@ export function VisionWinsFeed({ visionId }: Props) {
   const { data: wins = [], isLoading } = useVisionWins(visionId);
   const createWin = useCreateWin();
   const celebrateWin = useCelebrateWin();
+  const sendDuoNotification = useSendDuoNotification();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -33,7 +35,15 @@ export function VisionWinsFeed({ visionId }: Props) {
   const handleCreate = () => {
     if (!title.trim()) return;
     createWin.mutate({ vision_id: visionId, title, description, category, impact_level: impact }, {
-      onSuccess: () => { setOpen(false); setTitle(""); setDescription(""); },
+      onSuccess: () => {
+        sendDuoNotification.mutate({
+          visionId,
+          type: "win_added",
+          title: "Nova vitória registada! 🎉",
+          message: `O teu parceiro registou uma vitória: "${title}"`,
+        });
+        setOpen(false); setTitle(""); setDescription("");
+      },
     });
   };
 
