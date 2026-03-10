@@ -137,15 +137,15 @@ export function SmartCompaniesTable() {
   const bulkRevenue = useBulkAnalyzeRevenue();
 
   const handleBulkRevenueAnalyze = async () => {
-    toast.loading("A analisar revenue intelligence...", { id: "revenue-analyze" });
+    toast.loading(t("analyzingRevenueIntelligence"), { id: "revenue-analyze" });
     try {
       const result = await bulkRevenue.mutateAsync(Array.from(selectedIds));
       toast.dismiss("revenue-analyze");
-      toast.success(`${result.successful} empresa(s) analisadas com Revenue Intelligence`);
+      toast.success(t("revenueAnalyzed", { count: result.successful }));
       setSelectedIds(new Set());
     } catch {
       toast.dismiss("revenue-analyze");
-      toast.error("Erro na análise de revenue");
+      toast.error(t("errorRevenueAnalysis"));
     }
   };
 
