@@ -227,12 +227,15 @@ export default function SecurityPartnerRequestDetailPage() {
               <div className="mt-6 pt-4 border-t">
                 <h4 className="text-sm font-medium mb-3">{t("quickActions")}</h4>
                 <div className="space-y-2">
-                  <Button variant="outline" size="sm" className="w-full justify-start" onClick={handleConvertToLead}>
-                    {t("convertToLead")}
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => toast.info("Fase 2")}>
-                    {t("convertToOpportunity")}
-                  </Button>
+                  {!alreadyConverted ? (
+                    <Button variant="outline" size="sm" className="w-full justify-start" onClick={handleConvertToLead} disabled={isConverting || request.extraction_status !== "validated"}>
+                      {t("convertToLead")}
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => navigate(`/dashboard/security/leads/${(request as any).linked_security_lead_id}`)}>
+                      Ver Lead Criado
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>
