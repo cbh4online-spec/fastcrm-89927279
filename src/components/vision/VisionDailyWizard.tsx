@@ -65,6 +65,13 @@ export function VisionDailyWizard({ visionId }: Props) {
       sprint_id: activeSprint?.id,
     }, {
       onSuccess: () => {
+        // Notify duo partners
+        sendDuoNotification.mutate({
+          visionId,
+          type: "briefing_completed",
+          title: "Briefing diário concluído ✅",
+          message: `O teu parceiro completou o briefing diário com energia ${energy}/10.`,
+        });
         setStarted(false);
         setCurrentStep(0);
         setTimer(50 * 60);
