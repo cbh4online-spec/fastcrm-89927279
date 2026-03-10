@@ -370,6 +370,17 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
         { nameKey: "igSettings", name: t("igSettings"), href: "/dashboard/instagram-looter/settings", icon: Cog, iconColor: "text-fuchsia-500" },
       ],
     },
+    {
+      type: "group",
+      nameKey: "groupMetodoVision",
+      name: t("groupMetodoVision"),
+      icon: Eye,
+      moduleSlug: "metodo-vision",
+      iconColor: "text-violet-500",
+      children: [
+        { nameKey: "visionDashboard", name: t("visionDashboard"), href: "/dashboard/vision", icon: Eye, iconColor: "text-violet-500" },
+      ],
+    },
   ];
 }
 
