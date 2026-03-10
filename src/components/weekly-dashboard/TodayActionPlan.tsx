@@ -5,8 +5,9 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Zap, ArrowRight, Phone, Mail, Calendar, RotateCcw } from "lucide-react";
+import { Zap, ArrowRight, Phone, Mail, Calendar, RotateCcw, ExternalLink, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface ActionItem {
   id: string;
@@ -19,6 +20,7 @@ interface ActionItem {
 }
 
 export function TodayActionPlan() {
+  const { t } = useTranslation("dashboard");
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const wid = currentWorkspace?.id;
@@ -34,7 +36,6 @@ export function TodayActionPlan() {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
       const [hotLeadsRes, stalledRes, proposalsRes] = await Promise.all([
-        // Hot leads not contacted recently
         supabase
           .from("leads")
           .select("id, name, lead_score")
@@ -43,7 +44,6 @@ export function TodayActionPlan() {
           .lt("updated_at", threeDaysAgo)
           .order("lead_score", { ascending: false })
           .limit(3),
-        // Stalled deals
         supabase
           .from("opportunities")
           .select("id, title, value")
@@ -52,7 +52,6 @@ export function TodayActionPlan() {
           .lt("updated_at", sevenDaysAgo)
           .order("value", { ascending: false })
           .limit(3),
-        // Proposals viewed (high view count)
         supabase
           .from("proposals")
           .select("id, title, opportunity_id, views_count")
@@ -65,46 +64,42 @@ export function TodayActionPlan() {
 
       const items: ActionItem[] = [];
 
-      // Hot leads
       for (const lead of (hotLeadsRes.data ?? []) as any[]) {
         items.push({
           id: `lead-${lead.id}`,
           type: "hot_lead",
-          title: `Ligar ${lead.name || "lead"}`,
-          subtitle: `Lead score ${lead.lead_score}`,
+          title: t("callLead", { name: lead.name || "lead" }),
+          subtitle: t("leadScoreLabel", { score: lead.lead_score }),
           icon: Phone,
           route: `/dashboard/leads/${lead.id}`,
           urgency: "high",
         });
       }
 
-      // Proposals viewed
       for (const prop of (proposalsRes.data ?? []) as any[]) {
         items.push({
           id: `prop-${prop.id}`,
           type: "proposal_viewed",
-          title: `Follow-up proposta ${prop.title || ""}`.trim(),
-          subtitle: `${prop.views_count} visualizações`,
+          title: t("followUpProposal", { title: prop.title || "" }).trim(),
+          subtitle: t("viewsCount", { count: prop.views_count }),
           icon: Mail,
           route: prop.opportunity_id ? `/dashboard/opportunities/${prop.opportunity_id}` : `/dashboard/inbox`,
           urgency: "high",
         });
       }
 
-      // Stalled deals
       for (const deal of (stalledRes.data ?? []) as any[]) {
         items.push({
           id: `deal-${deal.id}`,
           type: "stalled_deal",
-          title: `Reativar ${deal.title || "deal"}`,
-          subtitle: deal.value ? `€${deal.value.toLocaleString()}` : "Sem valor",
+          title: t("reactivateDeal", { title: deal.title || "deal" }),
+          subtitle: deal.value ? `€${deal.value.toLocaleString()}` : t("noValue"),
           icon: RotateCcw,
           route: `/dashboard/opportunities/${deal.id}`,
           urgency: "medium",
         });
       }
 
-      // Sort by urgency
       const urgencyOrder = { high: 0, medium: 1, low: 2 };
       items.sort((a, b) => urgencyOrder[a.urgency] - urgencyOrder[b.urgency]);
 
@@ -117,7 +112,7 @@ export function TodayActionPlan() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Zap className="h-4 w-4 text-primary" /> Plano de Ação — Hoje
+            <Zap className="h-4 w-4 text-primary" /> {t("todayActionPlan")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -134,13 +129,17 @@ export function TodayActionPlan() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Zap className="h-4 w-4 text-primary" /> Plano de Ação — Hoje
+            <Zap className="h-4 w-4 text-primary" /> {t("todayActionPlan")}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground text-center py-4">
-            Sem ações urgentes recomendadas para hoje. Pipeline estável.
-          </p>
+          <div className="flex flex-col items-center py-4 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success/10 mb-2">
+              <CheckCircle2 className="h-5 w-5 text-success" />
+            </div>
+            <p className="text-sm font-medium text-foreground mb-1">{t("noActionsToday")}</p>
+            <p className="text-xs text-muted-foreground max-w-xs">{t("noActionsTodayHint")}</p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -149,13 +148,23 @@ export function TodayActionPlan() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Zap className="h-4 w-4 text-primary" /> Plano de Ação — Hoje
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Zap className="h-4 w-4 text-primary" /> {t("todayActionPlan")}
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-[10px] text-muted-foreground hover:text-foreground gap-1"
+            onClick={() => navigate("/dashboard/tasks")}
+          >
+            {t("viewAll")} <ExternalLink className="h-3 w-3" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <p className="text-xs text-muted-foreground mb-3">
-          Hoje o sistema recomenda {actions.length} ações prioritárias:
+          {t("todayRecommends", { count: actions.length })}
         </p>
         <div className="space-y-1">
           {actions.map((action, i) => {

@@ -2,39 +2,71 @@ import { useIntelligencePanel } from "@/hooks/useIntelligencePanel";
 import { useWeeklyPerformance } from "@/hooks/useWeeklyPerformance";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Loader2, TrendingDown, Shield, AlertTriangle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Activity, Loader2, TrendingDown, Shield, AlertTriangle, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
 import { useTranslation } from "react-i18next";
+import { TFunction } from "i18next";
+
+/**
+ * Pipeline Health Score Configuration
+ * 
+ * Weights define how much each factor contributes to the final score (0-100):
+ * - STALLED_WEIGHT (40): High stagnation ratio penalizes heavily — stalled deals block revenue.
+ * - MISSING_DATA_WEIGHT (30): Missing close dates reduce forecast reliability.
+ * - COVERAGE_WEIGHT (30): Pipeline coverage vs target — 3x+ coverage is healthy.
+ * 
+ * Formula: score = 100 - (stalledRatio × STALLED_WEIGHT) - (missingDataRatio × MISSING_DATA_WEIGHT) + (normalizedCoverage × COVERAGE_WEIGHT)
+ * Coverage is normalized: min(coverageRatio, 3) / 3 so that 3x = full bonus.
+ * Result is clamped to 0-100.
+ * 
+ * Future: These weights can be read from workspace settings for customization.
+ */
+export const HEALTH_SCORE_WEIGHTS = {
+  STALLED_WEIGHT: 40,
+  MISSING_DATA_WEIGHT: 30,
+  COVERAGE_WEIGHT: 30,
+  COVERAGE_MAX: 3, // 3x coverage = max bonus
+} as const;
 
 function computeHealthScore(
   coverageRatio: number,
   stalledRatio: number,
   missingDataRatio: number
 ): number {
-  // Formula: 100 - stalled*40 - missing*30 + coverage*30, clamped 0-100
-  const raw = 100 - (stalledRatio * 40) - (missingDataRatio * 30) + (Math.min(coverageRatio, 3) / 3 * 30);
+  const { STALLED_WEIGHT, MISSING_DATA_WEIGHT, COVERAGE_WEIGHT, COVERAGE_MAX } = HEALTH_SCORE_WEIGHTS;
+  const raw = 100
+    - (stalledRatio * STALLED_WEIGHT)
+    - (missingDataRatio * MISSING_DATA_WEIGHT)
+    + (Math.min(coverageRatio, COVERAGE_MAX) / COVERAGE_MAX * COVERAGE_WEIGHT);
   return Math.max(0, Math.min(100, Math.round(raw)));
 }
 
-function getBusinessExplanation(score: number, stalledRatio: number, missingDataRatio: number, coverageRatio: number): { text: string; action: string } {
+function getBusinessExplanation(
+  t: TFunction,
+  score: number,
+  stalledRatio: number,
+  missingDataRatio: number,
+  coverageRatio: number
+): { text: string; action: string } {
   if (score >= 70) return {
-    text: `Pipeline saudável com cobertura de ${(coverageRatio).toFixed(1)}x. A maioria dos deals está a progredir normalmente.`,
-    action: "Manter cadência de follow-ups e focar em fechar deals maduros.",
+    text: t('healthyPipeline', { coverage: coverageRatio.toFixed(1) }),
+    action: t('healthyAction'),
   };
   if (score >= 40) {
     const reasons: string[] = [];
-    if (stalledRatio > 0.3) reasons.push(`${Math.round(stalledRatio * 100)}% dos deals estão estagnados`);
-    if (missingDataRatio > 0.2) reasons.push(`${Math.round(missingDataRatio * 100)}% sem data de fecho`);
-    if (coverageRatio < 2) reasons.push(`cobertura de pipeline baixa (${coverageRatio.toFixed(1)}x)`);
+    if (stalledRatio > 0.3) reasons.push(t('riskReasonStalled', { pct: Math.round(stalledRatio * 100) }));
+    if (missingDataRatio > 0.2) reasons.push(t('riskReasonMissing', { pct: Math.round(missingDataRatio * 100) }));
+    if (coverageRatio < 2) reasons.push(t('riskReasonCoverage', { ratio: coverageRatio.toFixed(1) }));
     return {
-      text: `Pipeline em risco — ${reasons.join(", ") || "vários indicadores abaixo do ideal"}.`,
-      action: "Priorizar contacto com deals parados e preencher dados em falta.",
+      text: t('riskPipeline', { reasons: reasons.join(", ") || t('riskPipelineFallback') }),
+      action: t('riskAction'),
     };
   }
   return {
-    text: `Pipeline crítico — estagnação alta (${Math.round(stalledRatio * 100)}%), dados incompletos e cobertura insuficiente.`,
-    action: "Requalificar pipeline: remover deals mortos e focar nos viáveis.",
+    text: t('criticalPipeline', { pct: Math.round(stalledRatio * 100) }),
+    action: t('criticalAction'),
   };
 }
 
@@ -67,21 +99,19 @@ export function PipelineHealthCard() {
   const totalDeals = data.total_open || 1;
   const pipelineValue = weeklyData?.pipelineValue ?? 0;
   const weeklyTarget = weeklyData?.metrics.find((m) => m.key === "revenue")?.target ?? 0;
-  const monthlyTarget = weeklyTarget * 4; // approximate
+  const monthlyTarget = weeklyTarget * 4;
 
-  // Compute ratios
   const coverageRatio = monthlyTarget > 0 ? pipelineValue / monthlyTarget : 0;
   const stalledRatio = data.portfolio_momentum
     ? data.portfolio_momentum.deals_stale / totalDeals
     : (dist.AT_RISK + dist.WATCH) / totalDeals;
   const missingDataRatio = data.data_quality.deals_missing_close_date / totalDeals;
 
-  // Compute score using formula
   const score = computeHealthScore(coverageRatio, stalledRatio, missingDataRatio);
   const label = score >= 70 ? t('healthy') : score >= 40 ? t('atRisk') : t('critical');
   const color = score >= 70 ? "text-success" : score >= 40 ? "text-warning" : "text-destructive";
 
-  const explanation = getBusinessExplanation(score, stalledRatio, missingDataRatio, coverageRatio);
+  const explanation = getBusinessExplanation(t, score, stalledRatio, missingDataRatio, coverageRatio);
   const atRiskCount = dist.AT_RISK + dist.WATCH;
   const avgDealValue = totalDeals > 0 ? pipelineValue / totalDeals : 0;
   const revenueAtRisk = atRiskCount * avgDealValue;
@@ -93,6 +123,16 @@ export function PipelineHealthCard() {
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Activity className="h-4 w-4" />
           {t('pipelineHealth')}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs text-xs">
+                {t('healthScoreTooltip')}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -110,9 +150,9 @@ export function PipelineHealthCard() {
         {/* Key ratios */}
         <div className="grid grid-cols-3 gap-2 text-center">
           {[
-            { label: "Cobertura", value: `${coverageRatio.toFixed(1)}x`, good: coverageRatio >= 3 },
-            { label: "Estagnação", value: `${Math.round(stalledRatio * 100)}%`, good: stalledRatio < 0.2 },
-            { label: "Dados", value: `${Math.round((1 - missingDataRatio) * 100)}%`, good: missingDataRatio < 0.1 },
+            { label: t('coverageLabel'), value: `${coverageRatio.toFixed(1)}x`, good: coverageRatio >= 3 },
+            { label: t('stagnationLabel'), value: `${Math.round(stalledRatio * 100)}%`, good: stalledRatio < 0.2 },
+            { label: t('dataLabel'), value: `${Math.round((1 - missingDataRatio) * 100)}%`, good: missingDataRatio < 0.1 },
           ].map((item) => (
             <div key={item.label}>
               <p className={cn("text-sm font-semibold", item.good ? "text-success" : "text-destructive")}>{item.value}</p>
@@ -141,15 +181,15 @@ export function PipelineHealthCard() {
           <div className="pt-2 border-t border-border/30 space-y-1.5">
             <div className="flex items-center gap-1.5">
               <TrendingDown className="h-3 w-3 text-destructive" />
-              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Impacto em Receita</p>
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{t('revenueImpact')}</p>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Valor em risco</span>
+              <span className="text-muted-foreground">{t('valueAtRisk')}</span>
               <span className="font-medium text-destructive">{formatCurrency(revenueAtRisk)}</span>
             </div>
             {targetImpactPct > 0 && (
               <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">% da meta semanal</span>
+                <span className="text-muted-foreground">{t('weeklyTargetPct')}</span>
                 <span className="font-medium text-destructive">{targetImpactPct}%</span>
               </div>
             )}

@@ -6,8 +6,10 @@ import { Newspaper, RefreshCw, ArrowRight, AlertTriangle, Lightbulb, Zap } from 
 import { useDailyBrief } from "@/hooks/useDailyBrief";
 import { useWeeklyPerformance } from "@/hooks/useWeeklyPerformance";
 import { formatRelativeTime, formatCurrency } from "@/lib/formatters";
+import { useTranslation } from "react-i18next";
 
 export function DailyBriefWidget() {
+  const { t } = useTranslation("dashboard");
   const navigate = useNavigate();
   const { todaysBrief, isLoading, isGenerating, generateDailyBrief } = useDailyBrief();
   const { data: weeklyData } = useWeeklyPerformance();
@@ -17,7 +19,7 @@ export function DailyBriefWidget() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
-            <Newspaper className="h-4 w-4 text-primary" /> Executive Daily Brief
+            <Newspaper className="h-4 w-4 text-primary" /> {t("executiveDailyBrief")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -34,13 +36,17 @@ export function DailyBriefWidget() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
-            <Newspaper className="h-4 w-4 text-primary" /> Executive Daily Brief
+            <Newspaper className="h-4 w-4 text-primary" /> {t("executiveDailyBrief")}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center py-6 text-center">
-          <p className="text-xs text-muted-foreground mb-3">Nenhum brief diário gerado.</p>
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/60 mb-2">
+            <Newspaper className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <p className="text-sm font-medium text-foreground mb-1">{t("noBriefGenerated")}</p>
+          <p className="text-xs text-muted-foreground mb-3 max-w-xs">{t("noBriefHint")}</p>
           <Button size="sm" onClick={generateDailyBrief} disabled={isGenerating}>
-            {isGenerating ? <><RefreshCw className="h-3 w-3 mr-1.5 animate-spin" /> A gerar...</> : "Gerar Brief"}
+            {isGenerating ? <><RefreshCw className="h-3 w-3 mr-1.5 animate-spin" /> {t("generating")}</> : t("generateBrief")}
           </Button>
         </CardContent>
       </Card>
@@ -59,7 +65,7 @@ export function DailyBriefWidget() {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
-            <Newspaper className="h-4 w-4 text-primary" /> Executive Daily Brief
+            <Newspaper className="h-4 w-4 text-primary" /> {t("executiveDailyBrief")}
           </CardTitle>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-muted-foreground">
@@ -82,14 +88,14 @@ export function DailyBriefWidget() {
           {/* Column 1: Summary + Weekly Status */}
           <div className="space-y-3">
             <div>
-              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Resumo</p>
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">{t("summary")}</p>
               {todaysBrief.summary && (
                 <p className="text-xs text-foreground leading-relaxed">{todaysBrief.summary}</p>
               )}
             </div>
             {weeklyStatus && (
               <div>
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Status Semanal</p>
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">{t("weeklyStatus")}</p>
                 <p className="text-xs text-foreground">{weeklyStatus}</p>
               </div>
             )}
@@ -101,7 +107,7 @@ export function DailyBriefWidget() {
               <div>
                 <div className="flex items-center gap-1 mb-1">
                   <AlertTriangle className="h-3 w-3 text-destructive" />
-                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Risco Principal</p>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{t("mainRisk")}</p>
                 </div>
                 <p className="text-xs text-foreground leading-relaxed">{todaysBrief.stuck_deals}</p>
               </div>
@@ -110,7 +116,7 @@ export function DailyBriefWidget() {
               <div>
                 <div className="flex items-center gap-1 mb-1">
                   <Lightbulb className="h-3 w-3 text-warning" />
-                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Oportunidade</p>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{t("opportunity")}</p>
                 </div>
                 <p className="text-xs text-foreground leading-relaxed">{todaysBrief.revenue_highlight}</p>
               </div>
@@ -123,7 +129,7 @@ export function DailyBriefWidget() {
               <div>
                 <div className="flex items-center gap-1 mb-1.5">
                   <Zap className="h-3 w-3 text-primary" />
-                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Ações para Hoje</p>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{t("todayActions")}</p>
                 </div>
                 <ul className="space-y-1.5">
                   {actions.map((a, i) => (
@@ -141,7 +147,7 @@ export function DailyBriefWidget() {
               className="h-7 text-xs w-full mt-3"
               onClick={() => navigate("/dashboard/daily-brief")}
             >
-              Ver completo <ArrowRight className="h-3 w-3 ml-1" />
+              {t("viewFull")} <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
           </div>
         </div>

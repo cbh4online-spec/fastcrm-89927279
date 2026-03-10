@@ -1,7 +1,8 @@
 import { useIntelligencePanel } from "@/hooks/useIntelligencePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Loader2, ArrowRight, Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, Loader2, ArrowRight, Info, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
@@ -37,27 +38,42 @@ export function DealsAtRiskList() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-destructive" />
-          {t('dealsAtRisk')}
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            {t('dealsAtRisk')}
+            {risks.length > 0 && (
+              <Badge variant="destructive" className="text-[10px] ml-1">{risks.length}</Badge>
+            )}
+          </CardTitle>
           {risks.length > 0 && (
-            <Badge variant="destructive" className="text-[10px] ml-auto">{risks.length}</Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 text-[10px] text-muted-foreground hover:text-foreground gap-1"
+              onClick={() => navigate("/dashboard/opportunities")}
+            >
+              {t('viewAll')} <ExternalLink className="h-3 w-3" />
+            </Button>
           )}
-        </CardTitle>
+        </div>
       </CardHeader>
       <CardContent>
         {risks.length === 0 && !noRisksButLowHealth ? (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            {t('noDealsAtRisk')}
-          </p>
+          <div className="flex flex-col items-center py-4 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success/10 mb-2">
+              <AlertTriangle className="h-5 w-5 text-success" />
+            </div>
+            <p className="text-sm font-medium text-foreground mb-1">{t('noDealsAtRisk')}</p>
+            <p className="text-xs text-muted-foreground max-w-xs">{t('noDealsAtRiskHint')}</p>
+          </div>
         ) : risks.length === 0 && noRisksButLowHealth ? (
           <div className="flex items-start gap-2 py-3 px-2 rounded-lg bg-warning/10 border border-warning/20">
             <Info className="h-4 w-4 text-warning shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-warning">Pipeline health a {healthScore}%</p>
+              <p className="text-sm font-medium text-warning">{t('pipelineHealthAt', { score: healthScore })}</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Nenhum deal individual sinalizado, mas a saúde geral está baixa.
-                Revise a qualidade dos dados ou a velocidade por etapa do pipeline.
+                {t('noIndividualDealsButLowHealth')}
               </p>
             </div>
           </div>

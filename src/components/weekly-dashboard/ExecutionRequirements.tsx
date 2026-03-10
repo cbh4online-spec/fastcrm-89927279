@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { WeeklyMetric } from "@/hooks/useWeeklyPerformance";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/formatters";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   metrics: WeeklyMetric[];
@@ -12,23 +13,32 @@ interface Props {
   isLoading: boolean;
 }
 
-// Default conversion ratios (can be overridden by workspace data later)
-const CONVERSION_RATIOS = {
-  lead_to_meeting: 0.4,    // 40% of leads become meetings
-  meeting_to_proposal: 0.5, // 50% of meetings generate proposals
-  proposal_to_deal: 0.3,    // 30% of proposals convert to deals
-};
-
-const metricConfig: Record<string, { label: string; icon: React.ReactNode }> = {
-  leads: { label: "Leads Qualificados", icon: <Users className="h-3.5 w-3.5" /> },
-  meetings: { label: "Reuniões", icon: <Calendar className="h-3.5 w-3.5" /> },
-  proposals: { label: "Propostas", icon: <FileText className="h-3.5 w-3.5" /> },
-  deals: { label: "Deals Fechados", icon: <Handshake className="h-3.5 w-3.5" /> },
+/**
+ * Default conversion ratios for the execution funnel.
+ * These can be overridden by workspace settings in the future.
+ * 
+ * - lead_to_meeting: 40% — percentage of qualified leads that convert to meetings
+ * - meeting_to_proposal: 50% — percentage of meetings that generate a proposal
+ * - proposal_to_deal: 30% — percentage of proposals that close as won deals
+ */
+export const CONVERSION_RATIOS = {
+  lead_to_meeting: 0.4,
+  meeting_to_proposal: 0.5,
+  proposal_to_deal: 0.3,
 };
 
 const order = ["leads", "meetings", "proposals", "deals"];
 
 export function ExecutionRequirements({ metrics, pipelineValue, isLoading }: Props) {
+  const { t } = useTranslation("dashboard");
+
+  const metricConfig: Record<string, { label: string; icon: React.ReactNode }> = {
+    leads: { label: t("qualifiedLeads"), icon: <Users className="h-3.5 w-3.5" /> },
+    meetings: { label: t("meetingsLabel"), icon: <Calendar className="h-3.5 w-3.5" /> },
+    proposals: { label: t("proposalsLabel"), icon: <FileText className="h-3.5 w-3.5" /> },
+    deals: { label: t("dealsLabel"), icon: <Handshake className="h-3.5 w-3.5" /> },
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -91,11 +101,11 @@ export function ExecutionRequirements({ metrics, pipelineValue, isLoading }: Pro
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Calculator className="h-4 w-4 text-primary" />
-            O que falta esta semana
+            {t("weeklyRemainingTitle")}
           </CardTitle>
           {hasGap && (
             <span className="text-[10px] text-muted-foreground">
-              Gap de {formatCurrency(revenueGap)} → estimativa baseada em conversão
+              {t("revenueGapLabel", { value: formatCurrency(revenueGap) })}
             </span>
           )}
         </div>
@@ -105,24 +115,24 @@ export function ExecutionRequirements({ metrics, pipelineValue, isLoading }: Pro
         {hasGap && avgDealValue > 0 && (
           <div className="rounded-lg bg-primary/5 border border-primary/10 p-4">
             <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">
-              🎯 Para atingir a meta esta semana precisamos de:
+              {t("targetGoalBanner")}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="text-center p-2 rounded-md bg-background/60">
                 <p className="text-xl font-bold text-foreground">+{leadsNeeded}</p>
-                <p className="text-[10px] text-muted-foreground">Leads</p>
+                <p className="text-[10px] text-muted-foreground">{t("leadsLabel")}</p>
               </div>
               <div className="text-center p-2 rounded-md bg-background/60">
                 <p className="text-xl font-bold text-foreground">+{meetingsNeeded}</p>
-                <p className="text-[10px] text-muted-foreground">Reuniões</p>
+                <p className="text-[10px] text-muted-foreground">{t("meetingsLabel")}</p>
               </div>
               <div className="text-center p-2 rounded-md bg-background/60">
                 <p className="text-xl font-bold text-foreground">+{proposalsNeeded}</p>
-                <p className="text-[10px] text-muted-foreground">Propostas</p>
+                <p className="text-[10px] text-muted-foreground">{t("proposalsLabel")}</p>
               </div>
               <div className="text-center p-2 rounded-md bg-background/60">
                 <p className="text-xl font-bold text-foreground">+{dealsNeeded}</p>
-                <p className="text-[10px] text-muted-foreground">Negócios</p>
+                <p className="text-[10px] text-muted-foreground">{t("dealsLabel")}</p>
               </div>
             </div>
           </div>
@@ -148,13 +158,13 @@ export function ExecutionRequirements({ metrics, pipelineValue, isLoading }: Pro
                   </span>
                 )}
                 <span className="text-xs text-muted-foreground">
-                  {item.done ? "Concluído" : `faltam (${item.actual}/${item.target})`}
+                  {item.done ? t("completed") : t("remaining", { actual: item.actual, target: item.target })}
                 </span>
               </div>
               {hasGap && item.gapBased > 0 && !item.done && (
                 <div className="flex items-center gap-1 text-[10px] text-primary">
                   <ArrowDown className="h-2.5 w-2.5" />
-                  <span>+{item.gapBased} estimados pelo gap</span>
+                  <span>{t("gapEstimate", { count: item.gapBased })}</span>
                 </div>
               )}
               {item.target > 0 && (

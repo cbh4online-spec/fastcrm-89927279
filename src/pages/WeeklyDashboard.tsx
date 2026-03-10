@@ -18,8 +18,10 @@ import { useDailyBrief } from "@/hooks/useDailyBrief";
 import { useKernelDecisions } from "@/hooks/useKernelDecisions";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Crosshair } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function WeeklyDashboard() {
+  const { t } = useTranslation("dashboard");
   const { data, isLoading } = useWeeklyPerformance();
   const { strategy, isLoading: strategyLoading, generate } = useWeeklyStrategy();
   const { todaysBrief, generateDailyBrief } = useDailyBrief();
@@ -52,9 +54,9 @@ export default function WeeklyDashboard() {
           <div className="flex items-center gap-3">
             <Crosshair className="h-5 w-5 text-primary" />
             <div>
-              <h2 className="text-lg font-semibold text-foreground">War Room</h2>
+              <h2 className="text-lg font-semibold text-foreground">{t("warRoom")}</h2>
               <p className="text-sm text-muted-foreground">
-                Semana {data?.weekLabel || "..."} · Dashboard de decisão operacional
+                {t("warRoomSubtitle", { week: data?.weekLabel || "..." })}
               </p>
             </div>
           </div>
@@ -68,7 +70,7 @@ export default function WeeklyDashboard() {
               className="gap-1.5"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${strategyLoading ? "animate-spin" : ""}`} />
-              Atualizar
+              {t("refresh")}
             </Button>
           </div>
         </div>
