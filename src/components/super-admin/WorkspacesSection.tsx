@@ -890,7 +890,13 @@ export function WorkspacesSection() {
               </div>
 
               <div className="border-t pt-4">
-                <p className="font-medium mb-3">Consumo atual</p>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-medium">Consumo atual</p>
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                    <Coins className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-semibold">{selectedWorkspace.credit_balance ?? 0} créditos</span>
+                  </div>
+                </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="text-sm text-muted-foreground">Leads</p>
