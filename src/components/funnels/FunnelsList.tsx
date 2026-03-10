@@ -756,7 +756,8 @@ export function FunnelsList() {
         </TabsContent>
 
         {/* Credits Tab */}
-        <TabsContent value="credits" className="mt-4">
+        <TabsContent value="credits" className="mt-4 space-y-6">
+          <CreditPurchasePanel />
           <CreditLedgerPanel />
         </TabsContent>
       </Tabs>
