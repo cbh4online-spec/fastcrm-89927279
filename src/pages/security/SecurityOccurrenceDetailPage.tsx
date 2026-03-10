@@ -1,28 +1,52 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useTranslation } from "react-i18next";
-import { useSecurityOccurrence, useSecurityOccurrences } from "@/hooks/security/useSecurityOccurrences";
+import { useSecurityOccurrence, useSecurityOccurrences, useOccurrenceActivities } from "@/hooks/security/useSecurityOccurrences";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, AlertTriangle, MapPin, Clock, CheckCircle } from "lucide-react";
-import { format } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  ArrowLeft, AlertTriangle, MapPin, Clock, CheckCircle,
+  ArrowUpCircle, MessageSquare, Send, Wrench, Timer, ShieldAlert
+} from "lucide-react";
+import { format, differenceInHours, differenceInMinutes, isPast } from "date-fns";
 import { useState } from "react";
+
+const severityConfig: Record<string, { color: string; slaResponse: number; slaResolution: number }> = {
+  critical: { color: "destructive", slaResponse: 1, slaResolution: 4 },
+  high: { color: "destructive", slaResponse: 4, slaResolution: 24 },
+  medium: { color: "default", slaResponse: 8, slaResolution: 48 },
+  low: { color: "secondary", slaResponse: 24, slaResolution: 72 },
+};
+
+const activityIcons: Record<string, any> = {
+  status_change: ArrowUpCircle,
+  note: MessageSquare,
+  escalation: ShieldAlert,
+};
 
 export default function SecurityOccurrenceDetailPage() {
   const { t } = useTranslation("security");
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: occ, isLoading } = useSecurityOccurrence(id);
-  const { updateOccurrence, closeOccurrence } = useSecurityOccurrences();
+  const { updateOccurrence, closeOccurrence, escalateOccurrence, addOccurrenceNote } = useSecurityOccurrences();
+  const { data: activities = [] } = useOccurrenceActivities(id);
   const [resolution, setResolution] = useState("");
   const [newStatus, setNewStatus] = useState("");
+  const [noteText, setNoteText] = useState("");
+  const [escalateOpen, setEscalateOpen] = useState(false);
+  const [escalateReason, setEscalateReason] = useState("");
 
   if (isLoading) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">A carregar...</div></DashboardLayout>;
   if (!occ) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">Ocorrência não encontrada.</div></DashboardLayout>;
@@ -33,14 +57,54 @@ export default function SecurityOccurrenceDetailPage() {
   const device = occ.security_installed_devices as any;
   const isClosed = occ.status === "closed" || occ.status === "cancelled";
 
+  // SLA calculations
+  const now = new Date();
+  const slaResponseDeadline = (occ as any).sla_response_deadline ? new Date((occ as any).sla_response_deadline) : null;
+  const slaResolutionDeadline = (occ as any).sla_resolution_deadline ? new Date((occ as any).sla_resolution_deadline) : null;
+  const slaResponseMet = (occ as any).sla_response_met;
+  const slaResolutionMet = (occ as any).sla_resolution_met;
+  const firstResponseAt = (occ as any).first_response_at;
+  const escalationLevel = (occ as any).escalation_level || 0;
+
+  const responseTimeLeft = slaResponseDeadline && !firstResponseAt ? differenceInMinutes(slaResponseDeadline, now) : null;
+  const resolutionTimeLeft = slaResolutionDeadline && occ.status !== "closed" && occ.status !== "resolved" ? differenceInMinutes(slaResolutionDeadline, now) : null;
+
+  const getProgressValue = (deadline: Date | null, createdAt: string) => {
+    if (!deadline) return 0;
+    const total = differenceInMinutes(deadline, new Date(createdAt));
+    const elapsed = differenceInMinutes(now, new Date(createdAt));
+    return Math.min(Math.max((elapsed / total) * 100, 0), 100);
+  };
+
+  const formatTimeLeft = (mins: number | null) => {
+    if (mins === null) return "—";
+    if (mins <= 0) return "Expirado";
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  };
+
   const handleStatusChange = (status: string) => {
     setNewStatus(status);
-    if (status === "closed") return; // handled by dialog
+    if (status === "closed") return;
     updateOccurrence.mutate({ id: occ.id, status });
   };
 
   const handleClose = () => {
     closeOccurrence.mutate({ id: occ.id, resolution_summary: resolution });
+  };
+
+  const handleAddNote = () => {
+    if (!noteText.trim()) return;
+    addOccurrenceNote.mutate({ occurrenceId: occ.id, workspaceId: occ.workspace_id, note: noteText });
+    setNoteText("");
+  };
+
+  const handleEscalate = () => {
+    if (!escalateReason.trim()) return;
+    escalateOccurrence.mutate({ id: occ.id, reason: escalateReason });
+    setEscalateOpen(false);
+    setEscalateReason("");
   };
 
   return (
@@ -58,13 +122,18 @@ export default function SecurityOccurrenceDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {escalationLevel > 0 && (
+              <Badge variant="destructive" className="gap-1">
+                <ShieldAlert className="h-3 w-3" /> Nível {escalationLevel}
+              </Badge>
+            )}
             {occ.severity && (
               <Badge variant={occ.severity === "critical" ? "destructive" : "outline"}>
-                {t(`severity${occ.severity.charAt(0).toUpperCase()}${occ.severity.slice(1)}` as any)}
+                {occ.severity}
               </Badge>
             )}
             <Badge variant={occ.status === "open" ? "destructive" : "default"}>
-              {t(`occurrenceStatus${occ.status.charAt(0).toUpperCase()}${occ.status.slice(1).replace(/_([a-z])/g, (_: any, c: string) => c.toUpperCase())}` as any) || occ.status}
+              {occ.status}
             </Badge>
           </div>
         </div>
@@ -72,6 +141,86 @@ export default function SecurityOccurrenceDetailPage() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            {/* SLA Tracking */}
+            {!isClosed && (slaResponseDeadline || slaResolutionDeadline) && (
+              <Card className={
+                (responseTimeLeft !== null && responseTimeLeft <= 0) || (resolutionTimeLeft !== null && resolutionTimeLeft <= 0)
+                  ? "border-destructive/50"
+                  : ""
+              }>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Timer className="h-4 w-4" /> SLA Tracking
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Response SLA */}
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-muted-foreground">Tempo de Resposta</span>
+                      {firstResponseAt ? (
+                        <span className="flex items-center gap-1">
+                          <CheckCircle className="h-3 w-3 text-emerald-500" />
+                          Respondida em {differenceInMinutes(new Date(firstResponseAt), new Date(occ.created_at))}m
+                        </span>
+                      ) : (
+                        <span className={responseTimeLeft !== null && responseTimeLeft <= 0 ? "text-destructive font-medium" : ""}>
+                          {formatTimeLeft(responseTimeLeft)}
+                        </span>
+                      )}
+                    </div>
+                    <Progress
+                      value={firstResponseAt ? 100 : getProgressValue(slaResponseDeadline, occ.created_at)}
+                      className={`h-2 ${firstResponseAt ? "[&>div]:bg-emerald-500" : responseTimeLeft !== null && responseTimeLeft <= 0 ? "[&>div]:bg-destructive" : ""}`}
+                    />
+                  </div>
+                  {/* Resolution SLA */}
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-muted-foreground">Tempo de Resolução</span>
+                      <span className={resolutionTimeLeft !== null && resolutionTimeLeft <= 0 ? "text-destructive font-medium" : ""}>
+                        {formatTimeLeft(resolutionTimeLeft)}
+                      </span>
+                    </div>
+                    <Progress
+                      value={getProgressValue(slaResolutionDeadline, occ.created_at)}
+                      className={`h-2 ${resolutionTimeLeft !== null && resolutionTimeLeft <= 0 ? "[&>div]:bg-destructive" : ""}`}
+                    />
+                  </div>
+                  {slaResponseDeadline && (
+                    <p className="text-[10px] text-muted-foreground">
+                      SLA Resposta: {(occ as any).sla_response_hours}h · SLA Resolução: {(occ as any).sla_resolution_hours}h
+                      {slaResolutionDeadline && ` · Prazo: ${format(slaResolutionDeadline, "dd/MM HH:mm")}`}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* SLA Result (closed) */}
+            {isClosed && (slaResponseMet !== null || slaResolutionMet !== null) && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Timer className="h-4 w-4" /> Resultado SLA
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-6">
+                    <div className="flex items-center gap-2">
+                      {slaResponseMet ? <CheckCircle className="h-4 w-4 text-emerald-500" /> : <AlertTriangle className="h-4 w-4 text-destructive" />}
+                      <span className="text-sm">Resposta {slaResponseMet ? "dentro do SLA" : "fora do SLA"}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {slaResolutionMet ? <CheckCircle className="h-4 w-4 text-emerald-500" /> : <AlertTriangle className="h-4 w-4 text-destructive" />}
+                      <span className="text-sm">Resolução {slaResolutionMet ? "dentro do SLA" : "fora do SLA"}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Details */}
             <Card>
               <CardHeader><CardTitle className="text-base">{t("details")}</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
@@ -85,11 +234,11 @@ export default function SecurityOccurrenceDetailPage() {
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div>
                     <span className="text-muted-foreground text-xs">Tipo</span>
-                    <p>{t(`occurrenceType${occ.occurrence_type?.charAt(0).toUpperCase()}${occ.occurrence_type?.slice(1)}` as any) || occ.occurrence_type}</p>
+                    <p className="capitalize">{occ.occurrence_type}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground text-xs">Origem</span>
-                    <p>{t(`occurrenceOrigin${occ.occurrence_origin?.charAt(0).toUpperCase()}${occ.occurrence_origin?.slice(1)}` as any) || occ.occurrence_origin}</p>
+                    <p className="capitalize">{occ.occurrence_origin}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground text-xs">Data</span>
@@ -97,7 +246,7 @@ export default function SecurityOccurrenceDetailPage() {
                   </div>
                   <div>
                     <span className="text-muted-foreground text-xs">Sistema</span>
-                    <p>{sys?.system_type || "—"}</p>
+                    <p className="capitalize">{sys?.system_type || "—"}</p>
                   </div>
                   {zone && (
                     <div>
@@ -118,13 +267,63 @@ export default function SecurityOccurrenceDetailPage() {
             {/* Resolution */}
             {occ.resolution_summary && (
               <Card>
-                <CardHeader><CardTitle className="text-base flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-500" /> Resolução</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-500" /> Resolução</CardTitle></CardHeader>
                 <CardContent className="text-sm">
                   <p>{occ.resolution_summary}</p>
                   {occ.resolved_at && <p className="text-xs text-muted-foreground mt-2">Resolvida em {format(new Date(occ.resolved_at), "dd/MM/yyyy HH:mm")}</p>}
                 </CardContent>
               </Card>
             )}
+
+            {/* Activity Timeline */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Clock className="h-4 w-4" /> Histórico de Atividade
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {activities.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sem atividade registada</p>
+                ) : (
+                  <div className="relative pl-6 space-y-4">
+                    <div className="absolute left-2.5 top-1 bottom-1 w-px bg-border" />
+                    {activities.map((act: any) => {
+                      const Icon = activityIcons[act.activity_type] || MessageSquare;
+                      const isEscalation = act.activity_type === "escalation";
+                      return (
+                        <div key={act.id} className="relative">
+                          <div className={`absolute -left-6 top-0.5 w-5 h-5 rounded-full flex items-center justify-center ${isEscalation ? "bg-destructive/10" : "bg-muted"}`}>
+                            <Icon className={`h-3 w-3 ${isEscalation ? "text-destructive" : "text-muted-foreground"}`} />
+                          </div>
+                          <div>
+                            <p className="text-sm">{act.description}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              {format(new Date(act.created_at), "dd/MM/yyyy HH:mm")}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Add note */}
+                {!isClosed && (
+                  <div className="flex gap-2 mt-4 pt-4 border-t">
+                    <Input
+                      value={noteText}
+                      onChange={(e) => setNoteText(e.target.value)}
+                      placeholder="Adicionar nota..."
+                      onKeyDown={(e) => e.key === "Enter" && handleAddNote()}
+                    />
+                    <Button size="icon" onClick={handleAddNote} disabled={!noteText.trim() || addOccurrenceNote.isPending}>
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Sidebar */}
@@ -137,12 +336,28 @@ export default function SecurityOccurrenceDetailPage() {
                   <Select value={newStatus || occ.status} onValueChange={handleStatusChange}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="open">{t("occurrenceStatusOpen")}</SelectItem>
-                      <SelectItem value="in_progress">{t("occurrenceStatusInProgress")}</SelectItem>
-                      <SelectItem value="waiting_parts">{t("occurrenceStatusWaitingParts")}</SelectItem>
-                      <SelectItem value="resolved">{t("occurrenceStatusResolved")}</SelectItem>
+                      <SelectItem value="open">Aberta</SelectItem>
+                      <SelectItem value="in_progress">Em Progresso</SelectItem>
+                      <SelectItem value="waiting_parts">A Aguardar Peças</SelectItem>
+                      <SelectItem value="resolved">Resolvida</SelectItem>
                     </SelectContent>
                   </Select>
+
+                  {/* Escalate */}
+                  <Button variant="outline" className="w-full gap-2 text-destructive" onClick={() => setEscalateOpen(true)}>
+                    <ShieldAlert className="h-4 w-4" />
+                    Escalar (Nível {escalationLevel + 1})
+                  </Button>
+
+                  {/* Create maintenance visit */}
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={() => navigate(`/dashboard/security/maintenance?system=${occ.system_id}`)}
+                  >
+                    <Wrench className="h-4 w-4" />
+                    Criar Visita Corretiva
+                  </Button>
 
                   <div className="pt-2 border-t">
                     <Textarea
@@ -177,7 +392,7 @@ export default function SecurityOccurrenceDetailPage() {
               </Card>
             )}
 
-            {/* Location Info */}
+            {/* Location */}
             {site && (
               <Card>
                 <CardHeader>
@@ -207,6 +422,18 @@ export default function SecurityOccurrenceDetailPage() {
                     <span>{format(new Date(occ.occurred_at), "dd/MM/yyyy HH:mm")}</span>
                   </div>
                 )}
+                {firstResponseAt && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">1ª Resposta</span>
+                    <span>{format(new Date(firstResponseAt), "dd/MM/yyyy HH:mm")}</span>
+                  </div>
+                )}
+                {(occ as any).escalated_at && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Escalada</span>
+                    <span>{format(new Date((occ as any).escalated_at), "dd/MM/yyyy HH:mm")}</span>
+                  </div>
+                )}
                 {occ.resolved_at && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Resolvida</span>
@@ -218,6 +445,33 @@ export default function SecurityOccurrenceDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Escalation Dialog */}
+      <Dialog open={escalateOpen} onOpenChange={setEscalateOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Escalar Ocorrência</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              A ocorrência será escalada para o nível {escalationLevel + 1}. Indique o motivo da escalação.
+            </p>
+            <div>
+              <Label>Motivo</Label>
+              <Textarea
+                value={escalateReason}
+                onChange={(e) => setEscalateReason(e.target.value)}
+                rows={3}
+                placeholder="Ex: Sem resposta do técnico, impacto no cliente..."
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEscalateOpen(false)}>Cancelar</Button>
+              <Button variant="destructive" onClick={handleEscalate} disabled={!escalateReason.trim() || escalateOccurrence.isPending}>
+                Escalar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
