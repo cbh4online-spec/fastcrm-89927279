@@ -12,9 +12,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, FileText, CheckCircle, Send, Copy, Clock, Shield } from "lucide-react";
+import { ArrowLeft, FileText, CheckCircle, Send, Copy, Clock, Shield, Download } from "lucide-react";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 const docTypeLabels: Record<string, string> = {
   installation_certificate: "Certificado de Instalação",
@@ -35,6 +35,8 @@ export default function SecurityDocumentDetailPage() {
   const { data: doc, isLoading } = useSecurityDocument(id);
   const { validateDocument, emitDocument, updateDocument, createNewVersion } = useSecurityDocuments();
   const [validationNotes, setValidationNotes] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const system = doc?.security_systems as any;
   const site = system?.security_installation_sites as any;
@@ -74,6 +76,27 @@ export default function SecurityDocumentDetailPage() {
 
   const handleNewVersion = () => {
     createNewVersion.mutate({ originalId: doc.id, source_data_json: doc.source_data_json });
+  };
+
+  const handleExportPDF = async () => {
+    if (!previewRef.current) return;
+    setExporting(true);
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const jsPDF = (await import("jspdf")).default;
+      const canvas = await html2canvas(previewRef.current, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pdfW = pdf.internal.pageSize.getWidth();
+      const pdfH = (canvas.height * pdfW) / canvas.width;
+      pdf.addImage(imgData, "PNG", 0, 0, pdfW, pdfH);
+      const docLabel = docTypeLabels[doc.document_type] || doc.document_type;
+      pdf.save(`${docLabel}_v${doc.version_number || 1}.pdf`);
+    } catch (e) {
+      console.error("PDF export error:", e);
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -132,7 +155,7 @@ export default function SecurityDocumentDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-muted/30 rounded-lg p-6 min-h-[400px] border">
+                <div ref={previewRef} className="bg-muted/30 rounded-lg p-6 min-h-[400px] border">
                   {/* Rendered document preview based on source_data_json */}
                   <DocumentPreview
                     documentType={doc.document_type}
@@ -245,6 +268,13 @@ export default function SecurityDocumentDetailPage() {
                     disabled={createNewVersion.isPending}>
                     <Copy className="h-4 w-4" />
                     Criar Nova Versão
+                  </Button>
+                )}
+
+                {(doc.status === "emitted" || doc.status === "signed") && (
+                  <Button onClick={handleExportPDF} variant="outline" className="w-full gap-2" disabled={exporting}>
+                    <Download className="h-4 w-4" />
+                    {exporting ? "A exportar..." : "Exportar PDF"}
                   </Button>
                 )}
               </CardContent>
@@ -511,6 +541,112 @@ function DocumentPreview({
             <p className="text-xs text-muted-foreground italic">Os registos de ocorrências serão preenchidos aqui...</p>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (documentType === "technical_sheet") {
+    return (
+      <div className="space-y-4 text-sm">
+        <div className="text-center border-b pb-4">
+          <h2 className="text-lg font-bold uppercase">Ficha Técnica do Sistema</h2>
+          <p className="text-xs text-muted-foreground mt-1">Sistema de Segurança Eletrónica</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Tipo de Sistema</p>
+            <p className="capitalize">{system?.system_type || "—"}</p>
+          </div>
+          <div>
+            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Marca / Modelo Principal</p>
+            <p>{[system?.main_brand, system?.main_model].filter(Boolean).join(" ") || "—"}</p>
+          </div>
+          <div>
+            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Local</p>
+            <p>{site?.site_name || "—"}</p>
+            <p className="text-xs">{site?.address_line_1}</p>
+            <p className="text-xs">{[site?.postal_code, site?.locality].filter(Boolean).join(" ")}</p>
+          </div>
+          <div>
+            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Proprietário / Cliente</p>
+            <p>{sd.client_name || sd.owner_name || site?.onsite_responsible_name || "—"}</p>
+            {sd.client_nif && <p className="text-xs">NIF: {sd.client_nif}</p>}
+          </div>
+          <div>
+            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Entidade Instaladora</p>
+            <p>{sd.installer_company || system?.installer_company_name || "—"}</p>
+          </div>
+          <div>
+            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Empresa de Manutenção</p>
+            <p>{sd.maintenance_company || system?.maintenance_company_name || "—"}</p>
+          </div>
+          <div>
+            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Data de Instalação</p>
+            <p>{system?.installation_date ? format(new Date(system.installation_date), "dd/MM/yyyy") : "—"}</p>
+          </div>
+          <div>
+            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Comissionamento</p>
+            <p>{system?.commissioning_date ? format(new Date(system.commissioning_date), "dd/MM/yyyy") : "—"}</p>
+          </div>
+        </div>
+
+        {zones.length > 0 && (
+          <div className="pt-4 border-t">
+            <p className="font-semibold text-xs text-muted-foreground uppercase mb-2">Zonas Protegidas</p>
+            <div className="flex flex-wrap gap-2">
+              {zones.map((z: any, i: number) => (
+                <span key={i} className="px-2 py-1 rounded bg-muted text-xs">{z.zone_name} ({z.zone_type})</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {devices.length > 0 && (
+          <div className="pt-4 border-t">
+            <p className="font-semibold text-xs text-muted-foreground uppercase mb-2">Lista de Equipamentos</p>
+            <div className="border rounded overflow-hidden">
+              <table className="w-full text-xs">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="text-left p-2">Zona</th>
+                    <th className="text-left p-2">Tipo</th>
+                    <th className="text-left p-2">Marca</th>
+                    <th className="text-left p-2">Modelo</th>
+                    <th className="text-left p-2">S/N</th>
+                    <th className="text-right p-2">Qtd</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {devices.map((d: any, i: number) => (
+                    <tr key={i} className="border-t">
+                      <td className="p-2">{d.security_system_zones?.zone_name || "—"}</td>
+                      <td className="p-2 capitalize">{d.device_type || "—"}</td>
+                      <td className="p-2">{d.brand || d.security_equipment_catalog?.brand || "—"}</td>
+                      <td className="p-2">{d.model || d.security_equipment_catalog?.model || "—"}</td>
+                      <td className="p-2 font-mono">{d.serial_number || "—"}</td>
+                      <td className="p-2 text-right">{d.quantity ?? 1}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {system?.integration_notes && (
+          <div className="pt-4 border-t">
+            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Integração com Outros Sistemas</p>
+            <p className="text-xs">{system.integration_notes}</p>
+          </div>
+        )}
+
+        {system?.technical_notes && (
+          <div className="pt-4 border-t">
+            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Notas Técnicas</p>
+            <p className="text-xs">{system.technical_notes}</p>
+          </div>
+        )}
       </div>
     );
   }

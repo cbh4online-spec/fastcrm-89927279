@@ -12,18 +12,26 @@ import { useNavigate } from "react-router-dom";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultSystemId?: string;
 }
 
-export function SecurityDocumentCreateDialog({ open, onOpenChange }: Props) {
+export function SecurityDocumentCreateDialog({ open, onOpenChange, defaultSystemId }: Props) {
   const { t } = useTranslation("security");
   const { createDocument } = useSecurityDocuments();
   const { systems } = useSecuritySystems();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    system_id: "",
+    system_id: defaultSystemId || "",
     document_type: "",
     validation_notes: "",
+  });
+
+  // Sync defaultSystemId when dialog opens
+  useState(() => {
+    if (defaultSystemId && open) {
+      setForm(p => ({ ...p, system_id: defaultSystemId }));
+    }
   });
 
   const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
@@ -43,9 +51,10 @@ export function SecurityDocumentCreateDialog({ open, onOpenChange }: Props) {
 
     const selectedSystem = systems.find((s: any) => s.id === form.system_id) as any;
     const site = selectedSystem?.security_installation_sites;
+    const client = selectedSystem?.security_clients;
 
-    // Build source_data_json from system info
-    const source_data_json = {
+    // Build source_data_json from system + client info
+    const source_data_json: Record<string, any> = {
       system_type: selectedSystem?.system_type,
       main_brand: selectedSystem?.main_brand,
       main_model: selectedSystem?.main_model,
@@ -58,10 +67,19 @@ export function SecurityDocumentCreateDialog({ open, onOpenChange }: Props) {
       locality: site?.locality,
       county: site?.county,
       district: site?.district,
-      owner_name: site?.onsite_responsible_name,
-      owner_phone: site?.onsite_responsible_phone,
+      owner_name: site?.onsite_responsible_name || client?.name,
+      owner_phone: site?.onsite_responsible_phone || client?.phone,
       generated_at: new Date().toISOString(),
     };
+
+    // Enrich with client fiscal data
+    if (client) {
+      source_data_json.client_name = client.name;
+      source_data_json.client_nif = client.nif;
+      source_data_json.client_type = client.client_type;
+      source_data_json.client_fiscal_address = client.fiscal_address;
+      source_data_json.client_email = client.email;
+    }
 
     createDocument.mutate(
       {

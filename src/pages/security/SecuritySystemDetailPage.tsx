@@ -10,11 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Camera, MapPin, Cpu, Layers, Plus, CheckCircle } from "lucide-react";
+import { ArrowLeft, Camera, MapPin, Cpu, Layers, Plus, CheckCircle, FileText } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { SecurityDocumentCreateDialog } from "@/components/security/SecurityDocumentCreateDialog";
 
 const statusLabels: Record<string, string> = {
   draft: "Rascunho", por_validar: "Por Validar", active: "Ativo",
@@ -42,6 +43,7 @@ export default function SecuritySystemDetailPage() {
   const [addDeviceOpen, setAddDeviceOpen] = useState(false);
   const [zoneForm, setZoneForm] = useState({ zone_name: "", zone_type: "camera", notes: "" });
   const [deviceForm, setDeviceForm] = useState({ device_type: "camera", brand: "", model: "", serial_number: "", quantity: "1", zone_id: "", location_description: "" });
+  const [docDialogOpen, setDocDialogOpen] = useState(false);
 
   if (isLoading) {
     return <DashboardLayout><div className="text-center py-12 text-muted-foreground">A carregar...</div></DashboardLayout>;
@@ -111,6 +113,10 @@ export default function SecuritySystemDetailPage() {
               Marcar como Instalado
             </Button>
           )}
+          <Button variant="outline" onClick={() => setDocDialogOpen(true)} className="gap-2">
+            <FileText className="h-4 w-4" />
+            Gerar Documento
+          </Button>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
@@ -344,6 +350,12 @@ export default function SecuritySystemDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <SecurityDocumentCreateDialog
+        open={docDialogOpen}
+        onOpenChange={setDocDialogOpen}
+        defaultSystemId={id}
+      />
     </DashboardLayout>
   );
 }
