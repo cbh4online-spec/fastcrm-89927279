@@ -75,6 +75,7 @@ import frReports from './locales/fr/reports.json';
 import frMeetings from './locales/fr/meetings.json';
 import frAsk from './locales/fr/ask.json';
 import frProcurement from './locales/fr/procurement.json';
+import frPerformance from './locales/fr/performance.json';
 
 export const supportedLanguages = [
   { code: 'pt', label: 'Português', flag: '🇵🇹' },
