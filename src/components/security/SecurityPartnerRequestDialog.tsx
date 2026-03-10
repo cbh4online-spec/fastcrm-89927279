@@ -8,7 +8,8 @@ import { useTranslation } from "react-i18next";
 import { useSecurityPartners } from "@/hooks/security/useSecurityPartners";
 import { useSecurityPartnerRequests } from "@/hooks/security/useSecurityPartnerRequests";
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, UserPlus } from "lucide-react";
+import { SecurityPartnerDialog } from "./SecurityPartnerDialog";
 
 interface Props {
   open: boolean;
@@ -25,6 +26,7 @@ export function SecurityPartnerRequestDialog({ open, onOpenChange }: Props) {
   const [channel, setChannel] = useState("whatsapp");
   const [rawText, setRawText] = useState("");
   const [notes, setNotes] = useState("");
+  const [partnerDialogOpen, setPartnerDialogOpen] = useState(false);
 
   const handleSubmit = () => {
     if (!rawText.trim()) return;
@@ -47,67 +49,86 @@ export function SecurityPartnerRequestDialog({ open, onOpenChange }: Props) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{t("newPartnerRequest")}</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t("newPartnerRequest")}</DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>{t("partner")}</Label>
-              <Select value={partnerId} onValueChange={setPartnerId}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("selectPartner")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {partners.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>{t("partner")}</Label>
+                <div className="flex gap-2">
+                  <Select value={partnerId} onValueChange={setPartnerId}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder={t("selectPartner")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {partners.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setPartnerDialogOpen(true)}
+                    title={t("addPartner")}
+                  >
+                    <UserPlus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <Label>{t("sourceChannel")}</Label>
+                <Select value={channel} onValueChange={setChannel}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CHANNELS.map((ch) => (
+                      <SelectItem key={ch} value={ch}>{ch.charAt(0).toUpperCase() + ch.slice(1)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+
             <div>
-              <Label>{t("sourceChannel")}</Label>
-              <Select value={channel} onValueChange={setChannel}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CHANNELS.map((ch) => (
-                    <SelectItem key={ch} value={ch}>{ch.charAt(0).toUpperCase() + ch.slice(1)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>{t("rawMessage")}</Label>
+              <Textarea
+                value={rawText}
+                onChange={(e) => setRawText(e.target.value)}
+                placeholder={t("pasteMessage")}
+                rows={10}
+                className="font-mono text-sm"
+              />
+            </div>
+
+            <div>
+              <Label>{t("notes")}</Label>
+              <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
           </div>
 
-          <div>
-            <Label>{t("rawMessage")}</Label>
-            <Textarea
-              value={rawText}
-              onChange={(e) => setRawText(e.target.value)}
-              placeholder={t("pasteMessage")}
-              rows={10}
-              className="font-mono text-sm"
-            />
-          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => onOpenChange(false)}>{t("cancel")}</Button>
+            <Button onClick={handleSubmit} disabled={!rawText.trim() || createRequest.isPending}>
+              <Plus className="h-4 w-4 mr-2" />
+              {t("createDraft")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          <div>
-            <Label>{t("notes")}</Label>
-            <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>{t("cancel")}</Button>
-          <Button onClick={handleSubmit} disabled={!rawText.trim() || createRequest.isPending}>
-            <Plus className="h-4 w-4 mr-2" />
-            {t("createDraft")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <SecurityPartnerDialog
+        open={partnerDialogOpen}
+        onOpenChange={setPartnerDialogOpen}
+        onCreated={(id) => setPartnerId(id)}
+      />
+    </>
   );
 }
