@@ -299,6 +299,8 @@ export function AIFunnelWizard({ onRecommendation }: Props) {
                     {funnelCost}
                   </Badge>
                 </>
+              )}
+            </Button>
           ) : (
             <Button
               onClick={() => setCurrentStep((s) => s + 1)}
