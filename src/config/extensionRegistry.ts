@@ -30,7 +30,7 @@ export interface ExtensionAutomationTemplate {
   trigger: string;
 }
 
-export type ExtensionCategory = "Vendas" | "Comércio" | "Prospecção" | "Marketing" | "Educação" | "Portal" | "Comunidade" | "IA" | "Integrações";
+export type ExtensionCategory = "Vendas" | "Comércio" | "Prospecção" | "Marketing" | "Educação" | "Portal" | "Comunidade" | "IA" | "Integrações" | "Operações";
 
 export interface ExtensionDefinition {
   moduleSlug: string;
