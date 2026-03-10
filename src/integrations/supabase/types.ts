@@ -16330,6 +16330,66 @@ export type Database = {
           },
         ]
       }
+      funnel_automations: {
+        Row: {
+          action_type: string
+          channel: string
+          config_json: Json | null
+          created_at: string | null
+          delay_minutes: number
+          funnel_id: string
+          id: string
+          is_active: boolean
+          name: string
+          trigger_event: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action_type: string
+          channel?: string
+          config_json?: Json | null
+          created_at?: string | null
+          delay_minutes?: number
+          funnel_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          trigger_event: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action_type?: string
+          channel?: string
+          config_json?: Json | null
+          created_at?: string | null
+          delay_minutes?: number
+          funnel_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          trigger_event?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_automations_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_automations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funnel_domain_bindings: {
         Row: {
           canonical_url: string | null

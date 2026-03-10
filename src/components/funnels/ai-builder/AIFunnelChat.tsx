@@ -5,6 +5,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
 import type { AIFunnelRecommendation } from "./AIFunnelBuilder";
 
 interface Message {
@@ -22,43 +25,6 @@ const QUICK_PROMPTS = [
   "Criar funil para recrutamento",
   "Funil com CTA para WhatsApp",
 ];
-
-// Demo recommendation for UI preview
-const DEMO_RECOMMENDATION: AIFunnelRecommendation = {
-  vertical: "Educação Online",
-  pageTemplate: "Masterclass de Conversão",
-  captureType: "masterclass",
-  objective: "Vender curso online",
-  headline: "Descubra Como Transformar a Sua Prática Terapêutica",
-  subheadline: "Masterclass gratuita com estratégias comprovadas para terapeutas que querem escalar",
-  ctaPrimary: "Inscrever-me na Masterclass",
-  ctaSecondary: "Saber mais",
-  funnelSteps: [
-    { name: "Landing Page", type: "page", description: "Página de captura com promessa e CTA" },
-    { name: "Inscrição", type: "optin", description: "Formulário de registo para a masterclass" },
-    { name: "Obrigado", type: "thankyou", description: "Confirmação + instruções de acesso" },
-    { name: "Masterclass", type: "page", description: "Página de conteúdo + oferta" },
-    { name: "Checkout", type: "checkout", description: "Página de compra do curso" },
-  ],
-  routing: { pipeline: "Vendas Online", tags: ["masterclass", "terapeutas"], sla: "24h" },
-  automations: [
-    { trigger: "registration", action: "Enviar email de confirmação", channel: "email" },
-    { trigger: "registration", action: "Lembrete 24h antes", channel: "email" },
-    { trigger: "registration", action: "Lembrete 1h antes", channel: "whatsapp" },
-    { trigger: "attend_live", action: "Enviar replay", channel: "email" },
-    { trigger: "no_purchase_48h", action: "Sequência de urgência", channel: "email" },
-  ],
-  tracking: ["PageView", "Registration", "Attend_Live", "Replay_View", "Offer_Click", "Purchase"],
-  kpis: ["Taxa de registo", "Show-up rate", "Replay views", "Conversão para venda", "Receita total"],
-  slug: "masterclass-terapeutas",
-  domain: "masterclass.cliente.pt",
-  thankYou: "Redirect para página de obrigado com countdown para a masterclass",
-  seo: {
-    title: "Masterclass Gratuita para Terapeutas | Transforme a Sua Prática",
-    description: "Inscreva-se na masterclass gratuita e descubra estratégias comprovadas para escalar a sua prática terapêutica com cursos online.",
-  },
-  reasoning: "Recomendado porque o objectivo é vender um curso online. A masterclass é o formato ideal para educar antes da venda, especialmente com ticket médio. O tráfego virá de Meta Ads, logo a landing page precisa de ser altamente optimizada para conversão.",
-};
 
 interface Props {
   onRecommendation: (rec: AIFunnelRecommendation) => void;
@@ -92,18 +58,45 @@ export function AIFunnelChat({ onRecommendation }: Props) {
     setInput("");
     setIsLoading(true);
 
-    // Simulate AI response (will be replaced with real AI call in Phase 4)
-    setTimeout(() => {
+    try {
+      // Build conversation history for AI
+      const conversationMessages = [...messages.filter(m => m.id !== "welcome"), userMsg]
+        .map(m => ({ role: m.role, content: m.content }));
+
+      const { data, error } = await supabase.functions.invoke("ai-funnel-builder", {
+        body: { messages: conversationMessages, mode: "chat" },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const rec = data.recommendation as AIFunnelRecommendation;
+
+      const summaryContent = `Analisei o teu briefing e aqui está a minha recomendação:\n\n🎯 **Vertical:** ${rec.vertical}\n📄 **Template:** ${rec.pageTemplate}\n🎣 **Captura:** ${rec.captureType}\n\n**Headline sugerida:** "${rec.headline}"\n\n**Estrutura do funil:**\n${rec.funnelSteps.map((s, i) => `${i + 1}. ${s.name} (${s.type})`).join("\n")}\n\n**Automações sugeridas:** ${rec.automations.length} automações configuradas\n\n**Raciocínio:** ${rec.reasoning}\n\nO resumo completo está no painel lateral. Clica em **"Gerar Funil"** para criar.`;
+
       const aiMsg: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: `Analisei o teu briefing: **"${msg}"**\n\nAqui está a minha recomendação:\n\n🎯 **Vertical:** ${DEMO_RECOMMENDATION.vertical}\n📄 **Template:** ${DEMO_RECOMMENDATION.pageTemplate}\n🎣 **Captura:** ${DEMO_RECOMMENDATION.captureType}\n\n**Headline sugerida:** "${DEMO_RECOMMENDATION.headline}"\n\n**Estrutura do funil:**\n${DEMO_RECOMMENDATION.funnelSteps.map((s, i) => `${i + 1}. ${s.name} (${s.type})`).join("\n")}\n\n**Automações sugeridas:** ${DEMO_RECOMMENDATION.automations.length} automações configuradas\n\n**Raciocínio:** ${DEMO_RECOMMENDATION.reasoning}\n\nO resumo completo está no painel lateral. Clica em **"Gerar Funil"** para criar.`,
-        recommendation: DEMO_RECOMMENDATION,
+        content: summaryContent,
+        recommendation: rec,
       };
+
       setMessages((prev) => [...prev, aiMsg]);
-      onRecommendation(DEMO_RECOMMENDATION);
+      onRecommendation(rec);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Erro ao gerar recomendação";
+      toast.error(errorMessage);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: `❌ Ocorreu um erro: ${errorMessage}\n\nTenta novamente ou reformula o teu pedido.`,
+        },
+      ]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -148,13 +141,19 @@ export function AIFunnelChat({ onRecommendation }: Props) {
                   </div>
                 )}
                 <div
-                  className={`rounded-xl px-4 py-3 max-w-[80%] text-sm whitespace-pre-wrap ${
+                  className={`rounded-xl px-4 py-3 max-w-[80%] text-sm ${
                     msg.role === "user"
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted/50 text-foreground"
                   }`}
                 >
-                  {msg.content}
+                  {msg.role === "assistant" ? (
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <span className="whitespace-pre-wrap">{msg.content}</span>
+                  )}
                 </div>
                 {msg.role === "user" && (
                   <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">

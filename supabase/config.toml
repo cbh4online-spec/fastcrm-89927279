@@ -31,3 +31,5 @@ project_id = "xqepxufdrsuxlnubuatz"
     verify_jwt = false
   [functions.verify-credit-purchase]
     verify_jwt = false
+  [functions.ai-funnel-builder]
+    verify_jwt = false
