@@ -118,7 +118,7 @@ export default function PublicProposalPage() {
       .eq("id", itemId);
   };
 
-  const handleCheckout = async () => {
+  const handleAccept = async () => {
     if (!proposal) return;
     setCheckoutLoading(true);
 
@@ -137,11 +137,20 @@ export default function PublicProposalPage() {
       });
 
       if (error) throw error;
+
+      if (data?.accepted) {
+        // Accepted directly without Stripe
+        setProposal(prev => prev ? { ...prev, status: "accepted" } : prev);
+        toast.success("Proposta aceite com sucesso!");
+        setCheckoutLoading(false);
+        return;
+      }
+
       if (data?.url) {
         window.location.href = data.url;
       }
     } catch (error: unknown) {
-      toast.error(`Erro ao iniciar pagamento: ${(error as Error).message}`);
+      toast.error(`Erro ao aceitar proposta: ${(error as Error).message}`);
       setCheckoutLoading(false);
     }
   };
