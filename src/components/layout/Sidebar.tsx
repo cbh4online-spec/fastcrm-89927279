@@ -7,9 +7,9 @@ import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { WorkspaceLogo } from "@/components/workspace/WorkspaceLogo";
 import { PlanBadge } from "@/components/subscription/FeatureGate";
 import {
-  NAV_V2_CORE,
-  NAV_V2_GROUPS,
-  NAV_V2_FOOTER,
+  getNavV2Core,
+  getNavV2Groups,
+  getNavV2Footer,
   NavV2CoreItem,
   NavV2Group,
   NavV2GroupChild,
