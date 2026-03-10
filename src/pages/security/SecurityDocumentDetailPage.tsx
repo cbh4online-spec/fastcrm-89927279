@@ -155,7 +155,7 @@ export default function SecurityDocumentDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-muted/30 rounded-lg p-6 min-h-[400px] border">
+                <div ref={previewRef} className="bg-muted/30 rounded-lg p-6 min-h-[400px] border">
                   {/* Rendered document preview based on source_data_json */}
                   <DocumentPreview
                     documentType={doc.document_type}
