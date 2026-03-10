@@ -208,6 +208,10 @@ import SecurityContractsPage from "./pages/security/SecurityContractsPage";
 import SecurityProposalsPage from "./pages/security/SecurityProposalsPage";
 import SecurityDocumentsPage from "./pages/security/SecurityDocumentsPage";
 import SecurityDocumentDetailPage from "./pages/security/SecurityDocumentDetailPage";
+import SecurityMaintenancePage from "./pages/security/SecurityMaintenancePage";
+import SecurityOccurrencesPage from "./pages/security/SecurityOccurrencesPage";
+import SecurityOccurrenceDetailPage from "./pages/security/SecurityOccurrenceDetailPage";
+import SecurityRenewalsPage from "./pages/security/SecurityRenewalsPage";
 
 // Procurement
 import ProcurementDashboardPage from "./pages/procurement/ProcurementDashboardPage";
@@ -664,6 +668,10 @@ function CRMRoutes() {
                 <Route path="/dashboard/security/proposals" element={<SecurityProposalsPage />} />
                 <Route path="/dashboard/security/documents" element={<SecurityDocumentsPage />} />
                 <Route path="/dashboard/security/documents/:id" element={<SecurityDocumentDetailPage />} />
+                <Route path="/dashboard/security/maintenance" element={<SecurityMaintenancePage />} />
+                <Route path="/dashboard/security/occurrences" element={<SecurityOccurrencesPage />} />
+                <Route path="/dashboard/security/occurrences/:id" element={<SecurityOccurrenceDetailPage />} />
+                <Route path="/dashboard/security/renewals" element={<SecurityRenewalsPage />} />
 
                 {/* Student Journey Module Routes */}
                 <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />
