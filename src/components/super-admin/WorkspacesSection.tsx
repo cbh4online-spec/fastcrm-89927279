@@ -233,6 +233,16 @@ export function WorkspacesSection() {
         return acc;
       }, {}) || {};
 
+      // Get credit wallet balances
+      const { data: walletsData } = await supabase
+        .from("credit_wallets")
+        .select("workspace_id, balance");
+
+      const walletBalances = walletsData?.reduce((acc: Record<string, number>, w: any) => {
+        acc[w.workspace_id] = w.balance;
+        return acc;
+      }, {}) || {};
+
       return (workspacesData || []).map((ws: any) => {
         // Handle subscription - can be array or object depending on query result
         const subscription = Array.isArray(ws.workspace_subscriptions) 
