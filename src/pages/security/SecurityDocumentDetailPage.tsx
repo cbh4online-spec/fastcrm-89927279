@@ -270,6 +270,13 @@ export default function SecurityDocumentDetailPage() {
                     Criar Nova Versão
                   </Button>
                 )}
+
+                {(doc.status === "emitted" || doc.status === "signed") && (
+                  <Button onClick={handleExportPDF} variant="outline" className="w-full gap-2" disabled={exporting}>
+                    <Download className="h-4 w-4" />
+                    {exporting ? "A exportar..." : "Exportar PDF"}
+                  </Button>
+                )}
               </CardContent>
             </Card>
 
