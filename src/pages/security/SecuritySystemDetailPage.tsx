@@ -15,6 +15,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { SecurityDocumentCreateDialog } from "@/components/security/SecurityDocumentCreateDialog";
 
 const statusLabels: Record<string, string> = {
   draft: "Rascunho", por_validar: "Por Validar", active: "Ativo",
