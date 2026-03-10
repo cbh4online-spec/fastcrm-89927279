@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { Camera, Plus, Search } from "lucide-react";
 import { useState } from "react";
+import { SecuritySystemDialog } from "@/components/security/SecuritySystemDialog";
 
 const systemTypeBadge: Record<string, string> = {
   cctv: "CCTV",
