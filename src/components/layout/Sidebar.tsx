@@ -137,7 +137,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     navCore.forEach((i) => items.push({ name: i.name, href: i.href, icon: i.icon }));
     navGroups.forEach((g) => g.children.forEach((c) => items.push(c)));
     return items;
-  }, []);
+  }, [navCore, navGroups]);
 
   const favoriteItems = useMemo(
     () => favorites.map((href) => allItems.find((i) => i.href === href)).filter(Boolean) as NavV2GroupChild[],
