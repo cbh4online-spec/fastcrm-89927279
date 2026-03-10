@@ -2,12 +2,15 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSecurityLead } from "@/hooks/security/useSecurityLeads";
+import { useSecurityLeads } from "@/hooks/security/useSecurityLeads";
 import { useSecurityConversions } from "@/hooks/security/useSecurityConversions";
 import { useSecurityProposals } from "@/hooks/security/useSecurityProposals";
+import { SecurityPipelineStepper } from "@/components/security/SecurityPipelineStepper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, ArrowRight, Target } from "lucide-react";
+import { ArrowLeft, FileText, ArrowRight, Target, XCircle } from "lucide-react";
+import { toast } from "sonner";
 
 const statusLabels: Record<string, string> = {
   new: "Novo", qualifying: "Em Qualificação", qualified: "Qualificado",
@@ -20,9 +23,14 @@ export default function SecurityLeadDetailPage() {
   const navigate = useNavigate();
   const { data: lead, isLoading } = useSecurityLead(id);
   const { convertLeadToProposal } = useSecurityConversions();
+  const { updateLead } = useSecurityLeads();
   const { proposals } = useSecurityProposals();
 
   const linkedProposals = proposals.filter((p: any) => p.lead_id === id);
+  const firstProposal = linkedProposals[0];
+
+  // Find linked contract via proposal
+  const linkedContractId = firstProposal?.id ? undefined : undefined; // Will be fetched from proposal
 
   if (isLoading || !lead) {
     return (
@@ -33,10 +41,18 @@ export default function SecurityLeadDetailPage() {
   }
 
   const canCreateProposal = ["new", "qualifying", "qualified"].includes(lead.status);
+  const canMarkLost = !["won", "lost", "archived"].includes(lead.status);
+  const isFailed = lead.status === "lost";
+
+  const handleMarkLost = () => {
+    updateLead.mutate({ id: lead.id, status: "lost" });
+    toast.info("Lead marcado como perdido");
+  };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/security/leads")}>
             <ArrowLeft className="h-5 w-5" />
@@ -52,6 +68,19 @@ export default function SecurityLeadDetailPage() {
             </p>
           </div>
           <Badge>{statusLabels[lead.status] || lead.status}</Badge>
+        </div>
+
+        {/* Pipeline Stepper */}
+        <SecurityPipelineStepper
+          currentStage="lead"
+          requestId={lead.partner_request_id}
+          leadId={id}
+          proposalId={firstProposal?.id}
+          isFailed={isFailed}
+        />
+
+        {/* Actions */}
+        <div className="flex gap-2 flex-wrap">
           {canCreateProposal && (
             <Button
               onClick={() => convertLeadToProposal.mutate(lead)}
@@ -60,6 +89,12 @@ export default function SecurityLeadDetailPage() {
             >
               <FileText className="h-4 w-4" />
               Criar Proposta
+            </Button>
+          )}
+          {canMarkLost && (
+            <Button variant="outline" onClick={handleMarkLost} disabled={updateLead.isPending} className="gap-2 text-destructive hover:text-destructive">
+              <XCircle className="h-4 w-4" />
+              Marcar como Perdido
             </Button>
           )}
         </div>
