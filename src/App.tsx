@@ -231,6 +231,8 @@ import C2CSellerProfile from "./pages/c2c/C2CSellerProfile";
 import C2CEditListing from "./pages/c2c/C2CEditListing";
 import C2CNotifications from "./pages/c2c/C2CNotifications";
 import C2COrders from "./pages/c2c/C2COrders";
+import C2CContentModeration from "./pages/c2c/C2CContentModeration";
+import C2CLoyaltyProgram from "./pages/c2c/C2CLoyaltyProgram";
 import C2CSellerInviteActivation from "./pages/c2c/C2CSellerInviteActivation";
 import C2CPublicSellerProfile from "./pages/c2c/C2CPublicSellerProfile";
 
