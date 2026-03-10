@@ -118,7 +118,7 @@ export default function PublicProposalPage() {
       .eq("id", itemId);
   };
 
-  const handleCheckout = async () => {
+  const handleAccept = async () => {
     if (!proposal) return;
     setCheckoutLoading(true);
 
@@ -137,11 +137,20 @@ export default function PublicProposalPage() {
       });
 
       if (error) throw error;
+
+      if (data?.accepted) {
+        // Accepted directly without Stripe
+        setProposal(prev => prev ? { ...prev, status: "accepted" } : prev);
+        toast.success("Proposta aceite com sucesso!");
+        setCheckoutLoading(false);
+        return;
+      }
+
       if (data?.url) {
         window.location.href = data.url;
       }
     } catch (error: unknown) {
-      toast.error(`Erro ao iniciar pagamento: ${(error as Error).message}`);
+      toast.error(`Erro ao aceitar proposta: ${(error as Error).message}`);
       setCheckoutLoading(false);
     }
   };
@@ -172,12 +181,12 @@ export default function PublicProposalPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="p-8 text-center max-w-md">
-          <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Pagamento Confirmado!</h1>
+          <CheckCircle className="h-16 w-16 text-primary mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Proposta Aceite!</h1>
           <p className="text-muted-foreground mb-4">
-            Obrigado por aceitar nossa proposta. Entraremos em contato em breve.
+            Obrigado por aceitar a nossa proposta. Entraremos em contacto brevemente.
           </p>
-          <Badge className="bg-green-500">Proposta Aceita</Badge>
+          <Badge className="bg-primary">Proposta Aceite</Badge>
         </Card>
       </div>
     );
@@ -233,7 +242,7 @@ export default function PublicProposalPage() {
           size="lg"
           className="px-8 py-6 text-lg"
           style={{ backgroundColor: proposal.cta_color || "#3b82f6" }}
-          onClick={handleCheckout}
+          onClick={handleAccept}
           disabled={checkoutLoading}
         >
           {checkoutLoading ? (
@@ -242,7 +251,7 @@ export default function PublicProposalPage() {
           {proposal.cta_text || "Aceitar Proposta"}
         </Button>
         <p className="mt-4 text-sm text-muted-foreground">
-          Pagamento seguro via Stripe
+          Ao clicar, confirma a aceitação desta proposta.
         </p>
       </div>
       
@@ -250,7 +259,7 @@ export default function PublicProposalPage() {
         <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p>Redirecionando para pagamento...</p>
+            <p>A processar...</p>
           </div>
         </div>
       )}

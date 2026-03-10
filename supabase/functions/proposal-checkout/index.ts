@@ -29,6 +29,41 @@ Deno.serve(async (req) => {
 
     if (proposalError || !proposal) throw new Error("Proposal not found");
     if (proposal.status !== "published") throw new Error("Proposal not published");
+
+    // Get workspace Stripe config
+    const { data: stripeConfig } = await supabaseClient
+      .from("workspace_stripe_config")
+      .select("stripe_secret_key_encrypted, is_active")
+      .eq("workspace_id", proposal.workspace_id)
+      .maybeSingle();
+
+    const hasStripe = stripeConfig?.is_active && stripeConfig?.stripe_secret_key_encrypted;
+
+    // If no Stripe configured, accept proposal directly
+    if (!hasStripe) {
+      await supabaseClient
+        .from("proposals")
+        .update({
+          status: "accepted",
+          accepted_at: new Date().toISOString(),
+          payment_status: null,
+        })
+        .eq("id", proposalId);
+
+      // Log activity
+      await supabaseClient.from("proposal_activity_logs").insert({
+        proposal_id: proposalId,
+        workspace_id: proposal.workspace_id,
+        action: "accepted_without_payment",
+        details: { method: "direct" },
+      });
+
+      return new Response(JSON.stringify({ accepted: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Stripe is configured — proceed with checkout
     if (!proposal.price) throw new Error("Proposal has no price");
 
     // Get proposal items for detailed checkout
@@ -38,7 +73,7 @@ Deno.serve(async (req) => {
       .eq("proposal_id", proposalId)
       .eq("is_enabled", true);
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    const stripe = new Stripe(stripeConfig.stripe_secret_key_encrypted, {
       apiVersion: "2025-08-27.basil",
     });
 
@@ -57,7 +92,6 @@ Deno.serve(async (req) => {
     let lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
 
     if (proposalItems && proposalItems.length > 0) {
-      // Use individual product items for detailed receipt
       lineItems = proposalItems.map((item) => ({
         price_data: {
           currency,
@@ -70,7 +104,6 @@ Deno.serve(async (req) => {
         quantity: item.quantity,
       }));
     } else {
-      // Fallback: single item with total price
       lineItems = [{
         price_data: {
           currency,
