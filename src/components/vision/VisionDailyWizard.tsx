@@ -35,6 +35,7 @@ export function VisionDailyWizard({ visionId }: Props) {
   const startTimeRef = useRef<Date | null>(null);
 
   const createBriefing = useCreateBriefing();
+  const sendDuoNotification = useSendDuoNotification();
   const { data: sprints = [] } = useVisionSprints(visionId);
   const activeSprint = sprints.find(s => s.status === "active");
 
