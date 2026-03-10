@@ -139,7 +139,7 @@ interface SKUSearchResult {
   }
 
   try {
-    const { mode, productName, sku, category, productType, context, theme, categoryName, description, existingCategories, productId: reqProductId, workspaceId: reqWorkspaceId, imageBase64, storeName } = await req.json() as AssistantRequest & { storeName?: string };
+    const { mode, productName, sku, category, productType, context, theme, categoryName, description, existingCategories, productId: reqProductId, workspaceId: reqWorkspaceId, imageBase64, storeName, settingsType, existingEntries, industryContext } = await req.json() as AssistantRequest & { storeName?: string };
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
