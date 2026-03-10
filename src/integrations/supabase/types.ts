@@ -31130,8 +31130,98 @@ export type Database = {
           },
         ]
       }
+      security_clients: {
+        Row: {
+          client_type: string
+          company_id: string | null
+          contact_id: string | null
+          contact_person_email: string | null
+          contact_person_name: string | null
+          contact_person_phone: string | null
+          created_at: string
+          created_by: string | null
+          fiscal_address: string | null
+          fiscal_country: string | null
+          fiscal_locality: string | null
+          fiscal_postal_code: string | null
+          id: string
+          name: string
+          nif: string | null
+          notes: string | null
+          primary_email: string | null
+          primary_phone: string | null
+          secondary_phone: string | null
+          status: string
+          trade_name: string | null
+          updated_at: string
+          website: string | null
+          workspace_id: string
+        }
+        Insert: {
+          client_type?: string
+          company_id?: string | null
+          contact_id?: string | null
+          contact_person_email?: string | null
+          contact_person_name?: string | null
+          contact_person_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          fiscal_address?: string | null
+          fiscal_country?: string | null
+          fiscal_locality?: string | null
+          fiscal_postal_code?: string | null
+          id?: string
+          name: string
+          nif?: string | null
+          notes?: string | null
+          primary_email?: string | null
+          primary_phone?: string | null
+          secondary_phone?: string | null
+          status?: string
+          trade_name?: string | null
+          updated_at?: string
+          website?: string | null
+          workspace_id: string
+        }
+        Update: {
+          client_type?: string
+          company_id?: string | null
+          contact_id?: string | null
+          contact_person_email?: string | null
+          contact_person_name?: string | null
+          contact_person_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          fiscal_address?: string | null
+          fiscal_country?: string | null
+          fiscal_locality?: string | null
+          fiscal_postal_code?: string | null
+          id?: string
+          name?: string
+          nif?: string | null
+          notes?: string | null
+          primary_email?: string | null
+          primary_phone?: string | null
+          secondary_phone?: string | null
+          status?: string
+          trade_name?: string | null
+          updated_at?: string
+          website?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_clients_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_contracts: {
         Row: {
+          client_id: string | null
           commercial_terms_json: Json | null
           company_id: string | null
           contact_id: string | null
@@ -31149,6 +31239,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          client_id?: string | null
           commercial_terms_json?: Json | null
           company_id?: string | null
           contact_id?: string | null
@@ -31166,6 +31257,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          client_id?: string | null
           commercial_terms_json?: Json | null
           company_id?: string | null
           contact_id?: string | null
@@ -31183,6 +31275,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "security_contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "security_clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "security_contracts_system_id_fkey"
             columns: ["system_id"]
@@ -31352,6 +31451,7 @@ export type Database = {
           access_notes: string | null
           address_line_1: string | null
           address_line_2: string | null
+          client_id: string | null
           company_id: string | null
           contact_id: string | null
           country: string | null
@@ -31375,6 +31475,7 @@ export type Database = {
           access_notes?: string | null
           address_line_1?: string | null
           address_line_2?: string | null
+          client_id?: string | null
           company_id?: string | null
           contact_id?: string | null
           country?: string | null
@@ -31398,6 +31499,7 @@ export type Database = {
           access_notes?: string | null
           address_line_1?: string | null
           address_line_2?: string | null
+          client_id?: string | null
           company_id?: string | null
           contact_id?: string | null
           country?: string | null
@@ -31418,6 +31520,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "security_installation_sites_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "security_clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "security_installation_sites_partner_id_fkey"
             columns: ["partner_id"]
@@ -32026,6 +32135,7 @@ export type Database = {
       }
       security_systems: {
         Row: {
+          client_id: string | null
           commissioning_date: string | null
           contract_id: string | null
           created_at: string
@@ -32050,6 +32160,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          client_id?: string | null
           commissioning_date?: string | null
           contract_id?: string | null
           created_at?: string
@@ -32074,6 +32185,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          client_id?: string | null
           commissioning_date?: string | null
           contract_id?: string | null
           created_at?: string
@@ -32098,6 +32210,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "security_systems_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "security_clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "security_systems_site_id_fkey"
             columns: ["site_id"]
