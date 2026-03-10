@@ -118,13 +118,16 @@ export function WorkspacesSection() {
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [selectedWorkspace, setSelectedWorkspace] = useState<WorkspaceDetails | null>(null);
   const [actionDialog, setActionDialog] = useState<{
-    type: "suspend" | "reactivate" | "change-plan" | "assign-agency" | "edit-name" | "delete" | null;
+    type: "suspend" | "reactivate" | "change-plan" | "assign-agency" | "edit-name" | "delete" | "assign-credits" | null;
     workspace: WorkspaceDetails | null;
   }>({ type: null, workspace: null });
   const [editName, setEditName] = useState("");
   const [editSlug, setEditSlug] = useState("");
   const [newPlan, setNewPlan] = useState<string>("");
   const [selectedAgencyId, setSelectedAgencyId] = useState<string>("");
+  const [creditsAmount, setCreditsAmount] = useState<string>("");
+  const [creditsDescription, setCreditsDescription] = useState("");
+  const { user } = useAuth();
   
   // New state for create workspace and members panel
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
