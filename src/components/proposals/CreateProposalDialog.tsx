@@ -142,9 +142,9 @@ export function CreateProposalDialog({
   if (selectedOpportunity) {
     variables["opportunity.title"] = selectedOpportunity.title;
     variables["opportunity.value"] = selectedOpportunity.value
-      ? new Intl.NumberFormat("pt-BR", {
+      ? new Intl.NumberFormat("pt-PT", {
           style: "currency",
-          currency: "BRL",
+          currency: workspaceCurrency,
         }).format(selectedOpportunity.value)
       : "";
     if (selectedOpportunity.lead) {
