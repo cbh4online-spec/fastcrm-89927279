@@ -145,5 +145,9 @@
   "igExplore": "Explorar",
   "igCollections": "Colecciones",
   "igLeads": "Leads",
-  "igSettings": "Configuración"
+  "igSettings": "Configuración",
+  "searchMenu": "Buscar en menú...",
+  "noResults": "Sin resultados",
+  "addFavorite": "Añadir a favoritos",
+  "removeFavorite": "Quitar de favoritos"
 }
