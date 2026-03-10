@@ -1,13 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Building2, User, FileText, MapPin } from "lucide-react";
+import { Building2, User, FileText, MapPin, Link2, Pencil, Info } from "lucide-react";
 import { ClientSearchSelect } from "./ClientSearchSelect";
 import { CLIENT_TYPE_OPTIONS, type ClientType } from "./proposalConstants";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface ClientData {
   clientType: ClientType;
@@ -29,14 +30,22 @@ export function ProposalClientSection({
   onChange,
   disabled = false,
 }: ProposalClientSectionProps) {
+  const [editingBilling, setEditingBilling] = useState(false);
+
+  const hasClient = data.clientType === "contact" ? !!data.contactId : !!data.companyId;
+  const hasBillingData = !!(data.billingName || data.billingNif || data.billingAddress);
+
   const handleClientTypeChange = (value: ClientType) => {
     onChange({
       ...data,
       clientType: value,
-      // Clear the other client type when switching
       contactId: value === "contact" ? data.contactId : null,
       companyId: value === "company" ? data.companyId : null,
+      billingName: "",
+      billingNif: "",
+      billingAddress: "",
     });
+    setEditingBilling(false);
   };
 
   const handleClientSelect = (
@@ -47,20 +56,20 @@ export function ProposalClientSection({
       onChange({
         ...data,
         contactId: id,
-        // Pre-fill billing info from client
-        billingName: client?.name || data.billingName,
-        billingNif: client?.tax_id || data.billingNif,
-        billingAddress: client?.address || data.billingAddress,
+        billingName: client?.name || "",
+        billingNif: client?.tax_id || "",
+        billingAddress: client?.address || "",
       });
     } else {
       onChange({
         ...data,
         companyId: id,
-        billingName: client?.name || data.billingName,
-        billingNif: client?.tax_id || data.billingNif,
-        billingAddress: client?.address || data.billingAddress,
+        billingName: client?.name || "",
+        billingNif: client?.tax_id || "",
+        billingAddress: client?.address || "",
       });
     }
+    setEditingBilling(false);
   };
 
   return (
@@ -131,51 +140,97 @@ export function ProposalClientSection({
         </CardContent>
       </Card>
 
-      {/* Billing Information */}
+      {/* Billing Information - Auto-filled */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-medium flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Dados de Faturação
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-medium flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Dados de Faturação
+            </CardTitle>
+            {hasClient && hasBillingData && !disabled && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditingBilling(!editingBilling)}
+                className="h-7 text-xs gap-1.5"
+              >
+                <Pencil className="h-3 w-3" />
+                {editingBilling ? "Concluir" : "Editar"}
+              </Button>
+            )}
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="billing-name">Nome / Empresa</Label>
-              <Input
-                id="billing-name"
-                value={data.billingName}
-                onChange={(e) => onChange({ ...data, billingName: e.target.value })}
-                placeholder="Nome para faturação"
-                disabled={disabled}
-              />
+        <CardContent>
+          {!hasClient ? (
+            <div className="flex items-center gap-3 py-6 justify-center text-muted-foreground">
+              <Info className="h-5 w-5" />
+              <p className="text-sm">Selecione um cliente acima para preencher os dados de faturação</p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="billing-nif">NIF</Label>
-              <Input
-                id="billing-nif"
-                value={data.billingNif}
-                onChange={(e) => onChange({ ...data, billingNif: e.target.value })}
-                placeholder="Número de Identificação Fiscal"
-                disabled={disabled}
-              />
+          ) : editingBilling ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="billing-name">Nome / Empresa</Label>
+                  <Input
+                    id="billing-name"
+                    value={data.billingName}
+                    onChange={(e) => onChange({ ...data, billingName: e.target.value })}
+                    placeholder="Nome para faturação"
+                    disabled={disabled}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="billing-nif">NIF</Label>
+                  <Input
+                    id="billing-nif"
+                    value={data.billingNif}
+                    onChange={(e) => onChange({ ...data, billingNif: e.target.value })}
+                    placeholder="Número de Identificação Fiscal"
+                    disabled={disabled}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="billing-address" className="flex items-center gap-2">
+                  <MapPin className="h-3.5 w-3.5" />
+                  Morada de Faturação
+                </Label>
+                <Textarea
+                  id="billing-address"
+                  value={data.billingAddress}
+                  onChange={(e) => onChange({ ...data, billingAddress: e.target.value })}
+                  placeholder="Morada completa para faturação..."
+                  rows={3}
+                  disabled={disabled}
+                />
+              </div>
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="billing-address" className="flex items-center gap-2">
-              <MapPin className="h-3.5 w-3.5" />
-              Morada de Faturação
-            </Label>
-            <Textarea
-              id="billing-address"
-              value={data.billingAddress}
-              onChange={(e) => onChange({ ...data, billingAddress: e.target.value })}
-              placeholder="Morada completa para faturação..."
-              rows={3}
-              disabled={disabled}
-            />
-          </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+                <Link2 className="h-3 w-3" />
+                <span>Preenchido automaticamente a partir do cliente selecionado</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">Nome / Empresa</p>
+                  <p className="text-sm">{data.billingName || <span className="text-muted-foreground italic">Não definido</span>}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">NIF</p>
+                  <p className="text-sm">{data.billingNif || <span className="text-muted-foreground italic">Não definido</span>}</p>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <MapPin className="h-3 w-3" />
+                  Morada de Faturação
+                </p>
+                <p className="text-sm whitespace-pre-line">{data.billingAddress || <span className="text-muted-foreground italic">Não definido</span>}</p>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
