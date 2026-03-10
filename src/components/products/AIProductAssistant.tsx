@@ -12,12 +12,14 @@ interface AIProductAssistantProps {
   productName: string;
   currentCategory?: string;
   currentProductType?: ProductType;
+  currentBillingType?: string;
   existingCategories?: ProductCategory[];
   onApplyCategory: (category: string) => void;
   onApplyExistingCategory?: (category: ProductCategory) => void;
   onApplyPrice: (price: number) => void;
   onApplyDescription: (description: string) => void;
   onApplyProductType: (type: ProductType) => void;
+  onApplyBillingType?: (type: string) => void;
 }
 
 const productTypeLabels: Record<string, string> = {
@@ -30,16 +32,26 @@ const productTypeLabels: Record<string, string> = {
   composite: "Bundle",
 };
 
+const billingTypeLabels: Record<string, string> = {
+  "one-off": "Único",
+  "monthly": "Mensal",
+  "quarterly": "Trimestral",
+  "yearly": "Anual",
+  "per-session": "Por Sessão",
+};
+
 export function AIProductAssistant({
   productName,
   currentCategory,
   currentProductType,
+  currentBillingType,
   existingCategories,
   onApplyCategory,
   onApplyExistingCategory,
   onApplyPrice,
   onApplyDescription,
   onApplyProductType,
+  onApplyBillingType,
 }: AIProductAssistantProps) {
   const [isActive, setIsActive] = useState(true);
   const [appliedItems, setAppliedItems] = useState<Set<string>>(new Set());
@@ -96,6 +108,13 @@ export function AIProductAssistant({
     if (suggestFromName.data?.productType) {
       onApplyProductType(suggestFromName.data.productType as ProductType);
       setAppliedItems((prev) => new Set(prev).add("productType"));
+    }
+  };
+
+  const handleApplyBillingType = () => {
+    if (suggestFromName.data?.billingType && onApplyBillingType) {
+      onApplyBillingType(suggestFromName.data.billingType);
+      setAppliedItems((prev) => new Set(prev).add("billingType"));
     }
   };
 
@@ -279,6 +298,28 @@ export function AIProductAssistant({
                   </>
                 ) : (
                   `Usar "${productTypeLabels[suggestFromName.data.productType] || suggestFromName.data.productType}"`
+                )}
+              </Button>
+            </div>
+          )}
+
+          {/* Billing Type */}
+          {suggestFromName.data.billingType && suggestFromName.data.billingType !== currentBillingType && onApplyBillingType && (
+            <div className="space-y-2">
+              <span className="text-xs text-muted-foreground">Cobrança sugerida:</span>
+              <Button
+                type="button"
+                variant={appliedItems.has("billingType") ? "secondary" : "outline"}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={handleApplyBillingType}
+              >
+                {appliedItems.has("billingType") ? (
+                  <>
+                    <Check className="h-3 w-3 mr-1" /> Aplicado
+                  </>
+                ) : (
+                  `Usar "${billingTypeLabels[suggestFromName.data.billingType] || suggestFromName.data.billingType}"`
                 )}
               </Button>
             </div>

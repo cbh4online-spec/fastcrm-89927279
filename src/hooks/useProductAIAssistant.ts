@@ -7,6 +7,7 @@ interface ProductSuggestion {
   suggestedPrice: number;
   description: string;
   productType?: string;
+  billingType?: string;
   matchedCategoryName?: string;
 }
 
