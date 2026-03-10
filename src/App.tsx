@@ -38,6 +38,7 @@ import Funnels from "./pages/Funnels";
 import BioOS from "./pages/BioOS";
 
 import PublicLandingPage from "./pages/PublicLandingPage";
+import PublicFunnelPage from "./pages/PublicFunnelPage";
 import Proposals from "./pages/Proposals";
 import ProposalDetail from "./pages/ProposalDetail";
 import PublicProposalPage from "./pages/PublicProposalPage";
