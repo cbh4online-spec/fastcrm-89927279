@@ -1730,7 +1730,6 @@ Responda APENAS em JSON válido:
         data: { categoryId: newCat.id, categoryName: newCat.name, isNew: true, imageUrl: newCat.image_url }
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-    }
 
     } else if (mode === 'suggest-settings' && settingsType) {
       const existingCodes = (existingEntries || []).map((e: any) => e.code || e.name).filter(Boolean);
