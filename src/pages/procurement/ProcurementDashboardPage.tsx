@@ -5,6 +5,7 @@ import { ProcurementKPIs } from "@/components/procurement/ProcurementKPIs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePurchaseOrders, useSupplierInvoices } from "@/hooks/useProcurement";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { PageHeader } from "@/components/common/PageHeader";
 
 const STATUS_COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
@@ -30,7 +31,7 @@ export default function ProcurementDashboardPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
-        <h1 className="text-2xl font-bold text-foreground">{t("dashboard")}</h1>
+        <PageHeader title={t("dashboard")} />
         <ProcurementKPIs />
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

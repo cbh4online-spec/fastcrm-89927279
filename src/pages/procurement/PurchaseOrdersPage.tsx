@@ -5,20 +5,13 @@ import { usePurchaseOrders } from "@/hooks/useProcurement";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trophy } from "lucide-react";
+import { Plus, Trophy, Loader2, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PurchaseOrderForm } from "@/components/procurement/PurchaseOrderForm";
-
-const statusColors: Record<string, string> = {
-  draft: "secondary",
-  sent: "outline",
-  confirmed: "default",
-  partial: "outline",
-  received: "default",
-  closed: "secondary",
-  cancelled: "destructive",
-};
+import { PageHeader } from "@/components/common/PageHeader";
+import { ProcurementStatusBadge } from "@/components/procurement/ProcurementStatusBadge";
+import { ProcurementEmptyState } from "@/components/procurement/ProcurementEmptyState";
 
 export default function PurchaseOrdersPage() {
   const { t } = useTranslation("procurement");
@@ -30,17 +23,29 @@ export default function PurchaseOrdersPage() {
   return (
     <DashboardLayout>
       <div className="space-y-4 p-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">{t("orders")}</h1>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />{t("newOrder")}
-          </Button>
-        </div>
+        <PageHeader
+          title={t("orders")}
+          count={(orders as any[]).length}
+          actions={[
+            {
+              label: t("newOrder"),
+              icon: <Plus className="h-4 w-4" />,
+              onClick: () => setShowForm(true),
+            },
+          ]}
+        />
         
         {isLoading ? (
-          <p className="text-muted-foreground">{t("loading")}</p>
-        ) : orders.length === 0 ? (
-          <p className="text-muted-foreground">{t("noOrders")}</p>
+          <div className="flex items-center justify-center p-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (orders as any[]).length === 0 ? (
+          <ProcurementEmptyState
+            icon={<ShoppingCart className="h-8 w-8 text-muted-foreground" />}
+            title={t("noOrders")}
+            actionLabel={t("newOrder")}
+            onAction={() => setShowForm(true)}
+          />
         ) : (
           <Table>
             <TableHeader>
@@ -67,7 +72,7 @@ export default function PurchaseOrdersPage() {
                   <TableCell>{o.supplier?.name || "—"}</TableCell>
                   <TableCell>€{(Number(o.total_amount) || 0).toFixed(2)}</TableCell>
                   <TableCell>
-                    <Badge variant={statusColors[o.status] as any}>{t(o.status)}</Badge>
+                    <ProcurementStatusBadge status={o.status} />
                   </TableCell>
                   <TableCell>
                     {o.rfqs ? (

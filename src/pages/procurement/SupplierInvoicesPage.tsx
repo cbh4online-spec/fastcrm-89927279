@@ -4,16 +4,12 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useSupplierInvoices } from "@/hooks/useProcurement";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Plus } from "lucide-react";
+import { Plus, Loader2, FileText } from "lucide-react";
 import { useState } from "react";
 import { SupplierInvoiceForm } from "@/components/procurement/SupplierInvoiceForm";
-
-const statusColors: Record<string, string> = {
-  pending: "outline",
-  paid: "default",
-  overdue: "destructive",
-};
+import { PageHeader } from "@/components/common/PageHeader";
+import { ProcurementStatusBadge } from "@/components/procurement/ProcurementStatusBadge";
+import { ProcurementEmptyState } from "@/components/procurement/ProcurementEmptyState";
 
 export default function SupplierInvoicesPage() {
   const { t } = useTranslation("procurement");
@@ -24,17 +20,29 @@ export default function SupplierInvoicesPage() {
   return (
     <DashboardLayout>
       <div className="space-y-4 p-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">{t("invoices")}</h1>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />{t("newInvoice")}
-          </Button>
-        </div>
+        <PageHeader
+          title={t("invoices")}
+          count={(invoices as any[]).length}
+          actions={[
+            {
+              label: t("newInvoice"),
+              icon: <Plus className="h-4 w-4" />,
+              onClick: () => setShowForm(true),
+            },
+          ]}
+        />
         
         {isLoading ? (
-          <p className="text-muted-foreground">{t("loading")}</p>
-        ) : invoices.length === 0 ? (
-          <p className="text-muted-foreground">{t("noInvoices")}</p>
+          <div className="flex items-center justify-center p-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (invoices as any[]).length === 0 ? (
+          <ProcurementEmptyState
+            icon={<FileText className="h-8 w-8 text-muted-foreground" />}
+            title={t("noInvoices")}
+            actionLabel={t("newInvoice")}
+            onAction={() => setShowForm(true)}
+          />
         ) : (
           <Table>
             <TableHeader>
@@ -57,7 +65,7 @@ export default function SupplierInvoicesPage() {
                   <TableCell>€{(Number(inv.total) || 0).toFixed(2)}</TableCell>
                   <TableCell>{inv.due_date || "—"}</TableCell>
                   <TableCell>
-                    <Badge variant={statusColors[inv.status] as any}>{t(inv.status)}</Badge>
+                    <ProcurementStatusBadge status={inv.status} />
                   </TableCell>
                   <TableCell>
                     {inv.status === "pending" && (

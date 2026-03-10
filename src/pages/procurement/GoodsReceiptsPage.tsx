@@ -2,12 +2,13 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useTranslation } from "react-i18next";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useGoodsReceipts } from "@/hooks/useProcurement";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus } from "lucide-react";
+import { Plus, Loader2, PackageCheck } from "lucide-react";
 import { useState } from "react";
 import { GoodsReceiptForm } from "@/components/procurement/GoodsReceiptForm";
 import { format } from "date-fns";
+import { PageHeader } from "@/components/common/PageHeader";
+import { ProcurementEmptyState } from "@/components/procurement/ProcurementEmptyState";
 
 export default function GoodsReceiptsPage() {
   const { t } = useTranslation("procurement");
@@ -18,17 +19,29 @@ export default function GoodsReceiptsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-4 p-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">{t("receipts")}</h1>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />{t("newReceipt")}
-          </Button>
-        </div>
+        <PageHeader
+          title={t("receipts")}
+          count={(receipts as any[]).length}
+          actions={[
+            {
+              label: t("newReceipt"),
+              icon: <Plus className="h-4 w-4" />,
+              onClick: () => setShowForm(true),
+            },
+          ]}
+        />
         
         {isLoading ? (
-          <p className="text-muted-foreground">{t("loading")}</p>
-        ) : receipts.length === 0 ? (
-          <p className="text-muted-foreground">{t("noReceipts")}</p>
+          <div className="flex items-center justify-center p-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (receipts as any[]).length === 0 ? (
+          <ProcurementEmptyState
+            icon={<PackageCheck className="h-8 w-8 text-muted-foreground" />}
+            title={t("noReceipts")}
+            actionLabel={t("newReceipt")}
+            onAction={() => setShowForm(true)}
+          />
         ) : (
           <Table>
             <TableHeader>

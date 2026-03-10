@@ -1,13 +1,14 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useTranslation } from "react-i18next";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useSupplierProducts, useSuppliers } from "@/hooks/useProcurement";
+import { useSupplierProducts } from "@/hooks/useProcurement";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Star, Edit2, Trash2 } from "lucide-react";
+import { Plus, Star, Edit2, Trash2, Loader2, Package } from "lucide-react";
 import { useState } from "react";
 import { SupplierProductForm } from "@/components/procurement/SupplierProductForm";
+import { PageHeader } from "@/components/common/PageHeader";
+import { ProcurementEmptyState } from "@/components/procurement/ProcurementEmptyState";
 
 export default function SupplierProductsPage() {
   const { t } = useTranslation("procurement");
@@ -19,17 +20,29 @@ export default function SupplierProductsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-4 p-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">{t("supplierProducts")}</h1>
-          <Button onClick={() => { setEditItem(null); setShowForm(true); }}>
-            <Plus className="h-4 w-4 mr-2" />{t("addCatalogEntry")}
-          </Button>
-        </div>
+        <PageHeader
+          title={t("supplierProducts")}
+          count={(catalog as any[]).length}
+          actions={[
+            {
+              label: t("addCatalogEntry"),
+              icon: <Plus className="h-4 w-4" />,
+              onClick: () => { setEditItem(null); setShowForm(true); },
+            },
+          ]}
+        />
 
         {isLoading ? (
-          <p className="text-muted-foreground">{t("loading")}</p>
-        ) : catalog.length === 0 ? (
-          <p className="text-muted-foreground">{t("noCatalogEntries")}</p>
+          <div className="flex items-center justify-center p-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (catalog as any[]).length === 0 ? (
+          <ProcurementEmptyState
+            icon={<Package className="h-8 w-8 text-muted-foreground" />}
+            title={t("noCatalogEntries")}
+            actionLabel={t("addCatalogEntry")}
+            onAction={() => { setEditItem(null); setShowForm(true); }}
+          />
         ) : (
           <Table>
             <TableHeader>
