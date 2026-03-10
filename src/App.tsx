@@ -184,6 +184,7 @@ import RFCDealsPage from "./pages/RFCDealsPage";
 import RFCForecastPage from "./pages/RFCForecastPage";
 import RFCScenariosPage from "./pages/RFCScenariosPage";
 import RFCSettingsPage from "./pages/RFCSettingsPage";
+import VisionPage from "./pages/VisionPage";
 
 // Performance Engine
 import PerformanceDashboardPage from "./pages/performance/PerformanceDashboardPage";
@@ -582,6 +583,9 @@ function CRMRoutes() {
                 <Route path="/dashboard/email-campaigns" element={<EmailCampaignsPage />} />
                 <Route path="/dashboard/imo-ai" element={<IMOAIPage />} />
                 <Route path="/dashboard/zapier" element={<ZapierPage />} />
+                
+                {/* Método Vision */}
+                <Route path="/dashboard/vision" element={<VisionPage />} />
                 
                 {/* Revenue Flight Control */}
                 <Route path="/dashboard/revenue-flight-control" element={<RevenueFlightControlPage />} />
