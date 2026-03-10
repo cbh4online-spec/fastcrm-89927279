@@ -6,6 +6,7 @@ import { WeeklyMetric } from "@/hooks/useWeeklyPerformance";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/formatters";
 import { useTranslation } from "react-i18next";
+import { useWorkspaceMetricSettings } from "@/hooks/useWorkspaceMetricSettings";
 
 interface Props {
   metrics: WeeklyMetric[];
@@ -14,12 +15,8 @@ interface Props {
 }
 
 /**
- * Default conversion ratios for the execution funnel.
- * These can be overridden by workspace settings in the future.
- * 
- * - lead_to_meeting: 40% — percentage of qualified leads that convert to meetings
- * - meeting_to_proposal: 50% — percentage of meetings that generate a proposal
- * - proposal_to_deal: 30% — percentage of proposals that close as won deals
+ * Default conversion ratios (kept for reference/export).
+ * Runtime values come from useWorkspaceMetricSettings which reads workspace overrides.
  */
 export const CONVERSION_RATIOS = {
   lead_to_meeting: 0.4,
@@ -31,6 +28,7 @@ const order = ["leads", "meetings", "proposals", "deals"];
 
 export function ExecutionRequirements({ metrics, pipelineValue, isLoading }: Props) {
   const { t } = useTranslation("dashboard");
+  const { conversionRatios } = useWorkspaceMetricSettings();
 
   const metricConfig: Record<string, { label: string; icon: React.ReactNode }> = {
     leads: { label: t("qualifiedLeads"), icon: <Users className="h-3.5 w-3.5" /> },
@@ -58,28 +56,22 @@ export function ExecutionRequirements({ metrics, pipelineValue, isLoading }: Pro
     );
   }
 
-  // Get revenue gap for reverse engineering
   const revenueMetric = metrics.find((m) => m.key === "revenue");
   const revenueTarget = revenueMetric?.target ?? 0;
   const revenueClosed = revenueMetric?.actual ?? 0;
   const revenueGap = Math.max(revenueTarget - revenueClosed, 0);
 
-  // Calculate average deal value from targets
   const dealsMetric = metrics.find((m) => m.key === "deals");
   const dealsTarget = dealsMetric?.target ?? 1;
   const avgDealValue = dealsTarget > 0 && revenueTarget > 0 ? revenueTarget / dealsTarget : 0;
 
-  // Reverse-engineer from gap
   const dealsNeeded = avgDealValue > 0 ? Math.ceil(revenueGap / avgDealValue) : 0;
-  const proposalsNeeded = Math.ceil(dealsNeeded / CONVERSION_RATIOS.proposal_to_deal);
-  const meetingsNeeded = Math.ceil(proposalsNeeded / CONVERSION_RATIOS.meeting_to_proposal);
-  const leadsNeeded = Math.ceil(meetingsNeeded / CONVERSION_RATIOS.lead_to_meeting);
+  const proposalsNeeded = Math.ceil(dealsNeeded / conversionRatios.proposal_to_deal);
+  const meetingsNeeded = Math.ceil(proposalsNeeded / conversionRatios.meeting_to_proposal);
+  const leadsNeeded = Math.ceil(meetingsNeeded / conversionRatios.lead_to_meeting);
 
   const gapRequirements: Record<string, number> = {
-    leads: leadsNeeded,
-    meetings: meetingsNeeded,
-    proposals: proposalsNeeded,
-    deals: dealsNeeded,
+    leads: leadsNeeded, meetings: meetingsNeeded, proposals: proposalsNeeded, deals: dealsNeeded,
   };
 
   const items = order
@@ -111,34 +103,27 @@ export function ExecutionRequirements({ metrics, pipelineValue, isLoading }: Pro
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Gap-based requirements banner */}
         {hasGap && avgDealValue > 0 && (
           <div className="rounded-lg bg-primary/5 border border-primary/10 p-4">
             <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">
               {t("targetGoalBanner")}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="text-center p-2 rounded-md bg-background/60">
-                <p className="text-xl font-bold text-foreground">+{leadsNeeded}</p>
-                <p className="text-[10px] text-muted-foreground">{t("leadsLabel")}</p>
-              </div>
-              <div className="text-center p-2 rounded-md bg-background/60">
-                <p className="text-xl font-bold text-foreground">+{meetingsNeeded}</p>
-                <p className="text-[10px] text-muted-foreground">{t("meetingsLabel")}</p>
-              </div>
-              <div className="text-center p-2 rounded-md bg-background/60">
-                <p className="text-xl font-bold text-foreground">+{proposalsNeeded}</p>
-                <p className="text-[10px] text-muted-foreground">{t("proposalsLabel")}</p>
-              </div>
-              <div className="text-center p-2 rounded-md bg-background/60">
-                <p className="text-xl font-bold text-foreground">+{dealsNeeded}</p>
-                <p className="text-[10px] text-muted-foreground">{t("dealsLabel")}</p>
-              </div>
+              {[
+                { value: leadsNeeded, label: t("leadsLabel") },
+                { value: meetingsNeeded, label: t("meetingsLabel") },
+                { value: proposalsNeeded, label: t("proposalsLabel") },
+                { value: dealsNeeded, label: t("dealsLabel") },
+              ].map((item) => (
+                <div key={item.label} className="text-center p-2 rounded-md bg-background/60">
+                  <p className="text-xl font-bold text-foreground">+{item.value}</p>
+                  <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Metric grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {items.map((item) => (
             <div key={item.key} className="space-y-1.5">

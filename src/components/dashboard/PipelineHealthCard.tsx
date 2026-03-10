@@ -3,52 +3,39 @@ import { useWeeklyPerformance } from "@/hooks/useWeeklyPerformance";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Activity, Loader2, TrendingDown, Shield, AlertTriangle, HelpCircle } from "lucide-react";
+import { Activity, Loader2, TrendingDown, Shield, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
 import { useTranslation } from "react-i18next";
 import { TFunction } from "i18next";
+import { useWorkspaceMetricSettings } from "@/hooks/useWorkspaceMetricSettings";
 
 /**
- * Pipeline Health Score Configuration
- * 
- * Weights define how much each factor contributes to the final score (0-100):
- * - STALLED_WEIGHT (40): High stagnation ratio penalizes heavily — stalled deals block revenue.
- * - MISSING_DATA_WEIGHT (30): Missing close dates reduce forecast reliability.
- * - COVERAGE_WEIGHT (30): Pipeline coverage vs target — 3x+ coverage is healthy.
- * 
- * Formula: score = 100 - (stalledRatio × STALLED_WEIGHT) - (missingDataRatio × MISSING_DATA_WEIGHT) + (normalizedCoverage × COVERAGE_WEIGHT)
- * Coverage is normalized: min(coverageRatio, 3) / 3 so that 3x = full bonus.
- * Result is clamped to 0-100.
- * 
- * Future: These weights can be read from workspace settings for customization.
+ * Default weights (kept for reference/export).
+ * Runtime values come from useWorkspaceMetricSettings.
  */
 export const HEALTH_SCORE_WEIGHTS = {
   STALLED_WEIGHT: 40,
   MISSING_DATA_WEIGHT: 30,
   COVERAGE_WEIGHT: 30,
-  COVERAGE_MAX: 3, // 3x coverage = max bonus
+  COVERAGE_MAX: 3,
 } as const;
 
 function computeHealthScore(
   coverageRatio: number,
   stalledRatio: number,
-  missingDataRatio: number
+  missingDataRatio: number,
+  weights: { STALLED_WEIGHT: number; MISSING_DATA_WEIGHT: number; COVERAGE_WEIGHT: number; COVERAGE_MAX: number }
 ): number {
-  const { STALLED_WEIGHT, MISSING_DATA_WEIGHT, COVERAGE_WEIGHT, COVERAGE_MAX } = HEALTH_SCORE_WEIGHTS;
   const raw = 100
-    - (stalledRatio * STALLED_WEIGHT)
-    - (missingDataRatio * MISSING_DATA_WEIGHT)
-    + (Math.min(coverageRatio, COVERAGE_MAX) / COVERAGE_MAX * COVERAGE_WEIGHT);
+    - (stalledRatio * weights.STALLED_WEIGHT)
+    - (missingDataRatio * weights.MISSING_DATA_WEIGHT)
+    + (Math.min(coverageRatio, weights.COVERAGE_MAX) / weights.COVERAGE_MAX * weights.COVERAGE_WEIGHT);
   return Math.max(0, Math.min(100, Math.round(raw)));
 }
 
 function getBusinessExplanation(
-  t: TFunction,
-  score: number,
-  stalledRatio: number,
-  missingDataRatio: number,
-  coverageRatio: number
+  t: TFunction, score: number, stalledRatio: number, missingDataRatio: number, coverageRatio: number
 ): { text: string; action: string } {
   if (score >= 70) return {
     text: t('healthyPipeline', { coverage: coverageRatio.toFixed(1) }),
@@ -74,6 +61,7 @@ export function PipelineHealthCard() {
   const { t } = useTranslation('dashboard');
   const { data, isLoading } = useIntelligencePanel();
   const { data: weeklyData } = useWeeklyPerformance();
+  const { healthWeights } = useWorkspaceMetricSettings();
 
   if (isLoading) {
     return (
@@ -107,7 +95,7 @@ export function PipelineHealthCard() {
     : (dist.AT_RISK + dist.WATCH) / totalDeals;
   const missingDataRatio = data.data_quality.deals_missing_close_date / totalDeals;
 
-  const score = computeHealthScore(coverageRatio, stalledRatio, missingDataRatio);
+  const score = computeHealthScore(coverageRatio, stalledRatio, missingDataRatio, healthWeights);
   const label = score >= 70 ? t('healthy') : score >= 40 ? t('atRisk') : t('critical');
   const color = score >= 70 ? "text-success" : score >= 40 ? "text-warning" : "text-destructive";
 
@@ -136,7 +124,6 @@ export function PipelineHealthCard() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* Score */}
         <div className="flex items-baseline gap-2">
           <span className={cn("text-3xl font-bold", color)}>{score}%</span>
           <Badge variant={score >= 70 ? "default" : score >= 40 ? "secondary" : "destructive"} className="text-[10px]">
@@ -144,10 +131,8 @@ export function PipelineHealthCard() {
           </Badge>
         </div>
 
-        {/* Business explanation */}
         <p className="text-xs text-muted-foreground leading-relaxed">{explanation.text}</p>
 
-        {/* Key ratios */}
         <div className="grid grid-cols-3 gap-2 text-center">
           {[
             { label: t('coverageLabel'), value: `${coverageRatio.toFixed(1)}x`, good: coverageRatio >= 3 },
@@ -161,7 +146,6 @@ export function PipelineHealthCard() {
           ))}
         </div>
 
-        {/* Distribution */}
         <div className="grid grid-cols-3 gap-2 text-center pt-2 border-t border-border/30">
           {[
             { label: t('healthy'), value: dist.HEALTHY, dotColor: "bg-success" },
@@ -176,7 +160,6 @@ export function PipelineHealthCard() {
           ))}
         </div>
 
-        {/* Revenue impact */}
         {revenueAtRisk > 0 && (
           <div className="pt-2 border-t border-border/30 space-y-1.5">
             <div className="flex items-center gap-1.5">
@@ -196,7 +179,6 @@ export function PipelineHealthCard() {
           </div>
         )}
 
-        {/* Recommended action */}
         <div className="pt-2 border-t border-border/30">
           <div className="flex items-start gap-1.5">
             <Shield className="h-3 w-3 text-primary shrink-0 mt-0.5" />
