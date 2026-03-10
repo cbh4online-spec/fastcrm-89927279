@@ -1,68 +1,31 @@
 
 
-# Phase 5B — Command Center COMPLETO
+# Fix: Botão "Aceitar Proposta" não funciona em todos os workspaces
 
-## Gap Analysis: Current vs Spec
+## Problema
+O botão "Aceitar Proposta" na página pública (`/p/{slug}`) invoca sempre o `proposal-checkout` edge function, que:
+1. Usa o `STRIPE_SECRET_KEY` global em vez do `workspace_stripe_config` específico de cada workspace
+2. Falha silenciosamente se o workspace não tem Stripe configurado
+3. Não oferece alternativa para aceitar sem pagamento
 
-The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
+## Solução
 
-**Already implemented (needs enhancement):**
-- Header with greeting + 3 KPIs — needs larger font (32px), labels below
-- AI Question Box — needs slash command suggestions row below input
-- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
-- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
-- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
-- Drift Alerts — needs "Rever →" links to Context OS blocks
+### 1. Edge Function `proposal-checkout/index.ts`
+- Substituir `Deno.env.get("STRIPE_SECRET_KEY")` por leitura do `workspace_stripe_config` usando o `workspace_id` da proposta (padrão já usado em `create-store-checkout`)
+- Se o workspace não tiver Stripe configurado, marcar a proposta como `accepted` diretamente (sem checkout) e retornar `{ accepted: true }` em vez de erro
 
-**New sections to build:**
-1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
-2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
-   - Change Events (last 5 from `useChangeEvents` with realtime)
-   - Entity Activity (top 3 entities from `useKernelEntities`)
-   - Impact Score (top 2 from `useImpactMapData`)
-3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
+### 2. Página pública `PublicProposalPage.tsx`
+- No `handleCheckout`, tratar a resposta `{ accepted: true }` (sem URL de Stripe) — atualizar estado local para mostrar confirmação
+- Renomear para `handleAccept` para refletir que pode aceitar com ou sem pagamento
 
-**Enhanced Command Palette (⌘K):**
-- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
+### Fluxo resultante
+1. Cliente clica "Aceitar Proposta"
+2. Edge function verifica se workspace tem Stripe ativo
+   - **Com Stripe**: Cria checkout session e redireciona (comportamento atual)
+   - **Sem Stripe**: Marca proposta como `accepted`, regista log de atividade, retorna `{ accepted: true }`
+3. Frontend mostra confirmação de aceitação
 
-**Spotlight (Space key):**
-- Opens AI Question Box as a modal from any page. New global component.
-
-## Implementation Plan — 3 Sub-phases
-
-Given the scope, I recommend splitting into 3 batches:
-
-### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
-| File | Action |
-|------|--------|
-| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
-| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
-| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
-| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
-
-### Batch 2: Enhance Existing Cards
-| File | Action |
-|------|--------|
-| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
-| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
-| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
-| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
-| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
-| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
-
-### Batch 3: Spotlight Modal + Command Palette Enhancement
-| File | Action |
-|------|--------|
-| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
-| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
-| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
-
-### Realtime subscriptions needed
-- `change_events` table for Kernel Live Feed auto-update
-- `kernel_action_runs` for Ações do Dia auto-update
-- Already have `kernel_decisions` and `conversations`
-
-No database migrations needed. All hooks, edge functions, and tables already exist.
-
-**Shall I start with Batch 1?**
+### Ficheiros a alterar
+- `supabase/functions/proposal-checkout/index.ts` — usar `workspace_stripe_config`, fallback para aceitação direta
+- `src/pages/PublicProposalPage.tsx` — tratar resposta sem URL de checkout
 
