@@ -1,12 +1,15 @@
+import { useState } from "react";
 import {
   Sparkles, Layers, FileText, Target, MousePointerClick,
-  Globe, Zap, BarChart3, Lightbulb, Pencil, Check
+  Globe, Zap, BarChart3, Lightbulb, Pencil, Check, Coins
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { CreditEstimateCard } from "../credits/CreditEstimateCard";
+import { CreditActionButton } from "../credits/CreditActionButton";
 import type { AIFunnelRecommendation } from "./AIFunnelBuilder";
 
 interface Props {
@@ -16,6 +19,8 @@ interface Props {
 }
 
 export function AISummaryPanel({ recommendation, onApply, onEdit }: Props) {
+  const [complexity, setComplexity] = useState<"essential" | "advanced">("essential");
+
   if (!recommendation) {
     return (
       <Card className="border-border/50 bg-card/50 backdrop-blur h-full">
@@ -52,6 +57,31 @@ export function AISummaryPanel({ recommendation, onApply, onEdit }: Props) {
       <CardContent className="p-0">
         <ScrollArea className="h-[500px]">
           <div className="px-6 pb-6 space-y-4">
+            {/* Credit Estimate */}
+            <CreditEstimateCard complexity={complexity} />
+
+            {/* Complexity toggle */}
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant={complexity === "essential" ? "default" : "outline"}
+                className="flex-1 text-xs"
+                onClick={() => setComplexity("essential")}
+              >
+                Essential
+              </Button>
+              <Button
+                size="sm"
+                variant={complexity === "advanced" ? "default" : "outline"}
+                className="flex-1 text-xs"
+                onClick={() => setComplexity("advanced")}
+              >
+                Advanced
+              </Button>
+            </div>
+
+            <Separator />
+
             {/* Key fields */}
             {sections.map((s) => (
               <div key={s.label} className="flex items-start gap-3">
@@ -130,10 +160,14 @@ export function AISummaryPanel({ recommendation, onApply, onEdit }: Props) {
 
             {/* Actions */}
             <div className="space-y-2 pt-2">
-              <Button className="w-full gap-2" onClick={onApply}>
-                <Sparkles className="h-4 w-4" />
-                Gerar Funil
-              </Button>
+              <CreditActionButton
+                actionKey={complexity === "essential" ? "ai_funnel_essential" : "ai_funnel_advanced"}
+                label={`Gerar Funil ${complexity === "essential" ? "Essential" : "Advanced"}`}
+                icon={<Sparkles className="h-4 w-4" />}
+                onExecute={onApply}
+                className="w-full"
+                description={`Gerar funil ${complexity} com IA a partir da recomendação.`}
+              />
               <Button variant="outline" className="w-full gap-2" onClick={onEdit}>
                 <Pencil className="h-4 w-4" />
                 Editar Antes de Criar
