@@ -16,6 +16,8 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { OfferDialog } from "@/components/c2c/OfferDialog";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
 import { ListingCard } from "@/components/c2c/ListingCard";
+import { SellerBadges, SellerRatingInline } from "@/components/c2c/SellerBadges";
+import { ListingReviews } from "@/components/c2c/ListingReviews";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
