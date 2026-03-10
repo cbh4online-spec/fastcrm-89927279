@@ -1,73 +1,134 @@
-# Welcome to your Lovable project
+# FastCRM — Plataforma CRM Inteligente
 
-## Project info
+> CRM modular e multi-idioma com IA integrada, pipeline visual, automações e módulos de vendas, compras, performance e comunicação.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Stack Tecnológico
 
-## How can I edit this code?
+| Camada | Tecnologia |
+|--------|------------|
+| Frontend | React 18 + TypeScript + Vite |
+| UI | Tailwind CSS + shadcn/ui + Framer Motion |
+| Backend | Lovable Cloud — Edge Functions, Auth, Storage |
+| State | TanStack React Query |
+| i18n | i18next (PT, EN, ES, FR) |
+| Charts | Recharts |
 
-There are several ways of editing your application.
+## Estrutura do Projecto
 
-**Use Lovable**
+```
+src/
+├── components/        # Componentes React organizados por domínio
+│   ├── layout/        # DashboardLayout, Sidebar, TopBar
+│   ├── common/        # PageHeader, Toolbar, FilterSidebar, ColumnSelector
+│   ├── design-system/ # Tokens, KPICard, EmptyState, StatusBadge
+│   ├── crm/           # Leads, Contactos, Empresas (unified)
+│   ├── contacts/      # AttioContactsTable, ENI, Lifecycle
+│   ├── companies/     # SmartCompaniesTable
+│   ├── leads/         # SmartLeadsTable, Duplicate Review
+│   ├── invoices/      # CreateInvoiceDialog, Settings, Recurring
+│   ├── command-center/ # Command Center cards
+│   └── ...            # Outros módulos (procurement, performance, etc.)
+├── hooks/             # Custom hooks (useSmartLeads, useInvoices, etc.)
+├── pages/             # Páginas/rotas
+├── i18n/              # Traduções (PT, EN, ES, FR)
+│   └── locales/       # Ficheiros JSON por idioma e namespace
+├── contexts/          # Auth, Workspace, Subscription
+├── config/            # nav.v2.ts, extensionRegistry
+└── integrations/      # Client auto-gerado
+```
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Módulos Principais
 
-Changes made via Lovable will be committed automatically to this repo.
+### CRM (Leads, Contactos, Empresas)
+- Tabelas inteligentes com colunas AI (temperatura, score, tipo, próxima acção)
+- Análise IA individual e em massa
+- Gestão de duplicados unificada (detecção + fusão)
+- Ciclo de vida com timeline de transições
+- Acções rápidas (mensagem, oportunidade, automação)
+- Import/Export CSV
 
-**Use your preferred IDE**
+### Pipeline & Oportunidades
+- Kanban visual com drag-and-drop
+- Previsão de receita (Revenue Flight Control)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Faturas
+- CRUD completo com estados (Rascunho → Enviada → Paga → Vencida)
+- Acções em massa (enviar, marcar como paga, exportar)
+- Faturas recorrentes, fiscalidade, SAF-T
+- Filtros inteligentes (valor, período, vencimento próximo)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Performance / Gamificação
+- Leaderboard semanal com pontuação ponderada
+- Desafios, metas e reconhecimentos
+- TV Mode para ecrãs de escritório
+- KPIs: Receita, Pipeline, Reuniões, Performers Ativos
 
-Follow these steps:
+### Compras (Procurement)
+- Fluxo: Requisição → Ordem de Compra → Recepção → Fatura
+- Gestão de fornecedores e catálogo
+- RFQs e importação de preços
+- Dashboard com estados vazios orientados
+
+### Comunicação
+- Inbox unificada (email, WhatsApp)
+- Mural interno e Templates de mensagens
+- Agentes IA conversacionais
+
+### Command Center
+- Dashboard executivo com KPIs, decisões Kernel, pipeline risk
+- AI Question Box com slash commands
+- Kernel Live Feed e Brief Executivo
+
+## Internacionalização (i18n)
+
+Suporta **4 idiomas**: Português (PT), English (EN), Español (ES), Français (FR).
+
+### Namespaces
+`common`, `nav`, `dashboard`, `crm`, `settings`, `landing`, `inbox`, `automations`, `intelligence`, `invoices`, `products`, `auth`, `reports`, `meetings`, `ask`, `procurement`, `performance`
+
+### Convenções
+- Usar sempre `useTranslation("namespace")` nos componentes
+- Chaves em camelCase: `statusDraft`, `colClient`, `sortNewest`
+- Labels de UI nunca hardcoded — sempre via `t()`
+- Ficheiros em `src/i18n/locales/{pt,en,es,fr}/{namespace}.json`
+
+## Navegação (Sidebar)
+
+Hierarquia baseada em workflow:
+
+1. **Core** (sempre visível): Início, Command Center, Brief Executivo, AI CEO Copilot, Context OS, Impact Map, Revenue Flight Control
+2. **Grupos colapsáveis**: Relatórios, CRM, Comunicação, Performance, Vendas, Marketing, Compras, B2B, Loja Online, Marketplace C2C, FastClub, Ferramentas
+3. **Funcionalidades**: Pesquisa rápida, favoritos com pin (⭐), badges de contagem (leads novas, faturas vencidas, inbox não lido)
+
+### Rotas
+- Prefixo `/dashboard/` em todas as rotas de módulos
+- Uma única entrada por funcionalidade (sem aliases duplicados)
+- Todas as páginas usam `<DashboardLayout>` para manter a sidebar visível
+
+## Design System
+
+- Usar tokens semânticos do `index.css` e `tailwind.config.ts`
+- Nunca usar cores hardcoded — sempre via CSS variables HSL
+- Componentes reutilizáveis: `PageHeader`, `Toolbar`, `FilterSidebar`, `KPICard`, `EmptyState`
+- Badges de estado consistentes por módulo
+
+## Desenvolvimento Local
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Deployment
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- **Frontend**: Publish → Update no editor Lovable
+- **Backend** (Edge Functions, migrações): Deploy automático
 
-**Use GitHub Codespaces**
+## Contribuição
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+1. Seguir as convenções de i18n (nunca strings hardcoded)
+2. Usar componentes do design system
+3. Manter RLS policies em todas as tabelas
+4. Testar em todos os idiomas suportados
