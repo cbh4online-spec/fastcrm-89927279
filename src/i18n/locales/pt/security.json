@@ -41,6 +41,16 @@
   "quickActions": "Ações Rápidas",
   "attachments": "Anexos",
 
+  "partnerRequestsDesc": "Pedidos informais de parceiros para processamento e conversão",
+  "reqConverted": "Convertidos",
+  "reqAutoExtract": "Extração automática",
+  "reqAutoExtractDesc": "Extrair dados com IA imediatamente após criar o pedido",
+  "reqReExtract": "Re-extrair",
+  "reqReject": "Rejeitar",
+  "reqReopen": "Reabrir",
+  "reqValidateFirst": "Valide o pedido primeiro para poder converter em Lead",
+
+
   "partner": "Parceiro",
   "selectPartner": "Selecionar parceiro",
   "sourceChannel": "Canal de Origem",
