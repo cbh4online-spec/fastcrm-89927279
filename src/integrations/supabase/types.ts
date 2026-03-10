@@ -31221,6 +31221,7 @@ export type Database = {
       }
       security_contracts: {
         Row: {
+          adjudication_date: string | null
           client_id: string | null
           commercial_terms_json: Json | null
           company_id: string | null
@@ -31230,6 +31231,12 @@ export type Database = {
           created_at: string
           end_date: string | null
           id: string
+          internal_responsible: string | null
+          lead_id: string | null
+          notes: string | null
+          planned_end_date: string | null
+          planned_start_date: string | null
+          proposal_id: string | null
           renewal_notice_days: number | null
           signed_document_file_id: string | null
           sla_json: Json | null
@@ -31239,6 +31246,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          adjudication_date?: string | null
           client_id?: string | null
           commercial_terms_json?: Json | null
           company_id?: string | null
@@ -31248,6 +31256,12 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          internal_responsible?: string | null
+          lead_id?: string | null
+          notes?: string | null
+          planned_end_date?: string | null
+          planned_start_date?: string | null
+          proposal_id?: string | null
           renewal_notice_days?: number | null
           signed_document_file_id?: string | null
           sla_json?: Json | null
@@ -31257,6 +31271,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          adjudication_date?: string | null
           client_id?: string | null
           commercial_terms_json?: Json | null
           company_id?: string | null
@@ -31266,6 +31281,12 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          internal_responsible?: string | null
+          lead_id?: string | null
+          notes?: string | null
+          planned_end_date?: string | null
+          planned_start_date?: string | null
+          proposal_id?: string | null
           renewal_notice_days?: number | null
           signed_document_file_id?: string | null
           sla_json?: Json | null
@@ -31280,6 +31301,20 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "security_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_contracts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "security_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_contracts_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "security_proposals"
             referencedColumns: ["id"]
           },
           {
@@ -31626,6 +31661,126 @@ export type Database = {
           },
         ]
       }
+      security_leads: {
+        Row: {
+          assigned_to: string | null
+          attachments_json: Json | null
+          client_id: string | null
+          client_name: string | null
+          client_type: string | null
+          created_at: string
+          created_by: string | null
+          estimated_value: number | null
+          id: string
+          installation_address: string | null
+          lost_reason: string | null
+          need_description: string | null
+          notes: string | null
+          origin: string
+          partner_id: string | null
+          partner_request_id: string | null
+          priority: string | null
+          request_type: string | null
+          site_id: string | null
+          source_channel: string | null
+          status: string
+          system_type: string | null
+          updated_at: string
+          updated_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          attachments_json?: Json | null
+          client_id?: string | null
+          client_name?: string | null
+          client_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimated_value?: number | null
+          id?: string
+          installation_address?: string | null
+          lost_reason?: string | null
+          need_description?: string | null
+          notes?: string | null
+          origin?: string
+          partner_id?: string | null
+          partner_request_id?: string | null
+          priority?: string | null
+          request_type?: string | null
+          site_id?: string | null
+          source_channel?: string | null
+          status?: string
+          system_type?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          attachments_json?: Json | null
+          client_id?: string | null
+          client_name?: string | null
+          client_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimated_value?: number | null
+          id?: string
+          installation_address?: string | null
+          lost_reason?: string | null
+          need_description?: string | null
+          notes?: string | null
+          origin?: string
+          partner_id?: string | null
+          partner_request_id?: string | null
+          priority?: string | null
+          request_type?: string | null
+          site_id?: string | null
+          source_channel?: string | null
+          status?: string
+          system_type?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_leads_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "security_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_leads_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "security_partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_leads_partner_request_id_fkey"
+            columns: ["partner_request_id"]
+            isOneToOne: false
+            referencedRelation: "security_partner_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_leads_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "security_installation_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_leads_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_maintenance_plans: {
         Row: {
           checklist_template_json: Json | null
@@ -31891,6 +32046,7 @@ export type Database = {
           linked_company_id: string | null
           linked_lead_id: string | null
           linked_opportunity_id: string | null
+          linked_security_lead_id: string | null
           linked_site_id: string | null
           missing_fields_json: Json | null
           notes: string | null
@@ -31911,6 +32067,7 @@ export type Database = {
           linked_company_id?: string | null
           linked_lead_id?: string | null
           linked_opportunity_id?: string | null
+          linked_security_lead_id?: string | null
           linked_site_id?: string | null
           missing_fields_json?: Json | null
           notes?: string | null
@@ -31931,6 +32088,7 @@ export type Database = {
           linked_company_id?: string | null
           linked_lead_id?: string | null
           linked_opportunity_id?: string | null
+          linked_security_lead_id?: string | null
           linked_site_id?: string | null
           missing_fields_json?: Json | null
           notes?: string | null
@@ -31943,6 +32101,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "security_partner_requests_linked_security_lead_id_fkey"
+            columns: ["linked_security_lead_id"]
+            isOneToOne: false
+            referencedRelation: "security_leads"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "security_partner_requests_partner_id_fkey"
             columns: ["partner_id"]
@@ -32011,6 +32176,154 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "security_partners_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_proposals: {
+        Row: {
+          accepted_at: string | null
+          attachments_json: Json | null
+          client_id: string | null
+          commercial_notes: string | null
+          conditions: string | null
+          created_at: string
+          created_by: string | null
+          discount_percent: number | null
+          equipment_json: Json | null
+          equipment_value: number | null
+          final_value: number | null
+          id: string
+          internal_notes: string | null
+          labor_value: number | null
+          lead_id: string | null
+          parent_proposal_id: string | null
+          partner_id: string | null
+          proposal_number: string | null
+          rejected_at: string | null
+          rejection_reason: string | null
+          sent_at: string | null
+          site_id: string | null
+          solution_description: string | null
+          status: string
+          title: string | null
+          total_value: number | null
+          updated_at: string
+          updated_by: string | null
+          valid_until: string | null
+          validity_days: number | null
+          version: number
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          attachments_json?: Json | null
+          client_id?: string | null
+          commercial_notes?: string | null
+          conditions?: string | null
+          created_at?: string
+          created_by?: string | null
+          discount_percent?: number | null
+          equipment_json?: Json | null
+          equipment_value?: number | null
+          final_value?: number | null
+          id?: string
+          internal_notes?: string | null
+          labor_value?: number | null
+          lead_id?: string | null
+          parent_proposal_id?: string | null
+          partner_id?: string | null
+          proposal_number?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          sent_at?: string | null
+          site_id?: string | null
+          solution_description?: string | null
+          status?: string
+          title?: string | null
+          total_value?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          valid_until?: string | null
+          validity_days?: number | null
+          version?: number
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          attachments_json?: Json | null
+          client_id?: string | null
+          commercial_notes?: string | null
+          conditions?: string | null
+          created_at?: string
+          created_by?: string | null
+          discount_percent?: number | null
+          equipment_json?: Json | null
+          equipment_value?: number | null
+          final_value?: number | null
+          id?: string
+          internal_notes?: string | null
+          labor_value?: number | null
+          lead_id?: string | null
+          parent_proposal_id?: string | null
+          partner_id?: string | null
+          proposal_number?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          sent_at?: string | null
+          site_id?: string | null
+          solution_description?: string | null
+          status?: string
+          title?: string | null
+          total_value?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          valid_until?: string | null
+          validity_days?: number | null
+          version?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_proposals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "security_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_proposals_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "security_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_proposals_parent_proposal_id_fkey"
+            columns: ["parent_proposal_id"]
+            isOneToOne: false
+            referencedRelation: "security_proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_proposals_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "security_partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_proposals_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "security_installation_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_proposals_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

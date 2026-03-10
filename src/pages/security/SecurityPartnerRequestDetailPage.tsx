@@ -11,12 +11,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useSecurityConversions } from "@/hooks/security/useSecurityConversions";
 
 export default function SecurityPartnerRequestDetailPage() {
   const { t } = useTranslation("security");
   const { id } = useParams();
   const navigate = useNavigate();
   const { requests, extractData, updateRequest } = useSecurityPartnerRequests();
+  const { convertRequestToLead } = useSecurityConversions();
   const request = requests.find((r) => r.id === id);
   const [editedPayload, setEditedPayload] = useState<Record<string, any>>({});
 
@@ -51,8 +53,10 @@ export default function SecurityPartnerRequestDetailPage() {
   };
 
   const handleConvertToLead = () => {
-    toast.info("Conversão em lead — funcionalidade a implementar na Fase 2");
+    convertRequestToLead.mutate(request);
   };
+  const isConverting = convertRequestToLead.isPending;
+  const alreadyConverted = !!(request as any).linked_security_lead_id;
 
   const handleFieldChange = (key: string, value: string) => {
     setEditedPayload((prev) => ({ ...prev, [key]: value }));
@@ -98,9 +102,15 @@ export default function SecurityPartnerRequestDetailPage() {
                 {t("validate")}
               </Button>
             )}
-            {request.extraction_status === "validated" && (
-              <Button onClick={handleConvertToLead} className="gap-2">
+            {request.extraction_status === "validated" && !alreadyConverted && (
+              <Button onClick={handleConvertToLead} disabled={isConverting} className="gap-2">
+                {isConverting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {t("convertToLead")}
+              </Button>
+            )}
+            {alreadyConverted && (
+              <Button variant="outline" onClick={() => navigate(`/dashboard/security/leads/${(request as any).linked_security_lead_id}`)} className="gap-2">
+                Ver Lead
               </Button>
             )}
           </div>
@@ -217,12 +227,15 @@ export default function SecurityPartnerRequestDetailPage() {
               <div className="mt-6 pt-4 border-t">
                 <h4 className="text-sm font-medium mb-3">{t("quickActions")}</h4>
                 <div className="space-y-2">
-                  <Button variant="outline" size="sm" className="w-full justify-start" onClick={handleConvertToLead}>
-                    {t("convertToLead")}
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => toast.info("Fase 2")}>
-                    {t("convertToOpportunity")}
-                  </Button>
+                  {!alreadyConverted ? (
+                    <Button variant="outline" size="sm" className="w-full justify-start" onClick={handleConvertToLead} disabled={isConverting || request.extraction_status !== "validated"}>
+                      {t("convertToLead")}
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => navigate(`/dashboard/security/leads/${(request as any).linked_security_lead_id}`)}>
+                      Ver Lead Criado
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>

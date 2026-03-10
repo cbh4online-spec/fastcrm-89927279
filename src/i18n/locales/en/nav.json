@@ -153,6 +153,8 @@
   "groupSecurity": "Security",
   "securityDashboard": "Dashboard",
   "securityPartnerRequests": "Partner Requests",
+  "securityLeads": "Security Leads",
+  "securityProposals": "Proposals",
   "securityClients": "Clients",
   "securitySites": "Installation Sites",
   "securitySystems": "Systems",

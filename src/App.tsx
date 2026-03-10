@@ -209,6 +209,9 @@ import SecurityContractsPage from "./pages/security/SecurityContractsPage";
 import SecurityClientsPage from "./pages/security/SecurityClientsPage";
 import SecurityClientDetailPage from "./pages/security/SecurityClientDetailPage";
 import SecurityProposalsPage from "./pages/security/SecurityProposalsPage";
+import SecurityProposalDetailPage from "./pages/security/SecurityProposalDetailPage";
+import SecurityLeadsPage from "./pages/security/SecurityLeadsPage";
+import SecurityLeadDetailPage from "./pages/security/SecurityLeadDetailPage";
 import SecurityDocumentsPage from "./pages/security/SecurityDocumentsPage";
 import SecurityDocumentDetailPage from "./pages/security/SecurityDocumentDetailPage";
 import SecurityMaintenancePage from "./pages/security/SecurityMaintenancePage";
@@ -672,6 +675,9 @@ function CRMRoutes() {
                 <Route path="/dashboard/security/contracts" element={<SecurityContractsPage />} />
                 <Route path="/dashboard/security/contracts/:id" element={<SecurityContractsPage />} />
                 <Route path="/dashboard/security/proposals" element={<SecurityProposalsPage />} />
+                <Route path="/dashboard/security/proposals/:id" element={<SecurityProposalDetailPage />} />
+                <Route path="/dashboard/security/leads" element={<SecurityLeadsPage />} />
+                <Route path="/dashboard/security/leads/:id" element={<SecurityLeadDetailPage />} />
                 <Route path="/dashboard/security/documents" element={<SecurityDocumentsPage />} />
                 <Route path="/dashboard/security/documents/:id" element={<SecurityDocumentDetailPage />} />
                 <Route path="/dashboard/security/maintenance" element={<SecurityMaintenancePage />} />
