@@ -32415,41 +32415,107 @@ export type Database = {
           },
         ]
       }
+      security_renewal_activities: {
+        Row: {
+          activity_type: string
+          created_at: string
+          description: string
+          id: string
+          metadata: Json | null
+          renewal_id: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          activity_type?: string
+          created_at?: string
+          description: string
+          id?: string
+          metadata?: Json | null
+          renewal_id: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json | null
+          renewal_id?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_renewal_activities_renewal_id_fkey"
+            columns: ["renewal_id"]
+            isOneToOne: false
+            referencedRelation: "security_renewals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_renewal_activities_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_renewals: {
         Row: {
+          client_response: string | null
+          contact_attempts: number | null
           contract_id: string | null
           created_at: string
           id: string
+          last_contact_at: string | null
+          new_contract_id: string | null
           owner_user_id: string | null
+          previous_value: number | null
           renewal_due_date: string | null
           renewal_proposal_id: string | null
           renewal_stage: string
+          renewal_value: number | null
           result_notes: string | null
           system_id: string | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          client_response?: string | null
+          contact_attempts?: number | null
           contract_id?: string | null
           created_at?: string
           id?: string
+          last_contact_at?: string | null
+          new_contract_id?: string | null
           owner_user_id?: string | null
+          previous_value?: number | null
           renewal_due_date?: string | null
           renewal_proposal_id?: string | null
           renewal_stage?: string
+          renewal_value?: number | null
           result_notes?: string | null
           system_id?: string | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          client_response?: string | null
+          contact_attempts?: number | null
           contract_id?: string | null
           created_at?: string
           id?: string
+          last_contact_at?: string | null
+          new_contract_id?: string | null
           owner_user_id?: string | null
+          previous_value?: number | null
           renewal_due_date?: string | null
           renewal_proposal_id?: string | null
           renewal_stage?: string
+          renewal_value?: number | null
           result_notes?: string | null
           system_id?: string | null
           updated_at?: string
@@ -32459,6 +32525,13 @@ export type Database = {
           {
             foreignKeyName: "security_renewals_contract_id_fkey"
             columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "security_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_renewals_new_contract_id_fkey"
+            columns: ["new_contract_id"]
             isOneToOne: false
             referencedRelation: "security_contracts"
             referencedColumns: ["id"]
@@ -41267,6 +41340,7 @@ export type Database = {
         Args: { target_date?: string }
         Returns: undefined
       }
+      auto_create_security_renewals: { Args: never; Returns: undefined }
       batch_reorder_objectives: {
         Args: { p_ids: string[]; p_positions: number[] }
         Returns: undefined
