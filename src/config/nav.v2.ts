@@ -322,6 +322,7 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
       children: [
         { nameKey: "securityDashboard", name: t("securityDashboard"), href: "/dashboard/security", icon: LayoutDashboard, iconColor: "text-red-600" },
         { nameKey: "securityPartnerRequests", name: t("securityPartnerRequests"), href: "/dashboard/security/partner-requests", icon: ClipboardList, iconColor: "text-red-600" },
+        { nameKey: "securityClients", name: t("securityClients"), href: "/dashboard/security/clients", icon: Users, iconColor: "text-red-600" },
         { nameKey: "securitySites", name: t("securitySites"), href: "/dashboard/security/sites", icon: Building2, iconColor: "text-red-600" },
         { nameKey: "securitySystems", name: t("securitySystems"), href: "/dashboard/security/systems", icon: Camera, iconColor: "text-red-600" },
         { nameKey: "securityEquipment", name: t("securityEquipment"), href: "/dashboard/security/equipment", icon: Camera, iconColor: "text-red-600" },
