@@ -111,6 +111,13 @@ export function AIProductAssistant({
     }
   };
 
+  const handleApplyBillingType = () => {
+    if (suggestFromName.data?.billingType && onApplyBillingType) {
+      onApplyBillingType(suggestFromName.data.billingType);
+      setAppliedItems((prev) => new Set(prev).add("billingType"));
+    }
+  };
+
   const handleRefresh = () => {
     if (productName && productName.length >= 3) {
       const categoryNames = existingCategories?.map(c => c.name) || [];
