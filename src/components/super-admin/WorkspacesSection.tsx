@@ -52,8 +52,12 @@ import {
   Plus,
   Users,
   Pencil,
-  Trash2
+  Trash2,
+  Coins,
+  Loader2,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/contexts/AuthContext";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
