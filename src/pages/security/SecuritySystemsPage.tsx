@@ -33,6 +33,7 @@ export default function SecuritySystemsPage() {
   const { systems, isLoading } = useSecuritySystems();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const filtered = systems.filter((s: any) =>
     [s.main_brand, s.main_model, (s.security_installation_sites as any)?.site_name]
