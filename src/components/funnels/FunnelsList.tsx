@@ -161,10 +161,10 @@ export function FunnelsList() {
               await supabase.from("funnel_steps").insert(
                 rec.funnelSteps.map((step, i) => ({
                   funnel_id: result.id,
+                  workspace_id: currentWorkspace!.id,
                   name: step.name,
                   step_type: step.type || "page",
-                  description: step.description || "",
-                  position: i,
+                  sort_order: i,
                 }))
               );
             }
