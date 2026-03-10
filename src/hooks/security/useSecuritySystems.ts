@@ -14,7 +14,7 @@ export function useSecuritySystems() {
       if (!workspaceId) return [];
       const { data, error } = await supabase
         .from("security_systems")
-        .select("*, security_installation_sites(site_name, locality)")
+        .select("*, security_installation_sites(id, site_name, locality, address_line_1, postal_code, county, district, onsite_responsible_name, onsite_responsible_phone), security_clients(id, name, nif, client_type, fiscal_address, email, phone)")
         .eq("workspace_id", workspaceId)
         .order("created_at", { ascending: false });
       if (error) throw error;
