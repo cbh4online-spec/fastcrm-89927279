@@ -60,6 +60,7 @@ import {
   Wrench,
   AlertTriangle,
   RefreshCw,
+  Eye,
 } from "lucide-react";
 
 // --- Types ---
