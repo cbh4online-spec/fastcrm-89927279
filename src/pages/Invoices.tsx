@@ -381,6 +381,36 @@ export default function Invoices() {
                 {t("selectedCount", { count: selectedIds.length })}
               </span>
               <div className="flex-1" />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const draftIds = invoices?.filter(inv => selectedIds.includes(inv.id) && inv.status === "draft").map(inv => inv.id) || [];
+                  if (draftIds.length === 0) { toast.info(t("noDraftToSend")); return; }
+                  draftIds.forEach(id => sendInvoice.mutate(id));
+                  toast.success(t("bulkSent", { count: draftIds.length }));
+                  setSelectedIds([]);
+                }}
+                className="gap-2"
+              >
+                <Send className="h-4 w-4" />
+                {t("bulkSend")}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const payableIds = invoices?.filter(inv => selectedIds.includes(inv.id) && (inv.status === "sent" || inv.status === "overdue")).map(inv => inv.id) || [];
+                  if (payableIds.length === 0) { toast.info(t("noInvoicesToPay")); return; }
+                  payableIds.forEach(id => markPaid.mutate({ id }));
+                  toast.success(t("bulkPaid", { count: payableIds.length }));
+                  setSelectedIds([]);
+                }}
+                className="gap-2"
+              >
+                <CheckCircle className="h-4 w-4" />
+                {t("bulkMarkPaid")}
+              </Button>
               <Button variant="outline" size="sm" onClick={handleBulkExport} className="gap-2">
                 <Download className="h-4 w-4" />
                 {t("export")}
