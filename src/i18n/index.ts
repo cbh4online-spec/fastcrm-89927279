@@ -20,6 +20,7 @@ import ptMeetings from './locales/pt/meetings.json';
 import ptAsk from './locales/pt/ask.json';
 import ptProcurement from './locales/pt/procurement.json';
 import ptPerformance from './locales/pt/performance.json';
+import ptMarketplace from './locales/pt/marketplace.json';
 // EN
 import enCommon from './locales/en/common.json';
 import enNav from './locales/en/nav.json';
@@ -38,6 +39,7 @@ import enMeetings from './locales/en/meetings.json';
 import enAsk from './locales/en/ask.json';
 import enProcurement from './locales/en/procurement.json';
 import enPerformance from './locales/en/performance.json';
+import enMarketplace from './locales/en/marketplace.json';
 
 // ES
 import esCommon from './locales/es/common.json';
@@ -57,6 +59,7 @@ import esMeetings from './locales/es/meetings.json';
 import esAsk from './locales/es/ask.json';
 import esProcurement from './locales/es/procurement.json';
 import esPerformance from './locales/es/performance.json';
+import esMarketplace from './locales/es/marketplace.json';
 
 // FR
 import frCommon from './locales/fr/common.json';
@@ -76,6 +79,7 @@ import frMeetings from './locales/fr/meetings.json';
 import frAsk from './locales/fr/ask.json';
 import frProcurement from './locales/fr/procurement.json';
 import frPerformance from './locales/fr/performance.json';
+import frMarketplace from './locales/fr/marketplace.json';
 
 export const supportedLanguages = [
   { code: 'pt', label: 'Português', flag: '🇵🇹' },
@@ -95,7 +99,7 @@ i18n
       caches: ['localStorage'],
       lookupLocalStorage: 'i18nextLng',
     },
-    ns: ['common', 'nav', 'dashboard', 'crm', 'settings', 'landing', 'inbox', 'automations', 'intelligence', 'invoices', 'products', 'auth', 'reports', 'meetings', 'ask', 'procurement', 'performance'],
+    ns: ['common', 'nav', 'dashboard', 'crm', 'settings', 'landing', 'inbox', 'automations', 'intelligence', 'invoices', 'products', 'auth', 'reports', 'meetings', 'ask', 'procurement', 'performance', 'marketplace'],
     defaultNS: 'common',
     interpolation: { escapeValue: false },
     resources: {
@@ -104,28 +108,28 @@ i18n
         settings: ptSettings, landing: ptLanding, inbox: ptInbox,
         automations: ptAutomations, intelligence: ptIntelligence,
         invoices: ptInvoices, products: ptProducts, auth: ptAuth, reports: ptReports, meetings: ptMeetings, ask: ptAsk,
-        procurement: ptProcurement, performance: ptPerformance,
+        procurement: ptProcurement, performance: ptPerformance, marketplace: ptMarketplace,
       },
       en: {
         common: enCommon, nav: enNav, dashboard: enDashboard, crm: enCrm,
         settings: enSettings, landing: enLanding, inbox: enInbox,
         automations: enAutomations, intelligence: enIntelligence,
         invoices: enInvoices, products: enProducts, auth: enAuth, reports: enReports, meetings: enMeetings, ask: enAsk,
-        procurement: enProcurement, performance: enPerformance,
+        procurement: enProcurement, performance: enPerformance, marketplace: enMarketplace,
       },
       es: {
         common: esCommon, nav: esNav, dashboard: esDashboard, crm: esCrm,
         settings: esSettings, landing: esLanding, inbox: esInbox,
         automations: esAutomations, intelligence: esIntelligence,
         invoices: esInvoices, products: esProducts, auth: esAuth, reports: esReports, meetings: esMeetings, ask: esAsk,
-        procurement: esProcurement, performance: esPerformance,
+        procurement: esProcurement, performance: esPerformance, marketplace: esMarketplace,
       },
       fr: {
         common: frCommon, nav: frNav, dashboard: frDashboard, crm: frCrm,
         settings: frSettings, landing: frLanding, inbox: frInbox,
         automations: frAutomations, intelligence: frIntelligence,
         invoices: frInvoices, products: frProducts, auth: frAuth, reports: frReports, meetings: frMeetings, ask: frAsk,
-        procurement: frProcurement, performance: frPerformance,
+        procurement: frProcurement, performance: frPerformance, marketplace: frMarketplace,
       },
     },
   });
