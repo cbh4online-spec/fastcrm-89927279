@@ -204,7 +204,12 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
                     </div>
                     <div className="flex items-center gap-2">
                       <Button size="sm" onClick={() => setStepSubTab("editor")}>Editar</Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => funnel && window.open(`/funnel/${funnel.slug}?preview=true&step=${steps.indexOf(selectedStep)}`, "_blank")}
+                      >
                         <ExternalLink className="h-3 w-3" />
                       </Button>
                       <Button variant="outline" size="icon" className="h-8 w-8">
