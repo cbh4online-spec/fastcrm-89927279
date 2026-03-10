@@ -7,18 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { FileText, Plus, Search } from "lucide-react";
+import { FileText, Plus, Search, Clock, CheckCircle, Send, Shield } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
 import { SecurityDocumentCreateDialog } from "@/components/security/SecurityDocumentCreateDialog";
 
 const statusColors: Record<string, string> = {
-  draft: "secondary",
-  por_validar: "outline",
-  validated: "default",
-  emitted: "default",
-  signed: "default",
-  archived: "secondary",
+  draft: "secondary", por_validar: "outline", validated: "default",
+  emitted: "default", signed: "default", archived: "secondary",
 };
 
 export default function SecurityDocumentsPage() {
@@ -34,6 +30,7 @@ export default function SecurityDocumentsPage() {
   if (typeFilter !== "all") filters.document_type = typeFilter;
 
   const { documents, isLoading } = useSecurityDocuments(filters);
+  const { documents: allDocs } = useSecurityDocuments();
 
   const filtered = documents.filter((d: any) => {
     const site = (d.security_systems as any)?.security_installation_sites as any;
@@ -63,6 +60,14 @@ export default function SecurityDocumentsPage() {
   const getTypeLabel = (type: string) => docTypes.find(d => d.value === type)?.label || type;
   const getStatusLabel = (status: string) => statuses.find(s => s.value === status)?.label || status;
 
+  // KPIs
+  const kpis = {
+    draft: allDocs.filter((d: any) => d.status === "draft").length,
+    pending: allDocs.filter((d: any) => d.status === "por_validar").length,
+    validated: allDocs.filter((d: any) => d.status === "validated").length,
+    emitted: allDocs.filter((d: any) => ["emitted", "signed"].includes(d.status)).length,
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -77,15 +82,41 @@ export default function SecurityDocumentsPage() {
           </Button>
         </div>
 
+        {/* KPI Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-muted"><Clock className="h-4 w-4 text-muted-foreground" /></div>
+              <div><p className="text-2xl font-bold">{kpis.draft}</p><p className="text-xs text-muted-foreground">Rascunhos</p></div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-amber-500/10"><Shield className="h-4 w-4 text-amber-600" /></div>
+              <div><p className="text-2xl font-bold">{kpis.pending}</p><p className="text-xs text-muted-foreground">Por Validar</p></div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10"><CheckCircle className="h-4 w-4 text-primary" /></div>
+              <div><p className="text-2xl font-bold">{kpis.validated}</p><p className="text-xs text-muted-foreground">Validados</p></div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-green-500/10"><Send className="h-4 w-4 text-green-600" /></div>
+              <div><p className="text-2xl font-bold">{kpis.emitted}</p><p className="text-xs text-muted-foreground">Emitidos</p></div>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="flex flex-wrap gap-3">
           <div className="relative max-w-sm flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder={t("search")} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder={t("type")} />
-            </SelectTrigger>
+            <SelectTrigger className="w-[200px]"><SelectValue placeholder={t("type")} /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("all")}</SelectItem>
               {docTypes.map(dt => (
@@ -94,9 +125,7 @@ export default function SecurityDocumentsPage() {
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder={t("status")} />
-            </SelectTrigger>
+            <SelectTrigger className="w-[180px]"><SelectValue placeholder={t("status")} /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("all")}</SelectItem>
               {statuses.map(s => (
@@ -134,13 +163,12 @@ export default function SecurityDocumentsPage() {
                       <p className="text-sm text-muted-foreground">
                         {site?.site_name || "—"}
                         {doc.created_at && ` · ${format(new Date(doc.created_at), "dd/MM/yyyy")}`}
+                        {doc.emitted_at && ` · Emitido ${format(new Date(doc.emitted_at), "dd/MM/yyyy")}`}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={(statusColors[doc.status] || "secondary") as any}>
-                        {getStatusLabel(doc.status)}
-                      </Badge>
-                    </div>
+                    <Badge variant={(statusColors[doc.status] || "secondary") as any}>
+                      {getStatusLabel(doc.status)}
+                    </Badge>
                   </CardContent>
                 </Card>
               );
