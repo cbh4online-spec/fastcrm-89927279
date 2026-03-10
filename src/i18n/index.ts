@@ -125,7 +125,7 @@ i18n
         settings: esSettings, landing: esLanding, inbox: esInbox,
         automations: esAutomations, intelligence: esIntelligence,
         invoices: esInvoices, products: esProducts, auth: esAuth, reports: esReports, meetings: esMeetings, ask: esAsk,
-        procurement: esProcurement, performance: esPerformance, marketplace: esMarketplace,
+        procurement: esProcurement, performance: esPerformance, marketplace: esMarketplace, security: esSecurity,
       },
       fr: {
         common: frCommon, nav: frNav, dashboard: frDashboard, crm: frCrm,
