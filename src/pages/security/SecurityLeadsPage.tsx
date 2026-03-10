@@ -7,39 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { Target, Plus, Search } from "lucide-react";
+import { Target, Plus, Search, TrendingUp, Clock, CheckCircle, XCircle } from "lucide-react";
 import { useState } from "react";
 import { SecurityLeadDialog } from "@/components/security/SecurityLeadDialog";
 
 const statusColors: Record<string, string> = {
-  new: "default",
-  qualifying: "secondary",
-  qualified: "default",
-  proposal_sent: "outline",
-  won: "default",
-  lost: "destructive",
-  archived: "secondary",
+  new: "default", qualifying: "secondary", qualified: "default",
+  proposal_sent: "outline", won: "default", lost: "destructive", archived: "secondary",
 };
 
 const statusLabels: Record<string, string> = {
-  new: "Novo",
-  qualifying: "Em Qualificação",
-  qualified: "Qualificado",
-  proposal_sent: "Proposta Enviada",
-  won: "Ganho",
-  lost: "Perdido",
-  archived: "Arquivado",
+  new: "Novo", qualifying: "Em Qualificação", qualified: "Qualificado",
+  proposal_sent: "Proposta Enviada", won: "Ganho", lost: "Perdido", archived: "Arquivado",
 };
 
 const originLabels: Record<string, string> = {
-  direct: "Direto",
-  partner: "Parceiro",
-  site: "Site",
-  phone: "Telefone",
-  email: "Email",
-  whatsapp: "WhatsApp",
-  telegram: "Telegram",
-  manual: "Manual",
+  direct: "Direto", partner: "Parceiro", site: "Site", phone: "Telefone",
+  email: "Email", whatsapp: "WhatsApp", telegram: "Telegram", manual: "Manual",
 };
 
 export default function SecurityLeadsPage() {
@@ -49,17 +33,25 @@ export default function SecurityLeadsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  // Fetch all leads for KPIs
+  const { leads: allLeads } = useSecurityLeads();
   const { leads, isLoading } = useSecurityLeads(
     statusFilter !== "all" ? { status: statusFilter } : undefined
   );
 
   const filtered = leads.filter((l: any) =>
     [l.client_name, l.installation_address, l.system_type, (l.security_partners as any)?.name]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase()
-      .includes(search.toLowerCase())
+      .filter(Boolean).join(" ").toLowerCase().includes(search.toLowerCase())
   );
+
+  // KPIs
+  const kpis = {
+    total: allLeads.length,
+    active: allLeads.filter((l: any) => ["new", "qualifying", "qualified"].includes(l.status)).length,
+    won: allLeads.filter((l: any) => l.status === "won").length,
+    lost: allLeads.filter((l: any) => l.status === "lost").length,
+    convRate: allLeads.length > 0 ? Math.round((allLeads.filter((l: any) => l.status === "won").length / allLeads.length) * 100) : 0,
+  };
 
   return (
     <DashboardLayout>
@@ -75,15 +67,41 @@ export default function SecurityLeadsPage() {
           </Button>
         </div>
 
+        {/* KPI Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10"><Clock className="h-4 w-4 text-primary" /></div>
+              <div><p className="text-2xl font-bold">{kpis.active}</p><p className="text-xs text-muted-foreground">Ativos</p></div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-green-500/10"><CheckCircle className="h-4 w-4 text-green-600" /></div>
+              <div><p className="text-2xl font-bold">{kpis.won}</p><p className="text-xs text-muted-foreground">Ganhos</p></div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-destructive/10"><XCircle className="h-4 w-4 text-destructive" /></div>
+              <div><p className="text-2xl font-bold">{kpis.lost}</p><p className="text-xs text-muted-foreground">Perdidos</p></div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10"><TrendingUp className="h-4 w-4 text-primary" /></div>
+              <div><p className="text-2xl font-bold">{kpis.convRate}%</p><p className="text-xs text-muted-foreground">Conversão</p></div>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="flex gap-3 flex-wrap">
           <div className="relative max-w-sm flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder={t("search")} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("all")}</SelectItem>
               {Object.entries(statusLabels).map(([k, v]) => (
@@ -115,10 +133,8 @@ export default function SecurityLeadsPage() {
                   <div className="space-y-1">
                     <p className="font-medium">{lead.client_name || "Lead sem nome"}</p>
                     <p className="text-sm text-muted-foreground">
-                      {lead.system_type && (
-                        <span className="capitalize">{t(`type${lead.system_type.charAt(0).toUpperCase()}${lead.system_type.slice(1)}` as any) || lead.system_type}</span>
-                      )}
-                      {lead.request_type && <span> · {t(`type${lead.request_type.charAt(0).toUpperCase()}${lead.request_type.slice(1)}` as any) || lead.request_type}</span>}
+                      {lead.system_type && <span className="capitalize">{lead.system_type}</span>}
+                      {lead.request_type && <span> · {lead.request_type}</span>}
                       {(lead.security_partners as any)?.name && <span> · {(lead.security_partners as any).name}</span>}
                     </p>
                     {lead.installation_address && (
@@ -137,7 +153,6 @@ export default function SecurityLeadsPage() {
           </div>
         )}
       </div>
-
       <SecurityLeadDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </DashboardLayout>
   );

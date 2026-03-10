@@ -7,26 +7,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Search, Plus } from "lucide-react";
+import { FileText, Search, Plus, Send, CheckCircle, XCircle, Euro } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
 
 const statusColors: Record<string, string> = {
-  draft: "secondary",
-  sent: "default",
-  under_review: "outline",
-  accepted: "default",
-  rejected: "destructive",
-  expired: "secondary",
+  draft: "secondary", sent: "default", under_review: "outline",
+  accepted: "default", rejected: "destructive", expired: "secondary",
 };
 
 const statusLabels: Record<string, string> = {
-  draft: "Rascunho",
-  sent: "Enviada",
-  under_review: "Em Análise",
-  accepted: "Aceite",
-  rejected: "Rejeitada",
-  expired: "Expirada",
+  draft: "Rascunho", sent: "Enviada", under_review: "Em Análise",
+  accepted: "Aceite", rejected: "Rejeitada", expired: "Expirada",
 };
 
 export default function SecurityProposalsPage() {
@@ -38,14 +30,21 @@ export default function SecurityProposalsPage() {
   const { proposals, isLoading } = useSecurityProposals(
     statusFilter !== "all" ? { status: statusFilter } : undefined
   );
+  // All proposals for KPIs
+  const { proposals: allProposals } = useSecurityProposals();
 
   const filtered = proposals.filter((p: any) =>
     [p.title, p.proposal_number, (p.security_clients as any)?.name, (p.security_installation_sites as any)?.site_name]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase()
-      .includes(search.toLowerCase())
+      .filter(Boolean).join(" ").toLowerCase().includes(search.toLowerCase())
   );
+
+  // KPIs
+  const kpis = {
+    draft: allProposals.filter((p: any) => p.status === "draft").length,
+    sent: allProposals.filter((p: any) => ["sent", "under_review"].includes(p.status)).length,
+    accepted: allProposals.filter((p: any) => p.status === "accepted").length,
+    totalValue: allProposals.filter((p: any) => p.status === "accepted").reduce((s: number, p: any) => s + (Number(p.final_value) || 0), 0),
+  };
 
   return (
     <DashboardLayout>
@@ -61,15 +60,41 @@ export default function SecurityProposalsPage() {
           </Button>
         </div>
 
+        {/* KPI Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-muted"><FileText className="h-4 w-4 text-muted-foreground" /></div>
+              <div><p className="text-2xl font-bold">{kpis.draft}</p><p className="text-xs text-muted-foreground">Rascunhos</p></div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10"><Send className="h-4 w-4 text-primary" /></div>
+              <div><p className="text-2xl font-bold">{kpis.sent}</p><p className="text-xs text-muted-foreground">Enviadas</p></div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-green-500/10"><CheckCircle className="h-4 w-4 text-green-600" /></div>
+              <div><p className="text-2xl font-bold">{kpis.accepted}</p><p className="text-xs text-muted-foreground">Aceites</p></div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10"><Euro className="h-4 w-4 text-primary" /></div>
+              <div><p className="text-2xl font-bold">€{kpis.totalValue.toLocaleString()}</p><p className="text-xs text-muted-foreground">Valor Adjudicado</p></div>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="flex gap-3 flex-wrap">
           <div className="relative max-w-sm flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder={t("search")} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("all")}</SelectItem>
               {Object.entries(statusLabels).map(([k, v]) => (
