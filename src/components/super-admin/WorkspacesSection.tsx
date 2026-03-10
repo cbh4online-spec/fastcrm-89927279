@@ -1323,6 +1323,90 @@ export function WorkspacesSection() {
         </DialogContent>
       </Dialog>
 
+      {/* Assign Credits Dialog */}
+      <Dialog 
+        open={actionDialog.type === "assign-credits"} 
+        onOpenChange={() => {
+          setActionDialog({ type: null, workspace: null });
+          setCreditsAmount("");
+          setCreditsDescription("");
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Coins className="h-5 w-5 text-primary" />
+              Gerir Créditos
+            </DialogTitle>
+            <DialogDescription>
+              Atribuir ou remover créditos manualmente do workspace "{actionDialog.workspace?.name}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="credits-amount">Quantidade de créditos</Label>
+              <Input
+                id="credits-amount"
+                type="number"
+                value={creditsAmount}
+                onChange={(e) => setCreditsAmount(e.target.value)}
+                placeholder="Ex: 100 (positivo para adicionar, negativo para remover)"
+              />
+              <p className="text-xs text-muted-foreground">
+                Use valores positivos para adicionar e negativos para remover créditos.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="credits-description">Motivo / Descrição</Label>
+              <Textarea
+                id="credits-description"
+                value={creditsDescription}
+                onChange={(e) => setCreditsDescription(e.target.value)}
+                placeholder="Ex: Bónus de onboarding, compensação, ajuste manual..."
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setActionDialog({ type: null, workspace: null });
+                setCreditsAmount("");
+                setCreditsDescription("");
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              disabled={!creditsAmount || Number(creditsAmount) === 0 || assignCredits.isPending}
+              onClick={() => {
+                if (actionDialog.workspace && creditsAmount) {
+                  assignCredits.mutate({
+                    workspaceId: actionDialog.workspace.id,
+                    amount: Number(creditsAmount),
+                    description: creditsDescription,
+                  });
+                }
+              }}
+            >
+              {assignCredits.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  A processar...
+                </>
+              ) : Number(creditsAmount) > 0 ? (
+                `Adicionar ${creditsAmount} créditos`
+              ) : Number(creditsAmount) < 0 ? (
+                `Remover ${Math.abs(Number(creditsAmount))} créditos`
+              ) : (
+                "Atribuir créditos"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Create Workspace Dialog */}
       <CreateWorkspaceDialog 
         open={createDialogOpen} 
