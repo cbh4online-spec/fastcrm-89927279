@@ -1,5 +1,6 @@
 import { Share2, Copy, Check, Mail } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -26,6 +27,7 @@ function FacebookIcon({ className }: { className?: string }) {
 }
 
 export function ShareButtons({ url, title, description }: ShareButtonsProps) {
+  const { t } = useTranslation('marketplace');
   const [copied, setCopied] = useState(false);
   const shareText = `${title}${description ? ` - ${description}` : ""}`;
 
@@ -47,10 +49,10 @@ export function ShareButtons({ url, title, description }: ShareButtonsProps) {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      toast.success("Link copiado!");
+      toast.success(t('linkCopied'));
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error("Não foi possível copiar o link");
+      toast.error(t('copyError'));
     }
   };
 
@@ -58,7 +60,7 @@ export function ShareButtons({ url, title, description }: ShareButtonsProps) {
     <div className="flex items-center gap-2">
       <span className="text-sm text-muted-foreground flex items-center gap-1.5">
         <Share2 className="h-4 w-4" />
-        Partilhar:
+        {t('quickShare').split(' ')[0]}:
       </span>
       <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={handleWhatsApp} title="WhatsApp">
         <WhatsAppIcon className="h-4 w-4" />
@@ -69,7 +71,7 @@ export function ShareButtons({ url, title, description }: ShareButtonsProps) {
       <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={handleEmail} title="Email">
         <Mail className="h-4 w-4" />
       </Button>
-      <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={handleCopy} title="Copiar link">
+      <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={handleCopy} title={t('copy')}>
         {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
       </Button>
     </div>

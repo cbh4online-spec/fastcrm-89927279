@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Copy, Check, Download, ExternalLink, Mail } from "lucide-react";
 import QRCode from "react-qr-code";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ interface MarketplaceShareCardProps {
 }
 
 export function MarketplaceShareCard({ marketplaceUrl, marketplaceName }: MarketplaceShareCardProps) {
+  const { t } = useTranslation('marketplace');
   const [copied, setCopied] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
 
@@ -34,22 +36,20 @@ export function MarketplaceShareCard({ marketplaceUrl, marketplaceName }: Market
     try {
       await navigator.clipboard.writeText(marketplaceUrl);
       setCopied(true);
-      toast.success("Link copiado!");
+      toast.success(t('linkCopied'));
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error("Não foi possível copiar o link");
+      toast.error(t('copyError'));
     }
-  }, [marketplaceUrl]);
+  }, [marketplaceUrl, t]);
 
   const handleDownloadQR = useCallback(() => {
     const svgEl = qrRef.current?.querySelector("svg");
     if (!svgEl) return;
-
     const svgData = new XMLSerializer().serializeToString(svgEl);
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     const img = new Image();
-
     img.onload = () => {
       canvas.width = img.width;
       canvas.height = img.height;
@@ -59,12 +59,11 @@ export function MarketplaceShareCard({ marketplaceUrl, marketplaceName }: Market
       link.href = canvas.toDataURL("image/png");
       link.click();
     };
-
     img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
   }, [marketplaceName]);
 
   const handleWhatsApp = () => {
-    const text = `${marketplaceName ? `${marketplaceName} - ` : ""}Vê o nosso Marketplace!\n${marketplaceUrl}`;
+    const text = `${marketplaceName ? `${marketplaceName} - ` : ""}${t('seeOurMarketplace')}\n${marketplaceUrl}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
 
@@ -73,45 +72,41 @@ export function MarketplaceShareCard({ marketplaceUrl, marketplaceName }: Market
   };
 
   const handleEmail = () => {
-    const subject = marketplaceName ? `Vê ${marketplaceName}` : "Vê o nosso Marketplace";
-    const body = `Olá!\n\nVê o nosso marketplace:\n${marketplaceUrl}`;
+    const subject = marketplaceName ? `${t('seeOurMarketplace')} - ${marketplaceName}` : t('seeOurMarketplace');
+    const body = `${t('seeOurMarketplace')}\n${marketplaceUrl}`;
     window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
   };
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg">Partilhar Marketplace</CardTitle>
+        <CardTitle className="text-lg">{t('shareMarketplace')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col md:flex-row gap-6">
-          {/* QR Code */}
           <div className="flex flex-col items-center gap-3">
             <div ref={qrRef} className="bg-white p-3 rounded-lg border">
               <QRCode value={marketplaceUrl} size={160} />
             </div>
             <Button variant="outline" size="sm" className="gap-2 w-full" onClick={handleDownloadQR}>
               <Download className="h-4 w-4" />
-              Descarregar QR
+              {t('downloadQR')}
             </Button>
           </div>
 
-          {/* Link + Actions */}
           <div className="flex-1 space-y-4">
-            {/* URL */}
             <div>
-              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">URL do Marketplace</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t('marketplaceURL')}</label>
               <div className="flex items-center gap-2">
                 <code className="flex-1 text-sm bg-muted px-3 py-2 rounded truncate block">{marketplaceUrl}</code>
-                <Button variant="outline" size="icon" onClick={handleCopy} title="Copiar link">
+                <Button variant="outline" size="icon" onClick={handleCopy} title={t('copy')}>
                   {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
 
-            {/* Share buttons */}
             <div>
-              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Partilha rápida</label>
+              <label className="text-sm font-medium text-muted-foreground mb-1.5 block">{t('quickShare')}</label>
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" className="gap-2" onClick={handleWhatsApp}>
                   <WhatsAppIcon className="h-4 w-4" />
@@ -128,7 +123,7 @@ export function MarketplaceShareCard({ marketplaceUrl, marketplaceName }: Market
                 <Button variant="outline" size="sm" className="gap-2" asChild>
                   <a href={marketplaceUrl} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="h-4 w-4" />
-                    Abrir Marketplace
+                    {t('openMarketplace')}
                   </a>
                 </Button>
               </div>

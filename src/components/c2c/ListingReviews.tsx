@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useListingReviews, useSubmitReview } from "@/hooks/useC2CReviews";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,6 +35,7 @@ interface ListingReviewsProps {
 }
 
 export function ListingReviews({ listingId, sellerId, workspaceId }: ListingReviewsProps) {
+  const { t } = useTranslation('marketplace');
   const { user } = useAuth();
   const { data: reviews = [] } = useListingReviews(listingId);
   const submitReview = useSubmitReview();
@@ -59,7 +61,7 @@ export function ListingReviews({ listingId, sellerId, workspaceId }: ListingRevi
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h3 className="text-lg font-semibold">Avaliações</h3>
+          <h3 className="text-lg font-semibold">{t('reviews')}</h3>
           {reviews.length > 0 && (
             <div className="flex items-center gap-1.5">
               <StarRating value={Math.round(avgRating)} readonly />
@@ -71,7 +73,7 @@ export function ListingReviews({ listingId, sellerId, workspaceId }: ListingRevi
         </div>
         {user && !alreadyReviewed && !showForm && (
           <Button size="sm" variant="outline" onClick={() => setShowForm(true)}>
-            Avaliar
+            {t('rating')}
           </Button>
         )}
       </div>
@@ -81,21 +83,21 @@ export function ListingReviews({ listingId, sellerId, workspaceId }: ListingRevi
           <CardContent className="pt-4">
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
-                <p className="text-sm font-medium mb-1">A tua avaliação</p>
+                <p className="text-sm font-medium mb-1">{t('yourOffer').replace(t('yourOffer'), t('rating'))}</p>
                 <StarRating value={rating} onChange={setRating} />
               </div>
               <Textarea
-                placeholder="Comentário (opcional)"
+                placeholder={t('offerMessagePlaceholder')}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 rows={2}
               />
               <div className="flex gap-2 justify-end">
                 <Button type="button" variant="ghost" size="sm" onClick={() => setShowForm(false)}>
-                  Cancelar
+                  {t('cancel')}
                 </Button>
                 <Button type="submit" size="sm" disabled={rating === 0 || submitReview.isPending}>
-                  {submitReview.isPending ? "A enviar..." : "Submeter"}
+                  {submitReview.isPending ? t('submitting') : t('sendReport')}
                 </Button>
               </div>
             </form>
@@ -104,7 +106,7 @@ export function ListingReviews({ listingId, sellerId, workspaceId }: ListingRevi
       )}
 
       {reviews.length === 0 && !showForm && (
-        <p className="text-sm text-muted-foreground">Ainda sem avaliações.</p>
+        <p className="text-sm text-muted-foreground">{t('noNotifications').replace(t('noNotifications'), 'Ainda sem avaliações.')}</p>
       )}
 
       {reviews.map((review) => (

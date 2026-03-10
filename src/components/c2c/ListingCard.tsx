@@ -4,14 +4,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { C2CListing } from "@/hooks/useC2CListings";
 import { formatDistanceToNow } from "date-fns";
-import { pt } from "date-fns/locale";
+import { pt, enUS, es, fr } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 
-const conditionLabels: Record<string, { label: string; color: string }> = {
-  new: { label: "Novo", color: "text-green-600 bg-green-50 border-green-200" },
-  like_new: { label: "Como novo", color: "text-blue-600 bg-blue-50 border-blue-200" },
-  used: { label: "Usado", color: "text-amber-600 bg-amber-50 border-amber-200" },
-  for_parts: { label: "Para peças", color: "text-muted-foreground bg-muted" },
-};
+const dateLocales: Record<string, Locale> = { pt, en: enUS, es, fr };
 
 interface ListingCardProps {
   listing: C2CListing;
@@ -23,8 +19,17 @@ interface ListingCardProps {
 }
 
 export function ListingCard({ listing, isFavorite, onToggleFavorite, onClick, variant = "grid", isSponsored }: ListingCardProps) {
+  const { t, i18n } = useTranslation('marketplace');
+  const conditionLabels: Record<string, { label: string; color: string }> = {
+    new: { label: t('conditionNew'), color: "text-green-600 bg-green-50 border-green-200" },
+    like_new: { label: t('conditionLikeNew'), color: "text-blue-600 bg-blue-50 border-blue-200" },
+    used: { label: t('conditionUsed'), color: "text-amber-600 bg-amber-50 border-amber-200" },
+    for_parts: { label: t('conditionForParts'), color: "text-muted-foreground bg-muted" },
+  };
+
   const condition = conditionLabels[listing.condition] || { label: listing.condition, color: "" };
-  const timeAgo = formatDistanceToNow(new Date(listing.created_at), { addSuffix: true, locale: pt });
+  const locale = dateLocales[i18n.language] || pt;
+  const timeAgo = formatDistanceToNow(new Date(listing.created_at), { addSuffix: true, locale });
 
   return (
     <div
@@ -54,17 +59,17 @@ export function ListingCard({ listing, isFavorite, onToggleFavorite, onClick, va
           {isSponsored && (
             <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] px-1.5 gap-0.5 border-0">
               <Megaphone className="h-3 w-3" />
-              Patrocinado
+              {t('sponsored')}
             </Badge>
           )}
           {listing.is_featured && !isSponsored && (
             <Badge className="bg-primary text-primary-foreground text-[10px] px-1.5 gap-0.5">
               <Flame className="h-3 w-3" />
-              Destaque
+              {t('highlight')}
             </Badge>
           )}
           {listing.condition === "new" && (
-            <Badge className="bg-green-500 text-white text-[10px] px-1.5">Novo</Badge>
+            <Badge className="bg-green-500 text-white text-[10px] px-1.5">{t('conditionNew')}</Badge>
           )}
         </div>
 
