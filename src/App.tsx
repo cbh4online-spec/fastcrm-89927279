@@ -106,6 +106,7 @@ import ClientDiagnosisDetailPage from "./pages/client/ClientDiagnosisDetailPage"
 import ClientProtocolDetailPage from "./pages/client/ClientProtocolDetailPage";
 import ClientConsumptionPage from "./pages/client/ClientConsumptionPage";
 import ClientRankingsPage from "./pages/client/ClientRankingsPage";
+import ClientSecurityPage from "./pages/client/ClientSecurityPage";
 // Admin Order Notes
 import OrderNotesPage from "./pages/OrderNotesPage";
 import CreateOrderNotePage from "./pages/CreateOrderNotePage";
