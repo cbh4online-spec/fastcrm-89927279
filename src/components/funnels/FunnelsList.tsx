@@ -38,6 +38,7 @@ import { AIFunnelBuilder } from "./ai-builder/AIFunnelBuilder";
 import { DomainManager } from "./domains/DomainManager";
 import { CreditWalletBadge } from "./credits/CreditWalletBadge";
 import { CreditLedgerPanel } from "./credits/CreditLedgerPanel";
+import { CreditPurchasePanel } from "./credits/CreditPurchasePanel";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
@@ -755,7 +756,8 @@ export function FunnelsList() {
         </TabsContent>
 
         {/* Credits Tab */}
-        <TabsContent value="credits" className="mt-4">
+        <TabsContent value="credits" className="mt-4 space-y-6">
+          <CreditPurchasePanel />
           <CreditLedgerPanel />
         </TabsContent>
       </Tabs>

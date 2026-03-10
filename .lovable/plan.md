@@ -1,68 +1,68 @@
 
 
-## Fluxo de Compra de Créditos com Stripe
+# Phase 5B — Command Center COMPLETO
 
-### O que já existe
-- Tabelas `credit_packages`, `credit_purchases`, `credit_wallets`, `credit_ledger` no schema
-- Edge function `module-purchase-credits` que cria sessões Stripe Checkout (referencia `credit_packages`)
-- Hook `useCreditWallet` com saldo, ledger e consumo
-- Tab "Créditos" no módulo Funis com `CreditLedgerPanel`
-- `STRIPE_SECRET_KEY` configurada
+## Gap Analysis: Current vs Spec
 
-### O que falta
-1. **Produtos Stripe para créditos** — criar 3 pacotes no Stripe
-2. **Seed dos pacotes** na tabela `credit_packages` com `stripe_price_id`
-3. **Edge function para confirmar pagamento** — após checkout sucesso, creditar wallet e registar purchase
-4. **Configuração da edge function** no `config.toml`
-5. **UI de compra** — componente `CreditPurchasePanel` com cards de pacotes e botão comprar
-6. **Integração na tab Créditos** — substituir conteúdo da tab por wallet + pacotes + ledger
-7. **Hook `useCreditPurchase`** — lógica de compra e verificação de pagamento
+The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
 
-### Plano de implementação
+**Already implemented (needs enhancement):**
+- Header with greeting + 3 KPIs — needs larger font (32px), labels below
+- AI Question Box — needs slash command suggestions row below input
+- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
+- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
+- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
+- Drift Alerts — needs "Rever →" links to Context OS blocks
 
-**1. Criar 3 produtos Stripe**
-- 50 Créditos — 9,90€
-- 200 Créditos — 29,90€ (mais popular)
-- 500 Créditos — 59,90€ (melhor valor)
+**New sections to build:**
+1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
+2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
+   - Change Events (last 5 from `useChangeEvents` with realtime)
+   - Entity Activity (top 3 entities from `useKernelEntities`)
+   - Impact Score (top 2 from `useImpactMapData`)
+3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
 
-**2. Inserir pacotes na tabela `credit_packages`** com os `stripe_price_id` correspondentes
+**Enhanced Command Palette (⌘K):**
+- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
 
-**3. Criar edge function `verify-credit-purchase`**
-- Recebe `sessionId` do Stripe Checkout
-- Verifica pagamento via `stripe.checkout.sessions.retrieve`
-- Se pago: insere em `credit_purchases`, actualiza saldo em `credit_wallets` (upsert), regista no `credit_ledger`
-- Protecção de idempotência via `stripe_payment_intent_id`
+**Spotlight (Space key):**
+- Opens AI Question Box as a modal from any page. New global component.
 
-**4. Actualizar `config.toml`** — adicionar `verify_jwt = false` para `module-purchase-credits` e `verify-credit-purchase`
+## Implementation Plan — 3 Sub-phases
 
-**5. Criar hook `useCreditPurchase`**
-- Busca pacotes de `credit_packages`
-- Função `purchaseCredits(packageId)` — invoca `module-purchase-credits`, redireciona para Stripe
-- Função `verifyPurchase(sessionId)` — invoca `verify-credit-purchase` após retorno
-- Detecção de `?purchase=success` na URL para trigger automático de verificação
+Given the scope, I recommend splitting into 3 batches:
 
-**6. Criar componente `CreditPurchasePanel`**
-- 3 cards de pacotes com preço, créditos, preço/crédito, badge "Mais popular"
-- Botão "Comprar" em cada card
-- Estado de loading durante redirect
-- Design premium dark consistente
+### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
+| File | Action |
+|------|--------|
+| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
+| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
+| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
+| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
 
-**7. Refactoring da tab Créditos em `FunnelsList.tsx`**
-- Topo: `CreditWalletBadge` expandido com saldo + botão "Comprar Créditos"
-- Meio: `CreditPurchasePanel` com os 3 pacotes
-- Base: `CreditLedgerPanel` com histórico
+### Batch 2: Enhance Existing Cards
+| File | Action |
+|------|--------|
+| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
+| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
+| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
+| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
+| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
+| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
 
-### Ficheiros
+### Batch 3: Spotlight Modal + Command Palette Enhancement
+| File | Action |
+|------|--------|
+| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
+| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
+| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
 
-| Acção | Ficheiro |
-|-------|---------|
-| Criar | 3 produtos + preços Stripe (via tool) |
-| Inserir | Dados em `credit_packages` (via insert tool) |
-| Criar | `supabase/functions/verify-credit-purchase/index.ts` |
-| Editar | `supabase/config.toml` (2 entries) |
-| Criar | `src/hooks/useCreditPurchase.ts` |
-| Criar | `src/components/funnels/credits/CreditPurchasePanel.tsx` |
-| Editar | `src/components/funnels/credits/index.ts` (export) |
-| Editar | `src/components/funnels/FunnelsList.tsx` (tab créditos) |
-| Editar | `src/components/funnels/credits/CreditWalletBadge.tsx` (botão comprar) |
+### Realtime subscriptions needed
+- `change_events` table for Kernel Live Feed auto-update
+- `kernel_action_runs` for Ações do Dia auto-update
+- Already have `kernel_decisions` and `conversations`
+
+No database migrations needed. All hooks, edge functions, and tables already exist.
+
+**Shall I start with Batch 1?**
 
