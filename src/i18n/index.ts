@@ -111,7 +111,7 @@ i18n
         settings: ptSettings, landing: ptLanding, inbox: ptInbox,
         automations: ptAutomations, intelligence: ptIntelligence,
         invoices: ptInvoices, products: ptProducts, auth: ptAuth, reports: ptReports, meetings: ptMeetings, ask: ptAsk,
-        procurement: ptProcurement, performance: ptPerformance, marketplace: ptMarketplace,
+        procurement: ptProcurement, performance: ptPerformance, marketplace: ptMarketplace, security: ptSecurity,
       },
       en: {
         common: enCommon, nav: enNav, dashboard: enDashboard, crm: enCrm,
