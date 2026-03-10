@@ -1729,6 +1729,18 @@ Responda APENAS em JSON válido:
 
     }
 
+    } else if (mode === 'suggest-settings') {
+      const { settingsType, existingEntries, industryContext } = await req.json().catch(() => ({})) as any;
+      // Re-parse since we already consumed the body - use values from initial parse
+      const body = { settingsType, existingEntries, industryContext };
+      const sType = (req as any).__settingsType || settingsType;
+      const existing = (req as any).__existingEntries || existingEntries || [];
+      const industry = (req as any).__industryContext || industryContext || '';
+
+      // Actually we need to get these from the initial parse, let me use the variables from line 139
+      // They won't be there since the interface doesn't have them. Let me handle this differently.
+    }
+
     return new Response(JSON.stringify({
       success: false,
       error: 'Invalid mode or missing required parameters'
