@@ -333,7 +333,7 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
         { nameKey: "securityMaintenance", name: t("securityMaintenance"), href: "/dashboard/security/maintenance", icon: Wrench, iconColor: "text-red-600" },
         { nameKey: "securityOccurrences", name: t("securityOccurrences"), href: "/dashboard/security/occurrences", icon: AlertTriangle, iconColor: "text-red-600" },
         { nameKey: "securityRenewals", name: t("securityRenewals"), href: "/dashboard/security/renewals", icon: RefreshCw, iconColor: "text-red-600" },
-        { nameKey: "securityManagement", name: t("securityManagement"), href: "/dashboard/security", icon: BarChart3, iconColor: "text-red-600" },
+        { nameKey: "securityManagement", name: t("securityManagement"), href: "/dashboard/security/management", icon: BarChart3, iconColor: "text-red-600" },
       ],
     },
     {
