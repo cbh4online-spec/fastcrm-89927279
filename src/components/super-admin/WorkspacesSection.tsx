@@ -52,8 +52,12 @@ import {
   Plus,
   Users,
   Pencil,
-  Trash2
+  Trash2,
+  Coins,
+  Loader2,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/contexts/AuthContext";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -106,6 +110,7 @@ interface WorkspaceDetails {
     billing_country?: string;
   };
   onboarding?: OnboardingData;
+  credit_balance?: number;
 }
 
 export function WorkspacesSection() {
@@ -114,13 +119,16 @@ export function WorkspacesSection() {
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [selectedWorkspace, setSelectedWorkspace] = useState<WorkspaceDetails | null>(null);
   const [actionDialog, setActionDialog] = useState<{
-    type: "suspend" | "reactivate" | "change-plan" | "assign-agency" | "edit-name" | "delete" | null;
+    type: "suspend" | "reactivate" | "change-plan" | "assign-agency" | "edit-name" | "delete" | "assign-credits" | null;
     workspace: WorkspaceDetails | null;
   }>({ type: null, workspace: null });
   const [editName, setEditName] = useState("");
   const [editSlug, setEditSlug] = useState("");
   const [newPlan, setNewPlan] = useState<string>("");
   const [selectedAgencyId, setSelectedAgencyId] = useState<string>("");
+  const [creditsAmount, setCreditsAmount] = useState<string>("");
+  const [creditsDescription, setCreditsDescription] = useState("");
+  const { user } = useAuth();
   
   // New state for create workspace and members panel
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -226,6 +234,16 @@ export function WorkspacesSection() {
         return acc;
       }, {}) || {};
 
+      // Get credit wallet balances
+      const { data: walletsData } = await supabase
+        .from("credit_wallets")
+        .select("workspace_id, balance");
+
+      const walletBalances = walletsData?.reduce((acc: Record<string, number>, w: any) => {
+        acc[w.workspace_id] = w.balance;
+        return acc;
+      }, {}) || {};
+
       return (workspacesData || []).map((ws: any) => {
         // Handle subscription - can be array or object depending on query result
         const subscription = Array.isArray(ws.workspace_subscriptions) 
@@ -262,6 +280,7 @@ export function WorkspacesSection() {
             billing_country: ws.billing_country,
           },
           onboarding: onboardingMap[ws.id] || undefined,
+          credit_balance: walletBalances[ws.id] ?? 0,
         };
       }) as WorkspaceDetails[];
     },
@@ -460,6 +479,32 @@ export function WorkspacesSection() {
     },
     onError: (error) => {
       toast.error("Erro ao apagar workspace: " + error.message);
+    },
+  });
+
+  const assignCredits = useMutation({
+    mutationFn: async ({ workspaceId, amount, description }: { workspaceId: string; amount: number; description: string }) => {
+      if (!user) throw new Error("Não autenticado");
+      const { data, error } = await supabase.rpc("admin_assign_credits", {
+        p_workspace_id: workspaceId,
+        p_admin_user_id: user.id,
+        p_credits_amount: amount,
+        p_description: description || "Créditos atribuídos manualmente pelo admin",
+      });
+      if (error) throw error;
+      const result = (data as unknown as Array<{ success: boolean; new_balance: number; message: string }>)?.[0];
+      if (!result?.success) throw new Error(result?.message || "Erro ao atribuir créditos");
+      return result;
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["super-admin-workspaces"] });
+      toast.success(result.message);
+      setActionDialog({ type: null, workspace: null });
+      setCreditsAmount("");
+      setCreditsDescription("");
+    },
+    onError: (error) => {
+      toast.error("Erro ao atribuir créditos: " + error.message);
     },
   });
 
@@ -689,6 +734,15 @@ export function WorkspacesSection() {
                           <ArrowUpCircle className="h-4 w-4 mr-2" />
                           Alterar plano
                         </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => setActionDialog({ 
+                            type: "assign-credits", 
+                            workspace: ws 
+                          })}
+                        >
+                          <Coins className="h-4 w-4 mr-2" />
+                          Gerir créditos
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         {ws.status === "suspended" ? (
                           <DropdownMenuItem 
@@ -836,7 +890,13 @@ export function WorkspacesSection() {
               </div>
 
               <div className="border-t pt-4">
-                <p className="font-medium mb-3">Consumo atual</p>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-medium">Consumo atual</p>
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                    <Coins className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-semibold">{selectedWorkspace.credit_balance ?? 0} créditos</span>
+                  </div>
+                </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="text-sm text-muted-foreground">Leads</p>
@@ -1276,6 +1336,90 @@ export function WorkspacesSection() {
               }}
             >
               {deleteWorkspace.isPending ? "A apagar..." : "Apagar Permanentemente"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Credits Dialog */}
+      <Dialog 
+        open={actionDialog.type === "assign-credits"} 
+        onOpenChange={() => {
+          setActionDialog({ type: null, workspace: null });
+          setCreditsAmount("");
+          setCreditsDescription("");
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Coins className="h-5 w-5 text-primary" />
+              Gerir Créditos
+            </DialogTitle>
+            <DialogDescription>
+              Atribuir ou remover créditos manualmente do workspace "{actionDialog.workspace?.name}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="credits-amount">Quantidade de créditos</Label>
+              <Input
+                id="credits-amount"
+                type="number"
+                value={creditsAmount}
+                onChange={(e) => setCreditsAmount(e.target.value)}
+                placeholder="Ex: 100 (positivo para adicionar, negativo para remover)"
+              />
+              <p className="text-xs text-muted-foreground">
+                Use valores positivos para adicionar e negativos para remover créditos.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="credits-description">Motivo / Descrição</Label>
+              <Textarea
+                id="credits-description"
+                value={creditsDescription}
+                onChange={(e) => setCreditsDescription(e.target.value)}
+                placeholder="Ex: Bónus de onboarding, compensação, ajuste manual..."
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setActionDialog({ type: null, workspace: null });
+                setCreditsAmount("");
+                setCreditsDescription("");
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              disabled={!creditsAmount || Number(creditsAmount) === 0 || assignCredits.isPending}
+              onClick={() => {
+                if (actionDialog.workspace && creditsAmount) {
+                  assignCredits.mutate({
+                    workspaceId: actionDialog.workspace.id,
+                    amount: Number(creditsAmount),
+                    description: creditsDescription,
+                  });
+                }
+              }}
+            >
+              {assignCredits.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  A processar...
+                </>
+              ) : Number(creditsAmount) > 0 ? (
+                `Adicionar ${creditsAmount} créditos`
+              ) : Number(creditsAmount) < 0 ? (
+                `Remover ${Math.abs(Number(creditsAmount))} créditos`
+              ) : (
+                "Atribuir créditos"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
