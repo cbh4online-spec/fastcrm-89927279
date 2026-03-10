@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import { useCreateLead, useLeads } from "@/hooks/useLeads";
-import { useCredits } from "@/hooks/useCredits";
+import { useCreditWallet } from "@/hooks/useCreditWallet";
 import { cn } from "@/lib/utils";
 
 interface GooglePlaceResult {
