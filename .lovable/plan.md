@@ -1,68 +1,73 @@
 
 
-# Phase 5B — Command Center COMPLETO
+# Plan: Invoices i18n, Performance i18n & Contacts UX Improvements
 
-## Gap Analysis: Current vs Spec
+## Scope
 
-The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
+Three modules need improvements: **Invoices** (full i18n), **Performance Dashboard** (full i18n), and **Contacts** (minor CSV export i18n fix). The Contacts module is already well internationalized from prior work.
 
-**Already implemented (needs enhancement):**
-- Header with greeting + 3 KPIs — needs larger font (32px), labels below
-- AI Question Box — needs slash command suggestions row below input
-- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
-- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
-- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
-- Drift Alerts — needs "Rever →" links to Context OS blocks
+---
 
-**New sections to build:**
-1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
-2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
-   - Change Events (last 5 from `useChangeEvents` with realtime)
-   - Entity Activity (top 3 entities from `useKernelEntities`)
-   - Impact Score (top 2 from `useImpactMapData`)
-3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
+## 1. Invoices Page — Full i18n (~60 hardcoded strings)
 
-**Enhanced Command Palette (⌘K):**
-- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
+**`src/pages/Invoices.tsx`** has extensive hardcoded Portuguese: status labels, tab names, sort options, filter groups, table headers, action menu items, bulk actions bar, empty state, pagination, and CSV export headers.
 
-**Spotlight (Space key):**
-- Opens AI Question Box as a modal from any page. New global component.
+### Changes:
+- Add `useTranslation("invoices")` 
+- Move `statusConfig`, `pageTabs`, `sortOptions`, `filterGroups` into `useMemo` with `t()` calls
+- Replace all inline strings: table headers ("Número", "Cliente", "Data Emissão", "Vencimento", "Total", "Estado"), action items ("Ver detalhes", "Descarregar PDF", "Marcar como enviada", "Marcar como paga", "Eliminar"), confirm dialog, bulk bar ("selecionada/selecionadas", "Exportar"), empty state ("Sem faturas", "Crie a sua primeira fatura..."), pagination ("Mostrar", "por página", "Página X de Y"), KPI labels ("Rascunho", "Enviadas", "Pagas", "Vencidas"), search placeholder, filter labels
+- Add ~50 new keys to `invoices.json` across 4 locales
 
-## Implementation Plan — 3 Sub-phases
+### New translation keys (examples):
+`statusDraft`, `statusSent`, `statusPaid`, `statusOverdue`, `statusCancelled`, `tabInvoices`, `tabRecurring`, `tabFiscal`, `tabSaft`, `tabSettings`, `sortNewest`, `sortOldest`, `sortHighestValue`, `sortLowestValue`, `sortDueSoon`, `sortNumberAsc`, `filterStatus`, `filterValue`, `filterPeriod`, `filterSmart`, `valueHigh`, `valueMedium`, `valueLow`, `timingToday`, `timingWeek`, `timingMonth`, `timingQuarter`, `dueSoon7`, `highValuePending`, `recurringClients`, `colNumber`, `colClient`, `colIssueDate`, `colDueDate`, `colTotal`, `colStatus`, `viewDetails`, `markAsSent`, `deleteInvoice`, `confirmDelete`, `noInvoices`, `noInvoicesDesc`, `createFirstInvoice`, `selectedCount`, `export`, `show`, `perPage`, `pageOf`, `searchInvoices`, `newInvoice`, `kpiDraft`, `kpiSent`, `kpiPaid`, `kpiOverdue`, `invoicesExported`
 
-Given the scope, I recommend splitting into 3 batches:
+---
 
-### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
-| File | Action |
-|------|--------|
-| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
-| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
-| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
-| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
+## 2. Performance Dashboard — Full i18n (~30 hardcoded strings)
 
-### Batch 2: Enhance Existing Cards
-| File | Action |
-|------|--------|
-| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
-| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
-| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
-| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
-| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
-| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
+**`src/pages/performance/PerformanceDashboardPage.tsx`** has all strings in Portuguese with no translation hook.
 
-### Batch 3: Spotlight Modal + Command Palette Enhancement
-| File | Action |
-|------|--------|
-| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
-| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
-| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
+### Changes:
+- Create `src/i18n/locales/{pt,en,es,fr}/performance.json` with ~30 keys
+- Add `useTranslation("performance")` to the component
+- Register namespace in i18n config
+- Replace: page title/description, "Recalcular", KPI titles ("Receita Fechada", "Pipeline Gerado", "Reuniões Realizadas", "Performers Ativos"), "Leaderboard Semanal", "Ver tudo", "Sem dados de performance...", leaderboard labels ("receita", "reuniões", "pontos"), "Desafios Ativos", "Criar Desafio", "Nenhum desafio ativo", "d restantes", "Metas Ativas", "Gerir", "Nenhuma meta definida", "Reconhecimentos", "Sem reconhecimentos ainda"
+- Use `formatDistanceToNow` with `getDateLocale()` instead of hardcoded `pt` locale
 
-### Realtime subscriptions needed
-- `change_events` table for Kernel Live Feed auto-update
-- `kernel_action_runs` for Ações do Dia auto-update
-- Already have `kernel_decisions` and `conversations`
+### New translation keys:
+`title`, `description`, `recalculate`, `closedRevenue`, `pipelineGenerated`, `meetingsHeld`, `activePerformers`, `weeklyLeaderboard`, `viewAll`, `noPerformanceData`, `noPerformanceDataHint`, `revenue`, `meetings`, `points`, `activeChallenges`, `createChallenge`, `noChallenges`, `daysRemaining`, `activeGoals`, `manage`, `noGoals`, `recognitions`, `noRecognitions`
 
-No database migrations needed. All hooks, edge functions, and tables already exist.
+---
 
-**Shall I start with Batch 1?**
+## 3. Contacts — Minor CSV header fix
+
+The `handleExport` in `AttioContactsTable.tsx` still has hardcoded CSV headers: `["Nome", "Email", "Telefone", "Empresa", "Temperatura", "Score"]`. Replace with `t()` calls using existing keys.
+
+---
+
+## 4. i18n namespace registration
+
+Add `"performance"` to the namespace list in `src/i18n/index.ts`.
+
+---
+
+## Files to Create
+- `src/i18n/locales/pt/performance.json` (~30 keys)
+- `src/i18n/locales/en/performance.json`
+- `src/i18n/locales/es/performance.json`
+- `src/i18n/locales/fr/performance.json`
+
+## Files to Edit
+- `src/pages/Invoices.tsx` — full i18n refactor
+- `src/pages/performance/PerformanceDashboardPage.tsx` — full i18n refactor
+- `src/i18n/locales/{pt,en,es,fr}/invoices.json` — ~50 new keys each
+- `src/components/contacts/AttioContactsTable.tsx` — CSV header fix (line 220)
+- `src/i18n/index.ts` — register `performance` namespace
+
+## Execution Order
+1. Translation files (invoices + performance, 4 locales each)
+2. Invoices page refactor
+3. Performance dashboard refactor
+4. Contacts CSV fix
+5. i18n config update
 
