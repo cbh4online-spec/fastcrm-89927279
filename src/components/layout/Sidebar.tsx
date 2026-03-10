@@ -297,7 +297,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                   <div className="flex items-center gap-2 px-3 pt-1 pb-1.5">
                     <Star className="w-3 h-3 text-amber-400/70" />
                     <span className="text-[10px] uppercase tracking-wider text-white/30 font-semibold">
-                      Favoritos
+                      {t("favorites")}
                     </span>
                   </div>
                   {favoriteItems.map((item) => renderLink(item))}
