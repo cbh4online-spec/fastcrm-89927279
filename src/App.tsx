@@ -206,6 +206,8 @@ import SecuritySystemDetailPage from "./pages/security/SecuritySystemDetailPage"
 import SecurityEquipmentPage from "./pages/security/SecurityEquipmentPage";
 import SecurityContractsPage from "./pages/security/SecurityContractsPage";
 import SecurityProposalsPage from "./pages/security/SecurityProposalsPage";
+import SecurityDocumentsPage from "./pages/security/SecurityDocumentsPage";
+import SecurityDocumentDetailPage from "./pages/security/SecurityDocumentDetailPage";
 
 // Procurement
 import ProcurementDashboardPage from "./pages/procurement/ProcurementDashboardPage";
