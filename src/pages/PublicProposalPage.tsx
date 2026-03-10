@@ -242,7 +242,7 @@ export default function PublicProposalPage() {
           size="lg"
           className="px-8 py-6 text-lg"
           style={{ backgroundColor: proposal.cta_color || "#3b82f6" }}
-          onClick={handleCheckout}
+          onClick={handleAccept}
           disabled={checkoutLoading}
         >
           {checkoutLoading ? (
@@ -251,7 +251,7 @@ export default function PublicProposalPage() {
           {proposal.cta_text || "Aceitar Proposta"}
         </Button>
         <p className="mt-4 text-sm text-muted-foreground">
-          Pagamento seguro via Stripe
+          Ao clicar, confirma a aceitação desta proposta.
         </p>
       </div>
       
@@ -259,7 +259,7 @@ export default function PublicProposalPage() {
         <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p>Redirecionando para pagamento...</p>
+            <p>A processar...</p>
           </div>
         </div>
       )}
