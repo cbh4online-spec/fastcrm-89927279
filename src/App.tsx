@@ -208,6 +208,10 @@ import SecurityContractsPage from "./pages/security/SecurityContractsPage";
 import SecurityProposalsPage from "./pages/security/SecurityProposalsPage";
 import SecurityDocumentsPage from "./pages/security/SecurityDocumentsPage";
 import SecurityDocumentDetailPage from "./pages/security/SecurityDocumentDetailPage";
+import SecurityMaintenancePage from "./pages/security/SecurityMaintenancePage";
+import SecurityOccurrencesPage from "./pages/security/SecurityOccurrencesPage";
+import SecurityOccurrenceDetailPage from "./pages/security/SecurityOccurrenceDetailPage";
+import SecurityRenewalsPage from "./pages/security/SecurityRenewalsPage";
 
 // Procurement
 import ProcurementDashboardPage from "./pages/procurement/ProcurementDashboardPage";
