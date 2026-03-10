@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import i18next from "i18next";
 
-const t = (key: string, opts?: any) => i18next.t(`procurement:${key}`, opts);
+const t = (key: string, opts?: any): string => i18next.t(`procurement:${key}`, opts) as string;
 
 // ============ SUPPLIERS ============
 export function useSuppliers(workspaceId: string | undefined) {
