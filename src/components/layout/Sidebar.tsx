@@ -49,6 +49,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { favorites, toggleFavorite, isFavorite } = useSidebarFavorites();
   const unreadInboxCount = useUnreadInboxCount();
 
+  // Translated nav items
+  const navCore = useMemo(() => getNavV2Core(t), [t]);
+  const navGroups = useMemo(() => getNavV2Groups(t), [t]);
+  const navFooter = useMemo(() => getNavV2Footer(t), [t]);
+
   // Collapsible group state — auto-open group containing active route
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
