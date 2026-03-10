@@ -753,6 +753,11 @@ export function FunnelsList() {
         <TabsContent value="domains" className="mt-4">
           <DomainManager />
         </TabsContent>
+
+        {/* Credits Tab */}
+        <TabsContent value="credits" className="mt-4">
+          <CreditLedgerPanel />
+        </TabsContent>
       </Tabs>
 
       {/* Create Funnel Dialog */}
