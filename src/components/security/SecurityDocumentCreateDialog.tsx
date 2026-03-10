@@ -51,9 +51,10 @@ export function SecurityDocumentCreateDialog({ open, onOpenChange, defaultSystem
 
     const selectedSystem = systems.find((s: any) => s.id === form.system_id) as any;
     const site = selectedSystem?.security_installation_sites;
+    const client = selectedSystem?.security_clients;
 
-    // Build source_data_json from system info
-    const source_data_json = {
+    // Build source_data_json from system + client info
+    const source_data_json: Record<string, any> = {
       system_type: selectedSystem?.system_type,
       main_brand: selectedSystem?.main_brand,
       main_model: selectedSystem?.main_model,
@@ -66,10 +67,19 @@ export function SecurityDocumentCreateDialog({ open, onOpenChange, defaultSystem
       locality: site?.locality,
       county: site?.county,
       district: site?.district,
-      owner_name: site?.onsite_responsible_name,
-      owner_phone: site?.onsite_responsible_phone,
+      owner_name: site?.onsite_responsible_name || client?.name,
+      owner_phone: site?.onsite_responsible_phone || client?.phone,
       generated_at: new Date().toISOString(),
     };
+
+    // Enrich with client fiscal data
+    if (client) {
+      source_data_json.client_name = client.name;
+      source_data_json.client_nif = client.nif;
+      source_data_json.client_type = client.client_type;
+      source_data_json.client_fiscal_address = client.fiscal_address;
+      source_data_json.client_email = client.email;
+    }
 
     createDocument.mutate(
       {
