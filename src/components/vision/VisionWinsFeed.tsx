@@ -35,7 +35,15 @@ export function VisionWinsFeed({ visionId }: Props) {
   const handleCreate = () => {
     if (!title.trim()) return;
     createWin.mutate({ vision_id: visionId, title, description, category, impact_level: impact }, {
-      onSuccess: () => { setOpen(false); setTitle(""); setDescription(""); },
+      onSuccess: () => {
+        sendDuoNotification.mutate({
+          visionId,
+          type: "win_added",
+          title: "Nova vitória registada! 🎉",
+          message: `O teu parceiro registou uma vitória: "${title}"`,
+        });
+        setOpen(false); setTitle(""); setDescription("");
+      },
     });
   };
 
