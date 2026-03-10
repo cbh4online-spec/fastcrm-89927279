@@ -1,18 +1,14 @@
 import { useState, useMemo } from "react";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
-
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useMyC2CListings, useUpdateC2CListing } from "@/hooks/useC2CListings";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -20,49 +16,40 @@ import { ListingStats } from "@/components/c2c/ListingStats";
 import { MarketplaceShareCard } from "@/components/c2c/MarketplaceShareCard";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
 import {
-  ArrowLeft,
-  Plus,
-  Pencil,
-  Pause,
-  Play,
-  Trash2,
-  Rocket,
-  MoreVertical,
-  Eye,
-  Heart,
-  MessageCircle,
-  Package,
-  TrendingUp,
-  ShieldCheck,
-  Zap,
+  ArrowLeft, Plus, Pencil, Pause, Play, Trash2, Rocket, MoreVertical,
+  Eye, Heart, MessageCircle, Package, TrendingUp, ShieldCheck, Zap,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { pt } from "date-fns/locale";
+import { formatDistanceToNow, type Locale as DateLocale } from "date-fns";
+import { pt, enUS, es, fr } from "date-fns/locale";
 
-const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  active: { label: "Ativo", variant: "default" },
-  paused: { label: "Pausado", variant: "secondary" },
-  sold: { label: "Vendido", variant: "outline" },
-  flagged: { label: "Em revisão", variant: "destructive" },
-  removed: { label: "Removido", variant: "destructive" },
-};
-
-const conditionLabels: Record<string, string> = {
-  new: "Novo",
-  like_new: "Como novo",
-  used: "Usado",
-  for_parts: "Para peças",
-};
+const dateLocales: Record<string, DateLocale> = { pt, en: enUS, es, fr };
 
 type StatusFilter = "all" | "active" | "paused" | "sold";
 
 export default function C2CMyListings() {
+  const { t, i18n } = useTranslation('marketplace');
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
   const { data: listings = [], isLoading } = useMyC2CListings(workspaceId);
   const updateListing = useUpdateC2CListing();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const locale = dateLocales[i18n.language] || pt;
+
+  const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+    active: { label: t('statusActive'), variant: "default" },
+    paused: { label: t('statusPaused'), variant: "secondary" },
+    sold: { label: t('statusSold'), variant: "outline" },
+    flagged: { label: t('statusFlagged'), variant: "destructive" },
+    removed: { label: t('statusRemoved'), variant: "destructive" },
+  };
+
+  const conditionLabels: Record<string, string> = {
+    new: t('conditionNew'),
+    like_new: t('conditionLikeNew'),
+    used: t('conditionUsed'),
+    for_parts: t('conditionForParts'),
+  };
 
   const filteredListings = useMemo(() => {
     if (statusFilter === "all") return listings;
@@ -88,22 +75,21 @@ export default function C2CMyListings() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/c2c")} className="mb-4 -ml-2">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Marketplace
+          <ArrowLeft className="h-4 w-4 mr-1" /> {t('title')}
         </Button>
 
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Meus Anúncios</h1>
+          <h1 className="text-2xl font-bold">{t('myListings')}</h1>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => navigate("/dashboard/c2c/boost")} className="gap-1">
-              <Rocket className="h-4 w-4" /> Impulsionar
+              <Rocket className="h-4 w-4" /> {t('boost')}
             </Button>
             <Button onClick={() => navigate("/dashboard/c2c/create")}>
-              <Plus className="h-4 w-4 mr-1" /> Novo Anúncio
+              <Plus className="h-4 w-4 mr-1" /> {t('newListing')}
             </Button>
           </div>
         </div>
 
-        {/* Marketplace Share Card */}
         {!isLoading && currentWorkspace && (
           <div className="mb-6">
             <MarketplaceShareCard
@@ -113,17 +99,15 @@ export default function C2CMyListings() {
           </div>
         )}
 
-        {/* KPI Cards */}
         {!isLoading && listings.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <KpiCard icon={<Package className="h-4 w-4" />} label="Ativos" value={kpis.active} />
-            <KpiCard icon={<Eye className="h-4 w-4" />} label="Visualizações" value={kpis.totalViews} />
-            <KpiCard icon={<Heart className="h-4 w-4" />} label="Favoritos" value={kpis.totalFavs} />
-            <KpiCard icon={<MessageCircle className="h-4 w-4" />} label="Mensagens" value={kpis.totalMsgs} />
+            <KpiCard icon={<Package className="h-4 w-4" />} label={t('activeCount')} value={kpis.active} />
+            <KpiCard icon={<Eye className="h-4 w-4" />} label={t('kpiViews')} value={kpis.totalViews} />
+            <KpiCard icon={<Heart className="h-4 w-4" />} label={t('kpiFavorites')} value={kpis.totalFavs} />
+            <KpiCard icon={<MessageCircle className="h-4 w-4" />} label={t('kpiMessages')} value={kpis.totalMsgs} />
           </div>
         )}
 
-        {/* Loading */}
         {isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
@@ -139,46 +123,39 @@ export default function C2CMyListings() {
             ))}
           </div>
         ) : listings.length === 0 ? (
-          /* Empty State */
           <div className="text-center py-16 px-4">
             <div className="rounded-full bg-muted p-6 inline-flex mb-5">
               <Package className="h-12 w-12 text-muted-foreground" />
             </div>
-            <h2 className="text-xl font-semibold mb-2">Começa a vender hoje!</h2>
-            <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-              Publica o teu primeiro anúncio e alcança milhares de compradores interessados.
-            </p>
+            <h2 className="text-xl font-semibold mb-2">{t('startSelling')}</h2>
+            <p className="text-muted-foreground mb-8 max-w-md mx-auto">{t('startSellingDesc')}</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-lg mx-auto mb-8">
-              <BenefitItem icon={<Zap className="h-5 w-5 text-primary" />} text="Publicação instantânea" />
-              <BenefitItem icon={<TrendingUp className="h-5 w-5 text-primary" />} text="Milhares de compradores" />
-              <BenefitItem icon={<ShieldCheck className="h-5 w-5 text-primary" />} text="Transações seguras" />
+              <BenefitItem icon={<Zap className="h-5 w-5 text-primary" />} text={t('instantPublishing')} />
+              <BenefitItem icon={<TrendingUp className="h-5 w-5 text-primary" />} text={t('thousandsBuyers')} />
+              <BenefitItem icon={<ShieldCheck className="h-5 w-5 text-primary" />} text={t('safeTransactions')} />
             </div>
             <Button size="lg" onClick={() => navigate("/dashboard/c2c/create")}>
-              <Plus className="h-5 w-5 mr-2" /> Criar Primeiro Anúncio
+              <Plus className="h-5 w-5 mr-2" /> {t('createFirstListing')}
             </Button>
           </div>
         ) : (
           <>
-            {/* Status Filter Tabs */}
             <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)} className="mb-4">
               <TabsList>
-                <TabsTrigger value="all">Todos ({statusCounts.all})</TabsTrigger>
-                <TabsTrigger value="active">Ativos ({statusCounts.active})</TabsTrigger>
-                <TabsTrigger value="paused">Pausados ({statusCounts.paused})</TabsTrigger>
-                <TabsTrigger value="sold">Vendidos ({statusCounts.sold})</TabsTrigger>
+                <TabsTrigger value="all">{t('all')} ({statusCounts.all})</TabsTrigger>
+                <TabsTrigger value="active">{t('active')} ({statusCounts.active})</TabsTrigger>
+                <TabsTrigger value="paused">{t('paused')} ({statusCounts.paused})</TabsTrigger>
+                <TabsTrigger value="sold">{t('sold')} ({statusCounts.sold})</TabsTrigger>
               </TabsList>
             </Tabs>
 
-            {/* Listings */}
             {filteredListings.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                Nenhum anúncio com este estado.
-              </div>
+              <div className="text-center py-12 text-muted-foreground">{t('noListingsStatus')}</div>
             ) : (
               <div className="space-y-3">
                 {filteredListings.map((listing) => {
                   const st = statusLabels[listing.status] || statusLabels.active;
-                  const timeAgo = formatDistanceToNow(new Date(listing.created_at), { addSuffix: true, locale: pt });
+                  const timeAgo = formatDistanceToNow(new Date(listing.created_at), { addSuffix: true, locale });
                   const condition = conditionLabels[listing.condition] || listing.condition;
                   const listingUrl = `${getPublicBaseUrl()}/marketplace/${currentWorkspace?.slug || currentWorkspace?.id}/${listing.id}`;
 
@@ -188,7 +165,6 @@ export default function C2CMyListings() {
                       className="flex items-start gap-4 p-4 rounded-xl border bg-card hover:shadow-sm transition-shadow cursor-pointer"
                       onClick={() => navigate(`/dashboard/c2c/${listing.id}`)}
                     >
-                      {/* Image */}
                       <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                         {listing.photos?.[0] ? (
                           <img src={listing.photos[0]} alt="" className="w-full h-full object-cover" />
@@ -199,7 +175,6 @@ export default function C2CMyListings() {
                         )}
                       </div>
 
-                      {/* Info */}
                       <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-medium truncate">{listing.title}</h3>
@@ -210,11 +185,7 @@ export default function C2CMyListings() {
                           <span className="text-xs text-muted-foreground">· {condition}</span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <ListingStats
-                            views={listing.views_count || 0}
-                            favorites={(listing as any).favorites_count || 0}
-                            messages={(listing as any).messages_count || 0}
-                          />
+                          <ListingStats views={listing.views_count || 0} favorites={(listing as any).favorites_count || 0} messages={(listing as any).messages_count || 0} />
                           <span className="text-xs text-muted-foreground">{timeAgo}</span>
                         </div>
                         <div onClick={(e) => e.stopPropagation()}>
@@ -222,7 +193,6 @@ export default function C2CMyListings() {
                         </div>
                       </div>
 
-                      {/* Actions Dropdown */}
                       <div onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -232,24 +202,21 @@ export default function C2CMyListings() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => navigate(`/dashboard/c2c/edit/${listing.id}`)}>
-                              <Pencil className="h-4 w-4 mr-2" /> Editar
+                              <Pencil className="h-4 w-4 mr-2" /> {t('edit')}
                             </DropdownMenuItem>
                             {listing.status === "active" && (
                               <DropdownMenuItem onClick={() => updateListing.mutate({ id: listing.id, status: "paused" })}>
-                                <Pause className="h-4 w-4 mr-2" /> Pausar
+                                <Pause className="h-4 w-4 mr-2" /> {t('pause')}
                               </DropdownMenuItem>
                             )}
                             {listing.status === "paused" && (
                               <DropdownMenuItem onClick={() => updateListing.mutate({ id: listing.id, status: "active" })}>
-                                <Play className="h-4 w-4 mr-2" /> Reativar
+                                <Play className="h-4 w-4 mr-2" /> {t('reactivate')}
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => updateListing.mutate({ id: listing.id, status: "removed" })}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" /> Remover
+                            <DropdownMenuItem className="text-destructive" onClick={() => updateListing.mutate({ id: listing.id, status: "removed" })}>
+                              <Trash2 className="h-4 w-4 mr-2" /> {t('remove')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ interface OfferDialogProps {
 }
 
 export function OfferDialog({ listingId, sellerId, currentPrice, currency, workspaceId, trigger }: OfferDialogProps) {
+  const { t } = useTranslation('marketplace');
   const [open, setOpen] = useState(false);
   const [offerPrice, setOfferPrice] = useState(String(Math.round(currentPrice * 0.85)));
   const [message, setMessage] = useState("");
@@ -39,7 +41,7 @@ export function OfferDialog({ listingId, sellerId, currentPrice, currency, works
         {trigger || (
           <Button variant="outline" className="w-full gap-2" size="lg">
             <HandCoins className="h-4 w-4" />
-            Fazer Oferta
+            {t('makeOffer')}
           </Button>
         )}
       </DialogTrigger>
@@ -47,16 +49,16 @@ export function OfferDialog({ listingId, sellerId, currentPrice, currency, works
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <HandCoins className="h-5 w-5" />
-            Fazer uma Oferta
+            {t('offerTitle')}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-2">
           <div className="text-sm text-muted-foreground">
-            Preço atual: <span className="font-bold text-foreground">{currentPrice.toFixed(2)} {currency}</span>
+            {t('currentPrice')}: <span className="font-bold text-foreground">{currentPrice.toFixed(2)} {currency}</span>
           </div>
 
           <div>
-            <Label htmlFor="offer-price">A tua oferta ({currency})</Label>
+            <Label htmlFor="offer-price">{t('yourOffer')} ({currency})</Label>
             <Input
               id="offer-price"
               type="number"
@@ -68,18 +70,18 @@ export function OfferDialog({ listingId, sellerId, currentPrice, currency, works
             />
             {discount > 0 && (
               <p className="text-xs text-muted-foreground mt-1">
-                {discount}% abaixo do preço pedido
+                {t('belowAskedPrice', { percent: discount })}
               </p>
             )}
           </div>
 
           <div>
-            <Label htmlFor="offer-message">Mensagem (opcional)</Label>
+            <Label htmlFor="offer-message">{t('offerMessage')}</Label>
             <Textarea
               id="offer-message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Adiciona uma mensagem ao vendedor..."
+              placeholder={t('offerMessagePlaceholder')}
               rows={3}
               className="mt-1"
             />
@@ -87,7 +89,7 @@ export function OfferDialog({ listingId, sellerId, currentPrice, currency, works
 
           <Button onClick={handleSubmit} disabled={createOffer.isPending || !Number(offerPrice)} className="w-full">
             {createOffer.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Enviar Oferta — {Number(offerPrice).toFixed(2)} {currency}
+            {t('sendOfferAmount', { amount: Number(offerPrice).toFixed(2), currency })}
           </Button>
         </div>
       </DialogContent>

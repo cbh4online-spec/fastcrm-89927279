@@ -1,11 +1,14 @@
 import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import type { C2CMessage } from "@/hooks/useC2CMessages";
-import { format } from "date-fns";
-import { pt } from "date-fns/locale";
+import { format, type Locale as DateLocale } from "date-fns";
+import { pt, enUS, es, fr } from "date-fns/locale";
+
+const dateLocales: Record<string, DateLocale> = { pt, en: enUS, es, fr };
 
 interface MessageThreadProps {
   messages: C2CMessage[];
@@ -14,9 +17,11 @@ interface MessageThreadProps {
 }
 
 export function MessageThread({ messages, onSend, isSending }: MessageThreadProps) {
+  const { t, i18n } = useTranslation('marketplace');
   const { user } = useAuth();
   const [text, setText] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const locale = dateLocales[i18n.language] || pt;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -33,7 +38,7 @@ export function MessageThread({ messages, onSend, isSending }: MessageThreadProp
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
           <p className="text-center text-muted-foreground text-sm py-8">
-            Nenhuma mensagem ainda. Inicia a conversa!
+            {t('noNotifications')}
           </p>
         )}
         {messages.map((msg) => {
@@ -52,7 +57,7 @@ export function MessageThread({ messages, onSend, isSending }: MessageThreadProp
               >
                 <p className="text-sm">{msg.content}</p>
                 <p className={`text-[10px] mt-1 ${isOwn ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                  {format(new Date(msg.created_at), "HH:mm", { locale: pt })}
+                  {format(new Date(msg.created_at), "HH:mm", { locale })}
                 </p>
               </div>
             </div>
@@ -65,7 +70,7 @@ export function MessageThread({ messages, onSend, isSending }: MessageThreadProp
         <Input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Escrever mensagem..."
+          placeholder={t('messagePlaceholder')}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           disabled={isSending}
         />

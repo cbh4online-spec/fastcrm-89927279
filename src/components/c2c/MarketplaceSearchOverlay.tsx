@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, Clock, TrendingUp, ArrowLeft, Camera, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ export function MarketplaceSearchOverlay({
   onSearch,
   initialQuery = "",
 }: MarketplaceSearchOverlayProps) {
+  const { t } = useTranslation('marketplace');
   const [query, setQuery] = useState(initialQuery);
   const [history, setHistory] = useState<string[]>([]);
   const [isVisualLoading, setIsVisualLoading] = useState(false);
@@ -86,11 +88,11 @@ export function MarketplaceSearchOverlay({
 
   const handleVisualSearch = async (file: File) => {
     if (!file.type.startsWith("image/")) {
-      toast.error("Por favor selecione uma imagem");
+      toast.error(t('selectImage'));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Imagem demasiado grande (máx. 5MB)");
+      toast.error(t('imageTooLarge'));
       return;
     }
     setIsVisualLoading(true);
@@ -108,12 +110,12 @@ export function MarketplaceSearchOverlay({
       if (data?.searchTerms) {
         setQuery(data.searchTerms);
         handleSubmit(data.searchTerms);
-        toast.success("Pesquisa visual concluída!");
+        toast.success(t('visualSearchDone'));
       } else {
-        toast.error("Não foi possível analisar a imagem");
+        toast.error(t('visualSearchError'));
       }
     } catch {
-      toast.error("Erro na pesquisa visual");
+      toast.error(t('visualSearchFailed'));
     } finally {
       setIsVisualLoading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -130,7 +132,6 @@ export function MarketplaceSearchOverlay({
           transition={{ duration: 0.15 }}
           className="fixed inset-0 z-50 bg-background"
         >
-          {/* Search header */}
           <div className="sticky top-0 bg-background border-b z-10">
             <div className="flex items-center gap-2 p-3">
               <Button variant="ghost" size="icon" className="shrink-0" onClick={onClose}>
@@ -146,7 +147,7 @@ export function MarketplaceSearchOverlay({
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Pesquisar no marketplace..."
+                  placeholder={t('searchInMarketplace')}
                   className="w-full h-11 pl-10 pr-10 rounded-full border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:bg-background transition-colors"
                   autoComplete="off"
                 />
@@ -178,7 +179,7 @@ export function MarketplaceSearchOverlay({
                 className="shrink-0"
                 disabled={isVisualLoading}
                 onClick={() => fileRef.current?.click()}
-                title="Pesquisar com imagem"
+                title={t('searchWithImage')}
               >
                 {isVisualLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
               </Button>
@@ -188,26 +189,24 @@ export function MarketplaceSearchOverlay({
                 className="shrink-0 text-primary font-medium"
                 onClick={() => handleSubmit()}
               >
-                Pesquisar
+                {t('search')}
               </Button>
             </div>
           </div>
 
-          {/* Content */}
           <div className="overflow-y-auto p-4 space-y-6" style={{ maxHeight: "calc(100vh - 70px)" }}>
-            {/* Recent searches */}
             {history.length > 0 && (
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
                     <Clock className="h-4 w-4" />
-                    Pesquisas recentes
+                    {t('recentSearches')}
                   </h3>
                   <button
                     onClick={handleClearHistory}
                     className="text-xs text-primary hover:underline"
                   >
-                    Limpar tudo
+                    {t('clearAll')}
                   </button>
                 </div>
                 <div className="space-y-0.5">
@@ -238,11 +237,10 @@ export function MarketplaceSearchOverlay({
               </section>
             )}
 
-            {/* Trending */}
             <section className="space-y-3">
               <h3 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
                 <TrendingUp className="h-4 w-4" />
-                Em tendência
+                {t('trending')}
               </h3>
               <div className="flex flex-wrap gap-2">
                 {TRENDING_SEARCHES.map((term) => (
