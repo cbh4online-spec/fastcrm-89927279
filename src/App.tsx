@@ -199,6 +199,13 @@ import RenewalDetailPage from "./pages/RenewalDetailPage";
 import SecurityDashboardPage from "./pages/security/SecurityDashboardPage";
 import SecurityPartnerRequestsPage from "./pages/security/SecurityPartnerRequestsPage";
 import SecurityPartnerRequestDetailPage from "./pages/security/SecurityPartnerRequestDetailPage";
+import SecuritySitesPage from "./pages/security/SecuritySitesPage";
+import SecuritySiteDetailPage from "./pages/security/SecuritySiteDetailPage";
+import SecuritySystemsPage from "./pages/security/SecuritySystemsPage";
+import SecuritySystemDetailPage from "./pages/security/SecuritySystemDetailPage";
+import SecurityEquipmentPage from "./pages/security/SecurityEquipmentPage";
+import SecurityContractsPage from "./pages/security/SecurityContractsPage";
+import SecurityProposalsPage from "./pages/security/SecurityProposalsPage";
 
 // Procurement
 import ProcurementDashboardPage from "./pages/procurement/ProcurementDashboardPage";
@@ -645,6 +652,14 @@ function CRMRoutes() {
                 <Route path="/dashboard/security" element={<SecurityDashboardPage />} />
                 <Route path="/dashboard/security/partner-requests" element={<SecurityPartnerRequestsPage />} />
                 <Route path="/dashboard/security/partner-requests/:id" element={<SecurityPartnerRequestDetailPage />} />
+                <Route path="/dashboard/security/sites" element={<SecuritySitesPage />} />
+                <Route path="/dashboard/security/sites/:id" element={<SecuritySiteDetailPage />} />
+                <Route path="/dashboard/security/systems" element={<SecuritySystemsPage />} />
+                <Route path="/dashboard/security/systems/:id" element={<SecuritySystemDetailPage />} />
+                <Route path="/dashboard/security/equipment" element={<SecurityEquipmentPage />} />
+                <Route path="/dashboard/security/contracts" element={<SecurityContractsPage />} />
+                <Route path="/dashboard/security/contracts/:id" element={<SecurityContractsPage />} />
+                <Route path="/dashboard/security/proposals" element={<SecurityProposalsPage />} />
 
                 {/* Student Journey Module Routes */}
                 <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />
