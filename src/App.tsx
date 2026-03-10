@@ -221,6 +221,7 @@ import SecurityOccurrencesPage from "./pages/security/SecurityOccurrencesPage";
 import SecurityOccurrenceDetailPage from "./pages/security/SecurityOccurrenceDetailPage";
 import SecurityRenewalsPage from "./pages/security/SecurityRenewalsPage";
 import SecurityRenewalDetailPage from "./pages/security/SecurityRenewalDetailPage";
+import SecurityEquipmentDetailPage from "./pages/security/SecurityEquipmentDetailPage";
 import SecurityManagementPage from "./pages/security/SecurityManagementPage";
 
 // Procurement
@@ -674,6 +675,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/security/systems" element={<SecuritySystemsPage />} />
                 <Route path="/dashboard/security/systems/:id" element={<SecuritySystemDetailPage />} />
                 <Route path="/dashboard/security/equipment" element={<SecurityEquipmentPage />} />
+                <Route path="/dashboard/security/equipment/:id" element={<SecurityEquipmentDetailPage />} />
                 <Route path="/dashboard/security/clients" element={<SecurityClientsPage />} />
                 <Route path="/dashboard/security/clients/:id" element={<SecurityClientDetailPage />} />
                 <Route path="/dashboard/security/contracts" element={<SecurityContractsPage />} />
