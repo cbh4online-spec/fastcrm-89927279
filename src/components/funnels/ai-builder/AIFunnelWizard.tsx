@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { ArrowRight, ArrowLeft, Sparkles, Check, Coins } from "lucide-react";
+import { ArrowRight, ArrowLeft, Sparkles, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCreditWallet } from "@/hooks/useCreditWallet";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import type { AIFunnelRecommendation } from "./AIFunnelBuilder";
 
 interface WizardStep {
@@ -18,20 +19,10 @@ interface WizardStep {
 }
 
 const WIZARD_STEPS: WizardStep[] = [
+  { id: "product", question: "O que queres vender ou promover?", type: "text" },
+  { id: "audience", question: "Quem é o público-alvo?", type: "text" },
   {
-    id: "product",
-    question: "O que queres vender ou promover?",
-    type: "text",
-  },
-  {
-    id: "audience",
-    question: "Quem é o público-alvo?",
-    type: "text",
-  },
-  {
-    id: "objective",
-    question: "Qual o objectivo principal?",
-    type: "single",
+    id: "objective", question: "Qual o objectivo principal?", type: "single",
     options: [
       { value: "leads", label: "Gerar leads", description: "Captar contactos qualificados" },
       { value: "calls", label: "Marcar chamadas", description: "Agendar reuniões ou demos" },
@@ -41,9 +32,7 @@ const WIZARD_STEPS: WizardStep[] = [
     ],
   },
   {
-    id: "ticket",
-    question: "Qual o ticket médio?",
-    type: "single",
+    id: "ticket", question: "Qual o ticket médio?", type: "single",
     options: [
       { value: "free", label: "Grátis", description: "Lead magnet ou conteúdo gratuito" },
       { value: "low", label: "Baixo (< €50)", description: "Compra impulsiva" },
@@ -52,9 +41,7 @@ const WIZARD_STEPS: WizardStep[] = [
     ],
   },
   {
-    id: "traffic",
-    question: "Qual a origem principal do tráfego?",
-    type: "multi",
+    id: "traffic", question: "Qual a origem principal do tráfego?", type: "multi",
     options: [
       { value: "organic", label: "Orgânico" },
       { value: "meta", label: "Meta Ads" },
@@ -65,9 +52,7 @@ const WIZARD_STEPS: WizardStep[] = [
     ],
   },
   {
-    id: "capture",
-    question: "Como queres captar?",
-    type: "single",
+    id: "capture", question: "Como queres captar?", type: "single",
     options: [
       { value: "form", label: "Formulário", description: "Formulário de contacto simples" },
       { value: "quiz", label: "Quiz", description: "Quiz interactivo com segmentação" },
@@ -79,27 +64,21 @@ const WIZARD_STEPS: WizardStep[] = [
     ],
   },
   {
-    id: "salesType",
-    question: "Queres venda directa ou qualificação antes?",
-    type: "single",
+    id: "salesType", question: "Queres venda directa ou qualificação antes?", type: "single",
     options: [
       { value: "direct", label: "Venda directa", description: "Checkout imediato" },
       { value: "qualify", label: "Qualificação primeiro", description: "Filtrar antes de vender" },
     ],
   },
   {
-    id: "customDomain",
-    question: "Pretendes domínio próprio?",
-    type: "single",
+    id: "customDomain", question: "Pretendes domínio próprio?", type: "single",
     options: [
       { value: "yes", label: "Sim", description: "Usar domínio personalizado" },
       { value: "no", label: "Não", description: "Usar domínio do sistema" },
     ],
   },
   {
-    id: "aiCopy",
-    question: "Queres que a IA escreva a copy inicial?",
-    type: "single",
+    id: "aiCopy", question: "Queres que a IA escreva a copy inicial?", type: "single",
     options: [
       { value: "yes", label: "Sim, por favor!", description: "Headlines, dores, promessa e CTA" },
       { value: "no", label: "Não, escrevo eu", description: "Configurar depois manualmente" },
@@ -141,43 +120,24 @@ export function AIFunnelWizard({ onRecommendation }: Props) {
     return val.trim().length > 0;
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setIsGenerating(true);
-    // Simulate AI generation (will be replaced with real AI call)
-    setTimeout(() => {
-      const rec: AIFunnelRecommendation = {
-        vertical: "Serviços Profissionais",
-        pageTemplate: answers.capture === "masterclass" ? "Masterclass de Conversão" : "Lead Magnet",
-        captureType: (answers.capture as string) || "form",
-        objective: (answers.objective as string) || "leads",
-        headline: `Descubra Como ${answers.product || "Transformar o Seu Negócio"}`,
-        subheadline: `Para ${answers.audience || "profissionais"} que querem resultados reais`,
-        ctaPrimary: answers.capture === "whatsapp" ? "Falar no WhatsApp" : "Inscrever-me Agora",
-        ctaSecondary: "Saber mais",
-        funnelSteps: [
-          { name: "Landing Page", type: "page", description: "Página de captura" },
-          { name: "Captação", type: (answers.capture as string) || "optin", description: "Formulário/quiz/registo" },
-          { name: "Obrigado", type: "thankyou", description: "Página de confirmação" },
-        ],
-        routing: { pipeline: "Vendas", tags: ["wizard-generated"], sla: "24h" },
-        automations: [
-          { trigger: "lead_submit", action: "Enviar email de confirmação", channel: "email" },
-          { trigger: "lead_submit", action: "Notificar equipa", channel: "notification" },
-        ],
-        tracking: ["PageView", "CTA_Click", "Form_Start", "Lead_Submit"],
-        kpis: ["Visitas", "Taxa de conversão", "Leads gerados", "Custo por lead"],
-        slug: (answers.product as string || "funil").toLowerCase().replace(/[^a-z0-9]+/g, "-").substring(0, 30),
-        domain: answers.customDomain === "yes" ? "custom.seudominio.pt" : "sistema.fastcrm.app",
-        thankYou: "Redirect para página de obrigado com próximos passos",
-        seo: {
-          title: `${answers.product || "Oferta"} | ${answers.audience || "Profissionais"}`,
-          description: `Descubra como ${answers.product || "transformar o seu negócio"}. Para ${answers.audience || "profissionais"}.`,
-        },
-        reasoning: `Baseado nas suas respostas: objectivo "${answers.objective}", ticket "${answers.ticket}", tráfego "${Array.isArray(answers.traffic) ? answers.traffic.join(", ") : answers.traffic}". ${answers.capture === "masterclass" ? "A masterclass é ideal para educar antes da venda." : "O formato escolhido é adequado ao objectivo."}`,
-      };
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-funnel-builder", {
+        body: { mode: "wizard", wizardAnswers: answers },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const rec = data.recommendation as AIFunnelRecommendation;
       onRecommendation(rec);
+      toast.success("Funil recomendado gerado com sucesso!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao gerar recomendação");
+    } finally {
       setIsGenerating(false);
-    }, 2000);
+    }
   };
 
   return (
@@ -288,7 +248,7 @@ export function AIFunnelWizard({ onRecommendation }: Props) {
               {isGenerating ? (
                 <>
                   <Sparkles className="h-4 w-4 animate-spin" />
-                  A gerar...
+                  A gerar com IA...
                 </>
               ) : (
                 <>
