@@ -48,7 +48,7 @@ export default function SecuritySystemsPage() {
             <Camera className="h-7 w-7 text-primary" />
             <h1 className="text-2xl font-bold">{t("systems")}</h1>
           </div>
-          <Button onClick={() => navigate("/dashboard/security/systems/new")} className="gap-2">
+          <Button onClick={() => setDialogOpen(true)} className="gap-2">
             <Plus className="h-4 w-4" />
             {t("addNew")}
           </Button>
