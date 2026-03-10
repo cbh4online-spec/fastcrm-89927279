@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useTranslation } from "react-i18next";
 import { useSecuritySystem, useSecurityZones, useSecurityInstalledDevices, useSecuritySystems } from "@/hooks/security/useSecuritySystems";
+import { SecurityInlineField } from "@/components/security/SecurityInlineField";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,10 @@ export default function SecuritySystemDetailPage() {
   if (isLoading) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">A carregar...</div></DashboardLayout>;
   if (!system) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">Sistema não encontrado.</div></DashboardLayout>;
 
+  const save = (field: string) => (value: unknown) => {
+    updateSystem.mutate({ id: id!, [field]: value });
+  };
+
   const site = system.security_installation_sites as any;
   const canMarkInstalled = system.status === "draft" || system.status === "por_validar";
 
@@ -80,7 +85,6 @@ export default function SecuritySystemDetailPage() {
     updateSystem.mutate({ id: id!, status: "active", commissioning_date: new Date().toISOString().split("T")[0] });
   };
 
-  // Device inventory summary
   const devicesByType = devices.reduce((acc: Record<string, number>, d: any) => {
     const type = d.device_type || "other";
     acc[type] = (acc[type] || 0) + (d.quantity ?? 1);
@@ -105,12 +109,7 @@ export default function SecuritySystemDetailPage() {
           </div>
           <Badge variant="outline" className="capitalize">{system.system_type}</Badge>
           <Badge>{statusLabels[system.status] || system.status}</Badge>
-          <SecurityQRCode
-            entityType="system"
-            entityId={system.id}
-            label={site?.site_name || "Sistema"}
-            sublabel={`${system.system_type} · ${[system.main_brand, system.main_model].filter(Boolean).join(" ")}`}
-          />
+          <SecurityQRCode entityType="system" entityId={system.id} label={site?.site_name || "Sistema"} sublabel={`${system.system_type} · ${[system.main_brand, system.main_model].filter(Boolean).join(" ")}`} />
           {canMarkInstalled && (
             <Button onClick={handleMarkActive} disabled={updateSystem.isPending} className="gap-2">
               <CheckCircle className="h-4 w-4" /> Marcar como Instalado
@@ -121,38 +120,12 @@ export default function SecuritySystemDetailPage() {
           </Button>
         </div>
 
-        {/* Inventory Summary */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold">{zones.length}</p>
-              <p className="text-xs text-muted-foreground">Zonas</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold">{totalDevices}</p>
-              <p className="text-xs text-muted-foreground">Dispositivos</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold">{devicesByType.camera || 0}</p>
-              <p className="text-xs text-muted-foreground">Câmaras</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold">{(devicesByType.dvr || 0) + (devicesByType.nvr || 0)}</p>
-              <p className="text-xs text-muted-foreground">Gravadores</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold">{devices.filter((d: any) => d.serial_number).length}</p>
-              <p className="text-xs text-muted-foreground">Com Nº Série</p>
-            </CardContent>
-          </Card>
+          <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">{zones.length}</p><p className="text-xs text-muted-foreground">Zonas</p></CardContent></Card>
+          <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">{totalDevices}</p><p className="text-xs text-muted-foreground">Dispositivos</p></CardContent></Card>
+          <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">{devicesByType.camera || 0}</p><p className="text-xs text-muted-foreground">Câmaras</p></CardContent></Card>
+          <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">{(devicesByType.dvr || 0) + (devicesByType.nvr || 0)}</p><p className="text-xs text-muted-foreground">Gravadores</p></CardContent></Card>
+          <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">{devices.filter((d: any) => d.serial_number).length}</p><p className="text-xs text-muted-foreground">Com Nº Série</p></CardContent></Card>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -160,21 +133,16 @@ export default function SecuritySystemDetailPage() {
             <div className="grid md:grid-cols-2 gap-6">
               <Card>
                 <CardHeader><CardTitle className="text-base">{t("details")}</CardTitle></CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <InfoRow label={t("systemType")} value={system.system_type} />
-                  <InfoRow label="Ciclo de Vida" value={lifecycleLabels[system.lifecycle_type] || system.lifecycle_type} />
-                  <InfoRow label={t("installationDate")} value={system.installation_date} />
-                  <InfoRow label="Data de Comissionamento" value={system.commissioning_date} />
-                  <InfoRow label={t("brand")} value={system.main_brand} />
-                  <InfoRow label={t("model")} value={system.main_model} />
-                  <InfoRow label={t("installerCompany")} value={system.installer_company_name} />
-                  <InfoRow label={t("maintenanceCompany")} value={system.maintenance_company_name} />
-                  {system.integration_notes && (
-                    <div className="pt-2 border-t">
-                      <span className="text-muted-foreground">Integração</span>
-                      <p className="mt-1">{system.integration_notes}</p>
-                    </div>
-                  )}
+                <CardContent className="space-y-1 text-sm">
+                  <SecurityInlineField label={t("systemType")} value={system.system_type} fieldType="select" options={["cctv", "intrusion", "fire", "access_control", "mixed"]} onSave={save("system_type")} />
+                  <SecurityInlineField label="Ciclo de Vida" value={system.lifecycle_type} fieldType="select" options={["new_installation", "existing_installation", "preventive_maintenance", "certification", "expansion", "regularization"]} onSave={save("lifecycle_type")} />
+                  <SecurityInlineField label={t("installationDate")} value={system.installation_date} fieldType="date" onSave={save("installation_date")} />
+                  <SecurityInlineField label="Data Comissionamento" value={system.commissioning_date} fieldType="date" onSave={save("commissioning_date")} />
+                  <SecurityInlineField label={t("brand")} value={system.main_brand} onSave={save("main_brand")} />
+                  <SecurityInlineField label={t("model")} value={system.main_model} onSave={save("main_model")} />
+                  <SecurityInlineField label={t("installerCompany")} value={system.installer_company_name} onSave={save("installer_company_name")} />
+                  <SecurityInlineField label={t("maintenanceCompany")} value={system.maintenance_company_name} onSave={save("maintenance_company_name")} />
+                  <SecurityInlineField label="Integração" value={system.integration_notes} onSave={save("integration_notes")} />
                 </CardContent>
               </Card>
 
@@ -201,15 +169,10 @@ export default function SecuritySystemDetailPage() {
               )}
             </div>
 
-            {/* Zones */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Layers className="h-4 w-4" /> Zonas ({zones.length})
-                </CardTitle>
-                <Button size="sm" variant="outline" onClick={() => setAddZoneOpen(true)} className="gap-1">
-                  <Plus className="h-3.5 w-3.5" /> Zona
-                </Button>
+                <CardTitle className="text-base flex items-center gap-2"><Layers className="h-4 w-4" /> Zonas ({zones.length})</CardTitle>
+                <Button size="sm" variant="outline" onClick={() => setAddZoneOpen(true)} className="gap-1"><Plus className="h-3.5 w-3.5" /> Zona</Button>
               </CardHeader>
               <CardContent>
                 {zones.length === 0 ? (
@@ -228,15 +191,10 @@ export default function SecuritySystemDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Installed Devices */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Cpu className="h-4 w-4" /> Dispositivos ({totalDevices})
-                </CardTitle>
-                <Button size="sm" variant="outline" onClick={() => setAddDeviceOpen(true)} className="gap-1">
-                  <Plus className="h-3.5 w-3.5" /> Dispositivo
-                </Button>
+                <CardTitle className="text-base flex items-center gap-2"><Cpu className="h-4 w-4" /> Dispositivos ({totalDevices})</CardTitle>
+                <Button size="sm" variant="outline" onClick={() => setAddDeviceOpen(true)} className="gap-1"><Plus className="h-3.5 w-3.5" /> Dispositivo</Button>
               </CardHeader>
               <CardContent>
                 {devices.length === 0 ? (
@@ -272,28 +230,20 @@ export default function SecuritySystemDetailPage() {
               </CardContent>
             </Card>
 
-            {system.technical_notes && (
-              <Card>
-                <CardHeader><CardTitle className="text-base">{t("notes")}</CardTitle></CardHeader>
-                <CardContent className="text-sm whitespace-pre-wrap">{system.technical_notes}</CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardHeader><CardTitle className="text-base">{t("notes")}</CardTitle></CardHeader>
+              <CardContent>
+                <SecurityInlineField label="" value={system.technical_notes} onSave={save("technical_notes")} placeholder="Sem notas técnicas" />
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
-            <SecurityQRCode
-              entityType="system"
-              entityId={system.id}
-              label={site?.site_name || "Sistema"}
-              sublabel={`${system.system_type} · ${[system.main_brand, system.main_model].filter(Boolean).join(" ")}`}
-              inline
-            />
+            <SecurityQRCode entityType="system" entityId={system.id} label={site?.site_name || "Sistema"} sublabel={`${system.system_type} · ${[system.main_brand, system.main_model].filter(Boolean).join(" ")}`} inline />
           </div>
         </div>
       </div>
 
-      {/* Add Zone Dialog */}
       <Dialog open={addZoneOpen} onOpenChange={setAddZoneOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Adicionar Zona</DialogTitle></DialogHeader>
@@ -321,7 +271,6 @@ export default function SecuritySystemDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Device Dialog */}
       <Dialog open={addDeviceOpen} onOpenChange={setAddDeviceOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Adicionar Dispositivo</DialogTitle></DialogHeader>
@@ -374,15 +323,5 @@ export default function SecuritySystemDetailPage() {
 
       <SecurityDocumentCreateDialog open={docDialogOpen} onOpenChange={setDocDialogOpen} defaultSystemId={id} />
     </DashboardLayout>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value?: string | null }) {
-  if (!value) return null;
-  return (
-    <div className="flex justify-between">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium capitalize">{value}</span>
-    </div>
   );
 }
