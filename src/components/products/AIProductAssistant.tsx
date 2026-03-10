@@ -32,6 +32,14 @@ const productTypeLabels: Record<string, string> = {
   composite: "Bundle",
 };
 
+const billingTypeLabels: Record<string, string> = {
+  "one-off": "Único",
+  "monthly": "Mensal",
+  "quarterly": "Trimestral",
+  "yearly": "Anual",
+  "per-session": "Por Sessão",
+};
+
 export function AIProductAssistant({
   productName,
   currentCategory,
