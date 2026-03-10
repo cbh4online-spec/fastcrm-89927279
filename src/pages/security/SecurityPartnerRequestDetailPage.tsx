@@ -53,8 +53,10 @@ export default function SecurityPartnerRequestDetailPage() {
   };
 
   const handleConvertToLead = () => {
-    toast.info("Conversão em lead — funcionalidade a implementar na Fase 2");
+    convertRequestToLead.mutate(request);
   };
+  const isConverting = convertRequestToLead.isPending;
+  const alreadyConverted = !!(request as any).linked_security_lead_id;
 
   const handleFieldChange = (key: string, value: string) => {
     setEditedPayload((prev) => ({ ...prev, [key]: value }));
