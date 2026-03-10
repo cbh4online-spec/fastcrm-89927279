@@ -1,14 +1,28 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, TrendingUp, Calendar, Zap } from "lucide-react";
-import { mockSprints, mockDailyBriefings, mockWins } from "./mockData";
+import { useVisionSprints, useVisionBriefings, useVisionWins } from "@/hooks/useVision";
 
-export function VisionMetricsPanel() {
-  const completedSprints = mockSprints.filter(s => s.status === "completed").length;
-  const avgEnergy = mockDailyBriefings.length > 0
-    ? Math.round(mockDailyBriefings.reduce((sum, b) => sum + (b.energy_level || 0), 0) / mockDailyBriefings.length)
+interface Props {
+  visionId: string;
+}
+
+export function VisionMetricsPanel({ visionId }: Props) {
+  const { data: sprints = [] } = useVisionSprints(visionId);
+  const { data: briefings = [] } = useVisionBriefings(visionId);
+  const { data: wins = [] } = useVisionWins(visionId);
+
+  const completedSprints = sprints.filter(s => s.status === "completed").length;
+  const avgEnergy = briefings.length > 0
+    ? Math.round(briefings.reduce((sum, b) => sum + (b.energy_level || 0), 0) / briefings.length)
     : 0;
-  const totalTasksDone = mockSprints.reduce((sum, s) => sum + s.metrics.tasks_done, 0);
-  const totalLeads = mockSprints.reduce((sum, s) => sum + s.metrics.leads_generated, 0);
+  const totalTasksDone = sprints.reduce((sum, s) => {
+    const m = (s.metrics as any) || {};
+    return sum + (m.tasks_done || 0);
+  }, 0);
+  const totalLeads = sprints.reduce((sum, s) => {
+    const m = (s.metrics as any) || {};
+    return sum + (m.leads_generated || 0);
+  }, 0);
 
   const stats = [
     { label: "Sprints Concluídos", value: completedSprints, icon: Zap, color: "text-amber-500", bg: "bg-amber-500/10" },
@@ -39,43 +53,40 @@ export function VisionMetricsPanel() {
         ))}
       </div>
 
-      <Card className="border-border/50">
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Histórico de Energia Diária</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-end gap-2 h-32">
-            {mockDailyBriefings.map((b) => (
-              <div key={b.id} className="flex-1 flex flex-col items-center gap-1">
-                <div
-                  className="w-full rounded-t bg-gradient-to-t from-violet-500 to-purple-400 min-w-[24px]"
-                  style={{ height: `${(b.energy_level / 10) * 100}%` }}
-                />
-                <span className="text-[10px] text-muted-foreground">{b.date.split("-")[2]}</span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {briefings.length > 0 && (
+        <Card className="border-border/50">
+          <CardHeader><CardTitle className="text-sm font-medium">Histórico de Energia Diária</CardTitle></CardHeader>
+          <CardContent>
+            <div className="flex items-end gap-2 h-32">
+              {briefings.slice(0, 14).reverse().map((b) => (
+                <div key={b.id} className="flex-1 flex flex-col items-center gap-1">
+                  <div className="w-full rounded-t bg-gradient-to-t from-violet-500 to-purple-400 min-w-[24px]" style={{ height: `${((b.energy_level || 0) / 10) * 100}%` }} />
+                  <span className="text-[10px] text-muted-foreground">{b.date.split("-")[2]}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      <Card className="border-border/50">
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Vitórias por Categoria</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 flex-wrap">
-            {Object.entries(
-              mockWins.reduce((acc, w) => { acc[w.category] = (acc[w.category] || 0) + 1; return acc; }, {} as Record<string, number>)
-            ).map(([cat, count]) => (
-              <div key={cat} className="flex items-center gap-2 text-sm">
-                <div className="w-3 h-3 rounded-full bg-violet-500" />
-                <span className="text-foreground capitalize">{cat}</span>
-                <span className="text-muted-foreground">({count})</span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {wins.length > 0 && (
+        <Card className="border-border/50">
+          <CardHeader><CardTitle className="text-sm font-medium">Vitórias por Categoria</CardTitle></CardHeader>
+          <CardContent>
+            <div className="flex gap-4 flex-wrap">
+              {Object.entries(
+                wins.reduce((acc, w) => { const cat = w.category || "outro"; acc[cat] = (acc[cat] || 0) + 1; return acc; }, {} as Record<string, number>)
+              ).map(([cat, count]) => (
+                <div key={cat} className="flex items-center gap-2 text-sm">
+                  <div className="w-3 h-3 rounded-full bg-violet-500" />
+                  <span className="text-foreground capitalize">{cat}</span>
+                  <span className="text-muted-foreground">({count})</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
