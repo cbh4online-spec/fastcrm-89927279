@@ -120,6 +120,8 @@ export function CreateProposalDialog({
   const createProposal = useCreateProposal();
   const updateProposalItems = useUpdateProposalItems();
   const { isLoading: aiLoading, generateCopy } = useGenerateProposalCopy();
+  const { settings: invoiceSettings } = useInvoiceSettings();
+  const workspaceCurrency = invoiceSettings?.default_currency || "EUR";
 
   // Callback estável para atualização de itens do carrinho
   const handleCartItemsChange = useCallback((items: CartItem[]) => {
