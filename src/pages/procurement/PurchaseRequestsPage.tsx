@@ -4,25 +4,12 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { usePurchaseRequests, useConvertRequestToPO } from "@/hooks/useProcurement";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Check, X, FileOutput, Loader2 } from "lucide-react";
+import { Plus, Check, X, FileOutput, Loader2, ClipboardList } from "lucide-react";
 import { useState } from "react";
 import { PurchaseRequestForm } from "@/components/procurement/PurchaseRequestForm";
-
-const urgencyColors: Record<string, string> = {
-  low: "secondary",
-  medium: "default",
-  high: "destructive",
-  critical: "destructive",
-};
-
-const statusColors: Record<string, string> = {
-  draft: "secondary",
-  pending: "outline",
-  approved: "default",
-  rejected: "destructive",
-  converted: "secondary",
-};
+import { PageHeader } from "@/components/common/PageHeader";
+import { ProcurementStatusBadge } from "@/components/procurement/ProcurementStatusBadge";
+import { ProcurementEmptyState } from "@/components/procurement/ProcurementEmptyState";
 
 export default function PurchaseRequestsPage() {
   const { t } = useTranslation("procurement");
@@ -46,17 +33,29 @@ export default function PurchaseRequestsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-4 p-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">{t("requests")}</h1>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />{t("newRequest")}
-          </Button>
-        </div>
+        <PageHeader
+          title={t("requests")}
+          count={(requests as any[]).length}
+          actions={[
+            {
+              label: t("newRequest"),
+              icon: <Plus className="h-4 w-4" />,
+              onClick: () => setShowForm(true),
+            },
+          ]}
+        />
         
         {isLoading ? (
-          <p className="text-muted-foreground">{t("loading")}</p>
-        ) : requests.length === 0 ? (
-          <p className="text-muted-foreground">{t("noRequests")}</p>
+          <div className="flex items-center justify-center p-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (requests as any[]).length === 0 ? (
+          <ProcurementEmptyState
+            icon={<ClipboardList className="h-8 w-8 text-muted-foreground" />}
+            title={t("noRequests")}
+            actionLabel={t("newRequest")}
+            onAction={() => setShowForm(true)}
+          />
         ) : (
           <Table>
             <TableHeader>
@@ -74,11 +73,11 @@ export default function PurchaseRequestsPage() {
                 <TableRow key={r.id}>
                   <TableCell className="font-medium">{r.supplier?.name || "—"}</TableCell>
                   <TableCell>
-                    <Badge variant={urgencyColors[r.urgency] as any}>{t(r.urgency)}</Badge>
+                    <ProcurementStatusBadge status={r.urgency} />
                   </TableCell>
                   <TableCell>€{(Number(r.total_estimated) || 0).toFixed(2)}</TableCell>
                   <TableCell>
-                    <Badge variant={statusColors[r.status] as any}>{t(r.status)}</Badge>
+                    <ProcurementStatusBadge status={r.status} />
                   </TableCell>
                   <TableCell>{r.items?.length || 0}</TableCell>
                   <TableCell className="text-right space-x-1">

@@ -4,10 +4,13 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useSuppliers } from "@/hooks/useProcurement";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Users } from "lucide-react";
 import { useState } from "react";
 import { SupplierForm } from "@/components/procurement/SupplierForm";
+import { PageHeader } from "@/components/common/PageHeader";
+import { ProcurementStatusBadge } from "@/components/procurement/ProcurementStatusBadge";
+import { ProcurementEmptyState } from "@/components/procurement/ProcurementEmptyState";
+import { Loader2 } from "lucide-react";
 
 export default function SuppliersPage() {
   const { t } = useTranslation("procurement");
@@ -19,17 +22,29 @@ export default function SuppliersPage() {
   return (
     <DashboardLayout>
       <div className="space-y-4 p-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">{t("suppliers")}</h1>
-          <Button onClick={() => { setEditingSupplier(null); setShowForm(true); }}>
-            <Plus className="h-4 w-4 mr-2" />{t("addSupplier")}
-          </Button>
-        </div>
+        <PageHeader
+          title={t("suppliers")}
+          count={suppliers.length}
+          actions={[
+            {
+              label: t("addSupplier"),
+              icon: <Plus className="h-4 w-4" />,
+              onClick: () => { setEditingSupplier(null); setShowForm(true); },
+            },
+          ]}
+        />
         
         {isLoading ? (
-          <p className="text-muted-foreground">{t("loading")}</p>
+          <div className="flex items-center justify-center p-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
         ) : suppliers.length === 0 ? (
-          <p className="text-muted-foreground">{t("noSuppliers")}</p>
+          <ProcurementEmptyState
+            icon={<Users className="h-8 w-8 text-muted-foreground" />}
+            title={t("noSuppliers")}
+            actionLabel={t("addSupplier")}
+            onAction={() => { setEditingSupplier(null); setShowForm(true); }}
+          />
         ) : (
           <Table>
             <TableHeader>
@@ -49,9 +64,7 @@ export default function SuppliersPage() {
                   <TableCell>{s.vat_number || "—"}</TableCell>
                   <TableCell>{s.category || "—"}</TableCell>
                   <TableCell>
-                    <Badge variant={s.status === "active" ? "default" : "secondary"}>
-                      {t(s.status)}
-                    </Badge>
+                    <ProcurementStatusBadge status={s.status} />
                   </TableCell>
                   <TableCell>{s.email || "—"}</TableCell>
                   <TableCell className="text-right space-x-1">
