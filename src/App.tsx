@@ -184,6 +184,7 @@ import RFCDealsPage from "./pages/RFCDealsPage";
 import RFCForecastPage from "./pages/RFCForecastPage";
 import RFCScenariosPage from "./pages/RFCScenariosPage";
 import RFCSettingsPage from "./pages/RFCSettingsPage";
+import VisionPage from "./pages/VisionPage";
 
 // Performance Engine
 import PerformanceDashboardPage from "./pages/performance/PerformanceDashboardPage";
