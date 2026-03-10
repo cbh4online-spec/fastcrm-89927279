@@ -452,6 +452,13 @@ export default function C2CListingDetail() {
             </div>
           </div>
 
+          {/* Reviews */}
+          {workspaceId && listing && (
+            <section className="mt-10">
+              <ListingReviews listingId={listing.id} sellerId={listing.seller_id} workspaceId={workspaceId} />
+            </section>
+          )}
+
           {/* Related */}
           {relatedListings.length > 0 && (
             <section className="mt-10">
