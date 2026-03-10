@@ -280,6 +280,7 @@ export function WorkspacesSection() {
             billing_country: ws.billing_country,
           },
           onboarding: onboardingMap[ws.id] || undefined,
+          credit_balance: walletBalances[ws.id] ?? 0,
         };
       }) as WorkspaceDetails[];
     },
