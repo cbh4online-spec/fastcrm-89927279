@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import i18next from "i18next";
+
+const t = (key: string, opts?: any) => i18next.t(`procurement:${key}`, opts);
 
 // ============ SUPPLIERS ============
 export function useSuppliers(workspaceId: string | undefined) {
@@ -37,8 +40,8 @@ export function useSuppliers(workspaceId: string | undefined) {
       });
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["suppliers"] }); toast.success("Fornecedor criado"); },
-    onError: () => toast.error("Erro ao criar fornecedor"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["suppliers"] }); toast.success(t("supplierCreated")); },
+    onError: () => toast.error(t("errorCreatingSupplier")),
   });
 
   const update = useMutation({
@@ -47,8 +50,8 @@ export function useSuppliers(workspaceId: string | undefined) {
       const { error } = await supabase.from("suppliers").update({ ...rest, updated_at: new Date().toISOString() }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["suppliers"] }); toast.success("Fornecedor atualizado"); },
-    onError: () => toast.error("Erro ao atualizar fornecedor"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["suppliers"] }); toast.success(t("supplierUpdated")); },
+    onError: () => toast.error(t("errorUpdatingSupplier")),
   });
 
   const remove = useMutation({
@@ -56,8 +59,8 @@ export function useSuppliers(workspaceId: string | undefined) {
       const { error } = await supabase.from("suppliers").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["suppliers"] }); toast.success("Fornecedor removido"); },
-    onError: () => toast.error("Erro ao remover fornecedor"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["suppliers"] }); toast.success(t("supplierRemoved")); },
+    onError: () => toast.error(t("errorRemovingSupplier")),
   });
 
   return { ...query, create: create.mutateAsync, update: update.mutateAsync, remove: remove.mutateAsync };
@@ -140,8 +143,8 @@ export function usePurchaseRequests(workspaceId: string | undefined) {
       }
       return req;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["purchase-requests"] }); toast.success("Requisição criada"); },
-    onError: () => toast.error("Erro ao criar requisição"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["purchase-requests"] }); toast.success(t("requestCreated")); },
+    onError: () => toast.error(t("errorCreatingRequest")),
   });
 
   const approve = useMutation({
@@ -156,8 +159,8 @@ export function usePurchaseRequests(workspaceId: string | undefined) {
       const { error } = await supabase.from("purchase_requests").update(updateData).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["purchase-requests"] }); toast.success("Requisição aprovada"); },
-    onError: () => toast.error("Erro ao aprovar"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["purchase-requests"] }); toast.success(t("requestApproved")); },
+    onError: () => toast.error(t("errorApprovingRequest")),
   });
 
   const reject = useMutation({
@@ -167,8 +170,8 @@ export function usePurchaseRequests(workspaceId: string | undefined) {
       const { error } = await supabase.from("purchase_requests").update(updateData).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["purchase-requests"] }); toast.success("Requisição rejeitada"); },
-    onError: () => toast.error("Erro ao rejeitar"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["purchase-requests"] }); toast.success(t("requestRejected")); },
+    onError: () => toast.error(t("errorRejectingRequest")),
   });
 
   return { ...query, create: create.mutateAsync, approve: approve.mutateAsync, reject: reject.mutateAsync };
@@ -239,8 +242,8 @@ export function usePurchaseOrders(workspaceId: string | undefined) {
       }
       return po;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["purchase-orders"] }); toast.success("Ordem de compra criada"); },
-    onError: () => toast.error("Erro ao criar ordem de compra"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["purchase-orders"] }); toast.success(t("orderCreated")); },
+    onError: () => toast.error(t("errorCreatingOrder")),
   });
 
   const updateStatus = useMutation({
@@ -248,8 +251,8 @@ export function usePurchaseOrders(workspaceId: string | undefined) {
       const { error } = await supabase.from("purchase_orders").update({ status, updated_at: new Date().toISOString() }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["purchase-orders"] }); toast.success("Estado atualizado"); },
-    onError: () => toast.error("Erro ao atualizar estado"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["purchase-orders"] }); toast.success(t("statusUpdated")); },
+    onError: () => toast.error(t("errorUpdatingStatus")),
   });
 
   return { ...query, create: create.mutateAsync, updateStatus: updateStatus.mutateAsync };
@@ -273,15 +276,12 @@ export function useGoodsReceipts(workspaceId: string | undefined) {
     enabled: !!workspaceId,
   });
 
-  // Note: receipts are now created via edge function in GoodsReceiptForm
-  // This create is kept for backward compatibility but should not be used directly
   const create = useMutation({
     mutationFn: async ({ purchase_order_id, items, notes }: {
       purchase_order_id: string;
       items: { order_item_id: string; quantity_received: number }[];
       notes?: string;
     }) => {
-      // Use edge function for atomic receipt + stock + cost update
       const { data, error } = await supabase.functions.invoke("procurement-receive-items", {
         body: {
           workspace_id: workspaceId!,
@@ -298,9 +298,9 @@ export function useGoodsReceipts(workspaceId: string | undefined) {
       qc.invalidateQueries({ queryKey: ["purchase-orders"] });
       qc.invalidateQueries({ queryKey: ["product-inventory"] });
       qc.invalidateQueries({ queryKey: ["procurement-kpis"] });
-      toast.success("Receção registada");
+      toast.success(t("receiptRegistered"));
     },
-    onError: () => toast.error("Erro ao registar receção"),
+    onError: () => toast.error(t("errorRegisteringReceipt")),
   });
 
   return { ...query, create: create.mutateAsync };
@@ -348,8 +348,8 @@ export function useSupplierInvoices(workspaceId: string | undefined) {
       });
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["supplier-invoices"] }); toast.success("Fatura registada"); },
-    onError: () => toast.error("Erro ao registar fatura"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["supplier-invoices"] }); toast.success(t("invoiceRegistered")); },
+    onError: () => toast.error(t("errorRegisteringInvoice")),
   });
 
   const updateStatus = useMutation({
@@ -357,8 +357,8 @@ export function useSupplierInvoices(workspaceId: string | undefined) {
       const { error } = await supabase.from("supplier_invoices").update({ status }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["supplier-invoices"] }); toast.success("Estado da fatura atualizado"); },
-    onError: () => toast.error("Erro ao atualizar fatura"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["supplier-invoices"] }); toast.success(t("invoiceStatusUpdated")); },
+    onError: () => toast.error(t("errorUpdatingInvoiceStatus")),
   });
 
   return { ...query, create: create.mutateAsync, updateStatus: updateStatus.mutateAsync };
@@ -390,8 +390,8 @@ export function useSupplierProducts(workspaceId: string | undefined) {
       });
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["supplier-products"] }); toast.success("Entrada de catálogo criada"); },
-    onError: () => toast.error("Erro ao criar entrada"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["supplier-products"] }); toast.success(t("catalogEntryCreated")); },
+    onError: () => toast.error(t("errorCreatingCatalogEntry")),
   });
 
   const update = useMutation({
@@ -399,8 +399,8 @@ export function useSupplierProducts(workspaceId: string | undefined) {
       const { error } = await supabase.from("supplier_products").update({ ...values, updated_at: new Date().toISOString() }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["supplier-products"] }); toast.success("Entrada atualizada"); },
-    onError: () => toast.error("Erro ao atualizar"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["supplier-products"] }); toast.success(t("catalogEntryUpdated")); },
+    onError: () => toast.error(t("errorUpdatingCatalogEntry")),
   });
 
   const remove = useMutation({
@@ -408,8 +408,8 @@ export function useSupplierProducts(workspaceId: string | undefined) {
       const { error } = await supabase.from("supplier_products").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["supplier-products"] }); toast.success("Entrada removida"); },
-    onError: () => toast.error("Erro ao remover"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["supplier-products"] }); toast.success(t("catalogEntryRemoved")); },
+    onError: () => toast.error(t("errorRemovingCatalogEntry")),
   });
 
   return { ...query, create: create.mutateAsync, update: update.mutateAsync, remove: remove.mutateAsync };
@@ -442,9 +442,42 @@ export function useConvertRequestToPO() {
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["purchase-requests"] });
       qc.invalidateQueries({ queryKey: ["purchase-orders"] });
-      toast.success(`${data.count} ordem(ns) de compra criada(s)`);
+      toast.success(t("ordersCreatedCount", { count: data.count }));
     },
-    onError: () => toast.error("Erro ao converter requisição em ordem de compra"),
+    onError: () => toast.error(t("errorConvertingRequest")),
+  });
+}
+
+// ============ CONVERT PO TO INVOICE ============
+export function useConvertPOToInvoice(workspaceId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ orderId, supplierId, totalAmount, poNumber }: { orderId: string; supplierId: string; totalAmount: number; poNumber?: string }) => {
+      // Create supplier invoice linked to PO
+      const { error: invErr } = await supabase.from("supplier_invoices").insert({
+        workspace_id: workspaceId!,
+        supplier_id: supplierId,
+        purchase_order_id: orderId,
+        invoice_number: poNumber ? `INV-${poNumber}` : undefined,
+        invoice_date: new Date().toISOString().split("T")[0],
+        total: totalAmount,
+        status: "pending",
+      });
+      if (invErr) throw invErr;
+
+      // Update PO status to closed
+      const { error: poErr } = await supabase.from("purchase_orders")
+        .update({ status: "closed", updated_at: new Date().toISOString() })
+        .eq("id", orderId);
+      if (poErr) throw poErr;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["purchase-orders"] });
+      qc.invalidateQueries({ queryKey: ["supplier-invoices"] });
+      qc.invalidateQueries({ queryKey: ["procurement-kpis"] });
+      toast.success(t("invoiceCreatedFromPO"));
+    },
+    onError: () => toast.error(t("errorConvertingToInvoice")),
   });
 }
 
@@ -458,14 +491,17 @@ export function useProcurementKPIs(workspaceId: string | undefined) {
       const [orders, requests, invoices] = await Promise.all([
         supabase.from("purchase_orders").select("total_amount, status").eq("workspace_id", workspaceId),
         supabase.from("purchase_requests").select("id, status").eq("workspace_id", workspaceId).eq("status", "pending"),
-        supabase.from("supplier_invoices").select("total, status").eq("workspace_id", workspaceId),
+        supabase.from("supplier_invoices").select("id, total, status").eq("workspace_id", workspaceId),
       ]);
 
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
       const totalMonth = (orders.data || [])
-        .filter(o => !["cancelled", "draft"].includes(o.status))
+        .filter(o => o.status !== "cancelled")
         .reduce((s, o) => s + (Number(o.total_amount) || 0), 0);
 
-      const activeOrders = (orders.data || []).filter(o => ["sent", "confirmed", "partial"].includes(o.status)).length;
+      const activeOrders = (orders.data || []).filter(o => !["closed", "cancelled"].includes(o.status)).length;
 
       return {
         totalMonth,

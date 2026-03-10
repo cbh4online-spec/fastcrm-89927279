@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { useRFQDetail, useSendRFQ, useAddRFQQuote, useAwardRFQ, useAddRFQSupplier, useUpdateRFQ } from "@/hooks/useRFQ";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -15,8 +16,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -29,10 +28,12 @@ import RFQQuoteSheetDialog from "@/components/procurement/RFQQuoteSheetDialog";
 import { toast } from "sonner";
 import RFQQuoteImportWizard from "@/components/procurement/RFQQuoteImportWizard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProcurementStatusBadge } from "@/components/procurement/ProcurementStatusBadge";
 
 export default function RFQDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation("procurement");
   const { currentWorkspace } = useWorkspace();
   const { isSuperAdmin, isAdmin } = useUserRole();
   const { rfq, items, suppliers, quotes, workspace, isLoading } = useRFQDetail(id);
@@ -60,7 +61,7 @@ export default function RFQDetailPage() {
   }
 
   if (!rfq) {
-    return <div className="p-6 text-muted-foreground">RFQ não encontrado.</div>;
+    return <div className="p-6 text-muted-foreground">{t("rfqNotFound")}</div>;
   }
 
   const handleSend = () => sendRFQ.mutate(rfq.id);
@@ -87,9 +88,9 @@ export default function RFQDetailPage() {
     if (!selectedQuoteIds.length) return;
     awardRFQ.mutate({ rfq_id: rfq.id, selected_quote_ids: selectedQuoteIds }, {
       onSuccess: (data) => {
-        toast.success(`${data?.count || 0} Ordem(ns) de Compra criada(s)!`, {
+        toast.success(t("posCreatedSuccess", { count: data?.count || 0 }), {
           action: {
-            label: "Ver Ordens de Compra",
+            label: t("viewPurchaseOrders"),
             onClick: () => navigate("/dashboard/procurement/orders"),
           },
           duration: 8000,
@@ -107,7 +108,6 @@ export default function RFQDetailPage() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (data?.pdf_url) {
-        // Download the PDF
         const { data: fileData, error: dlError } = await supabase.storage
           .from("rfq-pdfs")
           .download(data.pdf_url);
@@ -118,27 +118,18 @@ export default function RFQDetailPage() {
         a.download = `RFQ-${(rfq as any).rfq_number || rfq.title || "export"}.pdf`;
         a.click();
         URL.revokeObjectURL(url);
-        toast.success("PDF gerado com sucesso!");
+        toast.success(t("pdfGeneratedSuccess"));
       }
     } catch (e: any) {
-      toast.error(`Erro ao gerar PDF: ${e.message}`);
+      toast.error(`${t("errorGeneratingPDF")}: ${e.message}`);
     } finally {
       setGeneratingPDF(false);
     }
   };
 
-  // Build comparison matrix
   const supplierIds = [...new Set(quotes.map((q: any) => q.supplier_id))];
   const supplierNames: Record<string, string> = {};
   quotes.forEach((q: any) => { if (q.suppliers?.name) supplierNames[q.supplier_id] = q.suppliers.name; });
-
-  const bestPriceByItem: Record<string, number> = {};
-  items.forEach((item: any) => {
-    const itemQuotes = quotes.filter((q: any) => q.rfq_item_id === item.id);
-    if (itemQuotes.length) {
-      bestPriceByItem[item.id] = Math.min(...itemQuotes.map((q: any) => Number(q.unit_price)));
-    }
-  });
 
   const canSend = rfq.status === "draft" && hasEditPermission;
   const canAddQuotes = ["sent", "receiving_quotes"].includes(rfq.status);
@@ -146,7 +137,6 @@ export default function RFQDetailPage() {
 
   const rfqData = rfq as any;
   const wsData = workspace as any;
-  const isDraft = rfq.status === "draft";
   const isEditable = !["awarded", "closed"].includes(rfq.status) && hasEditPermission;
   const projectData = rfqData.procurement_projects;
 
@@ -156,15 +146,15 @@ export default function RFQDetailPage() {
 
   return (
     <DashboardLayout>
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Top bar */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/procurement")}>
-          <ArrowLeft className="h-4 w-4 mr-1" /> Dashboard
+          <ArrowLeft className="h-4 w-4 mr-1" /> {t("dashboard")}
         </Button>
         <span className="text-muted-foreground">/</span>
         <Button variant="ghost" size="sm" className="text-muted-foreground px-1" onClick={() => navigate("/dashboard/procurement/rfqs")}>
-          RFQs
+          {t("rfqs")}
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
@@ -174,14 +164,14 @@ export default function RFQDetailPage() {
             )}
           </div>
            <div className="flex items-center gap-2 mt-1">
-             <Badge variant="secondary">{rfq.status}</Badge>
+             <ProcurementStatusBadge status={rfq.status} />
              {!hasEditPermission && !["awarded", "closed"].includes(rfq.status) && (
-               <Badge variant="outline" className="text-xs border-muted-foreground/30">Apenas leitura</Badge>
+               <Badge variant="outline" className="text-xs border-muted-foreground/30">{t("readOnly")}</Badge>
              )}
              {rfq.due_date && (
                <Badge variant={new Date(rfq.due_date) < new Date() ? "destructive" : "outline"} className="text-xs">
                  <CalendarIcon className="mr-1 h-3 w-3" />
-                 Prazo: {new Date(rfq.due_date).toLocaleDateString("pt-PT")}
+                 {t("deadlineLabel")}: {new Date(rfq.due_date).toLocaleDateString()}
                </Badge>
              )}
              {rfqData.currency && rfqData.currency !== "EUR" && (
@@ -192,31 +182,31 @@ export default function RFQDetailPage() {
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleGeneratePDF} disabled={generatingPDF}>
             {generatingPDF ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
-            Exportar PDF
+            {t("exportPDF")}
           </Button>
           {canSend && (
             <Button onClick={handleSend} disabled={sendRFQ.isPending}>
               {sendRFQ.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-              Enviar RFQ
+              {t("sendRFQ")}
             </Button>
           )}
           {canAddQuotes && (
             <>
               <Button onClick={() => setShowQuoteSheet(true)}>
-                <Plus className="mr-2 h-4 w-4" /> Registar Cotação (Tabela)
+                <Plus className="mr-2 h-4 w-4" /> {t("registerQuoteTable")}
               </Button>
               <Button variant="secondary" onClick={() => setShowQuoteImport(true)}>
-                <Upload className="mr-2 h-4 w-4" /> Importar Cotação (PDF/OCR)
+                <Upload className="mr-2 h-4 w-4" /> {t("importQuoteOCR")}
               </Button>
               <Button variant="outline" onClick={() => setShowQuoteModal(true)}>
-                <Plus className="mr-2 h-4 w-4" /> Cotação Individual
+                <Plus className="mr-2 h-4 w-4" /> {t("individualQuote")}
               </Button>
             </>
           )}
           {canAward && selectedQuoteIds.length > 0 && (
-            <Button onClick={handleAward} disabled={awardRFQ.isPending} className="bg-green-600 hover:bg-green-700">
+            <Button onClick={handleAward} disabled={awardRFQ.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">
               {awardRFQ.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trophy className="mr-2 h-4 w-4" />}
-              Adjudicar e Gerar PO ({selectedQuoteIds.length})
+              {t("awardAndGeneratePOCount", { count: selectedQuoteIds.length })}
             </Button>
           )}
         </div>
@@ -226,12 +216,11 @@ export default function RFQDetailPage() {
       <Card>
          <CardContent className="pt-6">
            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-             {/* Project & Proposal */}
              {projectData?.name && (
                <div className="flex items-start gap-2">
                  <FolderOpen className="h-4 w-4 text-muted-foreground mt-0.5" />
                  <div>
-                   <p className="text-xs text-muted-foreground">Projeto</p>
+                   <p className="text-xs text-muted-foreground">{t("project")}</p>
                    <p className="text-sm font-medium">{projectData.name}</p>
                  </div>
                </div>
@@ -240,7 +229,7 @@ export default function RFQDetailPage() {
                <div className="flex items-start gap-2">
                  <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
                  <div>
-                   <p className="text-xs text-muted-foreground">Proposta</p>
+                   <p className="text-xs text-muted-foreground">{t("proposalLabel")}</p>
                    <p className="text-sm font-medium">{projectData.source_id}</p>
                  </div>
                </div>
@@ -249,9 +238,9 @@ export default function RFQDetailPage() {
                <div className="flex items-start gap-2">
                  <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
                  <div>
-                   <p className="text-xs text-muted-foreground">Empresa</p>
+                   <p className="text-xs text-muted-foreground">{t("companyLabel")}</p>
                    <p className="text-sm font-medium">{wsData.company_name}</p>
-                   {wsData.tax_id && <p className="text-xs text-muted-foreground">NIF: {wsData.tax_id}</p>}
+                   {wsData.tax_id && <p className="text-xs text-muted-foreground">{t("nif")}: {wsData.tax_id}</p>}
                  </div>
                </div>
              )}
@@ -259,22 +248,21 @@ export default function RFQDetailPage() {
                <div className="flex items-start gap-2">
                  <Globe className="h-4 w-4 text-muted-foreground mt-0.5" />
                  <div>
-                   <p className="text-xs text-muted-foreground">Comprador</p>
+                   <p className="text-xs text-muted-foreground">{t("buyerLabel")}</p>
                    {rfqData.buyer_name && <p className="text-sm font-medium">{rfqData.buyer_name}</p>}
                    {rfqData.buyer_email && <p className="text-xs text-muted-foreground">{rfqData.buyer_email}</p>}
                  </div>
                </div>
              )}
-             {/* Due Date - editable in draft */}
              <div className="flex items-start gap-2">
                <CalendarIcon className="h-4 w-4 text-muted-foreground mt-0.5" />
                <div>
-                 <p className="text-xs text-muted-foreground">Data Limite</p>
+                 <p className="text-xs text-muted-foreground">{t("deadline")}</p>
                   {isEditable ? (
                    <Popover>
                      <PopoverTrigger asChild>
                        <Button variant="ghost" size="sm" className={cn("h-auto p-0 text-sm font-medium hover:underline", !rfq.due_date && "text-muted-foreground")}>
-                         {rfq.due_date ? new Date(rfq.due_date).toLocaleDateString("pt-PT") : "Definir..."}
+                         {rfq.due_date ? new Date(rfq.due_date).toLocaleDateString() : t("setDeadline")}
                          <Pencil className="ml-1 h-3 w-3" />
                        </Button>
                      </PopoverTrigger>
@@ -290,15 +278,14 @@ export default function RFQDetailPage() {
                      </PopoverContent>
                    </Popover>
                  ) : (
-                   <p className="text-sm font-medium">{rfq.due_date ? new Date(rfq.due_date).toLocaleDateString("pt-PT") : "—"}</p>
+                   <p className="text-sm font-medium">{rfq.due_date ? new Date(rfq.due_date).toLocaleDateString() : "—"}</p>
                  )}
                </div>
              </div>
-             {/* Payment Terms - editable in draft */}
              <div className="flex items-start gap-2">
                <CreditCard className="h-4 w-4 text-muted-foreground mt-0.5" />
                <div>
-                 <p className="text-xs text-muted-foreground">Cond. Pagamento</p>
+                 <p className="text-xs text-muted-foreground">{t("paymentTerms")}</p>
                   {isEditable ? (
                    <Input
                      className="h-7 text-sm w-32"
@@ -310,11 +297,10 @@ export default function RFQDetailPage() {
                  )}
                </div>
              </div>
-             {/* Delivery Location - editable in draft */}
              <div className="flex items-start gap-2">
                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                <div>
-                 <p className="text-xs text-muted-foreground">Local Entrega</p>
+                 <p className="text-xs text-muted-foreground">{t("deliveryLocation")}</p>
                   {isEditable ? (
                    <Input
                      className="h-7 text-sm w-32"
@@ -326,11 +312,10 @@ export default function RFQDetailPage() {
                  )}
                </div>
              </div>
-             {/* Incoterm - editable in draft */}
              <div className="flex items-start gap-2">
                <Globe className="h-4 w-4 text-muted-foreground mt-0.5" />
                <div>
-                 <p className="text-xs text-muted-foreground">Incoterm</p>
+                 <p className="text-xs text-muted-foreground">{t("incoterm")}</p>
                   {isEditable ? (
                    <Input
                      className="h-7 text-sm w-24"
@@ -342,11 +327,10 @@ export default function RFQDetailPage() {
                  )}
                </div>
              </div>
-             {/* Quote Validity - editable in draft */}
              <div className="flex items-start gap-2">
                <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
                <div>
-                 <p className="text-xs text-muted-foreground">Validade Proposta</p>
+                 <p className="text-xs text-muted-foreground">{t("quoteValidity")}</p>
                   {isEditable ? (
                    <div className="flex items-center gap-1">
                      <Input
@@ -355,18 +339,17 @@ export default function RFQDetailPage() {
                        defaultValue={rfqData.quote_validity_days || ""}
                        onBlur={(e) => { const v = Number(e.target.value); if (v !== (rfqData.quote_validity_days || 0)) handleInlineUpdate("quote_validity_days", v || null); }}
                      />
-                     <span className="text-xs text-muted-foreground">dias</span>
+                     <span className="text-xs text-muted-foreground">{t("days")}</span>
                    </div>
                  ) : (
-                   <p className="text-sm font-medium">{rfqData.quote_validity_days ? `${rfqData.quote_validity_days} dias` : "—"}</p>
+                   <p className="text-sm font-medium">{rfqData.quote_validity_days ? `${rfqData.quote_validity_days} ${t("days")}` : "—"}</p>
                  )}
                </div>
              </div>
-             {/* Currency */}
              <div className="flex items-start gap-2">
                <Globe className="h-4 w-4 text-muted-foreground mt-0.5" />
                <div>
-                 <p className="text-xs text-muted-foreground">Moeda</p>
+                 <p className="text-xs text-muted-foreground">{t("currency")}</p>
                  {isEditable ? (
                    <Input
                      className="h-7 text-sm w-16"
@@ -385,25 +368,25 @@ export default function RFQDetailPage() {
       {/* Suppliers */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Fornecedores Convidados</CardTitle>
+          <CardTitle>{t("invitedSuppliers")}</CardTitle>
           {!["awarded", "closed"].includes(rfq.status) && hasEditPermission && (
             <Button variant="outline" size="sm" onClick={() => { setSelectedSupplierId(""); setShowAddSupplierModal(true); }}>
-              <Plus className="mr-2 h-4 w-4" /> Adicionar Fornecedor
+              <Plus className="mr-2 h-4 w-4" /> {t("addSupplier")}
             </Button>
           )}
         </CardHeader>
         <CardContent>
           {suppliers.length === 0 ? (
-            <div className="text-center py-4 text-muted-foreground">Nenhum fornecedor adicionado.</div>
+            <div className="text-center py-4 text-muted-foreground">{t("noSuppliersAdded")}</div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Fornecedor</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Enviado em</TableHead>
-                  <TableHead>Respondido em</TableHead>
+                  <TableHead>{t("supplier")}</TableHead>
+                  <TableHead>{t("email")}</TableHead>
+                  <TableHead>{t("status")}</TableHead>
+                  <TableHead>{t("sentAt")}</TableHead>
+                  <TableHead>{t("respondedAt")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -411,12 +394,12 @@ export default function RFQDetailPage() {
                   <TableRow key={s.id}>
                     <TableCell className="font-medium">{s.suppliers?.name || "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{s.suppliers?.email || "—"}</TableCell>
-                    <TableCell><Badge variant="secondary">{s.status}</Badge></TableCell>
+                    <TableCell><ProcurementStatusBadge status={s.status} /></TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {s.sent_at ? new Date(s.sent_at).toLocaleDateString("pt-PT") : "—"}
+                      {s.sent_at ? new Date(s.sent_at).toLocaleDateString() : "—"}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {s.responded_at ? new Date(s.responded_at).toLocaleDateString("pt-PT") : "—"}
+                      {s.responded_at ? new Date(s.responded_at).toLocaleDateString() : "—"}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -428,20 +411,20 @@ export default function RFQDetailPage() {
 
       {/* Items */}
       <Card>
-        <CardHeader><CardTitle>Itens do RFQ</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t("rfqItems")}</CardTitle></CardHeader>
         <CardContent>
           {items.length === 0 ? (
-            <div className="text-center py-4 text-muted-foreground">Nenhum item neste RFQ.</div>
+            <div className="text-center py-4 text-muted-foreground">{t("noItemsInRFQ")}</div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">#</TableHead>
-                  <TableHead>Produto</TableHead>
-                  <TableHead>SKU</TableHead>
-                  <TableHead className="text-right">Quantidade</TableHead>
-                  <TableHead>Unidade</TableHead>
-                  <TableHead>Notas</TableHead>
+                  <TableHead>{t("product")}</TableHead>
+                  <TableHead>{t("sku")}</TableHead>
+                  <TableHead className="text-right">{t("quantity")}</TableHead>
+                  <TableHead>{t("unit")}</TableHead>
+                  <TableHead>{t("specNotes")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -461,12 +444,12 @@ export default function RFQDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Tabs: Comparison, Analysis, Audit */}
+      {/* Tabs */}
       <Tabs defaultValue={quotes.length > 0 ? "analysis" : "comparison"} className="w-full">
         <TabsList>
-          <TabsTrigger value="comparison">Cotações</TabsTrigger>
-          <TabsTrigger value="analysis">Análise & Sugestão</TabsTrigger>
-          <TabsTrigger value="audit">Histórico</TabsTrigger>
+          <TabsTrigger value="comparison">{t("quotesTab")}</TabsTrigger>
+          <TabsTrigger value="analysis">{t("analysisTab")}</TabsTrigger>
+          <TabsTrigger value="audit">{t("historyTab")}</TabsTrigger>
         </TabsList>
         <TabsContent value="comparison" className="mt-4">
           <RFQComparisonDashboard
@@ -486,29 +469,29 @@ export default function RFQDetailPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Generated POs Section */}
+      {/* Generated POs */}
       {rfq.status === "awarded" && <GeneratedPOsCard rfqId={rfq.id} />}
 
       {/* Add Quote Modal */}
       <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Registar Cotação</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("registerQuoteTitle")}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label>Item</Label>
+              <Label>{t("item")}</Label>
               <Select value={quoteForm.rfq_item_id} onValueChange={v => setQuoteForm(p => ({ ...p, rfq_item_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecionar item" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("selectItem")} /></SelectTrigger>
                 <SelectContent>
                   {items.map((item: any) => (
-                    <SelectItem key={item.id} value={item.id}>{item.products?.name || "Produto"} {item.products?.sku ? `[${item.products.sku}]` : ""} (Qtd: {item.qty})</SelectItem>
+                    <SelectItem key={item.id} value={item.id}>{item.products?.name || t("product")} {item.products?.sku ? `[${item.products.sku}]` : ""} ({t("quantity")}: {item.qty})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Fornecedor</Label>
+              <Label>{t("supplier")}</Label>
               <Select value={quoteForm.supplier_id} onValueChange={v => setQuoteForm(p => ({ ...p, supplier_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecionar fornecedor" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("selectSupplier")} /></SelectTrigger>
                 <SelectContent>
                   {suppliers.map((s: any) => (
                     <SelectItem key={s.id} value={s.supplier_id}>{s.suppliers?.name || s.supplier_id}</SelectItem>
@@ -517,67 +500,52 @@ export default function RFQDetailPage() {
               </Select>
             </div>
             <div>
-              <Label>Preço Unitário (€)</Label>
+              <Label>{t("unitPriceEur")}</Label>
               <Input type="number" step="0.01" value={quoteForm.unit_price} onChange={e => setQuoteForm(p => ({ ...p, unit_price: e.target.value }))} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Desconto %</Label>
+                <Label>{t("discountPercent")}</Label>
                 <Input type="number" step="0.1" value={quoteForm.discount_percent} onChange={e => setQuoteForm(p => ({ ...p, discount_percent: e.target.value }))} />
               </div>
               <div>
-                <Label>IVA %</Label>
+                <Label>{t("vatPercent")}</Label>
                 <Input type="number" step="1" value={quoteForm.vat_percent} onChange={e => setQuoteForm(p => ({ ...p, vat_percent: e.target.value }))} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Lead Time (dias)</Label>
+                <Label>{t("leadTimeDays")}</Label>
                 <Input type="number" value={quoteForm.lead_time_days} onChange={e => setQuoteForm(p => ({ ...p, lead_time_days: e.target.value }))} />
               </div>
               <div>
-                <Label>MOQ</Label>
+                <Label>{t("moq")}</Label>
                 <Input type="number" value={quoteForm.min_order_qty} onChange={e => setQuoteForm(p => ({ ...p, min_order_qty: e.target.value }))} />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowQuoteModal(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setShowQuoteModal(false)}>{t("cancel")}</Button>
             <Button onClick={handleAddQuote} disabled={!quoteForm.rfq_item_id || !quoteForm.supplier_id || !quoteForm.unit_price || addQuote.isPending}>
               {addQuote.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Guardar
+              {t("save")}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Quote Sheet Dialog */}
-      <RFQQuoteSheetDialog
-        open={showQuoteSheet}
-        onOpenChange={setShowQuoteSheet}
-        rfqId={rfq.id}
-        suppliers={suppliers}
-      />
-
-      {/* Quote Import Wizard */}
-      <RFQQuoteImportWizard
-        open={showQuoteImport}
-        onOpenChange={setShowQuoteImport}
-        rfqId={rfq.id}
-        workspaceId={currentWorkspace?.id || ""}
-        suppliers={suppliers}
-        rfqItems={items}
-      />
+      <RFQQuoteSheetDialog open={showQuoteSheet} onOpenChange={setShowQuoteSheet} rfqId={rfq.id} suppliers={suppliers} />
+      <RFQQuoteImportWizard open={showQuoteImport} onOpenChange={setShowQuoteImport} rfqId={rfq.id} workspaceId={currentWorkspace?.id || ""} suppliers={suppliers} rfqItems={items} />
 
       {/* Add Supplier Modal */}
       <Dialog open={showAddSupplierModal} onOpenChange={setShowAddSupplierModal}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Adicionar Fornecedor ao RFQ</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("addSupplierToRFQ")}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label>Fornecedor</Label>
+              <Label>{t("supplier")}</Label>
               <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
-                <SelectTrigger><SelectValue placeholder="Selecionar fornecedor" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("selectSupplier")} /></SelectTrigger>
                 <SelectContent>
                   {allSuppliers
                     .filter((s: any) => !suppliers.some((rs: any) => rs.supplier_id === s.id))
@@ -589,7 +557,7 @@ export default function RFQDetailPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddSupplierModal(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setShowAddSupplierModal(false)}>{t("cancel")}</Button>
             <Button
               disabled={!selectedSupplierId || addSupplier.isPending}
               onClick={async () => {
@@ -599,7 +567,7 @@ export default function RFQDetailPage() {
               }}
             >
               {addSupplier.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Adicionar
+              {t("add")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -611,6 +579,7 @@ export default function RFQDetailPage() {
 
 function GeneratedPOsCard({ rfqId }: { rfqId: string }) {
   const navigate = useNavigate();
+  const { t } = useTranslation("procurement");
   const { data: pos = [], isLoading } = useQuery({
     queryKey: ["rfq-generated-pos", rfqId],
     queryFn: async () => {
@@ -627,25 +596,20 @@ function GeneratedPOsCard({ rfqId }: { rfqId: string }) {
 
   if (isLoading || pos.length === 0) return null;
 
-  const statusColors: Record<string, string> = {
-    draft: "secondary", sent: "outline", confirmed: "default",
-    partial: "outline", received: "default", closed: "secondary", cancelled: "destructive",
-  };
-
   return (
     <Card>
       <CardHeader className="flex flex-row items-center gap-2">
         <Trophy className="h-5 w-5 text-amber-500" />
-        <CardTitle>Ordens de Compra Geradas</CardTitle>
+        <CardTitle>{t("generatedPOs")}</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nº PO</TableHead>
-              <TableHead>Fornecedor</TableHead>
-              <TableHead>Valor</TableHead>
-              <TableHead>Estado</TableHead>
+              <TableHead>{t("poNumber")}</TableHead>
+              <TableHead>{t("supplier")}</TableHead>
+              <TableHead>{t("value")}</TableHead>
+              <TableHead>{t("status")}</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
@@ -656,11 +620,11 @@ function GeneratedPOsCard({ rfqId }: { rfqId: string }) {
                 <TableCell>{po.supplier?.name || "—"}</TableCell>
                 <TableCell>€{(Number(po.total_amount) || 0).toFixed(2)}</TableCell>
                 <TableCell>
-                  <Badge variant={statusColors[po.status] as any}>{po.status}</Badge>
+                  <ProcurementStatusBadge status={po.status} />
                 </TableCell>
                 <TableCell>
                   <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/procurement/orders")}>
-                    Ver
+                    {t("view")}
                   </Button>
                 </TableCell>
               </TableRow>

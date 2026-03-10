@@ -20,6 +20,7 @@ const STATUS_CONFIG: Record<string, { variant: "default" | "secondary" | "outlin
   confirmed: { variant: "default", className: "bg-blue-600/15 text-blue-700 dark:text-blue-400 border-blue-600/20" },
   partial: { variant: "outline", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20" },
   received: { variant: "default", className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20" },
+  awaiting_receipt: { variant: "outline", className: "bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/20" },
   closed: { variant: "secondary" },
   cancelled: { variant: "destructive" },
   
@@ -42,6 +43,10 @@ const STATUS_CONFIG: Record<string, { variant: "default" | "secondary" | "outlin
   receiving_quotes: { variant: "outline", className: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20" },
   evaluated: { variant: "default", className: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/20" },
   awarded: { variant: "default", className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20" },
+
+  // RFQ Supplier statuses
+  invited: { variant: "outline" },
+  responded: { variant: "default", className: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20" },
 };
 
 interface ProcurementStatusBadgeProps {
