@@ -361,7 +361,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
             {/* Footer: Settings */}
             <div className="px-3 py-2 border-t border-white/5">
-              {renderLink(NAV_V2_FOOTER)}
+              {renderLink(navFooter)}
             </div>
 
             {/* Role badge */}
