@@ -259,5 +259,23 @@
   "technicalResponsible": "Técnico Responsável",
   "signatureOwner": "Proprietário",
   "signatureInstaller": "Instalador",
-  "equipmentInstalled": "Equipamentos Instalados"
+  "equipmentInstalled": "Equipamentos Instalados",
+
+  "clients": "Clientes",
+  "newClient": "Novo Cliente",
+  "clientName": "Nome / Designação",
+  "clientNamePlaceholder": "Ex: Condomínio Pérola, Empresa ABC Lda.",
+  "nif": "NIF / NIPC",
+  "tradeName": "Designação Comercial",
+  "fiscalAddress": "Morada Fiscal",
+  "contactInfo": "Informação de Contacto",
+  "contactPersonName": "Pessoa de Contacto",
+  "contactPersonPhone": "Telefone do Contacto",
+  "noClients": "Sem clientes registados",
+  "noClientsDesc": "Crie o primeiro cliente para associar a locais de instalação e contratos.",
+  "noSitesForClient": "Nenhum local de instalação associado a este cliente.",
+  "noContractsForClient": "Nenhum contrato associado a este cliente.",
+  "clientStatusActive": "Ativo",
+  "clientStatusInactive": "Inativo",
+  "clientStatusProspect": "Prospeto"
 }
