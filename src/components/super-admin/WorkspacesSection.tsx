@@ -110,6 +110,7 @@ interface WorkspaceDetails {
     billing_country?: string;
   };
   onboarding?: OnboardingData;
+  credit_balance?: number;
 }
 
 export function WorkspacesSection() {
