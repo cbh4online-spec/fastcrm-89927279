@@ -204,7 +204,7 @@ export function CreateProposalDialog({
             title: result.offer.title,
             description: result.offer.description,
             price: selectedOpportunity?.value 
-              ? new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(selectedOpportunity.value)
+              ? new Intl.NumberFormat("pt-PT", { style: "currency", currency: workspaceCurrency }).format(selectedOpportunity.value)
               : "{{opportunity.value}}",
             features: result.offer.features,
           },
