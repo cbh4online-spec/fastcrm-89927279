@@ -1467,6 +1467,56 @@ export type Database = {
           },
         ]
       }
+      ai_funnel_sessions: {
+        Row: {
+          ai_recommendation_json: Json | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          mode: string
+          parsed_brief_json: Json | null
+          selected_configuration_json: Json | null
+          status: string
+          updated_at: string | null
+          user_prompt: string | null
+          workspace_id: string
+        }
+        Insert: {
+          ai_recommendation_json?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          mode?: string
+          parsed_brief_json?: Json | null
+          selected_configuration_json?: Json | null
+          status?: string
+          updated_at?: string | null
+          user_prompt?: string | null
+          workspace_id: string
+        }
+        Update: {
+          ai_recommendation_json?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          mode?: string
+          parsed_brief_json?: Json | null
+          selected_configuration_json?: Json | null
+          status?: string
+          updated_at?: string | null
+          user_prompt?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_funnel_sessions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_memory_access_log: {
         Row: {
           access_type: string
@@ -5995,6 +6045,99 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      capture_assets: {
+        Row: {
+          asset_type: string
+          calendar_id: string | null
+          capture_type_id: string | null
+          checkout_id: string | null
+          consent_schema: Json | null
+          created_at: string | null
+          fields_schema: Json | null
+          form_id: string | null
+          id: string
+          quiz_id: string | null
+          updated_at: string | null
+          validation_schema: Json | null
+          whatsapp_config_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          asset_type?: string
+          calendar_id?: string | null
+          capture_type_id?: string | null
+          checkout_id?: string | null
+          consent_schema?: Json | null
+          created_at?: string | null
+          fields_schema?: Json | null
+          form_id?: string | null
+          id?: string
+          quiz_id?: string | null
+          updated_at?: string | null
+          validation_schema?: Json | null
+          whatsapp_config_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          asset_type?: string
+          calendar_id?: string | null
+          capture_type_id?: string | null
+          checkout_id?: string | null
+          consent_schema?: Json | null
+          created_at?: string | null
+          fields_schema?: Json | null
+          form_id?: string | null
+          id?: string
+          quiz_id?: string | null
+          updated_at?: string | null
+          validation_schema?: Json | null
+          whatsapp_config_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capture_assets_capture_type_id_fkey"
+            columns: ["capture_type_id"]
+            isOneToOne: false
+            referencedRelation: "capture_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capture_assets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      capture_types: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          key: string
+          label: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          key: string
+          label: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          key?: string
+          label?: string
+        }
+        Relationships: []
       }
       challenge_participants: {
         Row: {
@@ -12213,6 +12356,59 @@ export type Database = {
           },
         ]
       }
+      custom_domains: {
+        Row: {
+          created_at: string | null
+          dns_instructions_json: Json | null
+          domain: string
+          id: string
+          is_primary: boolean | null
+          provider: string | null
+          root_domain: string | null
+          ssl_status: string
+          subdomain: string | null
+          updated_at: string | null
+          verification_status: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          dns_instructions_json?: Json | null
+          domain: string
+          id?: string
+          is_primary?: boolean | null
+          provider?: string | null
+          root_domain?: string | null
+          ssl_status?: string
+          subdomain?: string | null
+          updated_at?: string | null
+          verification_status?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          dns_instructions_json?: Json | null
+          domain?: string
+          id?: string
+          is_primary?: boolean | null
+          provider?: string | null
+          root_domain?: string | null
+          ssl_status?: string
+          subdomain?: string | null
+          updated_at?: string | null
+          verification_status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_domains_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_field_audit_logs: {
         Row: {
           action: string
@@ -15901,6 +16097,298 @@ export type Database = {
           },
         ]
       }
+      funnel_automation_bindings: {
+        Row: {
+          automation_id: string | null
+          channel: string | null
+          config_json: Json | null
+          created_at: string | null
+          delay_minutes: number | null
+          funnel_instance_id: string
+          id: string
+          is_active: boolean | null
+          trigger_event: string
+          updated_at: string | null
+        }
+        Insert: {
+          automation_id?: string | null
+          channel?: string | null
+          config_json?: Json | null
+          created_at?: string | null
+          delay_minutes?: number | null
+          funnel_instance_id: string
+          id?: string
+          is_active?: boolean | null
+          trigger_event: string
+          updated_at?: string | null
+        }
+        Update: {
+          automation_id?: string | null
+          channel?: string | null
+          config_json?: Json | null
+          created_at?: string | null
+          delay_minutes?: number | null
+          funnel_instance_id?: string
+          id?: string
+          is_active?: boolean | null
+          trigger_event?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_automation_bindings_funnel_instance_id_fkey"
+            columns: ["funnel_instance_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funnel_domain_bindings: {
+        Row: {
+          canonical_url: string | null
+          created_at: string | null
+          custom_domain_id: string
+          funnel_instance_id: string
+          id: string
+          is_primary: boolean | null
+          path: string | null
+          redirect_www_mode: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          canonical_url?: string | null
+          created_at?: string | null
+          custom_domain_id: string
+          funnel_instance_id: string
+          id?: string
+          is_primary?: boolean | null
+          path?: string | null
+          redirect_www_mode?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          canonical_url?: string | null
+          created_at?: string | null
+          custom_domain_id?: string
+          funnel_instance_id?: string
+          id?: string
+          is_primary?: boolean | null
+          path?: string | null
+          redirect_www_mode?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_domain_bindings_custom_domain_id_fkey"
+            columns: ["custom_domain_id"]
+            isOneToOne: false
+            referencedRelation: "custom_domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_domain_bindings_funnel_instance_id_fkey"
+            columns: ["funnel_instance_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funnel_instance_events: {
+        Row: {
+          contact_id: string | null
+          event_name: string
+          funnel_instance_id: string
+          id: string
+          metadata_json: Json | null
+          occurred_at: string | null
+          session_id: string | null
+          source: string | null
+          value: number | null
+        }
+        Insert: {
+          contact_id?: string | null
+          event_name: string
+          funnel_instance_id: string
+          id?: string
+          metadata_json?: Json | null
+          occurred_at?: string | null
+          session_id?: string | null
+          source?: string | null
+          value?: number | null
+        }
+        Update: {
+          contact_id?: string | null
+          event_name?: string
+          funnel_instance_id?: string
+          id?: string
+          metadata_json?: Json | null
+          occurred_at?: string | null
+          session_id?: string | null
+          source?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_instance_events_funnel_instance_id_fkey"
+            columns: ["funnel_instance_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funnel_instance_steps: {
+        Row: {
+          action_schema: Json | null
+          created_at: string | null
+          funnel_instance_id: string
+          id: string
+          name: string | null
+          page_id: string | null
+          step_order: number
+          step_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          action_schema?: Json | null
+          created_at?: string | null
+          funnel_instance_id: string
+          id?: string
+          name?: string | null
+          page_id?: string | null
+          step_order?: number
+          step_type?: string
+          updated_at?: string | null
+        }
+        Update: {
+          action_schema?: Json | null
+          created_at?: string | null
+          funnel_instance_id?: string
+          id?: string
+          name?: string | null
+          page_id?: string | null
+          step_order?: number
+          step_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_instance_steps_funnel_instance_id_fkey"
+            columns: ["funnel_instance_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funnel_instances: {
+        Row: {
+          capture_type_id: string | null
+          created_at: string | null
+          created_by: string | null
+          funnel_template_id: string | null
+          id: string
+          name: string
+          objective: string | null
+          page_template_id: string | null
+          path: string | null
+          preview_url: string | null
+          primary_domain_id: string | null
+          public_url: string | null
+          published_at: string | null
+          slug: string | null
+          status: string
+          updated_at: string | null
+          vertical_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          capture_type_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          funnel_template_id?: string | null
+          id?: string
+          name: string
+          objective?: string | null
+          page_template_id?: string | null
+          path?: string | null
+          preview_url?: string | null
+          primary_domain_id?: string | null
+          public_url?: string | null
+          published_at?: string | null
+          slug?: string | null
+          status?: string
+          updated_at?: string | null
+          vertical_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          capture_type_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          funnel_template_id?: string | null
+          id?: string
+          name?: string
+          objective?: string | null
+          page_template_id?: string | null
+          path?: string | null
+          preview_url?: string | null
+          primary_domain_id?: string | null
+          public_url?: string | null
+          published_at?: string | null
+          slug?: string | null
+          status?: string
+          updated_at?: string | null
+          vertical_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_instances_capture_type_id_fkey"
+            columns: ["capture_type_id"]
+            isOneToOne: false
+            referencedRelation: "capture_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_instances_funnel_template_id_fkey"
+            columns: ["funnel_template_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_instances_page_template_id_fkey"
+            columns: ["page_template_id"]
+            isOneToOne: false
+            referencedRelation: "page_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_instances_primary_domain_fkey"
+            columns: ["primary_domain_id"]
+            isOneToOne: false
+            referencedRelation: "custom_domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_instances_vertical_id_fkey"
+            columns: ["vertical_id"]
+            isOneToOne: false
+            referencedRelation: "verticals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_instances_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funnel_products: {
         Row: {
           created_at: string
@@ -15942,6 +16430,122 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funnel_revenue_events: {
+        Row: {
+          amount: number
+          contact_id: string | null
+          currency: string | null
+          funnel_instance_id: string
+          id: string
+          metadata_json: Json | null
+          occurred_at: string | null
+          revenue_type: string
+          source_event_id: string | null
+        }
+        Insert: {
+          amount?: number
+          contact_id?: string | null
+          currency?: string | null
+          funnel_instance_id: string
+          id?: string
+          metadata_json?: Json | null
+          occurred_at?: string | null
+          revenue_type?: string
+          source_event_id?: string | null
+        }
+        Update: {
+          amount?: number
+          contact_id?: string | null
+          currency?: string | null
+          funnel_instance_id?: string
+          id?: string
+          metadata_json?: Json | null
+          occurred_at?: string | null
+          revenue_type?: string
+          source_event_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_revenue_events_funnel_instance_id_fkey"
+            columns: ["funnel_instance_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_revenue_events_source_event_id_fkey"
+            columns: ["source_event_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_instance_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funnel_routing_rules: {
+        Row: {
+          conditions_json: Json | null
+          created_at: string | null
+          fallback_json: Json | null
+          funnel_instance_id: string
+          id: string
+          owner_id: string | null
+          pipeline_id: string | null
+          priority: number | null
+          round_robin: boolean | null
+          score_rules_json: Json | null
+          sla_minutes: number | null
+          stage_id: string | null
+          tags_json: Json | null
+          team_id: string | null
+          trigger_event: string
+          updated_at: string | null
+        }
+        Insert: {
+          conditions_json?: Json | null
+          created_at?: string | null
+          fallback_json?: Json | null
+          funnel_instance_id: string
+          id?: string
+          owner_id?: string | null
+          pipeline_id?: string | null
+          priority?: number | null
+          round_robin?: boolean | null
+          score_rules_json?: Json | null
+          sla_minutes?: number | null
+          stage_id?: string | null
+          tags_json?: Json | null
+          team_id?: string | null
+          trigger_event: string
+          updated_at?: string | null
+        }
+        Update: {
+          conditions_json?: Json | null
+          created_at?: string | null
+          fallback_json?: Json | null
+          funnel_instance_id?: string
+          id?: string
+          owner_id?: string | null
+          pipeline_id?: string | null
+          priority?: number | null
+          round_robin?: boolean | null
+          score_rules_json?: Json | null
+          sla_minutes?: number | null
+          stage_id?: string | null
+          tags_json?: Json | null
+          team_id?: string | null
+          trigger_event?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_routing_rules_funnel_instance_id_fkey"
+            columns: ["funnel_instance_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_instances"
             referencedColumns: ["id"]
           },
         ]
@@ -16111,6 +16715,89 @@ export type Database = {
           },
           {
             foreignKeyName: "funnel_steps_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funnel_templates: {
+        Row: {
+          capture_type_id: string | null
+          created_at: string | null
+          default_automation_schema: Json | null
+          default_event_schema: Json | null
+          default_kpi_schema: Json | null
+          default_routing_schema: Json | null
+          id: string
+          is_system: boolean | null
+          name: string
+          objective: string | null
+          page_template_id: string | null
+          thank_you_schema: Json | null
+          updated_at: string | null
+          vertical_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          capture_type_id?: string | null
+          created_at?: string | null
+          default_automation_schema?: Json | null
+          default_event_schema?: Json | null
+          default_kpi_schema?: Json | null
+          default_routing_schema?: Json | null
+          id?: string
+          is_system?: boolean | null
+          name: string
+          objective?: string | null
+          page_template_id?: string | null
+          thank_you_schema?: Json | null
+          updated_at?: string | null
+          vertical_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          capture_type_id?: string | null
+          created_at?: string | null
+          default_automation_schema?: Json | null
+          default_event_schema?: Json | null
+          default_kpi_schema?: Json | null
+          default_routing_schema?: Json | null
+          id?: string
+          is_system?: boolean | null
+          name?: string
+          objective?: string | null
+          page_template_id?: string | null
+          thank_you_schema?: Json | null
+          updated_at?: string | null
+          vertical_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_templates_capture_type_id_fkey"
+            columns: ["capture_type_id"]
+            isOneToOne: false
+            referencedRelation: "capture_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_templates_page_template_id_fkey"
+            columns: ["page_template_id"]
+            isOneToOne: false
+            referencedRelation: "page_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_templates_vertical_id_fkey"
+            columns: ["vertical_id"]
+            isOneToOne: false
+            referencedRelation: "verticals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_templates_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -24329,6 +25016,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "order_workflows_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      page_templates: {
+        Row: {
+          appearance_schema: Json | null
+          content_schema: Json | null
+          created_at: string | null
+          id: string
+          is_system: boolean | null
+          layout_schema: Json | null
+          name: string
+          seo_schema: Json | null
+          template_type: string
+          updated_at: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          appearance_schema?: Json | null
+          content_schema?: Json | null
+          created_at?: string | null
+          id?: string
+          is_system?: boolean | null
+          layout_schema?: Json | null
+          name: string
+          seo_schema?: Json | null
+          template_type?: string
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          appearance_schema?: Json | null
+          content_schema?: Json | null
+          created_at?: string | null
+          id?: string
+          is_system?: boolean | null
+          layout_schema?: Json | null
+          name?: string
+          seo_schema?: Json | null
+          template_type?: string
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_templates_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
