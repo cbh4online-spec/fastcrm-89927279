@@ -41,6 +41,14 @@ export function FunnelBuilder({ funnelId, onBack }: FunnelBuilderProps) {
           <h1 className="text-2xl font-bold">{funnel.name}</h1>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(`/funnel/${funnel.slug}?preview=true`, "_blank")}
+          >
+            <Eye className="h-4 w-4 mr-1" />
+            Preview
+          </Button>
           <Button variant="outline" size="icon">
             <Share2 className="h-4 w-4" />
           </Button>

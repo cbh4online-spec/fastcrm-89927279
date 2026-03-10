@@ -740,6 +740,9 @@ const App = () => (
           <GTMProvider containerId="GTM-WLVH4TJJ">
             <MetaPixelLoader />
             <Routes>
+              {/* Public Funnel Pages */}
+              <Route path="/funnel/:slug" element={<PublicFunnelPage />} />
+
               {/* Public Bio Pages */}
               <Route path="/bio/:workspaceSlug/:pageSlug" element={<PublicBioPage />} />
               <Route path="/b/:shortCode" element={<PublicBioShortLink />} />
