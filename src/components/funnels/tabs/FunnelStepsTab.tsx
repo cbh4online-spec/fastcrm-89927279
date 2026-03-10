@@ -41,6 +41,7 @@ interface FunnelStepsTabProps {
 }
 
 export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
+  const { data: funnel } = useFunnel(funnelId);
   const { data: steps = [] } = useFunnelSteps(funnelId);
   const createStep = useCreateFunnelStep();
   const deleteStep = useDeleteFunnelStep();
