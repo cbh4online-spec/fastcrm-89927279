@@ -221,6 +221,7 @@ import SecurityOccurrencesPage from "./pages/security/SecurityOccurrencesPage";
 import SecurityOccurrenceDetailPage from "./pages/security/SecurityOccurrenceDetailPage";
 import SecurityRenewalsPage from "./pages/security/SecurityRenewalsPage";
 import SecurityRenewalDetailPage from "./pages/security/SecurityRenewalDetailPage";
+import SecurityManagementPage from "./pages/security/SecurityManagementPage";
 
 // Procurement
 import ProcurementDashboardPage from "./pages/procurement/ProcurementDashboardPage";
