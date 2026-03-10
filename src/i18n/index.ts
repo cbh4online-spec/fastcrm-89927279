@@ -39,6 +39,7 @@ import enMeetings from './locales/en/meetings.json';
 import enAsk from './locales/en/ask.json';
 import enProcurement from './locales/en/procurement.json';
 import enPerformance from './locales/en/performance.json';
+import enMarketplace from './locales/en/marketplace.json';
 
 // ES
 import esCommon from './locales/es/common.json';
