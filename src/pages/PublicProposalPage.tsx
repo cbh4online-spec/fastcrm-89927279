@@ -181,12 +181,12 @@ export default function PublicProposalPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="p-8 text-center max-w-md">
-          <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Pagamento Confirmado!</h1>
+          <CheckCircle className="h-16 w-16 text-primary mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Proposta Aceite!</h1>
           <p className="text-muted-foreground mb-4">
-            Obrigado por aceitar nossa proposta. Entraremos em contato em breve.
+            Obrigado por aceitar a nossa proposta. Entraremos em contacto brevemente.
           </p>
-          <Badge className="bg-green-500">Proposta Aceita</Badge>
+          <Badge className="bg-primary">Proposta Aceite</Badge>
         </Card>
       </div>
     );
