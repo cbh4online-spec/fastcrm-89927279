@@ -6,6 +6,7 @@ import { useSecurityLeads } from "@/hooks/security/useSecurityLeads";
 import { useSecurityConversions } from "@/hooks/security/useSecurityConversions";
 import { useSecurityProposals } from "@/hooks/security/useSecurityProposals";
 import { SecurityPipelineStepper } from "@/components/security/SecurityPipelineStepper";
+import { SecurityInlineField } from "@/components/security/SecurityInlineField";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,9 +30,6 @@ export default function SecurityLeadDetailPage() {
   const linkedProposals = proposals.filter((p: any) => p.lead_id === id);
   const firstProposal = linkedProposals[0];
 
-  // Find linked contract via proposal
-  const linkedContractId = firstProposal?.id ? undefined : undefined; // Will be fetched from proposal
-
   if (isLoading || !lead) {
     return (
       <DashboardLayout>
@@ -39,6 +37,10 @@ export default function SecurityLeadDetailPage() {
       </DashboardLayout>
     );
   }
+
+  const save = (field: string) => (value: unknown) => {
+    updateLead.mutate({ id: lead.id, [field]: value });
+  };
 
   const canCreateProposal = ["new", "qualifying", "qualified"].includes(lead.status);
   const canMarkLost = !["won", "lost", "archived"].includes(lead.status);
@@ -52,7 +54,6 @@ export default function SecurityLeadDetailPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/security/leads")}>
             <ArrowLeft className="h-5 w-5" />
@@ -70,7 +71,6 @@ export default function SecurityLeadDetailPage() {
           <Badge>{statusLabels[lead.status] || lead.status}</Badge>
         </div>
 
-        {/* Pipeline Stepper */}
         <SecurityPipelineStepper
           currentStage="lead"
           requestId={lead.partner_request_id}
@@ -79,63 +79,49 @@ export default function SecurityLeadDetailPage() {
           isFailed={isFailed}
         />
 
-        {/* Actions */}
         <div className="flex gap-2 flex-wrap">
           {canCreateProposal && (
-            <Button
-              onClick={() => convertLeadToProposal.mutate(lead)}
-              disabled={convertLeadToProposal.isPending}
-              className="gap-2"
-            >
-              <FileText className="h-4 w-4" />
-              Criar Proposta
+            <Button onClick={() => convertLeadToProposal.mutate(lead)} disabled={convertLeadToProposal.isPending} className="gap-2">
+              <FileText className="h-4 w-4" /> Criar Proposta
             </Button>
           )}
           {canMarkLost && (
             <Button variant="outline" onClick={handleMarkLost} disabled={updateLead.isPending} className="gap-2 text-destructive hover:text-destructive">
-              <XCircle className="h-4 w-4" />
-              Marcar como Perdido
+              <XCircle className="h-4 w-4" /> Marcar como Perdido
             </Button>
           )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Lead Info */}
           <Card>
             <CardHeader><CardTitle className="text-base">Informação do Lead</CardTitle></CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <InfoRow label="Cliente" value={lead.client_name} />
-              <InfoRow label="Tipo de Cliente" value={lead.client_type} />
-              <InfoRow label="Morada" value={lead.installation_address} />
-              <InfoRow label="Origem" value={lead.origin} />
-              <InfoRow label="Prioridade" value={lead.priority} />
-              <InfoRow label="Tipo de Sistema" value={lead.system_type} />
-              <InfoRow label="Tipo de Pedido" value={lead.request_type} />
-              {lead.estimated_value && <InfoRow label="Valor Estimado" value={`€${Number(lead.estimated_value).toFixed(2)}`} />}
+            <CardContent className="space-y-1 text-sm">
+              <SecurityInlineField label="Cliente" value={lead.client_name} onSave={save("client_name")} />
+              <SecurityInlineField label="Tipo de Cliente" value={lead.client_type} fieldType="select" options={["particular", "empresa", "condominio"]} onSave={save("client_type")} />
+              <SecurityInlineField label="Morada" value={lead.installation_address} onSave={save("installation_address")} />
+              <SecurityInlineField label="Origem" value={lead.origin} fieldType="select" options={["partner", "direct", "referral", "website", "other"]} onSave={save("origin")} />
+              <SecurityInlineField label="Prioridade" value={lead.priority} fieldType="select" options={["low", "medium", "high", "urgent"]} onSave={save("priority")} />
+              <SecurityInlineField label="Tipo de Sistema" value={lead.system_type} fieldType="select" options={["cctv", "intrusion", "fire", "access_control", "mixed"]} onSave={save("system_type")} />
+              <SecurityInlineField label="Tipo de Pedido" value={lead.request_type} fieldType="select" options={["new_installation", "maintenance", "expansion", "regularization", "other"]} onSave={save("request_type")} />
+              <SecurityInlineField label="Valor Estimado" value={lead.estimated_value} fieldType="currency" onSave={save("estimated_value")} />
               {(lead.security_partners as any)?.name && (
-                <InfoRow label="Parceiro" value={(lead.security_partners as any).name} />
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Notes & Description */}
-          <Card>
-            <CardHeader><CardTitle className="text-base">Descrição da Necessidade</CardTitle></CardHeader>
-            <CardContent>
-              <p className="text-sm whitespace-pre-wrap text-muted-foreground">
-                {lead.need_description || "Sem descrição"}
-              </p>
-              {lead.notes && (
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-xs font-medium mb-1">Notas</p>
-                  <p className="text-sm text-muted-foreground">{lead.notes}</p>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Parceiro</span>
+                  <span className="font-medium">{(lead.security_partners as any).name}</span>
                 </div>
               )}
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader><CardTitle className="text-base">Descrição da Necessidade</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              <SecurityInlineField label="Descrição" value={lead.need_description} onSave={save("need_description")} placeholder="Sem descrição" />
+              <SecurityInlineField label="Notas" value={lead.notes} onSave={save("notes")} placeholder="Sem notas" />
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Linked Proposals */}
         {linkedProposals.length > 0 && (
           <Card>
             <CardHeader><CardTitle className="text-base">Propostas Associadas</CardTitle></CardHeader>
@@ -163,15 +149,5 @@ export default function SecurityLeadDetailPage() {
         )}
       </div>
     </DashboardLayout>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value?: string | null }) {
-  if (!value) return null;
-  return (
-    <div className="flex justify-between">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium capitalize">{value}</span>
-    </div>
   );
 }

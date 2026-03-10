@@ -2,10 +2,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useTranslation } from "react-i18next";
 import { useSecuritySite } from "@/hooks/security/useSecuritySites";
+import { useSecuritySites } from "@/hooks/security/useSecuritySites";
+import { SecurityInlineField } from "@/components/security/SecurityInlineField";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Building2, MapPin, User, Phone, Mail, Camera } from "lucide-react";
+import { ArrowLeft, Building2, MapPin, User, Camera } from "lucide-react";
 import { SecurityQRCode } from "@/components/security/SecurityQRCode";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,8 +17,8 @@ export default function SecuritySiteDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: site, isLoading } = useSecuritySite(id);
+  const { updateSite } = useSecuritySites();
 
-  // Fetch systems at this site
   const { data: systems = [] } = useQuery({
     queryKey: ["site-systems", id],
     queryFn: async () => {
@@ -33,6 +35,10 @@ export default function SecuritySiteDetailPage() {
 
   if (isLoading) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">A carregar...</div></DashboardLayout>;
   if (!site) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">Local não encontrado.</div></DashboardLayout>;
+
+  const save = (field: string) => (value: unknown) => {
+    updateSite.mutate({ id: site.id, [field]: value });
+  };
 
   return (
     <DashboardLayout>
@@ -56,11 +62,14 @@ export default function SecuritySiteDetailPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-1 text-sm">
-                  <p>{site.address_line_1}</p>
-                  {site.address_line_2 && <p>{site.address_line_2}</p>}
-                  <p>{[site.postal_code, site.locality].filter(Boolean).join(" ")}</p>
-                  <p>{[site.county, site.district].filter(Boolean).join(", ")}</p>
-                  <p>{site.country}</p>
+                  <SecurityInlineField label="Nome" value={site.site_name} onSave={save("site_name")} />
+                  <SecurityInlineField label="Morada 1" value={site.address_line_1} onSave={save("address_line_1")} />
+                  <SecurityInlineField label="Morada 2" value={site.address_line_2} onSave={save("address_line_2")} />
+                  <SecurityInlineField label="Código Postal" value={site.postal_code} onSave={save("postal_code")} />
+                  <SecurityInlineField label="Localidade" value={site.locality} onSave={save("locality")} />
+                  <SecurityInlineField label="Concelho" value={site.county} onSave={save("county")} />
+                  <SecurityInlineField label="Distrito" value={site.district} onSave={save("district")} />
+                  <SecurityInlineField label="País" value={site.country} onSave={save("country")} />
                 </CardContent>
               </Card>
 
@@ -70,19 +79,14 @@ export default function SecuritySiteDetailPage() {
                     <User className="h-4 w-4" /> {t("responsiblePerson")}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <p className="font-medium">{site.onsite_responsible_name || "—"}</p>
-                  {site.onsite_responsible_phone && (
-                    <p className="flex items-center gap-2"><Phone className="h-3 w-3" /> {site.onsite_responsible_phone}</p>
-                  )}
-                  {site.onsite_responsible_email && (
-                    <p className="flex items-center gap-2"><Mail className="h-3 w-3" /> {site.onsite_responsible_email}</p>
-                  )}
+                <CardContent className="space-y-1 text-sm">
+                  <SecurityInlineField label="Nome" value={site.onsite_responsible_name} onSave={save("onsite_responsible_name")} />
+                  <SecurityInlineField label="Telefone" value={site.onsite_responsible_phone} onSave={save("onsite_responsible_phone")} />
+                  <SecurityInlineField label="Email" value={site.onsite_responsible_email} fieldType="email" onSave={save("onsite_responsible_email")} />
                 </CardContent>
               </Card>
             </div>
 
-            {/* Systems at this site */}
             {systems.length > 0 && (
               <Card>
                 <CardHeader>
@@ -108,22 +112,21 @@ export default function SecuritySiteDetailPage() {
               </Card>
             )}
 
-            {site.access_notes && (
-              <Card>
-                <CardHeader><CardTitle className="text-base">{t("accessNotes")}</CardTitle></CardHeader>
-                <CardContent className="text-sm">{site.access_notes}</CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardHeader><CardTitle className="text-base">{t("accessNotes")}</CardTitle></CardHeader>
+              <CardContent>
+                <SecurityInlineField label="" value={site.access_notes} onSave={save("access_notes")} placeholder="Sem notas de acesso" />
+              </CardContent>
+            </Card>
 
-            {site.notes && (
-              <Card>
-                <CardHeader><CardTitle className="text-base">{t("notes")}</CardTitle></CardHeader>
-                <CardContent className="text-sm">{site.notes}</CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardHeader><CardTitle className="text-base">{t("notes")}</CardTitle></CardHeader>
+              <CardContent>
+                <SecurityInlineField label="" value={site.notes} onSave={save("notes")} placeholder="Sem notas" />
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Sidebar with QR */}
           <div className="space-y-6">
             <SecurityQRCode
               entityType="site"

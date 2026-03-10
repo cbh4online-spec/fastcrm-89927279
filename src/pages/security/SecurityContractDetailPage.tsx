@@ -6,6 +6,7 @@ import { useSecurityContracts } from "@/hooks/security/useSecurityContracts";
 import { useSecurityConversions } from "@/hooks/security/useSecurityConversions";
 import { useSecurityProposal } from "@/hooks/security/useSecurityProposals";
 import { SecurityPipelineStepper } from "@/components/security/SecurityPipelineStepper";
+import { SecurityInlineField } from "@/components/security/SecurityInlineField";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,8 +30,6 @@ export default function SecurityContractDetailPage() {
   const { data: contract, isLoading } = useSecurityContract(id);
   const { updateContract } = useSecurityContracts();
   const { convertContractToInstallation } = useSecurityConversions();
-
-  // Load linked proposal details
   const { data: linkedProposal } = useSecurityProposal(contract?.proposal_id);
 
   if (isLoading || !contract) {
@@ -41,6 +40,15 @@ export default function SecurityContractDetailPage() {
     );
   }
 
+  const save = (field: string) => (value: unknown) => {
+    updateContract.mutate({ id: contract.id, [field]: value });
+  };
+
+  const saveTerms = (field: string) => (value: unknown) => {
+    const terms = (contract.commercial_terms_json || {}) as any;
+    updateContract.mutate({ id: contract.id, commercial_terms_json: { ...terms, [field]: value } });
+  };
+
   const sys = contract.security_systems as any;
   const site = sys?.security_installation_sites as any;
   const terms = (contract.commercial_terms_json || {}) as any;
@@ -48,23 +56,17 @@ export default function SecurityContractDetailPage() {
   const canActivate = contract.contract_status === "draft";
   const hasSystem = !!contract.system_id;
 
-  // Resolve lead info from proposal
   const leadFromProposal = linkedProposal?.security_leads as any;
   const leadId = contract.lead_id || linkedProposal?.lead_id;
   const requestId = leadFromProposal?.partner_request_id;
 
   const handleActivate = () => {
-    updateContract.mutate({
-      id: contract.id,
-      contract_status: "active",
-      start_date: new Date().toISOString().split("T")[0],
-    });
+    updateContract.mutate({ id: contract.id, contract_status: "active", start_date: new Date().toISOString().split("T")[0] });
   };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/security/contracts")}>
             <ArrowLeft className="h-5 w-5" />
@@ -81,62 +83,35 @@ export default function SecurityContractDetailPage() {
           <Badge>{statusLabels[contract.contract_status] || contract.contract_status}</Badge>
         </div>
 
-        {/* Pipeline Stepper */}
-        <SecurityPipelineStepper
-          currentStage="contract"
-          requestId={requestId}
-          leadId={leadId}
-          proposalId={contract.proposal_id}
-          contractId={id}
-          systemId={contract.system_id}
-        />
+        <SecurityPipelineStepper currentStage="contract" requestId={requestId} leadId={leadId} proposalId={contract.proposal_id} contractId={id} systemId={contract.system_id} />
 
-        {/* Actions */}
         <div className="flex gap-2 flex-wrap">
           {canActivate && (
             <Button onClick={handleActivate} disabled={updateContract.isPending} className="gap-2">
-              <PlayCircle className="h-4 w-4" />
-              Ativar Contrato
+              <PlayCircle className="h-4 w-4" /> Ativar Contrato
             </Button>
           )}
           {canCreateInstallation && (
-            <Button
-              variant={canActivate ? "outline" : "default"}
-              onClick={() => convertContractToInstallation.mutate(contract)}
-              disabled={convertContractToInstallation.isPending}
-              className="gap-2"
-            >
-              <Wrench className="h-4 w-4" />
-              Criar Instalação
+            <Button variant={canActivate ? "outline" : "default"} onClick={() => convertContractToInstallation.mutate(contract)} disabled={convertContractToInstallation.isPending} className="gap-2">
+              <Wrench className="h-4 w-4" /> Criar Instalação
             </Button>
           )}
           {hasSystem && (
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/dashboard/security/systems/${contract.system_id}`)}
-              className="gap-2"
-            >
-              Ver Instalação
-              <ArrowRight className="h-4 w-4" />
+            <Button variant="outline" onClick={() => navigate(`/dashboard/security/systems/${contract.system_id}`)} className="gap-2">
+              Ver Instalação <ArrowRight className="h-4 w-4" />
             </Button>
           )}
         </div>
 
-        {/* Cross-links */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {leadId && (
-            <Card
-              className="cursor-pointer hover:border-primary/50 transition-colors"
-              onClick={() => navigate(`/dashboard/security/leads/${leadId}`)}
-            >
+            <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate(`/dashboard/security/leads/${leadId}`)}>
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Target className="h-5 w-5 text-primary" />
                   <div>
                     <p className="font-medium text-sm">Lead de Origem</p>
-                    <p className="text-xs text-muted-foreground">
-                      {leadFromProposal?.client_name || "Ver lead"}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{leadFromProposal?.client_name || "Ver lead"}</p>
                   </div>
                 </div>
                 <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -144,18 +119,13 @@ export default function SecurityContractDetailPage() {
             </Card>
           )}
           {contract.proposal_id && (
-            <Card
-              className="cursor-pointer hover:border-primary/50 transition-colors"
-              onClick={() => navigate(`/dashboard/security/proposals/${contract.proposal_id}`)}
-            >
+            <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate(`/dashboard/security/proposals/${contract.proposal_id}`)}>
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <CheckCircle className="h-5 w-5 text-emerald-600" />
                   <div>
                     <p className="font-medium text-sm">Proposta Adjudicada</p>
-                    <p className="text-xs text-muted-foreground">
-                      {linkedProposal?.title || linkedProposal?.proposal_number || "Ver proposta"}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{linkedProposal?.title || linkedProposal?.proposal_number || "Ver proposta"}</p>
                   </div>
                 </div>
                 <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -167,33 +137,27 @@ export default function SecurityContractDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader><CardTitle className="text-base">Dados do Contrato</CardTitle></CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <InfoRow label="Tipo" value={typeLabels[contract.contract_type] || contract.contract_type} />
-              <InfoRow label="Estado" value={statusLabels[contract.contract_status] || contract.contract_status} />
-              <InfoRow label="Data de Adjudicação" value={contract.adjudication_date ? format(new Date(contract.adjudication_date), "dd/MM/yyyy") : null} />
-              <InfoRow label="Início" value={contract.start_date ? format(new Date(contract.start_date), "dd/MM/yyyy") : null} />
-              <InfoRow label="Fim" value={contract.end_date ? format(new Date(contract.end_date), "dd/MM/yyyy") : null} />
-              <InfoRow label="Aviso de Renovação" value={contract.renewal_notice_days ? `${contract.renewal_notice_days} dias` : null} />
+            <CardContent className="space-y-1 text-sm">
+              <SecurityInlineField label="Tipo" value={contract.contract_type} fieldType="select" options={["installation", "maintenance", "mixed", "renewal"]} onSave={save("contract_type")} />
+              <SecurityInlineField label="Estado" value={contract.contract_status} fieldType="select" options={["draft", "active", "expired", "suspended", "terminated"]} onSave={save("contract_status")} />
+              <SecurityInlineField label="Data de Adjudicação" value={contract.adjudication_date} fieldType="date" onSave={save("adjudication_date")} />
+              <SecurityInlineField label="Início" value={contract.start_date} fieldType="date" onSave={save("start_date")} />
+              <SecurityInlineField label="Fim" value={contract.end_date} fieldType="date" onSave={save("end_date")} />
+              <SecurityInlineField label="Aviso Renovação (dias)" value={contract.renewal_notice_days} fieldType="number" onSave={save("renewal_notice_days")} />
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader><CardTitle className="text-base">Condições Comerciais</CardTitle></CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              {terms.total_value && <InfoRow label="Valor Total" value={`€${Number(terms.total_value).toFixed(2)}`} />}
-              {terms.equipment_value && <InfoRow label="Equipamento" value={`€${Number(terms.equipment_value).toFixed(2)}`} />}
-              {terms.labor_value && <InfoRow label="Mão de Obra" value={`€${Number(terms.labor_value).toFixed(2)}`} />}
-              {contract.notes && (
-                <div className="pt-3 border-t">
-                  <p className="text-xs font-medium mb-1">Notas</p>
-                  <p className="text-muted-foreground">{contract.notes}</p>
-                </div>
-              )}
+            <CardContent className="space-y-1 text-sm">
+              <SecurityInlineField label="Valor Total" value={terms.total_value} fieldType="currency" onSave={saveTerms("total_value")} />
+              <SecurityInlineField label="Equipamento" value={terms.equipment_value} fieldType="currency" onSave={saveTerms("equipment_value")} />
+              <SecurityInlineField label="Mão de Obra" value={terms.labor_value} fieldType="currency" onSave={saveTerms("labor_value")} />
+              <SecurityInlineField label="Notas" value={contract.notes} onSave={save("notes")} placeholder="Sem notas" />
             </CardContent>
           </Card>
         </div>
 
-        {/* SLA Info */}
         {contract.sla_json && Object.keys(contract.sla_json as object).length > 0 && (
           <Card>
             <CardHeader><CardTitle className="text-base">SLA</CardTitle></CardHeader>
@@ -206,15 +170,5 @@ export default function SecurityContractDetailPage() {
         )}
       </div>
     </DashboardLayout>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value?: string | null }) {
-  if (!value) return null;
-  return (
-    <div className="flex justify-between">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium">{value}</span>
-    </div>
   );
 }

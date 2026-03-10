@@ -1,11 +1,12 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useTranslation } from "react-i18next";
-import { useSecurityClient, useSecurityClientSites, useSecurityClientContracts } from "@/hooks/security/useSecurityClients";
+import { useSecurityClient, useSecurityClientSites, useSecurityClientContracts, useSecurityClients } from "@/hooks/security/useSecurityClients";
+import { SecurityInlineField } from "@/components/security/SecurityInlineField";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Users, MapPin, Phone, Mail, FileText, Building2, User, Home } from "lucide-react";
+import { ArrowLeft, MapPin, FileText, Building2, User, Home } from "lucide-react";
 import { format } from "date-fns";
 
 const clientTypeIcon: Record<string, any> = {
@@ -21,21 +22,20 @@ export default function SecurityClientDetailPage() {
   const { data: client, isLoading } = useSecurityClient(id);
   const { data: sites = [] } = useSecurityClientSites(id);
   const { data: contracts = [] } = useSecurityClientContracts(id);
+  const { updateClient } = useSecurityClients();
 
-  if (isLoading) {
-    return <DashboardLayout><div className="text-center py-12 text-muted-foreground">A carregar...</div></DashboardLayout>;
-  }
+  if (isLoading) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">A carregar...</div></DashboardLayout>;
+  if (!client) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">Cliente não encontrado.</div></DashboardLayout>;
 
-  if (!client) {
-    return <DashboardLayout><div className="text-center py-12 text-muted-foreground">Cliente não encontrado.</div></DashboardLayout>;
-  }
+  const save = (field: string) => (value: unknown) => {
+    updateClient.mutate({ id: client.id, [field]: value });
+  };
 
   const TypeIcon = clientTypeIcon[client.client_type] || User;
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/security/clients")}>
             <ArrowLeft className="h-4 w-4" />
@@ -56,33 +56,21 @@ export default function SecurityClientDetailPage() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Contact Info */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">{t("contactInfo")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              {client.primary_phone && (
-                <div className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-muted-foreground" />{client.primary_phone}</div>
-              )}
-              {client.secondary_phone && (
-                <div className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-muted-foreground" />{client.secondary_phone}</div>
-              )}
-              {client.primary_email && (
-                <div className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-muted-foreground" />{client.primary_email}</div>
-              )}
-              {client.contact_person_name && (
-                <div className="pt-2 border-t">
-                  <p className="text-xs text-muted-foreground mb-1">{t("contactPersonName")}</p>
-                  <p className="font-medium">{client.contact_person_name}</p>
-                  {client.contact_person_phone && <p className="text-muted-foreground">{client.contact_person_phone}</p>}
-                  {client.contact_person_email && <p className="text-muted-foreground">{client.contact_person_email}</p>}
-                </div>
-              )}
+            <CardHeader><CardTitle className="text-base">{t("contactInfo")}</CardTitle></CardHeader>
+            <CardContent className="space-y-1 text-sm">
+              <SecurityInlineField label="Nome" value={client.name} onSave={save("name")} />
+              <SecurityInlineField label="Tipo" value={client.client_type} fieldType="select" options={["particular", "empresa", "condominio"]} onSave={save("client_type")} />
+              <SecurityInlineField label="NIF" value={client.nif} onSave={save("nif")} />
+              <SecurityInlineField label="Telefone" value={client.primary_phone} onSave={save("primary_phone")} />
+              <SecurityInlineField label="Telefone 2" value={client.secondary_phone} onSave={save("secondary_phone")} />
+              <SecurityInlineField label="Email" value={client.primary_email} fieldType="email" onSave={save("primary_email")} />
+              <SecurityInlineField label="Pessoa Contacto" value={client.contact_person_name} onSave={save("contact_person_name")} />
+              <SecurityInlineField label="Tel. Contacto" value={client.contact_person_phone} onSave={save("contact_person_phone")} />
+              <SecurityInlineField label="Email Contacto" value={client.contact_person_email} fieldType="email" onSave={save("contact_person_email")} />
             </CardContent>
           </Card>
 
-          {/* Fiscal Info */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -90,16 +78,15 @@ export default function SecurityClientDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-1 text-sm">
-              {client.trade_name && <p className="font-medium">{client.trade_name}</p>}
-              {client.nif && <p>NIF: {client.nif}</p>}
-              {client.fiscal_address && <p>{client.fiscal_address}</p>}
-              <p>{[client.fiscal_postal_code, client.fiscal_locality].filter(Boolean).join(" ")}</p>
-              {client.fiscal_country && <p>{client.fiscal_country}</p>}
+              <SecurityInlineField label="Nome Comercial" value={client.trade_name} onSave={save("trade_name")} />
+              <SecurityInlineField label="Morada Fiscal" value={client.fiscal_address} onSave={save("fiscal_address")} />
+              <SecurityInlineField label="Código Postal" value={client.fiscal_postal_code} onSave={save("fiscal_postal_code")} />
+              <SecurityInlineField label="Localidade" value={client.fiscal_locality} onSave={save("fiscal_locality")} />
+              <SecurityInlineField label="País" value={client.fiscal_country} onSave={save("fiscal_country")} />
             </CardContent>
           </Card>
         </div>
 
-        {/* Installation Sites */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -112,16 +99,10 @@ export default function SecurityClientDetailPage() {
             ) : (
               <div className="space-y-2">
                 {sites.map((site: any) => (
-                  <div
-                    key={site.id}
-                    className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/50"
-                    onClick={() => navigate(`/dashboard/security/sites/${site.id}`)}
-                  >
+                  <div key={site.id} className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/dashboard/security/sites/${site.id}`)}>
                     <div>
                       <p className="font-medium text-sm">{site.site_name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {[site.address_line_1, site.locality].filter(Boolean).join(" · ")}
-                      </p>
+                      <p className="text-xs text-muted-foreground">{[site.address_line_1, site.locality].filter(Boolean).join(" · ")}</p>
                     </div>
                     {site.establishment_type && <Badge variant="outline">{site.establishment_type}</Badge>}
                   </div>
@@ -131,7 +112,6 @@ export default function SecurityClientDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Contracts */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -145,24 +125,18 @@ export default function SecurityClientDetailPage() {
               <div className="space-y-2">
                 {contracts.map((c: any) => {
                   const sys = c.security_systems as any;
-                  const site = sys?.security_installation_sites as any;
+                  const csite = sys?.security_installation_sites as any;
                   return (
-                    <div
-                      key={c.id}
-                      className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/50"
-                      onClick={() => navigate(`/dashboard/security/contracts/${c.id}`)}
-                    >
+                    <div key={c.id} className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/dashboard/security/contracts/${c.id}`)}>
                       <div>
-                        <p className="font-medium text-sm">{site?.site_name || c.contract_type}</p>
+                        <p className="font-medium text-sm">{csite?.site_name || c.contract_type}</p>
                         <p className="text-xs text-muted-foreground">
                           {c.contract_type}
                           {c.start_date && ` · ${format(new Date(c.start_date), "dd/MM/yyyy")}`}
                           {c.end_date && ` → ${format(new Date(c.end_date), "dd/MM/yyyy")}`}
                         </p>
                       </div>
-                      <Badge variant={c.contract_status === "active" ? "default" : "secondary"}>
-                        {c.contract_status}
-                      </Badge>
+                      <Badge variant={c.contract_status === "active" ? "default" : "secondary"}>{c.contract_status}</Badge>
                     </div>
                   );
                 })}
@@ -171,13 +145,12 @@ export default function SecurityClientDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Notes */}
-        {client.notes && (
-          <Card>
-            <CardHeader><CardTitle className="text-base">{t("notes")}</CardTitle></CardHeader>
-            <CardContent className="text-sm whitespace-pre-wrap">{client.notes}</CardContent>
-          </Card>
-        )}
+        <Card>
+          <CardHeader><CardTitle className="text-base">{t("notes")}</CardTitle></CardHeader>
+          <CardContent>
+            <SecurityInlineField label="" value={client.notes} onSave={save("notes")} placeholder="Sem notas" />
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

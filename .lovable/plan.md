@@ -1,63 +1,68 @@
 
 
-## Campos editáveis inline nas páginas de detalhe do módulo Segurança
+# Phase 5B — Command Center COMPLETO
 
-### Problema actual
-Todas as páginas de detalhe (Lead, Proposta, Contrato, Site, Sistema, Cliente, Ocorrência) mostram campos como texto estático via um componente `InfoRow` read-only. O utilizador tem de abrir dialogs ou não consegue editar de todo.
+## Gap Analysis: Current vs Spec
 
-### Solução
-Substituir os `InfoRow` estáticos pelo componente `InlineFieldEditor` já existente no projecto, que suporta text, number, date, select, currency e boolean com edição click-to-edit. Cada campo grava diretamente via o mutation `update*` do hook correspondente.
+The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
 
-### Páginas a alterar (7 ficheiros)
+**Already implemented (needs enhancement):**
+- Header with greeting + 3 KPIs — needs larger font (32px), labels below
+- AI Question Box — needs slash command suggestions row below input
+- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
+- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
+- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
+- Drift Alerts — needs "Rever →" links to Context OS blocks
 
-| Página | Hook de update | Campos editáveis |
-|--------|---------------|-----------------|
-| `SecurityLeadDetailPage` | `updateLead` | client_name, client_type, installation_address, origin, priority, system_type, request_type, estimated_value, need_description, notes |
-| `SecurityProposalDetailPage` | `updateProposal` | title, status, final_value, discount_percent, validity_days, notes |
-| `SecurityContractDetailPage` | `updateContract` | contract_type, contract_status, adjudication_date, start_date, end_date, renewal_notice_days, notes, commercial_terms_json fields |
-| `SecuritySiteDetailPage` | `updateSite` (via `useSecuritySites`) | site_name, address_line_1, address_line_2, postal_code, locality, county, district, country, onsite_responsible_name/phone/email, access_notes, notes |
-| `SecuritySystemDetailPage` | `updateSystem` | system_type, status, lifecycle_stage, main_brand, main_model, notes |
-| `SecurityClientDetailPage` | `updateClient` (via `useSecurityClients`) | name, client_type, nif, primary_phone, secondary_phone, primary_email, trade_name, fiscal_address, fiscal_postal_code, fiscal_locality, contact_person_*, notes |
-| `SecurityOccurrenceDetailPage` | `updateOccurrence` | title, severity, category, description, assigned_to, notes |
+**New sections to build:**
+1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
+2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
+   - Change Events (last 5 from `useChangeEvents` with realtime)
+   - Entity Activity (top 3 entities from `useKernelEntities`)
+   - Impact Score (top 2 from `useImpactMapData`)
+3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
 
-### Implementação técnica
+**Enhanced Command Palette (⌘K):**
+- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
 
-1. **Criar componente wrapper `SecurityInlineField`** — thin wrapper que recebe `entityId`, `fieldName`, `fieldType`, `value`, `updateMutation` e chama `InlineFieldEditor` com o `onSave` a invocar `mutation.mutate({ id: entityId, [fieldName]: newValue })`. Inclui label e layout consistente.
+**Spotlight (Space key):**
+- Opens AI Question Box as a modal from any page. New global component.
 
-2. **Substituir `InfoRow` em cada página** — trocar de:
-   ```tsx
-   <InfoRow label="Cliente" value={lead.client_name} />
-   ```
-   para:
-   ```tsx
-   <SecurityInlineField
-     label="Cliente"
-     value={lead.client_name}
-     fieldType="text"
-     onSave={(v) => updateLead.mutate({ id: lead.id, client_name: v })}
-   />
-   ```
+## Implementation Plan — 3 Sub-phases
 
-3. **Campos select** — usar `fieldType="select"` com options para campos como `status`, `priority`, `system_type`, `client_type`, `contract_type`, `severity`.
+Given the scope, I recommend splitting into 3 batches:
 
-4. **Campos currency** — usar `fieldType="currency"` para `estimated_value`, `final_value`, `total_value`.
+### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
+| File | Action |
+|------|--------|
+| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
+| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
+| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
+| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
 
-5. **Campos date** — usar `fieldType="date"` para `adjudication_date`, `start_date`, `end_date`, `installation_date`.
+### Batch 2: Enhance Existing Cards
+| File | Action |
+|------|--------|
+| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
+| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
+| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
+| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
+| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
+| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
 
-6. **Textarea-like fields** (notes, need_description) — usar `fieldType="text"` standard (single line inline edit).
+### Batch 3: Spotlight Modal + Command Palette Enhancement
+| File | Action |
+|------|--------|
+| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
+| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
+| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
 
-7. **Invalidação de queries** — já está implementada nos mutations existentes, portanto o valor actualiza automaticamente após save.
+### Realtime subscriptions needed
+- `change_events` table for Kernel Live Feed auto-update
+- `kernel_action_runs` for Ações do Dia auto-update
+- Already have `kernel_decisions` and `conversations`
 
-### Ficheiros
+No database migrations needed. All hooks, edge functions, and tables already exist.
 
-| Acção | Ficheiro |
-|-------|---------|
-| Criar | `src/components/security/SecurityInlineField.tsx` |
-| Editar | `src/pages/security/SecurityLeadDetailPage.tsx` |
-| Editar | `src/pages/security/SecurityProposalDetailPage.tsx` |
-| Editar | `src/pages/security/SecurityContractDetailPage.tsx` |
-| Editar | `src/pages/security/SecuritySiteDetailPage.tsx` |
-| Editar | `src/pages/security/SecuritySystemDetailPage.tsx` |
-| Editar | `src/pages/security/SecurityClientDetailPage.tsx` |
-| Editar | `src/pages/security/SecurityOccurrenceDetailPage.tsx` |
+**Shall I start with Batch 1?**
 

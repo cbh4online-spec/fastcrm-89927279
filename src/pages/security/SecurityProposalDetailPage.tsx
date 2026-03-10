@@ -6,6 +6,7 @@ import { useSecurityConversions } from "@/hooks/security/useSecurityConversions"
 import { useSecurityProposals } from "@/hooks/security/useSecurityProposals";
 import { useSecurityContracts } from "@/hooks/security/useSecurityContracts";
 import { SecurityPipelineStepper } from "@/components/security/SecurityPipelineStepper";
+import { SecurityInlineField } from "@/components/security/SecurityInlineField";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,40 +34,28 @@ export default function SecurityProposalDetailPage() {
     );
   }
 
-  // Find linked contract
-  const linkedContract = contracts.find((c: any) => c.proposal_id === proposal.id);
+  const save = (field: string) => (value: unknown) => {
+    updateProposal.mutate({ id: proposal.id, [field]: value });
+  };
 
+  const linkedContract = contracts.find((c: any) => c.proposal_id === proposal.id);
   const canSend = proposal.status === "draft";
   const canAccept = ["sent", "under_review"].includes(proposal.status);
   const canReject = ["sent", "under_review"].includes(proposal.status);
   const isFailed = proposal.status === "rejected";
+  const lead = proposal.security_leads as any;
 
   const handleSend = () => {
-    updateProposal.mutate({
-      id: proposal.id,
-      status: "sent",
-      sent_at: new Date().toISOString(),
-    });
+    updateProposal.mutate({ id: proposal.id, status: "sent", sent_at: new Date().toISOString() });
   };
-
-  const handleAccept = () => {
-    convertProposalToContract.mutate(proposal);
-  };
-
-  const handleReject = () => {
-    updateProposal.mutate({
-      id: proposal.id,
-      status: "rejected",
-    });
-  };
+  const handleAccept = () => { convertProposalToContract.mutate(proposal); };
+  const handleReject = () => { updateProposal.mutate({ id: proposal.id, status: "rejected" }); };
 
   const equipmentItems = Array.isArray(proposal.equipment_json) ? proposal.equipment_json : [];
-  const lead = proposal.security_leads as any;
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/security/proposals")}>
             <ArrowLeft className="h-5 w-5" />
@@ -84,7 +73,6 @@ export default function SecurityProposalDetailPage() {
           <Badge>{statusLabels[proposal.status] || proposal.status}</Badge>
         </div>
 
-        {/* Pipeline Stepper */}
         <SecurityPipelineStepper
           currentStage="proposal"
           requestId={lead?.partner_request_id}
@@ -95,42 +83,32 @@ export default function SecurityProposalDetailPage() {
           isFailed={isFailed}
         />
 
-        {/* Actions */}
         <div className="flex gap-2 flex-wrap">
           {canSend && (
             <Button onClick={handleSend} disabled={updateProposal.isPending} className="gap-2">
-              <Send className="h-4 w-4" />
-              Enviar Proposta
+              <Send className="h-4 w-4" /> Enviar Proposta
             </Button>
           )}
           {canAccept && (
             <Button onClick={handleAccept} disabled={convertProposalToContract.isPending} className="gap-2">
-              <CheckCircle className="h-4 w-4" />
-              Adjudicar
+              <CheckCircle className="h-4 w-4" /> Adjudicar
             </Button>
           )}
           {canReject && (
             <Button variant="outline" onClick={handleReject} disabled={updateProposal.isPending} className="gap-2 text-destructive hover:text-destructive">
-              <XCircle className="h-4 w-4" />
-              Rejeitar
+              <XCircle className="h-4 w-4" /> Rejeitar
             </Button>
           )}
         </div>
 
-        {/* Origin Lead Card */}
         {lead && (
-          <Card
-            className="cursor-pointer hover:border-primary/50 transition-colors"
-            onClick={() => navigate(`/dashboard/security/leads/${proposal.lead_id}`)}
-          >
+          <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate(`/dashboard/security/leads/${proposal.lead_id}`)}>
             <CardContent className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Target className="h-5 w-5 text-primary" />
                 <div>
                   <p className="font-medium text-sm">Lead de Origem</p>
-                  <p className="text-xs text-muted-foreground">
-                    {lead.client_name} · {lead.system_type} · {lead.status}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{lead.client_name} · {lead.system_type} · {lead.status}</p>
                 </div>
               </div>
               <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -138,20 +116,14 @@ export default function SecurityProposalDetailPage() {
           </Card>
         )}
 
-        {/* Linked Contract */}
         {linkedContract && (
-          <Card
-            className="cursor-pointer hover:border-primary/50 transition-colors"
-            onClick={() => navigate(`/dashboard/security/contracts/${linkedContract.id}`)}
-          >
+          <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate(`/dashboard/security/contracts/${linkedContract.id}`)}>
             <CardContent className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <CheckCircle className="h-5 w-5 text-green-600" />
+                <CheckCircle className="h-5 w-5 text-emerald-600" />
                 <div>
                   <p className="font-medium text-sm">Contrato Adjudicado</p>
-                  <p className="text-xs text-muted-foreground">
-                    {linkedContract.contract_type} · {linkedContract.contract_status}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{linkedContract.contract_type} · {linkedContract.contract_status}</p>
                 </div>
               </div>
               <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -162,42 +134,34 @@ export default function SecurityProposalDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader><CardTitle className="text-base">Dados da Proposta</CardTitle></CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <InfoRow label="Título" value={proposal.title} />
-              <InfoRow label="Nº Proposta" value={proposal.proposal_number} />
-              <InfoRow label="Valor Equipamento" value={proposal.equipment_value ? `€${Number(proposal.equipment_value).toFixed(2)}` : null} />
-              <InfoRow label="Valor Mão de Obra" value={proposal.labor_value ? `€${Number(proposal.labor_value).toFixed(2)}` : null} />
-              <InfoRow label="Total" value={proposal.total_value ? `€${Number(proposal.total_value).toFixed(2)}` : null} />
-              <InfoRow label="Desconto" value={proposal.discount_percent ? `${proposal.discount_percent}%` : null} />
-              <InfoRow label="Valor Final" value={proposal.final_value ? `€${Number(proposal.final_value).toFixed(2)}` : null} />
-              <InfoRow label="Validade" value={proposal.validity_days ? `${proposal.validity_days} dias` : null} />
-              {proposal.valid_until && <InfoRow label="Válida até" value={proposal.valid_until} />}
+            <CardContent className="space-y-1 text-sm">
+              <SecurityInlineField label="Título" value={proposal.title} onSave={save("title")} />
+              <div className="flex justify-between min-h-[36px] items-center">
+                <span className="text-muted-foreground text-sm">Nº Proposta</span>
+                <span className="font-medium text-sm">{proposal.proposal_number || "—"}</span>
+              </div>
+              <SecurityInlineField label="Valor Equipamento" value={proposal.equipment_value} fieldType="currency" onSave={save("equipment_value")} />
+              <SecurityInlineField label="Valor Mão de Obra" value={proposal.labor_value} fieldType="currency" onSave={save("labor_value")} />
+              <SecurityInlineField label="Total" value={proposal.total_value} fieldType="currency" onSave={save("total_value")} />
+              <SecurityInlineField label="Desconto (%)" value={proposal.discount_percent} fieldType="number" onSave={save("discount_percent")} />
+              <SecurityInlineField label="Valor Final" value={proposal.final_value} fieldType="currency" onSave={save("final_value")} />
+              <SecurityInlineField label="Validade (dias)" value={proposal.validity_days} fieldType="number" onSave={save("validity_days")} />
+              {proposal.valid_until && (
+                <SecurityInlineField label="Válida até" value={proposal.valid_until} fieldType="date" onSave={save("valid_until")} />
+              )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader><CardTitle className="text-base">Solução Proposta</CardTitle></CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                {proposal.solution_description || "Sem descrição da solução"}
-              </p>
-              {proposal.commercial_notes && (
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-xs font-medium mb-1">Notas Comerciais</p>
-                  <p className="text-sm text-muted-foreground">{proposal.commercial_notes}</p>
-                </div>
-              )}
-              {proposal.conditions && (
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-xs font-medium mb-1">Condições</p>
-                  <p className="text-sm text-muted-foreground">{proposal.conditions}</p>
-                </div>
-              )}
+            <CardContent className="space-y-2">
+              <SecurityInlineField label="Descrição" value={proposal.solution_description} onSave={save("solution_description")} placeholder="Sem descrição" />
+              <SecurityInlineField label="Notas Comerciais" value={proposal.commercial_notes} onSave={save("commercial_notes")} placeholder="—" />
+              <SecurityInlineField label="Condições" value={proposal.conditions} onSave={save("conditions")} placeholder="—" />
             </CardContent>
           </Card>
         </div>
 
-        {/* Equipment List */}
         {equipmentItems.length > 0 && (
           <Card>
             <CardHeader><CardTitle className="text-base">Equipamentos Previstos</CardTitle></CardHeader>
@@ -233,15 +197,5 @@ export default function SecurityProposalDetailPage() {
         )}
       </div>
     </DashboardLayout>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value?: string | null }) {
-  if (!value) return null;
-  return (
-    <div className="flex justify-between">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium">{value}</span>
-    </div>
   );
 }
