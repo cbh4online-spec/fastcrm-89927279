@@ -551,7 +551,16 @@ export default function C2CListingDetail() {
             }}>
               {t('makeOffer')}
             </Button>
-            <Button size="sm" onClick={() => { if (!workspaceId || !listing) return; checkout.mutate({ listingId: listing.id, workspaceId }); }} disabled={checkout.isPending}>
+            <Button size="sm" onClick={() => {
+              if (!workspaceId || !listing || !shippingSelection) return;
+              checkout.mutate({
+                listingId: listing.id, workspaceId,
+                shippingMethod: shippingSelection.method,
+                shippingPrice: shippingSelection.price,
+                shippingCarrier: shippingSelection.carrier,
+                meetupLocation: shippingSelection.method === 'in_person' ? meetupLocation : undefined,
+              });
+            }} disabled={checkout.isPending || !shippingSelection}>
               {checkout.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t('buyNow').split(' ')[0]}
             </Button>
           </div>
