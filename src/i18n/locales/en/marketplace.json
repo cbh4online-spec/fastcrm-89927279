@@ -306,5 +306,24 @@
 
   "kpiViews": "Views",
   "kpiFavorites": "Favorites",
-  "kpiMessages": "Messages"
+  "kpiMessages": "Messages",
+
+  "sortRecent": "Most recent",
+  "sortPriceAsc": "Cheapest",
+  "sortPriceDesc": "Most expensive",
+  "sortPopular": "Most popular",
+  "sortRecommended": "Recommended",
+
+  "deliveryMode": "Delivery",
+  "deliveryAny": "Any",
+  "deliveryShipping": "Shipping",
+  "deliveryInPerson": "In person",
+  "deliveryBoth": "Both",
+
+  "savedSearches": "Saved searches",
+  "saveCurrentSearch": "Save current search",
+  "noSavedSearches": "No saved searches.",
+  "savedSearchDefault": "Unnamed search",
+
+  "autocompleteSuggestions": "Suggestions"
 }
