@@ -35,6 +35,8 @@ export default function SecurityDocumentDetailPage() {
   const { data: doc, isLoading } = useSecurityDocument(id);
   const { validateDocument, emitDocument, updateDocument, createNewVersion } = useSecurityDocuments();
   const [validationNotes, setValidationNotes] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const system = doc?.security_systems as any;
   const site = system?.security_installation_sites as any;
