@@ -103,10 +103,12 @@ export default function SecurityOccurrencesPage() {
           <div className="grid gap-3">
             {filtered.map((occ: any) => {
               const site = (occ.security_systems as any)?.security_installation_sites as any;
+              const slaBreached = occ.sla_resolution_deadline && new Date(occ.sla_resolution_deadline) < new Date() && occ.status !== "closed" && occ.status !== "resolved";
+              const escalated = (occ.escalation_level || 0) > 0;
               return (
                 <Card
                   key={occ.id}
-                  className="cursor-pointer hover:border-primary/50 transition-colors"
+                  className={`cursor-pointer hover:border-primary/50 transition-colors ${slaBreached ? "border-destructive/50" : ""}`}
                   onClick={() => navigate(`/dashboard/security/occurrences/${occ.id}`)}
                 >
                   <CardContent className="p-4 flex items-center justify-between">
@@ -118,6 +120,8 @@ export default function SecurityOccurrencesPage() {
                             {t(`severity${occ.severity.charAt(0).toUpperCase()}${occ.severity.slice(1)}` as any)}
                           </Badge>
                         )}
+                        {slaBreached && <Badge variant="destructive" className="text-[10px]">SLA</Badge>}
+                        {escalated && <Badge variant="outline" className="text-[10px]">Esc. {occ.escalation_level}</Badge>}
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {site?.site_name || "—"}
