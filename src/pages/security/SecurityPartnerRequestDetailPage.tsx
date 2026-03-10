@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useSecurityConversions } from "@/hooks/security/useSecurityConversions";
 
 export default function SecurityPartnerRequestDetailPage() {
   const { t } = useTranslation("security");
