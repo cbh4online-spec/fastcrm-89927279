@@ -14,7 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select";
 import {
-  useFunnelSteps, useCreateFunnelStep, useDeleteFunnelStep, useUpdateFunnelStep
+  useFunnelSteps, useFunnel, useCreateFunnelStep, useDeleteFunnelStep, useUpdateFunnelStep
 } from "@/hooks/useFunnels";
 import { useFunnelVariations, useCreateVariation, useDeleteVariation, useUpdateVariation } from "@/hooks/useFunnelVariations";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,7 @@ interface FunnelStepsTabProps {
 }
 
 export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
+  const { data: funnel } = useFunnel(funnelId);
   const { data: steps = [] } = useFunnelSteps(funnelId);
   const createStep = useCreateFunnelStep();
   const deleteStep = useDeleteFunnelStep();
@@ -203,7 +204,12 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
                     </div>
                     <div className="flex items-center gap-2">
                       <Button size="sm" onClick={() => setStepSubTab("editor")}>Editar</Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => funnel && window.open(`/funnel/${funnel.slug}?preview=true&step=${steps.indexOf(selectedStep)}`, "_blank")}
+                      >
                         <ExternalLink className="h-3 w-3" />
                       </Button>
                       <Button variant="outline" size="icon" className="h-8 w-8">

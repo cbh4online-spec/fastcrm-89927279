@@ -38,6 +38,7 @@ import Funnels from "./pages/Funnels";
 import BioOS from "./pages/BioOS";
 
 import PublicLandingPage from "./pages/PublicLandingPage";
+import PublicFunnelPage from "./pages/PublicFunnelPage";
 import Proposals from "./pages/Proposals";
 import ProposalDetail from "./pages/ProposalDetail";
 import PublicProposalPage from "./pages/PublicProposalPage";
@@ -740,6 +741,9 @@ const App = () => (
           <GTMProvider containerId="GTM-WLVH4TJJ">
             <MetaPixelLoader />
             <Routes>
+              {/* Public Funnel Pages */}
+              <Route path="/funnel/:slug" element={<PublicFunnelPage />} />
+
               {/* Public Bio Pages */}
               <Route path="/bio/:workspaceSlug/:pageSlug" element={<PublicBioPage />} />
               <Route path="/b/:shortCode" element={<PublicBioShortLink />} />

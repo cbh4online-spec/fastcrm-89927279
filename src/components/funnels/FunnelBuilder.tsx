@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Share2, HelpCircle } from "lucide-react";
+import { ArrowLeft, Share2, HelpCircle, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFunnel } from "@/hooks/useFunnels";
@@ -41,6 +41,14 @@ export function FunnelBuilder({ funnelId, onBack }: FunnelBuilderProps) {
           <h1 className="text-2xl font-bold">{funnel.name}</h1>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(`/funnel/${funnel.slug}?preview=true`, "_blank")}
+          >
+            <Eye className="h-4 w-4 mr-1" />
+            Preview
+          </Button>
           <Button variant="outline" size="icon">
             <Share2 className="h-4 w-4" />
           </Button>
