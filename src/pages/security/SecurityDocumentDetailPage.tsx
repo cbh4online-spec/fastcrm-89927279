@@ -12,9 +12,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, FileText, CheckCircle, Send, Copy, Clock, Shield } from "lucide-react";
+import { ArrowLeft, FileText, CheckCircle, Send, Copy, Clock, Shield, Download } from "lucide-react";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 
 const docTypeLabels: Record<string, string> = {
   installation_certificate: "Certificado de Instalação",
