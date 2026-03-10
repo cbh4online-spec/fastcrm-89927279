@@ -78,7 +78,7 @@ export default function SecurityDocumentDetailPage() {
     createNewVersion.mutate({ originalId: doc.id, source_data_json: doc.source_data_json });
   };
 
-  const handleExportPDF = useCallback(async () => {
+  const handleExportPDF = async () => {
     if (!previewRef.current) return;
     setExporting(true);
     try {
@@ -97,7 +97,7 @@ export default function SecurityDocumentDetailPage() {
     } finally {
       setExporting(false);
     }
-  }, [doc]);
+  };
 
   return (
     <DashboardLayout>
