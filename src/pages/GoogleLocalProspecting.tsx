@@ -655,7 +655,10 @@ export default function GoogleLocalProspecting() {
   const [minRating, setMinRating] = useState("4");
   
   const createLead = useCreateLead();
-  const { usage, consumeCredits, hasCredits } = useCredits("google_local");
+  const { balance, getCost, canAfford, consumeCredits } = useCreditWallet();
+  const searchCost = getCost("prospecting_google_local_search");
+  const importCost = getCost("prospecting_lead_import");
+  const hasCredits = canAfford("prospecting_google_local_search");
   const { data: recentLeads = [] } = useLeads({ 
     status: undefined 
   });
