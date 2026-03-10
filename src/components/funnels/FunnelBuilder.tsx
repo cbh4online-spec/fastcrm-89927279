@@ -10,6 +10,10 @@ import { FunnelEventsTab } from "./tabs/FunnelEventsTab";
 import { FunnelSettingsTab } from "./tabs/FunnelSettingsTab";
 import { FunnelProductsTab } from "./tabs/FunnelProductsTab";
 import { FunnelAIInsightsTab } from "./tabs/FunnelAIInsightsTab";
+import { FunnelRoutingTab } from "./tabs/FunnelRoutingTab";
+import { FunnelAutomationsTab } from "./tabs/FunnelAutomationsTab";
+import { FunnelAnalyticsTab } from "./tabs/FunnelAnalyticsTab";
+import { FunnelRevenueTab } from "./tabs/FunnelRevenueTab";
 
 interface FunnelBuilderProps {
   funnelId: string;
@@ -50,18 +54,37 @@ export function FunnelBuilder({ funnelId, onBack }: FunnelBuilderProps) {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="overflow-x-auto -mx-1 px-1">
           <TabsList className="flex w-max min-w-full">
-            <TabsTrigger value="steps"><span className="hidden sm:inline">Steps</span><span className="sm:hidden">Steps</span></TabsTrigger>
-            <TabsTrigger value="stats"><span className="hidden sm:inline">Stats</span><span className="sm:hidden">Stats</span></TabsTrigger>
-            <TabsTrigger value="sales"><span className="hidden sm:inline">Sales</span><span className="sm:hidden">Sales</span></TabsTrigger>
-            <TabsTrigger value="products"><span className="hidden sm:inline">Products</span><span className="sm:hidden">Prods</span></TabsTrigger>
-            <TabsTrigger value="events"><span className="hidden sm:inline">Events</span><span className="sm:hidden">Events</span></TabsTrigger>
-            <TabsTrigger value="settings"><span className="hidden sm:inline">Settings</span><span className="sm:hidden">Config</span></TabsTrigger>
-            <TabsTrigger value="ai-insights"><span className="hidden sm:inline">AI Insights</span><span className="sm:hidden">AI</span></TabsTrigger>
+            <TabsTrigger value="steps">Steps</TabsTrigger>
+            <TabsTrigger value="routing">Routing</TabsTrigger>
+            <TabsTrigger value="automations">Automações</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="revenue">Receita</TabsTrigger>
+            <TabsTrigger value="events">Events</TabsTrigger>
+            <TabsTrigger value="stats">Stats</TabsTrigger>
+            <TabsTrigger value="sales">Sales</TabsTrigger>
+            <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="ai-insights">AI</TabsTrigger>
           </TabsList>
         </div>
 
         <TabsContent value="steps">
           <FunnelStepsTab funnelId={funnelId} />
+        </TabsContent>
+        <TabsContent value="routing">
+          <FunnelRoutingTab funnelId={funnelId} />
+        </TabsContent>
+        <TabsContent value="automations">
+          <FunnelAutomationsTab funnelId={funnelId} />
+        </TabsContent>
+        <TabsContent value="analytics">
+          <FunnelAnalyticsTab funnelId={funnelId} />
+        </TabsContent>
+        <TabsContent value="revenue">
+          <FunnelRevenueTab funnelId={funnelId} />
+        </TabsContent>
+        <TabsContent value="events">
+          <FunnelEventsTab funnelId={funnelId} />
         </TabsContent>
         <TabsContent value="stats">
           <FunnelStatsTab funnelId={funnelId} />
@@ -71,9 +94,6 @@ export function FunnelBuilder({ funnelId, onBack }: FunnelBuilderProps) {
         </TabsContent>
         <TabsContent value="products">
           <FunnelProductsTab funnelId={funnelId} />
-        </TabsContent>
-        <TabsContent value="events">
-          <FunnelEventsTab funnelId={funnelId} />
         </TabsContent>
         <TabsContent value="settings">
           <FunnelSettingsTab funnelId={funnelId} />
