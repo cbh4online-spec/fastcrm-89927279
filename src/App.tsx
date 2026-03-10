@@ -216,6 +216,7 @@ import SecurityLeadDetailPage from "./pages/security/SecurityLeadDetailPage";
 import SecurityDocumentsPage from "./pages/security/SecurityDocumentsPage";
 import SecurityDocumentDetailPage from "./pages/security/SecurityDocumentDetailPage";
 import SecurityMaintenancePage from "./pages/security/SecurityMaintenancePage";
+import SecurityMaintenanceVisitDetailPage from "./pages/security/SecurityMaintenanceVisitDetailPage";
 import SecurityOccurrencesPage from "./pages/security/SecurityOccurrencesPage";
 import SecurityOccurrenceDetailPage from "./pages/security/SecurityOccurrenceDetailPage";
 import SecurityRenewalsPage from "./pages/security/SecurityRenewalsPage";
