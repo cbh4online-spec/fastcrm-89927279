@@ -83,6 +83,7 @@ import frAsk from './locales/fr/ask.json';
 import frProcurement from './locales/fr/procurement.json';
 import frPerformance from './locales/fr/performance.json';
 import frMarketplace from './locales/fr/marketplace.json';
+import frSecurity from './locales/fr/security.json';
 
 export const supportedLanguages = [
   { code: 'pt', label: 'Português', flag: '🇵🇹' },
