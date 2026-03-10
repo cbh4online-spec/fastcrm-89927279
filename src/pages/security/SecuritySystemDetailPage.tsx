@@ -43,6 +43,7 @@ export default function SecuritySystemDetailPage() {
   const [addDeviceOpen, setAddDeviceOpen] = useState(false);
   const [zoneForm, setZoneForm] = useState({ zone_name: "", zone_type: "camera", notes: "" });
   const [deviceForm, setDeviceForm] = useState({ device_type: "camera", brand: "", model: "", serial_number: "", quantity: "1", zone_id: "", location_description: "" });
+  const [docDialogOpen, setDocDialogOpen] = useState(false);
 
   if (isLoading) {
     return <DashboardLayout><div className="text-center py-12 text-muted-foreground">A carregar...</div></DashboardLayout>;
