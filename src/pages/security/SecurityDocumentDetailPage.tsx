@@ -78,6 +78,27 @@ export default function SecurityDocumentDetailPage() {
     createNewVersion.mutate({ originalId: doc.id, source_data_json: doc.source_data_json });
   };
 
+  const handleExportPDF = useCallback(async () => {
+    if (!previewRef.current) return;
+    setExporting(true);
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const jsPDF = (await import("jspdf")).default;
+      const canvas = await html2canvas(previewRef.current, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pdfW = pdf.internal.pageSize.getWidth();
+      const pdfH = (canvas.height * pdfW) / canvas.width;
+      pdf.addImage(imgData, "PNG", 0, 0, pdfW, pdfH);
+      const docLabel = docTypeLabels[doc.document_type] || doc.document_type;
+      pdf.save(`${docLabel}_v${doc.version_number || 1}.pdf`);
+    } catch (e) {
+      console.error("PDF export error:", e);
+    } finally {
+      setExporting(false);
+    }
+  }, [doc]);
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
