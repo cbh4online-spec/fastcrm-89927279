@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-import { Building2, Plus, MapPin, Search } from "lucide-react";
+import { Building2, Plus, MapPin, Search, QrCode } from "lucide-react";
 import { useState } from "react";
 import { SecuritySiteDialog } from "@/components/security/SecuritySiteDialog";
+import { SecurityQRBatchPrint } from "@/components/security/SecurityQRCode";
 
 export default function SecuritySitesPage() {
   const { t } = useTranslation("security");
@@ -22,6 +23,10 @@ export default function SecuritySitesPage() {
       .filter(Boolean).join(" ").toLowerCase().includes(search.toLowerCase())
   );
 
+  // KPIs
+  const districts = [...new Set(sites.map((s: any) => s.district).filter(Boolean))];
+  const types = [...new Set(sites.map((s: any) => s.establishment_type).filter(Boolean))];
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -30,20 +35,52 @@ export default function SecuritySitesPage() {
             <Building2 className="h-7 w-7 text-primary" />
             <h1 className="text-2xl font-bold">{t("sites")}</h1>
           </div>
-          <Button onClick={() => setDialogOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            {t("addNew")}
-          </Button>
+          <div className="flex gap-2">
+            <SecurityQRBatchPrint
+              entityType="site"
+              items={filtered.map((s: any) => ({
+                id: s.id,
+                label: s.site_name,
+                sublabel: [s.locality, s.district].filter(Boolean).join(", "),
+              }))}
+            />
+            <Button onClick={() => setDialogOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" /> {t("addNew")}
+            </Button>
+          </div>
+        </div>
+
+        {/* KPI Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold">{sites.length}</p>
+              <p className="text-xs text-muted-foreground">Total Locais</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold">{districts.length}</p>
+              <p className="text-xs text-muted-foreground">Distritos</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold">{types.length}</p>
+              <p className="text-xs text-muted-foreground">Tipos</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold">{sites.filter((s: any) => s.onsite_responsible_name).length}</p>
+              <p className="text-xs text-muted-foreground">Com Responsável</p>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={t("search")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+          <Input placeholder={t("search")} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
 
         {isLoading ? (
@@ -74,12 +111,8 @@ export default function SecuritySitesPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {site.establishment_type && (
-                      <Badge variant="outline">{site.establishment_type}</Badge>
-                    )}
-                    {site.postal_code && (
-                      <span className="text-xs text-muted-foreground">{site.postal_code}</span>
-                    )}
+                    {site.establishment_type && <Badge variant="outline">{site.establishment_type}</Badge>}
+                    {site.postal_code && <span className="text-xs text-muted-foreground">{site.postal_code}</span>}
                   </div>
                 </CardContent>
               </Card>
