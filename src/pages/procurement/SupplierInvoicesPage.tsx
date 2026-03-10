@@ -32,7 +32,7 @@ export default function SupplierInvoicesPage() {
         </div>
         
         {isLoading ? (
-          <p className="text-muted-foreground">A carregar...</p>
+          <p className="text-muted-foreground">{t("loading")}</p>
         ) : invoices.length === 0 ? (
           <p className="text-muted-foreground">{t("noInvoices")}</p>
         ) : (

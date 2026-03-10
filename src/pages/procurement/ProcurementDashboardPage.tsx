@@ -14,7 +14,6 @@ export default function ProcurementDashboardPage() {
   const { data: orders = [] } = usePurchaseOrders(currentWorkspace?.id);
   const { data: invoices = [] } = useSupplierInvoices(currentWorkspace?.id);
 
-  // Group orders by supplier for bar chart
   const bySupplier = (orders as any[]).reduce((acc: Record<string, number>, o: any) => {
     const sName = o.supplier?.name || "N/A";
     acc[sName] = (acc[sName] || 0) + (Number(o.total_amount) || 0);
@@ -22,7 +21,6 @@ export default function ProcurementDashboardPage() {
   }, {});
   const supplierData = Object.entries(bySupplier).map(([n, v]) => ({ name: n, value: v as number })).sort((a, b) => b.value - a.value).slice(0, 5);
 
-  // Group orders by status for pie chart
   const byStatus = (orders as any[]).reduce((acc: Record<string, number>, o: any) => {
     acc[o.status] = (acc[o.status] || 0) + 1;
     return acc;
@@ -37,7 +35,7 @@ export default function ProcurementDashboardPage() {
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
-            <CardHeader><CardTitle className="text-sm font-medium">Top Fornecedores</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-sm font-medium">{t("topSuppliers")}</CardTitle></CardHeader>
             <CardContent>
               {supplierData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={250}>
@@ -48,12 +46,12 @@ export default function ProcurementDashboardPage() {
                     <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
-              ) : <p className="text-muted-foreground text-sm">Sem dados</p>}
+              ) : <p className="text-muted-foreground text-sm">{t("noData")}</p>}
             </CardContent>
           </Card>
           
           <Card>
-            <CardHeader><CardTitle className="text-sm font-medium">Encomendas por Estado</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-sm font-medium">{t("ordersByStatus")}</CardTitle></CardHeader>
             <CardContent>
               {statusData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={250}>
@@ -64,7 +62,7 @@ export default function ProcurementDashboardPage() {
                     <Tooltip />
                   </PieChart>
                 </ResponsiveContainer>
-              ) : <p className="text-muted-foreground text-sm">Sem dados</p>}
+              ) : <p className="text-muted-foreground text-sm">{t("noData")}</p>}
             </CardContent>
           </Card>
         </div>

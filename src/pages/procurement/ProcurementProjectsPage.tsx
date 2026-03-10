@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useProcurementProjects } from "@/hooks/useProcurementProjects";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ const statusColors: Record<string, string> = {
 
 export default function ProcurementProjectsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation("procurement");
   const { currentWorkspace } = useWorkspace();
   const { projects, isLoading } = useProcurementProjects(currentWorkspace?.id);
 
@@ -27,7 +29,7 @@ export default function ProcurementProjectsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <FolderOpen className="h-6 w-6" /> Projetos de Compras
+          <FolderOpen className="h-6 w-6" /> {t("procurementProjects")}
         </h1>
       </div>
 
@@ -39,16 +41,16 @@ export default function ProcurementProjectsPage() {
             </div>
           ) : !projects.length ? (
             <div className="text-center py-12 text-muted-foreground">
-              Sem projetos de compras. Aceite uma proposta com produtos para criar um.
+              {t("noProjects")}. {t("noProjectsHint")}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Origem</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Data</TableHead>
+                  <TableHead>{t("name")}</TableHead>
+                  <TableHead>{t("origin")}</TableHead>
+                  <TableHead>{t("status")}</TableHead>
+                  <TableHead>{t("date")}</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
@@ -62,7 +64,7 @@ export default function ProcurementProjectsPage() {
                     </TableCell>
                     <TableCell>{format(new Date(p.created_at), "dd/MM/yyyy")}</TableCell>
                     <TableCell>
-                      <Button size="sm" variant="outline">Ver</Button>
+                      <Button size="sm" variant="outline">{t("view")}</Button>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -54,7 +54,7 @@ export default function PurchaseRequestsPage() {
         </div>
         
         {isLoading ? (
-          <p className="text-muted-foreground">A carregar...</p>
+          <p className="text-muted-foreground">{t("loading")}</p>
         ) : requests.length === 0 ? (
           <p className="text-muted-foreground">{t("noRequests")}</p>
         ) : (
