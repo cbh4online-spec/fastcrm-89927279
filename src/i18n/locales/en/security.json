@@ -238,5 +238,23 @@
   "signatureInstaller": "Installer",
   "equipmentInstalled": "Installed Equipment",
   "kpiDocBacklog": "Document Backlog",
-  "kpiMaintenanceOverdue": "Overdue Maintenance"
+  "kpiMaintenanceOverdue": "Overdue Maintenance",
+
+  "clients": "Clients",
+  "newClient": "New Client",
+  "clientName": "Name / Designation",
+  "clientNamePlaceholder": "e.g. Pearl Condo, ABC Corp.",
+  "nif": "Tax ID",
+  "tradeName": "Trade Name",
+  "fiscalAddress": "Fiscal Address",
+  "contactInfo": "Contact Information",
+  "contactPersonName": "Contact Person",
+  "contactPersonPhone": "Contact Phone",
+  "noClients": "No clients registered",
+  "noClientsDesc": "Create the first client to link to installation sites and contracts.",
+  "noSitesForClient": "No installation sites linked to this client.",
+  "noContractsForClient": "No contracts linked to this client.",
+  "clientStatusActive": "Active",
+  "clientStatusInactive": "Inactive",
+  "clientStatusProspect": "Prospect"
 }
