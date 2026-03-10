@@ -152,6 +152,7 @@ export default function C2CMarketplace() {
   const { data: favoriteIds = [] } = useC2CFavorites(workspaceId);
   const toggleFavorite = useToggleC2CFavorite(workspaceId);
   const { data: unreadCount = 0 } = useUnreadCount(workspaceId);
+  useC2CRealtimeNotifications(workspaceId);
 
   const featuredListings = listings.filter((l) => l.is_featured);
   const recentListings = [...listings].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 12);
