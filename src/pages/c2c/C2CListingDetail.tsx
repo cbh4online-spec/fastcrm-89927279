@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useC2CListingDetail, useC2CSellerReviews, useCreateC2CReport, useC2CFavorites, useToggleC2CFavorite } from "@/hooks/useC2CListings";
 import { useSendC2CMessage } from "@/hooks/useC2CMessages";
 import { useC2CCheckout } from "@/hooks/useC2CCheckout";
+import { ShippingSelector } from "@/components/c2c/ShippingSelector";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { OfferDialog } from "@/components/c2c/OfferDialog";
@@ -152,6 +153,8 @@ export default function C2CListingDetail() {
   const [reportReason, setReportReason] = useState("");
   const [reportDetails, setReportDetails] = useState("");
   const [selectedPhoto, setSelectedPhoto] = useState(0);
+  const [shippingSelection, setShippingSelection] = useState<{ method: string; price: number; carrier: string; estimate: string } | null>(null);
+  const [meetupLocation, setMeetupLocation] = useState("");
 
   const conditionLabels: Record<string, string> = {
     new: t('conditionNew'), like_new: t('conditionLikeNew'), used: t('conditionUsed'), for_parts: t('conditionForParts'),
@@ -371,9 +374,36 @@ export default function C2CListingDetail() {
               {/* Actions (desktop) */}
               {user && !isOwner && (
                 <div className="space-y-3 border-t pt-4 hidden lg:block">
-                  <Button className="w-full gap-2" size="lg" onClick={() => { if (!workspaceId || !listing) return; checkout.mutate({ listingId: listing.id, workspaceId }); }} disabled={checkout.isPending}>
+                  {/* Shipping selector */}
+                  <ShippingSelector
+                    deliveryMode={(listing as any).delivery_mode || 'shipping'}
+                    selectedMethod={shippingSelection?.method || null}
+                    onSelect={setShippingSelection}
+                    meetupLocation={meetupLocation}
+                    onMeetupLocationChange={setMeetupLocation}
+                  />
+
+                  {shippingSelection && (
+                    <div className="text-sm text-muted-foreground flex justify-between border rounded-lg p-2">
+                      <span>{t('ordersTitle')}</span>
+                      <span className="font-semibold text-foreground">
+                        {(listing.price + (shippingSelection.price || 0)).toFixed(2)} {listing.currency}
+                      </span>
+                    </div>
+                  )}
+
+                  <Button className="w-full gap-2" size="lg" onClick={() => {
+                    if (!workspaceId || !listing || !shippingSelection) return;
+                    checkout.mutate({
+                      listingId: listing.id, workspaceId,
+                      shippingMethod: shippingSelection.method,
+                      shippingPrice: shippingSelection.price,
+                      shippingCarrier: shippingSelection.carrier,
+                      meetupLocation: shippingSelection.method === 'in_person' ? meetupLocation : undefined,
+                    });
+                  }} disabled={checkout.isPending || !shippingSelection}>
                     {checkout.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBag className="h-4 w-4" />}
-                    {t('buyNow')} — {listing.price.toFixed(2)} {listing.currency}
+                    {!shippingSelection ? t('chooseShipping') : `${t('buyNow')} — ${(listing.price + (shippingSelection?.price || 0)).toFixed(2)} ${listing.currency}`}
                   </Button>
 
                   {workspaceId && (<OfferDialog listingId={listing.id} sellerId={listing.seller_id} currentPrice={listing.price} currency={listing.currency} workspaceId={workspaceId} />)}
@@ -521,7 +551,16 @@ export default function C2CListingDetail() {
             }}>
               {t('makeOffer')}
             </Button>
-            <Button size="sm" onClick={() => { if (!workspaceId || !listing) return; checkout.mutate({ listingId: listing.id, workspaceId }); }} disabled={checkout.isPending}>
+            <Button size="sm" onClick={() => {
+              if (!workspaceId || !listing || !shippingSelection) return;
+              checkout.mutate({
+                listingId: listing.id, workspaceId,
+                shippingMethod: shippingSelection.method,
+                shippingPrice: shippingSelection.price,
+                shippingCarrier: shippingSelection.carrier,
+                meetupLocation: shippingSelection.method === 'in_person' ? meetupLocation : undefined,
+              });
+            }} disabled={checkout.isPending || !shippingSelection}>
               {checkout.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t('buyNow').split(' ')[0]}
             </Button>
           </div>

@@ -4681,6 +4681,143 @@ export type Database = {
           },
         ]
       }
+      c2c_orders: {
+        Row: {
+          buyer_id: string
+          buyer_notes: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          commission_id: string | null
+          created_at: string
+          currency: string
+          delivered_at: string | null
+          delivery_mode: string
+          estimated_delivery: string | null
+          id: string
+          item_price: number
+          listing_id: string
+          meetup_date: string | null
+          meetup_location: string | null
+          paid_at: string | null
+          payment_status: string
+          seller_c2c_id: string | null
+          seller_id: string
+          seller_notes: string | null
+          shipped_at: string | null
+          shipping_address: Json | null
+          shipping_carrier: string | null
+          shipping_method: string | null
+          shipping_price: number
+          status: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          total_price: number
+          tracking_code: string | null
+          tracking_url: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          buyer_id: string
+          buyer_notes?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          commission_id?: string | null
+          created_at?: string
+          currency?: string
+          delivered_at?: string | null
+          delivery_mode?: string
+          estimated_delivery?: string | null
+          id?: string
+          item_price: number
+          listing_id: string
+          meetup_date?: string | null
+          meetup_location?: string | null
+          paid_at?: string | null
+          payment_status?: string
+          seller_c2c_id?: string | null
+          seller_id: string
+          seller_notes?: string | null
+          shipped_at?: string | null
+          shipping_address?: Json | null
+          shipping_carrier?: string | null
+          shipping_method?: string | null
+          shipping_price?: number
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          total_price: number
+          tracking_code?: string | null
+          tracking_url?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          buyer_id?: string
+          buyer_notes?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          commission_id?: string | null
+          created_at?: string
+          currency?: string
+          delivered_at?: string | null
+          delivery_mode?: string
+          estimated_delivery?: string | null
+          id?: string
+          item_price?: number
+          listing_id?: string
+          meetup_date?: string | null
+          meetup_location?: string | null
+          paid_at?: string | null
+          payment_status?: string
+          seller_c2c_id?: string | null
+          seller_id?: string
+          seller_notes?: string | null
+          shipped_at?: string | null
+          shipping_address?: Json | null
+          shipping_carrier?: string | null
+          shipping_method?: string | null
+          shipping_price?: number
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          total_price?: number
+          tracking_code?: string | null
+          tracking_url?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_orders_commission_id_fkey"
+            columns: ["commission_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_commissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_orders_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_orders_seller_c2c_id_fkey"
+            columns: ["seller_c2c_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_orders_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       c2c_payouts: {
         Row: {
           amount: number

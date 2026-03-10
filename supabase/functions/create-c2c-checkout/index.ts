@@ -25,8 +25,11 @@ Deno.serve(async (req) => {
   try {
     logStep("Function started");
 
-    const { listingId, workspaceId, buyerEmail, buyerName, successUrl, cancelUrl } = await req.json();
-    logStep("Request body", { listingId, workspaceId });
+    const {
+      listingId, workspaceId, buyerEmail, buyerName, successUrl, cancelUrl,
+      shippingMethod, shippingPrice, shippingCarrier, meetupLocation
+    } = await req.json();
+    logStep("Request body", { listingId, workspaceId, shippingMethod, shippingPrice });
 
     if (!listingId) throw new Error("Listing ID is required");
     if (!workspaceId) throw new Error("Workspace ID is required");
@@ -44,7 +47,7 @@ Deno.serve(async (req) => {
     // Get listing with seller info
     const { data: listing, error: listingError } = await supabaseClient
       .from("c2c_listings")
-      .select("id, title, description, price, currency, photos, seller_id, status, workspace_id")
+      .select("id, title, description, price, currency, photos, seller_id, status, workspace_id, delivery_mode")
       .eq("id", listingId)
       .eq("workspace_id", workspaceId)
       .eq("status", "active")
@@ -108,33 +111,50 @@ Deno.serve(async (req) => {
 
     const photos = listing.photos as string[] | null;
     const imageUrl = photos?.[0];
-
     const origin = req.headers.get("origin") || "https://fastcrm.lovable.app";
+
+    // Calculate total with shipping
+    const itemPrice = listing.price;
+    const shipCost = typeof shippingPrice === 'number' ? shippingPrice : 0;
+    const totalPrice = itemPrice + shipCost;
+
+    const lineItems: any[] = [
+      {
+        price_data: {
+          currency: (listing.currency || "EUR").toLowerCase(),
+          product_data: {
+            name: listing.title,
+            description: listing.description?.substring(0, 200) || undefined,
+            ...(imageUrl ? { images: [imageUrl] } : {}),
+            metadata: { listing_id: listing.id, seller_id: seller.id },
+          },
+          unit_amount: Math.round(itemPrice * 100),
+        },
+        quantity: 1,
+      },
+    ];
+
+    // Add shipping as separate line item if applicable
+    if (shipCost > 0 && shippingMethod !== 'in_person') {
+      lineItems.push({
+        price_data: {
+          currency: (listing.currency || "EUR").toLowerCase(),
+          product_data: {
+            name: `Envio — ${shippingCarrier || shippingMethod || 'Postal'}`,
+          },
+          unit_amount: Math.round(shipCost * 100),
+        },
+        quantity: 1,
+      });
+    }
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : email,
-      line_items: [
-        {
-          price_data: {
-            currency: (listing.currency || "EUR").toLowerCase(),
-            product_data: {
-              name: listing.title,
-              description: listing.description?.substring(0, 200) || undefined,
-              ...(imageUrl ? { images: [imageUrl] } : {}),
-              metadata: {
-                listing_id: listing.id,
-                seller_id: seller.id,
-              },
-            },
-            unit_amount: Math.round(listing.price * 100),
-          },
-          quantity: 1,
-        },
-      ],
+      line_items: lineItems,
       mode: "payment",
-      success_url: successUrl || `${origin}/c2c/purchase/success?listing=${listingId}`,
-      cancel_url: cancelUrl || `${origin}/c2c/purchase/cancel?listing=${listingId}`,
+      success_url: successUrl || `${origin}/dashboard/c2c/orders?success=true&listing=${listingId}`,
+      cancel_url: cancelUrl || `${origin}/dashboard/c2c/${listingId}`,
       metadata: {
         type: "c2c_purchase",
         workspace_id: workspaceId,
@@ -143,7 +163,9 @@ Deno.serve(async (req) => {
         seller_user_id: listing.seller_id,
         buyer_user_id: buyerUserId || "",
         commission_rate: commissionRate.toString(),
-        sale_amount: listing.price.toString(),
+        sale_amount: itemPrice.toString(),
+        shipping_method: shippingMethod || "",
+        shipping_price: shipCost.toString(),
       },
     });
 
@@ -156,11 +178,11 @@ Deno.serve(async (req) => {
       .eq("id", listingId);
 
     // Pre-create commission record as pending
-    const saleAmount = listing.price;
+    const saleAmount = itemPrice;
     const commissionAmount = saleAmount * (commissionRate / 100);
     const sellerAmount = saleAmount - commissionAmount;
 
-    const { error: commissionError } = await supabaseClient
+    const { data: commissionData, error: commissionError } = await supabaseClient
       .from("c2c_commissions")
       .insert({
         workspace_id: workspaceId,
@@ -173,12 +195,43 @@ Deno.serve(async (req) => {
         seller_amount: sellerAmount,
         currency: (listing.currency || "EUR").toUpperCase(),
         status: "pending",
-      });
+      })
+      .select("id")
+      .single();
 
     if (commissionError) {
       logStep("Commission insert error (non-blocking)", { message: commissionError.message });
     } else {
       logStep("Commission record created", { commissionAmount, sellerAmount });
+    }
+
+    // Create order record
+    const { error: orderError } = await supabaseClient
+      .from("c2c_orders")
+      .insert({
+        workspace_id: workspaceId,
+        listing_id: listingId,
+        buyer_id: buyerUserId || '00000000-0000-0000-0000-000000000000',
+        seller_id: listing.seller_id,
+        seller_c2c_id: seller.id,
+        item_price: itemPrice,
+        shipping_price: shipCost,
+        total_price: totalPrice,
+        currency: (listing.currency || "EUR").toUpperCase(),
+        shipping_method: shippingMethod || null,
+        shipping_carrier: shippingCarrier || null,
+        delivery_mode: shippingMethod === 'in_person' ? 'in_person' : 'shipping',
+        meetup_location: meetupLocation || null,
+        status: "pending",
+        payment_status: "pending",
+        stripe_session_id: session.id,
+        commission_id: commissionData?.id || null,
+      });
+
+    if (orderError) {
+      logStep("Order insert error (non-blocking)", { message: orderError.message });
+    } else {
+      logStep("Order record created");
     }
 
     return new Response(JSON.stringify({ url: session.url }), {

@@ -7,13 +7,17 @@ interface C2CCheckoutParams {
   workspaceId: string;
   buyerEmail?: string;
   buyerName?: string;
+  shippingMethod?: string;
+  shippingPrice?: number;
+  shippingCarrier?: string;
+  meetupLocation?: string;
 }
 
 export function useC2CCheckout() {
   return useMutation({
-    mutationFn: async ({ listingId, workspaceId, buyerEmail, buyerName }: C2CCheckoutParams) => {
+    mutationFn: async (params: C2CCheckoutParams) => {
       const { data, error } = await supabase.functions.invoke("create-c2c-checkout", {
-        body: { listingId, workspaceId, buyerEmail, buyerName },
+        body: params,
       });
 
       if (error) throw error;

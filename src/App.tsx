@@ -230,6 +230,7 @@ import C2CAffiliateAdmin from "./pages/c2c/C2CAffiliateAdmin";
 import C2CSellerProfile from "./pages/c2c/C2CSellerProfile";
 import C2CEditListing from "./pages/c2c/C2CEditListing";
 import C2CNotifications from "./pages/c2c/C2CNotifications";
+import C2COrders from "./pages/c2c/C2COrders";
 import C2CSellerInviteActivation from "./pages/c2c/C2CSellerInviteActivation";
 import C2CPublicSellerProfile from "./pages/c2c/C2CPublicSellerProfile";
 
@@ -618,6 +619,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/c2c/referrals" element={<C2CReferralCenter />} />
                 <Route path="/dashboard/c2c/affiliate-admin" element={<C2CAffiliateAdmin />} />
                 <Route path="/dashboard/c2c/notifications" element={<C2CNotifications />} />
+                <Route path="/dashboard/c2c/orders" element={<C2COrders />} />
                 <Route path="/dashboard/c2c/seller/:sellerId" element={<C2CSellerProfile />} />
                 <Route path="/dashboard/c2c/edit/:id" element={<C2CEditListing />} />
                 <Route path="/dashboard/c2c/:id" element={<C2CListingDetail />} />
