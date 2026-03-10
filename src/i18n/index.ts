@@ -102,7 +102,7 @@ i18n
       caches: ['localStorage'],
       lookupLocalStorage: 'i18nextLng',
     },
-    ns: ['common', 'nav', 'dashboard', 'crm', 'settings', 'landing', 'inbox', 'automations', 'intelligence', 'invoices', 'products', 'auth', 'reports', 'meetings', 'ask', 'procurement', 'performance', 'marketplace'],
+    ns: ['common', 'nav', 'dashboard', 'crm', 'settings', 'landing', 'inbox', 'automations', 'intelligence', 'invoices', 'products', 'auth', 'reports', 'meetings', 'ask', 'procurement', 'performance', 'marketplace', 'security'],
     defaultNS: 'common',
     interpolation: { escapeValue: false },
     resources: {
