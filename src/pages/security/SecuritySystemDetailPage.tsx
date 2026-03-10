@@ -350,6 +350,12 @@ export default function SecuritySystemDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <SecurityDocumentCreateDialog
+        open={docDialogOpen}
+        onOpenChange={setDocDialogOpen}
+        defaultSystemId={id}
+      />
     </DashboardLayout>
   );
 }

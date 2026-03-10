@@ -15,16 +15,23 @@ interface Props {
   defaultSystemId?: string;
 }
 
-export function SecurityDocumentCreateDialog({ open, onOpenChange }: Props) {
+export function SecurityDocumentCreateDialog({ open, onOpenChange, defaultSystemId }: Props) {
   const { t } = useTranslation("security");
   const { createDocument } = useSecurityDocuments();
   const { systems } = useSecuritySystems();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    system_id: "",
+    system_id: defaultSystemId || "",
     document_type: "",
     validation_notes: "",
+  });
+
+  // Sync defaultSystemId when dialog opens
+  useState(() => {
+    if (defaultSystemId && open) {
+      setForm(p => ({ ...p, system_id: defaultSystemId }));
+    }
   });
 
   const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
