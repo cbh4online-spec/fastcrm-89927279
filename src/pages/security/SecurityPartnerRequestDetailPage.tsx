@@ -18,6 +18,7 @@ export default function SecurityPartnerRequestDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { requests, extractData, updateRequest } = useSecurityPartnerRequests();
+  const { convertRequestToLead } = useSecurityConversions();
   const request = requests.find((r) => r.id === id);
   const [editedPayload, setEditedPayload] = useState<Record<string, any>>({});
 
