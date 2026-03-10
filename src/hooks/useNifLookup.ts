@@ -70,7 +70,23 @@ export function useNifLookup(options: UseNifLookupOptions = {}) {
         body: { nif: cleanNif },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Try to extract error message from the response context
+        const ctx = (error as any)?.context;
+        if (ctx && typeof ctx.json === 'function') {
+          try {
+            const body = await ctx.json();
+            if (body?.error) {
+              setStatus("error");
+              setMessage(body.error);
+              if (showToasts) toast.error(body.error);
+              onError?.(body.error);
+              return null;
+            }
+          } catch {}
+        }
+        throw error;
+      }
 
       if (response.error) {
         setStatus("error");
