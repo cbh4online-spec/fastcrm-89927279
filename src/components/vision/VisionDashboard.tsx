@@ -14,6 +14,7 @@ import { VisionDuoCard } from "./VisionDuoCard";
 import { VisionAICopilot } from "./VisionAICopilot";
 import { VisionSettingsPanel } from "./VisionSettingsPanel";
 import { VisionOnboarding } from "./VisionOnboarding";
+import { VisionDuoPartnerView } from "./VisionDuoPartnerView";
 
 export function VisionDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
