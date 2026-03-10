@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
       .from("marketplace_modules")
       .select("id, slug, name, manifest_json")
       .eq("slug", module_slug)
-      .eq("status", "active")
+      .in("status", ["active", "published"])
       .single();
 
     if (moduleError || !module) {
