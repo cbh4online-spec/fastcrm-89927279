@@ -583,6 +583,9 @@ function CRMRoutes() {
                 <Route path="/dashboard/imo-ai" element={<IMOAIPage />} />
                 <Route path="/dashboard/zapier" element={<ZapierPage />} />
                 
+                {/* Método Vision */}
+                <Route path="/dashboard/vision" element={<VisionPage />} />
+                
                 {/* Revenue Flight Control */}
                 <Route path="/dashboard/revenue-flight-control" element={<RevenueFlightControlPage />} />
                 <Route path="/dashboard/revenue-flight-control/deals" element={<RFCDealsPage />} />
