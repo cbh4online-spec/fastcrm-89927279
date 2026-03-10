@@ -641,6 +641,11 @@ function CRMRoutes() {
                 {/* FastMatch Discovery (CRM) */}
                 <Route path="/dashboard/fastmatch" element={<FastMatchDiscoveryPage />} />
 
+                {/* Security Ops Routes */}
+                <Route path="/dashboard/security" element={<SecurityDashboardPage />} />
+                <Route path="/dashboard/security/partner-requests" element={<SecurityPartnerRequestsPage />} />
+                <Route path="/dashboard/security/partner-requests/:id" element={<SecurityPartnerRequestDetailPage />} />
+
                 {/* Student Journey Module Routes */}
                 <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />
                 <Route path="/dashboard/student-journey/activation" element={<SJLayout><SJActivationDashboard /></SJLayout>} />
