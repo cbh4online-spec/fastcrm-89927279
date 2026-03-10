@@ -12,12 +12,14 @@ interface AIProductAssistantProps {
   productName: string;
   currentCategory?: string;
   currentProductType?: ProductType;
+  currentBillingType?: string;
   existingCategories?: ProductCategory[];
   onApplyCategory: (category: string) => void;
   onApplyExistingCategory?: (category: ProductCategory) => void;
   onApplyPrice: (price: number) => void;
   onApplyDescription: (description: string) => void;
   onApplyProductType: (type: ProductType) => void;
+  onApplyBillingType?: (type: string) => void;
 }
 
 const productTypeLabels: Record<string, string> = {
