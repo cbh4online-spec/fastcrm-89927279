@@ -26,7 +26,7 @@ import {
   ExternalLink,
   Loader2,
   Settings,
-  CreditCard,
+  Coins,
   CheckCircle2,
   History,
   ChevronsUpDown,
@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import { useCreateLead, useLeads } from "@/hooks/useLeads";
-import { useCredits } from "@/hooks/useCredits";
+import { useCreditWallet } from "@/hooks/useCreditWallet";
 import { cn } from "@/lib/utils";
 
 interface GooglePlaceResult {
@@ -655,7 +655,10 @@ export default function GoogleLocalProspecting() {
   const [minRating, setMinRating] = useState("4");
   
   const createLead = useCreateLead();
-  const { usage, consumeCredits, hasCredits } = useCredits("google_local");
+  const { balance, getCost, canAfford, consumeCredits } = useCreditWallet();
+  const searchCost = getCost("prospecting_google_local_search");
+  const importCost = getCost("prospecting_lead_import");
+  const hasCredits = canAfford("prospecting_google_local_search");
   const { data: recentLeads = [] } = useLeads({ 
     status: undefined 
   });
@@ -748,12 +751,11 @@ export default function GoogleLocalProspecting() {
         return;
       }
 
-      // Consume 1 credit for the search
+      // Consume credits for the search
       try {
         await consumeCredits.mutateAsync({
-          credits: 1,
-          actionKey: "search",
-          actionDescription: `Pesquisa: ${query} em ${selectedLocation || "Portugal"}`,
+          actionKey: "prospecting_google_local_search",
+          metadata: { query, location: selectedLocation || "Portugal" },
         });
       } catch (creditError) {
         console.error("Error consuming credits:", creditError);
@@ -933,8 +935,8 @@ export default function GoogleLocalProspecting() {
             </DialogContent>
           </Dialog>
           <Badge variant="outline" className="gap-2 py-2 px-3">
-            <CreditCard className="h-4 w-4" />
-            {usage.used}/{usage.total} créditos
+            <Coins className="h-4 w-4" />
+            {balance} créditos ({searchCost}/pesquisa)
           </Badge>
         </div>
       </div>
