@@ -14,7 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select";
 import {
-  useFunnelSteps, useCreateFunnelStep, useDeleteFunnelStep, useUpdateFunnelStep
+  useFunnelSteps, useFunnel, useCreateFunnelStep, useDeleteFunnelStep, useUpdateFunnelStep
 } from "@/hooks/useFunnels";
 import { useFunnelVariations, useCreateVariation, useDeleteVariation, useUpdateVariation } from "@/hooks/useFunnelVariations";
 import { cn } from "@/lib/utils";
