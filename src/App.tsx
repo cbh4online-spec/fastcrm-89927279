@@ -675,6 +675,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/security/systems" element={<SecuritySystemsPage />} />
                 <Route path="/dashboard/security/systems/:id" element={<SecuritySystemDetailPage />} />
                 <Route path="/dashboard/security/equipment" element={<SecurityEquipmentPage />} />
+                <Route path="/dashboard/security/equipment/:id" element={<SecurityEquipmentDetailPage />} />
                 <Route path="/dashboard/security/clients" element={<SecurityClientsPage />} />
                 <Route path="/dashboard/security/clients/:id" element={<SecurityClientDetailPage />} />
                 <Route path="/dashboard/security/contracts" element={<SecurityContractsPage />} />
