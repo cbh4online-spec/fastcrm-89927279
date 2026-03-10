@@ -74,7 +74,7 @@ export function FunnelRoutingTab({ funnelId }: Props) {
         round_robin: roundRobin,
         tags_json: tags ? tags.split(",").map((t) => t.trim()) : null,
         priority: (rules.length + 1) * 10,
-      } as Record<string, unknown>);
+      });
       if (error) throw error;
     },
     onSuccess: () => {

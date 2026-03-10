@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Zap, Play, Pause, Trash2, Mail, MessageSquare, Bell, ArrowRight } from "lucide-react";
+import { Plus, Zap, Trash2, Mail, MessageSquare, Bell, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,18 +21,6 @@ interface Props {
   funnelId: string;
 }
 
-interface FunnelAutomation {
-  id: string;
-  name: string;
-  trigger_type: string;
-  action_type: string;
-  channel: string;
-  is_active: boolean;
-  delay_minutes: number;
-  conditions: Record<string, unknown> | null;
-  created_at: string;
-}
-
 const TRIGGERS = [
   { value: "lead_submit", label: "Lead Submetido" },
   { value: "quiz_complete", label: "Quiz Completo" },
@@ -45,9 +33,9 @@ const TRIGGERS = [
 ];
 
 const ACTIONS = [
-  { value: "send_email", label: "Enviar Email", icon: Mail },
-  { value: "send_whatsapp", label: "Enviar WhatsApp", icon: MessageSquare },
-  { value: "notify_team", label: "Notificar Equipa", icon: Bell },
+  { value: "send_email", label: "Enviar Email" },
+  { value: "send_whatsapp", label: "Enviar WhatsApp" },
+  { value: "notify_team", label: "Notificar Equipa" },
   { value: "add_tag", label: "Adicionar Tag" },
   { value: "move_stage", label: "Mover de Etapa" },
   { value: "create_task", label: "Criar Tarefa" },
@@ -74,43 +62,28 @@ export function FunnelAutomationsTab({ funnelId }: Props) {
     queryKey: ["funnel-automations", funnelId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("automation_rules")
+        .from("funnel_automations")
         .select("*")
-        .eq("workspace_id", currentWorkspace?.id)
-        .eq("module", "funnels")
-        .contains("metadata", { funnel_id: funnelId })
+        .eq("funnel_id", funnelId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data || []).map((r: Record<string, unknown>) => ({
-        id: r.id as string,
-        name: r.name as string,
-        trigger_type: r.trigger_type as string,
-        action_type: r.action_type as string,
-        channel: (r.metadata as Record<string, unknown>)?.channel as string || "email",
-        is_active: r.is_active as boolean,
-        delay_minutes: (r.metadata as Record<string, unknown>)?.delay_minutes as number || 0,
-        conditions: r.conditions as Record<string, unknown> | null,
-        created_at: r.created_at as string,
-      })) as FunnelAutomation[];
+      return data || [];
     },
-    enabled: !!currentWorkspace?.id,
   });
 
   const createAutomation = useMutation({
     mutationFn: async () => {
       if (!currentWorkspace?.id) throw new Error("No workspace");
-      const { error } = await supabase.from("automation_rules").insert({
+      const autoName = name || `${TRIGGERS.find((t) => t.value === trigger)?.label} → ${ACTIONS.find((a) => a.value === action)?.label}`;
+      const { error } = await supabase.from("funnel_automations").insert({
+        funnel_id: funnelId,
         workspace_id: currentWorkspace.id,
-        name: name || `${TRIGGERS.find((t) => t.value === trigger)?.label} → ${ACTIONS.find((a) => a.value === action)?.label}`,
-        trigger_type: trigger,
+        name: autoName,
+        trigger_event: trigger,
         action_type: action,
-        module: "funnels",
+        channel,
+        delay_minutes: parseInt(delayMinutes) || 0,
         is_active: true,
-        metadata: {
-          funnel_id: funnelId,
-          channel,
-          delay_minutes: parseInt(delayMinutes) || 0,
-        },
       });
       if (error) throw error;
     },
@@ -130,7 +103,7 @@ export function FunnelAutomationsTab({ funnelId }: Props) {
   const toggleActive = useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
       const { error } = await supabase
-        .from("automation_rules")
+        .from("funnel_automations")
         .update({ is_active: active })
         .eq("id", id);
       if (error) throw error;
@@ -140,7 +113,7 @@ export function FunnelAutomationsTab({ funnelId }: Props) {
 
   const deleteAutomation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("automation_rules").delete().eq("id", id);
+      const { error } = await supabase.from("funnel_automations").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -198,7 +171,7 @@ export function FunnelAutomationsTab({ funnelId }: Props) {
         <div className="space-y-3">
           {automations.map((auto) => {
             const ChannelIcon = getChannelIcon(auto.channel);
-            const triggerLabel = TRIGGERS.find((t) => t.value === auto.trigger_type)?.label || auto.trigger_type;
+            const triggerLabel = TRIGGERS.find((t) => t.value === auto.trigger_event)?.label || auto.trigger_event;
             const actionLabel = ACTIONS.find((a) => a.value === auto.action_type)?.label || auto.action_type;
 
             return (
