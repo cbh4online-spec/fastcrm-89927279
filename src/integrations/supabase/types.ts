@@ -40062,6 +40062,438 @@ export type Database = {
           },
         ]
       }
+      vision_ai_sessions: {
+        Row: {
+          created_at: string
+          credits_consumed: number | null
+          id: string
+          metadata: Json | null
+          model: string | null
+          prompt: string | null
+          response: string | null
+          session_type: string
+          tokens_used: number | null
+          user_id: string
+          vision_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_consumed?: number | null
+          id?: string
+          metadata?: Json | null
+          model?: string | null
+          prompt?: string | null
+          response?: string | null
+          session_type: string
+          tokens_used?: number | null
+          user_id: string
+          vision_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_consumed?: number | null
+          id?: string
+          metadata?: Json | null
+          model?: string | null
+          prompt?: string | null
+          response?: string | null
+          session_type?: string
+          tokens_used?: number | null
+          user_id?: string
+          vision_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vision_ai_sessions_vision_id_fkey"
+            columns: ["vision_id"]
+            isOneToOne: false
+            referencedRelation: "vision_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vision_ai_sessions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vision_board_items: {
+        Row: {
+          color: string | null
+          content: string | null
+          created_at: string
+          height: number | null
+          id: string
+          image_url: string | null
+          position_x: number | null
+          position_y: number | null
+          sort_order: number | null
+          title: string | null
+          type: string
+          vision_id: string
+          width: number | null
+          workspace_id: string
+        }
+        Insert: {
+          color?: string | null
+          content?: string | null
+          created_at?: string
+          height?: number | null
+          id?: string
+          image_url?: string | null
+          position_x?: number | null
+          position_y?: number | null
+          sort_order?: number | null
+          title?: string | null
+          type?: string
+          vision_id: string
+          width?: number | null
+          workspace_id: string
+        }
+        Update: {
+          color?: string | null
+          content?: string | null
+          created_at?: string
+          height?: number | null
+          id?: string
+          image_url?: string | null
+          position_x?: number | null
+          position_y?: number | null
+          sort_order?: number | null
+          title?: string | null
+          type?: string
+          vision_id?: string
+          width?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vision_board_items_vision_id_fkey"
+            columns: ["vision_id"]
+            isOneToOne: false
+            referencedRelation: "vision_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vision_board_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vision_daily_briefings: {
+        Row: {
+          blockers: Json | null
+          completed_at: string | null
+          created_at: string
+          date: string
+          duration_minutes: number | null
+          energy_level: number | null
+          focus_items: Json | null
+          id: string
+          intentions: Json | null
+          reflections: string | null
+          sprint_id: string | null
+          started_at: string | null
+          status: string
+          user_id: string
+          vision_id: string
+          workspace_id: string
+        }
+        Insert: {
+          blockers?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          date?: string
+          duration_minutes?: number | null
+          energy_level?: number | null
+          focus_items?: Json | null
+          id?: string
+          intentions?: Json | null
+          reflections?: string | null
+          sprint_id?: string | null
+          started_at?: string | null
+          status?: string
+          user_id: string
+          vision_id: string
+          workspace_id: string
+        }
+        Update: {
+          blockers?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          date?: string
+          duration_minutes?: number | null
+          energy_level?: number | null
+          focus_items?: Json | null
+          id?: string
+          intentions?: Json | null
+          reflections?: string | null
+          sprint_id?: string | null
+          started_at?: string | null
+          status?: string
+          user_id?: string
+          vision_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vision_daily_briefings_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
+            referencedRelation: "vision_sprints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vision_daily_briefings_vision_id_fkey"
+            columns: ["vision_id"]
+            isOneToOne: false
+            referencedRelation: "vision_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vision_daily_briefings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vision_duo_links: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          id: string
+          invite_token: string
+          invitee_email: string
+          invitee_id: string | null
+          inviter_id: string
+          status: string
+          vision_id: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          id?: string
+          invite_token?: string
+          invitee_email: string
+          invitee_id?: string | null
+          inviter_id: string
+          status?: string
+          vision_id: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          id?: string
+          invite_token?: string
+          invitee_email?: string
+          invitee_id?: string | null
+          inviter_id?: string
+          status?: string
+          vision_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vision_duo_links_vision_id_fkey"
+            columns: ["vision_id"]
+            isOneToOne: false
+            referencedRelation: "vision_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vision_duo_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vision_profiles: {
+        Row: {
+          created_at: string
+          id: string
+          linked_funnel_id: string | null
+          manifesto: string | null
+          mode: string
+          objective: string | null
+          settings: Json | null
+          status: string
+          target_date: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          linked_funnel_id?: string | null
+          manifesto?: string | null
+          mode?: string
+          objective?: string | null
+          settings?: Json | null
+          status?: string
+          target_date?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          linked_funnel_id?: string | null
+          manifesto?: string | null
+          mode?: string
+          objective?: string | null
+          settings?: Json | null
+          status?: string
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vision_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vision_sprints: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          end_date: string
+          goal: string | null
+          id: string
+          metrics: Json | null
+          review_notes: string | null
+          start_date: string
+          status: string
+          title: string
+          vision_id: string
+          workspace_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          end_date: string
+          goal?: string | null
+          id?: string
+          metrics?: Json | null
+          review_notes?: string | null
+          start_date: string
+          status?: string
+          title: string
+          vision_id: string
+          workspace_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          end_date?: string
+          goal?: string | null
+          id?: string
+          metrics?: Json | null
+          review_notes?: string | null
+          start_date?: string
+          status?: string
+          title?: string
+          vision_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vision_sprints_vision_id_fkey"
+            columns: ["vision_id"]
+            isOneToOne: false
+            referencedRelation: "vision_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vision_sprints_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vision_wins: {
+        Row: {
+          category: string | null
+          celebrated: boolean | null
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          impact_level: string | null
+          title: string
+          user_id: string
+          vision_id: string
+          workspace_id: string
+        }
+        Insert: {
+          category?: string | null
+          celebrated?: boolean | null
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          impact_level?: string | null
+          title: string
+          user_id: string
+          vision_id: string
+          workspace_id: string
+        }
+        Update: {
+          category?: string | null
+          celebrated?: boolean | null
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          impact_level?: string | null
+          title?: string
+          user_id?: string
+          vision_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vision_wins_vision_id_fkey"
+            columns: ["vision_id"]
+            isOneToOne: false
+            referencedRelation: "vision_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vision_wins_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       weekly_briefs: {
         Row: {
           created_at: string | null
