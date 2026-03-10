@@ -153,6 +153,8 @@ export default function C2CListingDetail() {
   const [reportReason, setReportReason] = useState("");
   const [reportDetails, setReportDetails] = useState("");
   const [selectedPhoto, setSelectedPhoto] = useState(0);
+  const [shippingSelection, setShippingSelection] = useState<{ method: string; price: number; carrier: string; estimate: string } | null>(null);
+  const [meetupLocation, setMeetupLocation] = useState("");
 
   const conditionLabels: Record<string, string> = {
     new: t('conditionNew'), like_new: t('conditionLikeNew'), used: t('conditionUsed'), for_parts: t('conditionForParts'),
