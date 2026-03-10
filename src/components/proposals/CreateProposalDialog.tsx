@@ -35,6 +35,7 @@ import { useOpportunities, useOpportunity } from "@/hooks/useOpportunities";
 import { useGenerateProposalCopy, ProposalTone } from "@/hooks/useGenerateProposalCopy";
 import type { ContentBlock } from "@/types/proposal";
 import { toast } from "sonner";
+import { useInvoiceSettings } from "@/hooks/useInvoiceSettings";
 
 interface CreateProposalDialogProps {
   open: boolean;

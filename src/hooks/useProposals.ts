@@ -250,7 +250,7 @@ export function useCreateProposal() {
         cta_text: input.cta_text || "Aceitar Proposta",
         cta_color: input.cta_color || "#3b82f6",
         price: input.price,
-        currency: input.currency || "BRL",
+        currency: input.currency || "EUR",
         expires_at: input.expires_at,
         created_by: user?.id,
       };
