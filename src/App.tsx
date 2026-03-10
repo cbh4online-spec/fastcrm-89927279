@@ -672,6 +672,8 @@ function CRMRoutes() {
                 <Route path="/dashboard/security/occurrences" element={<SecurityOccurrencesPage />} />
                 <Route path="/dashboard/security/occurrences/:id" element={<SecurityOccurrenceDetailPage />} />
                 <Route path="/dashboard/security/renewals" element={<SecurityRenewalsPage />} />
+
+                {/* Student Journey Module Routes */}
                 <Route path="/dashboard/student-journey" element={<SJLayout><SJDashboard /></SJLayout>} />
                 <Route path="/dashboard/student-journey/activation" element={<SJLayout><SJActivationDashboard /></SJLayout>} />
                 <Route path="/dashboard/student-journey/profiles" element={<SJLayout><SJProfiles /></SJLayout>} />
