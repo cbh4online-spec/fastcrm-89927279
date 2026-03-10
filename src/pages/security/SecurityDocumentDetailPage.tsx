@@ -5,14 +5,19 @@ import { useSecurityDocument, useSecurityDocuments, useDocumentVersionHistory } 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, FileText, CheckCircle, Send, Copy, Clock, Shield, Download } from "lucide-react";
+import {
+  SecurityDocumentA4Template,
+  DocSection,
+  DocFieldGrid,
+  DocEquipmentTable,
+  DocSignatureBlock,
+} from "@/components/security/SecurityDocumentA4Template";
+import { ArrowLeft, FileText, CheckCircle, Send, Copy, Clock, Shield, Download, Eye, EyeOff } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useRef } from "react";
 
@@ -36,11 +41,12 @@ export default function SecurityDocumentDetailPage() {
   const { validateDocument, emitDocument, updateDocument, createNewVersion } = useSecurityDocuments();
   const [validationNotes, setValidationNotes] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [showA4Preview, setShowA4Preview] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
 
   const system = doc?.security_systems as any;
   const site = system?.security_installation_sites as any;
-  const devices = system?.security_installed_devices as any[] || [];
+  const rawDevices = system?.security_installed_devices as any[] || [];
   const zones = system?.security_system_zones as any[] || [];
   const sourceData = doc?.source_data_json as any;
 
@@ -62,6 +68,17 @@ export default function SecurityDocumentDetailPage() {
   const canCreateVersion = doc.status === "emitted" || doc.status === "signed";
   const currentStepIndex = statusFlow.indexOf(doc.status);
 
+  // Map devices for A4 template
+  const devices = rawDevices.map((d: any) => ({
+    zone: d.security_system_zones?.zone_name,
+    type: d.device_type,
+    brand: d.brand || d.security_equipment_catalog?.brand,
+    model: d.model || d.security_equipment_catalog?.model,
+    reference: d.reference || d.security_equipment_catalog?.reference,
+    serial: d.serial_number,
+    qty: d.quantity ?? 1,
+  }));
+
   const handleMarkForValidation = () => {
     updateDocument.mutate({ id: doc.id, status: "por_validar", validation_notes: validationNotes || null });
   };
@@ -81,23 +98,61 @@ export default function SecurityDocumentDetailPage() {
   const handleExportPDF = async () => {
     if (!previewRef.current) return;
     setExporting(true);
+    // Temporarily show A4 preview for export
+    const wasShowing = showA4Preview;
+    if (!wasShowing) setShowA4Preview(true);
+
+    // Wait for render
+    await new Promise(r => setTimeout(r, 100));
+
     try {
       const html2canvas = (await import("html2canvas")).default;
       const jsPDF = (await import("jspdf")).default;
-      const canvas = await html2canvas(previewRef.current, { scale: 2, useCORS: true });
+      const canvas = await html2canvas(previewRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        width: 794,
+      });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const pdfW = pdf.internal.pageSize.getWidth();
       const pdfH = (canvas.height * pdfW) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, pdfW, pdfH);
+
+      // Handle multi-page if content is tall
+      const pageH = pdf.internal.pageSize.getHeight();
+      if (pdfH <= pageH) {
+        pdf.addImage(imgData, "PNG", 0, 0, pdfW, pdfH);
+      } else {
+        let y = 0;
+        let page = 0;
+        while (y < canvas.height) {
+          if (page > 0) pdf.addPage();
+          const sliceH = Math.min(canvas.height - y, (pageH / pdfW) * canvas.width);
+          const sliceCanvas = document.createElement("canvas");
+          sliceCanvas.width = canvas.width;
+          sliceCanvas.height = sliceH;
+          const ctx = sliceCanvas.getContext("2d");
+          ctx?.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+          const sliceImg = sliceCanvas.toDataURL("image/png");
+          const h = (sliceH * pdfW) / canvas.width;
+          pdf.addImage(sliceImg, "PNG", 0, 0, pdfW, h);
+          y += sliceH;
+          page++;
+        }
+      }
+
       const docLabel = docTypeLabels[doc.document_type] || doc.document_type;
       pdf.save(`${docLabel}_v${doc.version_number || 1}.pdf`);
     } catch (e) {
       console.error("PDF export error:", e);
     } finally {
+      if (!wasShowing) setShowA4Preview(false);
       setExporting(false);
     }
   };
+
+  const sd = sourceData || {};
 
   return (
     <DashboardLayout>
@@ -147,59 +202,59 @@ export default function SecurityDocumentDetailPage() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left: Document Preview */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Preview Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FileText className="h-4 w-4" /> Pré-visualização do Documento
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div ref={previewRef} className="bg-muted/30 rounded-lg p-6 min-h-[400px] border">
-                  {/* Rendered document preview based on source_data_json */}
-                  <DocumentPreview
-                    documentType={doc.document_type}
-                    sourceData={sourceData}
-                    system={system}
-                    site={site}
-                    devices={devices}
-                    zones={zones}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            {/* Toggle A4 Preview */}
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => setShowA4Preview(!showA4Preview)}
+              >
+                {showA4Preview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showA4Preview ? "Vista Normal" : "Vista A4 (PDF)"}
+              </Button>
+            </div>
 
-            {/* Equipment Table for Conformity */}
-            {devices.length > 0 && (doc.document_type === "conformity_declaration" || doc.document_type === "installation_certificate") && (
+            {showA4Preview ? (
+              /* A4 Professional Preview */
+              <div className="overflow-x-auto">
+                <div ref={previewRef}>
+                  <SecurityDocumentA4Template
+                    documentType={doc.document_type}
+                    versionNumber={doc.version_number || 1}
+                    emittedAt={doc.emitted_at}
+                    companyName={sd.installer_company}
+                  >
+                    <A4DocumentContent
+                      documentType={doc.document_type}
+                      sourceData={sd}
+                      system={system}
+                      site={site}
+                      devices={devices}
+                      zones={zones}
+                    />
+                  </SecurityDocumentA4Template>
+                </div>
+              </div>
+            ) : (
+              /* Simple Preview Card */
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">{t("equipment")}</CardTitle>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <FileText className="h-4 w-4" /> Pré-visualização
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t("zones")}</TableHead>
-                        <TableHead>{t("type")}</TableHead>
-                        <TableHead>{t("brand")}</TableHead>
-                        <TableHead>{t("model")}</TableHead>
-                        <TableHead>{t("reference")}</TableHead>
-                        <TableHead className="text-right">{t("quantity")}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {devices.map((d: any) => (
-                        <TableRow key={d.id}>
-                          <TableCell>{d.security_system_zones?.zone_name || "—"}</TableCell>
-                          <TableCell>{d.device_type || "—"}</TableCell>
-                          <TableCell>{d.brand || d.security_equipment_catalog?.brand || "—"}</TableCell>
-                          <TableCell>{d.model || d.security_equipment_catalog?.model || "—"}</TableCell>
-                          <TableCell className="font-mono text-xs">{d.reference || d.security_equipment_catalog?.reference || "—"}</TableCell>
-                          <TableCell className="text-right">{d.quantity ?? 1}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <div className="bg-muted/30 rounded-lg p-6 min-h-[300px] border space-y-4 text-sm">
+                    <SimplePreview
+                      documentType={doc.document_type}
+                      sourceData={sd}
+                      system={system}
+                      site={site}
+                      devices={rawDevices}
+                      zones={zones}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -207,11 +262,8 @@ export default function SecurityDocumentDetailPage() {
 
           {/* Right: Actions & History */}
           <div className="space-y-6">
-            {/* Actions */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">{t("actions")}</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-base">{t("actions")}</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 {doc.status === "draft" && (
                   <>
@@ -250,7 +302,7 @@ export default function SecurityDocumentDetailPage() {
                         <AlertDialogTitle>Confirmar Emissão</AlertDialogTitle>
                         <AlertDialogDescription>
                           Após emissão, o documento ficará disponível oficialmente.
-                          Esta ação não pode ser desfeita — para alterações será necessário criar uma nova versão.
+                          Para alterações será necessário criar uma nova versão.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -271,39 +323,21 @@ export default function SecurityDocumentDetailPage() {
                   </Button>
                 )}
 
-                {(doc.status === "emitted" || doc.status === "signed") && (
-                  <Button onClick={handleExportPDF} variant="outline" className="w-full gap-2" disabled={exporting}>
-                    <Download className="h-4 w-4" />
-                    {exporting ? "A exportar..." : "Exportar PDF"}
-                  </Button>
-                )}
+                <Button onClick={handleExportPDF} variant="outline" className="w-full gap-2" disabled={exporting}>
+                  <Download className="h-4 w-4" />
+                  {exporting ? "A exportar..." : "Exportar PDF"}
+                </Button>
               </CardContent>
             </Card>
 
             {/* Details */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">{t("details")}</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-base">{t("details")}</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t("type")}</span>
-                  <span>{docTypeLabels[doc.document_type] || doc.document_type}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Versão</span>
-                  <span>v{doc.version_number || 1}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t("created")}</span>
-                  <span>{format(new Date(doc.created_at), "dd/MM/yyyy HH:mm")}</span>
-                </div>
-                {doc.emitted_at && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Emitido em</span>
-                    <span>{format(new Date(doc.emitted_at), "dd/MM/yyyy HH:mm")}</span>
-                  </div>
-                )}
+                <InfoRow label={t("type")} value={docTypeLabels[doc.document_type] || doc.document_type} />
+                <InfoRow label="Versão" value={`v${doc.version_number || 1}`} />
+                <InfoRow label={t("created")} value={format(new Date(doc.created_at), "dd/MM/yyyy HH:mm")} />
+                {doc.emitted_at && <InfoRow label="Emitido em" value={format(new Date(doc.emitted_at), "dd/MM/yyyy HH:mm")} />}
                 {doc.validation_notes && (
                   <div className="pt-2 border-t">
                     <span className="text-muted-foreground text-xs">Notas de validação</span>
@@ -351,8 +385,18 @@ export default function SecurityDocumentDetailPage() {
   );
 }
 
-/* Document Preview Component */
-function DocumentPreview({
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-muted-foreground">{label}</span>
+      <span>{value}</span>
+    </div>
+  );
+}
+
+/* ─── A4 Document Content (for PDF export) ─── */
+
+function A4DocumentContent({
   documentType,
   sourceData,
   system,
@@ -370,313 +414,282 @@ function DocumentPreview({
   const sd = sourceData || {};
 
   if (documentType === "installation_certificate" || documentType === "maintenance_certificate") {
+    const isMaintenance = documentType === "maintenance_certificate";
     return (
-      <div className="space-y-4 text-sm">
-        <div className="text-center border-b pb-4">
-          <h2 className="text-lg font-bold uppercase">
-            {documentType === "installation_certificate"
-              ? "Certificado de Instalação"
-              : "Certificado de Manutenção"}
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">Sistema de Segurança Eletrónica</p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Proprietário</p>
-            <p>{sd.owner_name || site?.onsite_responsible_name || "—"}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Entidade Instaladora</p>
-            <p>{sd.installer_company || system?.installer_company_name || "—"}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Local da Instalação</p>
-            <p>{site?.address_line_1 || "—"}</p>
-            <p>{[site?.postal_code, site?.locality].filter(Boolean).join(" ")}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Concelho / Distrito</p>
-            <p>{[site?.county, site?.district].filter(Boolean).join(" / ") || "—"}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Tipo de Sistema</p>
-            <p>{system?.system_type || "—"}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Data da Instalação</p>
-            <p>{system?.installation_date ? format(new Date(system.installation_date), "dd/MM/yyyy") : "—"}</p>
-          </div>
-        </div>
+      <>
+        <DocSection title="Identificação">
+          <DocFieldGrid
+            fields={[
+              { label: "Proprietário / Usufrutuário", value: sd.owner_name || site?.onsite_responsible_name },
+              { label: isMaintenance ? "Empresa de Manutenção" : "Entidade Instaladora", value: sd.installer_company || system?.installer_company_name },
+              { label: "Local da Instalação", value: [site?.address_line_1, site?.postal_code, site?.locality].filter(Boolean).join(", ") },
+              { label: "Concelho / Distrito", value: [site?.county, site?.district].filter(Boolean).join(" / ") },
+              { label: "Tipo de Sistema", value: system?.system_type },
+              { label: isMaintenance ? "Data da Manutenção" : "Data da Instalação", value: system?.installation_date ? format(new Date(system.installation_date), "dd/MM/yyyy") : undefined },
+            ]}
+          />
+        </DocSection>
 
         {devices.length > 0 && (
-          <div className="pt-4 border-t">
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-2">Equipamentos Instalados</p>
-            {devices.map((d: any, i: number) => (
-              <p key={i} className="text-xs">
-                • {d.security_system_zones?.zone_name || "—"}: {d.brand || d.security_equipment_catalog?.brand} {d.model || d.security_equipment_catalog?.model} (x{d.quantity ?? 1})
-              </p>
-            ))}
-          </div>
+          <DocSection title="Equipamentos Instalados">
+            <DocEquipmentTable devices={devices} />
+          </DocSection>
         )}
 
-        <div className="pt-6 grid grid-cols-3 gap-4 text-center border-t">
-          <div>
-            <div className="h-12 border-b border-dashed mb-1" />
-            <p className="text-xs text-muted-foreground">Técnico Instalador</p>
-          </div>
-          <div>
-            <div className="h-12 border-b border-dashed mb-1" />
-            <p className="text-xs text-muted-foreground">Técnico Responsável</p>
-          </div>
-          <div>
-            <div className="h-12 border-b border-dashed mb-1" />
-            <p className="text-xs text-muted-foreground">Proprietário</p>
-          </div>
-        </div>
-      </div>
+        {zones.length > 0 && (
+          <DocSection title="Zonas Protegidas">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+              {zones.map((z: any, i: number) => (
+                <span key={i} style={{ padding: "3px 10px", background: "#f5f5f5", borderRadius: "4px", fontSize: "11px" }}>
+                  {z.zone_name} ({z.zone_type})
+                </span>
+              ))}
+            </div>
+          </DocSection>
+        )}
+
+        {sd.special_notes && (
+          <DocSection title="Observações">
+            <p style={{ fontSize: "11px" }}>{sd.special_notes}</p>
+          </DocSection>
+        )}
+
+        <DocSignatureBlock labels={["Técnico Instalador", "Técnico Responsável", "Proprietário"]} />
+      </>
     );
   }
 
   if (documentType === "conformity_declaration") {
     return (
-      <div className="space-y-4 text-sm">
-        <div className="text-center border-b pb-4">
-          <h2 className="text-lg font-bold uppercase">Declaração de Conformidade</h2>
-          <p className="text-xs text-muted-foreground mt-1">Nos termos da legislação aplicável</p>
+      <>
+        <div style={{ textAlign: "center", marginBottom: "24px" }}>
+          <p style={{ fontSize: "12px", color: "#666" }}>Nos termos da legislação aplicável</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Entidade Emitente</p>
-            <p>{sd.emitter_company || "—"}</p>
-            <p className="text-xs">{sd.emitter_nipc ? `NIPC: ${sd.emitter_nipc}` : ""}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Local da Instalação</p>
-            <p>{site?.site_name || "—"}</p>
-            <p className="text-xs">{site?.address_line_1}</p>
-            <p className="text-xs">{[site?.postal_code, site?.locality].filter(Boolean).join(" ")}</p>
-          </div>
-        </div>
+        <DocSection title="Entidade Emitente">
+          <DocFieldGrid
+            fields={[
+              { label: "Designação", value: sd.emitter_company || sd.installer_company },
+              { label: "NIPC", value: sd.emitter_nipc || sd.client_nif },
+              { label: "Morada", value: sd.emitter_address || sd.client_fiscal_address },
+            ]}
+          />
+        </DocSection>
+
+        <DocSection title="Local da Instalação">
+          <DocFieldGrid
+            fields={[
+              { label: "Designação", value: site?.site_name },
+              { label: "Morada", value: [site?.address_line_1, site?.postal_code, site?.locality].filter(Boolean).join(", ") },
+              { label: "Proprietário", value: sd.owner_name || site?.onsite_responsible_name },
+            ]}
+          />
+        </DocSection>
 
         {devices.length > 0 && (
-          <div className="pt-4 border-t">
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-2">Lista de Equipamentos</p>
-            <div className="border rounded overflow-hidden">
-              <table className="w-full text-xs">
-                <thead className="bg-muted">
-                  <tr>
-                    <th className="text-left p-2">Designação</th>
-                    <th className="text-left p-2">Modelo</th>
-                    <th className="text-left p-2">Referência</th>
-                    <th className="text-right p-2">Qtd</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {devices.map((d: any, i: number) => (
-                    <tr key={i} className="border-t">
-                      <td className="p-2">{d.device_type || d.security_system_zones?.zone_name || "—"}</td>
-                      <td className="p-2">{d.model || d.security_equipment_catalog?.model || "—"}</td>
-                      <td className="p-2 font-mono">{d.reference || d.security_equipment_catalog?.reference || "—"}</td>
-                      <td className="p-2 text-right">{d.quantity ?? 1}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <DocSection title="Lista de Equipamentos">
+            <DocEquipmentTable devices={devices} />
+          </DocSection>
         )}
 
-        <div className="pt-4 border-t">
-          <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Anotações Especiais</p>
-          <p className="text-xs">{sd.special_notes || "Sem anotações."}</p>
-        </div>
+        {sd.special_notes && (
+          <DocSection title="Anotações Especiais">
+            <p style={{ fontSize: "11px" }}>{sd.special_notes}</p>
+          </DocSection>
+        )}
 
-        <div className="pt-6 grid grid-cols-3 gap-4 text-center border-t">
-          <div>
-            <div className="h-12 border-b border-dashed mb-1" />
-            <p className="text-xs text-muted-foreground">Instalador</p>
-          </div>
-          <div>
-            <div className="h-12 border-b border-dashed mb-1" />
-            <p className="text-xs text-muted-foreground">Proprietário / Usufrutuário</p>
-          </div>
-          <div>
-            <div className="h-12 border-b border-dashed mb-1" />
-            <p className="text-xs text-muted-foreground">Técnico Responsável</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (documentType === "occurrence_book") {
-    return (
-      <div className="space-y-4 text-sm">
-        <div className="text-center border-b pb-4">
-          <h2 className="text-lg font-bold uppercase">Livro de Registo de Ocorrências</h2>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Proprietário do Sistema</p>
-            <p>{sd.owner_name || site?.onsite_responsible_name || "—"}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Localização do Sistema</p>
-            <p>{site?.address_line_1 || "—"}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Pessoa Competente</p>
-            <p>{sd.competent_person || "—"}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Empresa de Manutenção</p>
-            <p>{system?.maintenance_company_name || "—"}</p>
-          </div>
-        </div>
-        <div className="pt-4 border-t">
-          <p className="font-semibold text-xs text-muted-foreground uppercase mb-2">Registo Cronológico</p>
-          <div className="border rounded p-4 min-h-[100px] bg-background">
-            <p className="text-xs text-muted-foreground italic">Os registos de ocorrências serão preenchidos aqui...</p>
-          </div>
-        </div>
-      </div>
+        <DocSignatureBlock labels={["Instalador", "Proprietário / Usufrutuário", "Técnico Responsável"]} />
+      </>
     );
   }
 
   if (documentType === "technical_sheet") {
     return (
-      <div className="space-y-4 text-sm">
-        <div className="text-center border-b pb-4">
-          <h2 className="text-lg font-bold uppercase">Ficha Técnica do Sistema</h2>
-          <p className="text-xs text-muted-foreground mt-1">Sistema de Segurança Eletrónica</p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Tipo de Sistema</p>
-            <p className="capitalize">{system?.system_type || "—"}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Marca / Modelo Principal</p>
-            <p>{[system?.main_brand, system?.main_model].filter(Boolean).join(" ") || "—"}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Local</p>
-            <p>{site?.site_name || "—"}</p>
-            <p className="text-xs">{site?.address_line_1}</p>
-            <p className="text-xs">{[site?.postal_code, site?.locality].filter(Boolean).join(" ")}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Proprietário / Cliente</p>
-            <p>{sd.client_name || sd.owner_name || site?.onsite_responsible_name || "—"}</p>
-            {sd.client_nif && <p className="text-xs">NIF: {sd.client_nif}</p>}
-          </div>
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Entidade Instaladora</p>
-            <p>{sd.installer_company || system?.installer_company_name || "—"}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Empresa de Manutenção</p>
-            <p>{sd.maintenance_company || system?.maintenance_company_name || "—"}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Data de Instalação</p>
-            <p>{system?.installation_date ? format(new Date(system.installation_date), "dd/MM/yyyy") : "—"}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Comissionamento</p>
-            <p>{system?.commissioning_date ? format(new Date(system.commissioning_date), "dd/MM/yyyy") : "—"}</p>
-          </div>
-        </div>
+      <>
+        <DocSection title="Dados do Sistema">
+          <DocFieldGrid
+            fields={[
+              { label: "Tipo de Sistema", value: system?.system_type },
+              { label: "Marca / Modelo Principal", value: [system?.main_brand, system?.main_model].filter(Boolean).join(" ") },
+              { label: "Local", value: [site?.site_name, site?.address_line_1].filter(Boolean).join(" — ") },
+              { label: "Proprietário / Cliente", value: sd.client_name || sd.owner_name || site?.onsite_responsible_name },
+              { label: "NIF", value: sd.client_nif },
+              { label: "Entidade Instaladora", value: sd.installer_company || system?.installer_company_name },
+              { label: "Empresa de Manutenção", value: sd.maintenance_company || system?.maintenance_company_name },
+              { label: "Data de Instalação", value: system?.installation_date ? format(new Date(system.installation_date), "dd/MM/yyyy") : undefined },
+            ]}
+          />
+        </DocSection>
 
         {zones.length > 0 && (
-          <div className="pt-4 border-t">
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-2">Zonas Protegidas</p>
-            <div className="flex flex-wrap gap-2">
+          <DocSection title="Zonas Protegidas">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
               {zones.map((z: any, i: number) => (
-                <span key={i} className="px-2 py-1 rounded bg-muted text-xs">{z.zone_name} ({z.zone_type})</span>
+                <span key={i} style={{ padding: "3px 10px", background: "#f5f5f5", borderRadius: "4px", fontSize: "11px" }}>
+                  {z.zone_name} ({z.zone_type})
+                </span>
               ))}
             </div>
-          </div>
+          </DocSection>
         )}
 
         {devices.length > 0 && (
-          <div className="pt-4 border-t">
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-2">Lista de Equipamentos</p>
-            <div className="border rounded overflow-hidden">
-              <table className="w-full text-xs">
-                <thead className="bg-muted">
-                  <tr>
-                    <th className="text-left p-2">Zona</th>
-                    <th className="text-left p-2">Tipo</th>
-                    <th className="text-left p-2">Marca</th>
-                    <th className="text-left p-2">Modelo</th>
-                    <th className="text-left p-2">S/N</th>
-                    <th className="text-right p-2">Qtd</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {devices.map((d: any, i: number) => (
-                    <tr key={i} className="border-t">
-                      <td className="p-2">{d.security_system_zones?.zone_name || "—"}</td>
-                      <td className="p-2 capitalize">{d.device_type || "—"}</td>
-                      <td className="p-2">{d.brand || d.security_equipment_catalog?.brand || "—"}</td>
-                      <td className="p-2">{d.model || d.security_equipment_catalog?.model || "—"}</td>
-                      <td className="p-2 font-mono">{d.serial_number || "—"}</td>
-                      <td className="p-2 text-right">{d.quantity ?? 1}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <DocSection title="Lista de Equipamentos">
+            <DocEquipmentTable devices={devices} />
+          </DocSection>
         )}
 
         {system?.integration_notes && (
-          <div className="pt-4 border-t">
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Integração com Outros Sistemas</p>
-            <p className="text-xs">{system.integration_notes}</p>
-          </div>
+          <DocSection title="Integração com Outros Sistemas">
+            <p style={{ fontSize: "11px" }}>{system.integration_notes}</p>
+          </DocSection>
         )}
 
         {system?.technical_notes && (
-          <div className="pt-4 border-t">
-            <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Notas Técnicas</p>
-            <p className="text-xs">{system.technical_notes}</p>
-          </div>
+          <DocSection title="Notas Técnicas">
+            <p style={{ fontSize: "11px" }}>{system.technical_notes}</p>
+          </DocSection>
         )}
-      </div>
+      </>
+    );
+  }
+
+  if (documentType === "occurrence_book") {
+    return (
+      <>
+        <DocSection title="Identificação do Sistema">
+          <DocFieldGrid
+            fields={[
+              { label: "Proprietário", value: sd.owner_name || site?.onsite_responsible_name },
+              { label: "Localização", value: site?.address_line_1 },
+              { label: "Pessoa Competente", value: sd.competent_person },
+              { label: "Empresa de Manutenção", value: system?.maintenance_company_name },
+            ]}
+          />
+        </DocSection>
+
+        <DocSection title="Registo Cronológico">
+          <div style={{ border: "1px solid #ddd", borderRadius: "4px", padding: "16px", minHeight: "200px" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px" }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid #ddd" }}>
+                  <th style={{ textAlign: "left", padding: "4px 8px", width: "15%" }}>Data</th>
+                  <th style={{ textAlign: "left", padding: "4px 8px", width: "15%" }}>Tipo</th>
+                  <th style={{ textAlign: "left", padding: "4px 8px" }}>Descrição</th>
+                  <th style={{ textAlign: "left", padding: "4px 8px", width: "20%" }}>Responsável</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[1, 2, 3, 4, 5].map(i => (
+                  <tr key={i} style={{ borderBottom: "1px dotted #eee", height: "28px" }}>
+                    <td style={{ padding: "4px 8px" }} />
+                    <td style={{ padding: "4px 8px" }} />
+                    <td style={{ padding: "4px 8px" }} />
+                    <td style={{ padding: "4px 8px" }} />
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </DocSection>
+      </>
     );
   }
 
   // Generic fallback
   return (
-    <div className="space-y-4 text-sm">
-      <div className="text-center border-b pb-4">
-        <h2 className="text-lg font-bold uppercase">{docTypeLabels[documentType] || documentType}</h2>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Local</p>
-          <p>{site?.site_name || "—"}</p>
-          <p className="text-xs">{site?.address_line_1}</p>
-        </div>
-        <div>
-          <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Sistema</p>
-          <p>{system?.system_type || "—"}</p>
-          <p className="text-xs">{[system?.main_brand, system?.main_model].filter(Boolean).join(" ")}</p>
-        </div>
-      </div>
+    <>
+      <DocSection title="Dados">
+        <DocFieldGrid
+          fields={[
+            { label: "Local", value: site?.site_name },
+            { label: "Morada", value: site?.address_line_1 },
+            { label: "Sistema", value: system?.system_type },
+          ]}
+        />
+      </DocSection>
       {sourceData && (
-        <div className="pt-4 border-t">
-          <p className="font-semibold text-xs text-muted-foreground uppercase mb-1">Dados fonte</p>
-          <pre className="text-xs bg-background p-3 rounded border overflow-auto max-h-48">
+        <DocSection title="Dados Fonte">
+          <pre style={{ fontSize: "10px", background: "#f5f5f5", padding: "12px", borderRadius: "4px", overflow: "auto", maxHeight: "300px" }}>
             {JSON.stringify(sourceData, null, 2)}
           </pre>
+        </DocSection>
+      )}
+    </>
+  );
+}
+
+/* ─── Simple Preview (non-A4, for quick viewing) ─── */
+
+function SimplePreview({
+  documentType,
+  sourceData,
+  system,
+  site,
+  devices,
+  zones,
+}: {
+  documentType: string;
+  sourceData: any;
+  system: any;
+  site: any;
+  devices: any[];
+  zones: any[];
+}) {
+  const sd = sourceData || {};
+
+  const fields = [
+    { label: "Proprietário", value: sd.owner_name || site?.onsite_responsible_name },
+    { label: "Entidade Instaladora", value: sd.installer_company || system?.installer_company_name },
+    { label: "Local", value: site?.site_name },
+    { label: "Morada", value: [site?.address_line_1, site?.postal_code, site?.locality].filter(Boolean).join(", ") },
+    { label: "Tipo de Sistema", value: system?.system_type },
+  ].filter(f => f.value);
+
+  return (
+    <>
+      <div className="text-center border-b pb-3 mb-4">
+        <h2 className="text-lg font-bold uppercase">{docTypeLabels[documentType] || documentType}</h2>
+        <p className="text-xs text-muted-foreground">Sistema de Segurança Eletrónica</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {fields.map((f, i) => (
+          <div key={i}>
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold">{f.label}</p>
+            <p className="capitalize">{f.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {devices.length > 0 && (
+        <div className="pt-3 mt-3 border-t">
+          <p className="text-[10px] text-muted-foreground uppercase font-semibold mb-2">Equipamentos ({devices.length})</p>
+          {devices.slice(0, 5).map((d: any, i: number) => (
+            <p key={i} className="text-xs">
+              • {d.security_system_zones?.zone_name || "—"}: {d.brand || d.security_equipment_catalog?.brand} {d.model || d.security_equipment_catalog?.model} (x{d.quantity ?? 1})
+            </p>
+          ))}
+          {devices.length > 5 && <p className="text-xs text-muted-foreground">+ {devices.length - 5} mais...</p>}
         </div>
       )}
-    </div>
+
+      {zones.length > 0 && (
+        <div className="pt-3 mt-3 border-t">
+          <p className="text-[10px] text-muted-foreground uppercase font-semibold mb-2">Zonas ({zones.length})</p>
+          <div className="flex flex-wrap gap-1">
+            {zones.map((z: any, i: number) => (
+              <span key={i} className="px-2 py-0.5 bg-muted rounded text-xs">{z.zone_name}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="pt-4 mt-4 border-t text-center">
+        <p className="text-xs text-muted-foreground">
+          Use "Vista A4 (PDF)" para ver o template profissional completo
+        </p>
+      </div>
+    </>
   );
 }
