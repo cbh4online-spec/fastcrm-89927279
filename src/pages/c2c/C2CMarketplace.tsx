@@ -160,7 +160,7 @@ export default function C2CMarketplace() {
     return acc;
   }, {});
 
-  const hasActiveFilters = filters.search || filters.category || filters.condition || filters.minPrice || filters.maxPrice;
+  const hasActiveFilters = filters.search || filters.category || filters.condition || filters.minPrice || filters.maxPrice || filters.deliveryMode;
 
   return (
     <div className="min-h-screen bg-background">

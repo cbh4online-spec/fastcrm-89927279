@@ -41,6 +41,9 @@ export interface C2CCategory {
   created_at: string;
 }
 
+export type C2CSortBy = "recent" | "price_asc" | "price_desc" | "popular" | "recommended";
+export type C2CDeliveryMode = "shipping" | "in_person" | "both";
+
 export interface C2CListingFilters {
   category?: string;
   minPrice?: number;
@@ -49,6 +52,15 @@ export interface C2CListingFilters {
   location?: string;
   search?: string;
   status?: string;
+  sortBy?: C2CSortBy;
+  deliveryMode?: C2CDeliveryMode;
+}
+
+export interface C2CSavedSearch {
+  id: string;
+  name: string;
+  filters: C2CListingFilters;
+  created_at: string;
 }
 
 export function useC2CCategories(workspaceId: string | undefined) {
@@ -91,8 +103,28 @@ export function useC2CListings(workspaceId: string | undefined, filters?: C2CLis
       if (filters?.maxPrice) query = query.lte("price", filters.maxPrice);
       if (filters?.condition) query = query.eq("condition", filters.condition);
       if (filters?.search) query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+      if (filters?.deliveryMode) query = query.eq("delivery_mode", filters.deliveryMode);
 
-      query = query.order("is_featured", { ascending: false }).order("created_at", { ascending: false });
+      // Sorting
+      const sortBy = filters?.sortBy || "recent";
+      switch (sortBy) {
+        case "price_asc":
+          query = query.order("price", { ascending: true });
+          break;
+        case "price_desc":
+          query = query.order("price", { ascending: false });
+          break;
+        case "popular":
+          query = query.order("views_count", { ascending: false });
+          break;
+        case "recommended":
+          query = query.order("is_featured", { ascending: false }).order("views_count", { ascending: false });
+          break;
+        case "recent":
+        default:
+          query = query.order("is_featured", { ascending: false }).order("created_at", { ascending: false });
+          break;
+      }
 
       const { data, error } = await query;
       console.log('[MARKETPLACE] useC2CListings result:', { workspaceId, count: data?.length, error, filters });

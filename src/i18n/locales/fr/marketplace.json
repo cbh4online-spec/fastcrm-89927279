@@ -292,5 +292,24 @@
   "copyError": "Impossible de copier le lien",
   "kpiViews": "Vues",
   "kpiFavorites": "Favoris",
-  "kpiMessages": "Messages"
+  "kpiMessages": "Messages",
+
+  "sortRecent": "Plus récents",
+  "sortPriceAsc": "Moins chers",
+  "sortPriceDesc": "Plus chers",
+  "sortPopular": "Plus populaires",
+  "sortRecommended": "Recommandés",
+
+  "deliveryMode": "Livraison",
+  "deliveryAny": "Tout",
+  "deliveryShipping": "Expédition",
+  "deliveryInPerson": "En main propre",
+  "deliveryBoth": "Les deux",
+
+  "savedSearches": "Recherches sauvegardées",
+  "saveCurrentSearch": "Sauvegarder la recherche",
+  "noSavedSearches": "Aucune recherche sauvegardée.",
+  "savedSearchDefault": "Recherche sans nom",
+
+  "autocompleteSuggestions": "Suggestions"
 }

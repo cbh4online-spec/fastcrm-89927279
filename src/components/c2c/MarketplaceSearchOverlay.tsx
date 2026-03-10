@@ -1,11 +1,13 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Clock, TrendingUp, ArrowLeft, Camera, Loader2 } from "lucide-react";
+import { Search, X, Clock, TrendingUp, ArrowLeft, Camera, Loader2, Tag, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 const SEARCH_HISTORY_KEY = "c2c-search-history";
 const MAX_HISTORY = 10;
@@ -14,6 +16,14 @@ const TRENDING_SEARCHES = [
   "iPhone", "PlayStation", "Câmara", "Portátil", "Bicicleta",
   "Nike", "Samsung", "Monitor", "Consola", "Relógio",
 ];
+
+interface AutoSuggestion {
+  type: "listing" | "category";
+  id: string;
+  text: string;
+  subtext?: string;
+  price?: number;
+}
 
 interface MarketplaceSearchOverlayProps {
   open: boolean;
@@ -57,16 +67,72 @@ export function MarketplaceSearchOverlay({
   const [query, setQuery] = useState(initialQuery);
   const [history, setHistory] = useState<string[]>([]);
   const [isVisualLoading, setIsVisualLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<AutoSuggestion[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const { currentWorkspace } = useWorkspace();
+  const debouncedQuery = useDebounce(query, 300);
 
   useEffect(() => {
     if (open) {
       setQuery(initialQuery);
       setHistory(getHistory());
+      setSuggestions([]);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [open, initialQuery]);
+
+  // Autocomplete suggestions
+  useEffect(() => {
+    if (!debouncedQuery.trim() || debouncedQuery.trim().length < 2 || !currentWorkspace?.id) {
+      setSuggestions([]);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoadingSuggestions(true);
+
+    (async () => {
+      try {
+        const term = `%${debouncedQuery.trim()}%`;
+        const [listingsRes, categoriesRes] = await Promise.all([
+          supabase
+            .from("c2c_listings")
+            .select("id, title, price, currency")
+            .eq("workspace_id", currentWorkspace.id)
+            .eq("status", "active")
+            .eq("moderation_status", "approved")
+            .ilike("title", term)
+            .limit(5),
+          supabase
+            .from("c2c_categories")
+            .select("id, name, icon")
+            .eq("workspace_id", currentWorkspace.id)
+            .eq("is_active", true)
+            .ilike("name", term)
+            .limit(3),
+        ]);
+
+        if (cancelled) return;
+
+        const results: AutoSuggestion[] = [];
+        categoriesRes.data?.forEach((c) =>
+          results.push({ type: "category", id: c.id, text: c.name, subtext: c.icon || undefined })
+        );
+        listingsRes.data?.forEach((l) =>
+          results.push({ type: "listing", id: l.id, text: l.title, price: l.price })
+        );
+        setSuggestions(results);
+      } catch {
+        if (!cancelled) setSuggestions([]);
+      } finally {
+        if (!cancelled) setIsLoadingSuggestions(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [debouncedQuery, currentWorkspace?.id]);
 
   const handleSubmit = (value?: string) => {
     const q = (value ?? query).trim();
@@ -122,6 +188,8 @@ export function MarketplaceSearchOverlay({
     }
   };
 
+  const showSuggestions = query.trim().length >= 2 && (suggestions.length > 0 || isLoadingSuggestions);
+
   return (
     <AnimatePresence>
       {open && (
@@ -154,7 +222,7 @@ export function MarketplaceSearchOverlay({
                 {query && (
                   <button
                     type="button"
-                    onClick={() => setQuery("")}
+                    onClick={() => { setQuery(""); setSuggestions([]); }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     <X className="h-4 w-4" />
@@ -195,7 +263,48 @@ export function MarketplaceSearchOverlay({
           </div>
 
           <div className="overflow-y-auto p-4 space-y-6" style={{ maxHeight: "calc(100vh - 70px)" }}>
-            {history.length > 0 && (
+            {/* Autocomplete suggestions */}
+            {showSuggestions && (
+              <section className="space-y-1">
+                {isLoadingSuggestions && suggestions.length === 0 && (
+                  <div className="flex items-center gap-2 py-3 px-3 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {t('loading')}
+                  </div>
+                )}
+                {suggestions.map((s) => (
+                  <button
+                    key={`${s.type}-${s.id}`}
+                    className="flex items-center gap-3 w-full py-2.5 px-3 text-left rounded-lg hover:bg-muted/50 transition-colors"
+                    onClick={() => {
+                      if (s.type === "category") {
+                        // For categories, just search by name
+                        handleSubmit(s.text);
+                      } else {
+                        handleSubmit(s.text);
+                      }
+                    }}
+                  >
+                    {s.type === "category" ? (
+                      <Tag className="h-4 w-4 text-primary shrink-0" />
+                    ) : (
+                      <ShoppingBag className="h-4 w-4 text-muted-foreground shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm truncate block">{s.text}</span>
+                      {s.subtext && <span className="text-xs text-muted-foreground">{s.subtext}</span>}
+                    </div>
+                    {s.price != null && (
+                      <span className="text-sm font-semibold text-primary shrink-0">
+                        {s.price.toFixed(2)}€
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </section>
+            )}
+
+            {!showSuggestions && history.length > 0 && (
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
@@ -237,29 +346,31 @@ export function MarketplaceSearchOverlay({
               </section>
             )}
 
-            <section className="space-y-3">
-              <h3 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
-                <TrendingUp className="h-4 w-4" />
-                {t('trending')}
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {TRENDING_SEARCHES.map((term) => (
-                  <button
-                    key={term}
-                    onClick={() => {
-                      setQuery(term);
-                      handleSubmit(term);
-                    }}
-                    className={cn(
-                      "px-3.5 py-2 rounded-full text-sm border transition-colors",
-                      "bg-muted/30 hover:bg-primary/10 hover:border-primary/30 hover:text-primary"
-                    )}
-                  >
-                    {term}
-                  </button>
-                ))}
-              </div>
-            </section>
+            {!showSuggestions && (
+              <section className="space-y-3">
+                <h3 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+                  <TrendingUp className="h-4 w-4" />
+                  {t('trending')}
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {TRENDING_SEARCHES.map((term) => (
+                    <button
+                      key={term}
+                      onClick={() => {
+                        setQuery(term);
+                        handleSubmit(term);
+                      }}
+                      className={cn(
+                        "px-3.5 py-2 rounded-full text-sm border transition-colors",
+                        "bg-muted/30 hover:bg-primary/10 hover:border-primary/30 hover:text-primary"
+                      )}
+                    >
+                      {term}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         </motion.div>
       )}
