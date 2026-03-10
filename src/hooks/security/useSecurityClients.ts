@@ -31,9 +31,10 @@ export function useSecurityClients(filters?: { client_type?: string; status?: st
   const createClient = useMutation({
     mutationFn: async (values: Record<string, any>) => {
       const { data: user } = await supabase.auth.getUser();
+      const payload = { ...values, workspace_id: workspaceId!, created_by: user.user?.id } as any;
       const { data, error } = await supabase
         .from("security_clients")
-        .insert({ ...values, workspace_id: workspaceId!, created_by: user.user?.id })
+        .insert(payload)
         .select()
         .single();
       if (error) throw error;
