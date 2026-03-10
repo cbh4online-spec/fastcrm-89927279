@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useSmartContacts, useAnalyzeContact, useBulkAnalyzeContacts, SmartContactsFilters, SmartContact } from "@/hooks/useSmartContacts";
 import { SmartListsPanel } from "@/components/objects/SmartListsPanel";
 import { useBulkAnalyzeEntityLinkedIn } from "@/hooks/useEntitySocialMediaAnalysis";
@@ -38,286 +39,288 @@ import { cn } from "@/lib/utils";
 // Design System imports
 import { EmptyState, SearchEmptyState, TableSkeleton } from "@/components/design-system";
 
-// Column configurations for contacts table - ALL form fields
-const CONTACT_COLUMNS: ColumnConfig[] = [
-  // Basic Information
-  { id: "name", label: "Contacto", category: "basic", defaultVisible: true },
-  { id: "client_number", label: "Nº Cliente", category: "basic", defaultVisible: true },
-  { id: "email", label: "Email", category: "basic", defaultVisible: false },
-  { id: "phone", label: "Telefone", category: "basic", defaultVisible: false },
-  { id: "whatsapp_number", label: "WhatsApp", category: "basic", defaultVisible: false },
-  { id: "has_whatsapp", label: "Tem WhatsApp", category: "basic", defaultVisible: false },
-  { id: "company", label: "Empresa", category: "basic", defaultVisible: true },
-  { id: "job_title", label: "Cargo", category: "basic", defaultVisible: false },
-  { id: "commercial_name", label: "Nome Comercial", category: "basic", defaultVisible: false },
-  { id: "source", label: "Origem", category: "basic", defaultVisible: true },
-  { id: "lead_source", label: "Fonte do Lead", category: "basic", defaultVisible: false },
-  { id: "tags", label: "Tags", category: "basic", defaultVisible: false },
-  { id: "notes", label: "Notas", category: "basic", defaultVisible: false },
-  { id: "is_primary_contact", label: "Contacto Principal", category: "basic", defaultVisible: false },
-  
-  // Location
-  { id: "address", label: "Morada", category: "basic", defaultVisible: false },
-  { id: "city", label: "Cidade", category: "basic", defaultVisible: false },
-  { id: "postal_code", label: "Código Postal", category: "basic", defaultVisible: false },
-  { id: "country", label: "País", category: "basic", defaultVisible: false },
-  { id: "is_fiscal_address", label: "Morada Fiscal", category: "basic", defaultVisible: false },
-  
-  // AI & Analysis
-  { id: "temperature", label: "Temperatura", category: "ai", defaultVisible: true, description: "Classificação IA" },
-  { id: "score", label: "Score", category: "ai", defaultVisible: true, description: "Pontuação 0-100" },
-  { id: "type", label: "Tipo", category: "ai", defaultVisible: true, description: "Decisor/Influenciador/etc" },
-  { id: "next_action", label: "Próxima Ação", category: "ai", defaultVisible: true },
-  { id: "insight", label: "Insight IA", category: "ai", defaultVisible: false },
-  { id: "ai_analyzed_at", label: "Última Análise", category: "ai", defaultVisible: false },
-  
-  // Business
-  { id: "sla", label: "SLA", category: "business", defaultVisible: true, description: "Tempo desde último contacto" },
-  { id: "estimated_value", label: "Potencial €", category: "business", defaultVisible: false },
-  { id: "conversion_prob", label: "Prob. %", category: "business", defaultVisible: false },
-  { id: "automation", label: "Automação", category: "business", defaultVisible: false },
-  { id: "assigned_to", label: "Responsável", category: "business", defaultVisible: false },
-  { id: "last_contact_at", label: "Último Contacto", category: "business", defaultVisible: false },
-  { id: "last_purchase_date", label: "Última Compra", category: "business", defaultVisible: false },
-  { id: "activity_start_date", label: "Início Atividade", category: "business", defaultVisible: false },
-  { id: "client_since", label: "Cliente Desde", category: "business", defaultVisible: false },
-  
-  // Client Classification
-  { id: "abc_category", label: "Categoria ABC", category: "business", defaultVisible: false },
-  { id: "client_status", label: "Estado Cliente", category: "business", defaultVisible: false },
-  { id: "client_types", label: "Tipo Cliente", category: "business", defaultVisible: false },
-  { id: "entity_type", label: "Tipo Entidade", category: "business", defaultVisible: false },
-  { id: "lead_status", label: "Estado Lifecycle", category: "business", defaultVisible: true },
-  { id: "icp_fit_score", label: "ICP Fit", category: "ai", defaultVisible: false, description: "Score 0-100" },
-  { id: "engagement_score", label: "Engagement", category: "ai", defaultVisible: false, description: "Score 0-100" },
-  { id: "pare_score", label: "PARE", category: "ai", defaultVisible: false, description: "Score 0-100" },
-  { id: "next_followup_at", label: "Próximo Follow-up", category: "business", defaultVisible: false },
-  { id: "marketing_opt_in", label: "Opt-in Marketing", category: "business", defaultVisible: false },
-  
-  // Fiscal
-  { id: "tax_id", label: "NIF", category: "business", defaultVisible: false },
-  { id: "fiscal_regime", label: "Regime Fiscal", category: "business", defaultVisible: false },
-  { id: "business_area", label: "Área de Negócio", category: "business", defaultVisible: false },
-  { id: "cae_code", label: "Código CAE", category: "business", defaultVisible: false },
-  { id: "cae_description", label: "Descrição CAE", category: "business", defaultVisible: false },
-  
-  // Financial
-  { id: "credit_active", label: "Crédito Ativo", category: "business", defaultVisible: false },
-  { id: "credit_limit", label: "Limite Crédito €", category: "business", defaultVisible: false },
-  { id: "payment_conditions", label: "Condições Pagamento", category: "business", defaultVisible: false },
-  { id: "preferred_payment_method", label: "Método Pagamento", category: "business", defaultVisible: false },
-  { id: "average_ticket", label: "Ticket Médio €", category: "business", defaultVisible: false },
-  { id: "total_revenue", label: "Receita Total €", category: "business", defaultVisible: false },
-  { id: "sales_2023", label: "Vendas 2023 €", category: "business", defaultVisible: false },
-  { id: "sales_2024", label: "Vendas 2024 €", category: "business", defaultVisible: false },
-  { id: "sales_2025", label: "Vendas 2025 €", category: "business", defaultVisible: false },
-  { id: "sales_2026", label: "Vendas 2026 €", category: "business", defaultVisible: false },
-  
-  // Social / Relations
-  { id: "linkedin_url", label: "LinkedIn", category: "relations", defaultVisible: false },
-  { id: "facebook_url", label: "Facebook", category: "relations", defaultVisible: false },
-  { id: "instagram_url", label: "Instagram", category: "relations", defaultVisible: false },
-  { id: "twitter_url", label: "Twitter/X", category: "relations", defaultVisible: false },
-  
-  // Timestamps
-  { id: "created_at", label: "Criado Em", category: "basic", defaultVisible: false },
-  { id: "updated_at", label: "Atualizado Em", category: "basic", defaultVisible: false },
-];
-
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
-// Todos os campos editáveis em massa para contactos
-const contactBulkEditFields: BulkEditField[] = [
-  // Informação básica
-  { key: "name", label: "Nome", type: "text" },
-  { key: "email", label: "Email", type: "text" },
-  { key: "phone", label: "Telefone", type: "text" },
-  { key: "whatsapp_number", label: "WhatsApp", type: "text" },
-  { key: "has_whatsapp", label: "Tem WhatsApp", type: "boolean" },
-  { key: "company", label: "Empresa", type: "text" },
-  { key: "job_title", label: "Cargo", type: "text" },
-  { key: "commercial_name", label: "Nome Comercial", type: "text" },
-  
-  // Localização
-  { key: "address", label: "Morada", type: "text" },
-  { key: "city", label: "Cidade", type: "text" },
-  { key: "postal_code", label: "Código Postal", type: "text" },
-  { key: "country", label: "País", type: "text" },
-  
-  // Classificação e Status
-  { key: "source", label: "Origem", type: "select", options: [
-    { value: "website", label: "Website" },
-    { value: "referral", label: "Referência" },
-    { value: "linkedin", label: "LinkedIn" },
-    { value: "cold_call", label: "Cold Call" },
-    { value: "event", label: "Evento" },
-    { value: "import", label: "Importação" },
-    { value: "other", label: "Outro" },
-  ]},
-  { key: "lead_source", label: "Fonte do Lead", type: "text" },
-  { key: "client_status", label: "Estado do Cliente", type: "select", options: [
-    { value: "prospect", label: "Prospeto" },
-    { value: "lead", label: "Lead" },
-    { value: "active", label: "Ativo" },
-    { value: "churned", label: "Perdido" },
-    { value: "inactive", label: "Inativo" },
-  ]},
-  { key: "client_types", label: "Tipo de Cliente", type: "text" },
-  { key: "abc_category", label: "Categoria ABC", type: "select", options: [
-    { value: "A", label: "A - Alto valor" },
-    { value: "B", label: "B - Médio valor" },
-    { value: "C", label: "C - Baixo valor" },
-  ]},
-  
-  // IA e Análise
-  { key: "ai_temperature", label: "Temperatura (IA)", type: "select", options: [
-    { value: "cold", label: "Frio" },
-    { value: "warm", label: "Morno" },
-    { value: "hot", label: "Quente" },
-  ]},
-  { key: "ai_contact_type", label: "Tipo de Contacto (IA)", type: "select", options: [
-    { value: "decision_maker", label: "Decisor" },
-    { value: "influencer", label: "Influenciador" },
-    { value: "champion", label: "Champion" },
-    { value: "blocker", label: "Blocker" },
-    { value: "end_user", label: "Utilizador Final" },
-    { value: "unknown", label: "Desconhecido" },
-  ]},
-  { key: "ai_next_action_type", label: "Próxima Ação (IA)", type: "select", options: [
-    { value: "reply_manual", label: "Responder manualmente" },
-    { value: "send_template", label: "Enviar template" },
-    { value: "create_opportunity", label: "Criar oportunidade" },
-    { value: "activate_automation", label: "Ativar automação" },
-    { value: "archive", label: "Arquivar" },
-    { value: "follow_up", label: "Follow-up" },
-    { value: "schedule_meeting", label: "Agendar reunião" },
-    { value: "nurture", label: "Nutrir" },
-  ]},
-  { key: "contact_score", label: "Score do Contacto", type: "number" },
-  { key: "conversion_probability", label: "Probabilidade de Conversão (%)", type: "number" },
-  { key: "estimated_value", label: "Valor Estimado (€)", type: "number" },
-  
-  // Automação e Atribuição
-  { key: "automation_active", label: "Automação Ativa", type: "boolean" },
-  { key: "assigned_to", label: "Responsável", type: "text" },
-  { key: "is_primary_contact", label: "Contacto Principal", type: "boolean" },
-  
-  // Dados fiscais
-  { key: "tax_id", label: "NIF", type: "text" },
-  { key: "entity_type", label: "Tipo de Entidade", type: "select", options: [
-    { value: "consumidor_final", label: "Consumidor Final" },
-    { value: "eni", label: "ENI" },
-    { value: "empresa", label: "Empresa" },
-  ]},
-  { key: "fiscal_regime", label: "Regime Fiscal", type: "text" },
-  { key: "is_fiscal_address", label: "Morada Fiscal", type: "boolean" },
-  
-  // Negócio
-  { key: "business_area", label: "Área de Negócio", type: "text" },
-  { key: "cae_code", label: "Código CAE", type: "text" },
-  { key: "cae_description", label: "Descrição CAE", type: "text" },
-  
-  // Financeiro
-  { key: "credit_active", label: "Crédito Ativo", type: "boolean" },
-  { key: "credit_limit", label: "Limite de Crédito (€)", type: "number" },
-  { key: "payment_conditions", label: "Condições de Pagamento", type: "text" },
-  { key: "preferred_payment_method", label: "Método de Pagamento Preferido", type: "select", options: [
-    { value: "transfer", label: "Transferência" },
-    { value: "card", label: "Cartão" },
-    { value: "mbway", label: "MB Way" },
-    { value: "check", label: "Cheque" },
-    { value: "cash", label: "Dinheiro" },
-  ]},
-  { key: "average_ticket", label: "Ticket Médio (€)", type: "number" },
-  { key: "total_revenue", label: "Receita Total (€)", type: "number" },
-  
-  // Histórico de vendas
-  { key: "sales_2023", label: "Vendas 2023 (€)", type: "number" },
-  { key: "sales_2024", label: "Vendas 2024 (€)", type: "number" },
-  { key: "sales_2025", label: "Vendas 2025 (€)", type: "number" },
-  { key: "sales_2026", label: "Vendas 2026 (€)", type: "number" },
-  
-  // Redes sociais
-  { key: "linkedin_url", label: "LinkedIn", type: "text" },
-  { key: "facebook_url", label: "Facebook", type: "text" },
-  { key: "instagram_url", label: "Instagram", type: "text" },
-  { key: "twitter_url", label: "Twitter/X", type: "text" },
-  
-  // Notas
-  { key: "notes", label: "Notas", type: "text" },
-];
-
-// Filter groups for sidebar
-const filterGroups: FilterGroup[] = [
-  {
-    id: "temperature",
-    label: "Temperatura",
-    icon: <Thermometer className="h-4 w-4" />,
-    defaultOpen: true,
-    items: [
-      { id: "temp_hot", label: "Quente", icon: <Flame className="h-4 w-4 text-red-500" /> },
-      { id: "temp_warm", label: "Morno", icon: <Thermometer className="h-4 w-4 text-orange-500" /> },
-      { id: "temp_cold", label: "Frio", icon: <Snowflake className="h-4 w-4 text-blue-500" /> },
-    ],
-  },
-  {
-    id: "status",
-    label: "Estado",
-    icon: <UserCheck className="h-4 w-4" />,
-    defaultOpen: true,
-    items: [
-      { id: "status_active", label: "Clientes Ativos" },
-      { id: "status_prospect", label: "Prospetos" },
-      { id: "status_lead", label: "Leads" },
-      { id: "status_inactive", label: "Inativos" },
-      { id: "status_churned", label: "Perdidos" },
-    ],
-  },
-  {
-    id: "activity",
-    label: "Atividade",
-    icon: <Activity className="h-4 w-4" />,
-    items: [
-      { id: "activity_recent", label: "Contactados recentemente", icon: <Clock className="h-4 w-4" /> },
-      { id: "activity_no_contact", label: "Sem contacto há +30 dias", icon: <UserX className="h-4 w-4" /> },
-      { id: "activity_never", label: "Nunca contactados" },
-    ],
-  },
-  {
-    id: "category",
-    label: "Categoria ABC",
-    icon: <Users className="h-4 w-4" />,
-    items: [
-      { id: "cat_a", label: "Categoria A (Alto valor)" },
-      { id: "cat_b", label: "Categoria B (Médio valor)" },
-      { id: "cat_c", label: "Categoria C (Baixo valor)" },
-    ],
-  },
-];
-
-// Page tabs
-const pageTabs = [
-  { id: "contacts", label: "Contactos" },
-  { id: "smart-lists", label: "Listas Inteligentes" },
-  { id: "bulk-actions", label: "Ações em Massa" },
-  { id: "import", label: "Importar" },
-];
-
-// Sort options
-const sortOptions = [
-  { value: "name_asc", label: "Nome (A-Z)" },
-  { value: "name_desc", label: "Nome (Z-A)" },
-  { value: "company_asc", label: "Empresa (A-Z)" },
-  { value: "company_desc", label: "Empresa (Z-A)" },
-  { value: "temperature_hot", label: "Temperatura (Quentes primeiro)" },
-  { value: "temperature_cold", label: "Temperatura (Frios primeiro)" },
-  { value: "created_desc", label: "Mais recentes" },
-  { value: "created_asc", label: "Mais antigos" },
-  { value: "score_desc", label: "Maior score" },
-  { value: "score_asc", label: "Menor score" },
-];
-
 export function SmartContactsTable() {
+  const { t } = useTranslation("crm");
+
+  // Column configurations for contacts table - ALL form fields
+  const CONTACT_COLUMNS: ColumnConfig[] = useMemo(() => [
+    // Basic Information
+    { id: "name", label: t("col_contact"), category: "basic", defaultVisible: true },
+    { id: "client_number", label: t("col_clientNumber"), category: "basic", defaultVisible: true },
+    { id: "email", label: t("col_email"), category: "basic", defaultVisible: false },
+    { id: "phone", label: t("col_phone"), category: "basic", defaultVisible: false },
+    { id: "whatsapp_number", label: t("col_whatsapp"), category: "basic", defaultVisible: false },
+    { id: "has_whatsapp", label: t("col_hasWhatsapp"), category: "basic", defaultVisible: false },
+    { id: "company", label: t("col_company"), category: "basic", defaultVisible: true },
+    { id: "job_title", label: t("col_jobTitle"), category: "basic", defaultVisible: false },
+    { id: "commercial_name", label: t("col_commercialName"), category: "basic", defaultVisible: false },
+    { id: "source", label: t("col_source"), category: "basic", defaultVisible: true },
+    { id: "lead_source", label: t("col_leadSource"), category: "basic", defaultVisible: false },
+    { id: "tags", label: t("col_tags"), category: "basic", defaultVisible: false },
+    { id: "notes", label: t("col_notes"), category: "basic", defaultVisible: false },
+    { id: "is_primary_contact", label: t("col_primaryContact"), category: "basic", defaultVisible: false },
+    
+    // Location
+    { id: "address", label: t("col_address"), category: "basic", defaultVisible: false },
+    { id: "city", label: t("col_city"), category: "basic", defaultVisible: false },
+    { id: "postal_code", label: t("col_postalCode"), category: "basic", defaultVisible: false },
+    { id: "country", label: t("country"), category: "basic", defaultVisible: false },
+    { id: "is_fiscal_address", label: t("col_fiscalAddress"), category: "basic", defaultVisible: false },
+    
+    // AI & Analysis
+    { id: "temperature", label: t("col_temperature"), category: "ai", defaultVisible: true, description: t("col_temperatureDesc") },
+    { id: "score", label: t("col_score"), category: "ai", defaultVisible: true, description: t("col_scoreDesc") },
+    { id: "type", label: t("col_type"), category: "ai", defaultVisible: true, description: t("col_typeDesc") },
+    { id: "next_action", label: t("col_nextAction"), category: "ai", defaultVisible: true },
+    { id: "insight", label: t("col_insight"), category: "ai", defaultVisible: false },
+    { id: "ai_analyzed_at", label: t("col_lastAnalysis"), category: "ai", defaultVisible: false },
+    
+    // Business
+    { id: "sla", label: t("col_sla"), category: "business", defaultVisible: true, description: t("col_slaDesc") },
+    { id: "estimated_value", label: t("col_estimatedValue"), category: "business", defaultVisible: false },
+    { id: "conversion_prob", label: t("col_conversionProb"), category: "business", defaultVisible: false },
+    { id: "automation", label: t("col_automation"), category: "business", defaultVisible: false },
+    { id: "assigned_to", label: t("col_assignedTo"), category: "business", defaultVisible: false },
+    { id: "last_contact_at", label: t("col_lastContact"), category: "business", defaultVisible: false },
+    { id: "last_purchase_date", label: t("col_lastPurchase"), category: "business", defaultVisible: false },
+    { id: "activity_start_date", label: t("col_activityStart"), category: "business", defaultVisible: false },
+    { id: "client_since", label: t("col_clientSince"), category: "business", defaultVisible: false },
+    
+    // Client Classification
+    { id: "abc_category", label: t("col_abcCategory"), category: "business", defaultVisible: false },
+    { id: "client_status", label: t("col_clientStatus"), category: "business", defaultVisible: false },
+    { id: "client_types", label: t("col_clientTypes"), category: "business", defaultVisible: false },
+    { id: "entity_type", label: t("col_entityType"), category: "business", defaultVisible: false },
+    { id: "lead_status", label: t("col_leadStatus"), category: "business", defaultVisible: true },
+    { id: "icp_fit_score", label: t("col_icpFit"), category: "ai", defaultVisible: false, description: t("col_icpFitDesc") },
+    { id: "engagement_score", label: t("col_engagement"), category: "ai", defaultVisible: false, description: t("col_engagementDesc") },
+    { id: "pare_score", label: t("col_pare"), category: "ai", defaultVisible: false, description: t("col_pareDesc") },
+    { id: "next_followup_at", label: t("col_nextFollowup"), category: "business", defaultVisible: false },
+    { id: "marketing_opt_in", label: t("col_marketingOptIn"), category: "business", defaultVisible: false },
+    
+    // Fiscal
+    { id: "tax_id", label: t("col_taxId"), category: "business", defaultVisible: false },
+    { id: "fiscal_regime", label: t("col_fiscalRegime"), category: "business", defaultVisible: false },
+    { id: "business_area", label: t("col_businessArea"), category: "business", defaultVisible: false },
+    { id: "cae_code", label: t("col_caeCode"), category: "business", defaultVisible: false },
+    { id: "cae_description", label: t("col_caeDescription"), category: "business", defaultVisible: false },
+    
+    // Financial
+    { id: "credit_active", label: t("col_creditActive"), category: "business", defaultVisible: false },
+    { id: "credit_limit", label: t("col_creditLimit"), category: "business", defaultVisible: false },
+    { id: "payment_conditions", label: t("col_paymentConditions"), category: "business", defaultVisible: false },
+    { id: "preferred_payment_method", label: t("col_paymentMethod"), category: "business", defaultVisible: false },
+    { id: "average_ticket", label: t("col_averageTicket"), category: "business", defaultVisible: false },
+    { id: "total_revenue", label: t("col_totalRevenue"), category: "business", defaultVisible: false },
+    { id: "sales_2023", label: t("col_sales2023"), category: "business", defaultVisible: false },
+    { id: "sales_2024", label: t("col_sales2024"), category: "business", defaultVisible: false },
+    { id: "sales_2025", label: t("col_sales2025"), category: "business", defaultVisible: false },
+    { id: "sales_2026", label: t("col_sales2026"), category: "business", defaultVisible: false },
+    
+    // Social / Relations
+    { id: "linkedin_url", label: t("col_linkedin"), category: "relations", defaultVisible: false },
+    { id: "facebook_url", label: t("col_facebook"), category: "relations", defaultVisible: false },
+    { id: "instagram_url", label: t("col_instagram"), category: "relations", defaultVisible: false },
+    { id: "twitter_url", label: t("col_twitter"), category: "relations", defaultVisible: false },
+    
+    // Timestamps
+    { id: "created_at", label: t("col_createdAt"), category: "basic", defaultVisible: false },
+    { id: "updated_at", label: t("col_updatedAt"), category: "basic", defaultVisible: false },
+  ], [t]);
+
+  // Todos os campos editáveis em massa para contactos
+  const contactBulkEditFields: BulkEditField[] = useMemo(() => [
+    // Informação básica
+    { key: "name", label: t("fullName"), type: "text" },
+    { key: "email", label: t("col_email"), type: "text" },
+    { key: "phone", label: t("col_phone"), type: "text" },
+    { key: "whatsapp_number", label: t("col_whatsapp"), type: "text" },
+    { key: "has_whatsapp", label: t("col_hasWhatsapp"), type: "boolean" },
+    { key: "company", label: t("col_company"), type: "text" },
+    { key: "job_title", label: t("col_jobTitle"), type: "text" },
+    { key: "commercial_name", label: t("col_commercialName"), type: "text" },
+    
+    // Localização
+    { key: "address", label: t("col_address"), type: "text" },
+    { key: "city", label: t("col_city"), type: "text" },
+    { key: "postal_code", label: t("col_postalCode"), type: "text" },
+    { key: "country", label: t("country"), type: "text" },
+    
+    // Classificação e Status
+    { key: "source", label: t("col_source"), type: "select", options: [
+      { value: "website", label: t("bulkEditSourceWebsite") },
+      { value: "referral", label: t("bulkEditSourceReferral") },
+      { value: "linkedin", label: t("bulkEditSourceLinkedIn") },
+      { value: "cold_call", label: t("bulkEditSourceColdCall") },
+      { value: "event", label: t("bulkEditSourceEvent") },
+      { value: "import", label: t("import") },
+      { value: "other", label: t("bulkEditSourceOther") },
+    ]},
+    { key: "lead_source", label: t("col_leadSource"), type: "text" },
+    { key: "client_status", label: t("bulkEditClientStatus"), type: "select", options: [
+      { value: "prospect", label: t("bulkEditStatusProspect") },
+      { value: "lead", label: t("bulkEditStatusLead") },
+      { value: "active", label: t("bulkEditStatusActive") },
+      { value: "churned", label: t("bulkEditStatusChurned") },
+      { value: "inactive", label: t("bulkEditStatusInactive") },
+    ]},
+    { key: "client_types", label: t("clientTypes"), type: "text" },
+    { key: "abc_category", label: t("col_abcCategory"), type: "select", options: [
+      { value: "A", label: t("filterCatA") },
+      { value: "B", label: t("filterCatB") },
+      { value: "C", label: t("filterCatC") },
+    ]},
+    
+    // IA e Análise
+    { key: "ai_temperature", label: t("col_temperature"), type: "select", options: [
+      { value: "cold", label: t("temperatureCold") },
+      { value: "warm", label: t("temperatureWarm") },
+      { value: "hot", label: t("temperatureHot") },
+    ]},
+    { key: "ai_contact_type", label: t("col_type"), type: "select", options: [
+      { value: "decision_maker", label: t("bulkEditTypeDecisionMaker") },
+      { value: "influencer", label: t("bulkEditTypeInfluencer") },
+      { value: "champion", label: t("bulkEditTypeChampion") },
+      { value: "blocker", label: t("bulkEditTypeBlocker") },
+      { value: "end_user", label: t("bulkEditTypeEndUser") },
+      { value: "unknown", label: t("bulkEditTypeUnknown") },
+    ]},
+    { key: "ai_next_action_type", label: t("col_nextAction"), type: "select", options: [
+      { value: "reply_manual", label: t("actionReplyManual") },
+      { value: "send_template", label: t("actionSendTemplate") },
+      { value: "create_opportunity", label: t("actionCreateOpportunity") },
+      { value: "activate_automation", label: t("actionActivateAutomation") },
+      { value: "archive", label: t("actionArchive") },
+      { value: "follow_up", label: t("actionFollowUp") },
+      { value: "schedule_meeting", label: t("actionScheduleMeeting") },
+      { value: "nurture", label: t("bulkEditTypeNurture") },
+    ]},
+    { key: "contact_score", label: t("col_score"), type: "number" },
+    { key: "conversion_probability", label: t("col_conversionProb"), type: "number" },
+    { key: "estimated_value", label: t("col_estimatedValue"), type: "number" },
+    
+    // Automação e Atribuição
+    { key: "automation_active", label: t("col_automation"), type: "boolean" },
+    { key: "assigned_to", label: t("col_assignedTo"), type: "text" },
+    { key: "is_primary_contact", label: t("col_primaryContact"), type: "boolean" },
+    
+    // Dados fiscais
+    { key: "tax_id", label: t("col_taxId"), type: "text" },
+    { key: "entity_type", label: t("col_entityType"), type: "select", options: [
+      { value: "consumidor_final", label: t("entityConsumidorFinal") },
+      { value: "eni", label: t("entityEni") },
+      { value: "empresa", label: t("entityEmpresa") },
+    ]},
+    { key: "fiscal_regime", label: t("col_fiscalRegime"), type: "text" },
+    { key: "is_fiscal_address", label: t("col_fiscalAddress"), type: "boolean" },
+    
+    // Negócio
+    { key: "business_area", label: t("col_businessArea"), type: "text" },
+    { key: "cae_code", label: t("col_caeCode"), type: "text" },
+    { key: "cae_description", label: t("col_caeDescription"), type: "text" },
+    
+    // Financeiro
+    { key: "credit_active", label: t("col_creditActive"), type: "boolean" },
+    { key: "credit_limit", label: t("col_creditLimit"), type: "number" },
+    { key: "payment_conditions", label: t("col_paymentConditions"), type: "text" },
+    { key: "preferred_payment_method", label: t("col_paymentMethod"), type: "select", options: [
+      { value: "transfer", label: t("bulkEditPayTransfer") },
+      { value: "card", label: t("bulkEditPayCard") },
+      { value: "mbway", label: "MB Way" },
+      { value: "check", label: t("bulkEditPayCheck") },
+      { value: "cash", label: t("bulkEditPayCash") },
+    ]},
+    { key: "average_ticket", label: t("col_averageTicket"), type: "number" },
+    { key: "total_revenue", label: t("col_totalRevenue"), type: "number" },
+    
+    // Histórico de vendas
+    { key: "sales_2023", label: t("col_sales2023"), type: "number" },
+    { key: "sales_2024", label: t("col_sales2024"), type: "number" },
+    { key: "sales_2025", label: t("col_sales2025"), type: "number" },
+    { key: "sales_2026", label: t("col_sales2026"), type: "number" },
+    
+    // Redes sociais
+    { key: "linkedin_url", label: t("col_linkedin"), type: "text" },
+    { key: "facebook_url", label: t("col_facebook"), type: "text" },
+    { key: "instagram_url", label: t("col_instagram"), type: "text" },
+    { key: "twitter_url", label: t("col_twitter"), type: "text" },
+    
+    // Notas
+    { key: "notes", label: t("col_notes"), type: "text" },
+  ], [t]);
+
+  // Filter groups for sidebar
+  const filterGroups: FilterGroup[] = useMemo(() => [
+    {
+      id: "temperature",
+      label: t("filterTemperature"),
+      icon: <Thermometer className="h-4 w-4" />,
+      defaultOpen: true,
+      items: [
+        { id: "temp_hot", label: t("filterHot"), icon: <Flame className="h-4 w-4 text-red-500" /> },
+        { id: "temp_warm", label: t("filterWarm"), icon: <Thermometer className="h-4 w-4 text-orange-500" /> },
+        { id: "temp_cold", label: t("filterCold"), icon: <Snowflake className="h-4 w-4 text-blue-500" /> },
+      ],
+    },
+    {
+      id: "status",
+      label: t("filterStatus"),
+      icon: <UserCheck className="h-4 w-4" />,
+      defaultOpen: true,
+      items: [
+        { id: "status_active", label: t("filterActiveClients") },
+        { id: "status_prospect", label: t("filterProspects") },
+        { id: "status_lead", label: t("filterLeads") },
+        { id: "status_inactive", label: t("filterInactive") },
+        { id: "status_churned", label: t("filterChurned") },
+      ],
+    },
+    {
+      id: "activity",
+      label: t("filterActivity"),
+      icon: <Activity className="h-4 w-4" />,
+      items: [
+        { id: "activity_recent", label: t("filterRecentContact"), icon: <Clock className="h-4 w-4" /> },
+        { id: "activity_no_contact", label: t("filterNoContact30d"), icon: <UserX className="h-4 w-4" /> },
+        { id: "activity_never", label: t("filterNeverContacted") },
+      ],
+    },
+    {
+      id: "category",
+      label: t("filterCategoryABC"),
+      icon: <Users className="h-4 w-4" />,
+      items: [
+        { id: "cat_a", label: t("filterCatA") },
+        { id: "cat_b", label: t("filterCatB") },
+        { id: "cat_c", label: t("filterCatC") },
+      ],
+    },
+  ], [t]);
+
+  // Page tabs
+  const pageTabs = useMemo(() => [
+    { id: "contacts", label: t("tabContacts") },
+    { id: "smart-lists", label: t("tabSmartLists") },
+    { id: "bulk-actions", label: t("tabBulkActions") },
+    { id: "import", label: t("tabImport") },
+  ], [t]);
+
+  // Sort options
+  const sortOptions = useMemo(() => [
+    { value: "name_asc", label: t("sortNameAsc") },
+    { value: "name_desc", label: t("sortNameDesc") },
+    { value: "company_asc", label: t("sortCompanyAsc") },
+    { value: "company_desc", label: t("sortCompanyDesc") },
+    { value: "temperature_hot", label: t("sortHotFirst") },
+    { value: "temperature_cold", label: t("sortColdFirst") },
+    { value: "created_desc", label: t("sortNewest") },
+    { value: "created_asc", label: t("sortOldest") },
+    { value: "score_desc", label: t("sortHighestScore") },
+    { value: "score_asc", label: t("sortLowestScore") },
+  ], [t]);
+
   const [filters, setFilters] = useState<SmartContactsFilters>({});
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -347,7 +350,7 @@ export function SmartContactsTable() {
         if (indexB === -1) return -1;
         return indexA - indexB;
       });
-  }, [visibleColumns, columnOrder]);
+  }, [visibleColumns, columnOrder, CONTACT_COLUMNS]);
 
   const totalColumns = orderedVisibleColumns.length + 3; // +3 for checkbox, name, actions
 
@@ -367,42 +370,19 @@ export function SmartContactsTable() {
     if (searchValue) {
       const lower = searchValue.toLowerCase();
       result = result.filter(c => {
-        // All searchable text fields from contacts table
         const searchableFields = [
-          c.name,
-          c.email,
-          c.phone,
-          c.company,
-          c.job_title,
-          (c as any).commercial_name,
-          c.source,
-          (c as any).lead_source,
-          (c as any).address,
-          (c as any).city,
-          (c as any).postal_code,
-          (c as any).country,
-          (c as any).tax_id,
-          (c as any).notes,
-          (c as any).business_area,
-          (c as any).cae_code,
-          (c as any).cae_description,
-          (c as any).whatsapp_number,
-          (c as any).linkedin_url,
-          (c as any).facebook_url,
-          (c as any).instagram_url,
-          (c as any).twitter_url,
-          c.ai_insight,
-          c.ai_next_action,
-          (c as any).client_status,
-          (c as any).client_types,
-          (c as any).abc_category,
-          (c as any).fiscal_regime,
-          (c as any).payment_conditions,
-          (c as any).preferred_payment_method,
-          (c as any).entity_type,
-          (c as any).assigned_to,
+          c.name, c.email, c.phone, c.company, c.job_title,
+          (c as any).commercial_name, c.source, (c as any).lead_source,
+          (c as any).address, (c as any).city, (c as any).postal_code,
+          (c as any).country, (c as any).tax_id, (c as any).notes,
+          (c as any).business_area, (c as any).cae_code, (c as any).cae_description,
+          (c as any).whatsapp_number, (c as any).linkedin_url, (c as any).facebook_url,
+          (c as any).instagram_url, (c as any).twitter_url, c.ai_insight,
+          c.ai_next_action, (c as any).client_status, (c as any).client_types,
+          (c as any).abc_category, (c as any).fiscal_regime,
+          (c as any).payment_conditions, (c as any).preferred_payment_method,
+          (c as any).entity_type, (c as any).assigned_to,
         ];
-        // Also search in tags array
         const tags = (c as any).tags || [];
         return searchableFields.some(field => 
           field?.toString().toLowerCase().includes(lower)
@@ -423,15 +403,11 @@ export function SmartContactsTable() {
           return (b.company || "").localeCompare(a.company || "");
         case "temperature_hot": {
           const order: Record<string, number> = { hot: 0, warm: 1, cold: 2 };
-          const aTemp = a.ai_temperature || 'cold';
-          const bTemp = b.ai_temperature || 'cold';
-          return (order[aTemp] ?? 3) - (order[bTemp] ?? 3);
+          return (order[a.ai_temperature || 'cold'] ?? 3) - (order[b.ai_temperature || 'cold'] ?? 3);
         }
         case "temperature_cold": {
           const order: Record<string, number> = { cold: 0, warm: 1, hot: 2 };
-          const aTemp = a.ai_temperature || 'cold';
-          const bTemp = b.ai_temperature || 'cold';
-          return (order[aTemp] ?? 3) - (order[bTemp] ?? 3);
+          return (order[a.ai_temperature || 'cold'] ?? 3) - (order[b.ai_temperature || 'cold'] ?? 3);
         }
         case "created_desc":
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -449,7 +425,6 @@ export function SmartContactsTable() {
     return result;
   }, [contacts, searchValue, sortValue]);
 
-  // Paginação
   const totalContacts = filteredContacts.length;
   const totalPages = Math.ceil(totalContacts / pageSize);
   const paginatedContacts = useMemo(() => {
@@ -457,7 +432,6 @@ export function SmartContactsTable() {
     return filteredContacts.slice(startIndex, startIndex + pageSize);
   }, [filteredContacts, currentPage, pageSize]);
 
-  // Reset para página 1 quando mudar o filtro ou tamanho da página
   const handlePageSizeChange = (newSize: string) => {
     setPageSize(Number(newSize));
     setCurrentPage(1);
@@ -465,7 +439,6 @@ export function SmartContactsTable() {
 
   const handleFilterSelect = (filterId: string) => {
     setActiveFilterId(filterId === activeFilterId ? undefined : filterId);
-    // TODO: Apply filter logic based on filterId
   };
 
   const allSelected = paginatedContacts.length > 0 && paginatedContacts.every(c => selectedIds.has(c.id));
@@ -486,22 +459,22 @@ export function SmartContactsTable() {
 
   const handleAnalyze = async (id: string) => {
     setAnalyzingId(id);
-    try { await analyze.mutateAsync({ contactId: id }); toast.success("Contacto analisado"); }
-    catch { toast.error("Erro ao analisar"); }
+    try { await analyze.mutateAsync({ contactId: id }); toast.success(t("contactAnalyzed")); }
+    catch { toast.error(t("errorAnalyzingContact")); }
     finally { setAnalyzingId(null); }
   };
 
   const handleBulkAnalyze = async () => {
-    toast.loading(`A analisar ${selectedIds.size}...`);
-    try { const r = await bulkAnalyze.mutateAsync(Array.from(selectedIds)); toast.dismiss(); toast.success(`${r.successful} analisados`); setSelectedIds(new Set()); }
-    catch { toast.dismiss(); toast.error("Erro"); }
+    toast.loading(t("analyzingCompanies", { count: selectedIds.size }));
+    try { const r = await bulkAnalyze.mutateAsync(Array.from(selectedIds)); toast.dismiss(); toast.success(t("contactsUpdated", { count: r.successful })); setSelectedIds(new Set()); }
+    catch { toast.dismiss(); toast.error(t("errorAnalyzingContact")); }
   };
 
   const handleBulkAnalyzeLinkedIn = async () => {
     const selected = contacts?.filter(c => selectedIds.has(c.id)) || [];
     const withLinkedIn = selected.filter(c => (c as any).linkedin_url);
     if (withLinkedIn.length === 0) {
-      toast.error("Nenhum contacto selecionado tem URL LinkedIn");
+      toast.error(t("noLinkedInUrlContacts"));
       return;
     }
     await bulkAnalyzeLinkedIn.mutateAsync(
@@ -522,7 +495,7 @@ export function SmartContactsTable() {
 
   const handleBulkEdit = async (changes: Record<string, unknown>) => {
     await bulkUpdateContacts.mutateAsync({ ids: Array.from(selectedIds), changes });
-    toast.success(`${selectedIds.size} contactos atualizados`);
+    toast.success(t("contactsUpdated", { count: selectedIds.size }));
     setSelectedIds(new Set());
     refetch();
   };
@@ -530,7 +503,7 @@ export function SmartContactsTable() {
   const handleExport = () => {
     const selected = contacts?.filter(c => selectedIds.has(c.id)) || [];
     const csv = [
-      ["Nome", "Email", "Telefone", "Empresa", "Temperatura", "Score"].join(","),
+      [t("fullName"), t("col_email"), t("col_phone"), t("col_company"), t("col_temperature"), t("col_score")].join(","),
       ...selected.map(c => [c.name, c.email || "", c.phone || "", c.company || "", c.ai_temperature || "", c.contact_score || ""].join(","))
     ].join("\n");
     
@@ -541,7 +514,7 @@ export function SmartContactsTable() {
     a.download = `contactos-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Exportação concluída");
+    toast.success(t("exportComplete"));
   };
 
   const filtersActive = !!activeFilterId || Object.keys(filters).some(k => filters[k as keyof SmartContactsFilters]);
@@ -562,20 +535,20 @@ export function SmartContactsTable() {
       <div className="flex-1 flex flex-col min-w-0 bg-gradient-to-br from-background via-background to-muted/20">
         {/* Page Header */}
         <PageHeader
-          title="Contactos"
+          title={t("contactsTitle")}
           count={totalContacts}
           tabs={pageTabs}
           activeTab={activeTab}
           onTabChange={setActiveTab}
           actions={[
             {
-              label: "Importar",
+              label: t("import"),
               icon: <Download className="h-4 w-4" />,
-              onClick: () => toast.info("Importar contactos"),
+              onClick: () => toast.info(t("importContacts")),
               variant: "outline",
             },
             {
-              label: "Novo Contacto",
+              label: t("newContact"),
               icon: <Plus className="h-4 w-4" />,
               onClick: () => setIsCreateOpen(true),
             },
@@ -585,7 +558,7 @@ export function SmartContactsTable() {
         {/* Toolbar */}
         <Toolbar
           searchValue={searchValue}
-          searchPlaceholder="Pesquisar contactos..."
+          searchPlaceholder={t("searchContacts")}
           onSearchChange={setSearchValue}
           showFilters={true}
           filtersActive={filtersActive}
@@ -616,7 +589,7 @@ export function SmartContactsTable() {
                 className="gap-2"
               >
                 <Copy className="w-4 h-4" />
-                Duplicados
+                {t("duplicates")}
               </Button>
               <ColumnSelector
                 columns={CONTACT_COLUMNS}
@@ -627,7 +600,7 @@ export function SmartContactsTable() {
               />
               <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
                 <RefreshCw className="w-4 h-4" />
-                Atualizar
+                {t("refresh")}
               </Button>
             </div>
           }
@@ -639,16 +612,16 @@ export function SmartContactsTable() {
             <SmartListsPanel
               entityType="contact"
               fields={[
-                { slug: "name", name: "Nome", field_type: "text" },
-                { slug: "email", name: "Email", field_type: "email" },
-                { slug: "company", name: "Empresa", field_type: "text" },
-                { slug: "source", name: "Origem", field_type: "select", options: { options: ["website", "referral", "linkedin", "cold_call", "event", "import", "other"] } },
-                { slug: "ai_temperature", name: "Temperatura", field_type: "select", options: { options: ["hot", "warm", "cold"] } },
-                { slug: "contact_score", name: "Score", field_type: "number" },
-                { slug: "client_status", name: "Estado", field_type: "select", options: { options: ["prospect", "lead", "active", "churned", "inactive"] } },
-                { slug: "estimated_value", name: "Valor Estimado", field_type: "currency" },
-                { slug: "created_at", name: "Criado em", field_type: "date" },
-                { slug: "last_contact_at", name: "Último contacto", field_type: "date" },
+                { slug: "name", name: t("smartListFieldName"), field_type: "text" },
+                { slug: "email", name: t("smartListFieldEmail"), field_type: "email" },
+                { slug: "company", name: t("smartListFieldCompany"), field_type: "text" },
+                { slug: "source", name: t("smartListFieldSource"), field_type: "select", options: { options: ["website", "referral", "linkedin", "cold_call", "event", "import", "other"] } },
+                { slug: "ai_temperature", name: t("smartListFieldTemperature"), field_type: "select", options: { options: ["hot", "warm", "cold"] } },
+                { slug: "contact_score", name: t("smartListFieldScore"), field_type: "number" },
+                { slug: "client_status", name: t("smartListFieldState"), field_type: "select", options: { options: ["prospect", "lead", "active", "churned", "inactive"] } },
+                { slug: "estimated_value", name: t("smartListFieldEstimatedValue"), field_type: "currency" },
+                { slug: "created_at", name: t("smartListFieldCreatedAt"), field_type: "date" },
+                { slug: "last_contact_at", name: t("smartListFieldLastContact"), field_type: "date" },
               ]}
               records={(filteredContacts || []) as unknown as Record<string, unknown>[]}
             />
@@ -681,7 +654,7 @@ export function SmartContactsTable() {
                     onCheckedChange={toggleSelectAll} 
                   />
                 </TableHead>
-                <TableHead className={cn("min-w-[180px] whitespace-nowrap", stickyHeaderNameStyles)}>Contacto</TableHead>
+                <TableHead className={cn("min-w-[180px] whitespace-nowrap", stickyHeaderNameStyles)}>{t("col_contact")}</TableHead>
                 {orderedVisibleColumns.map(col => (
                   <TableHead key={col.id} className="whitespace-nowrap">
                     {col.category === "ai" ? (
@@ -712,10 +685,10 @@ export function SmartContactsTable() {
                     ) : (
                       <EmptyState
                         type="contacts"
-                        title="Ainda não há contactos"
-                        description="Quando entrarem contactos, a IA vai organizá-los por ti"
+                        title={t("noContactsYet")}
+                        description={t("noContactsDesc")}
                         action={{
-                          label: "Adicionar Contacto",
+                          label: t("addContact"),
                           onClick: () => setIsCreateOpen(true),
                         }}
                       />
@@ -731,7 +704,6 @@ export function SmartContactsTable() {
                     .toUpperCase()
                     .slice(0, 2);
 
-                  // Temperature gradient for avatar
                   const tempGradient = contact.ai_temperature === 'hot' 
                     ? 'from-red-500/80 to-orange-500' 
                     : contact.ai_temperature === 'warm' 
@@ -747,7 +719,6 @@ export function SmartContactsTable() {
                         contact.slaBreach && "bg-destructive/5"
                       )}
                     >
-                      {/* Checkbox */}
                       <TableCell className={cn("w-[40px]", stickyCheckboxStyles)}>
                         <Checkbox
                           checked={selectedIds.has(contact.id)}
@@ -755,7 +726,6 @@ export function SmartContactsTable() {
                         />
                       </TableCell>
 
-                      {/* Contact Name (always visible, sticky) - Nexus Style */}
                       <TableCell className={stickyNameStyles}>
                         <div className="flex items-center gap-3">
                           <div className="relative">
@@ -788,7 +758,6 @@ export function SmartContactsTable() {
                         </div>
                       </TableCell>
 
-                      {/* Dynamic columns */}
                       {orderedVisibleColumns.map(col => (
                         <TableCell key={col.id}>
                           <DynamicTableCell 
@@ -799,7 +768,6 @@ export function SmartContactsTable() {
                         </TableCell>
                       ))}
 
-                      {/* Actions */}
                       <TableCell>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button 
@@ -827,20 +795,20 @@ export function SmartContactsTable() {
                             <DropdownMenuContent align="end" className="bg-popover z-50">
                               <DropdownMenuItem>
                                 <Reply className="w-4 h-4 mr-2" />
-                                Enviar mensagem
+                                {t("sendMessage")}
                               </DropdownMenuItem>
                               <DropdownMenuItem>
                                 <Target className="w-4 h-4 mr-2" />
-                                Criar oportunidade
+                                {t("createOpportunity")}
                               </DropdownMenuItem>
                               <DropdownMenuItem>
                                 <Settings2 className="w-4 h-4 mr-2" />
-                                Ativar automação
+                                {t("activateAutomation")}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem>
                                 <Archive className="w-4 h-4 mr-2" />
-                                Arquivar
+                                {t("archive")}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -854,11 +822,11 @@ export function SmartContactsTable() {
           </StickyTableWrapper>
         </div>
 
-        {/* Pagination - Nexus Style */}
+        {/* Pagination */}
         {totalContacts > 0 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 p-3 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Mostrar</span>
+              <span>{t("show")}</span>
               <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
                 <SelectTrigger className="w-[70px] h-8 rounded-lg border-border/50 bg-background/50">
                   <SelectValue />
@@ -871,57 +839,31 @@ export function SmartContactsTable() {
                   ))}
                 </SelectContent>
               </Select>
-              <span>por página</span>
+              <span>{t("perPage")}</span>
               <div className="flex items-center gap-1.5 ml-2 px-2 py-1 rounded-lg bg-muted/50">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
                 <span className="text-xs font-medium">
-                  {totalContacts} contacto{totalContacts !== 1 ? "s" : ""}
+                  {totalContacts} {t("totalContactsLabel")}
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium text-muted-foreground">
-                Página <span className="text-foreground">{currentPage}</span> de <span className="text-foreground">{totalPages || 1}</span>
+                {t("pageOf", { current: currentPage, total: totalPages || 1 })}
               </span>
               <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 rounded-md"
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  <ChevronLeft className="h-4 w-4 -ml-2" />
+                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+                  <ChevronLeft className="h-4 w-4" /><ChevronLeft className="h-4 w-4 -ml-2" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 rounded-md"
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
+                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md" onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 rounded-md"
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  disabled={currentPage === totalPages || totalPages === 0}
-                >
+                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md" onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages || totalPages === 0}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 rounded-md"
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={currentPage === totalPages || totalPages === 0}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                  <ChevronRight className="h-4 w-4 -ml-2" />
+                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages || totalPages === 0}>
+                  <ChevronRight className="h-4 w-4" /><ChevronRight className="h-4 w-4 -ml-2" />
                 </Button>
               </div>
             </div>

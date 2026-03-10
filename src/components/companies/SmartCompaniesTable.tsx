@@ -137,15 +137,15 @@ export function SmartCompaniesTable() {
   const bulkRevenue = useBulkAnalyzeRevenue();
 
   const handleBulkRevenueAnalyze = async () => {
-    toast.loading("A analisar revenue intelligence...", { id: "revenue-analyze" });
+    toast.loading(t("analyzingRevenueIntelligence"), { id: "revenue-analyze" });
     try {
       const result = await bulkRevenue.mutateAsync(Array.from(selectedIds));
       toast.dismiss("revenue-analyze");
-      toast.success(`${result.successful} empresa(s) analisadas com Revenue Intelligence`);
+      toast.success(t("revenueAnalyzed", { count: result.successful }));
       setSelectedIds(new Set());
     } catch {
       toast.dismiss("revenue-analyze");
-      toast.error("Erro na análise de revenue");
+      toast.error(t("errorRevenueAnalysis"));
     }
   };
 
@@ -232,7 +232,7 @@ export function SmartCompaniesTable() {
           rightActions={
             <div className="flex items-center gap-2">
               <ColumnSelector columns={COMPANY_COLUMNS} visibleColumns={visibleColumns} columnOrder={columnOrder} onVisibleColumnsChange={setVisibleColumns} onColumnOrderChange={setColumnOrder} />
-              <Button variant="outline" size="sm" onClick={() => setIsDuplicatesOpen(true)} className="gap-2"><Users className="w-4 h-4" />Duplicados</Button>
+              <Button variant="outline" size="sm" onClick={() => setIsDuplicatesOpen(true)} className="gap-2"><Users className="w-4 h-4" />{t("duplicates")}</Button>
               <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2"><RefreshCw className="w-4 h-4" />{t("refresh")}</Button>
             </div>
           }
@@ -264,7 +264,7 @@ export function SmartCompaniesTable() {
           <div className="flex items-center gap-3 p-3 mt-4 bg-muted/50 rounded-lg border flex-wrap">
             <span className="text-sm text-muted-foreground">{selectedIds.size} {t("selectedFem")}</span>
             <Button variant="outline" size="sm" onClick={handleBulkAnalyze} disabled={bulkAnalyze.isPending}><Sparkles className="w-4 h-4 mr-2" />{t("analyzeAI")}</Button>
-            <Button variant="outline" size="sm" onClick={handleBulkRevenueAnalyze} disabled={bulkRevenue.isPending}><TrendingUp className="w-4 h-4 mr-2" />Revenue Intelligence</Button>
+            <Button variant="outline" size="sm" onClick={handleBulkRevenueAnalyze} disabled={bulkRevenue.isPending}><TrendingUp className="w-4 h-4 mr-2" />{t("revenueIntelligence")}</Button>
             <Button variant="outline" size="sm" onClick={handleBulkSocialAnalyze} disabled={isBulkSocialAnalyzing}><Linkedin className="w-4 h-4 mr-2" />{t("analyzeLinkedIn")}</Button>
             <Button variant="outline" size="sm" onClick={handleExport}><Download className="w-4 h-4 mr-2" />{t("export")}</Button>
             <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}><Trash2 className="w-4 h-4 mr-2" />{t("delete")}</Button>

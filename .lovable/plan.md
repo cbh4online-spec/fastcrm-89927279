@@ -1,52 +1,68 @@
 
 
-# Plan: CRM Modules — i18n, Actions & Consistency
+# Phase 5B — Command Center COMPLETO
 
-## Current State
+## Gap Analysis: Current vs Spec
 
-- **Leads (`SmartLeadsTable`)**: Already uses `useTranslation("crm")` and `PageHeader` with "Nova Lead" + "Importar" buttons. Well internationalized.
-- **Companies (`SmartCompaniesTable`)**: Already uses `useTranslation("crm")` and `PageHeader` with "Nova Empresa" + "Importar" buttons. Well internationalized. Has some hardcoded strings in bulk actions ("Revenue Intelligence", "Duplicados").
-- **Contacts (`SmartContactsTable`)**: **Not internationalized**. ~125 hardcoded Portuguese strings across column definitions, filter groups, sort options, page tabs, bulk edit fields, toast messages, and PageHeader labels. No `useTranslation` hook.
+The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
 
-## Changes
+**Already implemented (needs enhancement):**
+- Header with greeting + 3 KPIs — needs larger font (32px), labels below
+- AI Question Box — needs slash command suggestions row below input
+- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
+- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
+- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
+- Drift Alerts — needs "Rever →" links to Context OS blocks
 
-### 1. Full i18n of `SmartContactsTable.tsx` (~938 lines)
+**New sections to build:**
+1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
+2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
+   - Change Events (last 5 from `useChangeEvents` with realtime)
+   - Entity Activity (top 3 entities from `useKernelEntities`)
+   - Impact Score (top 2 from `useImpactMapData`)
+3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
 
-The biggest task. All hardcoded strings need translation keys:
-- **Column labels** (lines 42-125): ~40 labels like "Contacto", "Nº Cliente", "Cargo", "Temperatura", etc.
-- **Bulk edit fields** (lines 130-248): ~35 labels like "Nome", "Empresa", "Morada", etc.
-- **Filter groups** (lines 251-296): ~15 labels like "Quente", "Morno", "Frio", "Clientes Ativos", etc.
-- **Page tabs** (lines 299-304): 4 labels
-- **Sort options** (lines 307-318): 10 labels
-- **Toast messages** (lines 489-544): ~8 messages
-- **PageHeader** (lines 564-583): title, button labels
-- **Toolbar** (line 588): search placeholder
-- **Inline strings** throughout the component: "Duplicados", "Exportação concluída", etc.
+**Enhanced Command Palette (⌘K):**
+- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
 
-Will add `useTranslation("crm")` and replace all strings with `t()` calls. New keys will be added to all 4 locale files.
+**Spotlight (Space key):**
+- Opens AI Question Box as a modal from any page. New global component.
 
-### 2. Add ~60 new translation keys to `crm.json` (PT/EN/ES/FR)
+## Implementation Plan — 3 Sub-phases
 
-Keys for contacts columns, filters, sort options, bulk edit labels, and remaining hardcoded strings in companies module ("Revenue Intelligence", "Duplicados" button text).
+Given the scope, I recommend splitting into 3 batches:
 
-### 3. Minor fixes in `SmartCompaniesTable.tsx`
+### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
+| File | Action |
+|------|--------|
+| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
+| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
+| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
+| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
 
-- Replace remaining hardcoded strings: `"Revenue Intelligence"` (line 267), `"Duplicados"` (line 235), `"A analisar revenue intelligence..."` (line 140), toast messages (lines 144, 148).
+### Batch 2: Enhance Existing Cards
+| File | Action |
+|------|--------|
+| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
+| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
+| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
+| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
+| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
+| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
 
-### 4. Add "View Lifecycle" link
+### Batch 3: Spotlight Modal + Command Palette Enhancement
+| File | Action |
+|------|--------|
+| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
+| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
+| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
 
-- In contacts and companies detail pages, add a navigation link to `/lifecycle` in the sidebar/overview section. This is a small addition to existing detail components.
+### Realtime subscriptions needed
+- `change_events` table for Kernel Live Feed auto-update
+- `kernel_action_runs` for Ações do Dia auto-update
+- Already have `kernel_decisions` and `conversations`
 
-## Files to Edit
-- `src/components/contacts/SmartContactsTable.tsx` — full i18n refactor
-- `src/components/companies/SmartCompaniesTable.tsx` — fix remaining hardcoded strings
-- `src/i18n/locales/pt/crm.json` — ~60 new keys
-- `src/i18n/locales/en/crm.json` — ~60 new keys
-- `src/i18n/locales/es/crm.json` — ~60 new keys
-- `src/i18n/locales/fr/crm.json` — ~60 new keys
+No database migrations needed. All hooks, edge functions, and tables already exist.
 
-## Notes
-- Leads and Companies already have "New" and "Import" buttons in PageHeader — no changes needed there.
-- The AI temperature/score fields are already displayed in all three tables and update correctly via existing hooks.
-- Duplicate detection already exists for all three entity types via `UnifiedDuplicateDialog`.
+**Shall I start with Batch 1?**
 
