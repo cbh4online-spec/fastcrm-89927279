@@ -1598,5 +1598,55 @@ export const SAMPLE_MODULES: MarketplaceModule[] = [
     created_at: "2026-03-03T00:00:00Z",
     updated_at: "2026-03-03T00:00:00Z",
     published_at: "2026-03-03T00:00:00Z"
+  },
+  {
+    id: "security-ops",
+    slug: "security-ops",
+    name: "Security Ops",
+    tagline: "Gestão completa de segurança electrónica",
+    description: "Módulo completo de gestão de segurança electrónica: sites de instalação, sistemas (CCTV, alarme, incêndio), catálogo de equipamentos, contratos, documentos com versionamento, planos de manutenção, ocorrências e renovações de contrato.",
+    category: "operations",
+    icon: "Shield",
+    target_audience: "Empresas de segurança electrónica, instaladores e integradores de sistemas",
+    expected_results: [
+      "Gestão centralizada de sites e sistemas",
+      "Controlo total do ciclo de vida de contratos",
+      "Redução de 50% no tempo de gestão de manutenções"
+    ],
+    use_cases: [
+      "Registar sites de instalação e sistemas associados",
+      "Gerir contratos e renovações automaticamente",
+      "Emitir e versionar documentos técnicos",
+      "Planear e acompanhar visitas de manutenção",
+      "Registar e resolver ocorrências com rastreabilidade"
+    ],
+    internal_type: "native_feature",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "contacts", read: true, write: true, delete: false },
+        { entity: "companies", read: true, write: true, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: true,
+      can_send_whatsapp: false,
+      can_create_activities: true,
+      can_trigger_automations: true
+    },
+    pricing: {
+      type: "free",
+      base_price: 0,
+      currency: "EUR"
+    },
+    publisher: "FastCRM",
+    is_featured: true,
+    is_new: true,
+    rating: undefined,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2026-03-10T00:00:00Z",
+    updated_at: "2026-03-10T00:00:00Z",
+    published_at: "2026-03-10T00:00:00Z"
   }
 ];
