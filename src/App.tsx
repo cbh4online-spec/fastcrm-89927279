@@ -407,6 +407,7 @@ function ClientPortalRoutes() {
         <Route path="protocol/:id" element={<ClientProtocolDetailPage />} />
         <Route path="insights/consumption" element={<ClientConsumptionPage />} />
         <Route path="insights/rankings" element={<ClientRankingsPage />} />
+        <Route path="security" element={<ClientSecurityPage />} />
         <Route path="*" element={<Navigate to="/client/login" replace />} />
       </Routes>
     </CartProvider>
