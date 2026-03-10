@@ -27,7 +27,7 @@ export default function SuppliersPage() {
         </div>
         
         {isLoading ? (
-          <p className="text-muted-foreground">A carregar...</p>
+          <p className="text-muted-foreground">{t("loading")}</p>
         ) : suppliers.length === 0 ? (
           <p className="text-muted-foreground">{t("noSuppliers")}</p>
         ) : (

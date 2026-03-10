@@ -36,7 +36,7 @@ export default function GoodsReceiptsPage() {
                 <TableHead>{t("poNumber")}</TableHead>
                 <TableHead>{t("supplier")}</TableHead>
                 <TableHead>{t("items")}</TableHead>
-                <TableHead>Data</TableHead>
+                <TableHead>{t("date")}</TableHead>
                 <TableHead>{t("notes")}</TableHead>
               </TableRow>
             </TableHeader>
