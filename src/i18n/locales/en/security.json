@@ -38,6 +38,16 @@
   "warnings": "Warnings",
   "quickActions": "Quick Actions",
   "attachments": "Attachments",
+
+  "partnerRequestsDesc": "Informal partner requests for processing and conversion",
+  "reqConverted": "Converted",
+  "reqAutoExtract": "Auto-extract",
+  "reqAutoExtractDesc": "Extract data with AI immediately after creating the request",
+  "reqReExtract": "Re-extract",
+  "reqReject": "Reject",
+  "reqReopen": "Reopen",
+  "reqValidateFirst": "Validate the request first to convert to Lead",
+
   "partner": "Partner",
   "selectPartner": "Select partner",
   "sourceChannel": "Source Channel",
