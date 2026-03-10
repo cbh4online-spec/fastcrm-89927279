@@ -279,7 +279,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-white/40 hover:bg-white/5 hover:text-white/70 transition-colors"
               >
                 <Command className="w-4 h-4" />
-                <span className="flex-1 text-left">Quick Actions</span>
+                <span className="flex-1 text-left">{t("quickActions")}</span>
                 <kbd className="text-[10px] bg-white/10 rounded px-1.5 py-0.5 text-white/30">
                   ⌘K
                 </kbd>
