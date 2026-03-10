@@ -5,8 +5,10 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Phone, Calendar, Mail, RotateCcw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function ContextAwareQuickActions() {
+  const { t } = useTranslation("dashboard");
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const wid = currentWorkspace?.id;
@@ -20,21 +22,18 @@ export function ContextAwareQuickActions() {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
       const [hotLeadsRes, stalledRes, proposalsRes] = await Promise.all([
-        // Hot leads: score >= 80, no contact in 3 days
         supabase
           .from("leads")
           .select("id", { count: "exact", head: true })
           .eq("workspace_id", wid!)
           .gte("lead_score", 80)
           .lt("updated_at", threeDaysAgo),
-        // Stalled deals: open/active, not updated in 7 days
         supabase
           .from("opportunities")
           .select("id", { count: "exact", head: true })
           .eq("workspace_id", wid!)
           .in("status", ["open", "active"])
           .lt("updated_at", sevenDaysAgo),
-        // Proposals viewed but unanswered
         supabase
           .from("proposals")
           .select("id", { count: "exact", head: true })
@@ -53,25 +52,25 @@ export function ContextAwareQuickActions() {
 
   const actions = [
     {
-      label: "Ligar Leads Hot",
+      label: t("callHotLeads"),
       count: counts?.hotLeads ?? 0,
       icon: Phone,
       onClick: () => navigate("/dashboard/leads?filter=hot"),
     },
     {
-      label: "Agendar Reunião",
+      label: t("scheduleMeeting"),
       count: null,
       icon: Calendar,
       onClick: () => navigate("/dashboard/scheduling"),
     },
     {
-      label: "Enviar Follow-up",
+      label: t("sendFollowUp"),
       count: counts?.followUps ?? 0,
       icon: Mail,
       onClick: () => navigate("/dashboard/inbox"),
     },
     {
-      label: "Reativar Deals",
+      label: t("reactivateDealsAction"),
       count: counts?.stalledDeals ?? 0,
       icon: RotateCcw,
       onClick: () => navigate("/dashboard/opportunities?filter=stalled"),

@@ -2,11 +2,13 @@ import { useIntelligencePanel } from "@/hooks/useIntelligencePanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Loader2, ArrowRight, Info, ExternalLink } from "lucide-react";
+import { AlertTriangle, Loader2, ArrowRight, Info, ExternalLink, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
 import { useTranslation } from "react-i18next";
+import Papa from "papaparse";
+import jsPDF from "jspdf";
 
 const severityDot = (severity: string) =>
   severity === "HIGH" ? "bg-destructive" : severity === "MEDIUM" ? "bg-warning" : "bg-muted-foreground";
@@ -31,9 +33,34 @@ export function DealsAtRiskList() {
   const healthScore = Math.round(data?.avg_health_score ?? 100);
   const noRisksButLowHealth = risks.length === 0 && healthScore < 70;
 
-  // Build action map for deals
   const actionMap: Record<string, string> = {};
   actions.forEach((a) => { actionMap[a.deal_id] = a.action; });
+
+  function exportCsv() {
+    const csv = Papa.unparse(risks.map(r => ({
+      Deal: r.deal_title,
+      [t("mainRiskTitle")]: r.reason,
+      Severity: r.severity,
+      [t("healthScore")]: r.health_score,
+    })));
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "deals-at-risk.csv"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportPdf() {
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text(t("dealsAtRisk"), 14, 20);
+    doc.setFontSize(10);
+    risks.forEach((r, i) => {
+      const y = 30 + i * 12;
+      doc.text(`${r.deal_title} — ${r.reason} (${r.severity})`, 14, y);
+    });
+    doc.save("deals-at-risk.pdf");
+  }
 
   return (
     <Card>
@@ -46,16 +73,28 @@ export function DealsAtRiskList() {
               <Badge variant="destructive" className="text-[10px] ml-1">{risks.length}</Badge>
             )}
           </CardTitle>
-          {risks.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 text-[10px] text-muted-foreground hover:text-foreground gap-1"
-              onClick={() => navigate("/dashboard/opportunities")}
-            >
-              {t('viewAll')} <ExternalLink className="h-3 w-3" />
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {risks.length > 0 && (
+              <>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] gap-1" onClick={exportCsv}>
+                  <Download className="h-3 w-3" /> {t("exportCsv")}
+                </Button>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] gap-1" onClick={exportPdf}>
+                  <Download className="h-3 w-3" /> {t("exportPdf")}
+                </Button>
+              </>
+            )}
+            {risks.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-[10px] text-muted-foreground hover:text-foreground gap-1"
+                onClick={() => navigate("/dashboard/opportunities")}
+              >
+                {t('viewAll')} <ExternalLink className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>

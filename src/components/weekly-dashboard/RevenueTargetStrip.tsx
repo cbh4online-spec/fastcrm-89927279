@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
 import { WeeklyMetric } from "@/hooks/useWeeklyPerformance";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   metrics: WeeklyMetric[];
@@ -15,6 +16,8 @@ interface Props {
 const WIN_RATE = 0.3;
 
 export function RevenueTargetStrip({ metrics, pipelineValue, isLoading }: Props) {
+  const { t } = useTranslation("dashboard");
+
   if (isLoading) {
     return (
       <Card>
@@ -39,20 +42,19 @@ export function RevenueTargetStrip({ metrics, pipelineValue, isLoading }: Props)
   const probability = target > 0 ? Math.min(((closed + likelyPipeline) / target) * 100, 100) : 0;
   const probRounded = Math.round(probability);
 
-  // Stacked bar percentages
   const closedPct = target > 0 ? Math.min((closed / target) * 100, 100) : 0;
   const probPct = target > 0 ? Math.min((likelyPipeline / target) * 100, 100 - closedPct) : 0;
   const gapPct = Math.max(100 - closedPct - probPct, 0);
 
   const statusColor = probRounded >= 80 ? "text-success" : probRounded >= 50 ? "text-warning" : "text-destructive";
-  const statusLabel = probRounded >= 80 ? "Alcançável" : probRounded >= 50 ? "Em Risco" : "Crítico";
+  const statusLabel = probRounded >= 80 ? t("reachable") : probRounded >= 50 ? t("atRiskStatus") : t("criticalStatus");
   const statusBadge = probRounded >= 80 ? "default" : probRounded >= 50 ? "secondary" : "destructive";
 
   const cards = [
-    { label: "Meta Semanal", value: formatCurrency(target), icon: Target, color: "text-primary", bg: "bg-primary/10" },
-    { label: "Receita Fechada", value: formatCurrency(closed), icon: TrendingUp, color: "text-success", bg: "bg-success/10", sub: target > 0 ? `${Math.round(closedPct)}% da meta` : undefined },
-    { label: "Pipeline Provável", value: formatCurrency(likelyPipeline), icon: BarChart3, color: "text-chart-2", bg: "bg-chart-2/10", sub: `${formatCurrency(pipelineValue)} × ${Math.round(WIN_RATE * 100)}%` },
-    { label: "Gap Restante", value: formatCurrency(gap), icon: AlertTriangle, color: statusColor, bg: probRounded >= 80 ? "bg-success/10" : probRounded >= 50 ? "bg-warning/10" : "bg-destructive/10", sub: `${probRounded}% probabilidade` },
+    { label: t("weeklyTargetCard"), value: formatCurrency(target), icon: Target, color: "text-primary", bg: "bg-primary/10" },
+    { label: t("closedRevenue"), value: formatCurrency(closed), icon: TrendingUp, color: "text-success", bg: "bg-success/10", sub: target > 0 ? t("ofTargetPct", { pct: Math.round(closedPct) }) : undefined },
+    { label: t("likelyPipeline"), value: formatCurrency(likelyPipeline), icon: BarChart3, color: "text-chart-2", bg: "bg-chart-2/10", sub: `${formatCurrency(pipelineValue)} × ${Math.round(WIN_RATE * 100)}%` },
+    { label: t("remainingGap"), value: formatCurrency(gap), icon: AlertTriangle, color: statusColor, bg: probRounded >= 80 ? "bg-success/10" : probRounded >= 50 ? "bg-warning/10" : "bg-destructive/10", sub: t("probabilityLabel", { pct: probRounded }) },
   ];
 
   return (
@@ -61,7 +63,7 @@ export function RevenueTargetStrip({ metrics, pipelineValue, isLoading }: Props)
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Crosshair className="h-4 w-4 text-primary" />
-            WAR ROOM — Situação Semanal
+            {t("warRoomSituation")}
           </CardTitle>
           <div className="flex items-center gap-2">
             <div className={cn(
@@ -72,53 +74,42 @@ export function RevenueTargetStrip({ metrics, pipelineValue, isLoading }: Props)
             )}>
               <Target className="h-3.5 w-3.5" />
               <span className="text-sm font-bold">{probRounded}%</span>
-              <span className="text-[10px] font-medium">de atingir meta</span>
+              <span className="text-[10px] font-medium">{t("ofTarget")}</span>
             </div>
             <Badge variant={statusBadge as any} className="text-[10px]">{statusLabel}</Badge>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Stacked Progress Bar */}
         <div className="space-y-1.5">
           <div className="flex justify-between text-[10px] text-muted-foreground">
-            <span>Progresso para meta</span>
+            <span>{t("progressToTarget")}</span>
             <span className={statusColor}>{probRounded}%</span>
           </div>
           <div className="h-4 w-full rounded-full bg-muted/50 overflow-hidden flex">
             {closedPct > 0 && (
-              <div
-                className="h-full bg-success transition-all duration-500 flex items-center justify-center"
-                style={{ width: `${closedPct}%` }}
-              >
-                {closedPct > 12 && <span className="text-[9px] font-bold text-success-foreground">Fechado</span>}
+              <div className="h-full bg-success transition-all duration-500 flex items-center justify-center" style={{ width: `${closedPct}%` }}>
+                {closedPct > 12 && <span className="text-[9px] font-bold text-success-foreground">{t("closedLabel")}</span>}
               </div>
             )}
             {probPct > 0 && (
-              <div
-                className="h-full bg-chart-2/60 transition-all duration-500 flex items-center justify-center"
-                style={{ width: `${probPct}%` }}
-              >
-                {probPct > 12 && <span className="text-[9px] font-bold text-foreground/70">Provável</span>}
+              <div className="h-full bg-chart-2/60 transition-all duration-500 flex items-center justify-center" style={{ width: `${probPct}%` }}>
+                {probPct > 12 && <span className="text-[9px] font-bold text-foreground/70">{t("likelyLabel")}</span>}
               </div>
             )}
             {gapPct > 0 && (
-              <div
-                className="h-full bg-destructive/20 transition-all duration-500 flex items-center justify-center"
-                style={{ width: `${gapPct}%` }}
-              >
-                {gapPct > 12 && <span className="text-[9px] font-bold text-destructive">Gap</span>}
+              <div className="h-full bg-destructive/20 transition-all duration-500 flex items-center justify-center" style={{ width: `${gapPct}%` }}>
+                {gapPct > 12 && <span className="text-[9px] font-bold text-destructive">{t("gapLabelBar")}</span>}
               </div>
             )}
           </div>
           <div className="flex gap-3 text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-success" /> Fechado {Math.round(closedPct)}%</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-chart-2/60" /> Provável {Math.round(probPct)}%</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-destructive/20" /> Gap {Math.round(gapPct)}%</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-success" /> {t("closedLabel")} {Math.round(closedPct)}%</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-chart-2/60" /> {t("likelyLabel")} {Math.round(probPct)}%</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-destructive/20" /> {t("gapLabelBar")} {Math.round(gapPct)}%</span>
           </div>
         </div>
 
-        {/* Metric Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {cards.map((c) => {
             const Icon = c.icon;

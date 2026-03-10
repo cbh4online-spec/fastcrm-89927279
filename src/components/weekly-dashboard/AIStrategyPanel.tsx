@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Brain, AlertTriangle, Zap, Target, Loader2, Lightbulb, Star } from "lucide-react";
+import { Brain, AlertTriangle, Zap, Target, Lightbulb, Star } from "lucide-react";
 import { WeeklyStrategy } from "@/hooks/useWeeklyStrategy";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "react-i18next";
 
 const statusColors = {
   on_track: "bg-success/10 text-success border-success/20",
@@ -23,13 +24,15 @@ interface Props {
 }
 
 export function AIStrategyPanel({ strategy, isLoading }: Props) {
+  const { t } = useTranslation("dashboard");
+
   if (isLoading || !strategy) {
     return (
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Brain className="h-4 w-4 text-primary" />
-            Estratégia Semanal IA
+            {t("aiWeeklyStrategy")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -43,7 +46,7 @@ export function AIStrategyPanel({ strategy, isLoading }: Props) {
           ) : (
             <div className="flex flex-col items-center justify-center py-8 gap-2">
               <Brain className="h-8 w-8 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">A carregar estratégia...</p>
+              <p className="text-xs text-muted-foreground">{t("loadingStrategy")}</p>
             </div>
           )}
         </CardContent>
@@ -53,12 +56,11 @@ export function AIStrategyPanel({ strategy, isLoading }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Summary */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Brain className="h-4 w-4 text-primary" />
-            Estratégia Semanal IA
+            {t("aiWeeklyStrategy")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -66,13 +68,12 @@ export function AIStrategyPanel({ strategy, isLoading }: Props) {
         </CardContent>
       </Card>
 
-      {/* Week Priorities (from recommendations top 3) */}
       {strategy.recommendations.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Star className="h-4 w-4 text-warning" />
-              Prioridades da Semana
+              {t("weekPriorities")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -91,13 +92,12 @@ export function AIStrategyPanel({ strategy, isLoading }: Props) {
         </Card>
       )}
 
-      {/* Today Actions (from quick_wins top 3) */}
       {strategy.quick_wins.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Zap className="h-4 w-4 text-primary" />
-              Ações para Hoje
+              {t("actionsForToday")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -112,13 +112,12 @@ export function AIStrategyPanel({ strategy, isLoading }: Props) {
         </Card>
       )}
 
-      {/* Gap Analysis */}
       {strategy.gap_analysis.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Target className="h-4 w-4 text-primary" />
-              Análise de Gap
+              {t("gapAnalysisTitle")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -137,13 +136,12 @@ export function AIStrategyPanel({ strategy, isLoading }: Props) {
         </Card>
       )}
 
-      {/* Risk + Opportunity */}
       {strategy.risk_alerts.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-destructive" />
-              Risco Principal
+              {t("mainRiskTitle")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -157,7 +155,7 @@ export function AIStrategyPanel({ strategy, isLoading }: Props) {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Lightbulb className="h-4 w-4 text-warning" />
-              Oportunidade Escondida
+              {t("hiddenOpportunity")}
             </CardTitle>
           </CardHeader>
           <CardContent>
