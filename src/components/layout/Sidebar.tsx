@@ -106,7 +106,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         return { ...g, children: visibleChildren };
       })
       .filter(Boolean) as (NavV2Group & { children: NavV2GroupChild[] })[];
-  }, [isFlagEnabled, installedModuleIds]);
+  }, [isFlagEnabled, installedModuleIds, navGroups]);
 
   const extensionGroups = useMemo(() => {
     return getExtensionObjectTabsGrouped(installedModuleIds);
