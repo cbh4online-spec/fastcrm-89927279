@@ -82,7 +82,7 @@ export default function C2CLoyaltyProgram() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <NexusPageHeader icon={Gift} title={t('loyaltyTitle')} description={t('loyaltyDesc')} />
+      <NexusPageHeader icon={Gift} title={t('loyaltyTitle')} subtitle={t('loyaltyDesc')} />
 
       {/* Tier Card */}
       <Card className="overflow-hidden">

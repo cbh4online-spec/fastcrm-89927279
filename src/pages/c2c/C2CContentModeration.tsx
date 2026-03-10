@@ -113,7 +113,7 @@ export default function C2CContentModeration() {
       <NexusPageHeader
         icon={Shield}
         title={t('modTitle')}
-        description={t('modDesc')}
+        subtitle={t('modDesc')}
         badge={pendingReports.length > 0 ? `${pendingReports.length} ${t('modPending')}` : undefined}
       />
 
