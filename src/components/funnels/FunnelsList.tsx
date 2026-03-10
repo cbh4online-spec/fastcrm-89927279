@@ -343,6 +343,10 @@ export function FunnelsList() {
               <Globe className="h-4 w-4" />
               Domínios
             </TabsTrigger>
+            <TabsTrigger value="credits" className="gap-1.5">
+              <Coins className="h-4 w-4" />
+              Créditos
+            </TabsTrigger>
           </TabsList>
         </div>
 
