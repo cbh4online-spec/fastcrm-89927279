@@ -312,6 +312,13 @@ export const CATEGORY_INFO: Record<ModuleCategory, CategoryInfo> = {
     description: "Gestão de compras e cadeia de abastecimento",
     icon: "Settings",
     color: "text-teal-600"
+  },
+  strategy: {
+    id: "strategy",
+    name: "Estratégia",
+    description: "Planeamento estratégico e metodologias de gestão",
+    icon: "Target",
+    color: "text-rose-500"
   }
 };
 
