@@ -1,5 +1,5 @@
 export type FeatureStatus = "active" | "beta" | "planned";
-export type ModuleCategory = "Core" | "CRM" | "Comunicação" | "Vendas" | "Marketing" | "Loja Online" | "Portal B2B" | "Comunidade" | "IA" | "Estratégia" | "Vertical" | "Admin";
+export type ModuleCategory = "Core" | "CRM" | "Comunicação" | "Vendas" | "Marketing" | "Loja Online" | "Portal B2B" | "Comunidade" | "IA" | "Estratégia" | "Vertical" | "Admin" | "Extensão";
 export type PlanTier = "free" | "basic" | "pro" | "agency";
 
 export interface Feature {
