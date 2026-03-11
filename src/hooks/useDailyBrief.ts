@@ -58,7 +58,21 @@ export function useDailyBrief() {
       const { data, error } = await supabase.functions.invoke("daily-revenue-brief", {
         body: { workspace_id: currentWorkspace.id },
       });
-      if (error) throw error;
+      
+      // Handle edge function errors gracefully (402, 429, etc.)
+      if (error) {
+        const msg = error.message || "";
+        if (msg.includes("402") || msg.includes("Credits")) {
+          toast.error("Créditos AI esgotados.");
+        } else if (msg.includes("429") || msg.includes("Rate limit")) {
+          toast.error("Limite de pedidos AI atingido. Tente novamente mais tarde.");
+        } else {
+          console.error("[STRATEGY-BRIEF] Daily brief error:", error);
+          toast.error("Erro ao gerar daily brief");
+        }
+        return;
+      }
+      
       if (data?.error) {
         if (data.error.includes("Rate limit")) {
           toast.error("Limite de pedidos AI atingido. Tente novamente mais tarde.");

@@ -39,21 +39,40 @@ export function useWeeklyStrategy() {
       const { data, error } = await supabase.functions.invoke("ai-weekly-strategy", {
         body: { workspace_id: currentWorkspace.id },
       });
-      if (error) throw error;
+      
+      // Handle edge function errors gracefully
+      if (error) {
+        const msg = error.message || "";
+        if (msg.includes("402") || msg.includes("Credits")) {
+          toast.error("Créditos AI esgotados.");
+        } else if (msg.includes("429") || msg.includes("Rate limit")) {
+          toast.error("Limite de requisições excedido. Tente novamente em breve.");
+        } else {
+          console.error("Weekly strategy error:", error);
+          toast.error("Erro ao gerar estratégia semanal");
+        }
+        return;
+      }
+      
+      // Handle error in response body
+      if (data?.error) {
+        const errMsg = data.error;
+        if (errMsg.includes("Credits")) {
+          toast.error("Créditos AI esgotados.");
+        } else if (errMsg.includes("Rate limit")) {
+          toast.error("Limite de requisições excedido.");
+        } else {
+          toast.error(errMsg);
+        }
+        return;
+      }
+      
       if (data?.strategy) {
         setStrategy(data.strategy);
-      } else {
-        toast.error("Não foi possível gerar a estratégia");
       }
     } catch (err: any) {
-      console.error("Weekly strategy error:", err);
-      if (err?.message?.includes("429")) {
-        toast.error("Limite de requisições excedido. Tente novamente em breve.");
-      } else if (err?.message?.includes("402")) {
-        toast.error("Créditos insuficientes. Adicione créditos na área de configurações.");
-      } else {
-        toast.error("Erro ao gerar estratégia semanal");
-      }
+      console.error("Weekly strategy unexpected error:", err);
+      toast.error("Erro ao gerar estratégia semanal");
     } finally {
       setIsLoading(false);
     }
