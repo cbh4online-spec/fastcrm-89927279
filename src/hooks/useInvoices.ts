@@ -294,9 +294,28 @@ export function useCreateInvoice() {
 
       return invoice as Invoice;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       toast.success("Fatura criada com sucesso");
+
+      // Kernel event: invoice created
+      emitKernelEvent({
+        workspace_id: data.workspace_id,
+        type: "INVOICE.CREATED",
+        entity_kind: "invoice",
+        entity_id: data.id,
+        actor_type: "user",
+        source_module: "billing",
+        payload: {
+          invoice_number: data.invoice_number,
+          total: data.total,
+          currency: data.currency,
+          status: data.status,
+          company_id: data.company_id,
+          contact_id: data.contact_id,
+          opportunity_id: data.opportunity_id,
+        },
+      });
     },
     onError: (error) => {
       console.error("Error creating invoice:", error);
@@ -327,6 +346,17 @@ export function useUpdateInvoice() {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["invoice", data.id] });
       toast.success("Fatura atualizada");
+
+      // Kernel event: invoice updated
+      emitKernelEvent({
+        workspace_id: data.workspace_id,
+        type: "INVOICE.UPDATED",
+        entity_kind: "invoice",
+        entity_id: data.id,
+        actor_type: "user",
+        source_module: "billing",
+        payload: { invoice_number: data.invoice_number, status: data.status, total: data.total },
+      });
     },
     onError: (error) => {
       console.error("Error updating invoice:", error);
@@ -425,6 +455,17 @@ export function useSendInvoice() {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["invoice", data.id] });
       toast.success("Fatura marcada como enviada");
+
+      // Kernel event: invoice sent
+      emitKernelEvent({
+        workspace_id: data.workspace_id,
+        type: "INVOICE.SENT",
+        entity_kind: "invoice",
+        entity_id: data.id,
+        actor_type: "user",
+        source_module: "billing",
+        payload: { invoice_number: data.invoice_number, total: data.total },
+      });
     },
     onError: (error) => {
       console.error("Error sending invoice:", error);
