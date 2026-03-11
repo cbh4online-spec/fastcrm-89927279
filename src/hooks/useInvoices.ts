@@ -346,6 +346,17 @@ export function useUpdateInvoice() {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["invoice", data.id] });
       toast.success("Fatura atualizada");
+
+      // Kernel event: invoice updated
+      emitKernelEvent({
+        workspace_id: data.workspace_id,
+        type: "INVOICE.UPDATED",
+        entity_kind: "invoice",
+        entity_id: data.id,
+        actor_type: "user",
+        source_module: "billing",
+        payload: { invoice_number: data.invoice_number, status: data.status, total: data.total },
+      });
     },
     onError: (error) => {
       console.error("Error updating invoice:", error);
