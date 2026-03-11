@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
+import { emitKernelEvent } from "@/lib/kernelEmitter";
 
 export type PaymentStatus = "pending" | "succeeded" | "failed";
 
