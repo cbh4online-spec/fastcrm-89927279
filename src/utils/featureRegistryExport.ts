@@ -1035,10 +1035,10 @@ export function exportB2BModulePDF() {
     doc.setTextColor(40, 40, 40);
     for (let c = 0; c < permRows[r].length; c++) {
       const val = permRows[r][c];
-      if (val === "✓") {
+      if (val === "Y") {
         doc.setTextColor(teal[0], teal[1], teal[2]);
         doc.setFont("helvetica", "bold");
-      } else if (val === "—") {
+      } else if (val === "-") {
         doc.setTextColor(180, 180, 190);
         doc.setFont("helvetica", "normal");
       } else {
