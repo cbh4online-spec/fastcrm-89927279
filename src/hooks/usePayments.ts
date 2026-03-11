@@ -178,6 +178,19 @@ export function useUpdatePayment() {
       queryClient.invalidateQueries({ queryKey: ["payments", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["payment", data.id] });
       queryClient.invalidateQueries({ queryKey: ["payments", "opportunity", data.opportunity_id] });
+
+      // Kernel event: payment status changed
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: "PAYMENT.STATUS_CHANGED",
+          entity_kind: "payment",
+          entity_id: data.id,
+          actor_type: "user",
+          source_module: "billing-payments",
+          payload: { amount: data.amount, status: data.status, opportunity_id: data.opportunity_id },
+        });
+      }
     },
   });
 }
