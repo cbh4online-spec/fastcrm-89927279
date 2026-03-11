@@ -336,7 +336,7 @@ export function LeadDetailWithSidebar() {
   };
 
   return (
-    <div className="flex flex-col -m-6" style={{ height: 'calc(100vh - 64px)' }}>
+    <div className="flex flex-col -mx-4 -mt-4 -mb-4 md:-mx-6 md:-mt-6 md:-mb-6 h-[calc(100vh-64px)]">
       {/* Breadcrumbs */}
       <div className="bg-background px-6 pt-4">
         <PageBreadcrumbs
@@ -469,19 +469,17 @@ export function LeadDetailWithSidebar() {
       />
 
       {/* Main Content - 2 Column Layout */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex min-h-0">
         {/* Center Content */}
-        <main className="flex-1 overflow-auto">
-          <ScrollArea className="h-full">
-            <div className="p-6 max-w-4xl">
-              {activeSection === 'overview' && (
-                <div className="mb-6">
-                  <EntityHighlightsGrid entityType="lead" entity={lead as any} />
-                </div>
-              )}
-              {renderSectionContent()}
-            </div>
-          </ScrollArea>
+        <main className="flex-1 overflow-y-auto min-h-0">
+          <div className="p-6 max-w-4xl">
+            {activeSection === 'overview' && (
+              <div className="mb-6">
+                <EntityHighlightsGrid entityType="lead" entity={lead as any} />
+              </div>
+            )}
+            {renderSectionContent()}
+          </div>
         </main>
 
         {/* Right Details Panel */}
