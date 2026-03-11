@@ -131,17 +131,51 @@ Deno.serve(async (req) => {
             output = { notified: true, owner_id: ownerId };
             break;
           }
-          case "RUN_AI_AGENT_JOB": {
+          case "RUN_AI_AGENT_JOB":
+          case "RUN_AI_AGENT": {
             const p = action.params as any;
-            await supabase.from("ai_agent_jobs").insert({
+            const agentType = p.agent ?? p.agent_type ?? "general";
+            const entityType = p.entity_type ?? "opportunity";
+            const entityId = p.entity_id ?? p.lead_id ?? "";
+
+            // Insert job with rich context
+            const { data: job } = await supabase.from("ai_agent_jobs").insert({
               workspace_id,
-              agent_type: p.agent_type ?? "general",
-              entity_type: p.entity_type ?? "opportunity",
-              entity_id: p.entity_id ?? "",
+              agent_type: agentType,
+              entity_type: entityType,
+              entity_id: entityId,
               trigger_type: "kernel",
               status: "pending",
-            });
-            output = { job_created: true };
+              context: {
+                objective: p.objective ?? null,
+                operator: agentType,
+                source_decision_id: decision_id ?? null,
+                extra: p.context ?? null,
+              },
+            }).select("id").single();
+
+            // Dispatch execution asynchronously
+            const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+            const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+            try {
+              await fetch(`${supabaseUrl}/functions/v1/kernel-execute-ai-operator`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+                body: JSON.stringify({
+                  workspace_id,
+                  job_id: job?.id,
+                  agent_type: agentType,
+                  entity_type: entityType,
+                  entity_id: entityId,
+                  objective: p.objective ?? null,
+                  context: p.context ?? null,
+                }),
+              });
+            } catch (dispatchErr) {
+              console.error("AI operator dispatch failed:", (dispatchErr as Error).message);
+            }
+
+            output = { job_created: true, job_id: job?.id, agent: agentType, entity_id: entityId };
             break;
           }
           case "SEND_INBOX_REPLY": {

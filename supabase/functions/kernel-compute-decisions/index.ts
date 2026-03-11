@@ -266,7 +266,123 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Rule 7: LEAD_DROP_ALERT — >20% drop in new leads week-over-week
+    // Rule 7: CHURN_RISK — contacts/companies with no activity in 30+ days that have past deals
+    if (!(await isDuplicate("churn_risk"))) {
+      const cutoff30d = new Date(Date.now() - 30 * 86400_000).toISOString();
+      const { data: inactiveContacts } = await supabase
+        .from("contacts")
+        .select("id, name, company, updated_at")
+        .eq("workspace_id", workspace_id)
+        .lt("updated_at", cutoff30d)
+        .limit(10);
+
+      for (const contact of inactiveContacts ?? []) {
+        const { count: dealCount } = await supabase
+          .from("opportunities")
+          .select("id", { count: "exact", head: true })
+          .eq("workspace_id", workspace_id)
+          .eq("contact_id", contact.id)
+          .eq("stage", "won");
+
+        if ((dealCount ?? 0) > 0) {
+          const inactiveDays = Math.floor((Date.now() - new Date(contact.updated_at).getTime()) / 86400_000);
+          const policy = getPolicy("churn_risk");
+          decisions.push({
+            decision: {
+              workspace_id,
+              type: "churn_risk",
+              priority: 0.85,
+              summary: `Cliente "${contact.name}" sem atividade há ${inactiveDays} dias (risco de churn)`,
+              rationale: `Cliente com deals ganhos anteriores está inativo há ${inactiveDays} dias. Requer intervenção proativa.`,
+              recommended_actions: [
+                { action_key: "RUN_AI_AGENT_JOB", params: { agent: "churn_prevention", entity_type: "contact", entity_id: contact.id, objective: "analisar risco de churn e propor estratégia de retenção" } },
+                { action_key: "NOTIFY_OWNER", params: { title: `Risco de churn: ${contact.name}`, severity: "risk", entity_type: "contact", entity_id: contact.id } },
+              ],
+              policy,
+              status: getStatusFromPolicy("churn_risk"),
+            },
+            evidence: [
+              { evidence_type: "query", ref_kind: "contact", ref_id: contact.id, snippet: `Última atividade: ${contact.updated_at}, Deals ganhos: ${dealCount}, Dias inativo: ${inactiveDays}` },
+            ],
+          });
+          break; // one churn decision per cycle
+        }
+      }
+    }
+
+    // Rule 8: UPSELL_OPPORTUNITY — won deals where contact has high engagement
+    if (!(await isDuplicate("upsell_opportunity"))) {
+      const cutoff90d = new Date(Date.now() - 90 * 86400_000).toISOString();
+      const { data: recentWins } = await supabase
+        .from("opportunities")
+        .select("id, title, contact_id, value, contacts(name)")
+        .eq("workspace_id", workspace_id)
+        .eq("stage", "won")
+        .gte("updated_at", cutoff90d)
+        .limit(10);
+
+      for (const deal of recentWins ?? []) {
+        if (!deal.contact_id) continue;
+        const contactName = (deal as any).contacts?.name ?? deal.contact_id;
+        const policy = getPolicy("upsell_opportunity");
+        decisions.push({
+          decision: {
+            workspace_id,
+            type: "upsell_opportunity",
+            priority: 0.7,
+            summary: `Oportunidade de upsell com "${contactName}" (deal "${deal.title}" ganho recentemente)`,
+            rationale: `Deal ganho recentemente com valor ${deal.value}. Bom momento para propor produtos/serviços complementares.`,
+            recommended_actions: [
+              { action_key: "RUN_AI_AGENT_JOB", params: { agent: "upsell_advisor", entity_type: "contact", entity_id: deal.contact_id, objective: "identificar oportunidades de cross-sell e upsell" } },
+              { action_key: "CREATE_TASK", params: { title: `Explorar upsell: ${contactName}`, related_type: "contact", related_id: deal.contact_id, priority: "medium" } },
+            ],
+            policy,
+            status: getStatusFromPolicy("upsell_opportunity"),
+          },
+          evidence: [
+            { evidence_type: "query", ref_kind: "opportunity", ref_id: deal.id, snippet: `Deal ganho: "${deal.title}", Valor: ${deal.value}` },
+          ],
+        });
+        break; // one upsell per cycle
+      }
+    }
+
+    // Rule 9: SDR_QUALIFICATION — new leads with no qualification in 24h
+    if (!(await isDuplicate("sdr_qualification_needed"))) {
+      const cutoff24h = new Date(Date.now() - 24 * 3600_000).toISOString();
+      const { data: newLeads } = await supabase
+        .from("leads")
+        .select("id, name, status, created_at")
+        .eq("workspace_id", workspace_id)
+        .eq("status", "new")
+        .lt("created_at", cutoff24h)
+        .limit(5);
+
+      for (const lead of newLeads ?? []) {
+        const hoursAge = Math.floor((Date.now() - new Date(lead.created_at).getTime()) / 3600_000);
+        const policy = getPolicy("sdr_qualification_needed");
+        decisions.push({
+          decision: {
+            workspace_id,
+            type: "sdr_qualification_needed",
+            priority: 0.8,
+            summary: `Lead "${lead.name}" precisa de qualificação (criado há ${hoursAge}h)`,
+            rationale: `Lead novo sem qualificação após 24h. O SDR Operator pode avaliar automaticamente.`,
+            recommended_actions: [
+              { action_key: "RUN_AI_AGENT_JOB", params: { agent: "sdr_operator", entity_type: "lead", entity_id: lead.id, objective: "qualificar lead e recomendar próximos passos" } },
+            ],
+            policy,
+            status: getStatusFromPolicy("sdr_qualification_needed"),
+          },
+          evidence: [
+            { evidence_type: "query", ref_kind: "lead", ref_id: lead.id, snippet: `Lead: ${lead.name}, Status: ${lead.status}, Criado: ${lead.created_at}` },
+          ],
+        });
+        break; // one SDR decision per cycle
+      }
+    }
+
+    // Rule 10: LEAD_DROP_ALERT — >20% drop in new leads week-over-week
     if (!(await isDuplicate("lead_drop_alert"))) {
       const now = Date.now();
       const thisWeekStart = new Date(now - 7 * 86400_000).toISOString();
@@ -342,7 +458,7 @@ Deno.serve(async (req) => {
     }).then(() => {});
 
     return new Response(
-      JSON.stringify({ created, total_rules_checked: 7 }),
+      JSON.stringify({ created, total_rules_checked: 10 }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
