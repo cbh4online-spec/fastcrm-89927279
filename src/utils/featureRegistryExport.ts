@@ -159,7 +159,7 @@ function drawAITag(doc: jsPDF, x: number, y: number): number {
   doc.setTextColor(139, 92, 246);
   doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text("★ IA", x + tagW / 2, y - 0.5, { align: "center" });
+  doc.text("* IA", x + tagW / 2, y - 0.5, { align: "center" });
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "normal");
   return x + tagW + 2;
