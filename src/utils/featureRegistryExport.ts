@@ -73,6 +73,7 @@ const CATEGORY_COLORS: Record<string, [number, number, number]> = {
   "Estratégia": [79, 70, 229],
   "Vertical": [202, 138, 4],
   "Admin": [100, 116, 139],
+  "Extensão": [16, 185, 129],
 };
 
 function getCatColor(catId: string): [number, number, number] {
