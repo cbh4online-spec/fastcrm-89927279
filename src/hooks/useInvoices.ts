@@ -455,6 +455,17 @@ export function useSendInvoice() {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["invoice", data.id] });
       toast.success("Fatura marcada como enviada");
+
+      // Kernel event: invoice sent
+      emitKernelEvent({
+        workspace_id: data.workspace_id,
+        type: "INVOICE.SENT",
+        entity_kind: "invoice",
+        entity_id: data.id,
+        actor_type: "user",
+        source_module: "billing",
+        payload: { invoice_number: data.invoice_number, total: data.total },
+      });
     },
     onError: (error) => {
       console.error("Error sending invoice:", error);
