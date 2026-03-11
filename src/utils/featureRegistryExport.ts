@@ -580,7 +580,7 @@ export function exportCommercialPDF() {
           doc.setTextColor(180, 130, 0);
           doc.setFontSize(6.5);
           doc.setFont("helvetica", "bold");
-          doc.text("★ IA", textX + tagW / 2, y, { align: "center" });
+          doc.text("* IA", textX + tagW / 2, y, { align: "center" });
           doc.setFont("helvetica", "normal");
           doc.setFontSize(8);
         }
