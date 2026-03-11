@@ -333,7 +333,7 @@ export function exportTechnicalPDF() {
         doc.setFontSize(8);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(catColor[0], catColor[1], catColor[2]);
-        doc.text("★ Features", 20, y);
+        doc.text(">> Features", 20, y);
         doc.setFont("helvetica", "normal");
         y += 4;
         doc.setFontSize(7);
