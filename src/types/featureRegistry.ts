@@ -43,6 +43,7 @@ export const MODULE_CATEGORIES: { id: ModuleCategory; label: string; color: stri
   { id: "Estratégia", label: "Estratégia", color: "bg-amber-500" },
   { id: "Vertical", label: "Vertical", color: "bg-teal-500" },
   { id: "Admin", label: "Admin", color: "bg-red-500" },
+  { id: "Extensão", label: "Extensão", color: "bg-emerald-500" },
 ];
 
 export const FEATURE_REGISTRY: FeatureModule[] = [
