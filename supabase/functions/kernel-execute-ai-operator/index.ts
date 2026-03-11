@@ -173,9 +173,9 @@ ${JSON.stringify(recentActivity, null, 2)}
 
 Analyze this data and provide your assessment.`;
 
-    // Call Lovable AI via the proxy
+    // Call Lovable AI via the gateway
     const aiResponse = await fetch(
-      `${Deno.env.get("SUPABASE_URL")}/functions/v1/ai-proxy`,
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/ai-gateway`,
       {
         method: "POST",
         headers: {
