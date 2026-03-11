@@ -185,6 +185,8 @@ import RFCForecastPage from "./pages/RFCForecastPage";
 import RFCScenariosPage from "./pages/RFCScenariosPage";
 import RFCSettingsPage from "./pages/RFCSettingsPage";
 import VisionPage from "./pages/VisionPage";
+import RevenueRadarPage from "./pages/RevenueRadarPage";
+import KernelMonitorPage from "./pages/KernelMonitorPage";
 import VisionDuoAcceptPage from "./pages/VisionDuoAcceptPage";
 
 // Performance Engine
@@ -490,6 +492,8 @@ function CRMRoutes() {
                 <Route path="/dashboard/system/events" element={<EventMapPage />} />
                 <Route path="/dashboard/system/event-matrix" element={<EventMatrixPage />} />
                 <Route path="/dashboard/system/event-tests" element={<EventTestsPage />} />
+                <Route path="/dashboard/revenue-radar" element={<RevenueRadarPage />} />
+                <Route path="/dashboard/kernel" element={<KernelMonitorPage />} />
                 
                 {/* Settings redirect to /settings */}
                 <Route path="/dashboard/settings" element={<Navigate to="/settings" replace />} />
