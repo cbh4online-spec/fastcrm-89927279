@@ -15,7 +15,6 @@ import {
   Flame,
   UserMinus,
   Brain,
-  ArrowRight,
   Activity,
   Target,
   ShieldAlert,
@@ -25,7 +24,6 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
-import { PageHeader } from "@/components/ui/page-header";
 
 function useRevenueRadarData() {
   const { currentWorkspace } = useWorkspace();
@@ -34,22 +32,21 @@ function useRevenueRadarData() {
   const forecast = useQuery({
     queryKey: ["rr-forecast", wid],
     queryFn: async () => {
-      if (!wid) return null;
+      if (!wid) return { weighted: 0, active: 0, atRisk: 0 };
       const { data } = await supabase
         .from("opportunities")
-        .select("value, probability, stage, last_activity_date, updated_at")
+        .select("value, probability, status, last_activity_at, updated_at")
         .eq("workspace_id", wid)
-        .in("stage", ["qualification", "proposal", "negotiation", "discovery", "demo"]);
-      if (!data?.length) return { weighted: 0, active: 0, atRisk: 0, wonWeek: 0 };
+        .eq("status", "open");
+      if (!data?.length) return { weighted: 0, active: 0, atRisk: 0 };
       const now = Date.now();
-      const weekAgo = now - 7 * 86400000;
       const weighted = data.reduce((s, d) => s + (d.value ?? 0) * ((d.probability ?? 50) / 100), 0);
       const active = data.length;
       const atRisk = data.filter((d) => {
-        const last = d.last_activity_date ?? d.updated_at;
+        const last = d.last_activity_at ?? d.updated_at;
         return last && new Date(last).getTime() < now - 7 * 86400000;
       }).length;
-      return { weighted, active, atRisk, wonWeek: 0 };
+      return { weighted, active, atRisk };
     },
     enabled: !!wid,
   });
@@ -63,7 +60,7 @@ function useRevenueRadarData() {
         .from("opportunities")
         .select("value")
         .eq("workspace_id", wid)
-        .eq("stage", "closed_won")
+        .eq("status", "won")
         .gte("updated_at", weekAgo);
       return data?.reduce((s, d) => s + (d.value ?? 0), 0) ?? 0;
     },
@@ -76,10 +73,11 @@ function useRevenueRadarData() {
       if (!wid) return [];
       const { data } = await supabase
         .from("leads")
-        .select("id, name, score, last_activity_date, created_at")
+        .select("id, name, lead_score, last_contact_at, created_at")
         .eq("workspace_id", wid)
-        .gte("score", 70)
-        .order("score", { ascending: false })
+        .not("lead_score", "is", null)
+        .gte("lead_score", 70)
+        .order("lead_score", { ascending: false })
         .limit(10);
       return data ?? [];
     },
@@ -93,11 +91,11 @@ function useRevenueRadarData() {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
       const { data } = await supabase
         .from("contacts")
-        .select("id, name, email, client_status, last_interaction_at")
+        .select("id, name, email, client_status, last_contact_at")
         .eq("workspace_id", wid)
         .eq("client_status", "active")
-        .lt("last_interaction_at", thirtyDaysAgo)
-        .order("last_interaction_at", { ascending: true })
+        .lt("last_contact_at", thirtyDaysAgo)
+        .order("last_contact_at", { ascending: true })
         .limit(10);
       return data ?? [];
     },
@@ -112,20 +110,26 @@ function StatCard({
   label,
   value,
   sub,
-  color,
+  variant,
 }: {
   icon: React.ElementType;
   label: string;
   value: string;
   sub?: string;
-  color: string;
+  variant: "primary" | "success" | "warning" | "danger";
 }) {
+  const styles = {
+    primary: "bg-primary/10 text-primary",
+    success: "bg-chart-2/10 text-chart-2",
+    warning: "bg-chart-4/10 text-chart-4",
+    danger: "bg-destructive/10 text-destructive",
+  };
   return (
     <Card className="border-border/30">
       <CardContent className="py-4 px-5">
         <div className="flex items-center gap-3">
-          <div className={`p-2.5 rounded-lg bg-${color}/10`}>
-            <Icon className={`h-5 w-5 text-${color}`} />
+          <div className={`p-2.5 rounded-lg ${styles[variant]}`}>
+            <Icon className="h-5 w-5" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs text-muted-foreground">{label}</p>
@@ -147,10 +151,12 @@ export default function RevenueRadarPage() {
 
   return (
     <div className="space-y-6 p-6 max-w-7xl mx-auto">
-      <PageHeader
-        title="Revenue Radar"
-        description="Visão unificada de receita, pipeline e sinais de crescimento"
-      />
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Revenue Radar</h1>
+        <p className="text-sm text-muted-foreground">
+          Visão unificada de receita, pipeline e sinais de crescimento
+        </p>
+      </div>
 
       {/* KPI Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -169,27 +175,27 @@ export default function RevenueRadarPage() {
               label="Receita Prevista"
               value={`€${((f?.weighted ?? 0) / 1000).toFixed(1)}k`}
               sub="Soma ponderada por probabilidade"
-              color="primary"
+              variant="primary"
             />
             <StatCard
               icon={Target}
               label="Deals Ativos"
               value={String(f?.active ?? 0)}
               sub={`${f?.atRisk ?? 0} em risco`}
-              color="chart-2"
+              variant="success"
             />
             <StatCard
               icon={TrendingUp}
               label="Ganhos Esta Semana"
               value={`€${((wonThisWeek.data ?? 0) / 1000).toFixed(1)}k`}
-              color="chart-4"
+              variant="warning"
             />
             <StatCard
               icon={UserMinus}
               label="Churn Risk"
               value={String(churnRisk.data?.length ?? 0)}
               sub="Clientes inativos >30 dias"
-              color="destructive"
+              variant="danger"
             />
           </>
         )}
@@ -272,7 +278,7 @@ export default function RevenueRadarPage() {
                         <p className="text-xs font-medium truncate">{lead.name}</p>
                       </div>
                       <Badge variant="outline" className="text-[10px]">
-                        {lead.score}
+                        {lead.lead_score}
                       </Badge>
                     </div>
                   ))}
@@ -312,9 +318,9 @@ export default function RevenueRadarPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium truncate">{c.name ?? c.email}</p>
                         <p className="text-[10px] text-muted-foreground">
-                          Última interação:{" "}
-                          {c.last_interaction_at
-                            ? formatDistanceToNow(new Date(c.last_interaction_at), {
+                          Último contacto:{" "}
+                          {c.last_contact_at
+                            ? formatDistanceToNow(new Date(c.last_contact_at), {
                                 addSuffix: true,
                                 locale: pt,
                               })
