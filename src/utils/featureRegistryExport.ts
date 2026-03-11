@@ -996,17 +996,17 @@ export function exportB2BModulePDF() {
 
   const permHeaders = ["Funcionalidade", "Admin", "Financial", "Operational", "Viewer"];
   const permRows = [
-    ["Gerir equipa", "✓", "—", "—", "—"],
-    ["Aprovar encomendas", "✓", "—", "—", "—"],
-    ["Comprar / Encomendar", "✓", "—", "✓", "—"],
-    ["Ver faturas", "✓", "✓", "—", "—"],
-    ["Ver financeiro", "✓", "✓", "—", "—"],
-    ["Ver contratos", "✓", "✓", "—", "—"],
-    ["Criar tickets", "✓", "✓", "✓", "—"],
-    ["Ver catálogo", "✓", "✓", "✓", "✓"],
-    ["Ver encomendas", "✓", "✓", "✓", "✓"],
-    ["Usar Copilot IA", "✓", "✓", "✓", "✓"],
-    ["Pesquisa semântica", "✓", "✓", "✓", "✓"],
+    ["Gerir equipa", "Y", "-", "-", "-"],
+    ["Aprovar encomendas", "Y", "-", "-", "-"],
+    ["Comprar / Encomendar", "Y", "-", "Y", "-"],
+    ["Ver faturas", "Y", "Y", "-", "-"],
+    ["Ver financeiro", "Y", "Y", "-", "-"],
+    ["Ver contratos", "Y", "Y", "-", "-"],
+    ["Criar tickets", "Y", "Y", "Y", "-"],
+    ["Ver catalogo", "Y", "Y", "Y", "Y"],
+    ["Ver encomendas", "Y", "Y", "Y", "Y"],
+    ["Usar Copilot IA", "Y", "Y", "Y", "Y"],
+    ["Pesquisa semantica", "Y", "Y", "Y", "Y"],
   ];
 
   // Table header
