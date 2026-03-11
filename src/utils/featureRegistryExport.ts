@@ -322,10 +322,10 @@ export function exportTechnicalPDF() {
       };
 
       // Pages
-      drawSection("▸", "Pages", mod.pages.map((p) => `${p.name} → ${p.route}`));
-      drawSection("▸", "Hooks", mod.hooks);
-      drawSection("⚡", "Edge Functions", mod.edgeFunctions);
-      drawSection("🗄", "Tables", mod.tables);
+      drawSection(">", "Pages", mod.pages.map((p) => `${p.name} -> ${p.route}`));
+      drawSection(">", "Hooks", mod.hooks);
+      drawSection(">", "Edge Functions", mod.edgeFunctions);
+      drawSection(">", "Tables", mod.tables);
 
       // Features with status dots and AI tags
       if (mod.features.length > 0) {
