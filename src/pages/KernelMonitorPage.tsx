@@ -55,7 +55,7 @@ export default function KernelMonitorPage() {
   const { todayRuns, successCount, isLoading: actionsLoading } = useKernelActions();
   const [processing, setProcessing] = useState(false);
 
-  const pendingEvents = events?.filter((e) => !e.status || e.status === "pending").length ?? 0;
+  const pendingEvents = events?.length ?? 0;
   const openDecisions = decisions?.filter((d) => d.status === "open").length ?? 0;
   const failedActions = todayRuns.filter((r) => r.status === "failed").length;
 
