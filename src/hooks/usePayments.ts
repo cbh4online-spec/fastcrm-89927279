@@ -138,6 +138,19 @@ export function useCreatePayment() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["payments", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["payments", "opportunity", data.opportunity_id] });
+
+      // Kernel event: payment created
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: "PAYMENT.CREATED",
+          entity_kind: "payment",
+          entity_id: data.id,
+          actor_type: "user",
+          source_module: "billing-payments",
+          payload: { amount: data.amount, currency: data.currency, status: data.status, opportunity_id: data.opportunity_id },
+        });
+      }
     },
   });
 }
