@@ -492,6 +492,8 @@ function CRMRoutes() {
                 <Route path="/dashboard/system/events" element={<EventMapPage />} />
                 <Route path="/dashboard/system/event-matrix" element={<EventMatrixPage />} />
                 <Route path="/dashboard/system/event-tests" element={<EventTestsPage />} />
+                <Route path="/dashboard/revenue-radar" element={<RevenueRadarPage />} />
+                <Route path="/dashboard/kernel" element={<KernelMonitorPage />} />
                 
                 {/* Settings redirect to /settings */}
                 <Route path="/dashboard/settings" element={<Navigate to="/settings" replace />} />
