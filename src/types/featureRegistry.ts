@@ -251,7 +251,7 @@ export const FEATURE_REGISTRY: FeatureModule[] = [
     minPlan: "pro",
     status: "active",
     moduleSlug: null,
-    pages: [{ name: "Lead Enricher", route: "/dashboard/leads/enricher" }],
+    pages: [{ name: "Lead Enricher", route: "/dashboard/lead-enricher" }],
     hooks: ["useLeadEnrichment", "useInstagramEnrich"],
     edgeFunctions: ["enrich-instagram-profile", "google-places-enrich"],
     tables: ["leads"],
