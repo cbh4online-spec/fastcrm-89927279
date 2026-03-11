@@ -18,7 +18,8 @@ export type ModuleCategory =
   | "ai"               // Inteligência Artificial
   | "integrations"     // Integrações
   | "education"        // Educação
-  | "operations";      // Operações
+  | "operations"       // Operações
+  | "strategy";        // Estratégia
 
 // Internal implementation types (NEVER shown to customer)
 export type ModuleInternalType = 
