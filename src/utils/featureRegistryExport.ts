@@ -736,12 +736,12 @@ export function exportB2BModulePDF() {
 
   // Stats boxes
   const statsData = [
-    { label: "Sub-módulos", value: b2bModules.length, icon: "◆" },
-    { label: "Funcionalidades", value: allFeatures.length, icon: "●" },
-    { label: "Com IA", value: aiFeatures.length, icon: "★" },
-    { label: "Páginas", value: allPages.length, icon: "📄" },
-    { label: "Hooks", value: allHooks.length, icon: "⚙" },
-    { label: "Edge Functions", value: allEF.length, icon: "⚡" },
+    { label: "Sub-modulos", value: b2bModules.length },
+    { label: "Funcionalidades", value: allFeatures.length },
+    { label: "Com IA", value: aiFeatures.length },
+    { label: "Paginas", value: allPages.length },
+    { label: "Hooks", value: allHooks.length },
+    { label: "Edge Functions", value: allEF.length },
   ];
 
   const sBoxW = 28;
