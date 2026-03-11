@@ -18,7 +18,8 @@ export type ModuleCategory =
   | "ai"               // Inteligência Artificial
   | "integrations"     // Integrações
   | "education"        // Educação
-  | "operations";      // Operações
+  | "operations"       // Operações
+  | "strategy";        // Estratégia
 
 // Internal implementation types (NEVER shown to customer)
 export type ModuleInternalType = 
@@ -311,6 +312,13 @@ export const CATEGORY_INFO: Record<ModuleCategory, CategoryInfo> = {
     description: "Gestão de compras e cadeia de abastecimento",
     icon: "Settings",
     color: "text-teal-600"
+  },
+  strategy: {
+    id: "strategy",
+    name: "Estratégia",
+    description: "Planeamento estratégico e metodologias de gestão",
+    icon: "Target",
+    color: "text-rose-500"
   }
 };
 
@@ -1633,6 +1641,55 @@ export const SAMPLE_MODULES: MarketplaceModule[] = [
       can_send_whatsapp: false,
       can_create_activities: true,
       can_trigger_automations: true
+    },
+    pricing: {
+      type: "free",
+      base_price: 0,
+      currency: "EUR"
+    },
+    publisher: "FastCRM",
+    is_featured: true,
+    is_new: true,
+    rating: undefined,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2026-03-10T00:00:00Z",
+    updated_at: "2026-03-10T00:00:00Z",
+    published_at: "2026-03-10T00:00:00Z"
+  },
+  {
+    id: "metodo-vision",
+    slug: "metodo-vision",
+    name: "Método Vision",
+    tagline: "Planeamento estratégico com metodologia Vision",
+    description: "Implemente o Método Vision no seu negócio: defina visão, missão, valores, objetivos estratégicos e planos de ação com acompanhamento integrado no CRM.",
+    category: "strategy",
+    icon: "Target",
+    target_audience: "Gestores, diretores e equipas de liderança",
+    expected_results: [
+      "Alinhamento estratégico da equipa",
+      "Acompanhamento de OKRs integrado",
+      "Visibilidade total dos planos de ação"
+    ],
+    use_cases: [
+      "Definir visão e missão da empresa",
+      "Criar e acompanhar objetivos estratégicos",
+      "Gerir planos de ação com prazos",
+      "Monitorizar KPIs estratégicos"
+    ],
+    internal_type: "native_feature",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "contacts", read: true, write: false, delete: false },
+        { entity: "companies", read: true, write: false, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: false,
+      can_send_whatsapp: false,
+      can_create_activities: true,
+      can_trigger_automations: false
     },
     pricing: {
       type: "free",

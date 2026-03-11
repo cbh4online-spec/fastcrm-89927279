@@ -72,16 +72,27 @@ export default function Marketplace() {
     return SAMPLE_MODULES.filter(m => m.is_featured);
   }, []);
 
+  // Base modules for the active tab (before category/search filter)
+  const tabModules = useMemo(() => {
+    if (activeTab === "installed") {
+      return SAMPLE_MODULES.filter(m => installedModuleIds.includes(m.id));
+    } else if (activeTab === "extensions") {
+      return SAMPLE_MODULES.filter(m => extensionSlugs.includes(m.id));
+    }
+    return SAMPLE_MODULES;
+  }, [activeTab, installedModuleIds, extensionSlugs]);
+
   const moduleCounts = useMemo(() => {
     const counts: Record<ModuleCategory | "all", number> = {
-      all: SAMPLE_MODULES.length,
+      all: tabModules.length,
       prospecting: 0, real_estate: 0, customer_service: 0, sales: 0,
       marketing: 0, finance: 0, analytics: 0, communication: 0,
       automation: 0, ai: 0, integrations: 0, education: 0, operations: 0,
+      strategy: 0,
     };
-    SAMPLE_MODULES.forEach(m => { counts[m.category]++; });
+    tabModules.forEach(m => { counts[m.category]++; });
     return counts;
-  }, []);
+  }, [tabModules]);
 
   const handleToggle = async (module: MarketplaceModule) => {
     setTogglingSlug(module.id);
