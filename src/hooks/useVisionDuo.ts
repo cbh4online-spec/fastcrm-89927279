@@ -79,15 +79,31 @@ export function useDuoPartnerVisions() {
     queryFn: async () => {
       if (!user) return [];
 
-      // Get accepted duo links where I am the invitee
-      const { data: links, error } = await supabase
+      // Get accepted duo links where I am invitee OR inviter
+      const { data: asInvitee, error: e1 } = await supabase
         .from("vision_duo_links")
         .select("*, vision_profiles(*)")
         .eq("invitee_id", user.id)
         .eq("status", "accepted");
 
-      if (error) throw error;
-      return links || [];
+      const { data: asInviter, error: e2 } = await supabase
+        .from("vision_duo_links")
+        .select("*, vision_profiles(*)")
+        .eq("inviter_id", user.id)
+        .eq("status", "accepted");
+
+      if (e1) throw e1;
+      if (e2) throw e2;
+
+      // Combine and deduplicate by link id
+      const all = [...(asInvitee || []), ...(asInviter || [])];
+      const seen = new Set<string>();
+      return all.filter((link) => {
+        if (seen.has(link.id)) return false;
+        seen.add(link.id);
+        // Exclude links where the vision belongs to the current user
+        return link.vision_profiles?.user_id !== user.id;
+      });
     },
     enabled: !!user,
   });
