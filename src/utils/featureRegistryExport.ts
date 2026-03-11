@@ -843,7 +843,7 @@ export function exportB2BModulePDF() {
       doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(teal[0], teal[1], teal[2]);
-      doc.text("📄 Páginas", 20, y);
+      doc.text(">> Paginas", 20, y);
       y += 5;
       doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
