@@ -1043,7 +1043,7 @@ export const FEATURE_REGISTRY: FeatureModule[] = [
     minPlan: "pro",
     status: "active",
     moduleSlug: "ai-ocr-documents",
-    pages: [],
+    pages: [{ name: "Document OCR", route: "/dashboard/ai-document-ocr" }],
     hooks: ["useDocumentProcessing"],
     edgeFunctions: ["knowledge-document-process", "knowledge-document-trigger"],
     tables: ["document_processing_jobs"],
