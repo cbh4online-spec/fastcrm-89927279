@@ -401,7 +401,7 @@ export const FEATURE_REGISTRY: FeatureModule[] = [
     minPlan: "free",
     status: "active",
     moduleSlug: null,
-    pages: [{ name: "Templates", route: "/dashboard/templates" }],
+    pages: [{ name: "Templates", route: "/dashboard/communication/templates" }],
     hooks: ["useTemplates", "useTemplateCopilot"],
     edgeFunctions: ["generate-template", "ai-template-copilot", "template-compose-message"],
     tables: ["email_templates", "template_variables"],
