@@ -485,10 +485,10 @@ export function exportCommercialPDF() {
   const cBoxY = 115;
 
   const coverStats = [
-    { label: "Módulos", value: stats.totalModules, icon: "◆" },
-    { label: "Funcionalidades", value: stats.totalFeatures, icon: "●" },
-    { label: "Com IA", value: stats.aiFeatures, icon: "★" },
-    { label: "Páginas", value: stats.pages, icon: "📄" },
+    { label: "Modulos", value: stats.totalModules },
+    { label: "Funcionalidades", value: stats.totalFeatures },
+    { label: "Com IA", value: stats.aiFeatures },
+    { label: "Paginas", value: stats.pages },
   ];
 
   for (let i = 0; i < coverStats.length; i++) {
