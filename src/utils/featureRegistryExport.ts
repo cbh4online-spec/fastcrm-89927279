@@ -118,13 +118,13 @@ function drawColoredHeader(doc: jsPDF, text: string, color: [number, number, num
   return y + 14;
 }
 
-function drawStatBox(doc: jsPDF, label: string, value: string | number, icon: string, x: number, y: number, w: number) {
+function drawStatBox(doc: jsPDF, label: string, value: string | number, x: number, y: number, w: number) {
   doc.setFillColor(240, 240, 245);
   doc.roundedRect(x, y, w, 22, 3, 3, "F");
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(26, 26, 46);
-  doc.text(`${icon} ${value}`, x + w / 2, y + 10, { align: "center" });
+  doc.text(`${value}`, x + w / 2, y + 10, { align: "center" });
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 116, 139);
