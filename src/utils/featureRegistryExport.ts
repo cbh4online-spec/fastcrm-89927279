@@ -250,16 +250,16 @@ export function exportTechnicalPDF() {
   const startX = (210 - (boxW * 4 + boxGap * 3)) / 2;
   const boxY = 95;
 
-  drawStatBox(doc, "Módulos", stats.totalModules, "◆", startX, boxY, boxW);
-  drawStatBox(doc, "Features", stats.totalFeatures, "●", startX + boxW + boxGap, boxY, boxW);
-  drawStatBox(doc, "AI Features", stats.aiFeatures, "★", startX + (boxW + boxGap) * 2, boxY, boxW);
-  drawStatBox(doc, "Edge Functions", stats.edgeFunctions, "⚡", startX + (boxW + boxGap) * 3, boxY, boxW);
+  drawStatBox(doc, "Modulos", stats.totalModules, startX, boxY, boxW);
+  drawStatBox(doc, "Features", stats.totalFeatures, startX + boxW + boxGap, boxY, boxW);
+  drawStatBox(doc, "AI Features", stats.aiFeatures, startX + (boxW + boxGap) * 2, boxY, boxW);
+  drawStatBox(doc, "Edge Functions", stats.edgeFunctions, startX + (boxW + boxGap) * 3, boxY, boxW);
 
   // Second row of stats
   const boxY2 = boxY + 28;
   const startX2 = (210 - (boxW * 2 + boxGap)) / 2;
-  drawStatBox(doc, "Páginas", stats.pages, "📄", startX2, boxY2, boxW);
-  drawStatBox(doc, "Tabelas", stats.tables, "🗄", startX2 + boxW + boxGap, boxY2, boxW);
+  drawStatBox(doc, "Paginas", stats.pages, startX2, boxY2, boxW);
+  drawStatBox(doc, "Tabelas", stats.tables, startX2 + boxW + boxGap, boxY2, boxW);
 
   // ── Modules by category ──
   for (const catId of Object.keys(grouped)) {
