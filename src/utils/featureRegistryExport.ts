@@ -73,6 +73,7 @@ const CATEGORY_COLORS: Record<string, [number, number, number]> = {
   "Estratégia": [79, 70, 229],
   "Vertical": [202, 138, 4],
   "Admin": [100, 116, 139],
+  "Extensão": [16, 185, 129],
 };
 
 function getCatColor(catId: string): [number, number, number] {
@@ -117,13 +118,13 @@ function drawColoredHeader(doc: jsPDF, text: string, color: [number, number, num
   return y + 14;
 }
 
-function drawStatBox(doc: jsPDF, label: string, value: string | number, icon: string, x: number, y: number, w: number) {
+function drawStatBox(doc: jsPDF, label: string, value: string | number, x: number, y: number, w: number) {
   doc.setFillColor(240, 240, 245);
   doc.roundedRect(x, y, w, 22, 3, 3, "F");
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(26, 26, 46);
-  doc.text(`${icon} ${value}`, x + w / 2, y + 10, { align: "center" });
+  doc.text(`${value}`, x + w / 2, y + 10, { align: "center" });
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 116, 139);
@@ -158,7 +159,7 @@ function drawAITag(doc: jsPDF, x: number, y: number): number {
   doc.setTextColor(139, 92, 246);
   doc.setFontSize(6.5);
   doc.setFont("helvetica", "bold");
-  doc.text("★ IA", x + tagW / 2, y - 0.5, { align: "center" });
+  doc.text("* IA", x + tagW / 2, y - 0.5, { align: "center" });
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "normal");
   return x + tagW + 2;
@@ -249,16 +250,16 @@ export function exportTechnicalPDF() {
   const startX = (210 - (boxW * 4 + boxGap * 3)) / 2;
   const boxY = 95;
 
-  drawStatBox(doc, "Módulos", stats.totalModules, "◆", startX, boxY, boxW);
-  drawStatBox(doc, "Features", stats.totalFeatures, "●", startX + boxW + boxGap, boxY, boxW);
-  drawStatBox(doc, "AI Features", stats.aiFeatures, "★", startX + (boxW + boxGap) * 2, boxY, boxW);
-  drawStatBox(doc, "Edge Functions", stats.edgeFunctions, "⚡", startX + (boxW + boxGap) * 3, boxY, boxW);
+  drawStatBox(doc, "Modulos", stats.totalModules, startX, boxY, boxW);
+  drawStatBox(doc, "Features", stats.totalFeatures, startX + boxW + boxGap, boxY, boxW);
+  drawStatBox(doc, "AI Features", stats.aiFeatures, startX + (boxW + boxGap) * 2, boxY, boxW);
+  drawStatBox(doc, "Edge Functions", stats.edgeFunctions, startX + (boxW + boxGap) * 3, boxY, boxW);
 
   // Second row of stats
   const boxY2 = boxY + 28;
   const startX2 = (210 - (boxW * 2 + boxGap)) / 2;
-  drawStatBox(doc, "Páginas", stats.pages, "📄", startX2, boxY2, boxW);
-  drawStatBox(doc, "Tabelas", stats.tables, "🗄", startX2 + boxW + boxGap, boxY2, boxW);
+  drawStatBox(doc, "Paginas", stats.pages, startX2, boxY2, boxW);
+  drawStatBox(doc, "Tabelas", stats.tables, startX2 + boxW + boxGap, boxY2, boxW);
 
   // ── Modules by category ──
   for (const catId of Object.keys(grouped)) {
@@ -321,10 +322,10 @@ export function exportTechnicalPDF() {
       };
 
       // Pages
-      drawSection("▸", "Pages", mod.pages.map((p) => `${p.name} → ${p.route}`));
-      drawSection("▸", "Hooks", mod.hooks);
-      drawSection("⚡", "Edge Functions", mod.edgeFunctions);
-      drawSection("🗄", "Tables", mod.tables);
+      drawSection(">", "Pages", mod.pages.map((p) => `${p.name} -> ${p.route}`));
+      drawSection(">", "Hooks", mod.hooks);
+      drawSection(">", "Edge Functions", mod.edgeFunctions);
+      drawSection(">", "Tables", mod.tables);
 
       // Features with status dots and AI tags
       if (mod.features.length > 0) {
@@ -332,7 +333,7 @@ export function exportTechnicalPDF() {
         doc.setFontSize(8);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(catColor[0], catColor[1], catColor[2]);
-        doc.text("★ Features", 20, y);
+        doc.text(">> Features", 20, y);
         doc.setFont("helvetica", "normal");
         y += 4;
         doc.setFontSize(7);
@@ -484,10 +485,10 @@ export function exportCommercialPDF() {
   const cBoxY = 115;
 
   const coverStats = [
-    { label: "Módulos", value: stats.totalModules, icon: "◆" },
-    { label: "Funcionalidades", value: stats.totalFeatures, icon: "●" },
-    { label: "Com IA", value: stats.aiFeatures, icon: "★" },
-    { label: "Páginas", value: stats.pages, icon: "📄" },
+    { label: "Modulos", value: stats.totalModules },
+    { label: "Funcionalidades", value: stats.totalFeatures },
+    { label: "Com IA", value: stats.aiFeatures },
+    { label: "Paginas", value: stats.pages },
   ];
 
   for (let i = 0; i < coverStats.length; i++) {
@@ -579,7 +580,7 @@ export function exportCommercialPDF() {
           doc.setTextColor(180, 130, 0);
           doc.setFontSize(6.5);
           doc.setFont("helvetica", "bold");
-          doc.text("★ IA", textX + tagW / 2, y, { align: "center" });
+          doc.text("* IA", textX + tagW / 2, y, { align: "center" });
           doc.setFont("helvetica", "normal");
           doc.setFontSize(8);
         }
@@ -735,12 +736,12 @@ export function exportB2BModulePDF() {
 
   // Stats boxes
   const statsData = [
-    { label: "Sub-módulos", value: b2bModules.length, icon: "◆" },
-    { label: "Funcionalidades", value: allFeatures.length, icon: "●" },
-    { label: "Com IA", value: aiFeatures.length, icon: "★" },
-    { label: "Páginas", value: allPages.length, icon: "📄" },
-    { label: "Hooks", value: allHooks.length, icon: "⚙" },
-    { label: "Edge Functions", value: allEF.length, icon: "⚡" },
+    { label: "Sub-modulos", value: b2bModules.length },
+    { label: "Funcionalidades", value: allFeatures.length },
+    { label: "Com IA", value: aiFeatures.length },
+    { label: "Paginas", value: allPages.length },
+    { label: "Hooks", value: allHooks.length },
+    { label: "Edge Functions", value: allEF.length },
   ];
 
   const sBoxW = 28;
@@ -842,7 +843,7 @@ export function exportB2BModulePDF() {
       doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(teal[0], teal[1], teal[2]);
-      doc.text("📄 Páginas", 20, y);
+      doc.text(">> Paginas", 20, y);
       y += 5;
       doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
@@ -862,7 +863,7 @@ export function exportB2BModulePDF() {
       doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(teal[0], teal[1], teal[2]);
-      doc.text("★ Funcionalidades", 20, y);
+      doc.text(">> Funcionalidades", 20, y);
       y += 6;
 
       for (const f of mod.features) {
@@ -895,7 +896,7 @@ export function exportB2BModulePDF() {
       doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(teal[0], teal[1], teal[2]);
-      doc.text("⚙ Hooks", 20, y);
+      doc.text(">> Hooks", 20, y);
       y += 5;
       doc.setFontSize(7.5);
       doc.setFont("helvetica", "normal");
@@ -910,7 +911,7 @@ export function exportB2BModulePDF() {
       doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(teal[0], teal[1], teal[2]);
-      doc.text("⚡ Edge Functions", 20, y);
+      doc.text(">> Edge Functions", 20, y);
       y += 5;
       doc.setFontSize(7.5);
       doc.setFont("helvetica", "normal");
@@ -925,7 +926,7 @@ export function exportB2BModulePDF() {
       doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(teal[0], teal[1], teal[2]);
-      doc.text("🗄 Tabelas", 20, y);
+      doc.text(">> Tabelas", 20, y);
       y += 5;
       doc.setFontSize(7.5);
       doc.setFont("helvetica", "normal");
@@ -995,17 +996,17 @@ export function exportB2BModulePDF() {
 
   const permHeaders = ["Funcionalidade", "Admin", "Financial", "Operational", "Viewer"];
   const permRows = [
-    ["Gerir equipa", "✓", "—", "—", "—"],
-    ["Aprovar encomendas", "✓", "—", "—", "—"],
-    ["Comprar / Encomendar", "✓", "—", "✓", "—"],
-    ["Ver faturas", "✓", "✓", "—", "—"],
-    ["Ver financeiro", "✓", "✓", "—", "—"],
-    ["Ver contratos", "✓", "✓", "—", "—"],
-    ["Criar tickets", "✓", "✓", "✓", "—"],
-    ["Ver catálogo", "✓", "✓", "✓", "✓"],
-    ["Ver encomendas", "✓", "✓", "✓", "✓"],
-    ["Usar Copilot IA", "✓", "✓", "✓", "✓"],
-    ["Pesquisa semântica", "✓", "✓", "✓", "✓"],
+    ["Gerir equipa", "Y", "-", "-", "-"],
+    ["Aprovar encomendas", "Y", "-", "-", "-"],
+    ["Comprar / Encomendar", "Y", "-", "Y", "-"],
+    ["Ver faturas", "Y", "Y", "-", "-"],
+    ["Ver financeiro", "Y", "Y", "-", "-"],
+    ["Ver contratos", "Y", "Y", "-", "-"],
+    ["Criar tickets", "Y", "Y", "Y", "-"],
+    ["Ver catalogo", "Y", "Y", "Y", "Y"],
+    ["Ver encomendas", "Y", "Y", "Y", "Y"],
+    ["Usar Copilot IA", "Y", "Y", "Y", "Y"],
+    ["Pesquisa semantica", "Y", "Y", "Y", "Y"],
   ];
 
   // Table header
@@ -1034,10 +1035,10 @@ export function exportB2BModulePDF() {
     doc.setTextColor(40, 40, 40);
     for (let c = 0; c < permRows[r].length; c++) {
       const val = permRows[r][c];
-      if (val === "✓") {
+      if (val === "Y") {
         doc.setTextColor(teal[0], teal[1], teal[2]);
         doc.setFont("helvetica", "bold");
-      } else if (val === "—") {
+      } else if (val === "-") {
         doc.setTextColor(180, 180, 190);
         doc.setFont("helvetica", "normal");
       } else {
