@@ -336,7 +336,7 @@ export function LeadDetailWithSidebar() {
   };
 
   return (
-    <div className="flex flex-col -m-4 md:-m-6" style={{ height: 'calc(100vh - 64px)', minHeight: '500px' }}>
+    <div className="flex flex-col -mx-4 -mb-4 -mt-4 md:-mx-6 md:-mb-6 md:-mt-4" style={{ height: 'calc(100vh - 80px)' }}>
       {/* Breadcrumbs */}
       <div className="bg-background px-6 pt-4">
         <PageBreadcrumbs
