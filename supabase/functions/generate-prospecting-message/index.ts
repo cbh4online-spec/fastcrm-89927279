@@ -57,6 +57,8 @@ Estrutura: Dor do prospect -> O que fazes -> Como resolves -> CTA`
       ? "Escreve em português de Portugal." 
       : `O perfil é de um país/lingua "${profileLanguage}". Escreve a mensagem INTEIRAMENTE na língua "${profileLanguage}" (não em português). Adapta expressões e referências culturais ao país do perfil.`;
 
+    const companyName = workspaceContext?.name || '';
+    
     const systemPrompt = `És um especialista em copywriting para Instagram DMs usando o método AIDA (Atenção, Interesse, Desejo, Ação).
 
 REGRAS OBRIGATÓRIAS:
@@ -68,6 +70,9 @@ REGRAS OBRIGATÓRIAS:
 - Personaliza com base nos dados reais do perfil
 - ${toneDescriptions[tone] || toneDescriptions.casual}
 ${serviceBlock}
+
+${companyName ? `NOME DA TUA EMPRESA: "${companyName}"
+REGRA CRÍTICA: Usa EXACTAMENTE "${companyName}" quando te referires à tua empresa. NUNCA uses placeholders como [Nome da Empresa], [Company Name], [Sua Empresa] ou similares.` : ''}
 
 ${stepInstructions[sequenceStep] || stepInstructions[1]}
 
