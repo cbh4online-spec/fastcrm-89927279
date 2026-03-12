@@ -393,7 +393,7 @@ export function SmartLeadsTable() {
                               <Avatar className="h-9 w-9"><AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground text-xs font-medium">{initials}</AvatarFallback></Avatar>
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5">
-                                  <a href={`/dashboard/leads/${lead.id}`} className="font-medium text-foreground hover:text-primary hover:underline truncate block relative z-10">{lead.name}</a>
+                                  <Link to={`/dashboard/leads/${lead.id}`} className="font-medium text-foreground hover:text-primary hover:underline truncate block relative z-10">{lead.name}</Link>
                                   {dupCount && (
                                     <Badge 
                                       variant="outline" 
