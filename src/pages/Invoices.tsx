@@ -513,13 +513,27 @@ export default function Invoices() {
                                 </DropdownMenuItem>
                               )}
                               {(invoice.status === "sent" || invoice.status === "overdue" || invoice.status === "partially_paid") && (
-                                <DropdownMenuItem
-                                  className="gap-2"
-                                  onClick={() => markPaid.mutate({ id: invoice.id })}
-                                >
-                                  <CheckCircle className="h-4 w-4" />
-                                  {t("markAsPaid")}
-                                </DropdownMenuItem>
+                                <>
+                                  <DropdownMenuItem
+                                    className="gap-2"
+                                    onClick={() => setPaymentInvoice({
+                                      id: invoice.id,
+                                      total: invoice.total,
+                                      amount_paid: invoice.amount_paid || 0,
+                                      currency: invoice.currency || "EUR",
+                                    })}
+                                  >
+                                    <CreditCard className="h-4 w-4" />
+                                    {t("registerPayment")}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="gap-2"
+                                    onClick={() => markPaid.mutate({ id: invoice.id })}
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                    {t("markAsPaid")}
+                                  </DropdownMenuItem>
+                                </>
                               )}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
