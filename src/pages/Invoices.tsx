@@ -486,6 +486,16 @@ export default function Invoices() {
                         <TableCell className="text-right font-medium">
                           {formatCurrency(invoice.total)}
                         </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {(() => {
+                            const pending = invoice.total - (invoice.amount_paid ?? 0);
+                            return (
+                              <span className={pending <= 0 ? "text-green-600" : "text-orange-600"}>
+                                {formatCurrency(pending > 0 ? pending : 0)}
+                              </span>
+                            );
+                          })()}
+                        </TableCell>
                         <TableCell>{getStatusBadge(invoice.status)}</TableCell>
                         <TableCell>
                           <DropdownMenu>

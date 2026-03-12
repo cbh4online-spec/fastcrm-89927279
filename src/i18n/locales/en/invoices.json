@@ -58,6 +58,7 @@
   "colIssueDate": "Issue Date",
   "colDueDate": "Due Date",
   "colTotal": "Total",
+  "colPending": "Pending",
   "colStatus": "Status",
   "viewDetails": "View details",
   "markAsSent": "Mark as sent",
