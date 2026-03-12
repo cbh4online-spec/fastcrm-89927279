@@ -204,6 +204,12 @@ export interface VariableContext {
     full_name?: string;
     email?: string;
   } | null;
+  workspace?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    website?: string;
+  } | null;
   customFields?: Record<string, any>;
 }
 
