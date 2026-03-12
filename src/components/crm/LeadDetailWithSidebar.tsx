@@ -104,7 +104,7 @@ function getTimeAgo(date: Date): string {
 export function LeadDetailWithSidebar() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: lead, isLoading } = useLead(id);
+  const { data: lead, isLoading, isFetching, isPending } = useLead(id);
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
   const { data: counts } = useEntityCounts('lead', id);
@@ -156,7 +156,7 @@ export function LeadDetailWithSidebar() {
     await generateSuggestions.mutateAsync({ entityType: "lead", entityId: id });
   };
 
-  if (isLoading) {
+  if (isLoading || isPending || isFetching) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
