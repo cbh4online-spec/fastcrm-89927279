@@ -6,13 +6,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const STYLE_PROMPTS: Record<string, string> = {
+  photo: "Professional high-quality photograph, realistic, natural lighting, studio quality, sharp focus",
+  "3d": "Modern 3D illustration, vibrant colors, smooth surfaces, depth of field, isometric style",
+  flat: "Flat design vector illustration, clean lines, bold solid colors, geometric shapes, modern minimal",
+  minimal: "Minimalist clean design, lots of white space, subtle tones, elegant simplicity, sophisticated",
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { prompt, stepType, currentContent, funnelName, funnelType, generateImage } = await req.json();
+    const { prompt, stepType, currentContent, funnelName, funnelType, generateImage, imageStyle } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -24,7 +31,8 @@ serve(async (req) => {
 
     // --- Image generation mode ---
     if (generateImage) {
-      const imagePrompt = `Create a professional, high-quality hero image for a marketing landing page. Context: ${prompt}. Style: modern, clean, professional photography or illustration. No text in the image.`;
+      const styleGuide = STYLE_PROMPTS[imageStyle] || STYLE_PROMPTS.photo;
+      const imagePrompt = `Create a ${styleGuide} image for a marketing landing page. Subject/context: ${prompt}. No text or words in the image. High resolution, visually striking.`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -43,14 +51,12 @@ serve(async (req) => {
         const status = response.status;
         if (status === 429) {
           return new Response(JSON.stringify({ error: "Rate limit atingido. Tenta novamente em alguns segundos." }), {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
         if (status === 402) {
           return new Response(JSON.stringify({ error: "Créditos insuficientes. Adiciona créditos em Settings → Workspace → Usage." }), {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
         throw new Error("Erro ao gerar imagem");
@@ -72,7 +78,6 @@ serve(async (req) => {
       const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
       const fileName = `funnel-images/${crypto.randomUUID()}.png`;
 
-      // Ensure bucket exists
       await sb.storage.createBucket("funnel-assets", { public: true }).catch(() => {});
 
       const { error: uploadErr } = await sb.storage.from("funnel-assets").upload(fileName, imageBytes, { contentType: "image/png" });

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUpdateFunnelStep, FunnelStep } from "@/hooks/useFunnels";
-import { Save, Sparkles, Loader2, Wand2, Image, Plus, Trash2, GripVertical } from "lucide-react";
+import { Save, Sparkles, Loader2, Wand2, Image, Plus, Trash2, GripVertical, X } from "lucide-react";
 import { toast } from "sonner";
 import { AppearanceEditor, defaultAppearance, type AppearanceValues } from "@/components/funnels/AppearanceEditor";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,6 +61,13 @@ const DEFAULT_FORM_FIELDS: FormFieldConfig[] = [
   { id: "email", label: "Email", type: "email", required: true, placeholder: "seu@email.com" },
 ];
 
+const IMAGE_STYLES = [
+  { value: "photo", label: "Fotografia" },
+  { value: "3d", label: "Ilustração 3D" },
+  { value: "flat", label: "Flat Design" },
+  { value: "minimal", label: "Minimalista" },
+];
+
 export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEditorProps) {
   const updateStep = useUpdateFunnelStep();
   const content = (step.content || {}) as Record<string, unknown>;
@@ -71,6 +78,12 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
   const [ctaText, setCtaText] = useState((content.cta_text as string) || "Começar Agora");
   const [ctaColor, setCtaColor] = useState((content.cta_color as string) || "#3b82f6");
   const [imageUrl, setImageUrl] = useState((content.image_url as string) || "");
+  const [images, setImages] = useState<string[]>(() => {
+    const saved = content.images as string[] | undefined;
+    if (saved?.length) return saved;
+    const single = content.image_url as string | undefined;
+    return single ? [single] : [];
+  });
   const [formFields, setFormFields] = useState<FormFieldConfig[]>(() => {
     const saved = content.form_fields as FormFieldConfig[] | undefined;
     return saved?.length ? saved : DEFAULT_FORM_FIELDS;
@@ -82,7 +95,12 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
 
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Image generation state
+  const [imagePrompt, setImagePrompt] = useState("");
+  const [imageStyle, setImageStyle] = useState("photo");
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [newImageUrl, setNewImageUrl] = useState("");
 
   useEffect(() => {
     const c = (step.content || {}) as Record<string, unknown>;
@@ -92,10 +110,15 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
     setCtaText((c.cta_text as string) || "Começar Agora");
     setCtaColor((c.cta_color as string) || "#3b82f6");
     setImageUrl((c.image_url as string) || "");
+    const savedImages = c.images as string[] | undefined;
+    const singleImg = c.image_url as string | undefined;
+    setImages(savedImages?.length ? savedImages : singleImg ? [singleImg] : []);
     const saved = c.form_fields as FormFieldConfig[] | undefined;
     setFormFields(saved?.length ? saved : DEFAULT_FORM_FIELDS);
     const design = c.design as Partial<AppearanceValues> | undefined;
     setAppearance({ ...defaultAppearance, ...design });
+    setImagePrompt("");
+    setNewImageUrl("");
   }, [step.id]);
 
   const handleSave = () => {
@@ -107,7 +130,8 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
         body: bodyText,
         cta_text: ctaText,
         cta_color: ctaColor,
-        image_url: imageUrl,
+        image_url: images[0] || imageUrl || "",
+        images,
         form_fields: step.step_type === "optin" ? formFields : undefined,
         design: appearance,
       },
@@ -140,25 +164,27 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
   };
 
   const handleAIImage = async () => {
-    if (!headline && !bodyText) {
-      toast.error("Adiciona um título ou corpo antes de gerar a imagem");
+    const prompt = imagePrompt.trim() || headline || bodyText;
+    if (!prompt) {
+      toast.error("Adiciona um prompt ou título antes de gerar a imagem");
       return;
     }
     setIsGeneratingImage(true);
     try {
       const { data, error } = await supabase.functions.invoke("ai-funnel-content", {
         body: {
-          prompt: `Gera uma imagem hero para: ${headline || bodyText}`,
+          prompt,
           stepType: step.step_type,
           generateImage: true,
+          imageStyle,
           funnelName,
           funnelType,
         },
       });
       if (error) throw new Error(error.message);
       if (data?.image_url) {
-        setImageUrl(data.image_url);
-        toast.success("Imagem gerada com IA!");
+        setNewImageUrl(data.image_url);
+        toast.success("Imagem gerada! Clica em 'Adicionar à galeria' para guardar.");
       } else {
         throw new Error("Não foi possível gerar a imagem");
       }
@@ -167,6 +193,16 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
     } finally {
       setIsGeneratingImage(false);
     }
+  };
+
+  const addImageToGallery = (url: string) => {
+    if (!url.trim()) return;
+    setImages(prev => [...prev, url.trim()]);
+    setNewImageUrl("");
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
   };
 
   // Form field management
@@ -225,7 +261,7 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
       <Tabs defaultValue="conteudo">
         <TabsList>
           <TabsTrigger value="conteudo">Conteúdo</TabsTrigger>
-          <TabsTrigger value="imagem">Imagem</TabsTrigger>
+          <TabsTrigger value="imagem">Imagens</TabsTrigger>
           {isOptin && <TabsTrigger value="formulario">Formulário</TabsTrigger>}
           <TabsTrigger value="design">Design</TabsTrigger>
         </TabsList>
@@ -269,7 +305,13 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
               <CardContent>
                 <div className="border rounded-lg p-6 min-h-[300px] space-y-4"
                   style={{ backgroundColor: appearance.background, color: appearance.text_color, fontFamily: appearance.font_body, fontSize: `${appearance.font_size_base}px`, borderRadius: `${appearance.border_radius}px` }}>
-                  {imageUrl && <img src={imageUrl} alt="Step" className="w-full rounded-lg object-cover max-h-48" />}
+                  {images.length > 0 && (
+                    <div className={images.length === 1 ? "" : "grid grid-cols-2 gap-2"}>
+                      {images.map((img, i) => (
+                        <img key={i} src={img} alt={`Step ${i + 1}`} className="w-full rounded-lg object-cover max-h-48" />
+                      ))}
+                    </div>
+                  )}
                   {headline && <h2 className="text-2xl" style={{ fontFamily: appearance.font_heading, fontWeight: appearance.heading_weight, color: appearance.text_color }}>{headline}</h2>}
                   {subheadline && <p className="text-lg" style={{ opacity: 0.7 }}>{subheadline}</p>}
                   {bodyText && <p className="text-sm whitespace-pre-wrap">{bodyText}</p>}
@@ -295,7 +337,7 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
                       {ctaText}
                     </button>
                   )}
-                  {!headline && !subheadline && !bodyText && !imageUrl && (
+                  {!headline && !subheadline && !bodyText && images.length === 0 && (
                     <div className="flex flex-col items-center justify-center h-48 text-muted-foreground text-sm gap-2">
                       <span className="text-3xl">✏️</span>
                       <p>Preenche o editor para ver a pré-visualização</p>
@@ -307,42 +349,109 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
           </div>
         </TabsContent>
 
-        {/* Image Tab */}
+        {/* Image Gallery Tab */}
         <TabsContent value="imagem">
-          <Card>
-            <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Image className="h-4 w-4" /> Imagem do Step</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>URL da Imagem</Label>
-                <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://exemplo.com/imagem.jpg" />
-              </div>
-
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleAIImage} disabled={isGeneratingImage}>
-                  {isGeneratingImage ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
-                  {isGeneratingImage ? "A gerar..." : "Gerar com IA"}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="h-4 w-4" /> Gerar com IA</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Descrição da imagem</Label>
+                  <Textarea
+                    value={imagePrompt}
+                    onChange={(e) => setImagePrompt(e.target.value)}
+                    placeholder="Ex: Uma pessoa a usar laptop num escritório moderno com plantas"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label>Estilo visual</Label>
+                  <div className="grid grid-cols-2 gap-2 mt-1.5">
+                    {IMAGE_STYLES.map((style) => (
+                      <button
+                        key={style.value}
+                        onClick={() => setImageStyle(style.value)}
+                        className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                          imageStyle === style.value
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {style.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Button onClick={handleAIImage} disabled={isGeneratingImage} className="w-full">
+                  {isGeneratingImage ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                  {isGeneratingImage ? "A gerar imagem..." : "Gerar Imagem com IA"}
                 </Button>
-                {imageUrl && (
-                  <Button variant="ghost" onClick={() => setImageUrl("")} className="text-destructive">
-                    <Trash2 className="h-4 w-4 mr-1" /> Remover
-                  </Button>
+
+                {/* Generated image preview */}
+                {newImageUrl && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">Imagem gerada:</p>
+                    <div className="relative border rounded-lg overflow-hidden">
+                      <img src={newImageUrl} alt="Generated" className="w-full max-h-60 object-cover" />
+                    </div>
+                    <Button onClick={() => addImageToGallery(newImageUrl)} className="w-full" variant="outline">
+                      <Plus className="h-4 w-4 mr-1" /> Adicionar à galeria
+                    </Button>
+                  </div>
                 )}
-              </div>
 
-              {imageUrl && (
-                <div className="border rounded-lg overflow-hidden">
-                  <img src={imageUrl} alt="Preview" className="w-full max-h-80 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                <div className="border-t pt-4">
+                  <Label>Ou adicionar via URL</Label>
+                  <div className="flex gap-2 mt-1.5">
+                    <Input
+                      value={newImageUrl}
+                      onChange={(e) => setNewImageUrl(e.target.value)}
+                      placeholder="https://exemplo.com/imagem.jpg"
+                      className="flex-1"
+                    />
+                    <Button variant="outline" onClick={() => addImageToGallery(newImageUrl)} disabled={!newImageUrl.trim()}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              )}
+              </CardContent>
+            </Card>
 
-              {!imageUrl && (
-                <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
-                  <Image className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Cola uma URL ou gera uma imagem com IA</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            {/* Gallery */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Image className="h-4 w-4" /> Galeria ({images.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {images.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    {images.map((img, index) => (
+                      <div key={index} className="relative group border rounded-lg overflow-hidden">
+                        <img src={img} alt={`Imagem ${index + 1}`} className="w-full h-32 object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ""; }} />
+                        <button
+                          onClick={() => removeImage(index)}
+                          className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        <div className="absolute bottom-1.5 left-1.5 bg-background/80 rounded px-1.5 py-0.5 text-[10px] font-medium">
+                          {index + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
+                    <Image className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Nenhuma imagem ainda</p>
+                    <p className="text-xs mt-1">Gera com IA ou adiciona via URL</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Form Builder Tab (optin only) */}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ArrowRight, ChevronLeft, CheckCircle2 } from "lucide-react";
+import { Loader2, ArrowRight, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,12 +33,19 @@ interface StepContent {
   cta_url?: string;
   cta_color?: string;
   image_url?: string;
+  images?: string[];
   form_fields?: FormFieldConfig[];
 }
 
 function parseContent(content: Json | null): StepContent {
   if (!content || typeof content !== "object" || Array.isArray(content)) return {};
   return content as unknown as StepContent;
+}
+
+function getImages(content: StepContent): string[] {
+  if (content.images?.length) return content.images;
+  if (content.image_url) return [content.image_url];
+  return [];
 }
 
 const STEP_TYPE_ICONS: Record<string, string> = {
@@ -48,6 +55,44 @@ const STEP_TYPE_ICONS: Record<string, string> = {
   thankyou: "✅",
   upsell: "🚀",
 };
+
+function ImageGallery({ images }: { images: string[] }) {
+  const [current, setCurrent] = useState(0);
+
+  if (images.length === 0) return null;
+  if (images.length === 1) {
+    return <img src={images[0]} alt="" className="w-full rounded-xl object-cover max-h-96" />;
+  }
+
+  return (
+    <div className="relative">
+      <img src={images[current]} alt="" className="w-full rounded-xl object-cover max-h-96" />
+      <div className="absolute inset-0 flex items-center justify-between px-2">
+        <button
+          onClick={() => setCurrent(i => (i - 1 + images.length) % images.length)}
+          className="h-8 w-8 rounded-full bg-background/80 flex items-center justify-center shadow hover:bg-background transition"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => setCurrent(i => (i + 1) % images.length)}
+          className="h-8 w-8 rounded-full bg-background/80 flex items-center justify-center shadow hover:bg-background transition"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="flex justify-center gap-1.5 mt-3">
+        {images.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrent(i)}
+            className={`h-2 rounded-full transition-all ${i === current ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30"}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function PublicFunnelPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -60,7 +105,6 @@ export default function PublicFunnelPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Form state
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
@@ -82,7 +126,6 @@ export default function PublicFunnelPage() {
     load();
   }, [slug, isPreview, searchParams]);
 
-  // Reset form state when step changes
   useEffect(() => {
     setFormData({});
     setFormSubmitted(false);
@@ -95,7 +138,6 @@ export default function PublicFunnelPage() {
     const step = steps[currentStepIndex];
     const content = parseContent(step.content);
 
-    // Validate required fields
     const missingFields = (content.form_fields || [])
       .filter(f => f.required && !formData[f.id]?.trim())
       .map(f => f.label);
@@ -115,7 +157,6 @@ export default function PublicFunnelPage() {
 
       setFormSubmitted(true);
 
-      // Auto-advance to next step after 1.5s
       const isLast = currentStepIndex >= steps.length - 1;
       if (!isLast) {
         setTimeout(() => setCurrentStepIndex(i => i + 1), 1500);
@@ -158,6 +199,7 @@ export default function PublicFunnelPage() {
   const isLast = currentStepIndex >= steps.length - 1;
   const isFirst = currentStepIndex === 0;
   const hasForm = step.step_type === "optin" && content.form_fields && content.form_fields.length > 0;
+  const stepImages = getImages(content);
 
   return (
     <div className="min-h-screen bg-background">
@@ -175,13 +217,11 @@ export default function PublicFunnelPage() {
           ))}
         </div>
 
-        {/* Step type badge */}
         <div className="flex items-center gap-2 mb-6">
           <span className="text-2xl">{STEP_TYPE_ICONS[step.step_type] || "📄"}</span>
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{step.name}</span>
         </div>
 
-        {/* Content */}
         <div className="space-y-6">
           {content.headline ? (
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">{content.headline}</h1>
@@ -191,9 +231,7 @@ export default function PublicFunnelPage() {
 
           {content.subheadline && <p className="text-lg text-muted-foreground">{content.subheadline}</p>}
 
-          {content.image_url && (
-            <img src={content.image_url} alt={content.headline || step.name} className="w-full rounded-xl object-cover max-h-96" />
-          )}
+          {stepImages.length > 0 && <ImageGallery images={stepImages} />}
 
           {content.body && (
             <div className="prose prose-sm max-w-none text-foreground/80">
@@ -201,7 +239,6 @@ export default function PublicFunnelPage() {
             </div>
           )}
 
-          {/* Contact capture form */}
           {hasForm && !formSubmitted && (
             <form onSubmit={handleFormSubmit} className="space-y-4 bg-muted/30 border rounded-xl p-6">
               {content.form_fields!.map((field) => (
@@ -237,7 +274,6 @@ export default function PublicFunnelPage() {
             </form>
           )}
 
-          {/* Form success */}
           {hasForm && formSubmitted && (
             <div className="text-center py-8 space-y-3 bg-muted/30 border rounded-xl p-6">
               <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
@@ -246,14 +282,13 @@ export default function PublicFunnelPage() {
             </div>
           )}
 
-          {!content.headline && !content.subheadline && !content.body && !hasForm && (
+          {!content.headline && !content.subheadline && !content.body && !hasForm && stepImages.length === 0 && (
             <div className="border-2 border-dashed rounded-xl p-12 text-center text-muted-foreground">
               <p className="text-sm">Este step ainda não tem conteúdo configurado.</p>
             </div>
           )}
         </div>
 
-        {/* Navigation (hide if optin with form - form handles advancement) */}
         {!hasForm && (
           <div className="flex items-center justify-between mt-12">
             {!isFirst ? (
