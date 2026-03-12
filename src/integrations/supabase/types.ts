@@ -16982,6 +16982,51 @@ export type Database = {
           },
         ]
       }
+      funnel_submissions: {
+        Row: {
+          created_at: string
+          data: Json
+          funnel_id: string
+          id: string
+          ip_address: string | null
+          source_url: string | null
+          step_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          funnel_id: string
+          id?: string
+          ip_address?: string | null
+          source_url?: string | null
+          step_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          funnel_id?: string
+          id?: string
+          ip_address?: string | null
+          source_url?: string | null
+          step_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_submissions_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_submissions_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funnel_templates: {
         Row: {
           capture_type_id: string | null

@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ArrowRight, ChevronLeft } from "lucide-react";
+import { Loader2, ArrowRight, ChevronLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import type { Json } from "@/integrations/supabase/types";
 
 interface FunnelStep {
@@ -13,13 +16,24 @@ interface FunnelStep {
   content: Json | null;
 }
 
+interface FormFieldConfig {
+  id: string;
+  label: string;
+  type: "text" | "email" | "phone" | "select" | "textarea";
+  required: boolean;
+  placeholder?: string;
+  options?: string[];
+}
+
 interface StepContent {
   headline?: string;
   subheadline?: string;
   body?: string;
   cta_text?: string;
   cta_url?: string;
+  cta_color?: string;
   image_url?: string;
+  form_fields?: FormFieldConfig[];
 }
 
 function parseContent(content: Json | null): StepContent {
@@ -46,33 +60,72 @@ export default function PublicFunnelPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Form state
+  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [formSubmitting, setFormSubmitting] = useState(false);
+  const [formSubmitted, setFormSubmitted] = useState(false);
+
   useEffect(() => {
     async function load() {
       if (!slug) { setError("Funil não encontrado"); setLoading(false); return; }
-
       let query = supabase.from("funnels").select("id, name, slug").eq("slug", slug);
       if (!isPreview) query = query.eq("is_published", true);
       const { data: f, error: fErr } = await query.maybeSingle();
-
       if (fErr || !f) { setError("Funil não encontrado ou não publicado"); setLoading(false); return; }
-
       setFunnel(f);
-
-      const { data: s } = await supabase
-        .from("funnel_steps")
-        .select("id, name, step_type, sort_order, content")
-        .eq("funnel_id", f.id)
-        .order("sort_order", { ascending: true });
-
+      const { data: s } = await supabase.from("funnel_steps").select("id, name, step_type, sort_order, content").eq("funnel_id", f.id).order("sort_order", { ascending: true });
       setSteps(s || []);
-
       const stepParam = searchParams.get("step");
       if (stepParam) setCurrentStepIndex(Math.max(0, parseInt(stepParam, 10)));
-
       setLoading(false);
     }
     load();
   }, [slug, isPreview, searchParams]);
+
+  // Reset form state when step changes
+  useEffect(() => {
+    setFormData({});
+    setFormSubmitted(false);
+  }, [currentStepIndex]);
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!funnel || !steps[currentStepIndex]) return;
+
+    const step = steps[currentStepIndex];
+    const content = parseContent(step.content);
+
+    // Validate required fields
+    const missingFields = (content.form_fields || [])
+      .filter(f => f.required && !formData[f.id]?.trim())
+      .map(f => f.label);
+
+    if (missingFields.length > 0) return;
+
+    setFormSubmitting(true);
+    try {
+      const { error } = await supabase.from("funnel_submissions").insert({
+        funnel_id: funnel.id,
+        step_id: step.id,
+        data: formData as unknown as Json,
+        source_url: window.location.href,
+      });
+
+      if (error) throw error;
+
+      setFormSubmitted(true);
+
+      // Auto-advance to next step after 1.5s
+      const isLast = currentStepIndex >= steps.length - 1;
+      if (!isLast) {
+        setTimeout(() => setCurrentStepIndex(i => i + 1), 1500);
+      }
+    } catch (err) {
+      console.error("Submission error:", err);
+    } finally {
+      setFormSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -104,10 +157,10 @@ export default function PublicFunnelPage() {
   const content = parseContent(step.content);
   const isLast = currentStepIndex >= steps.length - 1;
   const isFirst = currentStepIndex === 0;
+  const hasForm = step.step_type === "optin" && content.form_fields && content.form_fields.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Preview banner */}
       {isPreview && (
         <div className="bg-primary text-primary-foreground text-center py-2 text-sm font-medium">
           ⚡ Modo Preview — Esta página não está visível publicamente
@@ -118,97 +171,113 @@ export default function PublicFunnelPage() {
         {/* Step indicator */}
         <div className="flex items-center gap-2 mb-8">
           {steps.map((s, i) => (
-            <div
-              key={s.id}
-              className={`h-1.5 flex-1 rounded-full transition-colors ${
-                i <= currentStepIndex ? "bg-primary" : "bg-muted"
-              }`}
-            />
+            <div key={s.id} className={`h-1.5 flex-1 rounded-full transition-colors ${i <= currentStepIndex ? "bg-primary" : "bg-muted"}`} />
           ))}
         </div>
 
         {/* Step type badge */}
         <div className="flex items-center gap-2 mb-6">
           <span className="text-2xl">{STEP_TYPE_ICONS[step.step_type] || "📄"}</span>
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            {step.name}
-          </span>
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{step.name}</span>
         </div>
 
         {/* Content */}
         <div className="space-y-6">
           {content.headline ? (
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-              {content.headline}
-            </h1>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">{content.headline}</h1>
           ) : (
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-              {step.name}
-            </h1>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">{step.name}</h1>
           )}
 
-          {content.subheadline && (
-            <p className="text-lg text-muted-foreground">{content.subheadline}</p>
-          )}
+          {content.subheadline && <p className="text-lg text-muted-foreground">{content.subheadline}</p>}
 
           {content.image_url && (
-            <img
-              src={content.image_url}
-              alt={content.headline || step.name}
-              className="w-full rounded-xl object-cover max-h-96"
-            />
+            <img src={content.image_url} alt={content.headline || step.name} className="w-full rounded-xl object-cover max-h-96" />
           )}
 
           {content.body && (
             <div className="prose prose-sm max-w-none text-foreground/80">
-              <p>{content.body}</p>
+              <p className="whitespace-pre-wrap">{content.body}</p>
             </div>
           )}
 
-          {/* No content placeholder */}
-          {!content.headline && !content.subheadline && !content.body && (
+          {/* Contact capture form */}
+          {hasForm && !formSubmitted && (
+            <form onSubmit={handleFormSubmit} className="space-y-4 bg-muted/30 border rounded-xl p-6">
+              {content.form_fields!.map((field) => (
+                <div key={field.id} className="space-y-1.5">
+                  <Label className="text-sm">
+                    {field.label}
+                    {field.required && <span className="text-destructive ml-0.5">*</span>}
+                  </Label>
+                  {field.type === "textarea" ? (
+                    <Textarea
+                      value={formData[field.id] || ""}
+                      onChange={(e) => setFormData(prev => ({ ...prev, [field.id]: e.target.value }))}
+                      placeholder={field.placeholder}
+                      required={field.required}
+                      rows={3}
+                    />
+                  ) : (
+                    <Input
+                      type={field.type === "phone" ? "tel" : field.type}
+                      value={formData[field.id] || ""}
+                      onChange={(e) => setFormData(prev => ({ ...prev, [field.id]: e.target.value }))}
+                      placeholder={field.placeholder}
+                      required={field.required}
+                    />
+                  )}
+                </div>
+              ))}
+              <Button type="submit" className="w-full" size="lg" disabled={formSubmitting}
+                style={content.cta_color ? { backgroundColor: content.cta_color } : undefined}>
+                {formSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {content.cta_text || "Enviar"}
+              </Button>
+            </form>
+          )}
+
+          {/* Form success */}
+          {hasForm && formSubmitted && (
+            <div className="text-center py-8 space-y-3 bg-muted/30 border rounded-xl p-6">
+              <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
+              <h3 className="text-lg font-semibold">Enviado com sucesso!</h3>
+              <p className="text-sm text-muted-foreground">Obrigado pelo seu interesse.</p>
+            </div>
+          )}
+
+          {!content.headline && !content.subheadline && !content.body && !hasForm && (
             <div className="border-2 border-dashed rounded-xl p-12 text-center text-muted-foreground">
               <p className="text-sm">Este step ainda não tem conteúdo configurado.</p>
-              <p className="text-xs mt-1">Edita o step no builder para adicionar headline, texto e CTA.</p>
             </div>
           )}
         </div>
 
-        {/* Navigation */}
-        <div className="flex items-center justify-between mt-12">
-          {!isFirst ? (
-            <Button
-              variant="ghost"
-              onClick={() => setCurrentStepIndex((i) => i - 1)}
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Anterior
-            </Button>
-          ) : (
-            <div />
-          )}
-
-          {content.cta_url ? (
-            <Button asChild size="lg">
-              <a href={content.cta_url} target="_blank" rel="noopener noreferrer">
-                {content.cta_text || "Continuar"}
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </a>
-            </Button>
-          ) : !isLast ? (
-            <Button
-              size="lg"
-              onClick={() => setCurrentStepIndex((i) => i + 1)}
-            >
-              {content.cta_text || "Continuar"}
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          ) : (
-            <Button size="lg" disabled={!content.cta_text}>
-              {content.cta_text || "Concluído ✅"}
-            </Button>
-          )}
-        </div>
+        {/* Navigation (hide if optin with form - form handles advancement) */}
+        {!hasForm && (
+          <div className="flex items-center justify-between mt-12">
+            {!isFirst ? (
+              <Button variant="ghost" onClick={() => setCurrentStepIndex(i => i - 1)}>
+                <ChevronLeft className="h-4 w-4 mr-1" /> Anterior
+              </Button>
+            ) : <div />}
+            {content.cta_url ? (
+              <Button asChild size="lg">
+                <a href={content.cta_url} target="_blank" rel="noopener noreferrer">
+                  {content.cta_text || "Continuar"} <ArrowRight className="h-4 w-4 ml-2" />
+                </a>
+              </Button>
+            ) : !isLast ? (
+              <Button size="lg" onClick={() => setCurrentStepIndex(i => i + 1)}>
+                {content.cta_text || "Continuar"} <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            ) : (
+              <Button size="lg" disabled={!content.cta_text}>
+                {content.cta_text || "Concluído ✅"}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
