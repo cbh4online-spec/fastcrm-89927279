@@ -25192,7 +25192,7 @@ export type Database = {
           rejected_by: string | null
           rejection_reason: string | null
           shipping_address: Json | null
-          status: Database["public"]["Enums"]["order_note_status"] | null
+          status: string | null
           submitted_at: string | null
           total_gross: number | null
           total_net: number | null
@@ -25219,7 +25219,7 @@ export type Database = {
           rejected_by?: string | null
           rejection_reason?: string | null
           shipping_address?: Json | null
-          status?: Database["public"]["Enums"]["order_note_status"] | null
+          status?: string | null
           submitted_at?: string | null
           total_gross?: number | null
           total_net?: number | null
@@ -25246,7 +25246,7 @@ export type Database = {
           rejected_by?: string | null
           rejection_reason?: string | null
           shipping_address?: Json | null
-          status?: Database["public"]["Enums"]["order_note_status"] | null
+          status?: string | null
           submitted_at?: string | null
           total_gross?: number | null
           total_net?: number | null
