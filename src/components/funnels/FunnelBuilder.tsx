@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ArrowLeft, Share2, HelpCircle, Eye } from "lucide-react";
+import { ArrowLeft, Share2, HelpCircle, Eye, Check, Copy } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFunnel } from "@/hooks/useFunnels";
@@ -49,7 +50,15 @@ export function FunnelBuilder({ funnelId, onBack }: FunnelBuilderProps) {
             <Eye className="h-4 w-4 mr-1" />
             Preview
           </Button>
-          <Button variant="outline" size="icon">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              const url = `${window.location.origin}/funnel/${funnel.slug}`;
+              navigator.clipboard.writeText(url);
+              toast.success("Link copiado!", { description: url });
+            }}
+          >
             <Share2 className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="icon">
