@@ -88,17 +88,25 @@ export function useConvertOrderToInvoice() {
 
       // Create invoice items from order items
       if (order.items && order.items.length > 0) {
-        const invoiceItems = order.items.map((item, index) => ({
-          invoice_id: invoice.id,
-          product_id: item.product_id || null,
-          description: item.product_name,
-          quantity: item.quantity,
-          unit_price: item.unit_price_net,
-          discount_percent: 0,
-          tax_rate: item.vat_rate || taxRate,
-          total: item.line_total_gross,
-          position: index,
-        }));
+        const invoiceItems = order.items.map((item, index) => {
+          const lineNet = item.quantity * item.unit_price_net;
+          const lineTax = lineNet * ((item.vat_rate || taxRate) / 100);
+          const lineGross = lineNet + lineTax;
+          return {
+            invoice_id: invoice.id,
+            product_id: item.product_id || null,
+            description: item.product_name,
+            quantity: item.quantity,
+            unit_price: item.unit_price_net,
+            discount_percent: 0,
+            tax_rate: item.vat_rate || taxRate,
+            total: lineNet,
+            net_total: lineNet,
+            tax_amount: lineTax,
+            gross_total: lineGross,
+            position: index,
+          };
+        });
 
         const { error: itemsError } = await supabase
           .from("invoice_items")
