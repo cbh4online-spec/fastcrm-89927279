@@ -785,7 +785,31 @@ Deno.serve(async (req) => {
                             .update({ channel: inferredChannel })
                             .eq("id", conversationId);
                         }
-                      }
+                        }
+
+                        // After channel inference, update lead social URL if channel is social and lead lacks it
+                        if (leadId && (channel === "instagram" || channel === "messenger")) {
+                          try {
+                            const socialField = channel === "instagram" ? "instagram_url" : "facebook_url";
+                            const { data: leadSocial } = await supabase
+                              .from("leads")
+                              .select(socialField)
+                              .eq("id", leadId)
+                              .single();
+
+                            if (leadSocial && !leadSocial[socialField]) {
+                              // Try to get the social handle from GHL contact
+                              const contactData = await fetchGHLContact(apiKey, ghlConv.contactId);
+                              const socialUrl = channel === "instagram" ? contactData?.instagram_url : contactData?.facebook_url;
+                              if (socialUrl) {
+                                await supabase.from("leads").update({ [socialField]: socialUrl }).eq("id", leadId);
+                                console.log(`[GHL Sync] Updated lead ${leadId} ${socialField} = ${socialUrl} (from channel inference)`);
+                              }
+                            }
+                          } catch (err) {
+                            console.error(`[GHL Sync] Error updating social URL after channel inference:`, err);
+                          }
+                        }
 
                       // Trigger autopilot if the last message in this conversation is inbound AND recent (< 2 hours)
                       if (messages.length > 0 && conversationId && leadId) {
