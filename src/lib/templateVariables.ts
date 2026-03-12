@@ -279,6 +279,16 @@ export function resolveVariable(variable: string, context: VariableContext): str
         default: return null;
       }
     
+    case 'workspace':
+      if (!context.workspace) return null;
+      switch (field) {
+        case 'name': return context.workspace.name || null;
+        case 'email': return context.workspace.email || null;
+        case 'phone': return context.workspace.phone || null;
+        case 'website': return context.workspace.website || null;
+        default: return null;
+      }
+    
     case 'date':
       const now = new Date();
       switch (field) {
