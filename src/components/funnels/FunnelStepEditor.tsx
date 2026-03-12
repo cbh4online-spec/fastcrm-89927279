@@ -6,15 +6,46 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUpdateFunnelStep, FunnelStep } from "@/hooks/useFunnels";
-import { Save } from "lucide-react";
+import { Save, Sparkles, Loader2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppearanceEditor, defaultAppearance, type AppearanceValues } from "@/components/funnels/AppearanceEditor";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FunnelStepEditorProps {
   step: FunnelStep;
+  funnelName?: string;
+  funnelType?: string;
 }
 
-export function FunnelStepEditor({ step }: FunnelStepEditorProps) {
+const AI_SUGGESTIONS: Record<string, string[]> = {
+  optin: [
+    "Cria uma página de captura para um curso gratuito",
+    "Gera copy para captar emails com oferta de ebook",
+    "Página de opt-in para webinar sobre vendas online",
+  ],
+  checkout: [
+    "Cria copy de urgência para checkout com garantia",
+    "Página de checkout com escassez e prova social",
+    "Copy de checkout para produto digital premium",
+  ],
+  thankyou: [
+    "Página de obrigado com próximos passos claros",
+    "Thank you page com upsell subtil",
+    "Confirmação de compra com instrução de acesso",
+  ],
+  upsell: [
+    "Upsell com desconto exclusivo de 50%",
+    "Oferta complementar irresistível pós-compra",
+    "Bump offer com benefício extra limitado",
+  ],
+  page: [
+    "Landing page para serviço de consultoria",
+    "Página de vendas com benefícios e prova social",
+    "Página sobre nós com história da marca",
+  ],
+};
+
+export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEditorProps) {
   const updateStep = useUpdateFunnelStep();
   const content = (step.content || {}) as Record<string, string>;
 
@@ -27,6 +58,10 @@ export function FunnelStepEditor({ step }: FunnelStepEditorProps) {
     const design = (step.content as Record<string, unknown>)?.design as Partial<AppearanceValues> | undefined;
     return { ...defaultAppearance, ...design };
   });
+
+  // AI state
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     const c = (step.content || {}) as Record<string, unknown>;
@@ -47,8 +82,99 @@ export function FunnelStepEditor({ step }: FunnelStepEditorProps) {
     toast.success("Step guardado");
   };
 
+  const handleAIGenerate = async (prompt?: string) => {
+    const finalPrompt = prompt || aiPrompt;
+    if (!finalPrompt.trim()) return;
+
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-funnel-content", {
+        body: {
+          prompt: finalPrompt,
+          stepType: step.step_type,
+          currentContent: { headline, subheadline, body: bodyText, cta_text: ctaText },
+          funnelName,
+          funnelType,
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      if (!data?.success) throw new Error(data?.error || "Erro ao gerar");
+
+      const generated = data.content;
+      if (generated.headline) setHeadline(generated.headline);
+      if (generated.subheadline) setSubheadline(generated.subheadline);
+      if (generated.body) setBodyText(generated.body);
+      if (generated.cta_text) setCtaText(generated.cta_text);
+
+      setAiPrompt("");
+      toast.success("Conteúdo gerado com IA!", { description: "Revisa e ajusta antes de guardar." });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao gerar conteúdo");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const suggestions = AI_SUGGESTIONS[step.step_type] || AI_SUGGESTIONS.page;
+
   return (
     <div className="space-y-4">
+      {/* AI Prompt Bar */}
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold text-primary">AI Content Generator</span>
+          </div>
+
+          <div className="flex gap-2">
+            <Input
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              placeholder="Descreve o que queres... ex: Página de vendas para curso de marketing digital"
+              className="flex-1 bg-background"
+              disabled={isGenerating}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleAIGenerate();
+                }
+              }}
+            />
+            <Button
+              onClick={() => handleAIGenerate()}
+              disabled={isGenerating || !aiPrompt.trim()}
+              className="shrink-0"
+            >
+              {isGenerating ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              ) : (
+                <Wand2 className="h-4 w-4 mr-1" />
+              )}
+              {isGenerating ? "A gerar..." : "Gerar"}
+            </Button>
+          </div>
+
+          {/* Quick suggestions */}
+          <div className="flex flex-wrap gap-1.5">
+            {suggestions.map((s, i) => (
+              <button
+                key={i}
+                onClick={() => {
+                  setAiPrompt(s);
+                  handleAIGenerate(s);
+                }}
+                disabled={isGenerating}
+                className="text-xs px-2.5 py-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="conteudo">
         <TabsList>
           <TabsTrigger value="conteudo">Conteúdo</TabsTrigger>
