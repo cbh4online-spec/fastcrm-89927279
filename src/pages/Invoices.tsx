@@ -448,6 +448,7 @@ export default function Invoices() {
                       <TableHead>{t("colIssueDate")}</TableHead>
                       <TableHead>{t("colDueDate")}</TableHead>
                       <TableHead className="text-right">{t("colTotal")}</TableHead>
+                      <TableHead className="text-right">{t("colPending")}</TableHead>
                       <TableHead>{t("colStatus")}</TableHead>
                       <TableHead className="w-[70px]"></TableHead>
                     </TableRow>
@@ -484,6 +485,16 @@ export default function Invoices() {
                         </TableCell>
                         <TableCell className="text-right font-medium">
                           {formatCurrency(invoice.total)}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {(() => {
+                            const pending = invoice.total - (invoice.amount_paid ?? 0);
+                            return (
+                              <span className={pending <= 0 ? "text-green-600" : "text-orange-600"}>
+                                {formatCurrency(pending > 0 ? pending : 0)}
+                              </span>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell>{getStatusBadge(invoice.status)}</TableCell>
                         <TableCell>

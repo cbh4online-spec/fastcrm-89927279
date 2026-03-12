@@ -58,6 +58,7 @@
   "colIssueDate": "Data Emissão",
   "colDueDate": "Vencimento",
   "colTotal": "Total",
+  "colPending": "Pendente",
   "colStatus": "Estado",
   "viewDetails": "Ver detalhes",
   "markAsSent": "Marcar como enviada",

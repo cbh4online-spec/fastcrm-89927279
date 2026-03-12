@@ -58,6 +58,7 @@
   "colIssueDate": "Date d'Émission",
   "colDueDate": "Échéance",
   "colTotal": "Total",
+  "colPending": "En attente",
   "colStatus": "Statut",
   "viewDetails": "Voir les détails",
   "markAsSent": "Marquer comme envoyée",
