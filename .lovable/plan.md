@@ -1,61 +1,68 @@
 
 
-# Registar Pagamentos Totais e Parciais em Faturas
+# Phase 5B — Command Center COMPLETO
 
-## Problema Atual
-O botão "Marcar como Paga" apenas marca a fatura como totalmente paga de uma vez. Não existe forma de registar pagamentos parciais nem histórico de pagamentos.
+## Gap Analysis: Current vs Spec
 
-## Solução
+The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
 
-### 1. Nova tabela `invoice_payments`
-Tabela para registar cada pagamento individual associado a uma fatura:
+**Already implemented (needs enhancement):**
+- Header with greeting + 3 KPIs — needs larger font (32px), labels below
+- AI Question Box — needs slash command suggestions row below input
+- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
+- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
+- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
+- Drift Alerts — needs "Rever →" links to Context OS blocks
 
-| Coluna | Tipo | Descrição |
-|---|---|---|
-| id | UUID PK | |
-| invoice_id | UUID FK → invoices | |
-| workspace_id | UUID FK → workspaces | |
-| amount | NUMERIC | Valor do pagamento |
-| payment_date | DATE | Data do pagamento |
-| payment_method | TEXT | Método (transferência, MB, etc.) |
-| reference | TEXT | Referência/comprovativo |
-| notes | TEXT | Observações |
-| created_by | UUID | Utilizador que registou |
-| created_at | TIMESTAMPTZ | |
+**New sections to build:**
+1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
+2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
+   - Change Events (last 5 from `useChangeEvents` with realtime)
+   - Entity Activity (top 3 entities from `useKernelEntities`)
+   - Impact Score (top 2 from `useImpactMapData`)
+3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
 
-RLS: Acesso restrito por `workspace_id` ao utilizador autenticado.
+**Enhanced Command Palette (⌘K):**
+- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
 
-Adicionar status `partially_paid` à fatura — quando `amount_paid > 0` mas `< total`.
+**Spotlight (Space key):**
+- Opens AI Question Box as a modal from any page. New global component.
 
-### 2. Componente `RegisterPaymentDialog`
-Dialog com formulário para registar pagamento:
-- Campo valor (pré-preenchido com saldo em dívida)
-- Data do pagamento
-- Método de pagamento (select)
-- Referência opcional
-- Notas opcionais
-- Botão "Pagamento Total" que preenche automaticamente o valor em falta
+## Implementation Plan — 3 Sub-phases
 
-### 3. Componente `InvoicePaymentsHistory`
-Lista de pagamentos registados numa fatura, visível na página de detalhe:
-- Data, valor, método, referência
-- Barra de progresso de pagamento (pago vs total)
+Given the scope, I recommend splitting into 3 batches:
 
-### 4. Hook `useInvoicePayments`
-- `useInvoicePayments(invoiceId)` — lista pagamentos
-- `useRegisterPayment()` — insere pagamento + actualiza `amount_paid` e `status` na fatura
-- Lógica: se `amount_paid >= total` → status `paid`; se `amount_paid > 0` → status `partially_paid`
+### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
+| File | Action |
+|------|--------|
+| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
+| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
+| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
+| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
 
-### 5. Alterações em ficheiros existentes
+### Batch 2: Enhance Existing Cards
+| File | Action |
+|------|--------|
+| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
+| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
+| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
+| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
+| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
+| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
 
-| Ficheiro | Alteração |
-|---|---|
-| Migração SQL | Criar tabela `invoice_payments`, adicionar `partially_paid` ao check de status |
-| `src/hooks/useInvoicePayments.ts` | Novo hook |
-| `src/components/invoices/RegisterPaymentDialog.tsx` | Novo componente |
-| `src/components/invoices/InvoicePaymentsHistory.tsx` | Novo componente |
-| `src/pages/InvoiceDetail.tsx` | Integrar dialog e histórico; substituir botão "Marcar como Paga" por "Registar Pagamento" |
-| `src/pages/Invoices.tsx` | Adicionar badge `partially_paid`; opção no dropdown |
-| `src/hooks/useInvoices.ts` | Adicionar `partially_paid` ao tipo `InvoiceStatus` |
-| Ficheiros i18n (pt/en/es) | Novas chaves para pagamentos |
+### Batch 3: Spotlight Modal + Command Palette Enhancement
+| File | Action |
+|------|--------|
+| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
+| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
+| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
+
+### Realtime subscriptions needed
+- `change_events` table for Kernel Live Feed auto-update
+- `kernel_action_runs` for Ações do Dia auto-update
+- Already have `kernel_decisions` and `conversations`
+
+No database migrations needed. All hooks, edge functions, and tables already exist.
+
+**Shall I start with Batch 1?**
 

@@ -90,6 +90,7 @@ export default function Invoices() {
     draft: { label: t("statusDraft"), variant: "secondary", icon: FileText },
     sent: { label: t("statusSent"), variant: "default", icon: Send },
     paid: { label: t("statusPaid"), variant: "outline", icon: CheckCircle },
+    partially_paid: { label: t("statusPartiallyPaid"), variant: "default", icon: CircleDollarSign },
     overdue: { label: t("statusOverdue"), variant: "destructive", icon: AlertTriangle },
     cancelled: { label: t("statusCancelled"), variant: "secondary", icon: FileText },
   }), [t]);
@@ -508,7 +509,7 @@ export default function Invoices() {
                                   {t("markAsSent")}
                                 </DropdownMenuItem>
                               )}
-                              {(invoice.status === "sent" || invoice.status === "overdue") && (
+                              {(invoice.status === "sent" || invoice.status === "overdue" || invoice.status === "partially_paid") && (
                                 <DropdownMenuItem
                                   className="gap-2"
                                   onClick={() => markPaid.mutate({ id: invoice.id })}
