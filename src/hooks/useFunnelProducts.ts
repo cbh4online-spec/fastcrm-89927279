@@ -20,7 +20,7 @@ export function useFunnelProducts(funnelId: string | null) {
       if (!funnelId) return [];
       const { data, error } = await supabase
         .from("funnel_products")
-        .select("*, products(id, name, price, currency)")
+        .select("*, products(id, name, base_price, currency)")
         .eq("funnel_id", funnelId)
         .order("order_index", { ascending: true });
       if (error) throw error;
