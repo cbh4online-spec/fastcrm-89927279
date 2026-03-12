@@ -37,6 +37,8 @@ import {
   type InvoiceStatus,
 } from "@/hooks/useInvoices";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
+import { RegisterPaymentDialog } from "@/components/invoices/RegisterPaymentDialog";
+import { CreditCard } from "lucide-react";
 import { InvoiceSettingsTab } from "@/components/invoices/InvoiceSettingsTab";
 import { RecurringInvoicesTab } from "@/components/invoices/RecurringInvoicesTab";
 import { FiscalSettingsTab } from "@/components/invoices/FiscalSettingsTab";
@@ -77,6 +79,7 @@ export default function Invoices() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [paymentInvoice, setPaymentInvoice] = useState<{ id: string; total: number; amount_paid: number; currency: string } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [activeTab, setActiveTab] = useState("invoices");
@@ -510,13 +513,27 @@ export default function Invoices() {
                                 </DropdownMenuItem>
                               )}
                               {(invoice.status === "sent" || invoice.status === "overdue" || invoice.status === "partially_paid") && (
-                                <DropdownMenuItem
-                                  className="gap-2"
-                                  onClick={() => markPaid.mutate({ id: invoice.id })}
-                                >
-                                  <CheckCircle className="h-4 w-4" />
-                                  {t("markAsPaid")}
-                                </DropdownMenuItem>
+                                <>
+                                  <DropdownMenuItem
+                                    className="gap-2"
+                                    onClick={() => setPaymentInvoice({
+                                      id: invoice.id,
+                                      total: invoice.total,
+                                      amount_paid: invoice.amount_paid || 0,
+                                      currency: invoice.currency || "EUR",
+                                    })}
+                                  >
+                                    <CreditCard className="h-4 w-4" />
+                                    {t("registerPayment")}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="gap-2"
+                                    onClick={() => markPaid.mutate({ id: invoice.id })}
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                    {t("markAsPaid")}
+                                  </DropdownMenuItem>
+                                </>
                               )}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
@@ -612,6 +629,17 @@ export default function Invoices() {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
       />
+
+      {paymentInvoice && (
+        <RegisterPaymentDialog
+          open={!!paymentInvoice}
+          onOpenChange={(open) => !open && setPaymentInvoice(null)}
+          invoiceId={paymentInvoice.id}
+          invoiceTotal={paymentInvoice.total}
+          amountPaid={paymentInvoice.amount_paid}
+          currency={paymentInvoice.currency}
+        />
+      )}
     </DashboardLayout>
   );
 }
