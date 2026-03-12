@@ -79,6 +79,7 @@ export default function Invoices() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [paymentInvoice, setPaymentInvoice] = useState<{ id: string; total: number; amount_paid: number; currency: string } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [activeTab, setActiveTab] = useState("invoices");
