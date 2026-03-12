@@ -79,6 +79,7 @@
   "kpiSent": "Sent",
   "kpiPaid": "Paid",
   "kpiOverdue": "Overdue",
+  "kpiPartiallyPaid": "Partially Paid",
   "invoicesExported": "{{count}} invoices exported",
   "csvNumber": "Number",
   "csvClient": "Client",
