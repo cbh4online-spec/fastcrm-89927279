@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Package, Plus, Trash2 } from "lucide-react";
+import { Package, Plus, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import { useFunnelProducts, useAddFunnelProduct, useRemoveFunnelProduct } from "@/hooks/useFunnelProducts";
+import { useProducts } from "@/hooks/useProducts";
 
 const POSITION_LABELS: Record<string, string> = {
   main: "Principal",
@@ -28,19 +29,29 @@ interface FunnelProductsTabProps {
 
 export function FunnelProductsTab({ funnelId }: FunnelProductsTabProps) {
   const { data: products = [], isLoading } = useFunnelProducts(funnelId);
+  const { data: allProducts = [] } = useProducts({ status: "active" });
   const addProduct = useAddFunnelProduct();
   const removeProduct = useRemoveFunnelProduct();
 
   const [addOpen, setAddOpen] = useState(false);
-  const [productId, setProductId] = useState("");
+  const [selectedProductId, setSelectedProductId] = useState("");
   const [position, setPosition] = useState("main");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Filter out products already added to this funnel
+  const existingProductIds = new Set(products.map((fp: any) => fp.product_id));
+  const availableProducts = allProducts.filter(
+    (p: any) => !existingProductIds.has(p.id) && 
+    (searchTerm === "" || p.name?.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku?.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   const handleAdd = async () => {
-    if (!productId) return;
-    await addProduct.mutateAsync({ funnel_id: funnelId, product_id: productId, position });
+    if (!selectedProductId) return;
+    await addProduct.mutateAsync({ funnel_id: funnelId, product_id: selectedProductId, position });
     setAddOpen(false);
-    setProductId("");
+    setSelectedProductId("");
     setPosition("main");
+    setSearchTerm("");
   };
 
   return (
@@ -104,19 +115,51 @@ export function FunnelProductsTab({ funnelId }: FunnelProductsTabProps) {
         </Card>
       )}
 
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+      <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) { setSearchTerm(""); setSelectedProductId(""); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Adicionar Produto ao Funil</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>ID do Produto</Label>
-              <Input
-                value={productId}
-                onChange={(e) => setProductId(e.target.value)}
-                placeholder="Cole o ID do produto"
-              />
+              <Label>Produto</Label>
+              <div className="relative mt-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={searchTerm}
+                  onChange={(e) => { setSearchTerm(e.target.value); setSelectedProductId(""); }}
+                  placeholder="Pesquisar produto por nome ou SKU..."
+                  className="pl-9"
+                />
+              </div>
+              {(searchTerm || selectedProductId) && (
+                <div className="mt-2 max-h-48 overflow-y-auto border rounded-md bg-popover">
+                  {availableProducts.length === 0 ? (
+                    <div className="p-3 text-sm text-muted-foreground text-center">
+                      Nenhum produto encontrado
+                    </div>
+                  ) : (
+                    availableProducts.slice(0, 20).map((p: any) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex items-center justify-between ${
+                          selectedProductId === p.id ? "bg-accent font-medium" : ""
+                        }`}
+                        onClick={() => { setSelectedProductId(p.id); setSearchTerm(p.name); }}
+                      >
+                        <div>
+                          <span className="font-medium">{p.name}</span>
+                          {p.sku && <span className="ml-2 text-xs text-muted-foreground">SKU: {p.sku}</span>}
+                        </div>
+                        {p.price != null && (
+                          <span className="text-xs text-muted-foreground">{p.price} {p.currency || "EUR"}</span>
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <Label>Posição</Label>
@@ -132,7 +175,7 @@ export function FunnelProductsTab({ funnelId }: FunnelProductsTabProps) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Cancelar</Button>
-            <Button onClick={handleAdd} disabled={!productId || addProduct.isPending}>Adicionar</Button>
+            <Button onClick={handleAdd} disabled={!selectedProductId || addProduct.isPending}>Adicionar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
