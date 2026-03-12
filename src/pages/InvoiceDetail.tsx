@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useInvoice, useInvoiceItems, useMarkInvoicePaid, useSendInvoice } from "@/hooks/useInvoices";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -16,16 +17,20 @@ import {
   User,
   Euro,
   Clock,
-  Mail
+  Mail,
+  CreditCard
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { toast } from "sonner";
+import { RegisterPaymentDialog } from "@/components/invoices/RegisterPaymentDialog";
+import { InvoicePaymentsHistory } from "@/components/invoices/InvoicePaymentsHistory";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Rascunho", variant: "secondary" },
   sent: { label: "Enviada", variant: "default" },
   paid: { label: "Paga", variant: "default" },
+  partially_paid: { label: "Parcialmente Paga", variant: "outline" },
   overdue: { label: "Vencida", variant: "destructive" },
   cancelled: { label: "Cancelada", variant: "outline" },
 };
@@ -37,22 +42,13 @@ export default function InvoiceDetail() {
   const { data: items, isLoading: itemsLoading } = useInvoiceItems(id);
   const markAsPaid = useMarkInvoicePaid();
   const sendInvoice = useSendInvoice();
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-PT", {
       style: "currency",
       currency: "EUR",
     }).format(value);
-  };
-
-  const handleMarkAsPaid = async () => {
-    if (!id) return;
-    try {
-      await markAsPaid.mutateAsync({ id });
-      toast.success("Fatura marcada como paga!");
-    } catch (error) {
-      toast.error("Erro ao marcar fatura como paga");
-    }
   };
 
   const handleSendInvoice = async () => {
@@ -92,6 +88,8 @@ export default function InvoiceDetail() {
   }
 
   const status = statusConfig[invoice.status] || statusConfig.draft;
+  const canRegisterPayment = invoice.status === "sent" || invoice.status === "overdue" || invoice.status === "partially_paid";
+  const remaining = Math.max(0, invoice.total - (invoice.amount_paid || 0));
 
   return (
     <DashboardLayout>
@@ -119,10 +117,10 @@ export default function InvoiceDetail() {
                 Enviar
               </Button>
             )}
-            {(invoice.status === "sent" || invoice.status === "overdue") && (
-              <Button onClick={handleMarkAsPaid} disabled={markAsPaid.isPending}>
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-                Marcar como Paga
+            {canRegisterPayment && (
+              <Button onClick={() => setPaymentDialogOpen(true)}>
+                <CreditCard className="w-4 h-4 mr-2" />
+                Registar Pagamento
               </Button>
             )}
           </div>
@@ -211,6 +209,18 @@ export default function InvoiceDetail() {
                           <span>Total</span>
                           <span>{formatCurrency(invoice.total)}</span>
                         </div>
+                        {invoice.amount_paid > 0 && invoice.amount_paid < invoice.total && (
+                          <>
+                            <div className="flex justify-between gap-8 text-sm text-green-600">
+                              <span>Pago</span>
+                              <span>{formatCurrency(invoice.amount_paid)}</span>
+                            </div>
+                            <div className="flex justify-between gap-8 text-sm font-semibold text-destructive">
+                              <span>Em dívida</span>
+                              <span>{formatCurrency(remaining)}</span>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -291,9 +301,29 @@ export default function InvoiceDetail() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Payments History */}
+            <InvoicePaymentsHistory
+              invoiceId={invoice.id}
+              invoiceTotal={invoice.total}
+              amountPaid={invoice.amount_paid || 0}
+              currency={invoice.currency}
+            />
           </div>
         </div>
       </div>
+
+      {/* Register Payment Dialog */}
+      {canRegisterPayment && (
+        <RegisterPaymentDialog
+          open={paymentDialogOpen}
+          onOpenChange={setPaymentDialogOpen}
+          invoiceId={invoice.id}
+          invoiceTotal={invoice.total}
+          amountPaid={invoice.amount_paid || 0}
+          currency={invoice.currency}
+        />
+      )}
     </DashboardLayout>
   );
 }

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { trackPaymentReceived } from "@/modules/growth-seo/lib/gtmEvents";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 
-export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue" | "cancelled";
+export type InvoiceStatus = "draft" | "sent" | "paid" | "partially_paid" | "overdue" | "cancelled";
 
 export interface Invoice {
   id: string;

@@ -509,7 +509,7 @@ export default function Invoices() {
                                   {t("markAsSent")}
                                 </DropdownMenuItem>
                               )}
-                              {(invoice.status === "sent" || invoice.status === "overdue") && (
+                              {(invoice.status === "sent" || invoice.status === "overdue" || invoice.status === "partially_paid") && (
                                 <DropdownMenuItem
                                   className="gap-2"
                                   onClick={() => markPaid.mutate({ id: invoice.id })}
