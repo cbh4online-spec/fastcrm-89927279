@@ -104,6 +104,16 @@ export function buildContextFromTriggerData(
     };
   }
 
+  // Add workspace context
+  if (workspaceData) {
+    context.workspace = {
+      name: workspaceData.name,
+      email: workspaceData.email,
+      phone: workspaceData.phone,
+      website: workspaceData.website,
+    };
+  }
+
   return context;
 }
 

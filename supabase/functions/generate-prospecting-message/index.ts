@@ -147,6 +147,13 @@ Responde APENAS com um JSON no formato:
       result = { message: content, message_plain: content.replace(/[\u{1F600}-\u{1F9FF}]/gu, "").trim() };
     }
 
+    // Safety net: replace any remaining company name placeholders
+    if (companyName) {
+      const placeholders = /\[Nome da Empresa\]|\[nome da empresa\]|\[Company Name\]|\[company name\]|\[Sua Empresa\]|\[sua empresa\]|\[Your Company\]|\[your company\]/gi;
+      if (result.message) result.message = result.message.replace(placeholders, companyName);
+      if (result.message_plain) result.message_plain = result.message_plain.replace(placeholders, companyName);
+    }
+
     console.log(`[PROSPECTING] Message generated: ${(result.message || '').length} chars`);
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

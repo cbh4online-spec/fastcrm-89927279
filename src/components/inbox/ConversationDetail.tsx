@@ -137,6 +137,9 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
       full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilizador',
       email: user.email,
     } : null,
+    workspace: currentWorkspace ? {
+      name: currentWorkspace.name || undefined,
+    } : null,
   };
 
   // Handle sending message
