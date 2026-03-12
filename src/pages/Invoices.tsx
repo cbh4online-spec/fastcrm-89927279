@@ -448,6 +448,7 @@ export default function Invoices() {
                       <TableHead>{t("colIssueDate")}</TableHead>
                       <TableHead>{t("colDueDate")}</TableHead>
                       <TableHead className="text-right">{t("colTotal")}</TableHead>
+                      <TableHead className="text-right">{t("colPending")}</TableHead>
                       <TableHead>{t("colStatus")}</TableHead>
                       <TableHead className="w-[70px]"></TableHead>
                     </TableRow>
