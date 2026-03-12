@@ -629,6 +629,17 @@ export default function Invoices() {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
       />
+
+      {paymentInvoice && (
+        <RegisterPaymentDialog
+          open={!!paymentInvoice}
+          onOpenChange={(open) => !open && setPaymentInvoice(null)}
+          invoiceId={paymentInvoice.id}
+          invoiceTotal={paymentInvoice.total}
+          amountPaid={paymentInvoice.amount_paid}
+          currency={paymentInvoice.currency}
+        />
+      )}
     </DashboardLayout>
   );
 }
