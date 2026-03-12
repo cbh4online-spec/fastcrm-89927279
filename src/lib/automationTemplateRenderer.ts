@@ -27,7 +27,8 @@ export interface TemplateRenderResult {
 export function buildContextFromTriggerData(
   entityType: string,
   entityData: Record<string, unknown>,
-  userData?: { id?: string; email?: string; full_name?: string }
+  userData?: { id?: string; email?: string; full_name?: string },
+  workspaceData?: { name?: string; email?: string; phone?: string; website?: string }
 ): VariableContext {
   const context: VariableContext = {};
 
