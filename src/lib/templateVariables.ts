@@ -81,6 +81,14 @@ const userVariables: TemplateVariable[] = [
   { key: '{{user.email}}', label: 'Teu email', description: 'O teu email', category: 'user', example: 'ana@empresa.com' },
 ];
 
+// Workspace variables
+const workspaceVariables: TemplateVariable[] = [
+  { key: '{{workspace.name}}', label: 'Nome da empresa', description: 'Nome do workspace/empresa', category: 'workspace', example: 'Minha Empresa' },
+  { key: '{{workspace.email}}', label: 'Email da empresa', description: 'Email do workspace', category: 'workspace', example: 'info@minhaempresa.com' },
+  { key: '{{workspace.phone}}', label: 'Telefone da empresa', description: 'Telefone do workspace', category: 'workspace', example: '+351 21 000 0000' },
+  { key: '{{workspace.website}}', label: 'Website da empresa', description: 'Website do workspace', category: 'workspace', example: 'www.minhaempresa.com' },
+];
+
 // Date variables
 const dateVariables: TemplateVariable[] = [
   { key: '{{date.today}}', label: 'Hoje', description: 'Data de hoje', category: 'date', example: new Date().toLocaleDateString('pt-PT') },
@@ -97,6 +105,7 @@ export const variableCategories: VariableCategory[] = [
   { id: 'company', label: 'Empresa', icon: 'Building2', variables: companyVariables },
   { id: 'contact', label: 'Contacto', icon: 'UserCircle', variables: contactVariables },
   { id: 'user', label: 'Utilizador', icon: 'UserCheck', variables: userVariables },
+  { id: 'workspace', label: 'Workspace', icon: 'Briefcase', variables: workspaceVariables },
   { id: 'date', label: 'Data/Hora', icon: 'Calendar', variables: dateVariables },
 ];
 
