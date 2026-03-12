@@ -94,7 +94,7 @@ export function FunnelProductsTab({ funnelId }: FunnelProductsTabProps) {
                 <TableRow key={fp.id}>
                   <TableCell className="font-medium">{fp.products?.name ?? fp.product_id}</TableCell>
                   <TableCell>
-                    {fp.products?.price ? `${fp.products.price} ${fp.products.currency || "EUR"}` : "—"}
+                    {fp.products?.base_price != null ? `${fp.products.base_price} ${fp.products.currency || "EUR"}` : "—"}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{POSITION_LABELS[fp.position] || fp.position}</Badge>
