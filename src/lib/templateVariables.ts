@@ -5,7 +5,7 @@ export interface TemplateVariable {
   key: string;
   label: string;
   description: string;
-  category: 'lead' | 'opportunity' | 'company' | 'contact' | 'user' | 'date' | 'custom';
+  category: 'lead' | 'opportunity' | 'company' | 'contact' | 'user' | 'date' | 'workspace' | 'custom';
   required?: boolean;
   example: string;
   alternativeFields?: string[]; // For field mapping suggestions
