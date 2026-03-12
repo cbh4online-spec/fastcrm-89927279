@@ -50,7 +50,15 @@ export function FunnelBuilder({ funnelId, onBack }: FunnelBuilderProps) {
             <Eye className="h-4 w-4 mr-1" />
             Preview
           </Button>
-          <Button variant="outline" size="icon">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              const url = `${window.location.origin}/funnel/${funnel.slug}`;
+              navigator.clipboard.writeText(url);
+              toast.success("Link copiado!", { description: url });
+            }}
+          >
             <Share2 className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="icon">
