@@ -62,6 +62,8 @@ interface ConversationDetailProps {
 
 export function ConversationDetail({ conversationId }: ConversationDetailProps) {
   const { user } = useAuth();
+  const workspaceCtx = useWorkspace();
+  const currentWorkspace = workspaceCtx?.currentWorkspace;
   const { data: conversation, isLoading: convLoading } = useConversation(conversationId || undefined);
   const { data: messages, isLoading: messagesLoading } = useMessages(conversationId || undefined);
   const { data: opportunities } = useOpportunities();
