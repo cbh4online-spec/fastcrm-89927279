@@ -116,6 +116,7 @@ export const allVariables: TemplateVariable[] = [
   ...companyVariables,
   ...contactVariables,
   ...userVariables,
+  ...workspaceVariables,
   ...dateVariables,
 ];
 
