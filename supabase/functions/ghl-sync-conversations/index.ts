@@ -560,6 +560,7 @@ Deno.serve(async (req) => {
 
                 // Find or auto-create lead for this conversation
                 let leadId = leadsByGhlId.get(ghlConv.contactId);
+                let leadIsNew = false;
                 if (!leadId) {
                   console.log(`[GHL Sync] No lead found for contact ${ghlConv.contactId}, auto-creating...`);
                   const contactData = await fetchGHLContact(apiKey, ghlConv.contactId);
@@ -568,12 +569,42 @@ Deno.serve(async (req) => {
                     if (newLead) {
                       leadId = newLead.id;
                       leadsByGhlId.set(ghlConv.contactId, leadId);
+                      leadIsNew = true;
                     }
                   }
                   if (!leadId) {
                     console.log(`[GHL Sync] Could not create lead for contact ${ghlConv.contactId}, skipping conversation`);
                     result.errors.push(`Failed to create lead for contact ${ghlConv.contactId}`);
                     continue;
+                  }
+                }
+
+                // For existing leads, update missing social URLs from GHL contact data
+                if (!leadIsNew && leadId) {
+                  try {
+                    const { data: existingLead } = await supabase
+                      .from("leads")
+                      .select("instagram_url, linkedin_url, facebook_url, twitter_url")
+                      .eq("id", leadId)
+                      .single();
+
+                    if (existingLead && (!existingLead.instagram_url || !existingLead.linkedin_url || !existingLead.facebook_url || !existingLead.twitter_url)) {
+                      const contactData = await fetchGHLContact(apiKey, ghlConv.contactId);
+                      if (contactData) {
+                        const socialUpdates: Record<string, string> = {};
+                        if (!existingLead.instagram_url && contactData.instagram_url) socialUpdates.instagram_url = contactData.instagram_url;
+                        if (!existingLead.linkedin_url && contactData.linkedin_url) socialUpdates.linkedin_url = contactData.linkedin_url;
+                        if (!existingLead.facebook_url && contactData.facebook_url) socialUpdates.facebook_url = contactData.facebook_url;
+                        if (!existingLead.twitter_url && contactData.twitter_url) socialUpdates.twitter_url = contactData.twitter_url;
+
+                        if (Object.keys(socialUpdates).length > 0) {
+                          await supabase.from("leads").update(socialUpdates).eq("id", leadId);
+                          console.log(`[GHL Sync] Updated lead ${leadId} social URLs:`, Object.keys(socialUpdates).join(", "));
+                        }
+                      }
+                    }
+                  } catch (err) {
+                    console.error(`[GHL Sync] Error updating social URLs for lead ${leadId}:`, err);
                   }
                 }
 
@@ -754,7 +785,31 @@ Deno.serve(async (req) => {
                             .update({ channel: inferredChannel })
                             .eq("id", conversationId);
                         }
-                      }
+                        }
+
+                        // After channel inference, update lead social URL if channel is social and lead lacks it
+                        if (leadId && (channel === "instagram" || channel === "messenger")) {
+                          try {
+                            const socialField = channel === "instagram" ? "instagram_url" : "facebook_url";
+                            const { data: leadSocial } = await supabase
+                              .from("leads")
+                              .select(socialField)
+                              .eq("id", leadId)
+                              .single();
+
+                            if (leadSocial && !leadSocial[socialField]) {
+                              // Try to get the social handle from GHL contact
+                              const contactData = await fetchGHLContact(apiKey, ghlConv.contactId);
+                              const socialUrl = channel === "instagram" ? contactData?.instagram_url : contactData?.facebook_url;
+                              if (socialUrl) {
+                                await supabase.from("leads").update({ [socialField]: socialUrl }).eq("id", leadId);
+                                console.log(`[GHL Sync] Updated lead ${leadId} ${socialField} = ${socialUrl} (from channel inference)`);
+                              }
+                            }
+                          } catch (err) {
+                            console.error(`[GHL Sync] Error updating social URL after channel inference:`, err);
+                          }
+                        }
 
                       // Trigger autopilot if the last message in this conversation is inbound AND recent (< 2 hours)
                       if (messages.length > 0 && conversationId && leadId) {
