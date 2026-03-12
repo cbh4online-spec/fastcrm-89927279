@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { 
   useSmartLeads, 
   useAnalyzeLead, 
@@ -393,7 +393,7 @@ export function SmartLeadsTable() {
                               <Avatar className="h-9 w-9"><AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground text-xs font-medium">{initials}</AvatarFallback></Avatar>
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5">
-                                  <a href={`/dashboard/leads/${lead.id}`} className="font-medium text-foreground hover:text-primary hover:underline truncate block relative z-10">{lead.name}</a>
+                                  <Link to={`/dashboard/leads/${lead.id}`} className="font-medium text-foreground hover:text-primary hover:underline truncate block relative z-10">{lead.name}</Link>
                                   {dupCount && (
                                     <Badge 
                                       variant="outline" 
@@ -413,7 +413,7 @@ export function SmartLeadsTable() {
                           <TableCell onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleAnalyzeLead(lead.id)} disabled={analyzingId === lead.id}><Sparkles className={cn("w-4 h-4", analyzingId === lead.id && "animate-pulse")} /></Button>
-                              <a href={`/dashboard/leads/${lead.id}`}><Button variant="ghost" size="icon" className="h-7 w-7"><ExternalLink className="w-4 h-4" /></Button></a>
+                              <Link to={`/dashboard/leads/${lead.id}`}><Button variant="ghost" size="icon" className="h-7 w-7"><ExternalLink className="w-4 h-4" /></Button></Link>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="w-4 h-4" /></Button></DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="bg-popover z-50">
