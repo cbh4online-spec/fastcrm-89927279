@@ -505,10 +505,12 @@ export function useInvoiceStats() {
     totalSent: 0,
     totalPaid: 0,
     totalOverdue: 0,
+    totalPartiallyPaid: 0,
     amountDraft: 0,
     amountSent: 0,
     amountPaid: 0,
     amountOverdue: 0,
+    amountPartiallyPaid: 0,
   };
 
   if (invoices) {
@@ -529,6 +531,10 @@ export function useInvoiceStats() {
         case "overdue":
           stats.totalOverdue++;
           stats.amountOverdue += inv.total;
+          break;
+        case "partially_paid":
+          stats.totalPartiallyPaid++;
+          stats.amountPartiallyPaid += inv.total;
           break;
       }
     });
