@@ -312,7 +312,7 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
               </div>
             </div>
           ) : (
-            <FunnelStepEditor step={selectedStep} />
+            <FunnelStepEditor step={selectedStep} funnelName={funnel?.name} funnelType={funnel?.type} />
           )}
         </div>
       ) : (
