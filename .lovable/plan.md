@@ -1,68 +1,45 @@
 
 
-# Phase 5B — Command Center COMPLETO
+# Preencher automaticamente o nome da empresa nas mensagens automatizadas
 
-## Gap Analysis: Current vs Spec
+## Problema
+Quando mensagens automatizadas são enviadas (prospecção, templates, automações), o campo "Nome da Empresa" aparece como placeholder literal `[Nome da Empresa]` em vez de ser preenchido com o nome real do workspace. Isto acontece em 3 pontos:
 
-The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
+1. **AI de prospecção** (`generate-prospecting-message`): O prompt AI recebe o `workspaceContext.name` mas nem sempre o usa corretamente — por vezes gera `[Nome da Empresa]` como placeholder
+2. **Sistema de variáveis de template** (`templateVariables.ts`): Não existe variável `{{workspace.name}}` disponível
+3. **Contexto de template nas conversas** (`ConversationDetail.tsx`, `automationTemplateRenderer.ts`): Não injeta dados do workspace
 
-**Already implemented (needs enhancement):**
-- Header with greeting + 3 KPIs — needs larger font (32px), labels below
-- AI Question Box — needs slash command suggestions row below input
-- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
-- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
-- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
-- Drift Alerts — needs "Rever →" links to Context OS blocks
+## Plano de implementação
 
-**New sections to build:**
-1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
-2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
-   - Change Events (last 5 from `useChangeEvents` with realtime)
-   - Entity Activity (top 3 entities from `useKernelEntities`)
-   - Impact Score (top 2 from `useImpactMapData`)
-3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
+### 1. Adicionar variáveis de workspace ao sistema de templates
+**Ficheiro:** `src/lib/templateVariables.ts`
+- Criar nova categoria `workspace` com variáveis: `{{workspace.name}}`, `{{workspace.email}}`, `{{workspace.phone}}`, `{{workspace.website}}`
+- Adicionar ao `VariableContext` interface um campo `workspace`
+- Atualizar `resolveVariable` para resolver `workspace.*`
+- Adicionar à lista `variableCategories`
 
-**Enhanced Command Palette (⌘K):**
-- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
+### 2. Injetar workspace no contexto de templates
+**Ficheiro:** `src/components/inbox/ConversationDetail.tsx`
+- Usar `useWorkspace()` para obter `currentWorkspace`
+- Adicionar `workspace: { name: currentWorkspace.name }` ao `templateContext`
 
-**Spotlight (Space key):**
-- Opens AI Question Box as a modal from any page. New global component.
+**Ficheiro:** `src/lib/automationTemplateRenderer.ts`
+- Adicionar parâmetro `workspaceData` ao `buildContextFromTriggerData`
+- Popular `context.workspace` com nome do workspace
 
-## Implementation Plan — 3 Sub-phases
+### 3. Corrigir o prompt de prospecção AI
+**Ficheiro:** `supabase/functions/generate-prospecting-message/index.ts`
+- Reforçar no prompt do sistema que o AI **DEVE usar o nome real da empresa** fornecido no contexto, **NUNCA** placeholders como `[Nome da Empresa]`
+- Adicionar instrução explícita: "O nome da tua empresa é: {workspaceContext.name}. Usa este nome exacto."
 
-Given the scope, I recommend splitting into 3 batches:
+### 4. Adicionar fallback de substituição pós-geração
+**Ficheiro:** `supabase/functions/generate-prospecting-message/index.ts`
+- Após gerar a mensagem AI, substituir automaticamente quaisquer `[Nome da Empresa]`, `[nome da empresa]`, `[Company Name]` pelo `workspaceContext.name` real — como rede de segurança
 
-### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
-| File | Action |
-|------|--------|
-| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
-| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
-| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
-| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
+### 5. Atualizar previews e exemplos
+**Ficheiro:** `src/lib/dynamicTemplateEngine.ts`
+- Atualizar `getDynamicPreviewVariables` para incluir `workspace_name`
 
-### Batch 2: Enhance Existing Cards
-| File | Action |
-|------|--------|
-| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
-| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
-| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
-| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
-| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
-| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
-
-### Batch 3: Spotlight Modal + Command Palette Enhancement
-| File | Action |
-|------|--------|
-| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
-| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
-| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
-
-### Realtime subscriptions needed
-- `change_events` table for Kernel Live Feed auto-update
-- `kernel_action_runs` for Ações do Dia auto-update
-- Already have `kernel_decisions` and `conversations`
-
-No database migrations needed. All hooks, edge functions, and tables already exist.
-
-**Shall I start with Batch 1?**
+**Ficheiro:** `src/lib/templateVariables.ts`
+- Atualizar `getExampleContext` para incluir dados de workspace de exemplo
 
