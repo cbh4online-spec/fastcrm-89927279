@@ -104,7 +104,7 @@ function getTimeAgo(date: Date): string {
 export function LeadDetailWithSidebar() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: lead, isLoading } = useLead(id);
+  const { data: lead, isLoading, isFetching, isPending } = useLead(id);
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
   const { data: counts } = useEntityCounts('lead', id);
