@@ -298,7 +298,7 @@ export default function Invoices() {
             <SaftExportTab />
           ) : (
             <>
-              <div className="grid gap-4 md:grid-cols-4 mb-4">
+              <div className="grid gap-4 md:grid-cols-5 mb-4">
                 <Card className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -318,6 +318,17 @@ export default function Invoices() {
                       <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountSent)}</p>
                     </div>
                     <Clock className="h-8 w-8 text-blue-500/50" />
+                  </div>
+                </Card>
+
+                <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">{t("kpiPartiallyPaid")}</p>
+                      <p className="text-2xl font-bold text-orange-600">{stats.totalPartiallyPaid}</p>
+                      <p className="text-xs text-muted-foreground">{formatCurrency(stats.amountPartiallyPaid)}</p>
+                    </div>
+                    <CreditCard className="h-8 w-8 text-orange-500/50" />
                   </div>
                 </Card>
 

@@ -79,6 +79,7 @@
   "kpiSent": "Enviadas",
   "kpiPaid": "Pagas",
   "kpiOverdue": "Vencidas",
+  "kpiPartiallyPaid": "Parcialmente Pagas",
   "invoicesExported": "{{count}} faturas exportadas",
   "csvNumber": "Número",
   "csvClient": "Cliente",
