@@ -421,5 +421,11 @@ export function getExampleContext(): VariableContext {
       full_name: 'Ana Santos',
       email: 'ana@tuaempresa.com',
     },
+    workspace: {
+      name: 'Minha Empresa',
+      email: 'info@minhaempresa.com',
+      phone: '+351 21 000 0000',
+      website: 'www.minhaempresa.com',
+    },
   };
 }
