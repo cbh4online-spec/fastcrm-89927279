@@ -42,7 +42,7 @@ import { LeadData, OpportunityData } from "@/hooks/useInboxAI";
 import { PriorityScoreBadge } from "./PriorityScoreBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
-// Design System imports
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { EmptyState, LoadingSpinner } from "@/components/design-system";
 
 const channelIcons: Record<string, React.ComponentType<{ className?: string }>> = {
