@@ -6,10 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUpdateFunnelStep, FunnelStep } from "@/hooks/useFunnels";
-import { Save, Sparkles, Loader2, Wand2 } from "lucide-react";
+import { Save, Sparkles, Loader2, Wand2, Image, Plus, Trash2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { AppearanceEditor, defaultAppearance, type AppearanceValues } from "@/components/funnels/AppearanceEditor";
 import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+
+interface FormFieldConfig {
+  id: string;
+  label: string;
+  type: "text" | "email" | "phone" | "select" | "textarea";
+  required: boolean;
+  placeholder?: string;
+  options?: string[];
+}
 
 interface FunnelStepEditorProps {
   step: FunnelStep;
@@ -45,23 +56,33 @@ const AI_SUGGESTIONS: Record<string, string[]> = {
   ],
 };
 
+const DEFAULT_FORM_FIELDS: FormFieldConfig[] = [
+  { id: "name", label: "Nome", type: "text", required: true, placeholder: "Seu nome completo" },
+  { id: "email", label: "Email", type: "email", required: true, placeholder: "seu@email.com" },
+];
+
 export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEditorProps) {
   const updateStep = useUpdateFunnelStep();
-  const content = (step.content || {}) as Record<string, string>;
+  const content = (step.content || {}) as Record<string, unknown>;
 
-  const [headline, setHeadline] = useState(content.headline || "");
-  const [subheadline, setSubheadline] = useState(content.subheadline || "");
-  const [bodyText, setBodyText] = useState(content.body || "");
-  const [ctaText, setCtaText] = useState(content.cta_text || "Começar Agora");
-  const [ctaColor, setCtaColor] = useState(content.cta_color || "#3b82f6");
+  const [headline, setHeadline] = useState((content.headline as string) || "");
+  const [subheadline, setSubheadline] = useState((content.subheadline as string) || "");
+  const [bodyText, setBodyText] = useState((content.body as string) || "");
+  const [ctaText, setCtaText] = useState((content.cta_text as string) || "Começar Agora");
+  const [ctaColor, setCtaColor] = useState((content.cta_color as string) || "#3b82f6");
+  const [imageUrl, setImageUrl] = useState((content.image_url as string) || "");
+  const [formFields, setFormFields] = useState<FormFieldConfig[]>(() => {
+    const saved = content.form_fields as FormFieldConfig[] | undefined;
+    return saved?.length ? saved : DEFAULT_FORM_FIELDS;
+  });
   const [appearance, setAppearance] = useState<AppearanceValues>(() => {
-    const design = (step.content as Record<string, unknown>)?.design as Partial<AppearanceValues> | undefined;
+    const design = content.design as Partial<AppearanceValues> | undefined;
     return { ...defaultAppearance, ...design };
   });
 
-  // AI state
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   useEffect(() => {
     const c = (step.content || {}) as Record<string, unknown>;
@@ -70,6 +91,9 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
     setBodyText((c.body as string) || "");
     setCtaText((c.cta_text as string) || "Começar Agora");
     setCtaColor((c.cta_color as string) || "#3b82f6");
+    setImageUrl((c.image_url as string) || "");
+    const saved = c.form_fields as FormFieldConfig[] | undefined;
+    setFormFields(saved?.length ? saved : DEFAULT_FORM_FIELDS);
     const design = c.design as Partial<AppearanceValues> | undefined;
     setAppearance({ ...defaultAppearance, ...design });
   }, [step.id]);
@@ -77,7 +101,16 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
   const handleSave = () => {
     updateStep.mutate({
       id: step.id,
-      content: { headline, subheadline, body: bodyText, cta_text: ctaText, cta_color: ctaColor, design: appearance },
+      content: {
+        headline,
+        subheadline,
+        body: bodyText,
+        cta_text: ctaText,
+        cta_color: ctaColor,
+        image_url: imageUrl,
+        form_fields: step.step_type === "optin" ? formFields : undefined,
+        design: appearance,
+      },
     });
     toast.success("Step guardado");
   };
@@ -85,30 +118,20 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
   const handleAIGenerate = async (prompt?: string) => {
     const finalPrompt = prompt || aiPrompt;
     if (!finalPrompt.trim()) return;
-
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("ai-funnel-content", {
-        body: {
-          prompt: finalPrompt,
-          stepType: step.step_type,
-          currentContent: { headline, subheadline, body: bodyText, cta_text: ctaText },
-          funnelName,
-          funnelType,
-        },
+        body: { prompt: finalPrompt, stepType: step.step_type, currentContent: { headline, subheadline, body: bodyText, cta_text: ctaText }, funnelName, funnelType },
       });
-
       if (error) throw new Error(error.message);
       if (!data?.success) throw new Error(data?.error || "Erro ao gerar");
-
       const generated = data.content;
       if (generated.headline) setHeadline(generated.headline);
       if (generated.subheadline) setSubheadline(generated.subheadline);
       if (generated.body) setBodyText(generated.body);
       if (generated.cta_text) setCtaText(generated.cta_text);
-
       setAiPrompt("");
-      toast.success("Conteúdo gerado com IA!", { description: "Revisa e ajusta antes de guardar." });
+      toast.success("Conteúdo gerado com IA!");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao gerar conteúdo");
     } finally {
@@ -116,7 +139,54 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
     }
   };
 
+  const handleAIImage = async () => {
+    if (!headline && !bodyText) {
+      toast.error("Adiciona um título ou corpo antes de gerar a imagem");
+      return;
+    }
+    setIsGeneratingImage(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-funnel-content", {
+        body: {
+          prompt: `Gera uma imagem hero para: ${headline || bodyText}`,
+          stepType: step.step_type,
+          generateImage: true,
+          funnelName,
+          funnelType,
+        },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.image_url) {
+        setImageUrl(data.image_url);
+        toast.success("Imagem gerada com IA!");
+      } else {
+        throw new Error("Não foi possível gerar a imagem");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao gerar imagem");
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
+  // Form field management
+  const addFormField = () => {
+    setFormFields(prev => [
+      ...prev,
+      { id: `field_${Date.now()}`, label: "Novo campo", type: "text", required: false, placeholder: "" },
+    ]);
+  };
+
+  const updateFormField = (index: number, updates: Partial<FormFieldConfig>) => {
+    setFormFields(prev => prev.map((f, i) => (i === index ? { ...f, ...updates } : f)));
+  };
+
+  const removeFormField = (index: number) => {
+    setFormFields(prev => prev.filter((_, i) => i !== index));
+  };
+
   const suggestions = AI_SUGGESTIONS[step.step_type] || AI_SUGGESTIONS.page;
+  const isOptin = step.step_type === "optin";
 
   return (
     <div className="space-y-4">
@@ -127,7 +197,6 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
             <Sparkles className="h-4 w-4 text-primary" />
             <span className="text-sm font-semibold text-primary">AI Content Generator</span>
           </div>
-
           <div className="flex gap-2">
             <Input
               value={aiPrompt}
@@ -135,39 +204,17 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
               placeholder="Descreve o que queres... ex: Página de vendas para curso de marketing digital"
               className="flex-1 bg-background"
               disabled={isGenerating}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleAIGenerate();
-                }
-              }}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAIGenerate(); } }}
             />
-            <Button
-              onClick={() => handleAIGenerate()}
-              disabled={isGenerating || !aiPrompt.trim()}
-              className="shrink-0"
-            >
-              {isGenerating ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-1" />
-              ) : (
-                <Wand2 className="h-4 w-4 mr-1" />
-              )}
+            <Button onClick={() => handleAIGenerate()} disabled={isGenerating || !aiPrompt.trim()} className="shrink-0">
+              {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Wand2 className="h-4 w-4 mr-1" />}
               {isGenerating ? "A gerar..." : "Gerar"}
             </Button>
           </div>
-
-          {/* Quick suggestions */}
           <div className="flex flex-wrap gap-1.5">
             {suggestions.map((s, i) => (
-              <button
-                key={i}
-                onClick={() => {
-                  setAiPrompt(s);
-                  handleAIGenerate(s);
-                }}
-                disabled={isGenerating}
-                className="text-xs px-2.5 py-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-              >
+              <button key={i} onClick={() => { setAiPrompt(s); handleAIGenerate(s); }} disabled={isGenerating}
+                className="text-xs px-2.5 py-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
                 {s}
               </button>
             ))}
@@ -178,16 +225,15 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
       <Tabs defaultValue="conteudo">
         <TabsList>
           <TabsTrigger value="conteudo">Conteúdo</TabsTrigger>
+          <TabsTrigger value="imagem">Imagem</TabsTrigger>
+          {isOptin && <TabsTrigger value="formulario">Formulário</TabsTrigger>}
           <TabsTrigger value="design">Design</TabsTrigger>
         </TabsList>
 
         <TabsContent value="conteudo">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Editor */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Conteúdo do Step</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-sm">Conteúdo do Step</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <Label>Título</Label>
@@ -219,42 +265,37 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
 
             {/* Preview */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Pré-visualização</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-sm">Pré-visualização</CardTitle></CardHeader>
               <CardContent>
-                <div
-                  className="border rounded-lg p-6 min-h-[300px] space-y-4"
-                  style={{
-                    backgroundColor: appearance.background,
-                    color: appearance.text_color,
-                    fontFamily: appearance.font_body,
-                    fontSize: `${appearance.font_size_base}px`,
-                    borderRadius: `${appearance.border_radius}px`,
-                  }}
-                >
-                  {headline && (
-                    <h2 className="text-2xl" style={{ fontFamily: appearance.font_heading, fontWeight: appearance.heading_weight, color: appearance.text_color }}>
-                      {headline}
-                    </h2>
-                  )}
+                <div className="border rounded-lg p-6 min-h-[300px] space-y-4"
+                  style={{ backgroundColor: appearance.background, color: appearance.text_color, fontFamily: appearance.font_body, fontSize: `${appearance.font_size_base}px`, borderRadius: `${appearance.border_radius}px` }}>
+                  {imageUrl && <img src={imageUrl} alt="Step" className="w-full rounded-lg object-cover max-h-48" />}
+                  {headline && <h2 className="text-2xl" style={{ fontFamily: appearance.font_heading, fontWeight: appearance.heading_weight, color: appearance.text_color }}>{headline}</h2>}
                   {subheadline && <p className="text-lg" style={{ opacity: 0.7 }}>{subheadline}</p>}
                   {bodyText && <p className="text-sm whitespace-pre-wrap">{bodyText}</p>}
+                  {isOptin && formFields.length > 0 && (
+                    <div className="space-y-2 border border-dashed border-muted-foreground/30 rounded-lg p-3">
+                      {formFields.map((field) => (
+                        <div key={field.id}>
+                          <p className="text-xs font-medium mb-1">{field.label}{field.required && " *"}</p>
+                          <div className="h-8 bg-muted/50 rounded border text-xs flex items-center px-2 text-muted-foreground">{field.placeholder || field.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {ctaText && (
-                    <button
-                      className="px-6 py-3 text-white font-medium"
+                    <button className="px-6 py-3 text-white font-medium w-full"
                       style={{
                         backgroundColor: appearance.cta_style === "outline" ? "transparent" : (appearance.cta_style === "gradient" ? undefined : appearance.primaria),
                         background: appearance.cta_style === "gradient" ? `linear-gradient(135deg, ${appearance.primaria}, ${appearance.accent})` : undefined,
                         border: appearance.cta_style === "outline" ? `2px solid ${appearance.primaria}` : "none",
                         color: appearance.cta_style === "outline" ? appearance.primaria : "#fff",
                         borderRadius: `${appearance.border_radius}px`,
-                      }}
-                    >
+                      }}>
                       {ctaText}
                     </button>
                   )}
-                  {!headline && !subheadline && !bodyText && (
+                  {!headline && !subheadline && !bodyText && !imageUrl && (
                     <div className="flex flex-col items-center justify-center h-48 text-muted-foreground text-sm gap-2">
                       <span className="text-3xl">✏️</span>
                       <p>Preenche o editor para ver a pré-visualização</p>
@@ -265,6 +306,104 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
             </Card>
           </div>
         </TabsContent>
+
+        {/* Image Tab */}
+        <TabsContent value="imagem">
+          <Card>
+            <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Image className="h-4 w-4" /> Imagem do Step</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>URL da Imagem</Label>
+                <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://exemplo.com/imagem.jpg" />
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleAIImage} disabled={isGeneratingImage}>
+                  {isGeneratingImage ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
+                  {isGeneratingImage ? "A gerar..." : "Gerar com IA"}
+                </Button>
+                {imageUrl && (
+                  <Button variant="ghost" onClick={() => setImageUrl("")} className="text-destructive">
+                    <Trash2 className="h-4 w-4 mr-1" /> Remover
+                  </Button>
+                )}
+              </div>
+
+              {imageUrl && (
+                <div className="border rounded-lg overflow-hidden">
+                  <img src={imageUrl} alt="Preview" className="w-full max-h-80 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                </div>
+              )}
+
+              {!imageUrl && (
+                <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
+                  <Image className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Cola uma URL ou gera uma imagem com IA</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Form Builder Tab (optin only) */}
+        {isOptin && (
+          <TabsContent value="formulario">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm">Campos do Formulário</CardTitle>
+                  <Button size="sm" variant="outline" onClick={addFormField}>
+                    <Plus className="h-3 w-3 mr-1" /> Adicionar campo
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {formFields.map((field, index) => (
+                  <div key={field.id} className="flex items-start gap-3 p-3 border rounded-lg bg-muted/30">
+                    <GripVertical className="h-4 w-4 mt-2 text-muted-foreground shrink-0" />
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-2">
+                      <div>
+                        <Label className="text-xs">Label</Label>
+                        <Input value={field.label} onChange={(e) => updateFormField(index, { label: e.target.value })} className="h-8 text-sm" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Tipo</Label>
+                        <Select value={field.type} onValueChange={(v) => updateFormField(index, { type: v as FormFieldConfig["type"] })}>
+                          <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="text">Texto</SelectItem>
+                            <SelectItem value="email">Email</SelectItem>
+                            <SelectItem value="phone">Telefone</SelectItem>
+                            <SelectItem value="textarea">Texto longo</SelectItem>
+                            <SelectItem value="select">Seleção</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Placeholder</Label>
+                        <Input value={field.placeholder || ""} onChange={(e) => updateFormField(index, { placeholder: e.target.value })} className="h-8 text-sm" />
+                      </div>
+                      <div className="flex items-end gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <Switch checked={field.required} onCheckedChange={(v) => updateFormField(index, { required: v })} />
+                          <Label className="text-xs">Obrigatório</Label>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive shrink-0" onClick={() => removeFormField(index)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {formFields.length === 0 && (
+                  <div className="text-center py-6 text-muted-foreground text-sm">
+                    Nenhum campo. Clica em "Adicionar campo" para começar.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         <TabsContent value="design">
           <AppearanceEditor values={appearance} onChange={setAppearance} />
