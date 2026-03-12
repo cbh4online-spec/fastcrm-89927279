@@ -5,7 +5,7 @@ export interface TemplateVariable {
   key: string;
   label: string;
   description: string;
-  category: 'lead' | 'opportunity' | 'company' | 'contact' | 'user' | 'date' | 'custom';
+  category: 'lead' | 'opportunity' | 'company' | 'contact' | 'user' | 'date' | 'workspace' | 'custom';
   required?: boolean;
   example: string;
   alternativeFields?: string[]; // For field mapping suggestions
@@ -81,6 +81,14 @@ const userVariables: TemplateVariable[] = [
   { key: '{{user.email}}', label: 'Teu email', description: 'O teu email', category: 'user', example: 'ana@empresa.com' },
 ];
 
+// Workspace variables
+const workspaceVariables: TemplateVariable[] = [
+  { key: '{{workspace.name}}', label: 'Nome da empresa', description: 'Nome do workspace/empresa', category: 'workspace', example: 'Minha Empresa' },
+  { key: '{{workspace.email}}', label: 'Email da empresa', description: 'Email do workspace', category: 'workspace', example: 'info@minhaempresa.com' },
+  { key: '{{workspace.phone}}', label: 'Telefone da empresa', description: 'Telefone do workspace', category: 'workspace', example: '+351 21 000 0000' },
+  { key: '{{workspace.website}}', label: 'Website da empresa', description: 'Website do workspace', category: 'workspace', example: 'www.minhaempresa.com' },
+];
+
 // Date variables
 const dateVariables: TemplateVariable[] = [
   { key: '{{date.today}}', label: 'Hoje', description: 'Data de hoje', category: 'date', example: new Date().toLocaleDateString('pt-PT') },
@@ -97,6 +105,7 @@ export const variableCategories: VariableCategory[] = [
   { id: 'company', label: 'Empresa', icon: 'Building2', variables: companyVariables },
   { id: 'contact', label: 'Contacto', icon: 'UserCircle', variables: contactVariables },
   { id: 'user', label: 'Utilizador', icon: 'UserCheck', variables: userVariables },
+  { id: 'workspace', label: 'Workspace', icon: 'Briefcase', variables: workspaceVariables },
   { id: 'date', label: 'Data/Hora', icon: 'Calendar', variables: dateVariables },
 ];
 
@@ -107,6 +116,7 @@ export const allVariables: TemplateVariable[] = [
   ...companyVariables,
   ...contactVariables,
   ...userVariables,
+  ...workspaceVariables,
   ...dateVariables,
 ];
 
@@ -194,6 +204,12 @@ export interface VariableContext {
     full_name?: string;
     email?: string;
   } | null;
+  workspace?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    website?: string;
+  } | null;
   customFields?: Record<string, any>;
 }
 
@@ -263,6 +279,16 @@ export function resolveVariable(variable: string, context: VariableContext): str
         default: return null;
       }
     
+    case 'workspace':
+      if (!context.workspace) return null;
+      switch (field) {
+        case 'name': return context.workspace.name || null;
+        case 'email': return context.workspace.email || null;
+        case 'phone': return context.workspace.phone || null;
+        case 'website': return context.workspace.website || null;
+        default: return null;
+      }
+    
     case 'date':
       const now = new Date();
       switch (field) {
@@ -314,7 +340,8 @@ export function validateTemplate(content: string, context: VariableContext): Val
         (entity === 'opportunity' && !context.opportunity) ||
         (entity === 'company' && !context.company) ||
         (entity === 'contact' && !context.contact) ||
-        (entity === 'user' && !context.user)
+        (entity === 'user' && !context.user) ||
+        (entity === 'workspace' && !context.workspace)
       ) {
         missingVariables.push(variable);
       }
@@ -393,6 +420,12 @@ export function getExampleContext(): VariableContext {
       id: 'example-user-id',
       full_name: 'Ana Santos',
       email: 'ana@tuaempresa.com',
+    },
+    workspace: {
+      name: 'Minha Empresa',
+      email: 'info@minhaempresa.com',
+      phone: '+351 21 000 0000',
+      website: 'www.minhaempresa.com',
     },
   };
 }

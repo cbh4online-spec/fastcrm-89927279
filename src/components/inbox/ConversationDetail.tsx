@@ -42,7 +42,7 @@ import { LeadData, OpportunityData } from "@/hooks/useInboxAI";
 import { PriorityScoreBadge } from "./PriorityScoreBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCRMAnalytics } from "@/hooks/useCRMAnalytics";
-// Design System imports
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { EmptyState, LoadingSpinner } from "@/components/design-system";
 
 const channelIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -62,6 +62,8 @@ interface ConversationDetailProps {
 
 export function ConversationDetail({ conversationId }: ConversationDetailProps) {
   const { user } = useAuth();
+  const workspaceCtx = useWorkspace();
+  const currentWorkspace = workspaceCtx?.currentWorkspace;
   const { data: conversation, isLoading: convLoading } = useConversation(conversationId || undefined);
   const { data: messages, isLoading: messagesLoading } = useMessages(conversationId || undefined);
   const { data: opportunities } = useOpportunities();
@@ -134,6 +136,9 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
       id: user.id,
       full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilizador',
       email: user.email,
+    } : null,
+    workspace: currentWorkspace ? {
+      name: currentWorkspace.name || undefined,
     } : null,
   };
 

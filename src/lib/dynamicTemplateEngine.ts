@@ -182,6 +182,7 @@ export function getDynamicPreviewVariables(): Record<string, string> {
     proxima_acao: 'Agendar sessão de follow-up',
     responsavel_nome: 'Maria Costa',
     empresa_nome: 'Minha Empresa',
+    workspace_name: 'Minha Empresa',
     // CRM extended
     first_name: 'João',
     company_name: 'TechCorp',
