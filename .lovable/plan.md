@@ -1,68 +1,59 @@
 
 
-# Phase 5B — Command Center COMPLETO
+# Plano: Galeria de Imagens com Geração IA (Gemini Banana)
 
-## Gap Analysis: Current vs Spec
+## Problema Atual
+A tab de Imagem só suporta **1 imagem** via URL ou geração IA. Falta suporte para múltiplas imagens e controlo sobre o prompt de geração.
 
-The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
+## O Que Vai Ser Feito
 
-**Already implemented (needs enhancement):**
-- Header with greeting + 3 KPIs — needs larger font (32px), labels below
-- AI Question Box — needs slash command suggestions row below input
-- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
-- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
-- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
-- Drift Alerts — needs "Rever →" links to Context OS blocks
+### 1. Suporte a Múltiplas Imagens no Editor
+- Substituir o campo `image_url` (string) por `images` (array de strings)
+- Galeria visual com grid de imagens, drag para reordenar
+- Botão para adicionar via URL ou gerar com IA
+- Possibilidade de remover imagens individuais
+- Manter backward compatibility com `image_url` existente
 
-**New sections to build:**
-1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
-2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
-   - Change Events (last 5 from `useChangeEvents` with realtime)
-   - Entity Activity (top 3 entities from `useKernelEntities`)
-   - Impact Score (top 2 from `useImpactMapData`)
-3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
+### 2. Geração de Imagens com Prompt Personalizado
+- Input de prompt dedicado na tab de imagem para descrever o que quer gerar
+- Selector de estilo: "Fotografia", "Ilustração 3D", "Flat Design", "Minimalista"
+- Botão "Gerar com IA" que usa o prompt + contexto do step
+- Preview imediato da imagem gerada antes de adicionar à galeria
 
-**Enhanced Command Palette (⌘K):**
-- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
+### 3. Edge Function Atualizada
+- Melhorar o prompt de geração usando o modelo `google/gemini-3.1-flash-image-preview`
+- Aceitar parâmetro `imageStyle` para variar o estilo visual
+- Aceitar `count` para gerar múltiplas imagens numa chamada (sequencial)
+- Upload automático ao storage `funnel-assets`
 
-**Spotlight (Space key):**
-- Opens AI Question Box as a modal from any page. New global component.
+### 4. Página Pública com Galeria
+- Renderizar múltiplas imagens como carousel/galeria no `PublicFunnelPage`
+- Fallback para `image_url` singular (compatibilidade)
 
-## Implementation Plan — 3 Sub-phases
+## Ficheiros a Alterar
 
-Given the scope, I recommend splitting into 3 batches:
+| Ficheiro | Alteração |
+|---|---|
+| `src/components/funnels/FunnelStepEditor.tsx` | Tab imagem com galeria, prompt IA, selector de estilo, multi-imagem |
+| `supabase/functions/ai-funnel-content/index.ts` | Melhorar prompt de imagem, aceitar estilo e count |
+| `src/pages/PublicFunnelPage.tsx` | Renderizar galeria de imagens |
 
-### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
-| File | Action |
-|------|--------|
-| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
-| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
-| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
-| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
+## Detalhes Técnicos
 
-### Batch 2: Enhance Existing Cards
-| File | Action |
-|------|--------|
-| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
-| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
-| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
-| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
-| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
-| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
+**Estrutura de content expandida:**
+```typescript
+{
+  // ... campos existentes
+  image_url: string,         // backward compat
+  images: string[],          // NOVO - array de URLs
+}
+```
 
-### Batch 3: Spotlight Modal + Command Palette Enhancement
-| File | Action |
-|------|--------|
-| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
-| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
-| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
+**Estilos disponíveis para geração:**
+- `photo` — Fotografia profissional realista
+- `3d` — Ilustração 3D moderna
+- `flat` — Design flat/vector
+- `minimal` — Minimalista e clean
 
-### Realtime subscriptions needed
-- `change_events` table for Kernel Live Feed auto-update
-- `kernel_action_runs` for Ações do Dia auto-update
-- Already have `kernel_decisions` and `conversations`
-
-No database migrations needed. All hooks, edge functions, and tables already exist.
-
-**Shall I start with Batch 1?**
+**Modelo usado:** `google/gemini-3.1-flash-image-preview` (Nano Banana 2) — rápido com qualidade pro.
 
