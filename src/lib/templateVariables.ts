@@ -340,7 +340,8 @@ export function validateTemplate(content: string, context: VariableContext): Val
         (entity === 'opportunity' && !context.opportunity) ||
         (entity === 'company' && !context.company) ||
         (entity === 'contact' && !context.contact) ||
-        (entity === 'user' && !context.user)
+        (entity === 'user' && !context.user) ||
+        (entity === 'workspace' && !context.workspace)
       ) {
         missingVariables.push(variable);
       }
