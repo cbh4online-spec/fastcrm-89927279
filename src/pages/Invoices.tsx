@@ -37,6 +37,8 @@ import {
   type InvoiceStatus,
 } from "@/hooks/useInvoices";
 import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog";
+import { RegisterPaymentDialog } from "@/components/invoices/RegisterPaymentDialog";
+import { CreditCard } from "lucide-react";
 import { InvoiceSettingsTab } from "@/components/invoices/InvoiceSettingsTab";
 import { RecurringInvoicesTab } from "@/components/invoices/RecurringInvoicesTab";
 import { FiscalSettingsTab } from "@/components/invoices/FiscalSettingsTab";
