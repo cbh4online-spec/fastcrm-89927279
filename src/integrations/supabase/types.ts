@@ -16672,6 +16672,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "funnel_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "funnel_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "funnel_products_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
