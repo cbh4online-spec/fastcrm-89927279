@@ -1,68 +1,55 @@
 
+# Plano: Adicionar Imagens e Formulário de Captura ao Editor de Funil
 
-# Phase 5B — Command Center COMPLETO
+## Problema Atual
+O editor de steps do funil (`FunnelStepEditor`) não permite:
+1. **Adicionar imagens** — a página pública já renderiza `image_url` mas o editor não tem campo para definir
+2. **Formulário de captura de contactos** — steps do tipo `optin` devem ter um formulário embutido para captar leads (nome, email, telefone, etc.)
 
-## Gap Analysis: Current vs Spec
+## O Que Vai Ser Feito
 
-The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
+### 1. Secção de Imagem no Editor
+- Adicionar campo de **URL de imagem** ou **upload de imagem** no `FunnelStepEditor`
+- Possibilidade de gerar imagem com IA (usando o modelo de imagem disponível)
+- Preview da imagem no painel de pré-visualização
+- Guardar `image_url` no content do step
 
-**Already implemented (needs enhancement):**
-- Header with greeting + 3 KPIs — needs larger font (32px), labels below
-- AI Question Box — needs slash command suggestions row below input
-- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
-- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
-- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
-- Drift Alerts — needs "Rever →" links to Context OS blocks
+### 2. Formulário de Captura de Contactos (para steps tipo `optin`)
+- Adicionar uma nova tab **"Formulário"** no editor, visível quando `step_type === "optin"`
+- Permitir configurar campos do formulário: nome, email, telefone, campos custom
+- Guardar a configuração do formulário no `content.form_fields` do step
+- Na página pública (`PublicFunnelPage`), renderizar o formulário com os campos configurados
+- Ao submeter, criar um lead na tabela existente (ou `form_submissions`)
 
-**New sections to build:**
-1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
-2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
-   - Change Events (last 5 from `useChangeEvents` with realtime)
-   - Entity Activity (top 3 entities from `useKernelEntities`)
-   - Impact Score (top 2 from `useImpactMapData`)
-3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
+### 3. Página Pública Atualizada
+- Renderizar o formulário de captura em steps `optin`
+- Submissão cria lead/submission via Supabase
+- Feedback visual de sucesso após submissão
 
-**Enhanced Command Palette (⌘K):**
-- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
+## Ficheiros a Alterar
 
-**Spotlight (Space key):**
-- Opens AI Question Box as a modal from any page. New global component.
+| Ficheiro | Alteração |
+|---|---|
+| `src/components/funnels/FunnelStepEditor.tsx` | Adicionar campo de imagem (URL + upload + IA), tab de formulário para optin |
+| `src/pages/PublicFunnelPage.tsx` | Renderizar formulário de captura em steps optin, lógica de submissão |
+| `supabase/functions/ai-funnel-content/index.ts` | Opcionalmente gerar sugestões de campos de formulário |
 
-## Implementation Plan — 3 Sub-phases
+## Detalhes Técnicos
 
-Given the scope, I recommend splitting into 3 batches:
+**Estrutura do content do step (expandida):**
+```typescript
+{
+  headline: string,
+  subheadline: string,
+  body: string,
+  cta_text: string,
+  cta_color: string,
+  image_url: string,        // NOVO
+  form_fields: [             // NOVO (apenas optin)
+    { id: string, label: string, type: "text"|"email"|"phone"|"select", required: boolean, placeholder?: string }
+  ],
+  design: AppearanceValues
+}
+```
 
-### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
-| File | Action |
-|------|--------|
-| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
-| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
-| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
-| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
-
-### Batch 2: Enhance Existing Cards
-| File | Action |
-|------|--------|
-| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
-| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
-| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
-| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
-| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
-| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
-
-### Batch 3: Spotlight Modal + Command Palette Enhancement
-| File | Action |
-|------|--------|
-| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
-| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
-| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
-
-### Realtime subscriptions needed
-- `change_events` table for Kernel Live Feed auto-update
-- `kernel_action_runs` for Ações do Dia auto-update
-- Already have `kernel_decisions` and `conversations`
-
-No database migrations needed. All hooks, edge functions, and tables already exist.
-
-**Shall I start with Batch 1?**
-
+**Submissão pública:** Insere na tabela `form_submissions` ou directamente na tabela `leads` com os dados captados, associando ao `funnel_id` e `step_id`.
