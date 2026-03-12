@@ -24786,6 +24786,7 @@ export type Database = {
           title: string
           updated_at: string
           value: number | null
+          won_at: string | null
           workspace_id: string
         }
         Insert: {
@@ -24833,6 +24834,7 @@ export type Database = {
           title: string
           updated_at?: string
           value?: number | null
+          won_at?: string | null
           workspace_id: string
         }
         Update: {
@@ -24880,6 +24882,7 @@ export type Database = {
           title?: string
           updated_at?: string
           value?: number | null
+          won_at?: string | null
           workspace_id?: string
         }
         Relationships: [
