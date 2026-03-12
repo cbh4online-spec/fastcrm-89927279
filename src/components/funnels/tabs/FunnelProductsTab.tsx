@@ -152,8 +152,8 @@ export function FunnelProductsTab({ funnelId }: FunnelProductsTabProps) {
                           <span className="font-medium">{p.name}</span>
                           {p.sku && <span className="ml-2 text-xs text-muted-foreground">SKU: {p.sku}</span>}
                         </div>
-                        {p.price != null && (
-                          <span className="text-xs text-muted-foreground">{p.price} {p.currency || "EUR"}</span>
+                        {p.base_price != null && (
+                          <span className="text-xs text-muted-foreground">{p.base_price} {p.currency || "EUR"}</span>
                         )}
                       </button>
                     ))
