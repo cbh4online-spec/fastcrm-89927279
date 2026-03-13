@@ -109,10 +109,21 @@ export function CompanyDetail() {
     if (data.email && !company.email) updateData.email = data.email;
     if (data.phone && !company.phone) updateData.phone = data.phone;
     if (data.website && !company.website) updateData.website = data.website;
-    // Store full CAE description and codes
+    if (data.postal_code) updateData.postal_code = data.postal_code;
+    if (data.city) updateData.city = data.city;
+    if (data.region) updateData.region = data.region;
+    if (data.county) updateData.county = data.county;
+    if (data.parish) updateData.parish = data.parish;
     if (data.cae_description) updateData.cae_description = data.cae_description;
     if (data.cae_codes && data.cae_codes.length > 0) updateData.cae_codes = data.cae_codes;
-    // Generate short summary for industry field
+    if (data.legal_nature) updateData.legal_nature = data.legal_nature;
+    if (data.capital_social) updateData.capital_social = data.capital_social;
+    if (data.founding_date) updateData.founding_date = data.founding_date;
+    if (data.company_status) updateData.company_status = data.company_status;
+    if (data.fax) updateData.fax = data.fax;
+    if (data.about) updateData.about = data.about;
+    if (data.activity_description) updateData.activity_description = data.activity_description;
+    if (data.racius_url) updateData.racius_url = data.racius_url;
     if (data.cae_description && !company.industry) {
       updateData.industry = generateIndustrySummary(data.cae_description);
     }
