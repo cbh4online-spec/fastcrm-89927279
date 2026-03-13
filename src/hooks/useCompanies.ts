@@ -285,7 +285,7 @@ export function useCompanies() {
       if ((data as any).last_purchase_date !== undefined) updateData.last_purchase_date = (data as any).last_purchase_date;
       if ((data as any).abc_category !== undefined) updateData.abc_category = (data as any).abc_category;
       // New Core Object fields - pass through any extra fields
-      const extraFields = ['legal_name','domain','description','categories','founded_year','annual_revenue_range','funding_amount','business_model','country','timezone','connection_strength','icp_fit_score','pare_score','account_value_estimate','estimated_ltv','primary_use_case','decision_maker_role','priority_level','ai_summary','ai_tags','ai_pain_points','ai_opportunities','ai_risk_flags','custom_fields','company_status'];
+      const extraFields = ['legal_name','domain','description','categories','founded_year','annual_revenue_range','funding_amount','business_model','country','timezone','connection_strength','icp_fit_score','pare_score','account_value_estimate','estimated_ltv','primary_use_case','decision_maker_role','priority_level','ai_summary','ai_tags','ai_pain_points','ai_opportunities','ai_risk_flags','custom_fields','company_status','postal_code','city','region','county','parish','cae_codes','cae_description','capital_social','legal_nature','founding_date','fax','about','activity_description','racius_url'];
       for (const f of extraFields) {
         if ((data as any)[f] !== undefined) updateData[f] = (data as any)[f];
       }
