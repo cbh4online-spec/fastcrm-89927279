@@ -433,6 +433,13 @@ export default function C2CListingDetail() {
               {/* Mobile actions */}
               {user && !isOwner && (
                 <div className="space-y-3 border-t pt-4 lg:hidden">
+                  <Button className="w-full gap-2" size="lg" onClick={() => setCheckoutOpen(true)}>
+                    <ShoppingBag className="h-5 w-5" />
+                    {t('buyNow')} — {listing.price.toFixed(2)} {listing.currency}
+                  </Button>
+
+                  {workspaceId && (<OfferDialog listingId={listing.id} sellerId={listing.seller_id} currentPrice={listing.price} currency={listing.currency} workspaceId={workspaceId} />)}
+
                   <div id="contact-seller-mobile" className="space-y-2">
                     <Textarea placeholder={t('messagePlaceholder')} value={messageText} onChange={(e) => setMessageText(e.target.value)} rows={3} />
                     <Button variant="outline" className="w-full" onClick={handleSendMessage} disabled={!messageText.trim() || sendMessage.isPending}>
