@@ -1,4 +1,5 @@
-// Force rebuild for C2C public routes deployment - v2
+const BUILD_VERSION = "v20260313-1630";
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
