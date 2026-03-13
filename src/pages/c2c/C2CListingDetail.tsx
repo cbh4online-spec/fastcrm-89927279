@@ -10,8 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useC2CListingDetail, useC2CSellerReviews, useCreateC2CReport, useC2CFavorites, useToggleC2CFavorite } from "@/hooks/useC2CListings";
 import { useSendC2CMessage } from "@/hooks/useC2CMessages";
-import { useC2CCheckout } from "@/hooks/useC2CCheckout";
-import { ShippingSelector } from "@/components/c2c/ShippingSelector";
+import { C2CQuickCheckoutDialog } from "@/components/c2c/C2CQuickCheckoutDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { OfferDialog } from "@/components/c2c/OfferDialog";
