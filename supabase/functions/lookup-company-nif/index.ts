@@ -168,6 +168,16 @@ Deno.serve(async (req) => {
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      // "No records found" or similar - treat as not found
+      if (message.toLowerCase().includes('no records') || message.toLowerCase().includes('not found')) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Empresa não encontrada com este NIF' 
+          }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       return new Response(
         JSON.stringify({ 
           success: false, 
