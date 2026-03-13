@@ -329,7 +329,7 @@ export default function C2CPublicListingDetail() {
                     variant="outline"
                     size="sm"
                     className="w-full border-zinc-700 text-zinc-300 hover:text-amber-400 hover:border-amber-500/30"
-                    onClick={() => navigate(`/c2c/${workspaceSlug}/seller/${seller.id}`)}
+                    onClick={() => navigate(`/c2c/${workspaceSlug}/seller/${seller.user_id ?? seller.id}`)}
                   >
                     Ver perfil do vendedor
                   </Button>
