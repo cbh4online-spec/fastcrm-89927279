@@ -73,7 +73,7 @@ function useSellerProfile(sellerId: string | undefined) {
       if (!sellerId) return null;
       const { data, error } = await supabase
         .from("c2c_sellers")
-        .select("id, user_id, display_name, avatar_url, avg_rating, total_sales, is_verified")
+        .select("id, user_id, display_name, avatar_url, avg_rating, total_sales, total_reviews, is_verified")
         .eq("user_id", sellerId)
         .single();
       if (error) return null;
