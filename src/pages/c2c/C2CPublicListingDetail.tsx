@@ -9,10 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
 import { C2CPublicOfferDialog } from "@/components/c2c/C2CPublicOfferDialog";
+import { C2CQuickCheckoutDialog } from "@/components/c2c/C2CQuickCheckoutDialog";
 import { getShareUrl } from "@/utils/getShareUrl";
 import {
   ArrowLeft, MapPin, Eye, Clock, ShieldCheck, MessageCircle, HandCoins,
-  ChevronLeft, ChevronRight, User, Tag,
+  ChevronLeft, ChevronRight, User, Tag, ShoppingBag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -82,6 +83,7 @@ export default function C2CPublicListingDetail() {
   const { workspaceSlug, id } = useParams<{ workspaceSlug: string; id: string }>();
   const navigate = useNavigate();
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   const { data: workspace, isLoading: wsLoading } = usePublicWorkspace(workspaceSlug);
   const { data: listing, isLoading: listingLoading } = usePublicListing(id);
@@ -279,9 +281,17 @@ export default function C2CPublicListingDetail() {
                 <div className="space-y-2">
                   <Button
                     className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-zinc-950 font-semibold h-12 text-base"
+                    onClick={() => setCheckoutOpen(true)}
+                  >
+                    <ShoppingBag className="h-5 w-5 mr-2" /> Comprar Agora — {listing.price.toFixed(0)}€
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="w-full border-amber-500/30 text-amber-400 hover:bg-amber-500/10 h-11"
                     onClick={() => navigate(`/c2c/${workspaceSlug}/seller/${listing.seller_id}`)}
                   >
-                    <MessageCircle className="h-5 w-5 mr-2" /> Contactar vendedor
+                    <MessageCircle className="h-4 w-4 mr-2" /> Contactar vendedor
                   </Button>
 
                   {workspace && (
@@ -295,6 +305,23 @@ export default function C2CPublicListingDetail() {
                     />
                   )}
                 </div>
+
+                {workspace && (
+                  <C2CQuickCheckoutDialog
+                    open={checkoutOpen}
+                    onOpenChange={setCheckoutOpen}
+                    listing={{
+                      id: listing.id,
+                      title: listing.title,
+                      price: listing.price,
+                      currency: listing.currency ?? "EUR",
+                      photos: listing.photos,
+                      delivery_mode: (listing as any).delivery_mode,
+                    }}
+                    workspaceId={workspace.id}
+                    isAuthenticated={false}
+                  />
+                )}
               </motion.div>
 
               {/* Seller card */}
