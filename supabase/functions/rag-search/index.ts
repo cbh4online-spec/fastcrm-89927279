@@ -1,5 +1,5 @@
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "@supabase/supabase-js";
 import { retrieve } from "../_shared/rag-retriever.ts";
 import { buildContextInjection, generateRAGSummary } from "../_shared/rag-context-builder.ts";
 import { DEFAULT_RAG_GUARDRAILS } from "../_shared/rag-types.ts";
