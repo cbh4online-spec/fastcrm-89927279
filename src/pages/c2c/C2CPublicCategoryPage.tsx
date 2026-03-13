@@ -64,13 +64,13 @@ export default function C2CPublicCategoryPage() {
       <Helmet>
         <title>{categoryData?.name || category} — Marketplace</title>
       </Helmet>
-      <div className="min-h-screen bg-zinc-950 text-zinc-100">
-        <header className="sticky top-0 z-30 bg-zinc-950/90 backdrop-blur-md border-b border-amber-500/10">
+      <div className="light min-h-screen bg-white text-zinc-900" style={{ colorScheme: 'light' }}>
+        <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-zinc-200">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="text-zinc-400" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
+            <Button variant="ghost" size="icon" className="text-zinc-500" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-lg font-semibold">{categoryData?.name || category}</h1>
+            <h1 className="text-lg font-semibold text-zinc-900">{categoryData?.name || category}</h1>
             <span className="text-xs text-zinc-500">{listings.length} anúncios</span>
           </div>
         </header>
