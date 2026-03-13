@@ -147,6 +147,7 @@ export default function C2CMarketplace() {
 
   const [filters, setFilters] = useState<C2CListingFilters>({});
   const [searchOpen, setSearchOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(20);
   const { data: listings = [], isLoading } = useC2CListings(workspaceId, filters);
   const { data: categories = [] } = useC2CCategories(workspaceId);
   const { data: favoriteIds = [] } = useC2CFavorites(workspaceId);
