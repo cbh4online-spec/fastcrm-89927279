@@ -1,53 +1,68 @@
 
 
-# Plan: Fix RLS Policy Always True (SUPA_rls_policy_always_true)
+# Phase 5B — Command Center COMPLETO
 
-## Problem
-50+ RLS policies use `USING(true)` or `WITH CHECK(true)` for INSERT, UPDATE, DELETE, or ALL operations. While some are legitimately public (analytics tracking, public forms), many grant excessive access — especially `FOR ALL` policies on `{public}` role that were intended for service role operations only.
+## Gap Analysis: Current vs Spec
 
-## Strategy
+The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
 
-Categorize policies into 3 groups and apply appropriate fixes:
+**Already implemented (needs enhancement):**
+- Header with greeting + 3 KPIs — needs larger font (32px), labels below
+- AI Question Box — needs slash command suggestions row below input
+- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
+- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
+- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
+- Drift Alerts — needs "Rever →" links to Context OS blocks
 
-### Group 1: Remove "FOR ALL" service-role policies (highest risk)
-These tables are only written by Edge Functions via service_role (which bypasses RLS anyway), so the `FOR ALL USING(true)` policies are unnecessary and dangerous.
+**New sections to build:**
+1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
+2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
+   - Change Events (last 5 from `useChangeEvents` with realtime)
+   - Entity Activity (top 3 entities from `useKernelEntities`)
+   - Impact Score (top 2 from `useImpactMapData`)
+3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
 
-| Table | Policy to Drop | Replacement |
-|-------|---------------|-------------|
-| `ai_agent_locks` | "Service role can manage locks" | Workspace member SELECT only |
-| `conversation_objective_progress` | "System can manage progress" | Workspace member SELECT only |
-| `lead_behavior_signals` | "Service role full access" | Workspace member SELECT only |
-| `message_length_events` | "Service role full access" | Workspace member SELECT only |
-| `demo_leads` | "Service role can manage demo_leads" | Keep public INSERT, add workspace member SELECT/UPDATE/DELETE |
+**Enhanced Command Palette (⌘K):**
+- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
 
-### Group 2: Tighten UPDATE policies
-| Table | Current Policy | Fix |
-|-------|---------------|-----|
-| `event_test_cases` | Authenticated can update (true) | Scope to authenticated only (already is, but add workspace check) |
-| `event_decision_matrix` | Authenticated can manage ALL (true) | Split into workspace-scoped CRUD |
-| `gdpr_consents` | Visitors can update own consent (true) | Scope to own `visitor_id` match |
-| `module_usage` | System can update (true) | Workspace member only |
-| `store_referrals` | System can update (true) | Workspace member only |
-| `store_visitor_sessions` | Visitors can update own session (true) | Scope to own `session_id` match |
+**Spotlight (Space key):**
+- Opens AI Question Box as a modal from any page. New global component.
 
-### Group 3: Restrict INSERT policies to proper roles
-Many INSERT policies use `{public}` role but are meant for service-role Edge Functions. These will be restricted to `service_role` or scoped properly:
+## Implementation Plan — 3 Sub-phases
 
-**Service-only inserts** (drop policy — service_role bypasses RLS):
-- `activity_logs`, `admin_notifications`, `ai_memory_access_log`, `conversation_rule_executions`, `journey_transitions`, `loyalty_points_transactions`, `module_action_logs`, `module_usage`, `order_audit_log`, `proposal_activity_logs`, `proposal_analytics`, `rag_retrieval_metrics`, `store_referrals`, `usage_events`
+Given the scope, I recommend splitting into 3 batches:
 
-**Legitimately public inserts** (keep WITH CHECK but add workspace_id validation where possible):
-- `bio_events`, `c2c_affiliate_clicks`, `c2c_public_offers`, `community_membership_answers`, `fastclub_applications`, `fastcrm_proposals`, `funnel_submissions`, `gdpr_consents`, `seo_page_analytics`, `store_coupon_usage`, `store_offers`, `store_orders`, `store_page_views`, `store_product_alerts`, `store_visitor_sessions`, `vertical_landing_events`, `widget_conversations`, `widget_messages`
+### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
+| File | Action |
+|------|--------|
+| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
+| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
+| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
+| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
 
-## Implementation
+### Batch 2: Enhance Existing Cards
+| File | Action |
+|------|--------|
+| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
+| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
+| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
+| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
+| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
+| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
 
-A single database migration that:
-1. Drops all overly permissive policies listed above
-2. Re-creates them with proper scoping using workspace membership checks or removes them entirely when only service_role needs access
-3. Uses `public.is_super_admin(auth.uid())` for super admin bypass where appropriate (following existing pattern)
+### Batch 3: Spotlight Modal + Command Palette Enhancement
+| File | Action |
+|------|--------|
+| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
+| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
+| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
 
-## Risk Mitigation
-- Service role bypasses RLS, so removing "system" policies won't break Edge Functions
-- Public-facing features (widget, store, forms) retain anonymous INSERT but with workspace_id constraints where the column exists
-- All authenticated operations get workspace membership scoping
+### Realtime subscriptions needed
+- `change_events` table for Kernel Live Feed auto-update
+- `kernel_action_runs` for Ações do Dia auto-update
+- Already have `kernel_decisions` and `conversations`
+
+No database migrations needed. All hooks, edge functions, and tables already exist.
+
+**Shall I start with Batch 1?**
 
