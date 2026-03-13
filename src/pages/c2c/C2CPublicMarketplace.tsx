@@ -257,11 +257,10 @@ function HowItWorks() {
         <h2 className="text-2xl font-bold text-center mb-8">Como funciona</h2>
         <div className="grid md:grid-cols-3 gap-8">
           {steps.map((step, i) => (
-            <motion.div
+            <div
               key={step.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
+              className="text-center space-y-3"
+            >
               className="text-center space-y-3"
             >
               <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
