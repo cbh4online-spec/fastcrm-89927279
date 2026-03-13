@@ -127,12 +127,12 @@ export default function C2CPublicListingDetail() {
 
   if (!listing) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-400">
+      <div className="light min-h-screen bg-white flex items-center justify-center text-zinc-500" style={{ colorScheme: 'light' }}>
         <div className="text-center space-y-4">
           <p className="text-xl">Anúncio não encontrado</p>
           <Button
             variant="outline"
-            className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+            className="border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
             onClick={() => navigate(`/marketplace/${workspaceSlug}`)}
           >
             <ArrowLeft className="h-4 w-4 mr-2" /> Voltar ao Marketplace
