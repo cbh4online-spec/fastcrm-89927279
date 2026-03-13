@@ -237,7 +237,7 @@ function HeroSection({ onExplore, onSell }: { onExplore: () => void; onSell: () 
                 <p className="text-xs text-primary-foreground/70">{desc}</p>
               </div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>
