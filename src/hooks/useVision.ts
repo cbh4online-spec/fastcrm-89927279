@@ -104,7 +104,7 @@ export function useUpdateVision() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: VisionProfileUpdate & { id: string }) => {
+    mutationFn: async ({ id, ...updates }: Partial<VisionProfile> & { id: string }) => {
       const { data, error } = await supabase
         .from("vision_profiles")
         .update({ ...updates, updated_at: new Date().toISOString() })
