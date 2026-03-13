@@ -1,68 +1,41 @@
 
 
-# Phase 5B — Command Center COMPLETO
+# Fix: Publicação Bloqueada há 24h
 
-## Gap Analysis: Current vs Spec
+## Diagnóstico
 
-The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
+O deploy das Edge Functions está provavelmente a falhar silenciosamente, o que bloqueia o processo de publicação. Encontrei os seguintes problemas:
 
-**Already implemented (needs enhancement):**
-- Header with greeting + 3 KPIs — needs larger font (32px), labels below
-- AI Question Box — needs slash command suggestions row below input
-- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
-- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
-- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
-- Drift Alerts — needs "Rever →" links to Context OS blocks
+### 1. Import duplicado no `chat-widget/index.ts` (erro de compilação)
+```typescript
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"; // DUPLICADO
+```
+Isto causa um erro de compilação Deno que pode bloquear o deploy.
 
-**New sections to build:**
-1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
-2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
-   - Change Events (last 5 from `useChangeEvents` with realtime)
-   - Entity Activity (top 3 entities from `useKernelEntities`)
-   - Impact Score (top 2 from `useImpactMapData`)
-3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
+### 2. Imports `esm.sh` inconsistentes (~130 ficheiros)
+Muitas Edge Functions usam `https://esm.sh/@supabase/supabase-js@2` em vez do alias `@supabase/supabase-js` definido no `deno.json`. Embora não sejam erros de compilação, podem causar incompatibilidades de lockfile e lentidão no deploy.
 
-**Enhanced Command Palette (⌘K):**
-- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
+### 3. Imports `deno.land/x/xhr` obsoletos (6 ficheiros)
+O polyfill XHR (`https://deno.land/x/xhr@0.1.0/mod.ts`) já não é necessário no Deno moderno e pode causar falhas de resolução.
 
-**Spotlight (Space key):**
-- Opens AI Question Box as a modal from any page. New global component.
+## Plano de Correção
 
-## Implementation Plan — 3 Sub-phases
+### Fase 1 — Correção crítica (desbloquear deploy)
+| Ficheiro | Correção |
+|----------|----------|
+| `chat-widget/index.ts` | Remover a linha 2 (import duplicado) |
 
-Given the scope, I recommend splitting into 3 batches:
+### Fase 2 — Estabilizar imports (prevenir bloqueios futuros)
+Nos ~130 ficheiros que usam `esm.sh` para supabase-js, substituir por o alias do import map:
+- `from "https://esm.sh/@supabase/supabase-js@2"` → `from "@supabase/supabase-js"`
+- Remover `import "https://deno.land/x/xhr@0.1.0/mod.ts"` dos 6 ficheiros
 
-### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
-| File | Action |
-|------|--------|
-| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
-| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
-| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
-| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
+Isto é um volume grande de alterações (~130 ficheiros). Posso fazê-lo em lotes.
 
-### Batch 2: Enhance Existing Cards
-| File | Action |
-|------|--------|
-| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
-| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
-| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
-| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
-| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
-| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
+### Fase 3 — Forçar re-deploy
+Após as correções, forçar o deploy de todas as funções afetadas.
 
-### Batch 3: Spotlight Modal + Command Palette Enhancement
-| File | Action |
-|------|--------|
-| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
-| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
-| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
-
-### Realtime subscriptions needed
-- `change_events` table for Kernel Live Feed auto-update
-- `kernel_action_runs` for Ações do Dia auto-update
-- Already have `kernel_decisions` and `conversations`
-
-No database migrations needed. All hooks, edge functions, and tables already exist.
-
-**Shall I start with Batch 1?**
+## Nota Importante
+Com ~250+ Edge Functions no projeto, o processo de publicação pode demorar significativamente. A correção do import duplicado é a mais provável causa do bloqueio atual.
 
