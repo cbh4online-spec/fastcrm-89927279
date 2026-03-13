@@ -123,7 +123,7 @@ export function useCompanyDuplicateGroups() {
         if (c.tax_id) {
           const normalized = c.tax_id.replace(/\s/g, "");
           const existing = taxIdMap.get(normalized) || [];
-          existing.push(c as Company);
+           existing.push(c as unknown as Company);
           taxIdMap.set(normalized, existing);
         }
       });
