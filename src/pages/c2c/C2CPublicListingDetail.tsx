@@ -9,10 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
 import { C2CPublicOfferDialog } from "@/components/c2c/C2CPublicOfferDialog";
+import { C2CQuickCheckoutDialog } from "@/components/c2c/C2CQuickCheckoutDialog";
 import { getShareUrl } from "@/utils/getShareUrl";
 import {
   ArrowLeft, MapPin, Eye, Clock, ShieldCheck, MessageCircle, HandCoins,
-  ChevronLeft, ChevronRight, User, Tag,
+  ChevronLeft, ChevronRight, User, Tag, ShoppingBag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
