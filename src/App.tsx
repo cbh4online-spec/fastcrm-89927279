@@ -669,6 +669,15 @@ function CRMRoutes() {
                 {/* Mobile Quick Product Creator */}
                 <Route path="/mobile/products/quick-create" element={<MobileQuickProductCreate />} />
                 
+                {/* Checkout System (admin) */}
+                <Route path="/dashboard/checkout" element={<CheckoutFunnelsPage />} />
+                <Route path="/dashboard/checkout/offers" element={<CheckoutOffersPage />} />
+                <Route path="/dashboard/checkout/abandoned" element={<AbandonedCartsPage />} />
+                <Route path="/dashboard/checkout/bundles" element={<CheckoutBundlesPage />} />
+                <Route path="/dashboard/checkout/analytics" element={<CheckoutAnalyticsPage />} />
+                <Route path="/dashboard/checkout/ab-tests" element={<ABTestsPage />} />
+                <Route path="/dashboard/checkout/discounts" element={<DynamicDiscountsPage />} />
+
                 {/* C2C Marketplace */}
                 <Route path="/dashboard/c2c" element={<C2CMarketplace />} />
                 <Route path="/dashboard/c2c/create" element={<C2CCreateListing />} />
