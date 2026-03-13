@@ -83,6 +83,7 @@ export default function C2CPublicListingDetail() {
   const { workspaceSlug, id } = useParams<{ workspaceSlug: string; id: string }>();
   const navigate = useNavigate();
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   const { data: workspace, isLoading: wsLoading } = usePublicWorkspace(workspaceSlug);
   const { data: listing, isLoading: listingLoading } = usePublicListing(id);
