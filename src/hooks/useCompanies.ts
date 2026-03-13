@@ -127,6 +127,22 @@ export interface CreateCompanyData {
   credit_active?: boolean;
   activity_profile_id?: string;
   profile_field_values?: Record<string, unknown>;
+  // NIF enrichment fields
+  postal_code?: string;
+  city?: string;
+  cae_codes?: string[];
+  cae_description?: string;
+  capital_social?: string;
+  legal_nature?: string;
+  founding_date?: string;
+  fax?: string;
+  about?: string;
+  activity_description?: string;
+  racius_url?: string;
+  region?: string;
+  county?: string;
+  parish?: string;
+  company_status?: string;
 }
 
 export interface UpdateCompanyData extends Partial<CreateCompanyData> {
