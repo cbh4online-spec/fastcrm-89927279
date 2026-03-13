@@ -60,7 +60,7 @@ function usePublicListings(workspaceId: string | undefined, filters?: C2CListing
       if (filters?.condition) query = query.eq("condition", filters.condition);
       if (filters?.search) query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
 
-      query = query.order("is_featured", { ascending: false }).order("created_at", { ascending: false }).limit(60);
+      query = query.order("is_featured", { ascending: false }).order("created_at", { ascending: false });
 
       const { data, error } = await query;
       if (error) throw error;
