@@ -1603,7 +1603,7 @@ Responda APENAS em JSON válido:
 
     } else if (mode === 'ensure-store-category' && categoryName && reqWorkspaceId) {
       // Ensure a store category exists, creating it with AI description + image if needed
-      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+      const { createClient } = await import('@supabase/supabase-js');
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
