@@ -86,6 +86,22 @@ export interface Company {
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
+  // NIF enrichment fields
+  postal_code: string | null;
+  city: string | null;
+  cae_codes: string[] | null;
+  cae_description: string | null;
+  capital_social: string | null;
+  legal_nature: string | null;
+  founding_date: string | null;
+  fax: string | null;
+  about: string | null;
+  activity_description: string | null;
+  racius_url: string | null;
+  region: string | null;
+  county: string | null;
+  parish: string | null;
+  company_status: string | null;
 }
 
 export interface CreateCompanyData {
