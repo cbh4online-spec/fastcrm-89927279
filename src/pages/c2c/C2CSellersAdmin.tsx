@@ -60,9 +60,9 @@ function SellerDetailDialog({
   onReject: (s: C2CSeller) => void;
   onSuspend: (s: C2CSeller) => void;
 }) {
-  const { data: listings = [] } = useSellerListings(seller.id);
+  const { data: listings = [] } = useSellerListings(seller.user_id);
   const { data: commissions = [] } = useSellerCommissions(seller.id);
-  const { data: reviews = [] } = useSellerReviews(seller.id);
+  const { data: reviews = [] } = useSellerReviews(seller.user_id);
   const { data: notes = [] } = useSellerNotes(seller.id);
   const addNote = useAddSellerNote();
   const updateDetails = useUpdateSellerDetails();
