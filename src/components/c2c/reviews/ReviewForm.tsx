@@ -4,37 +4,29 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RatingStars } from "./RatingStars";
-import { useC2CReviews } from "@/hooks/useC2CReviews";
-import { toast } from "sonner";
+import { useSubmitReview } from "@/hooks/useC2CReviews";
 
 interface ReviewFormProps {
+  workspaceId: string;
   sellerId: string;
-  listingId?: string;
-  transactionId?: string;
-  buyerEmail: string;
+  listingId: string;
   onSuccess?: () => void;
 }
 
-export function ReviewForm({ sellerId, listingId, transactionId, buyerEmail, onSuccess }: ReviewFormProps) {
+export function ReviewForm({ workspaceId, sellerId, listingId, onSuccess }: ReviewFormProps) {
   const [rating, setRating] = useState(0);
-  const [title, setTitle] = useState("");
   const [comment, setComment] = useState("");
-  const { createReview } = useC2CReviews();
+  const submitReview = useSubmitReview();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (rating === 0) {
-      toast.error("Seleciona uma classificação");
-      return;
-    }
-    await createReview.mutateAsync({
+    if (rating === 0) return;
+    await submitReview.mutateAsync({
+      workspace_id: workspaceId,
       seller_id: sellerId,
       listing_id: listingId,
-      transaction_id: transactionId,
-      buyer_email: buyerEmail,
       rating,
-      title: title || null,
-      comment: comment || null,
+      comment: comment || undefined,
     });
     onSuccess?.();
   };
@@ -45,17 +37,6 @@ export function ReviewForm({ sellerId, listingId, transactionId, buyerEmail, onS
         <Label className="text-sm">Classificação</Label>
         <RatingStars rating={rating} size="lg" interactive onChange={setRating} className="mt-1" />
       </div>
-
-      <div>
-        <Label htmlFor="review-title" className="text-sm">Título (opcional)</Label>
-        <Input
-          id="review-title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Resumo da experiência"
-        />
-      </div>
-
       <div>
         <Label htmlFor="review-comment" className="text-sm">Comentário</Label>
         <Textarea
@@ -66,9 +47,8 @@ export function ReviewForm({ sellerId, listingId, transactionId, buyerEmail, onS
           rows={3}
         />
       </div>
-
-      <Button type="submit" disabled={createReview.isPending} className="w-full">
-        {createReview.isPending ? "A enviar..." : "Enviar avaliação"}
+      <Button type="submit" disabled={submitReview.isPending || rating === 0} className="w-full">
+        {submitReview.isPending ? "A enviar..." : "Enviar avaliação"}
       </Button>
     </form>
   );

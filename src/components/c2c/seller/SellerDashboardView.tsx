@@ -1,11 +1,9 @@
-import { useState } from "react";
 import { useC2CTransactions } from "@/hooks/useC2CTransactions";
-import { useC2CReviews } from "@/hooks/useC2CReviews";
+import { useSellerReviews } from "@/hooks/useC2CReviews";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, ShoppingBag, Wallet, Clock, TrendingUp } from "lucide-react";
+import { ShoppingBag, Wallet, Clock, TrendingUp } from "lucide-react";
 import { ReviewsList } from "@/components/c2c/reviews/ReviewsList";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -32,7 +30,6 @@ export function SellerDashboardView({ sellerId, seller }: SellerDashboardViewPro
 
   return (
     <div className="space-y-6">
-      {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -61,7 +58,7 @@ export function SellerDashboardView({ sellerId, seller }: SellerDashboardViewPro
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-green-600">{((seller?.balance_available || 0) / 100).toFixed(2)}€</p>
+            <p className="text-2xl font-bold text-foreground">{((seller?.balance_available || 0) / 100).toFixed(2)}€</p>
           </CardContent>
         </Card>
         <Card>
@@ -71,7 +68,7 @@ export function SellerDashboardView({ sellerId, seller }: SellerDashboardViewPro
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-amber-600">{(pendingEscrow / 100).toFixed(2)}€</p>
+            <p className="text-2xl font-bold text-foreground">{(pendingEscrow / 100).toFixed(2)}€</p>
           </CardContent>
         </Card>
       </div>
