@@ -650,7 +650,7 @@ Deno.serve(async (req) => {
     const digitalMaturity = calculateDigitalMaturity(linkedinData, facebookData, instagramData);
 
     // Create Supabase client
-    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const { createClient } = await import('@supabase/supabase-js');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);

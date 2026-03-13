@@ -3,7 +3,7 @@
  * Called via pg_cron — single robust pass over all workspaces per invocation.
  * pg_cron handles the 1-minute frequency; no internal iteration loop needed.
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

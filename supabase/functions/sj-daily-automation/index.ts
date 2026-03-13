@@ -3,7 +3,7 @@
  * Runs daily to check for inactive base, cooling periods, and eligibility triggers
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

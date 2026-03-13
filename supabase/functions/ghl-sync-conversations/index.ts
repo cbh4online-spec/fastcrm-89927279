@@ -1,5 +1,5 @@
 // Version 1.2 - GHL Conversation Sync (fixed message parsing + auto-lead creation + autopilot trigger)
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "@supabase/supabase-js";
 
 // Helper: Trigger autopilot for synced inbound messages
 async function triggerAutopilotForSyncedMessage(
