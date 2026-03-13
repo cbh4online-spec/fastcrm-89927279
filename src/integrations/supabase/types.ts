@@ -8168,7 +8168,9 @@ export type Database = {
       companies: {
         Row: {
           abc_category: string | null
+          about: string | null
           account_value_estimate: number | null
+          activity_description: string | null
           activity_profile_id: string | null
           activity_profile_override: Json | null
           address: string | null
@@ -8260,6 +8262,7 @@ export type Database = {
           price_level: string | null
           primary_use_case: string | null
           priority_level: string | null
+          racius_url: string | null
           region: string | null
           sales_2023: number | null
           sales_2024: number | null
@@ -8279,7 +8282,9 @@ export type Database = {
         }
         Insert: {
           abc_category?: string | null
+          about?: string | null
           account_value_estimate?: number | null
+          activity_description?: string | null
           activity_profile_id?: string | null
           activity_profile_override?: Json | null
           address?: string | null
@@ -8371,6 +8376,7 @@ export type Database = {
           price_level?: string | null
           primary_use_case?: string | null
           priority_level?: string | null
+          racius_url?: string | null
           region?: string | null
           sales_2023?: number | null
           sales_2024?: number | null
@@ -8390,7 +8396,9 @@ export type Database = {
         }
         Update: {
           abc_category?: string | null
+          about?: string | null
           account_value_estimate?: number | null
+          activity_description?: string | null
           activity_profile_id?: string | null
           activity_profile_override?: Json | null
           address?: string | null
@@ -8482,6 +8490,7 @@ export type Database = {
           price_level?: string | null
           primary_use_case?: string | null
           priority_level?: string | null
+          racius_url?: string | null
           region?: string | null
           sales_2023?: number | null
           sales_2024?: number | null
