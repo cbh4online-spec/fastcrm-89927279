@@ -392,13 +392,18 @@ export default function C2CPublicListingDetail() {
                 </div>
               </div>
 
-              {/* Share */}
-              <ShareListingButton
-                url={`/marketplace/${workspaceSlug}/listing/${listing.id}`}
-                title={listing.title}
-                description={listing.description?.slice(0, 160)}
-                className="w-full border-zinc-700 text-zinc-300"
-              />
+              {/* Share & Report */}
+              <div className="flex gap-2">
+                <ShareListingButton
+                  url={`/marketplace/${workspaceSlug}/listing/${listing.id}`}
+                  title={listing.title}
+                  description={listing.description?.slice(0, 160)}
+                  className="flex-1 border-zinc-700 text-zinc-300"
+                />
+                {workspace && (
+                  <ReportListingButton listingId={listing.id} workspaceId={workspace.id} />
+                )}
+              </div>
             </div>
 
             {/* Reviews section */}
