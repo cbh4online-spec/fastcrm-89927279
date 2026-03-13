@@ -3,7 +3,7 @@
     "@supabase/supabase-js": "npm:@supabase/supabase-js@2",
     "stripe": "npm:stripe@18.5.0",
     "resend": "npm:resend@2.0.0",
-    "npm:xlsx@0.20.3": "npm:xlsx@0.20.3",
-    "npm:jspdf@2.5.2": "npm:jspdf@2.5.2"
+    "xlsx": "npm:xlsx@0.20.3",
+    "jspdf": "npm:jspdf@2.5.2"
   }
 }
