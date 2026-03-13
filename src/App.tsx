@@ -77,6 +77,7 @@ import Sequences from "./pages/Sequences";
 import AlertsPage from "./pages/AlertsPage";
 import ImpactMapPage from "./pages/ImpactMapPage";
 import SystemHealthPage from "./pages/SystemHealthPage";
+import DependenciesPage from "./pages/dashboard/system/DependenciesPage";
 import EventMapPage from "./pages/EventMapPage";
 import EventMatrixPage from "./pages/EventMatrixPage";
 import EventTestsPage from "./pages/EventTestsPage";
