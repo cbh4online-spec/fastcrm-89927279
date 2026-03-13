@@ -848,6 +848,7 @@ const App = () => (
       </TooltipProvider>
     </QueryClientProvider>
     </ThemeProvider>
+  <div data-build-version={BUILD_VERSION} style={{ display: 'none' }} />
   </HelmetProvider>
 );
 
