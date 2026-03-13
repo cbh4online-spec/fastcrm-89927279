@@ -106,7 +106,7 @@ export function useCompanyDuplicateCheck(
           
           if (companyDomain && companyDomain === inputDomain) {
             duplicates.push({
-              company: company as Company,
+              company: company as unknown as Company,
               matchType: "domain",
               similarity: 1,
             });
