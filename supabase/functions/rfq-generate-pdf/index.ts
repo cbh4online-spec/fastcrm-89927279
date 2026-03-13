@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
-import { jsPDF } from "npm:jspdf@2.5.2";
+import { jsPDF } from "jspdf";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

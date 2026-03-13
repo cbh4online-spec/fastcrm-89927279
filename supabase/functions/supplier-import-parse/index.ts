@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import * as XLSX from "npm:xlsx@0.20.3";
+import * as XLSX from "xlsx";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
