@@ -396,7 +396,7 @@ export default function C2CPublicMarketplace() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="light min-h-screen bg-white text-zinc-900" style={{ colorScheme: 'light' }}>
       <Helmet>
         <title>{ogTitle}</title>
         <meta property="og:title" content={ogTitle} />
