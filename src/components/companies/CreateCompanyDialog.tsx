@@ -425,6 +425,9 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                           county: result.county || prev.county,
                           parish: result.parish || prev.parish,
                           fax: result.fax || prev.fax,
+                          about: result.about || prev.about,
+                          activity_description: result.activity_description || prev.activity_description,
+                          racius_url: result.racius_url || prev.racius_url,
                         }));
                         setShowOptionalFields(true);
                         
