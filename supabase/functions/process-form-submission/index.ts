@@ -162,21 +162,94 @@ async function emitKernelEventServerSide(params: Record<string, unknown>) {
   }
 }
 
+// --- Rate limiting (IP + form combo, 10 submissions per form per IP per hour) ---
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const RATE_LIMIT_MAX = 10;
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(key: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitStore.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateLimitStore.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+  entry.count++;
+  return entry.count > RATE_LIMIT_MAX;
+}
+
+// --- Input sanitisation helpers ---
+function sanitizeString(val: unknown, maxLen = 500): string {
+  if (typeof val !== 'string') return '';
+  return val.trim().slice(0, maxLen);
+}
+
+function sanitizeFormData(raw: Record<string, unknown>): Record<string, unknown> {
+  const clean: Record<string, unknown> = {};
+  const MAX_FIELDS = 50;
+  let count = 0;
+  for (const [k, v] of Object.entries(raw)) {
+    if (count >= MAX_FIELDS) break;
+    const key = sanitizeString(k, 100);
+    if (!key) continue;
+    if (typeof v === 'string') {
+      clean[key] = sanitizeString(v, 2000);
+    } else if (typeof v === 'number' || typeof v === 'boolean') {
+      clean[key] = v;
+    } else if (Array.isArray(v)) {
+      clean[key] = v.slice(0, 20).map(i => typeof i === 'string' ? sanitizeString(i, 500) : i);
+    } else {
+      clean[key] = v; // pass-through for nested objects (e.g. file refs)
+    }
+    count++;
+  }
+  return clean;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { formId, data, workspaceId } = await req.json();
+    // Basic payload size guard (512 KB)
+    const body = await req.text();
+    if (body.length > 512 * 1024) {
+      return new Response(
+        JSON.stringify({ error: 'Payload too large' }),
+        { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const parsed = JSON.parse(body);
+    const formId = sanitizeString(parsed.formId, 36);
+    const workspaceId = sanitizeString(parsed.workspaceId, 36);
+    const rawData = parsed.data;
+
     console.log(`[FORMS] Processing submission for form: ${formId}`);
 
-    if (!formId || !data || !workspaceId) {
+    // Validate required fields & UUID format
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!formId || !rawData || !workspaceId || !uuidRe.test(formId) || !uuidRe.test(workspaceId)) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
+        JSON.stringify({ error: 'Missing or invalid required fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Rate limit by IP + formId
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const rlKey = `${clientIp}:${formId}`;
+    if (isRateLimited(rlKey)) {
+      console.warn(`[FORMS] RATE_LIMITED: ${rlKey}`);
+      return new Response(
+        JSON.stringify({ error: 'Too many submissions. Please try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '3600' } }
+      );
+    }
+
+    // Sanitize user-supplied data
+    const data = sanitizeFormData(rawData);
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
