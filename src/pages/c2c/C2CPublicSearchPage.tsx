@@ -95,7 +95,7 @@ export default function C2CPublicSearchPage() {
               <p>Pesquisa por artigos no marketplace</p>
             </div>
           ) : isLoading ? (
-            <p className="text-zinc-400">A pesquisar "{q}"...</p>
+            <p className="text-zinc-500">A pesquisar "{q}"...</p>
           ) : listings.length === 0 ? (
             <div className="text-center py-16 text-zinc-500">
               <p>Sem resultados para "{q}"</p>

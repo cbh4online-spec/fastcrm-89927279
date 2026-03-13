@@ -77,7 +77,7 @@ export default function C2CPublicCategoryPage() {
 
         <main className="max-w-6xl mx-auto px-4 py-6">
           {isLoading ? (
-            <p className="text-zinc-400">A carregar...</p>
+            <p className="text-zinc-500">A carregar...</p>
           ) : listings.length === 0 ? (
             <div className="text-center py-16 text-zinc-500">
               <p>Sem anúncios nesta categoria</p>
