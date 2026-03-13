@@ -2,6 +2,8 @@ import { Heart, MapPin, Eye, Star, TrendingDown, Flame, Megaphone } from "lucide
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { OptimizedImage } from "@/components/ui/optimized-image";
+import { getThumbnailUrl } from "@/lib/imageOptimizer";
 import type { C2CListing } from "@/hooks/useC2CListings";
 import { formatDistanceToNow, type Locale as DateLocale } from "date-fns";
 import { pt, enUS, es, fr } from "date-fns/locale";
