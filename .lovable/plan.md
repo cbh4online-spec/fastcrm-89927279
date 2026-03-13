@@ -1,29 +1,51 @@
 
 
-# Fix: Vulnerable Dependencies
+# Fix: Marketplace público `/c2c/metodopare` mostra página preta
 
-## Analysis
+## Diagnóstico
 
-**xlsx**: Already at version 0.20.3 via CDN tarball (`https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`). The security scanner is likely flagging based on the npm registry name which maps to older vulnerable versions. Version 0.20.3 from the official SheetJS CDN includes fixes for both the Prototype Pollution (GHSA-4r6h-8v6p-xvw6) and ReDoS (GHSA-5pgg-2g8v-p4x9) advisories. **No action needed** — this is a false positive from the scanner not recognizing the CDN tarball version.
+Investiguei a fundo e encontrei o seguinte:
 
-**@trigger.dev/sdk**: Not present in `package.json` at all (neither dependencies nor devDependencies). This is either a transitive dependency or a scanner false positive. The project uses Trigger.dev concepts via custom code (`src/trigger/client.ts`) and edge functions, but does not import the SDK package directly.
+1. **Dados existem** — 48 listings ativos e aprovados para o workspace `metodopare`
+2. **RLS está correto** — `c2c_listings` tem policy `public_read` com `qual: true`, e `c2c_marketplace_config` permite SELECT público para `status = 'active'`
+3. **Rotas existem** — `/c2c/:workspaceSlug` mapeia corretamente para `C2CPublicMarketplace`
+4. **O componente RENDERIZA** — Os console logs confirmam que `C2CPublicMarketplace`, `HeroSection`, `CategoryCarousel`, `HowItWorks` etc. estão todos no component tree
+5. **MAS a página aparece completamente preta** — O conteúdo existe no DOM mas é invisível
 
-## Plan
+## Causa raiz
 
-### 1. Confirm xlsx is safe (no code change needed)
-The installed version 0.20.3 from the SheetJS CDN already patches both known vulnerabilities. The scanner cannot resolve the version from the tarball URL.
+O problema é de **tema/CSS em dark mode**. A página pública herda o dark mode (`class="dark"`) e:
+- `bg-background` = `hsl(220 20% 4%)` → quase preto
+- `from-primary` no hero = `hsl(43 96% 56%)` → gold (deveria ser visível)
+- Mas os `motion.div` com `initial={{ opacity: 0 }}` podem estar **presos em opacity:0** se o framer-motion não animar corretamente no contexto de carregamento da página
 
-### 2. Handle @trigger.dev/sdk
-Since it's not in `package.json`, this is either:
-- A stale lockfile entry — delete and regenerate `package-lock.json`
-- A scanner false positive
+Adicionalmente, a versão publicada em `fastcrm.lovable.app` fica **presa no loading state** ("A carregar marketplace...") indefinidamente, sugerindo que a query ao Supabase demora ou falha silenciosamente no build publicado.
 
-**Action**: No code changes required. Both findings are false positives based on the current `package.json`.
+## Plano de correção
 
-### 3. Optional: Add explicit comment for future audits
-Add a comment in `package.json` near the xlsx entry noting the CDN version is patched, to prevent repeated investigation.
+### 1. Forçar tema claro na página pública
+A página marketplace pública deve usar sempre o tema claro para garantir visibilidade universal, independente da preferência do utilizador.
 
-## Summary
+**Ficheiro:** `src/pages/c2c/C2CPublicMarketplace.tsx`
+- Envolver o conteúdo num `<div className="light" style={{ colorScheme: 'light' }}>` ou usar `useEffect` para forçar `document.documentElement.classList` temporariamente
 
-No code changes are necessary. Both flagged packages are either already patched (xlsx 0.20.3) or not actually installed (@trigger.dev/sdk). The security findings can be safely dismissed.
+### 2. Remover dependência de framer-motion no estado inicial
+Substituir `initial={{ opacity: 0 }}` por `initial={false}` ou remover animações de entrada nos elementos críticos (hero, listagens), garantindo que o conteúdo é sempre visível mesmo sem animação.
+
+### 3. Adicionar tratamento de erro robusto no workspace resolver
+O `usePublicWorkspace` hook deve ter `retry: 1` e `throwOnError: false`, e o componente deve mostrar feedback quando a query falha (em vez de ficar preso no loading).
+
+### 4. Adicionar timeout/fallback no loading state
+Se `wsLoading` durar mais de 5 segundos, mostrar mensagem de erro/retry em vez de loading infinito.
+
+### 5. Aplicar mesma correção às outras páginas públicas
+- `C2CPublicListingDetail.tsx`
+- `C2CPublicCategoryPage.tsx`  
+- `C2CPublicSearchPage.tsx`
+
+## Ficheiros a alterar
+- `src/pages/c2c/C2CPublicMarketplace.tsx` — forçar light mode, remover opacity:0 initial, timeout no loading
+- `src/pages/c2c/C2CPublicListingDetail.tsx` — mesma correção de tema
+- `src/pages/c2c/C2CPublicCategoryPage.tsx` — mesma correção de tema
+- `src/pages/c2c/C2CPublicSearchPage.tsx` — mesma correção de tema
 
