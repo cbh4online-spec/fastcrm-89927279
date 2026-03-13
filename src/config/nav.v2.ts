@@ -381,7 +381,24 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
       moduleSlug: "metodo-vision",
       iconColor: "text-violet-500",
       children: [
-        { nameKey: "visionDashboard", name: t("visionDashboard"), href: "/dashboard/vision", icon: Eye, iconColor: "text-violet-500" },
+      { nameKey: "visionDashboard", name: t("visionDashboard"), href: "/dashboard/vision", icon: Eye, iconColor: "text-violet-500" },
+      ],
+    },
+    {
+      type: "group",
+      nameKey: "groupCheckout",
+      name: t("groupCheckout"),
+      icon: ShoppingCart,
+      moduleSlug: "checkout-system",
+      iconColor: "text-cyan-500",
+      children: [
+        { nameKey: "checkoutFunnels", name: "Funis", href: "/dashboard/checkout", icon: GitBranch, iconColor: "text-cyan-500" },
+        { nameKey: "checkoutOffers", name: "Ofertas", href: "/dashboard/checkout/offers", icon: Tag, iconColor: "text-cyan-500" },
+        { nameKey: "checkoutAbandoned", name: "Abandonados", href: "/dashboard/checkout/abandoned", icon: ShoppingCart, iconColor: "text-cyan-500" },
+        { nameKey: "checkoutBundles", name: "Bundles", href: "/dashboard/checkout/bundles", icon: Package, iconColor: "text-cyan-500" },
+        { nameKey: "checkoutDiscounts", name: "Descontos", href: "/dashboard/checkout/discounts", icon: Ticket, iconColor: "text-cyan-500" },
+        { nameKey: "checkoutAbTests", name: "A/B Tests", href: "/dashboard/checkout/ab-tests", icon: BarChart3, iconColor: "text-cyan-500" },
+        { nameKey: "checkoutAnalytics", name: "Analytics", href: "/dashboard/checkout/analytics", icon: LineChart, iconColor: "text-cyan-500" },
       ],
     },
   ];

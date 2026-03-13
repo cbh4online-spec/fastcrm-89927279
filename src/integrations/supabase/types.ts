@@ -6422,6 +6422,777 @@ export type Database = {
           },
         ]
       }
+      checkout_ab_tests: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          ended_at: string | null
+          entity_id: string | null
+          id: string
+          name: string
+          started_at: string | null
+          statistical_significance: number | null
+          status: string | null
+          test_type: string | null
+          traffic_split: number | null
+          updated_at: string | null
+          variant_a: Json | null
+          variant_a_conversions: number | null
+          variant_a_sessions: number | null
+          variant_b: Json | null
+          variant_b_conversions: number | null
+          variant_b_sessions: number | null
+          winner: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          ended_at?: string | null
+          entity_id?: string | null
+          id?: string
+          name: string
+          started_at?: string | null
+          statistical_significance?: number | null
+          status?: string | null
+          test_type?: string | null
+          traffic_split?: number | null
+          updated_at?: string | null
+          variant_a?: Json | null
+          variant_a_conversions?: number | null
+          variant_a_sessions?: number | null
+          variant_b?: Json | null
+          variant_b_conversions?: number | null
+          variant_b_sessions?: number | null
+          winner?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          ended_at?: string | null
+          entity_id?: string | null
+          id?: string
+          name?: string
+          started_at?: string | null
+          statistical_significance?: number | null
+          status?: string | null
+          test_type?: string | null
+          traffic_split?: number | null
+          updated_at?: string | null
+          variant_a?: Json | null
+          variant_a_conversions?: number | null
+          variant_a_sessions?: number | null
+          variant_b?: Json | null
+          variant_b_conversions?: number | null
+          variant_b_sessions?: number | null
+          winner?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_ab_tests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checkout_abandoned_carts: {
+        Row: {
+          cart_data: Json | null
+          created_at: string | null
+          customer_email: string | null
+          customer_name: string | null
+          discount_amount: number | null
+          discount_code: string | null
+          funnel_id: string | null
+          id: string
+          recovered_at: string | null
+          recovery_status: string | null
+          recovery_token: string | null
+          session_id: string | null
+          step_abandoned: string | null
+          total_value: number | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          cart_data?: Json | null
+          created_at?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          discount_amount?: number | null
+          discount_code?: string | null
+          funnel_id?: string | null
+          id?: string
+          recovered_at?: string | null
+          recovery_status?: string | null
+          recovery_token?: string | null
+          session_id?: string | null
+          step_abandoned?: string | null
+          total_value?: number | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          cart_data?: Json | null
+          created_at?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          discount_amount?: number | null
+          discount_code?: string | null
+          funnel_id?: string | null
+          id?: string
+          recovered_at?: string | null
+          recovery_status?: string | null
+          recovery_token?: string | null
+          session_id?: string | null
+          step_abandoned?: string | null
+          total_value?: number | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_abandoned_carts_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "checkout_funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_abandoned_carts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checkout_dynamic_discounts: {
+        Row: {
+          conditions: Json | null
+          countdown_seconds: number | null
+          created_at: string | null
+          current_uses: number | null
+          discount_type: string
+          discount_value: number
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+          message: string | null
+          min_cart_value: number | null
+          name: string
+          trigger_type: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          conditions?: Json | null
+          countdown_seconds?: number | null
+          created_at?: string | null
+          current_uses?: number | null
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          message?: string | null
+          min_cart_value?: number | null
+          name: string
+          trigger_type?: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          conditions?: Json | null
+          countdown_seconds?: number | null
+          created_at?: string | null
+          current_uses?: number | null
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          message?: string | null
+          min_cart_value?: number | null
+          name?: string
+          trigger_type?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_dynamic_discounts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checkout_funnel_steps: {
+        Row: {
+          config: Json | null
+          created_at: string | null
+          funnel_id: string
+          id: string
+          offer_id: string | null
+          step_order: number
+          step_type: string
+          workspace_id: string
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string | null
+          funnel_id: string
+          id?: string
+          offer_id?: string | null
+          step_order?: number
+          step_type?: string
+          workspace_id: string
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string | null
+          funnel_id?: string
+          id?: string
+          offer_id?: string | null
+          step_order?: number
+          step_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_funnel_steps_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "checkout_funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_funnel_steps_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checkout_funnels: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          settings: Json | null
+          slug: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          settings?: Json | null
+          slug: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          settings?: Json | null
+          slug?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_funnels_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checkout_offer_sequences: {
+        Row: {
+          created_at: string | null
+          funnel_id: string
+          id: string
+          offer_id: string
+          on_accept_next_offer_id: string | null
+          on_decline_next_offer_id: string | null
+          sequence_order: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          funnel_id: string
+          id?: string
+          offer_id: string
+          on_accept_next_offer_id?: string | null
+          on_decline_next_offer_id?: string | null
+          sequence_order?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          funnel_id?: string
+          id?: string
+          offer_id?: string
+          on_accept_next_offer_id?: string | null
+          on_decline_next_offer_id?: string | null
+          sequence_order?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_offer_sequences_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "checkout_funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_offer_sequences_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "checkout_offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_offer_sequences_on_accept_next_offer_id_fkey"
+            columns: ["on_accept_next_offer_id"]
+            isOneToOne: false
+            referencedRelation: "checkout_offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_offer_sequences_on_decline_next_offer_id_fkey"
+            columns: ["on_decline_next_offer_id"]
+            isOneToOne: false
+            referencedRelation: "checkout_offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_offer_sequences_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checkout_offers: {
+        Row: {
+          bullet_points: Json | null
+          compare_at_price: number | null
+          conversion_rate: number | null
+          countdown_seconds: number | null
+          created_at: string | null
+          cta_text: string | null
+          currency: string | null
+          decline_text: string | null
+          description: string | null
+          guarantee_text: string | null
+          headline: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          offer_type: string
+          price: number
+          product_id: string | null
+          scarcity_text: string | null
+          settings: Json | null
+          subheadline: string | null
+          testimonials: Json | null
+          updated_at: string | null
+          video_url: string | null
+          workspace_id: string
+        }
+        Insert: {
+          bullet_points?: Json | null
+          compare_at_price?: number | null
+          conversion_rate?: number | null
+          countdown_seconds?: number | null
+          created_at?: string | null
+          cta_text?: string | null
+          currency?: string | null
+          decline_text?: string | null
+          description?: string | null
+          guarantee_text?: string | null
+          headline?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          offer_type?: string
+          price?: number
+          product_id?: string | null
+          scarcity_text?: string | null
+          settings?: Json | null
+          subheadline?: string | null
+          testimonials?: Json | null
+          updated_at?: string | null
+          video_url?: string | null
+          workspace_id: string
+        }
+        Update: {
+          bullet_points?: Json | null
+          compare_at_price?: number | null
+          conversion_rate?: number | null
+          countdown_seconds?: number | null
+          created_at?: string | null
+          cta_text?: string | null
+          currency?: string | null
+          decline_text?: string | null
+          description?: string | null
+          guarantee_text?: string | null
+          headline?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          offer_type?: string
+          price?: number
+          product_id?: string | null
+          scarcity_text?: string | null
+          settings?: Json | null
+          subheadline?: string | null
+          testimonials?: Json | null
+          updated_at?: string | null
+          video_url?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_offers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checkout_one_click_tokens: {
+        Row: {
+          created_at: string | null
+          customer_email: string
+          expires_at: string
+          id: string
+          session_id: string | null
+          stripe_customer_id: string | null
+          stripe_payment_method_id: string | null
+          token: string
+          used_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_email: string
+          expires_at: string
+          id?: string
+          session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
+          token: string
+          used_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_email?: string
+          expires_at?: string
+          id?: string
+          session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
+          token?: string
+          used_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_one_click_tokens_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checkout_order_bumps: {
+        Row: {
+          conditions: Json | null
+          created_at: string | null
+          display_order: number | null
+          funnel_id: string | null
+          id: string
+          is_active: boolean | null
+          offer_id: string | null
+          position: string | null
+          workspace_id: string
+        }
+        Insert: {
+          conditions?: Json | null
+          created_at?: string | null
+          display_order?: number | null
+          funnel_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          offer_id?: string | null
+          position?: string | null
+          workspace_id: string
+        }
+        Update: {
+          conditions?: Json | null
+          created_at?: string | null
+          display_order?: number | null
+          funnel_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          offer_id?: string | null
+          position?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_order_bumps_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "checkout_funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_order_bumps_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "checkout_offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_order_bumps_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checkout_quantity_breaks: {
+        Row: {
+          created_at: string | null
+          discount_percentage: number
+          id: string
+          is_active: boolean | null
+          label: string | null
+          min_quantity: number
+          product_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          discount_percentage?: number
+          id?: string
+          is_active?: boolean | null
+          label?: string | null
+          min_quantity?: number
+          product_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          discount_percentage?: number
+          id?: string
+          is_active?: boolean | null
+          label?: string | null
+          min_quantity?: number
+          product_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_quantity_breaks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checkout_sessions: {
+        Row: {
+          ab_test_id: string | null
+          ab_variant: string | null
+          bumps_accepted: Json | null
+          cart_data: Json | null
+          completed_at: string | null
+          created_at: string | null
+          current_step: string | null
+          customer_email: string | null
+          customer_name: string | null
+          device_type: string | null
+          funnel_id: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          one_click_token_id: string | null
+          status: string | null
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          total_value: number | null
+          updated_at: string | null
+          upsells_accepted: Json | null
+          upsells_shown: Json | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          workspace_id: string
+        }
+        Insert: {
+          ab_test_id?: string | null
+          ab_variant?: string | null
+          bumps_accepted?: Json | null
+          cart_data?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          current_step?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          device_type?: string | null
+          funnel_id?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          one_click_token_id?: string | null
+          status?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          total_value?: number | null
+          updated_at?: string | null
+          upsells_accepted?: Json | null
+          upsells_shown?: Json | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          workspace_id: string
+        }
+        Update: {
+          ab_test_id?: string | null
+          ab_variant?: string | null
+          bumps_accepted?: Json | null
+          cart_data?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          current_step?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          device_type?: string | null
+          funnel_id?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          one_click_token_id?: string | null
+          status?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          total_value?: number | null
+          updated_at?: string | null
+          upsells_accepted?: Json | null
+          upsells_shown?: Json | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_sessions_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "checkout_funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_sessions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checkout_smart_bundles: {
+        Row: {
+          bundle_price: number
+          created_at: string | null
+          description: string | null
+          display_conditions: Json | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          original_price: number
+          product_ids: Json | null
+          savings_percentage: number | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          bundle_price?: number
+          created_at?: string | null
+          description?: string | null
+          display_conditions?: Json | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          original_price?: number
+          product_ids?: Json | null
+          savings_percentage?: number | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          bundle_price?: number
+          created_at?: string | null
+          description?: string | null
+          display_conditions?: Json | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          original_price?: number
+          product_ids?: Json | null
+          savings_percentage?: number | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_smart_bundles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       circuit_breaker_history: {
         Row: {
           created_at: string | null

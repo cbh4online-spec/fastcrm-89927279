@@ -278,6 +278,20 @@ import C2CDisputesPage from "./pages/c2c/C2CDisputesPage";
 import C2CSellerTiersPage from "./pages/c2c/C2CSellerTiersPage";
 import C2CPublicSellerProfile from "./pages/c2c/C2CPublicSellerProfile";
 
+// Checkout System
+import CheckoutPage from "./pages/checkout/CheckoutPage";
+import UpsellPage from "./pages/checkout/UpsellPage";
+import DownsellPage from "./pages/checkout/DownsellPage";
+import ThankYouPage from "./pages/checkout/ThankYouPage";
+import RecoverCartPage from "./pages/checkout/RecoverCartPage";
+import CheckoutFunnelsPage from "./pages/dashboard/checkout/CheckoutFunnelsPage";
+import CheckoutOffersPage from "./pages/dashboard/checkout/CheckoutOffersPage";
+import AbandonedCartsPage from "./pages/dashboard/checkout/AbandonedCartsPage";
+import CheckoutBundlesPage from "./pages/dashboard/checkout/CheckoutBundlesPage";
+import CheckoutAnalyticsPage from "./pages/dashboard/checkout/CheckoutAnalyticsPage";
+import ABTestsPage from "./pages/dashboard/checkout/ABTestsPage";
+import DynamicDiscountsPage from "./pages/dashboard/checkout/DynamicDiscountsPage";
+
 // FastClub (Community)
 import FastClubPage from "./pages/community/FastClubPage";
 import ForumPage from "./pages/community/ForumPage";
@@ -655,6 +669,15 @@ function CRMRoutes() {
                 {/* Mobile Quick Product Creator */}
                 <Route path="/mobile/products/quick-create" element={<MobileQuickProductCreate />} />
                 
+                {/* Checkout System (admin) */}
+                <Route path="/dashboard/checkout" element={<CheckoutFunnelsPage />} />
+                <Route path="/dashboard/checkout/offers" element={<CheckoutOffersPage />} />
+                <Route path="/dashboard/checkout/abandoned" element={<AbandonedCartsPage />} />
+                <Route path="/dashboard/checkout/bundles" element={<CheckoutBundlesPage />} />
+                <Route path="/dashboard/checkout/analytics" element={<CheckoutAnalyticsPage />} />
+                <Route path="/dashboard/checkout/ab-tests" element={<ABTestsPage />} />
+                <Route path="/dashboard/checkout/discounts" element={<DynamicDiscountsPage />} />
+
                 {/* C2C Marketplace */}
                 <Route path="/dashboard/c2c" element={<C2CMarketplace />} />
                 <Route path="/dashboard/c2c/create" element={<C2CCreateListing />} />
@@ -793,6 +816,13 @@ const App = () => (
               <Route path="/c2c/:workspaceSlug/sponsor" element={<AuthProvider><C2CSponsorPortal /></AuthProvider>} />
               <Route path="/c2c/:workspaceSlug/invite/:token" element={<C2CSellerInviteActivation />} />
               <Route path="/c2c/:workspaceSlug/seller/:sellerId" element={<C2CPublicSellerProfile />} />
+
+              {/* Checkout System (public) */}
+              <Route path="/checkout/recover/:token" element={<RecoverCartPage />} />
+              <Route path="/checkout/:funnelSlug" element={<CheckoutPage />} />
+              <Route path="/checkout/:funnelSlug/upsell/:offerId" element={<UpsellPage />} />
+              <Route path="/checkout/:funnelSlug/downsell/:offerId" element={<DownsellPage />} />
+              <Route path="/checkout/:funnelSlug/thank-you" element={<ThankYouPage />} />
 
               {/* Supplier Portal (public, token-based) */}
               <Route path="/supplier-portal/:token" element={<SupplierPortalPage />} />
