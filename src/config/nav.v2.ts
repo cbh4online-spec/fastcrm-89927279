@@ -283,6 +283,7 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
         { nameKey: "c2cVerification", name: "Verificação", href: "/dashboard/c2c/verification", icon: Shield, iconColor: "text-rose-500" },
         { nameKey: "c2cDisputes", name: "Disputas", href: "/dashboard/c2c/disputes", icon: AlertTriangle, iconColor: "text-rose-500" },
         { nameKey: "c2cTiers", name: "Tiers", href: "/dashboard/c2c/tiers", icon: Trophy, iconColor: "text-rose-500" },
+        { nameKey: "c2cConfig", name: "Configuração", href: "/dashboard/c2c/config", icon: Cog, iconColor: "text-rose-500" },
       ],
     },
     {
