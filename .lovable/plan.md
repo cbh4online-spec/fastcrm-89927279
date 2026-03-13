@@ -1,45 +1,68 @@
 
 
-# Diagnóstico e Correção — Publicação Bloqueada
+# Phase 5B — Command Center COMPLETO
 
-## CAUSA RAIZ
+## Gap Analysis: Current vs Spec
 
-**O código está limpo e pronto para publicar.** Todas as correções anteriores (imports normalizados, duplicados removidos, `Deno.serve()` modernizado) já foram aplicadas com sucesso. Não existem:
-- Erros de build ou imports quebrados
-- Service workers a servir cache antiga
-- Imports inconsistentes nas Edge Functions (`esm.sh`, `npm:`, `jsr:` — todos eliminados)
-- Polyfills obsoletos (`xhr`)
+The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
 
-O problema é que **as alterações de frontend requerem clicar em "Publish → Update"** para serem enviadas para o ambiente live. As Edge Functions (backend) já foram redeployadas automaticamente. O frontend não.
+**Already implemented (needs enhancement):**
+- Header with greeting + 3 KPIs — needs larger font (32px), labels below
+- AI Question Box — needs slash command suggestions row below input
+- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
+- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
+- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
+- Drift Alerts — needs "Rever →" links to Context OS blocks
 
-O live site (`fastcrm.lovable.app`) está a funcionar mas serve a **versão antiga do frontend**.
+**New sections to build:**
+1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
+2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
+   - Change Events (last 5 from `useChangeEvents` with realtime)
+   - Entity Activity (top 3 entities from `useKernelEntities`)
+   - Impact Score (top 2 from `useImpactMapData`)
+3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
 
-## Plano de Implementação
+**Enhanced Command Palette (⌘K):**
+- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
 
-### 1. Adicionar BUILD_VERSION ao frontend (marcador de versão)
-Adicionar uma constante de versão visível discretamente no `App.tsx` (ou footer) para confirmar que o deploy mais recente está ativo no live.
+**Spotlight (Space key):**
+- Opens AI Question Box as a modal from any page. New global component.
 
-**Ficheiro:** `src/App.tsx`
-- Adicionar no topo: `const BUILD_VERSION = "v20260313-1400";`
-- Renderizar como `<div>` invisível no DOM (acessível via DevTools) ou como `data-attribute` no root
+## Implementation Plan — 3 Sub-phases
 
-### 2. Publicar
-Após a alteração, o utilizador precisa de clicar **Publish → Update** no canto superior direito do editor para enviar o frontend para o live.
+Given the scope, I recommend splitting into 3 batches:
 
-### Sem mais alterações
-- Não há erros de build
-- Não há dependências quebradas
-- Não há variáveis de ambiente em falta
-- Não há conflitos de código
-
-## Resumo Antecipado
-
-| Item | Estado |
+### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
+| File | Action |
 |------|--------|
-| Imports Edge Functions | ✅ Todos normalizados |
-| Erros de compilação | ✅ Nenhum |
-| Service Workers | ✅ Não existem |
-| `deno.json` import map | ✅ Correto |
-| BUILD_VERSION | 🔧 A adicionar |
-| Publicação frontend | ⏳ Requer Publish → Update |
+| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
+| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
+| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
+| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
+
+### Batch 2: Enhance Existing Cards
+| File | Action |
+|------|--------|
+| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
+| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
+| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
+| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
+| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
+| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
+
+### Batch 3: Spotlight Modal + Command Palette Enhancement
+| File | Action |
+|------|--------|
+| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
+| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
+| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
+
+### Realtime subscriptions needed
+- `change_events` table for Kernel Live Feed auto-update
+- `kernel_action_runs` for Ações do Dia auto-update
+- Already have `kernel_decisions` and `conversations`
+
+No database migrations needed. All hooks, edge functions, and tables already exist.
+
+**Shall I start with Batch 1?**
 
