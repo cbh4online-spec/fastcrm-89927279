@@ -9,13 +9,32 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Auth guard
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing authorization" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authErr } = await userClient.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (authErr || !user) {
+      return new Response(JSON.stringify({ error: "Invalid authentication" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const { workspace_id } = await req.json();
+    if (!workspace_id) throw new Error("workspace_id required");
+
+    // Verify workspace membership
+    const { data: membership } = await userClient.from("workspace_members").select("id").eq("workspace_id", workspace_id).eq("user_id", user.id).maybeSingle();
+    if (!membership) {
+      return new Response(JSON.stringify({ error: "Access denied to this workspace" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
-
-    const { workspace_id } = await req.json();
-    if (!workspace_id) throw new Error("workspace_id required");
 
     // Get model config
     const { data: config } = await supabase

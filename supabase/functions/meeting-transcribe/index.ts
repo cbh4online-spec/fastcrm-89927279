@@ -12,6 +12,19 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Auth guard
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing authorization" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authErr } = await userClient.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (authErr || !user) {
+      return new Response(JSON.stringify({ error: "Invalid authentication" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const { recording_id } = await req.json();
     if (!recording_id) {
       return new Response(JSON.stringify({ error: "recording_id is required" }), {
@@ -31,6 +44,15 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Verify user has access to the recording's workspace
+    const { data: recording } = await supabase.from("meeting_recordings").select("workspace_id").eq("id", recording_id).single();
+    if (recording) {
+      const { data: membership } = await userClient.from("workspace_members").select("id").eq("workspace_id", recording.workspace_id).eq("user_id", user.id).maybeSingle();
+      if (!membership) {
+        return new Response(JSON.stringify({ error: "Access denied" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
 
     // Get recording details
     const { data: recording, error: recErr } = await supabase
