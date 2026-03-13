@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
+import { ShareListingButton } from "@/components/c2c/public/ShareListingButton";
+import { ReviewsList } from "@/components/c2c/reviews/ReviewsList";
 import { C2CPublicOfferDialog } from "@/components/c2c/C2CPublicOfferDialog";
 import { C2CQuickCheckoutDialog } from "@/components/c2c/C2CQuickCheckoutDialog";
 import { getShareUrl } from "@/utils/getShareUrl";
