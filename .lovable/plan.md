@@ -1,50 +1,68 @@
 
-Objetivo: desbloquear a publicação (frontend + backend), forçar um redeploy limpo e confirmar produção.
 
-Estado atual já verificado:
-1) Não encontrei erros óbvios de conflito de código (sem markers de merge; import duplicado crítico no `chat-widget` já não existe).
-2) Ainda há inconsistência de imports em 10 Edge Functions (9 com `npm:@supabase/supabase-js@2` e 1 com `jsr:@supabase/supabase-js@2`), enquanto o padrão do projeto já está no import map (`@supabase/supabase-js`).
-3) Não há `deno.lock` em `supabase/functions` (bom para evitar lock incompatível).
-4) Nos logs do preview, chamadas backend observadas estão a responder 200.
-5) Há warning React de keys duplicadas em `SidebarV1` (não costuma bloquear deploy, mas é ruído técnico).
-6) Os dois domínios públicos que validaste (`fastcrm.lovable.app` e `fastcrm.metodopare.ai`) estão a servir conteúdo; falta garantir que é a versão mais recente.
+# Phase 5B — Command Center COMPLETO
 
-Plano de execução (implementação):
-1. Confirmar erro pendente de build/deploy
-- Ler logs de deploy/execução no ambiente de teste e live focando funções alteradas recentemente.
-- Identificar função exata que falha (se existir) + deployment id.
+## Gap Analysis: Current vs Spec
 
-2. Corrigir conflitos que podem bloquear publicação
-- Normalizar os 10 ficheiros restantes para o padrão único:
-  - `import { createClient } from "@supabase/supabase-js"`
-  - trocar `serve(...)` legado por `Deno.serve(...)` nos 9 ficheiros antigos (para uniformizar runtime).
-- Corrigir também warning de key duplicada no sidebar (hardening, não bloqueante, mas evita regressões de UI).
+The current Command Center has 4 cards (Decisions, Drift, Today, Pipeline Risk). The complete spec adds 3 more sections and enhances existing ones significantly.
 
-3. Forçar build/deploy limpo
-- Fazer redeploy forçado das funções afetadas em lote.
-- Validar imediatamente nos logs que todas sobem sem erro.
-- Se houver falha isolada, corrigir e redeploy incremental até 100%.
+**Already implemented (needs enhancement):**
+- Header with greeting + 3 KPIs — needs larger font (32px), labels below
+- AI Question Box — needs slash command suggestions row below input
+- Kernel Decisions — needs "Ver evidências" expand, slide-left on resolve
+- Today Card — needs "+ Nova tarefa" button, "Entrar →" meeting links
+- Pipeline Risk — needs total at risk footer, drawer on "Agir →"
+- Drift Alerts — needs "Rever →" links to Context OS blocks
 
-4. Garantir que as alterações mais recentes entram no deploy
-- Executar smoke checks nas funções críticas (incluindo `check-subscription` e fluxo relacionado a publish).
-- Confirmar que ambos os domínios respondem com a versão atualizada após publicação.
-- Para frontend: garantir atualização via publish final (Update) para live.
+**New sections to build:**
+1. **Ações do Dia** (Kernel Actions Log) — left column, below Decisions. Shows today's `kernel_action_runs` with status icons, timestamps, retry button for failures. Uses existing `useKernelActions` hook.
+2. **Kernel Live Feed** — left column, bottom. Three sub-sections:
+   - Change Events (last 5 from `useChangeEvents` with realtime)
+   - Entity Activity (top 3 entities from `useKernelEntities`)
+   - Impact Score (top 2 from `useImpactMapData`)
+3. **Brief Executivo** — right column, below Pipeline Risk. Preview of latest `strategic_briefs` via `useStrategicBriefs`, with "Ler completo →" and "Gerar novo →" buttons.
 
-5. Confirmação final
-- Entregar:
-  - lista de erros encontrados/corrigidos,
-  - funções redeployadas com sucesso,
-  - validação dos dois domínios,
-  - URL de produção confirmada: `https://fastcrm.lovable.app` (com domínio customizado `https://fastcrm.metodopare.ai` também validado).
+**Enhanced Command Palette (⌘K):**
+- Already exists (`ActionCommandPalette`). Spec wants CRM entity search + Kernel section + keyboard shortcut hints. Enhancement, not rebuild.
 
-Detalhes técnicos (ficheiros alvo da normalização de imports):
-- `supabase/functions/b2b-plan-create/index.ts`
-- `supabase/functions/b2b-plan-generate-invoice/index.ts`
-- `supabase/functions/b2b-plan-generate-order/index.ts`
-- `supabase/functions/b2b-plan-notify-cycle/index.ts`
-- `supabase/functions/b2b-plan-schedule-run/index.ts`
-- `supabase/functions/replenishment-convert-to-cart/index.ts`
-- `supabase/functions/replenishment-generate-suggestions/index.ts`
-- `supabase/functions/replenishment-send-email/index.ts`
-- `supabase/functions/replenishment-send-whatsapp/index.ts`
-- `supabase/functions/check-subscription/index.ts`
+**Spotlight (Space key):**
+- Opens AI Question Box as a modal from any page. New global component.
+
+## Implementation Plan — 3 Sub-phases
+
+Given the scope, I recommend splitting into 3 batches:
+
+### Batch 1: New Cards (Ações do Dia + Kernel Live Feed + Brief Executivo)
+| File | Action |
+|------|--------|
+| `src/components/command-center/KernelActionsCard.tsx` | New: today's action runs feed |
+| `src/components/command-center/KernelLiveFeedCard.tsx` | New: change events + entity activity + impact score |
+| `src/components/command-center/StrategicBriefCard.tsx` | New: brief preview with generate button |
+| `src/pages/CommandCenter.tsx` | Add 3 new cards to layout |
+
+### Batch 2: Enhance Existing Cards
+| File | Action |
+|------|--------|
+| `src/components/command-center/CommandCenterHeader.tsx` | Larger numbers (text-3xl), labels below, user name |
+| `src/components/command-center/AIQuestionBox.tsx` | Add slash command suggestion chips below input |
+| `src/components/command-center/KernelDecisionsCard.tsx` | Add "Ver evidências" expand, slide-left animation on resolve |
+| `src/components/command-center/TodayCard.tsx` | Add "+ Nova tarefa" inline button, meeting "Entrar →" links |
+| `src/components/command-center/PipelineRiskCard.tsx` | Add total at risk footer |
+| `src/components/command-center/DriftAlertsCard.tsx` | Add "Rever →" and "Ver Context OS →" links |
+
+### Batch 3: Spotlight Modal + Command Palette Enhancement
+| File | Action |
+|------|--------|
+| `src/components/command-center/SpotlightModal.tsx` | New: AI question box as modal, triggered by Space key globally |
+| `src/components/command-center/ActionCommandPalette.tsx` | Enhance: add CRM entity search, Kernel section, shortcut hints |
+| `src/components/layout/DashboardLayout.tsx` | Wire Space key listener + Spotlight |
+
+### Realtime subscriptions needed
+- `change_events` table for Kernel Live Feed auto-update
+- `kernel_action_runs` for Ações do Dia auto-update
+- Already have `kernel_decisions` and `conversations`
+
+No database migrations needed. All hooks, edge functions, and tables already exist.
+
+**Shall I start with Batch 1?**
+
