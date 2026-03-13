@@ -5512,6 +5512,7 @@ export type Database = {
           is_verified: boolean | null
           location: string | null
           max_active_listings: number | null
+          max_photos_per_listing: number | null
           nif: string | null
           payout_enabled: boolean | null
           phone: string | null
@@ -5528,6 +5529,7 @@ export type Database = {
           verification_documents: Json | null
           verification_status: string | null
           verified_at: string | null
+          verified_by: string | null
           workspace_id: string
         }
         Insert: {
@@ -5549,6 +5551,7 @@ export type Database = {
           is_verified?: boolean | null
           location?: string | null
           max_active_listings?: number | null
+          max_photos_per_listing?: number | null
           nif?: string | null
           payout_enabled?: boolean | null
           phone?: string | null
@@ -5565,6 +5568,7 @@ export type Database = {
           verification_documents?: Json | null
           verification_status?: string | null
           verified_at?: string | null
+          verified_by?: string | null
           workspace_id: string
         }
         Update: {
@@ -5586,6 +5590,7 @@ export type Database = {
           is_verified?: boolean | null
           location?: string | null
           max_active_listings?: number | null
+          max_photos_per_listing?: number | null
           nif?: string | null
           payout_enabled?: boolean | null
           phone?: string | null
@@ -5602,6 +5607,7 @@ export type Database = {
           verification_documents?: Json | null
           verification_status?: string | null
           verified_at?: string | null
+          verified_by?: string | null
           workspace_id?: string
         }
         Relationships: [

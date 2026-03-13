@@ -273,6 +273,9 @@ import C2COrders from "./pages/c2c/C2COrders";
 import C2CContentModeration from "./pages/c2c/C2CContentModeration";
 import C2CLoyaltyProgram from "./pages/c2c/C2CLoyaltyProgram";
 import C2CSellerInviteActivation from "./pages/c2c/C2CSellerInviteActivation";
+import C2CVerificationPage from "./pages/c2c/C2CVerificationPage";
+import C2CDisputesPage from "./pages/c2c/C2CDisputesPage";
+import C2CSellerTiersPage from "./pages/c2c/C2CSellerTiersPage";
 import C2CPublicSellerProfile from "./pages/c2c/C2CPublicSellerProfile";
 
 // FastClub (Community)
@@ -670,6 +673,9 @@ function CRMRoutes() {
                 <Route path="/dashboard/c2c/orders" element={<C2COrders />} />
                 <Route path="/dashboard/c2c/moderation" element={<C2CContentModeration />} />
                 <Route path="/dashboard/c2c/loyalty" element={<C2CLoyaltyProgram />} />
+                <Route path="/dashboard/c2c/verification" element={<C2CVerificationPage />} />
+                <Route path="/dashboard/c2c/disputes" element={<C2CDisputesPage />} />
+                <Route path="/dashboard/c2c/tiers" element={<C2CSellerTiersPage />} />
                 <Route path="/dashboard/c2c/seller/:sellerId" element={<C2CSellerProfile />} />
                 <Route path="/dashboard/c2c/edit/:id" element={<C2CEditListing />} />
                 <Route path="/dashboard/c2c/:id" element={<C2CListingDetail />} />

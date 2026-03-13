@@ -1,0 +1,3 @@
+
+ALTER TABLE c2c_sellers ADD COLUMN IF NOT EXISTS max_photos_per_listing INTEGER DEFAULT 5;
+ALTER TABLE c2c_sellers ADD COLUMN IF NOT EXISTS verified_by UUID;

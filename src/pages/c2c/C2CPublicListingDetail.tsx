@@ -12,6 +12,8 @@ import { ShareListingButton } from "@/components/c2c/public/ShareListingButton";
 import { ReviewsList } from "@/components/c2c/reviews/ReviewsList";
 import { C2CPublicOfferDialog } from "@/components/c2c/C2CPublicOfferDialog";
 import { C2CQuickCheckoutDialog } from "@/components/c2c/C2CQuickCheckoutDialog";
+import { ReportListingButton } from "@/components/c2c/public/ReportListingButton";
+import { SchemaOrgProduct } from "@/components/c2c/public/SchemaOrgProduct";
 import { getShareUrl } from "@/utils/getShareUrl";
 import {
   ArrowLeft, MapPin, Eye, Clock, ShieldCheck, MessageCircle, HandCoins,
@@ -71,7 +73,7 @@ function useSellerProfile(sellerId: string | undefined) {
       if (!sellerId) return null;
       const { data, error } = await supabase
         .from("c2c_sellers")
-        .select("id, user_id, display_name, avatar_url, avg_rating, total_sales, is_verified")
+        .select("id, user_id, display_name, avatar_url, avg_rating, total_sales, total_reviews, is_verified")
         .eq("user_id", sellerId)
         .single();
       if (error) return null;
@@ -141,7 +143,20 @@ export default function C2CPublicListingDetail() {
         <meta property="og:description" content={ogDesc} />
         {ogImage && <meta property="og:image" content={ogImage} />}
         <meta property="og:type" content="product" />
+        <link rel="canonical" href={`${window.location.origin}/marketplace/${workspaceSlug}/listing/${id}`} />
       </Helmet>
+      <SchemaOrgProduct
+        name={listing.title}
+        description={listing.description || undefined}
+        price={listing.price}
+        currency={listing.currency ?? "EUR"}
+        image={ogImage}
+        url={`${window.location.origin}/marketplace/${workspaceSlug}/listing/${id}`}
+        condition={listing.condition}
+        sellerName={seller?.display_name}
+        rating={seller?.avg_rating}
+        reviewCount={seller?.total_reviews}
+      />
 
       <div className="min-h-screen bg-zinc-950 text-zinc-100">
         {/* Header */}
@@ -377,13 +392,18 @@ export default function C2CPublicListingDetail() {
                 </div>
               </div>
 
-              {/* Share */}
-              <ShareListingButton
-                url={`/marketplace/${workspaceSlug}/listing/${listing.id}`}
-                title={listing.title}
-                description={listing.description?.slice(0, 160)}
-                className="w-full border-zinc-700 text-zinc-300"
-              />
+              {/* Share & Report */}
+              <div className="flex gap-2">
+                <ShareListingButton
+                  url={`/marketplace/${workspaceSlug}/listing/${listing.id}`}
+                  title={listing.title}
+                  description={listing.description?.slice(0, 160)}
+                  className="flex-1 border-zinc-700 text-zinc-300"
+                />
+                {workspace && (
+                  <ReportListingButton listingId={listing.id} workspaceId={workspace.id} />
+                )}
+              </div>
             </div>
 
             {/* Reviews section */}
