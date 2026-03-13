@@ -4432,6 +4432,7 @@ export type Database = {
       }
       c2c_listings: {
         Row: {
+          boosted_until: string | null
           category_id: string | null
           condition: string
           cpc_bid: number | null
@@ -4443,7 +4444,9 @@ export type Database = {
           currency: string | null
           description: string
           favorites_count: number | null
+          featured_until: string | null
           id: string
+          is_boosted: boolean | null
           is_featured: boolean | null
           location: string | null
           messages_count: number | null
@@ -4452,7 +4455,9 @@ export type Database = {
           photos: string[] | null
           photos_360: string[] | null
           price: number
+          price_negotiable: boolean | null
           seller_id: string
+          shipping_available: boolean | null
           slug: string | null
           status: string
           title: string
@@ -4462,6 +4467,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          boosted_until?: string | null
           category_id?: string | null
           condition?: string
           cpc_bid?: number | null
@@ -4473,7 +4479,9 @@ export type Database = {
           currency?: string | null
           description: string
           favorites_count?: number | null
+          featured_until?: string | null
           id?: string
+          is_boosted?: boolean | null
           is_featured?: boolean | null
           location?: string | null
           messages_count?: number | null
@@ -4482,7 +4490,9 @@ export type Database = {
           photos?: string[] | null
           photos_360?: string[] | null
           price: number
+          price_negotiable?: boolean | null
           seller_id: string
+          shipping_available?: boolean | null
           slug?: string | null
           status?: string
           title: string
@@ -4492,6 +4502,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          boosted_until?: string | null
           category_id?: string | null
           condition?: string
           cpc_bid?: number | null
@@ -4503,7 +4514,9 @@ export type Database = {
           currency?: string | null
           description?: string
           favorites_count?: number | null
+          featured_until?: string | null
           id?: string
+          is_boosted?: boolean | null
           is_featured?: boolean | null
           location?: string | null
           messages_count?: number | null
@@ -4512,7 +4525,9 @@ export type Database = {
           photos?: string[] | null
           photos_360?: string[] | null
           price?: number
+          price_negotiable?: boolean | null
           seller_id?: string
+          shipping_available?: boolean | null
           slug?: string | null
           status?: string
           title?: string
@@ -4533,6 +4548,113 @@ export type Database = {
             foreignKeyName: "c2c_listings_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_marketplace_config: {
+        Row: {
+          boost_price_day: number | null
+          categories: Json | null
+          commission_rate: number | null
+          cover_image_url: string | null
+          created_at: string | null
+          custom_domain: string | null
+          custom_domain_verified: boolean | null
+          description: string | null
+          favicon_url: string | null
+          featured_price_week: number | null
+          id: string
+          logo_url: string | null
+          name: string
+          og_image_url: string | null
+          seo_description: string | null
+          seo_keywords: string[] | null
+          seo_title: string | null
+          settings: Json | null
+          slug: string
+          social_links: Json | null
+          status: string | null
+          support_email: string | null
+          support_phone: string | null
+          tagline: string | null
+          theme: Json | null
+          total_listings: number | null
+          total_sales: number | null
+          total_sellers: number | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          boost_price_day?: number | null
+          categories?: Json | null
+          commission_rate?: number | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          custom_domain?: string | null
+          custom_domain_verified?: boolean | null
+          description?: string | null
+          favicon_url?: string | null
+          featured_price_week?: number | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          og_image_url?: string | null
+          seo_description?: string | null
+          seo_keywords?: string[] | null
+          seo_title?: string | null
+          settings?: Json | null
+          slug: string
+          social_links?: Json | null
+          status?: string | null
+          support_email?: string | null
+          support_phone?: string | null
+          tagline?: string | null
+          theme?: Json | null
+          total_listings?: number | null
+          total_sales?: number | null
+          total_sellers?: number | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          boost_price_day?: number | null
+          categories?: Json | null
+          commission_rate?: number | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          custom_domain?: string | null
+          custom_domain_verified?: boolean | null
+          description?: string | null
+          favicon_url?: string | null
+          featured_price_week?: number | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          og_image_url?: string | null
+          seo_description?: string | null
+          seo_keywords?: string[] | null
+          seo_title?: string | null
+          settings?: Json | null
+          slug?: string
+          social_links?: Json | null
+          status?: string | null
+          support_email?: string | null
+          support_phone?: string | null
+          tagline?: string | null
+          theme?: Json | null
+          total_listings?: number | null
+          total_sales?: number | null
+          total_sellers?: number | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_marketplace_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
@@ -41308,6 +41430,10 @@ export type Database = {
       }
       increment_campaign_stat: {
         Args: { p_campaign_id: string; p_field: string }
+        Returns: undefined
+      }
+      increment_listing_views: {
+        Args: { p_listing_id: string }
         Returns: undefined
       }
       init_conversation_journey: {
