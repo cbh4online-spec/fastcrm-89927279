@@ -371,36 +371,9 @@ export default function C2CListingDetail() {
               {/* Actions (desktop) */}
               {user && !isOwner && (
                 <div className="space-y-3 border-t pt-4 hidden lg:block">
-                  {/* Shipping selector */}
-                  <ShippingSelector
-                    deliveryMode={(listing as any).delivery_mode || 'shipping'}
-                    selectedMethod={shippingSelection?.method || null}
-                    onSelect={setShippingSelection}
-                    meetupLocation={meetupLocation}
-                    onMeetupLocationChange={setMeetupLocation}
-                  />
-
-                  {shippingSelection && (
-                    <div className="text-sm text-muted-foreground flex justify-between border rounded-lg p-2">
-                      <span>{t('ordersTitle')}</span>
-                      <span className="font-semibold text-foreground">
-                        {(listing.price + (shippingSelection.price || 0)).toFixed(2)} {listing.currency}
-                      </span>
-                    </div>
-                  )}
-
-                  <Button className="w-full gap-2" size="lg" onClick={() => {
-                    if (!workspaceId || !listing || !shippingSelection) return;
-                    checkout.mutate({
-                      listingId: listing.id, workspaceId,
-                      shippingMethod: shippingSelection.method,
-                      shippingPrice: shippingSelection.price,
-                      shippingCarrier: shippingSelection.carrier,
-                      meetupLocation: shippingSelection.method === 'in_person' ? meetupLocation : undefined,
-                    });
-                  }} disabled={checkout.isPending || !shippingSelection}>
-                    {checkout.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBag className="h-4 w-4" />}
-                    {!shippingSelection ? t('chooseShipping') : `${t('buyNow')} — ${(listing.price + (shippingSelection?.price || 0)).toFixed(2)} ${listing.currency}`}
+                  <Button className="w-full gap-2" size="lg" onClick={() => setCheckoutOpen(true)}>
+                    <ShoppingBag className="h-5 w-5" />
+                    {t('buyNow')} — {listing.price.toFixed(2)} {listing.currency}
                   </Button>
 
                   {workspaceId && (<OfferDialog listingId={listing.id} sellerId={listing.seller_id} currentPrice={listing.price} currency={listing.currency} workspaceId={workspaceId} />)}
@@ -435,6 +408,26 @@ export default function C2CListingDetail() {
                     </DialogContent>
                   </Dialog>
                 </div>
+              )}
+
+              {/* Checkout dialog */}
+              {workspaceId && (
+                <C2CQuickCheckoutDialog
+                  open={checkoutOpen}
+                  onOpenChange={setCheckoutOpen}
+                  listing={{
+                    id: listing.id,
+                    title: listing.title,
+                    price: listing.price,
+                    currency: listing.currency,
+                    photos: listing.photos,
+                    delivery_mode: (listing as any).delivery_mode,
+                  }}
+                  workspaceId={workspaceId}
+                  userEmail={user?.email || ""}
+                  userName=""
+                  isAuthenticated={true}
+                />
               )}
 
               {/* Mobile actions */}
