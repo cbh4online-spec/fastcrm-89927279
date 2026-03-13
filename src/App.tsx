@@ -273,6 +273,9 @@ import C2COrders from "./pages/c2c/C2COrders";
 import C2CContentModeration from "./pages/c2c/C2CContentModeration";
 import C2CLoyaltyProgram from "./pages/c2c/C2CLoyaltyProgram";
 import C2CSellerInviteActivation from "./pages/c2c/C2CSellerInviteActivation";
+import C2CVerificationPage from "./pages/c2c/C2CVerificationPage";
+import C2CDisputesPage from "./pages/c2c/C2CDisputesPage";
+import C2CSellerTiersPage from "./pages/c2c/C2CSellerTiersPage";
 import C2CPublicSellerProfile from "./pages/c2c/C2CPublicSellerProfile";
 
 // FastClub (Community)
