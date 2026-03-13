@@ -114,6 +114,9 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
     county: "",
     parish: "",
     fax: "",
+    about: "",
+    activity_description: "",
+    racius_url: "",
   });
 
   // Enriched fields that user can confirm
@@ -237,6 +240,23 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
         finalData.size = enrichedFields.size;
       }
 
+      // Add NIF lookup fields
+      if (formData.postal_code) finalData.postal_code = formData.postal_code;
+      if (formData.city) finalData.city = formData.city;
+      if (formData.cae_codes.length > 0) finalData.cae_codes = formData.cae_codes;
+      if (formData.cae_description) finalData.cae_description = formData.cae_description;
+      if (formData.company_status) finalData.company_status = formData.company_status;
+      if (formData.legal_nature) finalData.legal_nature = formData.legal_nature;
+      if (formData.capital_social) finalData.capital_social = formData.capital_social;
+      if (formData.founding_date) finalData.founding_date = formData.founding_date;
+      if (formData.region) finalData.region = formData.region;
+      if (formData.county) finalData.county = formData.county;
+      if (formData.parish) finalData.parish = formData.parish;
+      if (formData.fax) finalData.fax = formData.fax;
+      if (formData.about) finalData.about = formData.about;
+      if (formData.activity_description) finalData.activity_description = formData.activity_description;
+      if (formData.racius_url) finalData.racius_url = formData.racius_url;
+
       const result = await createCompany.mutateAsync(finalData as any);
 
       // Save custom fields if any (from both primary and secondary refs)
@@ -326,6 +346,9 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
       county: "",
       parish: "",
       fax: "",
+      about: "",
+      activity_description: "",
+      racius_url: "",
     });
     setEnrichmentData(null);
     setEnrichedFields({});
@@ -422,6 +445,9 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                           county: result.county || prev.county,
                           parish: result.parish || prev.parish,
                           fax: result.fax || prev.fax,
+                          about: result.about || prev.about,
+                          activity_description: result.activity_description || prev.activity_description,
+                          racius_url: result.racius_url || prev.racius_url,
                         }));
                         setShowOptionalFields(true);
                         
@@ -753,6 +779,62 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                     />
                   </div>
                 </div>
+                {/* NIF Data Preview - shown when populated from lookup */}
+                {(formData.address || formData.legal_nature || formData.cae_codes.length > 0 || formData.about) && (
+                  <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30">
+                    <CardContent className="p-4 space-y-3">
+                      <p className="text-xs font-medium text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                        <Search className="w-3.5 h-3.5" />
+                        Dados obtidos via NIF
+                      </p>
+                      <div className="grid gap-1.5 text-xs">
+                        {formData.address && (
+                          <div><span className="text-muted-foreground">Morada:</span> {formData.address}{formData.postal_code ? `, ${formData.postal_code}` : ""}{formData.city ? ` ${formData.city}` : ""}</div>
+                        )}
+                        {formData.region && (
+                          <div><span className="text-muted-foreground">Distrito/Concelho:</span> {formData.region}{formData.county ? ` / ${formData.county}` : ""}{formData.parish ? ` / ${formData.parish}` : ""}</div>
+                        )}
+                        {formData.legal_nature && (
+                          <div><span className="text-muted-foreground">Natureza Jurídica:</span> {formData.legal_nature}</div>
+                        )}
+                        {formData.capital_social && (
+                          <div><span className="text-muted-foreground">Capital Social:</span> {formData.capital_social}</div>
+                        )}
+                        {formData.founding_date && (
+                          <div><span className="text-muted-foreground">Data de Constituição:</span> {formData.founding_date}</div>
+                        )}
+                        {formData.company_status && (
+                          <div><span className="text-muted-foreground">Estado:</span> {formData.company_status}</div>
+                        )}
+                        {formData.cae_codes.length > 0 && (
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <span className="text-muted-foreground">CAE:</span>
+                            {formData.cae_codes.map((code) => (
+                              <Badge key={code} variant="secondary" className="text-[10px] px-1.5 py-0">{code}</Badge>
+                            ))}
+                            {formData.cae_description && <span className="text-muted-foreground">— {formData.cae_description}</span>}
+                          </div>
+                        )}
+                        {formData.activity_description && (
+                          <div><span className="text-muted-foreground">Atividade:</span> {formData.activity_description}</div>
+                        )}
+                        {formData.about && (
+                          <div className="pt-1 border-t border-blue-200 dark:border-blue-800 mt-1">
+                            <span className="text-muted-foreground">Acerca:</span> <span className="line-clamp-3">{formData.about}</span>
+                          </div>
+                        )}
+                        {formData.racius_url && (
+                          <div>
+                            <a href={formData.racius_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                              <Link2 className="w-3 h-3" /> Ver no Racius
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notas</Label>
                   <Textarea
