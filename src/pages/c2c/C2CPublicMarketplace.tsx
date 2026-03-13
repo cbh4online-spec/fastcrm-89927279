@@ -23,12 +23,26 @@ import {
 import { cn } from "@/lib/utils";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
 
-/* ── Workspace resolver ─────────────────────────────────────────── */
+/* ── Workspace resolver (checks c2c_marketplace_config.slug first, then workspaces.slug) */
 function usePublicWorkspace(slug: string | undefined) {
   return useQuery({
     queryKey: ["c2c-public-workspace", slug],
     queryFn: async () => {
       if (!slug) return null;
+
+      // Try c2c_marketplace_config first
+      const { data: mpConfig } = await (supabase as any)
+        .from("c2c_marketplace_config")
+        .select("workspace_id, name, slug")
+        .eq("slug", slug)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (mpConfig) {
+        return { id: mpConfig.workspace_id, name: mpConfig.name, slug: mpConfig.slug };
+      }
+
+      // Fallback to workspaces table
       const { data, error } = await supabase
         .from("workspaces")
         .select("id, name, slug")
