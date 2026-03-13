@@ -280,6 +280,9 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
         { nameKey: "c2cAffiliates", name: t("c2cAffiliates"), href: "/dashboard/c2c/affiliates", icon: TrendingUp, iconColor: "text-rose-500" },
         { nameKey: "c2cReferrals", name: t("c2cReferrals"), href: "/dashboard/c2c/referrals", icon: Users, iconColor: "text-rose-500" },
         { nameKey: "c2cAffiliateAdmin", name: t("c2cAffiliateAdmin"), href: "/dashboard/c2c/affiliate-admin", icon: Settings, iconColor: "text-rose-500" },
+        { nameKey: "c2cVerification", name: "Verificação", href: "/dashboard/c2c/verification", icon: Shield, iconColor: "text-rose-500" },
+        { nameKey: "c2cDisputes", name: "Disputas", href: "/dashboard/c2c/disputes", icon: AlertTriangle, iconColor: "text-rose-500" },
+        { nameKey: "c2cTiers", name: "Tiers", href: "/dashboard/c2c/tiers", icon: Trophy, iconColor: "text-rose-500" },
       ],
     },
     {
