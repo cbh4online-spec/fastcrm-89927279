@@ -268,7 +268,7 @@ function HowItWorks() {
               </div>
               <h3 className="font-semibold text-lg">{step.title}</h3>
               <p className="text-sm text-muted-foreground max-w-xs mx-auto">{step.desc}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
