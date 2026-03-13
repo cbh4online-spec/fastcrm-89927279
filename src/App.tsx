@@ -808,6 +808,13 @@ const App = () => (
               <Route path="/c2c/:workspaceSlug/invite/:token" element={<C2CSellerInviteActivation />} />
               <Route path="/c2c/:workspaceSlug/seller/:sellerId" element={<C2CPublicSellerProfile />} />
 
+              {/* Checkout System (public) */}
+              <Route path="/checkout/recover/:token" element={<RecoverCartPage />} />
+              <Route path="/checkout/:funnelSlug" element={<CheckoutPage />} />
+              <Route path="/checkout/:funnelSlug/upsell/:offerId" element={<UpsellPage />} />
+              <Route path="/checkout/:funnelSlug/downsell/:offerId" element={<DownsellPage />} />
+              <Route path="/checkout/:funnelSlug/thank-you" element={<ThankYouPage />} />
+
               {/* Supplier Portal (public, token-based) */}
               <Route path="/supplier-portal/:token" element={<SupplierPortalPage />} />
               
