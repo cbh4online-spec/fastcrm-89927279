@@ -143,7 +143,20 @@ export default function C2CPublicListingDetail() {
         <meta property="og:description" content={ogDesc} />
         {ogImage && <meta property="og:image" content={ogImage} />}
         <meta property="og:type" content="product" />
+        <link rel="canonical" href={`${window.location.origin}/marketplace/${workspaceSlug}/listing/${id}`} />
       </Helmet>
+      <SchemaOrgProduct
+        name={listing.title}
+        description={listing.description || undefined}
+        price={listing.price}
+        currency={listing.currency ?? "EUR"}
+        image={ogImage}
+        url={`${window.location.origin}/marketplace/${workspaceSlug}/listing/${id}`}
+        condition={listing.condition}
+        sellerName={seller?.display_name}
+        rating={seller?.avg_rating}
+        reviewCount={seller?.total_reviews}
+      />
 
       <div className="min-h-screen bg-zinc-950 text-zinc-100">
         {/* Header */}

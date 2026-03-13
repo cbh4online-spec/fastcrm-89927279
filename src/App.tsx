@@ -673,6 +673,9 @@ function CRMRoutes() {
                 <Route path="/dashboard/c2c/orders" element={<C2COrders />} />
                 <Route path="/dashboard/c2c/moderation" element={<C2CContentModeration />} />
                 <Route path="/dashboard/c2c/loyalty" element={<C2CLoyaltyProgram />} />
+                <Route path="/dashboard/c2c/verification" element={<C2CVerificationPage />} />
+                <Route path="/dashboard/c2c/disputes" element={<C2CDisputesPage />} />
+                <Route path="/dashboard/c2c/tiers" element={<C2CSellerTiersPage />} />
                 <Route path="/dashboard/c2c/seller/:sellerId" element={<C2CSellerProfile />} />
                 <Route path="/dashboard/c2c/edit/:id" element={<C2CEditListing />} />
                 <Route path="/dashboard/c2c/:id" element={<C2CListingDetail />} />
