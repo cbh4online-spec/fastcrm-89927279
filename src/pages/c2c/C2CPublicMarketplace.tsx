@@ -513,14 +513,35 @@ export default function C2CPublicMarketplace() {
                 sponsoredIds={sponsoredIds}
               />
             )}
-            {recentListings.length > 0 && (
-              <SectionCarousel
-                title="Mais Recentes"
-                icon={<Clock className="h-5 w-5 text-primary" />}
-                listings={recentListings}
-                onNavigate={(id) => navigate(`/marketplace/${workspaceSlug}/${id}`)}
-                sponsoredIds={sponsoredIds}
-              />
+
+            {/* Full catalog grid */}
+            {listings.length > 0 && (
+              <section className="space-y-4">
+                <h2 className="text-lg font-bold flex items-center gap-2">
+                  <Store className="h-5 w-5 text-primary" />
+                  Todos os anúncios
+                  <Badge variant="secondary" className="text-xs">{listings.length}</Badge>
+                </h2>
+                <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  {listings.slice(0, visibleCount).map((listing) => (
+                    <ListingCard
+                      key={listing.id}
+                      listing={listing}
+                      isFavorite={false}
+                      onToggleFavorite={() => {}}
+                      onClick={() => navigate(`/marketplace/${workspaceSlug}/${listing.id}`)}
+                      isSponsored={sponsoredIds.includes(listing.id)}
+                    />
+                  ))}
+                </div>
+                {visibleCount < listings.length && (
+                  <div className="text-center pt-4">
+                    <Button variant="outline" size="lg" className="rounded-full gap-2" onClick={() => setVisibleCount((c) => c + 20)}>
+                      Carregar mais ({listings.length - visibleCount} restantes)
+                    </Button>
+                  </div>
+                )}
+              </section>
             )}
           </div>
         )}

@@ -315,23 +315,34 @@ export default function C2CMarketplace() {
               />
             )}
 
-            {categories.map((cat) => {
-              const catListings = listingsByCategory[cat.id] || [];
-              if (catListings.length === 0) return null;
-              return (
-                <SectionCarousel
-                  key={cat.id}
-                  title={cat.name}
-                  icon={<span className="text-lg">{cat.icon || "📦"}</span>}
-                  listings={catListings}
-                  favoriteIds={favoriteIds}
-                  onToggleFavorite={toggleFavorite}
-                  onNavigate={(id) => navigate(`/dashboard/c2c/${id}`)}
-                  seeMoreHref={() => setFilters({ category: cat.id })}
-                  seeMoreLabel={t('seeMore')}
-                />
-              );
-            })}
+            {/* Full catalog grid */}
+            {listings.length > 0 && (
+              <section className="space-y-4">
+                <h2 className="text-lg font-bold flex items-center gap-2">
+                  <Store className="h-5 w-5 text-primary" />
+                  {t('allListings', 'Todos os anúncios')}
+                  <Badge variant="secondary" className="text-xs">{listings.length}</Badge>
+                </h2>
+                <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  {listings.slice(0, visibleCount).map((listing) => (
+                    <ListingCard
+                      key={listing.id}
+                      listing={listing}
+                      isFavorite={favoriteIds.includes(listing.id)}
+                      onToggleFavorite={() => toggleFavorite.mutate(listing.id)}
+                      onClick={() => navigate(`/dashboard/c2c/${listing.id}`)}
+                    />
+                  ))}
+                </div>
+                {visibleCount < listings.length && (
+                  <div className="text-center pt-4">
+                    <Button variant="outline" size="lg" className="rounded-full gap-2" onClick={() => setVisibleCount((c) => c + 20)}>
+                      {t('loadMore', 'Carregar mais')} ({listings.length - visibleCount} {t('remaining', 'restantes')})
+                    </Button>
+                  </div>
+                )}
+              </section>
+            )}
 
             {listings.length === 0 && !isLoading && (
               <div className="text-center py-20">
