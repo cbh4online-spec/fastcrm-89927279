@@ -276,6 +276,7 @@ import C2CSellerInviteActivation from "./pages/c2c/C2CSellerInviteActivation";
 import C2CVerificationPage from "./pages/c2c/C2CVerificationPage";
 import C2CDisputesPage from "./pages/c2c/C2CDisputesPage";
 import C2CSellerTiersPage from "./pages/c2c/C2CSellerTiersPage";
+import MarketplaceConfigPage from "./pages/dashboard/marketplace/MarketplaceConfigPage";
 import C2CPublicSellerProfile from "./pages/c2c/C2CPublicSellerProfile";
 
 // Checkout System
