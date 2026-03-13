@@ -144,7 +144,7 @@ export function useCompanyDuplicateGroups() {
           const domain = extractDomain(c.email);
           if (domain && !["gmail.com", "hotmail.com", "outlook.com", "yahoo.com", "sapo.pt", "mail.com"].includes(domain)) {
             const existing = emailDomainMap.get(domain) || [];
-            existing.push(c as Company);
+            existing.push(c as unknown as Company);
             emailDomainMap.set(domain, existing);
           }
         }
