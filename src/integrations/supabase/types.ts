@@ -4287,6 +4287,110 @@ export type Database = {
           },
         ]
       }
+      c2c_disputes: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          evidence_urls: string[] | null
+          id: string
+          opened_by: string
+          reason: string
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          transaction_id: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          evidence_urls?: string[] | null
+          id?: string
+          opened_by: string
+          reason: string
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          transaction_id: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          evidence_urls?: string[] | null
+          id?: string
+          opened_by?: string
+          reason?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          transaction_id?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_disputes_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_disputes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_escrow: {
+        Row: {
+          created_at: string | null
+          id: string
+          release_reason: string | null
+          release_scheduled_at: string | null
+          released_at: string | null
+          released_by: string | null
+          status: string
+          transaction_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          release_reason?: string | null
+          release_scheduled_at?: string | null
+          released_at?: string | null
+          released_by?: string | null
+          status?: string
+          transaction_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          release_reason?: string | null
+          release_scheduled_at?: string | null
+          released_at?: string | null
+          released_by?: string | null
+          status?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_escrow_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       c2c_favorites: {
         Row: {
           created_at: string
@@ -4349,6 +4453,7 @@ export type Database = {
           photos_360: string[] | null
           price: number
           seller_id: string
+          slug: string | null
           status: string
           title: string
           updated_at: string
@@ -4378,6 +4483,7 @@ export type Database = {
           photos_360?: string[] | null
           price: number
           seller_id: string
+          slug?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -4407,6 +4513,7 @@ export type Database = {
           photos_360?: string[] | null
           price?: number
           seller_id?: string
+          slug?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -4478,6 +4585,59 @@ export type Database = {
           },
           {
             foreignKeyName: "c2c_messages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_moderation_queue: {
+        Row: {
+          action_taken: string | null
+          created_at: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          reason: string
+          report_details: string | null
+          reported_by: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          action_taken?: string | null
+          created_at?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          reason: string
+          report_details?: string | null
+          reported_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          action_taken?: string | null
+          created_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          reason?: string
+          report_details?: string | null
+          reported_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_moderation_queue_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -4683,6 +4843,7 @@ export type Database = {
           amount: number
           created_at: string
           currency: string
+          failed_reason: string | null
           id: string
           method: string
           notes: string | null
@@ -4690,7 +4851,11 @@ export type Database = {
           payout_type: string
           period_end: string | null
           period_start: string | null
+          seller_id: string | null
           status: string
+          stripe_account_id: string | null
+          stripe_payout_id: string | null
+          transactions: string[] | null
           user_id: string
           workspace_id: string
         }
@@ -4698,6 +4863,7 @@ export type Database = {
           amount?: number
           created_at?: string
           currency?: string
+          failed_reason?: string | null
           id?: string
           method?: string
           notes?: string | null
@@ -4705,7 +4871,11 @@ export type Database = {
           payout_type?: string
           period_end?: string | null
           period_start?: string | null
+          seller_id?: string | null
           status?: string
+          stripe_account_id?: string | null
+          stripe_payout_id?: string | null
+          transactions?: string[] | null
           user_id: string
           workspace_id: string
         }
@@ -4713,6 +4883,7 @@ export type Database = {
           amount?: number
           created_at?: string
           currency?: string
+          failed_reason?: string | null
           id?: string
           method?: string
           notes?: string | null
@@ -4720,7 +4891,11 @@ export type Database = {
           payout_type?: string
           period_end?: string | null
           period_start?: string | null
+          seller_id?: string | null
           status?: string
+          stripe_account_id?: string | null
+          stripe_payout_id?: string | null
+          transactions?: string[] | null
           user_id?: string
           workspace_id?: string
         }
@@ -5055,33 +5230,54 @@ export type Database = {
       }
       c2c_reviews: {
         Row: {
+          buyer_email: string | null
           comment: string | null
           created_at: string
           id: string
+          is_hidden: boolean | null
+          is_verified_purchase: boolean | null
           listing_id: string
           rating: number
+          reply: string | null
+          reply_at: string | null
           reviewer_id: string
           seller_id: string
+          title: string | null
+          transaction_id: string | null
           workspace_id: string
         }
         Insert: {
+          buyer_email?: string | null
           comment?: string | null
           created_at?: string
           id?: string
+          is_hidden?: boolean | null
+          is_verified_purchase?: boolean | null
           listing_id: string
           rating: number
+          reply?: string | null
+          reply_at?: string | null
           reviewer_id: string
           seller_id: string
+          title?: string | null
+          transaction_id?: string | null
           workspace_id: string
         }
         Update: {
+          buyer_email?: string | null
           comment?: string | null
           created_at?: string
           id?: string
+          is_hidden?: boolean | null
+          is_verified_purchase?: boolean | null
           listing_id?: string
           rating?: number
+          reply?: string | null
+          reply_at?: string | null
           reviewer_id?: string
           seller_id?: string
+          title?: string | null
+          transaction_id?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -5252,6 +5448,50 @@ export type Database = {
           },
         ]
       }
+      c2c_seller_tiers: {
+        Row: {
+          commission_rate: number
+          created_at: string | null
+          features: Json | null
+          id: string
+          max_active_listings: number
+          max_photos_per_listing: number
+          price_monthly: number | null
+          tier_name: string
+          workspace_id: string
+        }
+        Insert: {
+          commission_rate?: number
+          created_at?: string | null
+          features?: Json | null
+          id?: string
+          max_active_listings?: number
+          max_photos_per_listing?: number
+          price_monthly?: number | null
+          tier_name: string
+          workspace_id: string
+        }
+        Update: {
+          commission_rate?: number
+          created_at?: string | null
+          features?: Json | null
+          id?: string
+          max_active_listings?: number
+          max_photos_per_listing?: number
+          price_monthly?: number | null
+          tier_name?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_seller_tiers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       c2c_sellers: {
         Row: {
           account_holder: string | null
@@ -5259,8 +5499,11 @@ export type Database = {
           approved_by: string | null
           avatar_url: string | null
           avg_rating: number | null
+          balance_available: number | null
+          balance_pending: number | null
           bank_name: string | null
           bio: string | null
+          boost_credits: number | null
           commission_rate: number | null
           created_at: string
           display_name: string
@@ -5268,15 +5511,23 @@ export type Database = {
           id: string
           is_verified: boolean | null
           location: string | null
+          max_active_listings: number | null
           nif: string | null
+          payout_enabled: boolean | null
           phone: string | null
           rejection_reason: string | null
           status: Database["public"]["Enums"]["c2c_seller_status"]
+          stripe_account_id: string | null
+          stripe_account_status: string | null
+          tier: string | null
           total_revenue: number | null
           total_reviews: number | null
           total_sales: number | null
           updated_at: string
           user_id: string
+          verification_documents: Json | null
+          verification_status: string | null
+          verified_at: string | null
           workspace_id: string
         }
         Insert: {
@@ -5285,8 +5536,11 @@ export type Database = {
           approved_by?: string | null
           avatar_url?: string | null
           avg_rating?: number | null
+          balance_available?: number | null
+          balance_pending?: number | null
           bank_name?: string | null
           bio?: string | null
+          boost_credits?: number | null
           commission_rate?: number | null
           created_at?: string
           display_name: string
@@ -5294,15 +5548,23 @@ export type Database = {
           id?: string
           is_verified?: boolean | null
           location?: string | null
+          max_active_listings?: number | null
           nif?: string | null
+          payout_enabled?: boolean | null
           phone?: string | null
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["c2c_seller_status"]
+          stripe_account_id?: string | null
+          stripe_account_status?: string | null
+          tier?: string | null
           total_revenue?: number | null
           total_reviews?: number | null
           total_sales?: number | null
           updated_at?: string
           user_id: string
+          verification_documents?: Json | null
+          verification_status?: string | null
+          verified_at?: string | null
           workspace_id: string
         }
         Update: {
@@ -5311,8 +5573,11 @@ export type Database = {
           approved_by?: string | null
           avatar_url?: string | null
           avg_rating?: number | null
+          balance_available?: number | null
+          balance_pending?: number | null
           bank_name?: string | null
           bio?: string | null
+          boost_credits?: number | null
           commission_rate?: number | null
           created_at?: string
           display_name?: string
@@ -5320,15 +5585,23 @@ export type Database = {
           id?: string
           is_verified?: boolean | null
           location?: string | null
+          max_active_listings?: number | null
           nif?: string | null
+          payout_enabled?: boolean | null
           phone?: string | null
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["c2c_seller_status"]
+          stripe_account_id?: string | null
+          stripe_account_status?: string | null
+          tier?: string | null
           total_revenue?: number | null
           total_reviews?: number | null
           total_sales?: number | null
           updated_at?: string
           user_id?: string
+          verification_documents?: Json | null
+          verification_status?: string | null
+          verified_at?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -5394,6 +5667,138 @@ export type Database = {
           },
           {
             foreignKeyName: "c2c_sponsored_listings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_transactions: {
+        Row: {
+          amount_fee: number
+          amount_seller: number
+          amount_total: number
+          buyer_email: string
+          buyer_name: string | null
+          buyer_phone: string | null
+          created_at: string | null
+          currency: string | null
+          escrow_released_at: string | null
+          id: string
+          listing_id: string | null
+          metadata: Json | null
+          status: string
+          stripe_payment_intent_id: string | null
+          stripe_refund_id: string | null
+          stripe_transfer_id: string | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          amount_fee: number
+          amount_seller: number
+          amount_total: number
+          buyer_email: string
+          buyer_name?: string | null
+          buyer_phone?: string | null
+          created_at?: string | null
+          currency?: string | null
+          escrow_released_at?: string | null
+          id?: string
+          listing_id?: string | null
+          metadata?: Json | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_refund_id?: string | null
+          stripe_transfer_id?: string | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          amount_fee?: number
+          amount_seller?: number
+          amount_total?: number
+          buyer_email?: string
+          buyer_name?: string | null
+          buyer_phone?: string | null
+          created_at?: string | null
+          currency?: string | null
+          escrow_released_at?: string | null
+          id?: string
+          listing_id?: string | null
+          metadata?: Json | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_refund_id?: string | null
+          stripe_transfer_id?: string | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_transactions_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_transactions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      c2c_verification_requests: {
+        Row: {
+          created_at: string | null
+          document_type: string
+          document_url: string
+          id: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          seller_id: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          document_type: string
+          document_url: string
+          id?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          seller_id: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          document_type?: string
+          document_url?: string
+          id?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          seller_id?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "c2c_verification_requests_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "c2c_sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "c2c_verification_requests_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

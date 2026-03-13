@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
+import { ShareListingButton } from "@/components/c2c/public/ShareListingButton";
+import { ReviewsList } from "@/components/c2c/reviews/ReviewsList";
 import { C2CPublicOfferDialog } from "@/components/c2c/C2CPublicOfferDialog";
 import { C2CQuickCheckoutDialog } from "@/components/c2c/C2CQuickCheckoutDialog";
 import { getShareUrl } from "@/utils/getShareUrl";
@@ -373,6 +375,22 @@ export default function C2CPublicListingDetail() {
                   <Tag className="h-4 w-4 text-amber-500/70" />
                   <span>Pagamento seguro entre utilizadores</span>
                 </div>
+              </div>
+
+              {/* Share */}
+              <ShareListingButton
+                url={`/marketplace/${workspaceSlug}/listing/${listing.id}`}
+                title={listing.title}
+                description={listing.description?.slice(0, 160)}
+                className="w-full border-zinc-700 text-zinc-300"
+              />
+            </div>
+
+            {/* Reviews section */}
+            <div className="md:col-span-2 mt-8">
+              <h2 className="text-lg font-semibold text-zinc-100 mb-4">Avaliações</h2>
+              <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-5">
+                <ReviewsList listingId={listing.id} />
               </div>
             </div>
           </div>
