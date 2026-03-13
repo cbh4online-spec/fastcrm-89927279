@@ -260,8 +260,6 @@ function HowItWorks() {
               key={step.title}
               className="text-center space-y-3"
             >
-              className="text-center space-y-3"
-            >
               <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
                 <step.icon className="h-7 w-7 text-primary" />
               </div>
