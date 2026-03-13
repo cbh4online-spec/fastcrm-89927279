@@ -36,6 +36,15 @@ function usePublicWorkspace(slug: string | undefined) {
     queryKey: ["c2c-public-workspace", slug],
     queryFn: async () => {
       if (!slug) return null;
+      // Try c2c_marketplace_config first
+      const { data: mpConfig } = await (supabase as any)
+        .from("c2c_marketplace_config")
+        .select("workspace_id, name, slug")
+        .eq("slug", slug)
+        .eq("status", "active")
+        .maybeSingle();
+      if (mpConfig) return { id: mpConfig.workspace_id, name: mpConfig.name, slug: mpConfig.slug };
+      // Fallback
       const { data, error } = await supabase
         .from("workspaces")
         .select("id, name, slug")

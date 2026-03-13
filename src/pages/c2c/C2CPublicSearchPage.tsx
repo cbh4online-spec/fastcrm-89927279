@@ -20,6 +20,14 @@ export default function C2CPublicSearchPage() {
     queryKey: ["c2c-public-workspace", workspaceSlug],
     queryFn: async () => {
       if (!workspaceSlug) return null;
+      // Try c2c_marketplace_config first
+      const { data: mpConfig } = await (supabase as any)
+        .from("c2c_marketplace_config")
+        .select("workspace_id, name, slug")
+        .eq("slug", workspaceSlug)
+        .eq("status", "active")
+        .maybeSingle();
+      if (mpConfig) return { id: mpConfig.workspace_id, name: mpConfig.name, slug: mpConfig.slug };
       const { data, error } = await supabase.from("workspaces").select("id, name, slug").eq("slug", workspaceSlug).single();
       if (error) throw error;
       return data;
