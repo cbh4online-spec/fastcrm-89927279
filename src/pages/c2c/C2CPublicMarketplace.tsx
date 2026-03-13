@@ -468,7 +468,7 @@ export default function C2CPublicMarketplace() {
             }}
             selected={filters.category}
           />
-        </motion.div>
+        </div>
 
         {hasActiveFilters ? (
           <div className="space-y-6">
