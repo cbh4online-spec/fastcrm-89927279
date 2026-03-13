@@ -4,7 +4,7 @@
  * Supports: email, phone, Instagram, LinkedIn, Facebook, Twitter/X, generic websites.
  * Only fills empty fields — never overwrites existing data.
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
