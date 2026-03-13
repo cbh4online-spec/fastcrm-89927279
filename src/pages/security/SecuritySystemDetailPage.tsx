@@ -13,7 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Camera, MapPin, Cpu, Layers, Plus, CheckCircle, FileText } from "lucide-react";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabase } from "@/integrations/supabase/client";
+const supabase = _supabase as any;
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { SecurityDocumentCreateDialog } from "@/components/security/SecurityDocumentCreateDialog";
@@ -90,7 +91,7 @@ export default function SecuritySystemDetailPage() {
     acc[type] = (acc[type] || 0) + (d.quantity ?? 1);
     return acc;
   }, {});
-  const totalDevices = Object.values(devicesByType).reduce((s: number, v) => s + (v as number), 0);
+  const totalDevices = (Object.values(devicesByType) as number[]).reduce((s, v) => s + v, 0);
 
   return (
     <DashboardLayout>

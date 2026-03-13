@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Building2, MapPin, User, Camera } from "lucide-react";
 import { SecurityQRCode } from "@/components/security/SecurityQRCode";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabase } from "@/integrations/supabase/client";
+const supabase = _supabase as any;
 
 export default function SecuritySiteDetailPage() {
   const { t } = useTranslation("security");

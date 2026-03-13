@@ -7,7 +7,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Users, Mail, Send, Clock, CheckCircle, Loader2, Bell, Copy, ExternalLink } from "lucide-react";
 import { useVisionDuoLinks, useCreateDuoInvite } from "@/hooks/useVision";
 import { useVisionDuoNotifications } from "@/hooks/useVisionDuo";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabase } from "@/integrations/supabase/client";
+const supabase = _supabase as any;
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 

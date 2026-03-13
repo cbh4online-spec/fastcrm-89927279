@@ -15,7 +15,8 @@ import { ArrowLeft, Wrench, MapPin, Clock, CheckCircle, Play } from "lucide-reac
 import { format, isPast, isToday, addMonths } from "date-fns";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabase } from "@/integrations/supabase/client";
+const supabase = _supabase as any;
 
 const statusLabels: Record<string, string> = {
   scheduled: "Agendada",
