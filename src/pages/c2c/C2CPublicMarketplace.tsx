@@ -199,12 +199,7 @@ function HeroSection({ onExplore, onSell }: { onExplore: () => void; onSell: () 
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.15),transparent_50%)]" />
       <div className="container mx-auto px-4 py-16 md:py-24 relative z-10">
         <div className="grid md:grid-cols-2 gap-10 items-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="space-y-6"
-          >
+           <div className="space-y-6">
             <Badge className="bg-white/20 text-primary-foreground hover:bg-white/30 border-0 text-xs">
               <Sparkles className="h-3 w-3 mr-1" /> Marketplace C2C
             </Badge>
