@@ -224,7 +224,6 @@ function HeroSection({ onExplore, onSell }: { onExplore: () => void; onSell: () 
           </div>
 
           <div className="hidden md:grid grid-cols-2 gap-4">
-          >
             {[
               { icon: ShieldCheck, label: "Compra Segura", desc: "Transações protegidas" },
               { icon: Users, label: "Comunidade Ativa", desc: "Milhares de utilizadores" },
