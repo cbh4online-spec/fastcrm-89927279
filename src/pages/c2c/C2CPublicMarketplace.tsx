@@ -221,7 +221,7 @@ function HeroSection({ onExplore, onSell }: { onExplore: () => void; onSell: () 
                 Começar a Vender
               </Button>
             </div>
-          </motion.div>
+          </div>
 
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
