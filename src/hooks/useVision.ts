@@ -173,7 +173,7 @@ export function useUpdateSprint() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; status?: string; metrics?: Json; closed_at?: string | null; review_notes?: string | null; title?: string; goal?: string }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; status?: string; metrics?: any; closed_at?: string | null; review_notes?: string | null; title?: string; goal?: string }) => {
       const { data, error } = await supabase
         .from("vision_sprints")
         .update(updates)
