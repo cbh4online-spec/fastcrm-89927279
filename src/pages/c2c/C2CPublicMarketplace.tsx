@@ -333,6 +333,7 @@ export default function C2CPublicMarketplace() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [showListings, setShowListings] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(20);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
