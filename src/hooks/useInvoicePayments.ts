@@ -27,7 +27,7 @@ export interface RegisterPaymentInput {
 }
 
 export function useInvoicePayments(invoiceId: string | undefined) {
-  const { workspaceClient } = useWorkspaceInstance();
+  const workspaceClient = useWorkspaceInstance().workspaceClient as any;
 
   return useQuery({
     queryKey: ["invoice-payments", invoiceId],
