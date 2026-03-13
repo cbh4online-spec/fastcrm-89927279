@@ -33,6 +33,11 @@ export interface NifLookupResult {
   
   // External links
   racius_url: string | null;
+  
+  // Rich context from Racius
+  about: string | null;
+  activity_description: string | null;
+  company_age: number | null;
 }
 
 export interface UseNifLookupOptions {
