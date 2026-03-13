@@ -346,6 +346,9 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
       county: "",
       parish: "",
       fax: "",
+      about: "",
+      activity_description: "",
+      racius_url: "",
     });
     setEnrichmentData(null);
     setEnrichedFields({});
