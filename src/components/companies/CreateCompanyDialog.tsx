@@ -776,6 +776,62 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
                     />
                   </div>
                 </div>
+                {/* NIF Data Preview - shown when populated from lookup */}
+                {(formData.address || formData.legal_nature || formData.cae_codes.length > 0 || formData.about) && (
+                  <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30">
+                    <CardContent className="p-4 space-y-3">
+                      <p className="text-xs font-medium text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                        <Search className="w-3.5 h-3.5" />
+                        Dados obtidos via NIF
+                      </p>
+                      <div className="grid gap-1.5 text-xs">
+                        {formData.address && (
+                          <div><span className="text-muted-foreground">Morada:</span> {formData.address}{formData.postal_code ? `, ${formData.postal_code}` : ""}{formData.city ? ` ${formData.city}` : ""}</div>
+                        )}
+                        {formData.region && (
+                          <div><span className="text-muted-foreground">Distrito/Concelho:</span> {formData.region}{formData.county ? ` / ${formData.county}` : ""}{formData.parish ? ` / ${formData.parish}` : ""}</div>
+                        )}
+                        {formData.legal_nature && (
+                          <div><span className="text-muted-foreground">Natureza Jurídica:</span> {formData.legal_nature}</div>
+                        )}
+                        {formData.capital_social && (
+                          <div><span className="text-muted-foreground">Capital Social:</span> {formData.capital_social}</div>
+                        )}
+                        {formData.founding_date && (
+                          <div><span className="text-muted-foreground">Data de Constituição:</span> {formData.founding_date}</div>
+                        )}
+                        {formData.company_status && (
+                          <div><span className="text-muted-foreground">Estado:</span> {formData.company_status}</div>
+                        )}
+                        {formData.cae_codes.length > 0 && (
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <span className="text-muted-foreground">CAE:</span>
+                            {formData.cae_codes.map((code) => (
+                              <Badge key={code} variant="secondary" className="text-[10px] px-1.5 py-0">{code}</Badge>
+                            ))}
+                            {formData.cae_description && <span className="text-muted-foreground">— {formData.cae_description}</span>}
+                          </div>
+                        )}
+                        {formData.activity_description && (
+                          <div><span className="text-muted-foreground">Atividade:</span> {formData.activity_description}</div>
+                        )}
+                        {formData.about && (
+                          <div className="pt-1 border-t border-blue-200 dark:border-blue-800 mt-1">
+                            <span className="text-muted-foreground">Acerca:</span> <span className="line-clamp-3">{formData.about}</span>
+                          </div>
+                        )}
+                        {formData.racius_url && (
+                          <div>
+                            <a href={formData.racius_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                              <Link2 className="w-3 h-3" /> Ver no Racius
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notas</Label>
                   <Textarea
