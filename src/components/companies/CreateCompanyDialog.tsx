@@ -240,6 +240,23 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
         finalData.size = enrichedFields.size;
       }
 
+      // Add NIF lookup fields
+      if (formData.postal_code) finalData.postal_code = formData.postal_code;
+      if (formData.city) finalData.city = formData.city;
+      if (formData.cae_codes.length > 0) finalData.cae_codes = formData.cae_codes;
+      if (formData.cae_description) finalData.cae_description = formData.cae_description;
+      if (formData.company_status) finalData.company_status = formData.company_status;
+      if (formData.legal_nature) finalData.legal_nature = formData.legal_nature;
+      if (formData.capital_social) finalData.capital_social = formData.capital_social;
+      if (formData.founding_date) finalData.founding_date = formData.founding_date;
+      if (formData.region) finalData.region = formData.region;
+      if (formData.county) finalData.county = formData.county;
+      if (formData.parish) finalData.parish = formData.parish;
+      if (formData.fax) finalData.fax = formData.fax;
+      if (formData.about) finalData.about = formData.about;
+      if (formData.activity_description) finalData.activity_description = formData.activity_description;
+      if (formData.racius_url) finalData.racius_url = formData.racius_url;
+
       const result = await createCompany.mutateAsync(finalData as any);
 
       // Save custom fields if any (from both primary and secondary refs)
