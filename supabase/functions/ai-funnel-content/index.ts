@@ -12,7 +12,7 @@ const STYLE_PROMPTS: Record<string, string> = {
   minimal: "Minimalist clean design, lots of white space, subtle tones, elegant simplicity, sophisticated",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
