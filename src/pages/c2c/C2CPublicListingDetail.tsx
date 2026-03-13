@@ -167,7 +167,7 @@ export default function C2CPublicListingDetail() {
         reviewCount={seller?.total_reviews}
       />
 
-      <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      <div className="light min-h-screen bg-white text-zinc-900" style={{ colorScheme: 'light' }}>
         {/* Header */}
         <header className="sticky top-0 z-30 bg-zinc-950/90 backdrop-blur-md border-b border-amber-500/10">
           <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
