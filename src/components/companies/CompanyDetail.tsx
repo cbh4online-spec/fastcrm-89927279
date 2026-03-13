@@ -98,11 +98,12 @@ export function CompanyDetail() {
 
   // Handler for NIF lookup data received
   const handleNifDataReceived = useCallback(async (data: NifLookupResult) => {
-    if (!company) return;
+    if (!company) {
+      console.warn("[NIF] No company found, skipping update");
+      return;
+    }
     
-    const updateData: Record<string, unknown> = {
-      id: company.id,
-    };
+    const updateData: Record<string, unknown> = {};
 
     if (data.company_name && !company.name) updateData.name = data.company_name;
     if (data.address) updateData.address = data.address;
@@ -128,9 +129,16 @@ export function CompanyDetail() {
       updateData.industry = generateIndustrySummary(data.cae_description);
     }
 
-    if (Object.keys(updateData).length > 1) {
-      await updateCompany.mutateAsync(updateData as { id: string });
-      toast.success("Dados da empresa preenchidos automaticamente!");
+    console.log("[NIF] Enrichment data to save:", Object.keys(updateData));
+
+    if (Object.keys(updateData).length > 0) {
+      try {
+        await updateCompany.mutateAsync({ id: company.id, ...updateData } as any);
+        toast.success("Dados da empresa preenchidos automaticamente!");
+      } catch (error) {
+        console.error("[NIF] Error saving enrichment data:", error);
+        toast.error("Erro ao guardar dados do NIF");
+      }
     }
   }, [company, updateCompany]);
 
