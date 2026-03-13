@@ -68,7 +68,7 @@ function useSellerProfile(sellerId: string | undefined) {
       if (!sellerId) return null;
       const { data, error } = await supabase
         .from("c2c_sellers")
-        .select("id, display_name, avatar_url, avg_rating, total_sales, is_verified")
+        .select("id, user_id, display_name, avatar_url, avg_rating, total_sales, is_verified")
         .eq("user_id", sellerId)
         .single();
       if (error) return null;
@@ -279,7 +279,7 @@ export default function C2CPublicListingDetail() {
                 <div className="space-y-2">
                   <Button
                     className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-zinc-950 font-semibold h-12 text-base"
-                    onClick={() => navigate(`/c2c/${workspaceSlug}/sell`)}
+                    onClick={() => navigate(`/c2c/${workspaceSlug}/seller/${listing.seller_id}`)}
                   >
                     <MessageCircle className="h-5 w-5 mr-2" /> Contactar vendedor
                   </Button>
@@ -329,7 +329,7 @@ export default function C2CPublicListingDetail() {
                     variant="outline"
                     size="sm"
                     className="w-full border-zinc-700 text-zinc-300 hover:text-amber-400 hover:border-amber-500/30"
-                    onClick={() => navigate(`/c2c/${workspaceSlug}/seller/${seller.id}`)}
+                    onClick={() => navigate(`/c2c/${workspaceSlug}/seller/${seller.user_id ?? seller.id}`)}
                   >
                     Ver perfil do vendedor
                   </Button>
