@@ -48,7 +48,7 @@ export function useInvoicePayments(invoiceId: string | undefined) {
 export function useRegisterPayment() {
   const queryClient = useQueryClient();
   const { currentWorkspace } = useWorkspace();
-  const { workspaceClient } = useWorkspaceInstance();
+  const workspaceClient = useWorkspaceInstance().workspaceClient as any;
   const { t } = useTranslation("invoices");
 
   return useMutation({
