@@ -76,6 +76,7 @@ import {
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 export default function Invoices() {
+  const navigate = useNavigate();
   const { t } = useTranslation("invoices");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
