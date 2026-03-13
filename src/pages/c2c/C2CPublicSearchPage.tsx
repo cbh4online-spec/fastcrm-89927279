@@ -65,23 +65,23 @@ export default function C2CPublicSearchPage() {
       <Helmet>
         <title>{q ? `"${q}" — Pesquisa` : "Pesquisa"} — Marketplace</title>
       </Helmet>
-      <div className="min-h-screen bg-zinc-950 text-zinc-100">
-        <header className="sticky top-0 z-30 bg-zinc-950/90 backdrop-blur-md border-b border-amber-500/10">
+      <div className="light min-h-screen bg-white text-zinc-900" style={{ colorScheme: 'light' }}>
+        <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-zinc-200">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="text-zinc-400" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
+            <Button variant="ghost" size="icon" className="text-zinc-500" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <form onSubmit={handleSearch} className="flex-1 flex gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Pesquisar anúncios..."
-                  className="pl-9 bg-zinc-900 border-zinc-800 text-zinc-100"
+                  className="pl-9 bg-zinc-50 border-zinc-200 text-zinc-900"
                 />
               </div>
-              <Button type="submit" size="sm" className="bg-amber-500 text-zinc-950 hover:bg-amber-600">
+              <Button type="submit" size="sm" className="bg-amber-500 text-white hover:bg-amber-600">
                 Pesquisar
               </Button>
             </form>
@@ -95,7 +95,7 @@ export default function C2CPublicSearchPage() {
               <p>Pesquisa por artigos no marketplace</p>
             </div>
           ) : isLoading ? (
-            <p className="text-zinc-400">A pesquisar "{q}"...</p>
+            <p className="text-zinc-500">A pesquisar "{q}"...</p>
           ) : listings.length === 0 ? (
             <div className="text-center py-16 text-zinc-500">
               <p>Sem resultados para "{q}"</p>

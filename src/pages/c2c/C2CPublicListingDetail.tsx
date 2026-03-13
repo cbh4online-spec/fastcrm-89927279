@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
-import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -113,13 +112,13 @@ export default function C2CPublicListingDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+      <div className="light min-h-screen bg-white flex items-center justify-center" style={{ colorScheme: 'light' }}>
         <div className="w-full max-w-4xl mx-auto px-4 py-12 space-y-6">
-          <Skeleton className="h-8 w-48 bg-zinc-800" />
-          <Skeleton className="h-[400px] w-full rounded-2xl bg-zinc-800" />
+          <Skeleton className="h-8 w-48 bg-zinc-200" />
+          <Skeleton className="h-[400px] w-full rounded-2xl bg-zinc-200" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Skeleton className="h-40 bg-zinc-800 rounded-xl" />
-            <Skeleton className="h-40 bg-zinc-800 rounded-xl" />
+            <Skeleton className="h-40 bg-zinc-200 rounded-xl" />
+            <Skeleton className="h-40 bg-zinc-200 rounded-xl" />
           </div>
         </div>
       </div>
@@ -128,12 +127,12 @@ export default function C2CPublicListingDetail() {
 
   if (!listing) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-400">
+      <div className="light min-h-screen bg-white flex items-center justify-center text-zinc-500" style={{ colorScheme: 'light' }}>
         <div className="text-center space-y-4">
           <p className="text-xl">Anúncio não encontrado</p>
           <Button
             variant="outline"
-            className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+            className="border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
             onClick={() => navigate(`/marketplace/${workspaceSlug}`)}
           >
             <ArrowLeft className="h-4 w-4 mr-2" /> Voltar ao Marketplace
@@ -167,14 +166,14 @@ export default function C2CPublicListingDetail() {
         reviewCount={seller?.total_reviews}
       />
 
-      <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      <div className="light min-h-screen bg-white text-zinc-900" style={{ colorScheme: 'light' }}>
         {/* Header */}
-        <header className="sticky top-0 z-30 bg-zinc-950/90 backdrop-blur-md border-b border-amber-500/10">
+        <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-zinc-200">
           <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
             <Button
               variant="ghost"
               size="sm"
-              className="text-zinc-400 hover:text-amber-400"
+              className="text-zinc-500 hover:text-amber-600"
               onClick={() => navigate(`/marketplace/${workspaceSlug}`)}
             >
               <ArrowLeft className="h-4 w-4 mr-2" /> Marketplace
@@ -192,20 +191,15 @@ export default function C2CPublicListingDetail() {
             {/* Left: Photos */}
             <div className="lg:col-span-3 space-y-4">
               {/* Main photo */}
-              <motion.div
-                className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-              >
+              <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-200">
                 {photos.length > 0 ? (
                   <img
                     src={photos[photoIndex]}
                     alt={listing.title}
-                    className="w-full h-full object-contain bg-zinc-900"
+                    className="w-full h-full object-contain bg-zinc-100"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                  <div className="w-full h-full flex items-center justify-center text-zinc-400">
                     <span className="text-6xl">📦</span>
                   </div>
                 )}
@@ -213,23 +207,23 @@ export default function C2CPublicListingDetail() {
                 {photos.length > 1 && (
                   <>
                     <button
-                      className="absolute left-3 top-1/2 -translate-y-1/2 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 rounded-full p-2 transition-colors"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-zinc-700 rounded-full p-2 transition-colors shadow"
                       onClick={() => setPhotoIndex((i) => (i - 1 + photos.length) % photos.length)}
                     >
                       <ChevronLeft className="h-5 w-5" />
                     </button>
                     <button
-                      className="absolute right-3 top-1/2 -translate-y-1/2 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 rounded-full p-2 transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-zinc-700 rounded-full p-2 transition-colors shadow"
                       onClick={() => setPhotoIndex((i) => (i + 1) % photos.length)}
                     >
                       <ChevronRight className="h-5 w-5" />
                     </button>
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-zinc-900/80 rounded-full px-3 py-1 text-xs text-zinc-400">
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 rounded-full px-3 py-1 text-xs text-white">
                       {photoIndex + 1} / {photos.length}
                     </div>
                   </>
                 )}
-              </motion.div>
+              </div>
 
               {/* Thumbnails */}
               {photos.length > 1 && (
@@ -240,7 +234,7 @@ export default function C2CPublicListingDetail() {
                       onClick={() => setPhotoIndex(i)}
                       className={cn(
                         "flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all",
-                        i === photoIndex ? "border-amber-500 ring-1 ring-amber-500/50" : "border-zinc-700 opacity-60 hover:opacity-100"
+                        i === photoIndex ? "border-amber-500 ring-1 ring-amber-500/50" : "border-zinc-300 opacity-60 hover:opacity-100"
                       )}
                     >
                       <img src={photo} alt="" className="w-full h-full object-cover" />
@@ -251,31 +245,21 @@ export default function C2CPublicListingDetail() {
 
               {/* Description */}
               {listing.description && (
-                <motion.div
-                  className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <h2 className="text-sm font-semibold text-amber-400 mb-3">Descrição</h2>
-                  <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap">
+                <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-5">
+                  <h2 className="text-sm font-semibold text-amber-600 mb-3">Descrição</h2>
+                  <p className="text-zinc-700 text-sm leading-relaxed whitespace-pre-wrap">
                     {listing.description}
                   </p>
-                </motion.div>
+                </div>
               )}
             </div>
 
             {/* Right: Details + CTA */}
             <div className="lg:col-span-2 space-y-5">
-              <motion.div
-                className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-5 space-y-4"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.4 }}
-              >
+              <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-5 space-y-4">
                 {/* Price */}
                 <div className="flex items-baseline justify-between">
-                  <span className="text-3xl font-bold text-amber-400">
+                  <span className="text-3xl font-bold text-amber-600">
                     {listing.price.toFixed(0)}€
                   </span>
                   <Badge variant="outline" className={cn("text-xs border", condition.color)}>
@@ -284,7 +268,7 @@ export default function C2CPublicListingDetail() {
                 </div>
 
                 {/* Title */}
-                <h1 className="text-xl font-semibold text-zinc-100 leading-tight">
+                <h1 className="text-xl font-semibold text-zinc-900 leading-tight">
                   {listing.title}
                 </h1>
 
@@ -306,7 +290,7 @@ export default function C2CPublicListingDetail() {
                 {/* CTA */}
                 <div className="space-y-2">
                   <Button
-                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-zinc-950 font-semibold h-12 text-base"
+                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold h-12 text-base"
                     onClick={() => setCheckoutOpen(true)}
                   >
                     <ShoppingBag className="h-5 w-5 mr-2" /> Comprar Agora — {listing.price.toFixed(0)}€
@@ -314,7 +298,7 @@ export default function C2CPublicListingDetail() {
 
                   <Button
                     variant="outline"
-                    className="w-full border-amber-500/30 text-amber-400 hover:bg-amber-500/10 h-11"
+                    className="w-full border-amber-500/30 text-amber-600 hover:bg-amber-500/10 h-11"
                     onClick={() => navigate(`/c2c/${workspaceSlug}/seller/${listing.seller_id}`)}
                   >
                     <MessageCircle className="h-4 w-4 mr-2" /> Contactar vendedor
@@ -348,29 +332,24 @@ export default function C2CPublicListingDetail() {
                     isAuthenticated={false}
                   />
                 )}
-              </motion.div>
+              </div>
 
               {/* Seller card */}
               {seller && (
-                <motion.div
-                  className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-5 space-y-3"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.15, duration: 0.4 }}
-                >
+                <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-5 space-y-3">
                   <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Vendedor</h3>
                   <div className="flex items-center gap-3">
                     {seller.avatar_url ? (
-                      <img src={seller.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover border border-zinc-700" />
+                      <img src={seller.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover border border-zinc-300" />
                     ) : (
-                      <div className="h-10 w-10 rounded-full bg-zinc-800 flex items-center justify-center">
+                      <div className="h-10 w-10 rounded-full bg-zinc-200 flex items-center justify-center">
                         <User className="h-5 w-5 text-zinc-500" />
                       </div>
                     )}
                     <div>
-                      <p className="font-medium text-zinc-200 flex items-center gap-1.5">
+                      <p className="font-medium text-zinc-800 flex items-center gap-1.5">
                         {seller.display_name}
-                        {seller.is_verified && <ShieldCheck className="h-4 w-4 text-amber-400" />}
+                        {seller.is_verified && <ShieldCheck className="h-4 w-4 text-amber-500" />}
                       </p>
                       <p className="text-xs text-zinc-500">
                         {seller.total_sales ?? 0} vendas
@@ -381,22 +360,22 @@ export default function C2CPublicListingDetail() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full border-zinc-700 text-zinc-300 hover:text-amber-400 hover:border-amber-500/30"
+                    className="w-full border-zinc-300 text-zinc-700 hover:text-amber-600 hover:border-amber-500/30"
                     onClick={() => navigate(`/c2c/${workspaceSlug}/seller/${seller.user_id ?? seller.id}`)}
                   >
                     Ver perfil do vendedor
                   </Button>
-                </motion.div>
+                </div>
               )}
 
               {/* Trust badges */}
-              <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-4 space-y-2">
-                <div className="flex items-center gap-2 text-xs text-zinc-500">
-                  <ShieldCheck className="h-4 w-4 text-amber-500/70" />
+              <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 space-y-2">
+                <div className="flex items-center gap-2 text-xs text-zinc-600">
+                  <ShieldCheck className="h-4 w-4 text-amber-500" />
                   <span>Anúncio verificado pela moderação</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-zinc-500">
-                  <Tag className="h-4 w-4 text-amber-500/70" />
+                <div className="flex items-center gap-2 text-xs text-zinc-600">
+                  <Tag className="h-4 w-4 text-amber-500" />
                   <span>Pagamento seguro entre utilizadores</span>
                 </div>
               </div>
@@ -407,7 +386,7 @@ export default function C2CPublicListingDetail() {
                   url={`/marketplace/${workspaceSlug}/listing/${listing.id}`}
                   title={listing.title}
                   description={listing.description?.slice(0, 160)}
-                  className="flex-1 border-zinc-700 text-zinc-300"
+                  className="flex-1 border-zinc-300 text-zinc-700"
                 />
                 {workspace && (
                   <ReportListingButton listingId={listing.id} workspaceId={workspace.id} />
@@ -417,8 +396,8 @@ export default function C2CPublicListingDetail() {
 
             {/* Reviews section */}
             <div className="md:col-span-2 mt-8">
-              <h2 className="text-lg font-semibold text-zinc-100 mb-4">Avaliações</h2>
-              <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-5">
+              <h2 className="text-lg font-semibold text-zinc-900 mb-4">Avaliações</h2>
+              <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-5">
                 <ReviewsList listingId={listing.id} />
               </div>
             </div>

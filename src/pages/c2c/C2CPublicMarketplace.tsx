@@ -2,7 +2,6 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
-import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
@@ -200,12 +199,7 @@ function HeroSection({ onExplore, onSell }: { onExplore: () => void; onSell: () 
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.15),transparent_50%)]" />
       <div className="container mx-auto px-4 py-16 md:py-24 relative z-10">
         <div className="grid md:grid-cols-2 gap-10 items-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="space-y-6"
-          >
+           <div className="space-y-6">
             <Badge className="bg-white/20 text-primary-foreground hover:bg-white/30 border-0 text-xs">
               <Sparkles className="h-3 w-3 mr-1" /> Marketplace C2C
             </Badge>
@@ -227,14 +221,9 @@ function HeroSection({ onExplore, onSell }: { onExplore: () => void; onSell: () 
                 Começar a Vender
               </Button>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="hidden md:grid grid-cols-2 gap-4"
-          >
+          <div className="hidden md:grid grid-cols-2 gap-4">
             {[
               { icon: ShieldCheck, label: "Compra Segura", desc: "Transações protegidas" },
               { icon: Users, label: "Comunidade Ativa", desc: "Milhares de utilizadores" },
@@ -247,7 +236,7 @@ function HeroSection({ onExplore, onSell }: { onExplore: () => void; onSell: () 
                 <p className="text-xs text-primary-foreground/70">{desc}</p>
               </div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>
@@ -267,11 +256,8 @@ function HowItWorks() {
         <h2 className="text-2xl font-bold text-center mb-8">Como funciona</h2>
         <div className="grid md:grid-cols-3 gap-8">
           {steps.map((step, i) => (
-            <motion.div
+            <div
               key={step.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
               className="text-center space-y-3"
             >
               <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -279,7 +265,7 @@ function HowItWorks() {
               </div>
               <h3 className="font-semibold text-lg">{step.title}</h3>
               <p className="text-sm text-muted-foreground max-w-xs mx-auto">{step.desc}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
@@ -388,10 +374,10 @@ export default function C2CPublicMarketplace() {
 
   if (wsLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="light min-h-screen bg-white flex items-center justify-center" style={{ colorScheme: 'light' }}>
         <div className="animate-pulse text-center space-y-4">
-          <Store className="h-12 w-12 mx-auto text-primary/30" />
-          <p className="text-muted-foreground">A carregar marketplace...</p>
+          <Store className="h-12 w-12 mx-auto text-amber-500/30" />
+          <p className="text-zinc-500">A carregar marketplace...</p>
         </div>
       </div>
     );
@@ -399,18 +385,18 @@ export default function C2CPublicMarketplace() {
 
   if (!workspace) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="light min-h-screen bg-white flex items-center justify-center" style={{ colorScheme: 'light' }}>
         <div className="text-center space-y-4">
-          <Store className="h-12 w-12 mx-auto text-muted-foreground/30" />
-          <h2 className="text-xl font-semibold">Marketplace não encontrado</h2>
-          <p className="text-muted-foreground">O endereço que procuras não existe.</p>
+          <Store className="h-12 w-12 mx-auto text-zinc-300" />
+          <h2 className="text-xl font-semibold text-zinc-800">Marketplace não encontrado</h2>
+          <p className="text-zinc-500">O endereço que procuras não existe.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="light min-h-screen bg-white text-zinc-900" style={{ colorScheme: 'light' }}>
       <Helmet>
         <title>{ogTitle}</title>
         <meta property="og:title" content={ogTitle} />
@@ -470,7 +456,7 @@ export default function C2CPublicMarketplace() {
       {/* Listings content */}
       <main className="container mx-auto px-4 py-6 space-y-8">
         {/* Category Carousel */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <div>
           <CategoryCarousel
             categories={categories}
             onSelect={(id) => {
@@ -479,7 +465,7 @@ export default function C2CPublicMarketplace() {
             }}
             selected={filters.category}
           />
-        </motion.div>
+        </div>
 
         {hasActiveFilters ? (
           <div className="space-y-6">
