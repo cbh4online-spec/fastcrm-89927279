@@ -106,7 +106,7 @@ export function useCompanyDuplicateGroups() {
         const domain = c.website ? extractDomain(c.website) : null;
         if (domain) {
           const existing = domainMap.get(domain) || [];
-          existing.push(c as Company);
+          existing.push(c as unknown as Company);
           domainMap.set(domain, existing);
         }
       });
@@ -123,7 +123,7 @@ export function useCompanyDuplicateGroups() {
         if (c.tax_id) {
           const normalized = c.tax_id.replace(/\s/g, "");
           const existing = taxIdMap.get(normalized) || [];
-          existing.push(c as Company);
+           existing.push(c as unknown as Company);
           taxIdMap.set(normalized, existing);
         }
       });
@@ -144,7 +144,7 @@ export function useCompanyDuplicateGroups() {
           const domain = extractDomain(c.email);
           if (domain && !["gmail.com", "hotmail.com", "outlook.com", "yahoo.com", "sapo.pt", "mail.com"].includes(domain)) {
             const existing = emailDomainMap.get(domain) || [];
-            existing.push(c as Company);
+            existing.push(c as unknown as Company);
             emailDomainMap.set(domain, existing);
           }
         }
@@ -170,10 +170,10 @@ export function useCompanyDuplicateGroups() {
             if (similarity >= 0.80) {
               const existing = Array.from(groups.values()).find(g => g.matchType === "name_similarity" && g.companies.some(c => c.id === c1.id || c.id === c2.id));
               if (existing) {
-                if (!existing.companies.find(c => c.id === c1.id)) existing.companies.push(c1 as Company);
-                if (!existing.companies.find(c => c.id === c2.id)) existing.companies.push(c2 as Company);
+                if (!existing.companies.find(c => c.id === c1.id)) existing.companies.push(c1 as unknown as Company);
+                if (!existing.companies.find(c => c.id === c2.id)) existing.companies.push(c2 as unknown as Company);
               } else {
-                groups.set(`name_${c1.id}_${c2.id}`, { matchType: "name_similarity", matchValue: c1.name, companies: [c1 as Company, c2 as Company], similarity });
+                groups.set(`name_${c1.id}_${c2.id}`, { matchType: "name_similarity", matchValue: c1.name, companies: [c1 as unknown as Company, c2 as unknown as Company], similarity });
               }
               processedPairs.add(pairKey);
             }

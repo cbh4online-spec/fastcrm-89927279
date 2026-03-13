@@ -77,7 +77,7 @@ export function useCompanyMerge() {
       const { error: delErr } = await supabase.from("companies").delete().in("id", duplicateCompanyIds);
       if (delErr) throw delErr;
 
-      return { primaryCompany: primary as Company, mergedCount: duplicateCompanyIds.length, fieldsEnriched, tagsMergedCount };
+      return { primaryCompany: primary as unknown as Company, mergedCount: duplicateCompanyIds.length, fieldsEnriched, tagsMergedCount };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["companies"] });

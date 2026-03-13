@@ -106,7 +106,7 @@ export function useCompanyDuplicateCheck(
           
           if (companyDomain && companyDomain === inputDomain) {
             duplicates.push({
-              company: company as Company,
+              company: company as unknown as Company,
               matchType: "domain",
               similarity: 1,
             });
@@ -119,7 +119,7 @@ export function useCompanyDuplicateCheck(
           const similarity = calculateSimilarity(companyName, company.name);
           if (similarity >= 0.8) {
             duplicates.push({
-              company: company as Company,
+              company: company as unknown as Company,
               matchType: "name",
               similarity,
             });
@@ -133,7 +133,7 @@ export function useCompanyDuplicateCheck(
           const companyEmailDomain = extractDomain(company.email);
           if (inputEmailDomain && companyEmailDomain && inputEmailDomain === companyEmailDomain) {
             duplicates.push({
-              company: company as Company,
+              company: company as unknown as Company,
               matchType: "email_domain",
               similarity: 0.95,
             });

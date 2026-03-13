@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InlineEditableField } from "@/components/custom-fields/InlineEditableField";
 import { Company } from "@/hooks/useCompanies";
-import { MapPin, Home, Flag } from "lucide-react";
+import { MapPin, Home, Flag, Mail, Map } from "lucide-react";
 
 interface AddressSectionProps {
   company: Company;
@@ -30,6 +30,52 @@ export function AddressSection({ company, onFieldChange }: AddressSectionProps) 
             icon={<Home className="w-4 h-4" />}
             placeholder="Morada completa..."
           />
+          <InlineEditableField
+            label="Código Postal"
+            fieldId="postal_code"
+            fieldType="text"
+            value={company.postal_code}
+            onChange={(val) => onFieldChange("postal_code", val)}
+            icon={<Mail className="w-4 h-4" />}
+          />
+          <InlineEditableField
+            label="Cidade"
+            fieldId="city"
+            fieldType="text"
+            value={company.city}
+            onChange={(val) => onFieldChange("city", val)}
+            icon={<MapPin className="w-4 h-4" />}
+          />
+          {company.region && (
+            <InlineEditableField
+              label="Distrito"
+              fieldId="region"
+              fieldType="text"
+              value={company.region}
+              onChange={(val) => onFieldChange("region", val)}
+              icon={<Map className="w-4 h-4" />}
+            />
+          )}
+          {company.county && (
+            <InlineEditableField
+              label="Concelho"
+              fieldId="county"
+              fieldType="text"
+              value={company.county}
+              onChange={(val) => onFieldChange("county", val)}
+              icon={<Map className="w-4 h-4" />}
+            />
+          )}
+          {company.parish && (
+            <InlineEditableField
+              label="Freguesia"
+              fieldId="parish"
+              fieldType="text"
+              value={company.parish}
+              onChange={(val) => onFieldChange("parish", val)}
+              icon={<Map className="w-4 h-4" />}
+            />
+          )}
           <InlineEditableField
             label="País"
             fieldId="country"

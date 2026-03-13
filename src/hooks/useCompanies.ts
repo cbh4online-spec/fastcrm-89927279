@@ -86,6 +86,22 @@ export interface Company {
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
+  // NIF enrichment fields
+  postal_code: string | null;
+  city: string | null;
+  cae_codes: string[] | null;
+  cae_description: string | null;
+  capital_social: string | null;
+  legal_nature: string | null;
+  founding_date: string | null;
+  fax: string | null;
+  about: string | null;
+  activity_description: string | null;
+  racius_url: string | null;
+  region: string | null;
+  county: string | null;
+  parish: string | null;
+  company_status: string | null;
 }
 
 export interface CreateCompanyData {
@@ -111,6 +127,22 @@ export interface CreateCompanyData {
   credit_active?: boolean;
   activity_profile_id?: string;
   profile_field_values?: Record<string, unknown>;
+  // NIF enrichment fields
+  postal_code?: string;
+  city?: string;
+  cae_codes?: string[];
+  cae_description?: string;
+  capital_social?: string;
+  legal_nature?: string;
+  founding_date?: string;
+  fax?: string;
+  about?: string;
+  activity_description?: string;
+  racius_url?: string;
+  region?: string;
+  county?: string;
+  parish?: string;
+  company_status?: string;
 }
 
 export interface UpdateCompanyData extends Partial<CreateCompanyData> {
@@ -136,7 +168,7 @@ export function useCompanies() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as Company[];
+      return data as unknown as Company[];
     },
     enabled: !!currentWorkspace,
   });
@@ -395,7 +427,7 @@ export function useCompany(companyId: string | undefined) {
         if (error.code === "PGRST116") return null; // Not found
         throw error;
       }
-      return data as Company;
+      return data as unknown as Company;
     },
     enabled: !!companyId,
   });
