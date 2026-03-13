@@ -168,7 +168,7 @@ export function useCompanies() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as Company[];
+      return data as unknown as Company[];
     },
     enabled: !!currentWorkspace,
   });
