@@ -278,6 +278,20 @@ import C2CDisputesPage from "./pages/c2c/C2CDisputesPage";
 import C2CSellerTiersPage from "./pages/c2c/C2CSellerTiersPage";
 import C2CPublicSellerProfile from "./pages/c2c/C2CPublicSellerProfile";
 
+// Checkout System
+import CheckoutPage from "./pages/checkout/CheckoutPage";
+import UpsellPage from "./pages/checkout/UpsellPage";
+import DownsellPage from "./pages/checkout/DownsellPage";
+import ThankYouPage from "./pages/checkout/ThankYouPage";
+import RecoverCartPage from "./pages/checkout/RecoverCartPage";
+import CheckoutFunnelsPage from "./pages/dashboard/checkout/CheckoutFunnelsPage";
+import CheckoutOffersPage from "./pages/dashboard/checkout/CheckoutOffersPage";
+import AbandonedCartsPage from "./pages/dashboard/checkout/AbandonedCartsPage";
+import CheckoutBundlesPage from "./pages/dashboard/checkout/CheckoutBundlesPage";
+import CheckoutAnalyticsPage from "./pages/dashboard/checkout/CheckoutAnalyticsPage";
+import ABTestsPage from "./pages/dashboard/checkout/ABTestsPage";
+import DynamicDiscountsPage from "./pages/dashboard/checkout/DynamicDiscountsPage";
+
 // FastClub (Community)
 import FastClubPage from "./pages/community/FastClubPage";
 import ForumPage from "./pages/community/ForumPage";
