@@ -114,6 +114,9 @@ export function CreateCompanyDialog({ open, onOpenChange }: CreateCompanyDialogP
     county: "",
     parish: "",
     fax: "",
+    about: "",
+    activity_description: "",
+    racius_url: "",
   });
 
   // Enriched fields that user can confirm
