@@ -170,10 +170,10 @@ export function useCompanyDuplicateGroups() {
             if (similarity >= 0.80) {
               const existing = Array.from(groups.values()).find(g => g.matchType === "name_similarity" && g.companies.some(c => c.id === c1.id || c.id === c2.id));
               if (existing) {
-                if (!existing.companies.find(c => c.id === c1.id)) existing.companies.push(c1 as Company);
-                if (!existing.companies.find(c => c.id === c2.id)) existing.companies.push(c2 as Company);
+                if (!existing.companies.find(c => c.id === c1.id)) existing.companies.push(c1 as unknown as Company);
+                if (!existing.companies.find(c => c.id === c2.id)) existing.companies.push(c2 as unknown as Company);
               } else {
-                groups.set(`name_${c1.id}_${c2.id}`, { matchType: "name_similarity", matchValue: c1.name, companies: [c1 as Company, c2 as Company], similarity });
+                groups.set(`name_${c1.id}_${c2.id}`, { matchType: "name_similarity", matchValue: c1.name, companies: [c1 as unknown as Company, c2 as unknown as Company], similarity });
               }
               processedPairs.add(pairKey);
             }
