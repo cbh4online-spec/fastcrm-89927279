@@ -1,25 +1,49 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import type { Database, Json } from "@/integrations/supabase/types";
 
-type VisionProfile = Database["public"]["Tables"]["vision_profiles"]["Row"];
-type VisionProfileInsert = Database["public"]["Tables"]["vision_profiles"]["Insert"];
-type VisionProfileUpdate = Database["public"]["Tables"]["vision_profiles"]["Update"];
-type VisionSprint = Database["public"]["Tables"]["vision_sprints"]["Row"];
-type VisionSprintInsert = Database["public"]["Tables"]["vision_sprints"]["Insert"];
-type VisionDailyBriefing = Database["public"]["Tables"]["vision_daily_briefings"]["Row"];
-type VisionDailyBriefingInsert = Database["public"]["Tables"]["vision_daily_briefings"]["Insert"];
-type VisionWin = Database["public"]["Tables"]["vision_wins"]["Row"];
-type VisionWinInsert = Database["public"]["Tables"]["vision_wins"]["Insert"];
-type VisionBoardItem = Database["public"]["Tables"]["vision_board_items"]["Row"];
-type VisionBoardItemInsert = Database["public"]["Tables"]["vision_board_items"]["Insert"];
-type VisionDuoLink = Database["public"]["Tables"]["vision_duo_links"]["Row"];
-type VisionDuoLinkInsert = Database["public"]["Tables"]["vision_duo_links"]["Insert"];
+const supabase = _supabase as any;
 
-export type { VisionProfile, VisionSprint, VisionDailyBriefing, VisionWin, VisionBoardItem, VisionDuoLink };
+export interface VisionProfile {
+  id: string; title: string; objective: string | null; target_date: string | null;
+  mode: string | null; status: string; manifesto: string | null;
+  user_id: string; workspace_id: string; created_at: string; updated_at: string;
+  [key: string]: any;
+}
+export interface VisionSprint {
+  id: string; vision_id: string; title: string; goal: string | null;
+  start_date: string; end_date: string; status: string; metrics: any;
+  closed_at: string | null; review_notes: string | null; workspace_id: string; created_at: string;
+  [key: string]: any;
+}
+export interface VisionDailyBriefing {
+  id: string; vision_id: string; date: string; energy_level: number;
+  focus_items: any; intentions: any; blockers: any; reflections: string | null;
+  duration_minutes: number | null; sprint_id: string | null; status: string;
+  started_at: string | null; completed_at: string | null;
+  user_id: string; workspace_id: string; created_at: string;
+  [key: string]: any;
+}
+export interface VisionWin {
+  id: string; vision_id: string; title: string; description: string | null;
+  category: string | null; impact_level: string | null; celebrated: boolean;
+  date: string; user_id: string; workspace_id: string; created_at: string;
+  [key: string]: any;
+}
+export interface VisionBoardItem {
+  id: string; vision_id: string; type: string; title: string | null;
+  content: string | null; color: string | null; image_url: string | null;
+  sort_order: number | null; workspace_id: string; created_at: string;
+  [key: string]: any;
+}
+export interface VisionDuoLink {
+  id: string; vision_id: string; inviter_id: string; invitee_email: string;
+  invitee_id: string | null; invite_token: string; status: string;
+  workspace_id: string; created_at: string;
+  [key: string]: any;
+}
 
 // ─── Vision Profile ───
 export function useVisionProfile() {
