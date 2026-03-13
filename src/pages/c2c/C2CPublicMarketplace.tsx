@@ -223,11 +223,7 @@ function HeroSection({ onExplore, onSell }: { onExplore: () => void; onSell: () 
             </div>
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="hidden md:grid grid-cols-2 gap-4"
+          <div className="hidden md:grid grid-cols-2 gap-4">
           >
             {[
               { icon: ShieldCheck, label: "Compra Segura", desc: "Transações protegidas" },
