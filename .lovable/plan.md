@@ -1,20 +1,27 @@
 
 
-# Fix: Extension in Public Schema (SUPA_extension_in_public)
+# Fix: High Severity Dependency Vulnerabilities
 
-## Finding
-The `pg_net` extension is installed in the `public` schema. All other extensions are already in the `extensions` schema (following best practices).
+## Findings
 
-## Solution
-Move `pg_net` from `public` to `extensions` schema via a migration:
+### 1. `xlsx` — Prototype Pollution & ReDoS
+- **Frontend**: Already on `0.20.3` (via CDN tarball in package.json) — **no action needed**
+- **Edge Functions**: Two files still pin `npm:xlsx@0.18.5` (vulnerable):
+  - `supabase/functions/supplier-import-parse/index.ts` line 2
+  - `supabase/functions/supplier-import-validate/index.ts` line 2
+- **Fix**: Update both imports from `npm:xlsx@0.18.5` to `npm:xlsx@0.20.3`
 
-```sql
-ALTER EXTENSION pg_net SET SCHEMA extensions;
-```
+### 2. `@trigger.dev/sdk` — Listed in scanner but **not in package.json**
+- Only referenced as a type import in `trigger.config.ts`
+- This appears to be a config stub — Trigger.dev is not actively installed or used as a runtime dependency
+- **Fix**: No action needed (or optionally remove the unused `trigger.config.ts` and related type files if desired, but that's a separate cleanup task)
 
-This is a metadata-only change — it moves the extension's objects (functions, types) to the `extensions` schema without data loss. The project already uses the `extensions` schema for other extensions (like `vector`), so this follows the established pattern.
+## Changes
 
-## Risk
-- `pg_net` is used internally by the backend for async HTTP requests (webhooks, scheduled jobs). Moving it should be safe as long as the `extensions` schema is in the search path, which it is by default in this project's configuration.
-- Non-destructive and reversible.
+| File | Change |
+|------|--------|
+| `supabase/functions/supplier-import-parse/index.ts` | `npm:xlsx@0.18.5` → `npm:xlsx@0.20.3` |
+| `supabase/functions/supplier-import-validate/index.ts` | `npm:xlsx@0.18.5` → `npm:xlsx@0.20.3` |
+
+Two single-line edits. No logic changes.
 
