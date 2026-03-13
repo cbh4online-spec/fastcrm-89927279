@@ -6011,6 +6011,88 @@ export type Database = {
           },
         ]
       }
+      circuit_breaker_history: {
+        Row: {
+          created_at: string | null
+          from_state: string
+          id: string
+          module_id: string
+          reason: string | null
+          to_state: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          from_state: string
+          id?: string
+          module_id: string
+          reason?: string | null
+          to_state: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          from_state?: string
+          id?: string
+          module_id?: string
+          reason?: string | null
+          to_state?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "circuit_breaker_history_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      circuit_breaker_states: {
+        Row: {
+          failure_count: number | null
+          id: string
+          last_failure_at: string | null
+          last_success_at: string | null
+          module_id: string
+          opened_at: string | null
+          state: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          failure_count?: number | null
+          id?: string
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          module_id: string
+          opened_at?: string | null
+          state?: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          failure_count?: number | null
+          id?: string
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          module_id?: string
+          opened_at?: string | null
+          state?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "circuit_breaker_states_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_approval_flows: {
         Row: {
           approval_type: Database["public"]["Enums"]["approval_type"]
@@ -12795,6 +12877,50 @@ export type Database = {
           urgency?: string
         }
         Relationships: []
+      }
+      dependency_cache_metrics: {
+        Row: {
+          cache_hits: number | null
+          cache_misses: number | null
+          created_at: string | null
+          id: string
+          last_invalidation_at: string | null
+          module_id: string
+          period_end: string
+          period_start: string
+          workspace_id: string
+        }
+        Insert: {
+          cache_hits?: number | null
+          cache_misses?: number | null
+          created_at?: string | null
+          id?: string
+          last_invalidation_at?: string | null
+          module_id: string
+          period_end: string
+          period_start: string
+          workspace_id: string
+        }
+        Update: {
+          cache_hits?: number | null
+          cache_misses?: number | null
+          created_at?: string | null
+          id?: string
+          last_invalidation_at?: string | null
+          module_id?: string
+          period_end?: string
+          period_start?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dependency_cache_metrics_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       document_series: {
         Row: {
