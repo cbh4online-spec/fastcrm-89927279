@@ -106,7 +106,7 @@ export function useCompanyDuplicateGroups() {
         const domain = c.website ? extractDomain(c.website) : null;
         if (domain) {
           const existing = domainMap.get(domain) || [];
-          existing.push(c as Company);
+          existing.push(c as unknown as Company);
           domainMap.set(domain, existing);
         }
       });
