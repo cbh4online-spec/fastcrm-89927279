@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -75,6 +76,7 @@ import {
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 export default function Invoices() {
+  const navigate = useNavigate();
   const { t } = useTranslation("invoices");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
@@ -516,7 +518,7 @@ export default function Invoices() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem className="gap-2">
+                              <DropdownMenuItem className="gap-2" onClick={() => navigate(`/dashboard/invoices/${invoice.id}`)}>
                                 <Eye className="h-4 w-4" />
                                 {t("viewDetails")}
                               </DropdownMenuItem>
