@@ -91,7 +91,7 @@ export default function SecuritySystemDetailPage() {
     acc[type] = (acc[type] || 0) + (d.quantity ?? 1);
     return acc;
   }, {});
-  const totalDevices: number = Object.values(devicesByType).reduce((s: number, v) => s + (v as number), 0);
+  const totalDevices = (Object.values(devicesByType) as number[]).reduce((s, v) => s + v, 0);
 
   return (
     <DashboardLayout>
