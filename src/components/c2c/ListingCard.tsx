@@ -44,11 +44,11 @@ export function ListingCard({ listing, isFavorite, onToggleFavorite, onClick, va
       {/* Photo */}
       <div className="aspect-[4/3] bg-muted relative overflow-hidden">
         {listing.photos && listing.photos.length > 0 ? (
-          <img
-            src={listing.photos[0]}
+          <OptimizedImage
+            src={getThumbnailUrl(listing.photos[0])}
+            fallbackSrc={listing.photos[0]}
             alt={listing.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            loading="lazy"
+            className="w-full h-full group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground/40">
