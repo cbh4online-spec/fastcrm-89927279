@@ -459,7 +459,7 @@ export default function C2CPublicMarketplace() {
       {/* Listings content */}
       <main className="container mx-auto px-4 py-6 space-y-8">
         {/* Category Carousel */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <div>
           <CategoryCarousel
             categories={categories}
             onSelect={(id) => {
