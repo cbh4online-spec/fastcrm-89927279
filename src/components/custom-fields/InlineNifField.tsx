@@ -68,6 +68,13 @@ export function InlineNifField({
       toast.error("NIF deve ter 9 dígitos");
       return;
     }
+    // Save the NIF value first
+    try {
+      await onChange(cleanNif);
+    } catch (error) {
+      console.error("Error saving NIF:", error);
+    }
+    // Then lookup enrichment data
     await lookup(cleanNif);
   };
 
