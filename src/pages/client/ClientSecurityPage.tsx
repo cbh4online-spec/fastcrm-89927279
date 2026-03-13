@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield, Camera, AlertTriangle, FileText, Wrench, Clock, CheckCircle, XCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabase } from "@/integrations/supabase/client";
+const supabase = _supabase as any;
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 

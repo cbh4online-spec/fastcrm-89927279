@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabase } from "@/integrations/supabase/client";
+const supabase = _supabase as any;
 import { Loader2, ArrowRight, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

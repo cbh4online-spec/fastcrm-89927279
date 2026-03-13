@@ -80,7 +80,7 @@ export function VisionMetricsPanel({ visionId }: Props) {
                 <div key={cat} className="flex items-center gap-2 text-sm">
                   <div className="w-3 h-3 rounded-full bg-violet-500" />
                   <span className="text-foreground capitalize">{cat}</span>
-                  <span className="text-muted-foreground">({count})</span>
+                  <span className="text-muted-foreground">({String(count)})</span>
                 </div>
               ))}
             </div>
