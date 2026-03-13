@@ -16,6 +16,7 @@ export function LandingFooter() {
             <Link to="/gdpr" className="hover:text-[hsl(210,40%,98%)] transition-colors">{t("footer.gdpr")}</Link>
           </nav>
           <span>&copy; {new Date().getFullYear()} FastCRM. {t("footer.allRightsReserved")}</span>
+          <span className="text-[10px] opacity-40 select-none" aria-hidden="true">v20260313-2130</span>
         </div>
       </div>
     </footer>

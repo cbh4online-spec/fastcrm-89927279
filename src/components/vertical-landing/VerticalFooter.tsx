@@ -29,6 +29,7 @@ export function VerticalFooter({ config }: Props) {
 
           <div className="text-xs text-[hsl(215,20%,65%)]">
             &copy; {new Date().getFullYear()} FastCRM. Todos os direitos reservados.
+            <span className="ml-2 text-[10px] opacity-40 select-none" aria-hidden="true">v20260313-2130</span>
           </div>
         </div>
       </div>
