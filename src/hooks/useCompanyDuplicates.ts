@@ -119,7 +119,7 @@ export function useCompanyDuplicateCheck(
           const similarity = calculateSimilarity(companyName, company.name);
           if (similarity >= 0.8) {
             duplicates.push({
-              company: company as Company,
+              company: company as unknown as Company,
               matchType: "name",
               similarity,
             });
