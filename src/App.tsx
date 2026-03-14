@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams } from "react-router-dom";
 import { ClubLayout } from "@/components/club/ClubLayout";
 import { HelmetProvider } from "react-helmet-async";
 import { ThemeProvider } from "next-themes";
@@ -132,6 +132,13 @@ import Marketplace from "./pages/Marketplace";
 import PublicBioPage from "./pages/PublicBioPage";
 import PublicBioShortLink from "./pages/PublicBioShortLink";
 import C2CPublicMarketplace from "./pages/c2c/C2CPublicMarketplace";
+
+// Redirect legacy /c2c/:slug/* to /marketplace/:slug/*
+function C2CRedirectToMarketplace() {
+  const { workspaceSlug, "*": rest } = useParams();
+  const suffix = rest ? `/${rest}` : "";
+  return <Navigate to={`/marketplace/${workspaceSlug}${suffix}${window.location.search}`} replace />;
+}
 import C2CPublicListingDetail from "./pages/c2c/C2CPublicListingDetail";
 import C2CSellerRegistration from "./pages/c2c/C2CSellerRegistration";
 import C2CPublicCategoryPage from "./pages/c2c/C2CPublicCategoryPage";
@@ -813,15 +820,9 @@ const App = () => (
               <Route path="/marketplace/:workspaceSlug/seller/:sellerId" element={<C2CPublicSellerProfile />} />
               <Route path="/marketplace/:workspaceSlug" element={<C2CPublicMarketplace />} />
               <Route path="/marketplace" element={<Navigate to="/dashboard/marketplace" replace />} />
-              <Route path="/c2c/:workspaceSlug/listing/:id" element={<C2CPublicListingDetail />} />
-              <Route path="/c2c/:workspaceSlug/category/:category" element={<C2CPublicCategoryPage />} />
-              <Route path="/c2c/:workspaceSlug/search" element={<C2CPublicSearchPage />} />
-              <Route path="/c2c/:workspaceSlug/:id" element={<C2CPublicListingDetail />} />
-              <Route path="/c2c/:workspaceSlug" element={<C2CPublicMarketplace />} />
-              <Route path="/c2c/:workspaceSlug/sell" element={<AuthProvider><C2CSellerRegistration /></AuthProvider>} />
-              <Route path="/c2c/:workspaceSlug/sponsor" element={<AuthProvider><C2CSponsorPortal /></AuthProvider>} />
-              <Route path="/c2c/:workspaceSlug/invite/:token" element={<C2CSellerInviteActivation />} />
-              <Route path="/c2c/:workspaceSlug/seller/:sellerId" element={<C2CPublicSellerProfile />} />
+              {/* Legacy /c2c/ routes → redirect to /marketplace/ */}
+              <Route path="/c2c/:workspaceSlug/*" element={<C2CRedirectToMarketplace />} />
+              <Route path="/c2c/:workspaceSlug" element={<C2CRedirectToMarketplace />} />
 
               {/* Checkout System (public) */}
               <Route path="/checkout/recover/:token" element={<RecoverCartPage />} />

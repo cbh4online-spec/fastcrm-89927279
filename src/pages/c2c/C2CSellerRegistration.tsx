@@ -70,7 +70,7 @@ export default function C2CSellerRegistration() {
       <div className="min-h-screen bg-background">
         <header className="border-b bg-card">
           <div className="container mx-auto px-4 py-4 flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate(`/c2c/${workspaceSlug}`)}>
+            <Button variant="ghost" size="icon" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <Store className="h-5 w-5 text-primary" />
@@ -84,8 +84,8 @@ export default function C2CSellerRegistration() {
             Para te registares como vendedor, cria uma conta ou faz login.
           </p>
           <div className="flex gap-3 justify-center">
-            <Button variant="outline" onClick={() => navigate(`/login?redirect=/c2c/${workspaceSlug}/sell`)}>Entrar</Button>
-            <Button onClick={() => navigate(`/signup?redirect=/c2c/${workspaceSlug}/sell`)}>Criar Conta</Button>
+            <Button variant="outline" onClick={() => navigate(`/login?redirect=/marketplace/${workspaceSlug}/sell`)}>Entrar</Button>
+            <Button onClick={() => navigate(`/signup?redirect=/marketplace/${workspaceSlug}/sell`)}>Criar Conta</Button>
           </div>
         </div>
       </div>
@@ -107,7 +107,7 @@ export default function C2CSellerRegistration() {
       <div className="min-h-screen bg-background">
         <header className="border-b bg-card">
           <div className="container mx-auto px-4 py-4 flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate(`/c2c/${workspaceSlug}`)}>
+            <Button variant="ghost" size="icon" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <Store className="h-5 w-5 text-primary" />
@@ -123,7 +123,7 @@ export default function C2CSellerRegistration() {
               <Badge variant="outline" className={s.color}>{s.label}</Badge>
               <p className="text-muted-foreground">{s.desc}</p>
               {sellerProfile.status === "approved" && (
-                <Button className="mt-4" onClick={() => navigate(`/c2c/${workspaceSlug}`)}>
+                <Button className="mt-4" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
                   Ir para o Marketplace
                 </Button>
               )}
@@ -147,7 +147,7 @@ export default function C2CSellerRegistration() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(`/c2c/${workspaceSlug}`)}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <Store className="h-5 w-5 text-primary" />
@@ -298,7 +298,7 @@ export default function C2CSellerRegistration() {
           </Card>
 
           <div className="flex gap-3">
-            <Button type="button" variant="outline" className="flex-1" onClick={() => navigate(`/c2c/${workspaceSlug}`)}>
+            <Button type="button" variant="outline" className="flex-1" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
               Cancelar
             </Button>
             <Button type="submit" className="flex-1 gap-2" disabled={registerSeller.isPending || !form.display_name.trim()}>

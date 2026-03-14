@@ -105,7 +105,7 @@ export default function C2CReferralCenter() {
               </TableRow></TableHeader>
               <TableBody>
                 {referrals.map((r: any) => {
-                  const shareUrl = `${window.location.origin}/c2c/${currentWorkspace?.slug || wsId}?ref=${r.referral_code}`;
+                  const shareUrl = `${window.location.origin}/marketplace/${currentWorkspace?.slug || wsId}?ref=${r.referral_code}`;
                   return (
                     <TableRow key={r.id}>
                       <TableCell className="font-mono text-sm">{r.referral_code}</TableCell>
