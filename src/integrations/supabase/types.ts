@@ -5639,6 +5639,7 @@ export type Database = {
           payout_enabled: boolean | null
           phone: string | null
           rejection_reason: string | null
+          slug: string | null
           status: Database["public"]["Enums"]["c2c_seller_status"]
           stripe_account_id: string | null
           stripe_account_status: string | null
@@ -5678,6 +5679,7 @@ export type Database = {
           payout_enabled?: boolean | null
           phone?: string | null
           rejection_reason?: string | null
+          slug?: string | null
           status?: Database["public"]["Enums"]["c2c_seller_status"]
           stripe_account_id?: string | null
           stripe_account_status?: string | null
@@ -5717,6 +5719,7 @@ export type Database = {
           payout_enabled?: boolean | null
           phone?: string | null
           rejection_reason?: string | null
+          slug?: string | null
           status?: Database["public"]["Enums"]["c2c_seller_status"]
           stripe_account_id?: string | null
           stripe_account_status?: string | null
