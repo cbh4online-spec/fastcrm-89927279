@@ -133,7 +133,7 @@ export default function C2CPublicSellerProfile() {
         <meta name="twitter:description" content={ogDescription} />
       </Helmet>
       <div className="container mx-auto px-4 py-6 max-w-5xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate(`/c2c/${workspaceSlug}`)} className="mb-4 -ml-2">
+        <Button variant="ghost" size="sm" onClick={() => navigate(`/marketplace/${workspaceSlug}`)} className="mb-4 -ml-2">
           <ArrowLeft className="h-4 w-4 mr-1" /> Voltar ao Marketplace
         </Button>
 
