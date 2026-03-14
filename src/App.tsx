@@ -706,7 +706,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/c2c/seller/:sellerId" element={<C2CSellerProfile />} />
                 <Route path="/dashboard/c2c/edit/:id" element={<C2CEditListing />} />
                 <Route path="/dashboard/c2c/clients" element={<C2CClientsManagement />} />
-                <Route path="/dashboard/c2c/links" element={<C2CPublicLinksManager />} />
+                <Route path="/dashboard/c2c/public-links" element={<C2CPublicLinksManager />} />
                 <Route path="/dashboard/c2c/:id" element={<C2CListingDetail />} />
                 
                 {/* FastClub - redirect old paths */}
