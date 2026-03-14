@@ -277,6 +277,8 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
         { nameKey: "c2cBoost", name: t("c2cBoost"), href: "/dashboard/c2c/boost", icon: Zap, iconColor: "text-rose-500" },
         { nameKey: "c2cSponsors", name: t("c2cSponsors"), href: "/dashboard/c2c/sponsors", icon: Star, iconColor: "text-rose-500" },
         { nameKey: "c2cSellers", name: t("c2cSellers"), href: "/dashboard/c2c/sellers", icon: Users, iconColor: "text-rose-500" },
+        { nameKey: "c2cClients", name: "Clientes", href: "/dashboard/c2c/clients", icon: Users, iconColor: "text-rose-500" },
+        { nameKey: "c2cPublicLinks", name: "Links Públicos", href: "/dashboard/c2c/public-links", icon: Globe, iconColor: "text-rose-500" },
         { nameKey: "c2cAffiliates", name: t("c2cAffiliates"), href: "/dashboard/c2c/affiliates", icon: TrendingUp, iconColor: "text-rose-500" },
         { nameKey: "c2cReferrals", name: t("c2cReferrals"), href: "/dashboard/c2c/referrals", icon: Users, iconColor: "text-rose-500" },
         { nameKey: "c2cAffiliateAdmin", name: t("c2cAffiliateAdmin"), href: "/dashboard/c2c/affiliate-admin", icon: Settings, iconColor: "text-rose-500" },

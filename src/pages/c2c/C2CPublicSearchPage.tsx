@@ -44,6 +44,8 @@ export default function C2CPublicSearchPage() {
     }
   };
 
+  const pageLoading = workspaceLoading || isLoading;
+
   return (
     <>
       <Helmet>
@@ -78,7 +80,7 @@ export default function C2CPublicSearchPage() {
               <Search className="h-12 w-12 mx-auto mb-4 opacity-30" />
               <p>Pesquisa por artigos no marketplace</p>
             </div>
-          ) : isLoading ? (
+          ) : pageLoading ? (
             <p className="text-zinc-500">A pesquisar "{q}"...</p>
           ) : listings.length === 0 ? (
             <div className="text-center py-16 text-zinc-500">
