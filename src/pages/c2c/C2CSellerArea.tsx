@@ -80,7 +80,7 @@ export default function C2CSellerArea() {
             <p className="text-muted-foreground max-w-md mx-auto">
               Regista-te como vendedor para publicar anúncios, receber ofertas e gerir as tuas vendas.
             </p>
-            <Button onClick={() => navigate(`/c2c/${workspaceSlug}/sell`)} size="lg">
+            <Button onClick={() => navigate(`/marketplace/${workspaceSlug}/sell`)} size="lg">
               <Plus className="h-4 w-4 mr-2" /> Registar como Vendedor
             </Button>
           </CardContent>

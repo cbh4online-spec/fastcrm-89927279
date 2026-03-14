@@ -212,7 +212,7 @@ export default function C2CPublicSellerProfile() {
                 listing={listing}
                 isFavorite={false}
                 onToggleFavorite={() => {}}
-                onClick={() => navigate(`/c2c/${workspaceSlug}/listing/${listing.id}`)}
+                onClick={() => navigate(`/marketplace/${workspaceSlug}/listing/${listing.id}`)}
               />
             ))}
           </div>
