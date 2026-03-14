@@ -268,6 +268,8 @@ import C2CReferralCenter from "./pages/c2c/C2CReferralCenter";
 import C2CAffiliateAdmin from "./pages/c2c/C2CAffiliateAdmin";
 import C2CSellerProfile from "./pages/c2c/C2CSellerProfile";
 import C2CEditListing from "./pages/c2c/C2CEditListing";
+import C2CClientsManagement from "./pages/c2c/C2CClientsManagement";
+import C2CPublicLinksManager from "./pages/c2c/C2CPublicLinksManager";
 import C2CNotifications from "./pages/c2c/C2CNotifications";
 import C2COrders from "./pages/c2c/C2COrders";
 import C2CContentModeration from "./pages/c2c/C2CContentModeration";
