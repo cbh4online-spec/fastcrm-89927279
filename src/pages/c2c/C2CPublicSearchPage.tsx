@@ -2,10 +2,11 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
+import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
 import { ListingCard } from "@/components/c2c/ListingCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Search, SlidersHorizontal } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 import { useState } from "react";
 import type { C2CListing } from "@/hooks/useC2CListings";
 
@@ -16,24 +17,7 @@ export default function C2CPublicSearchPage() {
   const q = searchParams.get("q") || "";
   const [search, setSearch] = useState(q);
 
-  const { data: workspace } = useQuery({
-    queryKey: ["c2c-public-workspace", workspaceSlug],
-    queryFn: async () => {
-      if (!workspaceSlug) return null;
-      // Try c2c_marketplace_config first
-      const { data: mpConfig } = await (supabase as any)
-        .from("c2c_marketplace_config")
-        .select("workspace_id, name, slug")
-        .eq("slug", workspaceSlug)
-        .eq("status", "active")
-        .maybeSingle();
-      if (mpConfig) return { id: mpConfig.workspace_id, name: mpConfig.name, slug: mpConfig.slug };
-      const { data, error } = await supabase.from("workspaces").select("id, name, slug").eq("slug", workspaceSlug).single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!workspaceSlug,
-  });
+  const { data: workspace, isLoading: workspaceLoading } = usePublicMarketplaceWorkspace(workspaceSlug);
 
   const { data: listings = [], isLoading } = useQuery({
     queryKey: ["c2c-search-listings", workspace?.id, q],

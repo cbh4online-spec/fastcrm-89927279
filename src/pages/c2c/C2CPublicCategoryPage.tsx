@@ -1,36 +1,18 @@
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
+import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
 import { ListingCard } from "@/components/c2c/ListingCard";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ArrowLeft, Search } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import type { C2CListing } from "@/hooks/useC2CListings";
 
 export default function C2CPublicCategoryPage() {
   const { workspaceSlug, category } = useParams<{ workspaceSlug: string; category: string }>();
   const navigate = useNavigate();
 
-  const { data: workspace } = useQuery({
-    queryKey: ["c2c-public-workspace", workspaceSlug],
-    queryFn: async () => {
-      if (!workspaceSlug) return null;
-      // Try c2c_marketplace_config first
-      const { data: mpConfig } = await (supabase as any)
-        .from("c2c_marketplace_config")
-        .select("workspace_id, name, slug")
-        .eq("slug", workspaceSlug)
-        .eq("status", "active")
-        .maybeSingle();
-      if (mpConfig) return { id: mpConfig.workspace_id, name: mpConfig.name, slug: mpConfig.slug };
-      const { data, error } = await supabase.from("workspaces").select("id, name, slug").eq("slug", workspaceSlug).single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!workspaceSlug,
-  });
+  const { data: workspace, isLoading: workspaceLoading } = usePublicMarketplaceWorkspace(workspaceSlug);
 
   const { data: categoryData } = useQuery({
     queryKey: ["c2c-category", workspace?.id, category],
