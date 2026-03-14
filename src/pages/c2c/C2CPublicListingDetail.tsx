@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
+import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,29 +32,7 @@ const conditionLabels: Record<string, { label: string; color: string }> = {
 };
 
 function usePublicWorkspace(slug: string | undefined) {
-  return useQuery({
-    queryKey: ["c2c-public-workspace", slug],
-    queryFn: async () => {
-      if (!slug) return null;
-      // Try c2c_marketplace_config first
-      const { data: mpConfig } = await (supabase as any)
-        .from("c2c_marketplace_config")
-        .select("workspace_id, name, slug")
-        .eq("slug", slug)
-        .eq("status", "active")
-        .maybeSingle();
-      if (mpConfig) return { id: mpConfig.workspace_id, name: mpConfig.name, slug: mpConfig.slug };
-      // Fallback
-      const { data, error } = await supabase
-        .from("workspaces")
-        .select("id, name, slug")
-        .eq("slug", slug)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!slug,
-  });
+  return usePublicMarketplaceWorkspace(slug);
 }
 
 function usePublicListing(id: string | undefined) {
@@ -299,7 +278,7 @@ export default function C2CPublicListingDetail() {
                   <Button
                     variant="outline"
                     className="w-full border-amber-500/30 text-amber-600 hover:bg-amber-500/10 h-11"
-                    onClick={() => navigate(`/c2c/${workspaceSlug}/seller/${listing.seller_id}`)}
+                    onClick={() => navigate(`/marketplace/${workspaceSlug}/seller/${listing.seller_id}`)}
                   >
                     <MessageCircle className="h-4 w-4 mr-2" /> Contactar vendedor
                   </Button>
@@ -361,7 +340,7 @@ export default function C2CPublicListingDetail() {
                     variant="outline"
                     size="sm"
                     className="w-full border-zinc-300 text-zinc-700 hover:text-amber-600 hover:border-amber-500/30"
-                    onClick={() => navigate(`/c2c/${workspaceSlug}/seller/${seller.user_id ?? seller.id}`)}
+                    onClick={() => navigate(`/marketplace/${workspaceSlug}/seller/${seller.user_id ?? seller.id}`)}
                   >
                     Ver perfil do vendedor
                   </Button>

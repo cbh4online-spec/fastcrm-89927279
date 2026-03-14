@@ -109,7 +109,7 @@ export default function C2CPublicSellerProfile() {
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <h1 className="text-xl font-bold">Vendedor não encontrado</h1>
         <p className="text-muted-foreground">Este perfil não existe ou não está disponível.</p>
-        <Button variant="outline" onClick={() => navigate(`/c2c/${workspaceSlug}`)}>
+        <Button variant="outline" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Voltar ao Marketplace
         </Button>
       </div>
@@ -118,7 +118,7 @@ export default function C2CPublicSellerProfile() {
 
   const ogTitle = `${seller?.display_name || "Vendedor"} — Marketplace C2C`;
   const ogDescription = seller?.bio || `Vê o perfil e os anúncios de ${seller?.display_name || "este vendedor"} no marketplace.`;
-  const ogUrl = `${getPublicBaseUrl()}/c2c/${workspaceSlug}/seller/${sellerId}`;
+  const ogUrl = `${getPublicBaseUrl()}/marketplace/${workspaceSlug}/seller/${sellerId}`;
 
   return (
     <div className="min-h-screen bg-background">
@@ -133,7 +133,7 @@ export default function C2CPublicSellerProfile() {
         <meta name="twitter:description" content={ogDescription} />
       </Helmet>
       <div className="container mx-auto px-4 py-6 max-w-5xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate(`/c2c/${workspaceSlug}`)} className="mb-4 -ml-2">
+        <Button variant="ghost" size="sm" onClick={() => navigate(`/marketplace/${workspaceSlug}`)} className="mb-4 -ml-2">
           <ArrowLeft className="h-4 w-4 mr-1" /> Voltar ao Marketplace
         </Button>
 
@@ -212,7 +212,7 @@ export default function C2CPublicSellerProfile() {
                 listing={listing}
                 isFavorite={false}
                 onToggleFavorite={() => {}}
-                onClick={() => navigate(`/c2c/${workspaceSlug}/listing/${listing.id}`)}
+                onClick={() => navigate(`/marketplace/${workspaceSlug}/listing/${listing.id}`)}
               />
             ))}
           </div>
