@@ -268,6 +268,8 @@ import C2CReferralCenter from "./pages/c2c/C2CReferralCenter";
 import C2CAffiliateAdmin from "./pages/c2c/C2CAffiliateAdmin";
 import C2CSellerProfile from "./pages/c2c/C2CSellerProfile";
 import C2CEditListing from "./pages/c2c/C2CEditListing";
+import C2CClientsManagement from "./pages/c2c/C2CClientsManagement";
+import C2CPublicLinksManager from "./pages/c2c/C2CPublicLinksManager";
 import C2CNotifications from "./pages/c2c/C2CNotifications";
 import C2COrders from "./pages/c2c/C2COrders";
 import C2CContentModeration from "./pages/c2c/C2CContentModeration";
@@ -703,6 +705,8 @@ function CRMRoutes() {
                 <Route path="/dashboard/c2c/config" element={<MarketplaceConfigPage />} />
                 <Route path="/dashboard/c2c/seller/:sellerId" element={<C2CSellerProfile />} />
                 <Route path="/dashboard/c2c/edit/:id" element={<C2CEditListing />} />
+                <Route path="/dashboard/c2c/clients" element={<C2CClientsManagement />} />
+                <Route path="/dashboard/c2c/links" element={<C2CPublicLinksManager />} />
                 <Route path="/dashboard/c2c/:id" element={<C2CListingDetail />} />
                 
                 {/* FastClub - redirect old paths */}
