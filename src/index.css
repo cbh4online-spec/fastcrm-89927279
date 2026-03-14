@@ -134,6 +134,7 @@
   }
 
   /* Light theme scope — use on public pages to override dark mode */
+  .dark .light,
   .light {
     --background: 0 0% 100%;
     --foreground: 222 47% 11%;
