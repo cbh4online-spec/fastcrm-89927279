@@ -75,7 +75,7 @@ export default function C2CPublicLinksManager() {
         </p>
       </div>
 
-      {!workspaceSlug ? (
+      {!marketplaceSlug ? (
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">
