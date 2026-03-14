@@ -109,7 +109,7 @@ export default function C2CPublicSellerProfile() {
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <h1 className="text-xl font-bold">Vendedor não encontrado</h1>
         <p className="text-muted-foreground">Este perfil não existe ou não está disponível.</p>
-        <Button variant="outline" onClick={() => navigate(`/c2c/${workspaceSlug}`)}>
+        <Button variant="outline" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Voltar ao Marketplace
         </Button>
       </div>
