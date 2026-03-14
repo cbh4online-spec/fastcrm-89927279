@@ -1,29 +1,42 @@
 
 
-# Fix: Vulnerable Dependencies
+## Problema
 
-## Analysis
+Três questões identificadas:
 
-**xlsx**: Already at version 0.20.3 via CDN tarball (`https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`). The security scanner is likely flagging based on the npm registry name which maps to older vulnerable versions. Version 0.20.3 from the official SheetJS CDN includes fixes for both the Prototype Pollution (GHSA-4r6h-8v6p-xvw6) and ReDoS (GHSA-5pgg-2g8v-p4x9) advisories. **No action needed** — this is a false positive from the scanner not recognizing the CDN tarball version.
+1. **"Vendedor não encontrado"**: A query `usePublicSellerProfile` filtra por `user_id` sem filtrar por `workspace_id`. Como o utilizador tem **2 registos de vendedor** (workspaces diferentes), `maybeSingle()` falha com erro por retornar múltiplas linhas → resultado `null` → "Vendedor não encontrado".
 
-**@trigger.dev/sdk**: Not present in `package.json` at all (neither dependencies nor devDependencies). This is either a transitive dependency or a scanner false positive. The project uses Trigger.dev concepts via custom code (`src/trigger/client.ts`) and edge functions, but does not import the SDK package directly.
+2. **Link com UUID longo**: O URL usa o `user_id` completo (`444ba746-3e86-...`), tornando-o pouco prático para partilha.
 
-## Plan
+3. **Domínio aponta para `fastcrm.lovable.app`**: O `getPublicBaseUrl()` não reconhece o domínio customizado `fastcrm.metodopare.ai`.
 
-### 1. Confirm xlsx is safe (no code change needed)
-The installed version 0.20.3 from the SheetJS CDN already patches both known vulnerabilities. The scanner cannot resolve the version from the tarball URL.
+## Solução
 
-### 2. Handle @trigger.dev/sdk
-Since it's not in `package.json`, this is either:
-- A stale lockfile entry — delete and regenerate `package-lock.json`
-- A scanner false positive
+### 1. Adicionar coluna `slug` à tabela `c2c_sellers`
+- Migração: `ALTER TABLE c2c_sellers ADD COLUMN slug TEXT UNIQUE`
+- Gerar slugs automáticos a partir do `display_name` (slugify + sufixo curto para unicidade)
+- Preencher slugs existentes via UPDATE
 
-**Action**: No code changes required. Both findings are false positives based on the current `package.json`.
+### 2. Corrigir `usePublicSellerProfile` em `C2CPublicSellerProfile.tsx`
+- Aceitar o `workspaceId` resolvido pelo hook `usePublicMarketplaceWorkspace`
+- Filtrar por `workspace_id` além de `user_id`/`slug`
+- Suportar lookup por **slug** (curto) ou **user_id** (fallback UUID)
 
-### 3. Optional: Add explicit comment for future audits
-Add a comment in `package.json` near the xlsx entry noting the CDN version is patched, to prevent repeated investigation.
+### 3. Atualizar rotas e geração de links
+- A rota `/marketplace/:workspaceSlug/seller/:sellerId` continua a funcionar com UUID (fallback) mas agora também aceita slug
+- `C2CSellerArea.tsx` e `C2CPublicLinksManager.tsx`: gerar link com `seller.slug` em vez de `seller.user_id`
 
-## Summary
+### 4. Corrigir `getPublicBaseUrl()`
+- Reconhecer `fastcrm.metodopare.ai` como domínio válido (retornar `window.location.origin`)
+- Inverter a lógica: só fazer fallback para preview/dev; qualquer domínio real (incluindo custom domains) usa `window.location.origin`
 
-No code changes are necessary. Both flagged packages are either already patched (xlsx 0.20.3) or not actually installed (@trigger.dev/sdk). The security findings can be safely dismissed.
+### Ficheiros a editar
+- **Migração SQL**: adicionar coluna `slug` + preencher dados existentes
+- `src/utils/getPublicDomain.ts` — corrigir lógica de domínio
+- `src/pages/c2c/C2CPublicSellerProfile.tsx` — filtrar por workspace + suportar slug
+- `src/pages/c2c/C2CSellerArea.tsx` — usar slug no link público
+- `src/pages/c2c/C2CPublicLinksManager.tsx` — usar slug no link do seller
+
+### Resultado
+Link final: `https://fastcrm.metodopare.ai/marketplace/metodopare/seller/jorge-cardoso`
 
