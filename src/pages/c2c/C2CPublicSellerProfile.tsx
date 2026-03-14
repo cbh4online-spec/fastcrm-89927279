@@ -13,21 +13,25 @@ import { ArrowLeft, Star, ShieldCheck, Calendar, Package, Store } from "lucide-r
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 
-function usePublicSellerProfile(sellerId: string | undefined) {
+function usePublicSellerProfile(sellerId: string | undefined, workspaceId: string | undefined) {
   return useQuery({
-    queryKey: ["c2c-public-seller-profile", sellerId],
+    queryKey: ["c2c-public-seller-profile", sellerId, workspaceId],
     queryFn: async () => {
-      if (!sellerId) return null;
-      const { data, error } = await supabase
+      if (!sellerId || !workspaceId) return null;
+      // Try slug first, fallback to user_id (UUID)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(sellerId);
+      const filter = isUUID ? { column: "user_id", value: sellerId } : { column: "slug", value: sellerId };
+      const { data, error } = await (supabase as any)
         .from("c2c_sellers")
         .select("*")
-        .eq("user_id", sellerId)
+        .eq("workspace_id", workspaceId)
+        .eq(filter.column, filter.value)
         .eq("status", "approved")
         .maybeSingle();
       if (error) throw error;
       return data;
     },
-    enabled: !!sellerId,
+    enabled: !!sellerId && !!workspaceId,
   });
 }
 
