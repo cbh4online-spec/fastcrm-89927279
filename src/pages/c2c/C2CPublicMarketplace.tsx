@@ -304,6 +304,22 @@ export default function C2CPublicMarketplace() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [visibleCount, setVisibleCount] = useState(20);
 
+  // Force light theme on html element for public marketplace
+  useEffect(() => {
+    const html = document.documentElement;
+    const hadDark = html.classList.contains('dark');
+    if (hadDark) {
+      html.classList.remove('dark');
+      html.classList.add('light');
+    }
+    return () => {
+      if (hadDark) {
+        html.classList.remove('light');
+        html.classList.add('dark');
+      }
+    };
+  }, []);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session?.user);
