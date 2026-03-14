@@ -84,8 +84,9 @@ export default function C2CPublicSellerProfile() {
   const { data: workspace, isLoading: wsLoading } = usePublicMarketplaceWorkspace(workspaceSlug);
   const workspaceId = workspace?.id;
 
-  const { data: seller, isLoading: sellerLoading } = usePublicSellerProfile(sellerId);
-  const { data: listings = [] } = usePublicSellerListings(sellerId, workspaceId);
+  const { data: seller, isLoading: sellerLoading } = usePublicSellerProfile(sellerId, workspaceId);
+  const sellerUserId = seller?.user_id;
+  const { data: listings = [] } = usePublicSellerListings(sellerUserId, workspaceId);
   const { data: reviewData } = usePublicSellerReviews(sellerId);
 
   const isLoading = wsLoading || sellerLoading;

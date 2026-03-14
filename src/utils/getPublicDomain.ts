@@ -1,13 +1,13 @@
 /**
  * Returns the correct public base URL for the project.
- * When running on Lovable preview/dev domains, falls back to the published custom domain.
+ * Preview/dev domains fall back to the custom domain; all others use origin.
  */
 export function getPublicBaseUrl(): string {
   const hostname = window.location.hostname.toLowerCase();
 
-  // In preview/dev environments, use the published app URL for public links.
-  if (hostname.includes("id-preview") || hostname.includes("lovableproject.com")) {
-    return "https://fastcrm.lovable.app";
+  // Only fallback for Lovable preview/dev environments
+  if (hostname.includes("id-preview") || hostname.includes("lovableproject.com") || hostname.includes("lovable.app")) {
+    return "https://fastcrm.metodopare.ai";
   }
 
   return window.location.origin;

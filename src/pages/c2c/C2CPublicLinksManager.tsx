@@ -50,11 +50,12 @@ export default function C2CPublicLinksManager() {
     ];
 
     if (seller?.user_id) {
+      const sellerSlug = (seller as any).slug || seller.user_id;
       list.push({
         id: "seller-profile",
         label: "Perfil público do vendedor",
         description: "Perfil público do vendedor autenticado neste workspace.",
-        url: `${base}/marketplace/${marketplaceSlug}/seller/${seller.user_id}`,
+        url: `${base}/marketplace/${marketplaceSlug}/seller/${sellerSlug}`,
       });
     }
 
