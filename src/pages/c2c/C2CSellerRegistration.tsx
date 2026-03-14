@@ -298,7 +298,7 @@ export default function C2CSellerRegistration() {
           </Card>
 
           <div className="flex gap-3">
-            <Button type="button" variant="outline" className="flex-1" onClick={() => navigate(`/c2c/${workspaceSlug}`)}>
+            <Button type="button" variant="outline" className="flex-1" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
               Cancelar
             </Button>
             <Button type="submit" className="flex-1 gap-2" disabled={registerSeller.isPending || !form.display_name.trim()}>
