@@ -70,7 +70,7 @@ export default function C2CSellerRegistration() {
       <div className="min-h-screen bg-background">
         <header className="border-b bg-card">
           <div className="container mx-auto px-4 py-4 flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate(`/c2c/${workspaceSlug}`)}>
+            <Button variant="ghost" size="icon" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <Store className="h-5 w-5 text-primary" />
