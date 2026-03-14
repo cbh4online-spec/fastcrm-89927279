@@ -132,6 +132,13 @@ import Marketplace from "./pages/Marketplace";
 import PublicBioPage from "./pages/PublicBioPage";
 import PublicBioShortLink from "./pages/PublicBioShortLink";
 import C2CPublicMarketplace from "./pages/c2c/C2CPublicMarketplace";
+
+// Redirect legacy /c2c/:slug/* to /marketplace/:slug/*
+function C2CRedirectToMarketplace() {
+  const { workspaceSlug, "*": rest } = useParams();
+  const suffix = rest ? `/${rest}` : "";
+  return <Navigate to={`/marketplace/${workspaceSlug}${suffix}${window.location.search}`} replace />;
+}
 import C2CPublicListingDetail from "./pages/c2c/C2CPublicListingDetail";
 import C2CSellerRegistration from "./pages/c2c/C2CSellerRegistration";
 import C2CPublicCategoryPage from "./pages/c2c/C2CPublicCategoryPage";
