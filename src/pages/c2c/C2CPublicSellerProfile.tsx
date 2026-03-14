@@ -118,7 +118,7 @@ export default function C2CPublicSellerProfile() {
 
   const ogTitle = `${seller?.display_name || "Vendedor"} — Marketplace C2C`;
   const ogDescription = seller?.bio || `Vê o perfil e os anúncios de ${seller?.display_name || "este vendedor"} no marketplace.`;
-  const ogUrl = `${getPublicBaseUrl()}/c2c/${workspaceSlug}/seller/${sellerId}`;
+  const ogUrl = `${getPublicBaseUrl()}/marketplace/${workspaceSlug}/seller/${sellerId}`;
 
   return (
     <div className="min-h-screen bg-background">
