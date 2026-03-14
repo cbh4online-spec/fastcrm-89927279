@@ -278,7 +278,7 @@ export default function C2CPublicListingDetail() {
                   <Button
                     variant="outline"
                     className="w-full border-amber-500/30 text-amber-600 hover:bg-amber-500/10 h-11"
-                    onClick={() => navigate(`/c2c/${workspaceSlug}/seller/${listing.seller_id}`)}
+                    onClick={() => navigate(`/marketplace/${workspaceSlug}/seller/${listing.seller_id}`)}
                   >
                     <MessageCircle className="h-4 w-4 mr-2" /> Contactar vendedor
                   </Button>
