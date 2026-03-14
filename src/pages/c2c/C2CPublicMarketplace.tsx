@@ -310,7 +310,7 @@ export default function C2CPublicMarketplace() {
     });
   }, []);
 
-  const { data: workspace, isLoading: wsLoading } = usePublicWorkspace(workspaceSlug);
+  const { data: workspace, isLoading: wsLoading } = usePublicMarketplaceWorkspace(workspaceSlug);
   const workspaceId = workspace?.id;
   const { data: storeSettings } = usePublicStoreSettings(workspaceId || "");
   const { data: listings = [], isLoading } = usePublicListings(workspaceId, filters);
