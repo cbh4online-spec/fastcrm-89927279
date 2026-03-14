@@ -77,7 +77,7 @@ export default function C2CPublicSellerProfile() {
   const { workspaceSlug, sellerId } = useParams<{ workspaceSlug: string; sellerId: string }>();
   const navigate = useNavigate();
 
-  const { data: workspace, isLoading: wsLoading } = usePublicWorkspace(workspaceSlug);
+  const { data: workspace, isLoading: wsLoading } = usePublicMarketplaceWorkspace(workspaceSlug);
   const workspaceId = workspace?.id;
 
   const { data: seller, isLoading: sellerLoading } = usePublicSellerProfile(sellerId);
