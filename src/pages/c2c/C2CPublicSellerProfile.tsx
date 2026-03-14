@@ -4,6 +4,7 @@ import { Helmet } from "react-helmet-async";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { getShareUrl } from "@/utils/getShareUrl";
 import { supabase } from "@/integrations/supabase/client";
+import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,23 +12,6 @@ import { ListingCard } from "@/components/c2c/ListingCard";
 import { ArrowLeft, Star, ShieldCheck, Calendar, Package, Store } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-
-function usePublicWorkspace(slug: string | undefined) {
-  return useQuery({
-    queryKey: ["c2c-public-workspace", slug],
-    queryFn: async () => {
-      if (!slug) return null;
-      const { data, error } = await supabase
-        .from("workspaces")
-        .select("id, name, slug")
-        .eq("slug", slug)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!slug,
-  });
-}
 
 function usePublicSellerProfile(sellerId: string | undefined) {
   return useQuery({

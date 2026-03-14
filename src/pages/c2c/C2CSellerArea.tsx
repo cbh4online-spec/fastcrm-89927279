@@ -49,7 +49,7 @@ export default function C2CSellerArea() {
   const isLoading = sellerLoading || analyticsLoading;
 
   const publicProfileUrl = seller && workspaceSlug
-    ? `${getPublicBaseUrl()}/c2c/${workspaceSlug}/seller/${seller.user_id}`
+    ? `${getPublicBaseUrl()}/marketplace/${workspaceSlug}/seller/${seller.user_id}`
     : null;
 
   const copyLink = () => {
