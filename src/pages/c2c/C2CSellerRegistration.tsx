@@ -123,7 +123,7 @@ export default function C2CSellerRegistration() {
               <Badge variant="outline" className={s.color}>{s.label}</Badge>
               <p className="text-muted-foreground">{s.desc}</p>
               {sellerProfile.status === "approved" && (
-                <Button className="mt-4" onClick={() => navigate(`/c2c/${workspaceSlug}`)}>
+                <Button className="mt-4" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
                   Ir para o Marketplace
                 </Button>
               )}
