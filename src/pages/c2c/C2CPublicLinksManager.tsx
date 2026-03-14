@@ -21,9 +21,11 @@ export default function C2CPublicLinksManager() {
   const workspaceId = currentWorkspace?.id;
   const workspaceSlug = currentWorkspace?.slug;
   const { data: seller } = useMySellerProfile(workspaceId);
+  const { data: marketplaceConfig } = useMarketplaceAdmin(workspaceId);
+  const marketplaceSlug = marketplaceConfig?.slug || workspaceSlug;
 
   const links = useMemo<PublicLinkItem[]>(() => {
-    if (!workspaceSlug) return [];
+    if (!marketplaceSlug) return [];
 
     const base = getPublicBaseUrl();
     const list: PublicLinkItem[] = [
@@ -31,19 +33,19 @@ export default function C2CPublicLinksManager() {
         id: "marketplace",
         label: "Marketplace público",
         description: "Página principal do marketplace para compradores.",
-        url: `${base}/marketplace/${workspaceSlug}`,
+        url: `${base}/marketplace/${marketplaceSlug}`,
       },
       {
         id: "seller-signup",
         label: "Registo de vendedor",
         description: "Link para candidatura de novos vendedores.",
-        url: `${base}/marketplace/${workspaceSlug}/sell`,
+        url: `${base}/marketplace/${marketplaceSlug}/sell`,
       },
       {
         id: "sponsor",
         label: "Portal de patrocinadores",
         description: "Página para patrocinadores e promoções.",
-        url: `${base}/marketplace/${workspaceSlug}/sponsor`,
+        url: `${base}/marketplace/${marketplaceSlug}/sponsor`,
       },
     ];
 
@@ -52,12 +54,12 @@ export default function C2CPublicLinksManager() {
         id: "seller-profile",
         label: "Perfil público do vendedor",
         description: "Perfil público do vendedor autenticado neste workspace.",
-        url: `${base}/marketplace/${workspaceSlug}/seller/${seller.user_id}`,
+        url: `${base}/marketplace/${marketplaceSlug}/seller/${seller.user_id}`,
       });
     }
 
     return list;
-  }, [workspaceSlug, seller?.user_id]);
+  }, [marketplaceSlug, seller?.user_id]);
 
   const copyLink = async (url: string) => {
     await navigator.clipboard.writeText(url);
