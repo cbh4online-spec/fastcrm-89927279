@@ -5,7 +5,7 @@ import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
 import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
-import { getPublicBaseUrl } from "@/utils/getPublicDomain";
+import { usePublicMarketplaceTheme } from "@/hooks/c2c/usePublicMarketplaceTheme";
 import { getShareUrl } from "@/utils/getShareUrl";
 
 import { Button } from "@/components/ui/button";
