@@ -485,10 +485,10 @@ export default function C2CPublicMarketplace() {
             {/* Full catalog grid */}
             {listings.length > 0 && (
               <section className="space-y-4">
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                  <Store className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-bold flex items-center gap-2 text-white">
+                  <Store className="h-5 w-5 text-amber-400" />
                   Todos os anúncios
-                  <Badge variant="secondary" className="text-xs">{listings.length}</Badge>
+                  <Badge className="text-xs bg-zinc-800 text-zinc-400 border-zinc-700">{listings.length}</Badge>
                 </h2>
                 <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                   {listings.slice(0, visibleCount).map((listing) => (
