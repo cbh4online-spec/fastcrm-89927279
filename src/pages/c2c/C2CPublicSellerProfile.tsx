@@ -95,7 +95,7 @@ export default function C2CPublicSellerProfile() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-muted-foreground">
+      <div className="flex items-center justify-center min-h-screen bg-zinc-950 text-zinc-500">
         A carregar...
       </div>
     );
