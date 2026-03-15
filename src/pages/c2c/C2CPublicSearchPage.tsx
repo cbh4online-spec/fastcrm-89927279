@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
+import { usePublicMarketplaceTheme } from "@/hooks/c2c/usePublicMarketplaceTheme";
 import { ListingCard } from "@/components/c2c/ListingCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ export default function C2CPublicSearchPage() {
   const navigate = useNavigate();
   const q = searchParams.get("q") || "";
   const [search, setSearch] = useState(q);
+  usePublicMarketplaceTheme();
 
   const { data: workspace, isLoading: workspaceLoading } = usePublicMarketplaceWorkspace(workspaceSlug);
 
@@ -28,6 +30,7 @@ export default function C2CPublicSearchPage() {
         .select("*")
         .eq("workspace_id", workspace.id)
         .eq("status", "active")
+        .eq("moderation_status", "approved")
         .or(`title.ilike.%${q}%,description.ilike.%${q}%`)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -51,23 +54,28 @@ export default function C2CPublicSearchPage() {
       <Helmet>
         <title>{q ? `"${q}" — Pesquisa` : "Pesquisa"} — Marketplace</title>
       </Helmet>
-      <div className="light min-h-screen bg-white text-zinc-900" style={{ colorScheme: 'light' }}>
-        <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-zinc-200">
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="text-zinc-500" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
+      <div className="min-h-screen bg-zinc-950 text-zinc-100">
+        <header className="sticky top-0 z-30 bg-zinc-900/95 backdrop-blur-md border-b border-zinc-800">
+          <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+              onClick={() => navigate(`/marketplace/${workspaceSlug}`)}
+            >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <form onSubmit={handleSearch} className="flex-1 flex gap-2">
+            <form onSubmit={handleSearch} className="flex-1 flex gap-2 min-w-[240px]">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Pesquisar anúncios..."
-                  className="pl-9 bg-zinc-50 border-zinc-200 text-zinc-900"
+                  className="pl-9 bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
                 />
               </div>
-              <Button type="submit" size="sm" className="bg-amber-500 text-white hover:bg-amber-600">
+              <Button type="submit" size="sm" className="bg-amber-500 text-zinc-950 hover:bg-amber-600 border-0">
                 Pesquisar
               </Button>
             </form>

@@ -2,12 +2,15 @@ import { Share2, Copy, Check, Mail } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface ShareButtonsProps {
   url: string;
   title: string;
   description?: string;
+  variant?: "default" | "dark";
+  hideLabelOnMobile?: boolean;
 }
 
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -26,10 +29,17 @@ function FacebookIcon({ className }: { className?: string }) {
   );
 }
 
-export function ShareButtons({ url, title, description }: ShareButtonsProps) {
+export function ShareButtons({
+  url,
+  title,
+  description,
+  variant = "default",
+  hideLabelOnMobile = true,
+}: ShareButtonsProps) {
   const { t } = useTranslation('marketplace');
   const [copied, setCopied] = useState(false);
   const shareText = `${title}${description ? ` - ${description}` : ""}`;
+  const isDark = variant === "dark";
 
   const handleWhatsApp = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText}\n${url}`)}`, "_blank");
@@ -56,24 +66,36 @@ export function ShareButtons({ url, title, description }: ShareButtonsProps) {
     }
   };
 
+  const iconButtonClass = cn(
+    "h-8 w-8 rounded-full",
+    isDark && "border border-zinc-700 bg-zinc-800/70 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100"
+  );
+
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+      <span
+        className={cn(
+          "text-sm flex items-center gap-1.5",
+          isDark ? "text-zinc-400" : "text-muted-foreground",
+          hideLabelOnMobile && "hidden md:flex"
+        )}
+      >
         <Share2 className="h-4 w-4" />
         {t('quickShare').split(' ')[0]}:
       </span>
-      <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={handleWhatsApp} title="WhatsApp">
+      <Button variant={isDark ? "ghost" : "outline"} size="icon" className={iconButtonClass} onClick={handleWhatsApp} title="WhatsApp">
         <WhatsAppIcon className="h-4 w-4" />
       </Button>
-      <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={handleFacebook} title="Facebook">
+      <Button variant={isDark ? "ghost" : "outline"} size="icon" className={iconButtonClass} onClick={handleFacebook} title="Facebook">
         <FacebookIcon className="h-4 w-4" />
       </Button>
-      <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={handleEmail} title="Email">
+      <Button variant={isDark ? "ghost" : "outline"} size="icon" className={iconButtonClass} onClick={handleEmail} title="Email">
         <Mail className="h-4 w-4" />
       </Button>
-      <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={handleCopy} title={t('copy')}>
-        {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+      <Button variant={isDark ? "ghost" : "outline"} size="icon" className={iconButtonClass} onClick={handleCopy} title={t('copy')}>
+        {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
       </Button>
     </div>
   );
 }
+

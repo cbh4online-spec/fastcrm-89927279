@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
+import { usePublicMarketplaceTheme } from "@/hooks/c2c/usePublicMarketplaceTheme";
 import { ListingCard } from "@/components/c2c/ListingCard";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -11,6 +12,7 @@ import type { C2CListing } from "@/hooks/useC2CListings";
 export default function C2CPublicCategoryPage() {
   const { workspaceSlug, category } = useParams<{ workspaceSlug: string; category: string }>();
   const navigate = useNavigate();
+  usePublicMarketplaceTheme();
 
   const { data: workspace, isLoading: workspaceLoading } = usePublicMarketplaceWorkspace(workspaceSlug);
 
@@ -34,6 +36,7 @@ export default function C2CPublicCategoryPage() {
         .eq("workspace_id", workspace.id)
         .eq("category_id", categoryData.id)
         .eq("status", "active")
+        .eq("moderation_status", "approved")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as unknown as C2CListing[];
@@ -48,13 +51,18 @@ export default function C2CPublicCategoryPage() {
       <Helmet>
         <title>{categoryData?.name || category} — Marketplace</title>
       </Helmet>
-      <div className="light min-h-screen bg-white text-zinc-900" style={{ colorScheme: 'light' }}>
-        <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-zinc-200">
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="text-zinc-500" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
+      <div className="min-h-screen bg-zinc-950 text-zinc-100">
+        <header className="sticky top-0 z-30 bg-zinc-900/95 backdrop-blur-md border-b border-zinc-800">
+          <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+              onClick={() => navigate(`/marketplace/${workspaceSlug}`)}
+            >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-lg font-semibold text-zinc-900">{categoryData?.name || category}</h1>
+            <h1 className="text-lg font-semibold text-zinc-100">{categoryData?.name || category}</h1>
             <span className="text-xs text-zinc-500">{listings.length} anúncios</span>
           </div>
         </header>
