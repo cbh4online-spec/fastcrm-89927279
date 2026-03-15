@@ -147,22 +147,22 @@ export default function C2CPublicSellerProfile() {
         {/* Seller Header */}
         <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6 mb-6">
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary">
+            <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center text-2xl font-bold text-amber-400">
               {seller?.display_name?.[0]?.toUpperCase() || "V"}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-xl font-bold">{seller?.display_name || "Vendedor"}</h1>
+                <h1 className="text-xl font-bold text-zinc-100">{seller?.display_name || "Vendedor"}</h1>
                 {seller?.is_verified && (
-                  <Badge variant="secondary" className="gap-1">
+                  <Badge variant="secondary" className="gap-1 bg-zinc-800 text-zinc-300 border-zinc-700">
                     <ShieldCheck className="h-3 w-3" /> Verificado
                   </Badge>
                 )}
               </div>
               {seller?.bio && (
-                <p className="text-sm text-muted-foreground mb-2">{seller.bio}</p>
+                <p className="text-sm text-zinc-400 mb-2">{seller.bio}</p>
               )}
-              <ShareButtons url={getShareUrl("c2c-seller", (workspaceSlug || "") + "/" + (sellerId || ""))} title={ogTitle} />
+              <ShareButtons url={getShareUrl("c2c-seller", (workspaceSlug || "") + "/" + (sellerId || ""))} title={ogTitle} variant="dark" />
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-2">
                 {reviewData && reviewData.count > 0 && (
                   <span className="flex items-center gap-1">
