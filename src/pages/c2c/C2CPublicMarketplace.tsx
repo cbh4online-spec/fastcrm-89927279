@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react";
+import { useTheme } from "next-themes";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
@@ -303,6 +304,13 @@ export default function C2CPublicMarketplace() {
   const [showListings, setShowListings] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [visibleCount, setVisibleCount] = useState(20);
+
+  // Force light theme for public marketplace
+  const { setTheme } = useTheme();
+  useEffect(() => {
+    setTheme('light');
+    return () => { setTheme('dark'); };
+  }, [setTheme]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
