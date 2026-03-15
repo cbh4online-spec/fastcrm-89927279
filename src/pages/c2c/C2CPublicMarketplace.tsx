@@ -5,6 +5,7 @@ import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { usePublicStoreSettings } from "@/hooks/useStoreSettings";
 import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
+import { usePublicMarketplaceTheme } from "@/hooks/c2c/usePublicMarketplaceTheme";
 import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { getShareUrl } from "@/utils/getShareUrl";
 
@@ -181,11 +182,11 @@ function HeroSection({ onExplore, onSell }: { onExplore: () => void; onSell: () 
               encontra oportunidades e negoceia diretamente.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Button size="lg" className="gap-2 rounded-full font-semibold bg-amber-500 hover:bg-amber-600 text-zinc-900 border-0" onClick={onExplore}>
+              <Button size="lg" className="w-full sm:w-auto gap-2 rounded-full font-semibold bg-amber-500 hover:bg-amber-600 text-zinc-900 border-0" onClick={onExplore}>
                 <Search className="h-4 w-4" />
                 Explorar Produtos
               </Button>
-              <Button size="lg" variant="outline" className="gap-2 rounded-full font-semibold border-zinc-600 text-zinc-200 hover:bg-zinc-800 hover:text-white" onClick={onSell}>
+              <Button size="lg" variant="ghost" className="w-full sm:w-auto gap-2 rounded-full font-semibold border border-zinc-600 bg-zinc-900/60 text-zinc-100 hover:bg-zinc-800 hover:text-white" onClick={onSell}>
                 <Plus className="h-4 w-4" />
                 Começar a Vender
               </Button>
@@ -301,7 +302,9 @@ export default function C2CPublicMarketplace() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [visibleCount, setVisibleCount] = useState(20);
 
-  // No longer force light theme — marketplace uses its own dark styling
+  usePublicMarketplaceTheme();
+
+  // Marketplace uses dark styling consistently
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -380,15 +383,15 @@ export default function C2CPublicMarketplace() {
       {/* Top bar */}
       <header className="sticky top-0 z-40 bg-zinc-900/95 backdrop-blur-md border-b border-zinc-800 shadow-sm">
         <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 shrink-0">
               <div className="p-1.5 rounded-lg bg-amber-500/10">
                 <Store className="w-5 h-5 text-amber-400" />
               </div>
-              <h1 className="text-lg font-bold leading-tight text-white">{workspace.name}</h1>
+              <h1 className="text-base sm:text-lg font-bold leading-tight text-white">{workspace.name}</h1>
             </div>
 
-            <div className="flex-1 max-w-xl mx-auto">
+            <div className="order-3 w-full md:order-none md:flex-1 md:max-w-xl md:mx-auto">
               <button
                 type="button"
                 onClick={() => setSearchOpen(true)}
@@ -399,9 +402,11 @@ export default function C2CPublicMarketplace() {
               </button>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              <ShareButtons url={shareUrl} title={ogTitle} />
-              <Button variant="outline" size="sm" className="rounded-full hidden sm:flex border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white" onClick={() => navigate(isAuthenticated ? `/dashboard/c2c/seller-area?ws=${workspaceSlug}` : `/login?redirect=/marketplace/${workspaceSlug}`)}>
+            <div className="ml-auto flex items-center gap-2 shrink-0">
+              <div className="hidden md:flex">
+                <ShareButtons url={shareUrl} title={ogTitle} variant="dark" />
+              </div>
+              <Button variant="outline" size="sm" className="rounded-full hidden lg:flex border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white" onClick={() => navigate(isAuthenticated ? `/dashboard/c2c/seller-area?ws=${workspaceSlug}` : `/login?redirect=/marketplace/${workspaceSlug}`)}>
                 {isAuthenticated ? 'Gerir' : 'Entrar'}
               </Button>
               <Button size="sm" className="gap-1 rounded-full bg-amber-500 hover:bg-amber-600 text-zinc-900 border-0" onClick={handleSell}>

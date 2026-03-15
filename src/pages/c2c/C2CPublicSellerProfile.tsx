@@ -5,6 +5,7 @@ import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { getShareUrl } from "@/utils/getShareUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
+import { usePublicMarketplaceTheme } from "@/hooks/c2c/usePublicMarketplaceTheme";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -80,6 +81,7 @@ function usePublicSellerReviews(sellerId: string | undefined) {
 export default function C2CPublicSellerProfile() {
   const { workspaceSlug, sellerId } = useParams<{ workspaceSlug: string; sellerId: string }>();
   const navigate = useNavigate();
+  usePublicMarketplaceTheme();
 
   const { data: workspace, isLoading: wsLoading } = usePublicMarketplaceWorkspace(workspaceSlug);
   const workspaceId = workspace?.id;
@@ -93,7 +95,7 @@ export default function C2CPublicSellerProfile() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-muted-foreground">
+      <div className="flex items-center justify-center min-h-screen bg-zinc-950 text-zinc-500">
         A carregar...
       </div>
     );
@@ -101,20 +103,20 @@ export default function C2CPublicSellerProfile() {
 
   if (!workspace) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <Store className="h-12 w-12 text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-zinc-950 text-zinc-100">
+        <Store className="h-12 w-12 text-zinc-500" />
         <h1 className="text-xl font-bold">Marketplace não encontrado</h1>
-        <p className="text-muted-foreground">O marketplace que procura não existe ou não está disponível.</p>
+        <p className="text-zinc-500">O marketplace que procura não existe ou não está disponível.</p>
       </div>
     );
   }
 
   if (!seller) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-zinc-950 text-zinc-100">
         <h1 className="text-xl font-bold">Vendedor não encontrado</h1>
-        <p className="text-muted-foreground">Este perfil não existe ou não está disponível.</p>
-        <Button variant="outline" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
+        <p className="text-zinc-500">Este perfil não existe ou não está disponível.</p>
+        <Button variant="outline" className="border-zinc-700 text-zinc-200 hover:bg-zinc-800" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Voltar ao Marketplace
         </Button>
       </div>
@@ -126,7 +128,7 @@ export default function C2CPublicSellerProfile() {
   const ogUrl = `${getPublicBaseUrl()}/marketplace/${workspaceSlug}/seller/${sellerId}`;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <Helmet>
         <title>{ogTitle}</title>
         <meta property="og:title" content={ogTitle} />
@@ -138,30 +140,30 @@ export default function C2CPublicSellerProfile() {
         <meta name="twitter:description" content={ogDescription} />
       </Helmet>
       <div className="container mx-auto px-4 py-6 max-w-5xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate(`/marketplace/${workspaceSlug}`)} className="mb-4 -ml-2">
+        <Button variant="ghost" size="sm" onClick={() => navigate(`/marketplace/${workspaceSlug}`)} className="mb-4 -ml-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800">
           <ArrowLeft className="h-4 w-4 mr-1" /> Voltar ao Marketplace
         </Button>
 
         {/* Seller Header */}
-        <div className="rounded-xl border bg-card p-6 mb-6">
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6 mb-6">
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary">
+            <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center text-2xl font-bold text-amber-400">
               {seller?.display_name?.[0]?.toUpperCase() || "V"}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-xl font-bold">{seller?.display_name || "Vendedor"}</h1>
+                <h1 className="text-xl font-bold text-zinc-100">{seller?.display_name || "Vendedor"}</h1>
                 {seller?.is_verified && (
-                  <Badge variant="secondary" className="gap-1">
+                  <Badge variant="secondary" className="gap-1 bg-zinc-800 text-zinc-300 border-zinc-700">
                     <ShieldCheck className="h-3 w-3" /> Verificado
                   </Badge>
                 )}
               </div>
               {seller?.bio && (
-                <p className="text-sm text-muted-foreground mb-2">{seller.bio}</p>
+                <p className="text-sm text-zinc-400 mb-2">{seller.bio}</p>
               )}
-              <ShareButtons url={getShareUrl("c2c-seller", (workspaceSlug || "") + "/" + (sellerId || ""))} title={ogTitle} />
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-2">
+              <ShareButtons url={getShareUrl("c2c-seller", (workspaceSlug || "") + "/" + (sellerId || ""))} title={ogTitle} variant="dark" />
+              <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-400 mt-2">
                 {reviewData && reviewData.count > 0 && (
                   <span className="flex items-center gap-1">
                     <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
@@ -184,21 +186,21 @@ export default function C2CPublicSellerProfile() {
         {/* Reviews */}
         {reviewData && reviewData.reviews.length > 0 && (
           <div className="mb-6">
-            <h2 className="text-lg font-bold mb-3">Avaliações</h2>
+            <h2 className="text-lg font-bold mb-3 text-zinc-100">Avaliações</h2>
             <div className="space-y-3">
               {reviewData.reviews.slice(0, 5).map((review: any) => (
-                <div key={review.id} className="rounded-lg border p-4 bg-card">
+                <div key={review.id} className="rounded-lg border border-zinc-800 p-4 bg-zinc-900">
                   <div className="flex items-center gap-2 mb-1">
                     <div className="flex">
                       {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={`h-3.5 w-3.5 ${i < review.rating ? "text-amber-500 fill-amber-500" : "text-muted"}`} />
+                        <Star key={i} className={`h-3.5 w-3.5 ${i < review.rating ? "text-amber-500 fill-amber-500" : "text-zinc-700"}`} />
                       ))}
                     </div>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-zinc-500">
                       {format(new Date(review.created_at), "d MMM yyyy", { locale: pt })}
                     </span>
                   </div>
-                  {review.comment && <p className="text-sm text-muted-foreground">{review.comment}</p>}
+                  {review.comment && <p className="text-sm text-zinc-400">{review.comment}</p>}
                 </div>
               ))}
             </div>
@@ -206,9 +208,9 @@ export default function C2CPublicSellerProfile() {
         )}
 
         {/* Listings */}
-        <h2 className="text-lg font-bold mb-3">Anúncios ({listings.length})</h2>
+        <h2 className="text-lg font-bold mb-3 text-zinc-100">Anúncios ({listings.length})</h2>
         {listings.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">Este vendedor não tem anúncios ativos.</p>
+          <p className="text-zinc-500 text-center py-8">Este vendedor não tem anúncios ativos.</p>
         ) : (
           <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
             {listings.map((listing: any) => (

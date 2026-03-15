@@ -116,26 +116,26 @@ export function C2CQuickCheckoutDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md border-zinc-700 bg-zinc-900 text-zinc-100">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ShoppingBag className="h-5 w-5 text-primary" />
+          <DialogTitle className="flex items-center gap-2 text-zinc-100">
+            <ShoppingBag className="h-5 w-5 text-amber-400" />
             Comprar Agora
           </DialogTitle>
-          <DialogDescription className="truncate">
+          <DialogDescription className="truncate text-zinc-400">
             {listing.title}
           </DialogDescription>
         </DialogHeader>
 
         {/* Order summary */}
-        <div className="rounded-lg border bg-muted/30 p-3 space-y-1.5">
+        <div className="rounded-lg border border-zinc-700 bg-zinc-800/60 p-3 space-y-1.5">
           <div className="flex items-center gap-3">
             {listing.photos?.[0] && (
               <img src={listing.photos[0]} alt="" className="w-12 h-12 rounded-lg object-cover" />
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{listing.title}</p>
-              <p className="text-lg font-bold text-primary">{listing.price.toFixed(2)}€</p>
+              <p className="text-sm font-medium truncate text-zinc-100">{listing.title}</p>
+              <p className="text-lg font-bold text-amber-400">{listing.price.toFixed(2)}€</p>
             </div>
           </div>
         </div>
@@ -144,14 +144,25 @@ export function C2CQuickCheckoutDialog({
         {step === "info" && (
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label>Nome *</Label>
-              <Input value={name} onChange={e => setName(e.target.value)} placeholder="O teu nome" />
+              <Label className="text-zinc-300">Nome *</Label>
+              <Input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="O teu nome"
+                className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+              />
             </div>
             <div className="space-y-1.5">
-              <Label>Email *</Label>
-              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@exemplo.com" />
+              <Label className="text-zinc-300">Email *</Label>
+              <Input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="email@exemplo.com"
+                className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+              />
             </div>
-            <Button className="w-full" onClick={() => setStep("shipping")} disabled={!infoValid}>
+            <Button className="w-full bg-amber-500 hover:bg-amber-600 text-zinc-950" onClick={() => setStep("shipping")} disabled={!infoValid}>
               Continuar
             </Button>
           </div>
@@ -165,13 +176,13 @@ export function C2CQuickCheckoutDialog({
               <div className="flex gap-2">
                 <button
                   onClick={() => { setShippingTab("shipping"); setSelectedShipping(null); }}
-                  className={`flex-1 text-xs py-2.5 px-3 rounded-lg border transition-all font-medium ${shippingTab === "shipping" ? "bg-primary/10 border-primary text-primary" : "border-border text-muted-foreground hover:border-muted-foreground/50"}`}
+                  className={`flex-1 text-xs py-2.5 px-3 rounded-lg border transition-all font-medium ${shippingTab === "shipping" ? "bg-amber-500/10 border-amber-500 text-amber-400" : "border-zinc-700 text-zinc-400 hover:border-zinc-500"}`}
                 >
                   <Package className="h-4 w-4 inline mr-1.5" /> Envio
                 </button>
                 <button
                   onClick={() => { setShippingTab("in_person"); setSelectedShipping(null); }}
-                  className={`flex-1 text-xs py-2.5 px-3 rounded-lg border transition-all font-medium ${shippingTab === "in_person" ? "bg-primary/10 border-primary text-primary" : "border-border text-muted-foreground hover:border-muted-foreground/50"}`}
+                  className={`flex-1 text-xs py-2.5 px-3 rounded-lg border transition-all font-medium ${shippingTab === "in_person" ? "bg-amber-500/10 border-amber-500 text-amber-400" : "border-zinc-700 text-zinc-400 hover:border-zinc-500"}`}
                 >
                   <MapPin className="h-4 w-4 inline mr-1.5" /> Entrega em mão
                 </button>
@@ -180,7 +191,7 @@ export function C2CQuickCheckoutDialog({
 
             {shippingTab === "shipping" && showShipping && (
               loadingShipping ? (
-                <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
+                <div className="flex items-center justify-center py-6 text-sm text-zinc-500">
                   <Loader2 className="h-4 w-4 animate-spin mr-2" /> A carregar opções...
                 </div>
               ) : (
@@ -188,16 +199,16 @@ export function C2CQuickCheckoutDialog({
                   {shippingOptions.map(opt => (
                     <div
                       key={opt.id}
-                      className={`flex items-center space-x-3 rounded-lg border p-3 cursor-pointer transition-all ${selectedShipping === opt.id ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:border-muted-foreground/30"}`}
+                      className={`flex items-center space-x-3 rounded-lg border p-3 cursor-pointer transition-all ${selectedShipping === opt.id ? "border-amber-500 bg-amber-500/5 shadow-sm" : "border-zinc-700 hover:border-zinc-500"}`}
                     >
                       <RadioGroupItem value={opt.id} id={`co-${opt.id}`} />
                       <Label htmlFor={`co-${opt.id}`} className="flex-1 cursor-pointer">
                         <div className="flex justify-between items-center">
                           <div>
-                            <p className="text-sm font-medium">{opt.name}</p>
-                            <p className="text-xs text-muted-foreground">{opt.estimate}</p>
+                            <p className="text-sm font-medium text-zinc-200">{opt.name}</p>
+                            <p className="text-xs text-zinc-500">{opt.estimate}</p>
                           </div>
-                          <span className="text-sm font-bold">{opt.price.toFixed(2)}€</span>
+                          <span className="text-sm font-bold text-zinc-200">{opt.price.toFixed(2)}€</span>
                         </div>
                       </Label>
                     </div>
@@ -208,57 +219,58 @@ export function C2CQuickCheckoutDialog({
 
             {shippingTab === "in_person" && showMeetup && (
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">Combina o local de entrega com o vendedor.</p>
+                <p className="text-xs text-zinc-500">Combina o local de entrega com o vendedor.</p>
                 <Input
                   placeholder="Local sugerido (ex: Lisboa, estação X...)"
                   value={meetupLocation}
                   onChange={e => setMeetupLocation(e.target.value)}
+                  className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
                 />
-                <div className="flex items-center gap-1.5 text-xs text-primary font-medium">
+                <div className="flex items-center gap-1.5 text-xs text-amber-400 font-medium">
                   <CheckCircle2 className="h-3.5 w-3.5" /> Entrega gratuita
                 </div>
               </div>
             )}
 
             {/* Total */}
-            <div className="rounded-lg border p-3 space-y-1">
+            <div className="rounded-lg border border-zinc-700 p-3 space-y-1">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Artigo</span>
-                <span>{listing.price.toFixed(2)}€</span>
+                <span className="text-zinc-500">Artigo</span>
+                <span className="text-zinc-200">{listing.price.toFixed(2)}€</span>
               </div>
               {shippingCost > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Envio</span>
-                  <span>{shippingCost.toFixed(2)}€</span>
+                  <span className="text-zinc-500">Envio</span>
+                  <span className="text-zinc-200">{shippingCost.toFixed(2)}€</span>
                 </div>
               )}
               {shippingTab === "in_person" && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Envio</span>
-                  <span className="text-primary font-medium">Grátis</span>
+                  <span className="text-zinc-500">Envio</span>
+                  <span className="text-amber-400 font-medium">Grátis</span>
                 </div>
               )}
-              <div className="border-t pt-1 flex justify-between font-bold">
-                <span>Total</span>
-                <span className="text-primary">{total.toFixed(2)}€</span>
+              <div className="border-t border-zinc-700 pt-1 flex justify-between font-bold">
+                <span className="text-zinc-200">Total</span>
+                <span className="text-amber-400">{total.toFixed(2)}€</span>
               </div>
             </div>
 
             {/* Trust signals */}
-            <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-              <span className="flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5 text-primary" /> Pagamento seguro</span>
-              <span className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5 text-primary" /> Stripe</span>
+            <div className="flex items-center gap-4 text-[11px] text-zinc-500">
+              <span className="flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5 text-amber-400" /> Pagamento seguro</span>
+              <span className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5 text-amber-400" /> Stripe</span>
             </div>
 
             {/* Back + Buy */}
             <div className="flex gap-2">
               {!isAuthenticated && (
-                <Button variant="outline" onClick={() => setStep("info")} className="flex-shrink-0">
+                <Button variant="outline" onClick={() => setStep("info")} className="flex-shrink-0 border-zinc-700 text-zinc-200 hover:bg-zinc-800">
                   Voltar
                 </Button>
               )}
               <Button
-                className="flex-1 h-12 text-base font-semibold"
+                className="flex-1 h-12 text-base font-semibold bg-amber-500 hover:bg-amber-600 text-zinc-950"
                 onClick={handleCheckout}
                 disabled={submitting || !shippingValid}
               >
