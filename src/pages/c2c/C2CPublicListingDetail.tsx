@@ -92,13 +92,13 @@ export default function C2CPublicListingDetail() {
 
   if (isLoading) {
     return (
-      <div className="light min-h-screen bg-white flex items-center justify-center" style={{ colorScheme: 'light' }}>
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <div className="w-full max-w-4xl mx-auto px-4 py-12 space-y-6">
-          <Skeleton className="h-8 w-48 bg-zinc-200" />
-          <Skeleton className="h-[400px] w-full rounded-2xl bg-zinc-200" />
+          <Skeleton className="h-8 w-48 bg-zinc-800" />
+          <Skeleton className="h-[400px] w-full rounded-2xl bg-zinc-800" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Skeleton className="h-40 bg-zinc-200 rounded-xl" />
-            <Skeleton className="h-40 bg-zinc-200 rounded-xl" />
+            <Skeleton className="h-40 bg-zinc-800 rounded-xl" />
+            <Skeleton className="h-40 bg-zinc-800 rounded-xl" />
           </div>
         </div>
       </div>
