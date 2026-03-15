@@ -1,5 +1,4 @@
 import { useState, useRef, useMemo, useEffect } from "react";
-import { useTheme } from "next-themes";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
@@ -84,7 +83,7 @@ function CategoryCarousel({ categories, onSelect, selected }: {
   if (categories.length === 0) return null;
   return (
     <div className="relative">
-      <Button variant="ghost" size="icon" className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-card shadow-md border hidden md:flex" onClick={() => scroll("left")}>
+      <Button variant="ghost" size="icon" className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-zinc-800 shadow-md border border-zinc-700 text-zinc-300 hidden md:flex" onClick={() => scroll("left")}>
         <ChevronLeft className="h-4 w-4" />
       </Button>
       <div ref={scrollRef} className="flex gap-3 overflow-x-auto scrollbar-hide snap-x py-2 px-1">
@@ -94,7 +93,7 @@ function CategoryCarousel({ categories, onSelect, selected }: {
             onClick={() => onSelect(selected === cat.id ? undefined : cat.id)}
             className={cn(
               "flex flex-col items-center gap-2 px-4 py-3 rounded-xl border transition-all shrink-0 snap-start min-w-[100px] hover:shadow-md",
-              selected === cat.id ? "bg-primary/10 border-primary shadow-sm" : "bg-card border-border hover:border-primary/30"
+              selected === cat.id ? "bg-amber-500/10 border-amber-500 shadow-sm text-amber-400" : "bg-zinc-800 border-zinc-700 hover:border-amber-500/30 text-zinc-300"
             )}
           >
             {cat.image_url ? (
@@ -106,7 +105,7 @@ function CategoryCarousel({ categories, onSelect, selected }: {
           </button>
         ))}
       </div>
-      <Button variant="ghost" size="icon" className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-card shadow-md border hidden md:flex" onClick={() => scroll("right")}>
+      <Button variant="ghost" size="icon" className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-zinc-800 shadow-md border border-zinc-700 text-zinc-300 hidden md:flex" onClick={() => scroll("right")}>
         <ChevronRight className="h-4 w-4" />
       </Button>
     </div>
@@ -130,15 +129,15 @@ function SectionCarousel({ title, icon, listings, onNavigate, seeMoreHref, spons
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold flex items-center gap-2">{icon}{title}</h2>
+        <h2 className="text-lg font-bold flex items-center gap-2 text-white">{icon}{title}</h2>
         {seeMoreHref && (
-          <Button variant="ghost" size="sm" className="gap-1 text-primary" onClick={seeMoreHref}>
+          <Button variant="ghost" size="sm" className="gap-1 text-amber-400 hover:text-amber-300" onClick={seeMoreHref}>
             ver mais <ChevronRight className="h-4 w-4" />
           </Button>
         )}
       </div>
       <div className="relative">
-        <Button variant="ghost" size="icon" className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-card shadow-md border hidden md:flex" onClick={() => scroll("left")}>
+        <Button variant="ghost" size="icon" className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-zinc-800 shadow-md border border-zinc-700 text-zinc-300 hidden md:flex" onClick={() => scroll("left")}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <div ref={scrollRef} className="flex gap-4 overflow-x-auto scrollbar-hide snap-x pb-2">
@@ -154,7 +153,7 @@ function SectionCarousel({ title, icon, listings, onNavigate, seeMoreHref, spons
             />
           ))}
         </div>
-        <Button variant="ghost" size="icon" className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-card shadow-md border hidden md:flex" onClick={() => scroll("right")}>
+        <Button variant="ghost" size="icon" className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-zinc-800 shadow-md border border-zinc-700 text-zinc-300 hidden md:flex" onClick={() => scroll("right")}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
@@ -165,28 +164,28 @@ function SectionCarousel({ title, icon, listings, onNavigate, seeMoreHref, spons
 /* ── Hero Section ────────────────────────────────────────────────── */
 function HeroSection({ onExplore, onSell }: { onExplore: () => void; onSell: () => void }) {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-primary-foreground">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.15),transparent_50%)]" />
+    <section className="relative overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-800">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(245,158,11,0.15),transparent_50%)]" />
       <div className="container mx-auto px-4 py-16 md:py-24 relative z-10">
         <div className="grid md:grid-cols-2 gap-10 items-center">
            <div className="space-y-6">
-            <Badge className="bg-white/20 text-primary-foreground hover:bg-white/30 border-0 text-xs">
+            <Badge className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border-amber-500/30 text-xs">
               <Sparkles className="h-3 w-3 mr-1" /> Marketplace C2C
             </Badge>
-            <h1 className="text-3xl md:text-5xl font-extrabold leading-tight tracking-tight">
+            <h1 className="text-3xl md:text-5xl font-extrabold leading-tight tracking-tight text-white">
               Compra e vende entre<br />
-              <span className="text-white/90">utilizadores reais</span>
+              <span className="text-amber-400">utilizadores reais</span>
             </h1>
-            <p className="text-lg text-primary-foreground/80 max-w-md">
+            <p className="text-lg text-zinc-400 max-w-md">
               O teu marketplace de confiança. Publica os teus produtos, 
               encontra oportunidades e negoceia diretamente.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Button size="lg" variant="secondary" className="gap-2 rounded-full font-semibold" onClick={onExplore}>
+              <Button size="lg" className="gap-2 rounded-full font-semibold bg-amber-500 hover:bg-amber-600 text-zinc-900 border-0" onClick={onExplore}>
                 <Search className="h-4 w-4" />
                 Explorar Produtos
               </Button>
-              <Button size="lg" className="gap-2 rounded-full font-semibold bg-white/20 hover:bg-white/30 text-primary-foreground border-0" onClick={onSell}>
+              <Button size="lg" variant="outline" className="gap-2 rounded-full font-semibold border-zinc-600 text-zinc-200 hover:bg-zinc-800 hover:text-white" onClick={onSell}>
                 <Plus className="h-4 w-4" />
                 Começar a Vender
               </Button>
@@ -200,10 +199,10 @@ function HeroSection({ onExplore, onSell }: { onExplore: () => void; onSell: () 
               { icon: DollarSign, label: "Sem Taxas p/ Comprador", desc: "Compra sem comissões" },
               { icon: Zap, label: "Publicação Rápida", desc: "Anuncia em 2 minutos" },
             ].map(({ icon: Icon, label, desc }) => (
-              <div key={label} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:bg-white/15 transition-colors">
-                <Icon className="h-6 w-6 mb-2 text-primary-foreground/90" />
-                <h3 className="font-semibold text-sm">{label}</h3>
-                <p className="text-xs text-primary-foreground/70">{desc}</p>
+              <div key={label} className="bg-zinc-800/80 backdrop-blur-sm rounded-xl p-4 border border-zinc-700/50 hover:border-amber-500/30 hover:bg-zinc-800 transition-colors">
+                <Icon className="h-6 w-6 mb-2 text-amber-400" />
+                <h3 className="font-semibold text-sm text-white">{label}</h3>
+                <p className="text-xs text-zinc-400">{desc}</p>
               </div>
             ))}
           </div>
@@ -221,20 +220,17 @@ function HowItWorks() {
     { icon: ShieldCheck, title: "Compra Seguro", desc: "Pagamento protegido pela plataforma com garantia." },
   ];
   return (
-    <section className="py-12 bg-muted/30">
+    <section className="py-12 bg-zinc-900 border-t border-zinc-800">
       <div className="container mx-auto px-4">
-        <h2 className="text-2xl font-bold text-center mb-8">Como funciona</h2>
+        <h2 className="text-2xl font-bold text-center mb-8 text-white">Como funciona</h2>
         <div className="grid md:grid-cols-3 gap-8">
-          {steps.map((step, i) => (
-            <div
-              key={step.title}
-              className="text-center space-y-3"
-            >
-              <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                <step.icon className="h-7 w-7 text-primary" />
+          {steps.map((step) => (
+            <div key={step.title} className="text-center space-y-3">
+              <div className="mx-auto w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+                <step.icon className="h-7 w-7 text-amber-400" />
               </div>
-              <h3 className="font-semibold text-lg">{step.title}</h3>
-              <p className="text-sm text-muted-foreground max-w-xs mx-auto">{step.desc}</p>
+              <h3 className="font-semibold text-lg text-white">{step.title}</h3>
+              <p className="text-sm text-zinc-400 max-w-xs mx-auto">{step.desc}</p>
             </div>
           ))}
         </div>
@@ -248,43 +244,43 @@ function SellCTA({ onSell }: { onSell: () => void }) {
   return (
     <section className="py-12">
       <div className="container mx-auto px-4">
-        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl p-8 md:p-12 border border-primary/10">
+        <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent rounded-2xl p-8 md:p-12 border border-amber-500/20">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="space-y-4">
-              <h2 className="text-2xl md:text-3xl font-bold">Tem algo para vender?</h2>
-              <p className="text-muted-foreground">
+              <h2 className="text-2xl md:text-3xl font-bold text-white">Tem algo para vender?</h2>
+              <p className="text-zinc-400">
                 Publica o teu anúncio gratuitamente e chega a milhares de compradores. 
                 A plataforma cobra apenas 5% sobre cada venda concluída.
               </p>
-              <div className="flex flex-wrap gap-6 text-sm">
+              <div className="flex flex-wrap gap-6 text-sm text-zinc-300">
                 <div className="flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-primary" />
+                  <Zap className="h-4 w-4 text-amber-400" />
                   <span>Publicação em 2 min</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-primary" />
+                  <DollarSign className="h-4 w-4 text-amber-400" />
                   <span>Apenas 5% de comissão</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-primary" />
+                  <TrendingUp className="h-4 w-4 text-amber-400" />
                   <span>Destaque disponível</span>
                 </div>
               </div>
-              <Button size="lg" className="gap-2 rounded-full" onClick={onSell}>
+              <Button size="lg" className="gap-2 rounded-full bg-amber-500 hover:bg-amber-600 text-zinc-900 border-0" onClick={onSell}>
                 <Plus className="h-4 w-4" />
                 Começar a Vender
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
             <div className="hidden md:flex justify-center">
-              <div className="bg-card rounded-2xl shadow-xl border p-6 space-y-4 w-72">
-                <div className="h-32 bg-muted rounded-lg flex items-center justify-center">
-                  <Store className="h-12 w-12 text-muted-foreground/30" />
+              <div className="bg-zinc-800 rounded-2xl shadow-xl border border-zinc-700 p-6 space-y-4 w-72">
+                <div className="h-32 bg-zinc-700 rounded-lg flex items-center justify-center">
+                  <Store className="h-12 w-12 text-zinc-500" />
                 </div>
                 <div className="space-y-2">
-                  <div className="h-4 bg-muted rounded w-3/4" />
-                  <div className="h-3 bg-muted rounded w-1/2" />
-                  <div className="h-5 bg-primary/20 rounded w-20 mt-2" />
+                  <div className="h-4 bg-zinc-700 rounded w-3/4" />
+                  <div className="h-3 bg-zinc-700 rounded w-1/2" />
+                  <div className="h-5 bg-amber-500/20 rounded w-20 mt-2" />
                 </div>
               </div>
             </div>
@@ -305,12 +301,7 @@ export default function C2CPublicMarketplace() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [visibleCount, setVisibleCount] = useState(20);
 
-  // Force light theme for public marketplace
-  const { setTheme } = useTheme();
-  useEffect(() => {
-    setTheme('light');
-    return () => { setTheme('dark'); };
-  }, [setTheme]);
+  // No longer force light theme — marketplace uses its own dark styling
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -351,7 +342,7 @@ export default function C2CPublicMarketplace() {
 
   if (wsLoading) {
     return (
-      <div className="light min-h-screen bg-white flex items-center justify-center" style={{ colorScheme: 'light' }}>
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <div className="animate-pulse text-center space-y-4">
           <Store className="h-12 w-12 mx-auto text-amber-500/30" />
           <p className="text-zinc-500">A carregar marketplace...</p>
@@ -362,10 +353,10 @@ export default function C2CPublicMarketplace() {
 
   if (!workspace) {
     return (
-      <div className="light min-h-screen bg-white flex items-center justify-center" style={{ colorScheme: 'light' }}>
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <div className="text-center space-y-4">
-          <Store className="h-12 w-12 mx-auto text-zinc-300" />
-          <h2 className="text-xl font-semibold text-zinc-800">Marketplace não encontrado</h2>
+          <Store className="h-12 w-12 mx-auto text-zinc-600" />
+          <h2 className="text-xl font-semibold text-zinc-200">Marketplace não encontrado</h2>
           <p className="text-zinc-500">O endereço que procuras não existe.</p>
         </div>
       </div>
@@ -373,7 +364,7 @@ export default function C2CPublicMarketplace() {
   }
 
   return (
-    <div className="light min-h-screen bg-white text-zinc-900" style={{ colorScheme: 'light' }}>
+    <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <Helmet>
         <title>{ogTitle}</title>
         <meta property="og:title" content={ogTitle} />
@@ -387,33 +378,33 @@ export default function C2CPublicMarketplace() {
         <meta name="twitter:image" content={ogImage} />
       </Helmet>
       {/* Top bar */}
-      <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-md border-b shadow-sm">
+      <header className="sticky top-0 z-40 bg-zinc-900/95 backdrop-blur-md border-b border-zinc-800 shadow-sm">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 shrink-0">
-              <div className="p-1.5 rounded-lg bg-primary/10">
-                <Store className="w-5 h-5 text-primary" />
+              <div className="p-1.5 rounded-lg bg-amber-500/10">
+                <Store className="w-5 h-5 text-amber-400" />
               </div>
-              <h1 className="text-lg font-bold leading-tight">{workspace.name}</h1>
+              <h1 className="text-lg font-bold leading-tight text-white">{workspace.name}</h1>
             </div>
 
             <div className="flex-1 max-w-xl mx-auto">
               <button
                 type="button"
                 onClick={() => setSearchOpen(true)}
-                className="w-full h-10 pl-10 pr-4 rounded-full border bg-muted/30 text-sm text-left text-muted-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors relative"
+                className="w-full h-10 pl-10 pr-4 rounded-full border border-zinc-700 bg-zinc-800/50 text-sm text-left text-zinc-400 hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-colors relative"
               >
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                 {filters.search || "Pesquisar produtos, marcas, categorias..."}
               </button>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
               <ShareButtons url={shareUrl} title={ogTitle} />
-              <Button variant="outline" size="sm" className="rounded-full hidden sm:flex" onClick={() => navigate(isAuthenticated ? `/dashboard/c2c/seller-area?ws=${workspaceSlug}` : `/login?redirect=/marketplace/${workspaceSlug}`)}>
+              <Button variant="outline" size="sm" className="rounded-full hidden sm:flex border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white" onClick={() => navigate(isAuthenticated ? `/dashboard/c2c/seller-area?ws=${workspaceSlug}` : `/login?redirect=/marketplace/${workspaceSlug}`)}>
                 {isAuthenticated ? 'Gerir' : 'Entrar'}
               </Button>
-              <Button size="sm" className="gap-1 rounded-full" onClick={handleSell}>
+              <Button size="sm" className="gap-1 rounded-full bg-amber-500 hover:bg-amber-600 text-zinc-900 border-0" onClick={handleSell}>
                 <Plus className="h-4 w-4" />
                 <span className="hidden sm:inline">Vender</span>
               </Button>
@@ -454,7 +445,7 @@ export default function C2CPublicMarketplace() {
               </div>
             ) : listings.length > 0 ? (
               <>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-zinc-500">
                   {listings.length} resultado{listings.length !== 1 ? "s" : ""}
                 </p>
                 <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -472,10 +463,10 @@ export default function C2CPublicMarketplace() {
               </>
             ) : (
               <div className="text-center py-16">
-                <Search className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
-                <h3 className="text-lg font-medium mb-2">Nenhum resultado encontrado</h3>
-                <p className="text-muted-foreground mb-4">Tente ajustar os filtros</p>
-                <Button variant="outline" onClick={() => setFilters({})}>Limpar filtros</Button>
+                <Search className="w-12 h-12 mx-auto text-zinc-600 mb-4" />
+                <h3 className="text-lg font-medium mb-2 text-zinc-200">Nenhum resultado encontrado</h3>
+                <p className="text-zinc-500 mb-4">Tente ajustar os filtros</p>
+                <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800" onClick={() => setFilters({})}>Limpar filtros</Button>
               </div>
             )}
           </div>
@@ -484,7 +475,7 @@ export default function C2CPublicMarketplace() {
             {featuredListings.length > 0 && (
               <SectionCarousel
                 title="Destaques"
-                icon={<Sparkles className="h-5 w-5 text-primary" />}
+                icon={<Sparkles className="h-5 w-5 text-amber-400" />}
                 listings={featuredListings}
                 onNavigate={(id) => navigate(`/marketplace/${workspaceSlug}/${id}`)}
                 sponsoredIds={sponsoredIds}
@@ -494,10 +485,10 @@ export default function C2CPublicMarketplace() {
             {/* Full catalog grid */}
             {listings.length > 0 && (
               <section className="space-y-4">
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                  <Store className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-bold flex items-center gap-2 text-white">
+                  <Store className="h-5 w-5 text-amber-400" />
                   Todos os anúncios
-                  <Badge variant="secondary" className="text-xs">{listings.length}</Badge>
+                  <Badge className="text-xs bg-zinc-800 text-zinc-400 border-zinc-700">{listings.length}</Badge>
                 </h2>
                 <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                   {listings.slice(0, visibleCount).map((listing) => (
@@ -513,7 +504,7 @@ export default function C2CPublicMarketplace() {
                 </div>
                 {visibleCount < listings.length && (
                   <div className="text-center pt-4">
-                    <Button variant="outline" size="lg" className="rounded-full gap-2" onClick={() => setVisibleCount((c) => c + 20)}>
+                    <Button variant="outline" size="lg" className="rounded-full gap-2 border-zinc-700 text-zinc-300 hover:bg-zinc-800" onClick={() => setVisibleCount((c) => c + 20)}>
                       Carregar mais ({listings.length - visibleCount} restantes)
                     </Button>
                   </div>
@@ -527,7 +518,7 @@ export default function C2CPublicMarketplace() {
         {!hasActiveFilters && <SellCTA onSell={handleSell} />}
 
         {/* Trust section */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8 border-t">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8 border-t border-zinc-800">
           {[
             { icon: ShieldCheck, label: "Compra Segura", desc: "Transações protegidas" },
             { icon: Truck, label: "Envio Nacional", desc: "Para todo o país" },
@@ -535,21 +526,21 @@ export default function C2CPublicMarketplace() {
             { icon: MessageCircle, label: "Chat Direto", desc: "Fale com o vendedor" },
           ].map(({ icon: Icon, label, desc }) => (
             <div key={label} className="flex flex-col items-center text-center gap-2 p-4">
-              <Icon className="h-8 w-8 text-primary" />
-              <span className="text-sm font-medium">{label}</span>
-              <span className="text-[11px] text-muted-foreground">{desc}</span>
+              <Icon className="h-8 w-8 text-amber-400" />
+              <span className="text-sm font-medium text-zinc-200">{label}</span>
+              <span className="text-[11px] text-zinc-500">{desc}</span>
             </div>
           ))}
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t bg-muted/20 py-8">
+      <footer className="border-t border-zinc-800 bg-zinc-900/50 py-8">
         <div className="container mx-auto px-4 text-center space-y-2">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-zinc-400">
             © {new Date().getFullYear()} {workspace.name} Marketplace. Todos os direitos reservados.
           </p>
-          <p className="text-xs text-muted-foreground/60">
+          <p className="text-xs text-zinc-600">
             Comissão de 5% sobre vendas concluídas · Pagamentos protegidos
           </p>
         </div>
