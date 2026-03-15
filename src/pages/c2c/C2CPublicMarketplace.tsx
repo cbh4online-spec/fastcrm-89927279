@@ -463,10 +463,10 @@ export default function C2CPublicMarketplace() {
               </>
             ) : (
               <div className="text-center py-16">
-                <Search className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
-                <h3 className="text-lg font-medium mb-2">Nenhum resultado encontrado</h3>
-                <p className="text-muted-foreground mb-4">Tente ajustar os filtros</p>
-                <Button variant="outline" onClick={() => setFilters({})}>Limpar filtros</Button>
+                <Search className="w-12 h-12 mx-auto text-zinc-600 mb-4" />
+                <h3 className="text-lg font-medium mb-2 text-zinc-200">Nenhum resultado encontrado</h3>
+                <p className="text-zinc-500 mb-4">Tente ajustar os filtros</p>
+                <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800" onClick={() => setFilters({})}>Limpar filtros</Button>
               </div>
             )}
           </div>
