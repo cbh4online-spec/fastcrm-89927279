@@ -190,14 +190,15 @@ Analyze and provide strategy using the tool.`;
 
     if (!aiResponse.ok) {
       const status = aiResponse.status;
+      const errorBody = await aiResponse.text();
+      console.error("AI error:", status, errorBody);
       if (status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Tente novamente mais tarde." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       if (status === 402) {
-        return new Response(JSON.stringify({ error: "Credits exhausted" }), { status: 402, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: "Credits AI esgotados. Adicione créditos para continuar." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      console.error("AI error:", status, await aiResponse.text());
-      return new Response(JSON.stringify({ error: "AI analysis failed" }), { status: 500, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: "AI analysis failed" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiData = await aiResponse.json();
