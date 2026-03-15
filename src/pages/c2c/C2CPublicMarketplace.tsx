@@ -181,11 +181,11 @@ function HeroSection({ onExplore, onSell }: { onExplore: () => void; onSell: () 
               encontra oportunidades e negoceia diretamente.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Button size="lg" className="gap-2 rounded-full font-semibold bg-amber-500 hover:bg-amber-600 text-zinc-900 border-0" onClick={onExplore}>
+              <Button size="lg" className="w-full sm:w-auto gap-2 rounded-full font-semibold bg-amber-500 hover:bg-amber-600 text-zinc-900 border-0" onClick={onExplore}>
                 <Search className="h-4 w-4" />
                 Explorar Produtos
               </Button>
-              <Button size="lg" variant="outline" className="gap-2 rounded-full font-semibold border-zinc-600 text-zinc-200 hover:bg-zinc-800 hover:text-white" onClick={onSell}>
+              <Button size="lg" variant="ghost" className="w-full sm:w-auto gap-2 rounded-full font-semibold border border-zinc-600 bg-zinc-900/60 text-zinc-100 hover:bg-zinc-800 hover:text-white" onClick={onSell}>
                 <Plus className="h-4 w-4" />
                 Começar a Vender
               </Button>
