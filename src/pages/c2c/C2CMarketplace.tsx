@@ -411,6 +411,7 @@ export default function C2CMarketplace() {
         onClose={() => setSearchOpen(false)}
         onSearch={(q) => setFilters((f) => ({ ...f, search: q }))}
         initialQuery={filters.search || ""}
+        workspaceId={workspaceId}
       />
     </div>
   );

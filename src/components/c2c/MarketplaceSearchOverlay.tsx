@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
+
 
 const SEARCH_HISTORY_KEY = "c2c-search-history";
 const MAX_HISTORY = 10;
@@ -30,6 +30,7 @@ interface MarketplaceSearchOverlayProps {
   onClose: () => void;
   onSearch: (query: string) => void;
   initialQuery?: string;
+  workspaceId?: string;
 }
 
 function getHistory(): string[] {
@@ -62,6 +63,7 @@ export function MarketplaceSearchOverlay({
   onClose,
   onSearch,
   initialQuery = "",
+  workspaceId,
 }: MarketplaceSearchOverlayProps) {
   const { t } = useTranslation('marketplace');
   const [query, setQuery] = useState(initialQuery);
@@ -71,7 +73,6 @@ export function MarketplaceSearchOverlay({
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const { currentWorkspace } = useWorkspace();
   const debouncedQuery = useDebounce(query, 300);
 
   useEffect(() => {
@@ -85,7 +86,7 @@ export function MarketplaceSearchOverlay({
 
   // Autocomplete suggestions
   useEffect(() => {
-    if (!debouncedQuery.trim() || debouncedQuery.trim().length < 2 || !currentWorkspace?.id) {
+    if (!debouncedQuery.trim() || debouncedQuery.trim().length < 2 || !workspaceId) {
       setSuggestions([]);
       return;
     }
@@ -100,7 +101,7 @@ export function MarketplaceSearchOverlay({
           supabase
             .from("c2c_listings")
             .select("id, title, price, currency")
-            .eq("workspace_id", currentWorkspace.id)
+            .eq("workspace_id", workspaceId)
             .eq("status", "active")
             .eq("moderation_status", "approved")
             .ilike("title", term)
@@ -108,7 +109,7 @@ export function MarketplaceSearchOverlay({
           supabase
             .from("c2c_categories")
             .select("id, name, icon")
-            .eq("workspace_id", currentWorkspace.id)
+            .eq("workspace_id", workspaceId)
             .eq("is_active", true)
             .ilike("name", term)
             .limit(3),
@@ -132,7 +133,7 @@ export function MarketplaceSearchOverlay({
     })();
 
     return () => { cancelled = true; };
-  }, [debouncedQuery, currentWorkspace?.id]);
+  }, [debouncedQuery, workspaceId]);
 
   const handleSubmit = (value?: string) => {
     const q = (value ?? query).trim();
