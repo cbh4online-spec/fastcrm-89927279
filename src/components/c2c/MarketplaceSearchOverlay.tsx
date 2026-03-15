@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
+
 
 const SEARCH_HISTORY_KEY = "c2c-search-history";
 const MAX_HISTORY = 10;
