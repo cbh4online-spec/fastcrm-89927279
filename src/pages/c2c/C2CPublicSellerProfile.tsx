@@ -128,7 +128,7 @@ export default function C2CPublicSellerProfile() {
   const ogUrl = `${getPublicBaseUrl()}/marketplace/${workspaceSlug}/seller/${sellerId}`;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <Helmet>
         <title>{ogTitle}</title>
         <meta property="og:title" content={ogTitle} />
@@ -140,12 +140,12 @@ export default function C2CPublicSellerProfile() {
         <meta name="twitter:description" content={ogDescription} />
       </Helmet>
       <div className="container mx-auto px-4 py-6 max-w-5xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate(`/marketplace/${workspaceSlug}`)} className="mb-4 -ml-2">
+        <Button variant="ghost" size="sm" onClick={() => navigate(`/marketplace/${workspaceSlug}`)} className="mb-4 -ml-2 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800">
           <ArrowLeft className="h-4 w-4 mr-1" /> Voltar ao Marketplace
         </Button>
 
         {/* Seller Header */}
-        <div className="rounded-xl border bg-card p-6 mb-6">
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6 mb-6">
           <div className="flex items-start gap-4">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary">
               {seller?.display_name?.[0]?.toUpperCase() || "V"}
