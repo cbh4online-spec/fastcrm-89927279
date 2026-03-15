@@ -245,43 +245,43 @@ function SellCTA({ onSell }: { onSell: () => void }) {
   return (
     <section className="py-12">
       <div className="container mx-auto px-4">
-        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl p-8 md:p-12 border border-primary/10">
+        <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent rounded-2xl p-8 md:p-12 border border-amber-500/20">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="space-y-4">
-              <h2 className="text-2xl md:text-3xl font-bold">Tem algo para vender?</h2>
-              <p className="text-muted-foreground">
+              <h2 className="text-2xl md:text-3xl font-bold text-white">Tem algo para vender?</h2>
+              <p className="text-zinc-400">
                 Publica o teu anúncio gratuitamente e chega a milhares de compradores. 
                 A plataforma cobra apenas 5% sobre cada venda concluída.
               </p>
-              <div className="flex flex-wrap gap-6 text-sm">
+              <div className="flex flex-wrap gap-6 text-sm text-zinc-300">
                 <div className="flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-primary" />
+                  <Zap className="h-4 w-4 text-amber-400" />
                   <span>Publicação em 2 min</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-primary" />
+                  <DollarSign className="h-4 w-4 text-amber-400" />
                   <span>Apenas 5% de comissão</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-primary" />
+                  <TrendingUp className="h-4 w-4 text-amber-400" />
                   <span>Destaque disponível</span>
                 </div>
               </div>
-              <Button size="lg" className="gap-2 rounded-full" onClick={onSell}>
+              <Button size="lg" className="gap-2 rounded-full bg-amber-500 hover:bg-amber-600 text-zinc-900 border-0" onClick={onSell}>
                 <Plus className="h-4 w-4" />
                 Começar a Vender
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
             <div className="hidden md:flex justify-center">
-              <div className="bg-card rounded-2xl shadow-xl border p-6 space-y-4 w-72">
-                <div className="h-32 bg-muted rounded-lg flex items-center justify-center">
-                  <Store className="h-12 w-12 text-muted-foreground/30" />
+              <div className="bg-zinc-800 rounded-2xl shadow-xl border border-zinc-700 p-6 space-y-4 w-72">
+                <div className="h-32 bg-zinc-700 rounded-lg flex items-center justify-center">
+                  <Store className="h-12 w-12 text-zinc-500" />
                 </div>
                 <div className="space-y-2">
-                  <div className="h-4 bg-muted rounded w-3/4" />
-                  <div className="h-3 bg-muted rounded w-1/2" />
-                  <div className="h-5 bg-primary/20 rounded w-20 mt-2" />
+                  <div className="h-4 bg-zinc-700 rounded w-3/4" />
+                  <div className="h-3 bg-zinc-700 rounded w-1/2" />
+                  <div className="h-5 bg-amber-500/20 rounded w-20 mt-2" />
                 </div>
               </div>
             </div>
