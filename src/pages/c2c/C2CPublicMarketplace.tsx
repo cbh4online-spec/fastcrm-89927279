@@ -475,7 +475,7 @@ export default function C2CPublicMarketplace() {
             {featuredListings.length > 0 && (
               <SectionCarousel
                 title="Destaques"
-                icon={<Sparkles className="h-5 w-5 text-primary" />}
+                icon={<Sparkles className="h-5 w-5 text-amber-400" />}
                 listings={featuredListings}
                 onNavigate={(id) => navigate(`/marketplace/${workspaceSlug}/${id}`)}
                 sponsoredIds={sponsoredIds}
