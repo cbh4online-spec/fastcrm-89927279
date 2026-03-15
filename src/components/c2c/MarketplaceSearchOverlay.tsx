@@ -86,7 +86,7 @@ export function MarketplaceSearchOverlay({
 
   // Autocomplete suggestions
   useEffect(() => {
-    if (!debouncedQuery.trim() || debouncedQuery.trim().length < 2 || !currentWorkspace?.id) {
+    if (!debouncedQuery.trim() || debouncedQuery.trim().length < 2 || !workspaceId) {
       setSuggestions([]);
       return;
     }
@@ -101,7 +101,7 @@ export function MarketplaceSearchOverlay({
           supabase
             .from("c2c_listings")
             .select("id, title, price, currency")
-            .eq("workspace_id", currentWorkspace.id)
+            .eq("workspace_id", workspaceId)
             .eq("status", "active")
             .eq("moderation_status", "approved")
             .ilike("title", term)
@@ -109,7 +109,7 @@ export function MarketplaceSearchOverlay({
           supabase
             .from("c2c_categories")
             .select("id, name, icon")
-            .eq("workspace_id", currentWorkspace.id)
+            .eq("workspace_id", workspaceId)
             .eq("is_active", true)
             .ilike("name", term)
             .limit(3),
@@ -133,7 +133,7 @@ export function MarketplaceSearchOverlay({
     })();
 
     return () => { cancelled = true; };
-  }, [debouncedQuery, currentWorkspace?.id]);
+  }, [debouncedQuery, workspaceId]);
 
   const handleSubmit = (value?: string) => {
     const q = (value ?? query).trim();

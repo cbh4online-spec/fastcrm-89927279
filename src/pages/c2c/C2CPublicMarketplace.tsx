@@ -564,6 +564,7 @@ export default function C2CPublicMarketplace() {
           setShowListings(true);
         }}
         initialQuery={filters.search || ""}
+        workspaceId={workspaceId}
       />
     </div>
   );
