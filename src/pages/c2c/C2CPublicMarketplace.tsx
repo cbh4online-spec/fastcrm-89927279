@@ -445,7 +445,7 @@ export default function C2CPublicMarketplace() {
               </div>
             ) : listings.length > 0 ? (
               <>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-zinc-500">
                   {listings.length} resultado{listings.length !== 1 ? "s" : ""}
                 </p>
                 <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
