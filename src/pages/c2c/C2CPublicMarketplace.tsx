@@ -518,7 +518,7 @@ export default function C2CPublicMarketplace() {
         {!hasActiveFilters && <SellCTA onSell={handleSell} />}
 
         {/* Trust section */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8 border-t">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8 border-t border-zinc-800">
           {[
             { icon: ShieldCheck, label: "Compra Segura", desc: "Transações protegidas" },
             { icon: Truck, label: "Envio Nacional", desc: "Para todo o país" },
@@ -526,21 +526,21 @@ export default function C2CPublicMarketplace() {
             { icon: MessageCircle, label: "Chat Direto", desc: "Fale com o vendedor" },
           ].map(({ icon: Icon, label, desc }) => (
             <div key={label} className="flex flex-col items-center text-center gap-2 p-4">
-              <Icon className="h-8 w-8 text-primary" />
-              <span className="text-sm font-medium">{label}</span>
-              <span className="text-[11px] text-muted-foreground">{desc}</span>
+              <Icon className="h-8 w-8 text-amber-400" />
+              <span className="text-sm font-medium text-zinc-200">{label}</span>
+              <span className="text-[11px] text-zinc-500">{desc}</span>
             </div>
           ))}
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t bg-muted/20 py-8">
+      <footer className="border-t border-zinc-800 bg-zinc-900/50 py-8">
         <div className="container mx-auto px-4 text-center space-y-2">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-zinc-400">
             © {new Date().getFullYear()} {workspace.name} Marketplace. Todos os direitos reservados.
           </p>
-          <p className="text-xs text-muted-foreground/60">
+          <p className="text-xs text-zinc-600">
             Comissão de 5% sobre vendas concluídas · Pagamentos protegidos
           </p>
         </div>
