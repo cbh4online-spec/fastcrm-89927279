@@ -302,12 +302,7 @@ export default function C2CPublicMarketplace() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [visibleCount, setVisibleCount] = useState(20);
 
-  // Force light theme for public marketplace
-  const { setTheme } = useTheme();
-  useEffect(() => {
-    setTheme('light');
-    return () => { setTheme('dark'); };
-  }, [setTheme]);
+  // No longer force light theme — marketplace uses its own dark styling
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
