@@ -30,6 +30,7 @@ interface MarketplaceSearchOverlayProps {
   onClose: () => void;
   onSearch: (query: string) => void;
   initialQuery?: string;
+  workspaceId?: string;
 }
 
 function getHistory(): string[] {
