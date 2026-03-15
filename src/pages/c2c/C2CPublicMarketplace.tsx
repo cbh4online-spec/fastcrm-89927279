@@ -354,10 +354,10 @@ export default function C2CPublicMarketplace() {
 
   if (!workspace) {
     return (
-      <div className="light min-h-screen bg-white flex items-center justify-center" style={{ colorScheme: 'light' }}>
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <div className="text-center space-y-4">
-          <Store className="h-12 w-12 mx-auto text-zinc-300" />
-          <h2 className="text-xl font-semibold text-zinc-800">Marketplace não encontrado</h2>
+          <Store className="h-12 w-12 mx-auto text-zinc-600" />
+          <h2 className="text-xl font-semibold text-zinc-200">Marketplace não encontrado</h2>
           <p className="text-zinc-500">O endereço que procuras não existe.</p>
         </div>
       </div>
