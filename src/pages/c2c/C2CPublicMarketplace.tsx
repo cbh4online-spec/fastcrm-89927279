@@ -378,33 +378,33 @@ export default function C2CPublicMarketplace() {
         <meta name="twitter:image" content={ogImage} />
       </Helmet>
       {/* Top bar */}
-      <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-md border-b shadow-sm">
+      <header className="sticky top-0 z-40 bg-zinc-900/95 backdrop-blur-md border-b border-zinc-800 shadow-sm">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 shrink-0">
-              <div className="p-1.5 rounded-lg bg-primary/10">
-                <Store className="w-5 h-5 text-primary" />
+              <div className="p-1.5 rounded-lg bg-amber-500/10">
+                <Store className="w-5 h-5 text-amber-400" />
               </div>
-              <h1 className="text-lg font-bold leading-tight">{workspace.name}</h1>
+              <h1 className="text-lg font-bold leading-tight text-white">{workspace.name}</h1>
             </div>
 
             <div className="flex-1 max-w-xl mx-auto">
               <button
                 type="button"
                 onClick={() => setSearchOpen(true)}
-                className="w-full h-10 pl-10 pr-4 rounded-full border bg-muted/30 text-sm text-left text-muted-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors relative"
+                className="w-full h-10 pl-10 pr-4 rounded-full border border-zinc-700 bg-zinc-800/50 text-sm text-left text-zinc-400 hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-colors relative"
               >
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                 {filters.search || "Pesquisar produtos, marcas, categorias..."}
               </button>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
               <ShareButtons url={shareUrl} title={ogTitle} />
-              <Button variant="outline" size="sm" className="rounded-full hidden sm:flex" onClick={() => navigate(isAuthenticated ? `/dashboard/c2c/seller-area?ws=${workspaceSlug}` : `/login?redirect=/marketplace/${workspaceSlug}`)}>
+              <Button variant="outline" size="sm" className="rounded-full hidden sm:flex border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white" onClick={() => navigate(isAuthenticated ? `/dashboard/c2c/seller-area?ws=${workspaceSlug}` : `/login?redirect=/marketplace/${workspaceSlug}`)}>
                 {isAuthenticated ? 'Gerir' : 'Entrar'}
               </Button>
-              <Button size="sm" className="gap-1 rounded-full" onClick={handleSell}>
+              <Button size="sm" className="gap-1 rounded-full bg-amber-500 hover:bg-amber-600 text-zinc-900 border-0" onClick={handleSell}>
                 <Plus className="h-4 w-4" />
                 <span className="hidden sm:inline">Vender</span>
               </Button>
