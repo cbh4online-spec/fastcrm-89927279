@@ -504,7 +504,7 @@ export default function C2CPublicMarketplace() {
                 </div>
                 {visibleCount < listings.length && (
                   <div className="text-center pt-4">
-                    <Button variant="outline" size="lg" className="rounded-full gap-2" onClick={() => setVisibleCount((c) => c + 20)}>
+                    <Button variant="outline" size="lg" className="rounded-full gap-2 border-zinc-700 text-zinc-300 hover:bg-zinc-800" onClick={() => setVisibleCount((c) => c + 20)}>
                       Carregar mais ({listings.length - visibleCount} restantes)
                     </Button>
                   </div>
