@@ -163,7 +163,7 @@ export default function C2CPublicSellerProfile() {
                 <p className="text-sm text-zinc-400 mb-2">{seller.bio}</p>
               )}
               <ShareButtons url={getShareUrl("c2c-seller", (workspaceSlug || "") + "/" + (sellerId || ""))} title={ogTitle} variant="dark" />
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-2">
+              <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-400 mt-2">
                 {reviewData && reviewData.count > 0 && (
                   <span className="flex items-center gap-1">
                     <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
@@ -186,21 +186,21 @@ export default function C2CPublicSellerProfile() {
         {/* Reviews */}
         {reviewData && reviewData.reviews.length > 0 && (
           <div className="mb-6">
-            <h2 className="text-lg font-bold mb-3">Avaliações</h2>
+            <h2 className="text-lg font-bold mb-3 text-zinc-100">Avaliações</h2>
             <div className="space-y-3">
               {reviewData.reviews.slice(0, 5).map((review: any) => (
-                <div key={review.id} className="rounded-lg border p-4 bg-card">
+                <div key={review.id} className="rounded-lg border border-zinc-800 p-4 bg-zinc-900">
                   <div className="flex items-center gap-2 mb-1">
                     <div className="flex">
                       {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={`h-3.5 w-3.5 ${i < review.rating ? "text-amber-500 fill-amber-500" : "text-muted"}`} />
+                        <Star key={i} className={`h-3.5 w-3.5 ${i < review.rating ? "text-amber-500 fill-amber-500" : "text-zinc-700"}`} />
                       ))}
                     </div>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-zinc-500">
                       {format(new Date(review.created_at), "d MMM yyyy", { locale: pt })}
                     </span>
                   </div>
-                  {review.comment && <p className="text-sm text-muted-foreground">{review.comment}</p>}
+                  {review.comment && <p className="text-sm text-zinc-400">{review.comment}</p>}
                 </div>
               ))}
             </div>
@@ -208,9 +208,9 @@ export default function C2CPublicSellerProfile() {
         )}
 
         {/* Listings */}
-        <h2 className="text-lg font-bold mb-3">Anúncios ({listings.length})</h2>
+        <h2 className="text-lg font-bold mb-3 text-zinc-100">Anúncios ({listings.length})</h2>
         {listings.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">Este vendedor não tem anúncios ativos.</p>
+          <p className="text-zinc-500 text-center py-8">Este vendedor não tem anúncios ativos.</p>
         ) : (
           <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
             {listings.map((listing: any) => (
