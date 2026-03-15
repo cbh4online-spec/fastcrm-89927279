@@ -129,15 +129,15 @@ function SectionCarousel({ title, icon, listings, onNavigate, seeMoreHref, spons
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold flex items-center gap-2">{icon}{title}</h2>
+        <h2 className="text-lg font-bold flex items-center gap-2 text-white">{icon}{title}</h2>
         {seeMoreHref && (
-          <Button variant="ghost" size="sm" className="gap-1 text-primary" onClick={seeMoreHref}>
+          <Button variant="ghost" size="sm" className="gap-1 text-amber-400 hover:text-amber-300" onClick={seeMoreHref}>
             ver mais <ChevronRight className="h-4 w-4" />
           </Button>
         )}
       </div>
       <div className="relative">
-        <Button variant="ghost" size="icon" className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-card shadow-md border hidden md:flex" onClick={() => scroll("left")}>
+        <Button variant="ghost" size="icon" className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-zinc-800 shadow-md border border-zinc-700 text-zinc-300 hidden md:flex" onClick={() => scroll("left")}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <div ref={scrollRef} className="flex gap-4 overflow-x-auto scrollbar-hide snap-x pb-2">
@@ -153,7 +153,7 @@ function SectionCarousel({ title, icon, listings, onNavigate, seeMoreHref, spons
             />
           ))}
         </div>
-        <Button variant="ghost" size="icon" className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-card shadow-md border hidden md:flex" onClick={() => scroll("right")}>
+        <Button variant="ghost" size="icon" className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-zinc-800 shadow-md border border-zinc-700 text-zinc-300 hidden md:flex" onClick={() => scroll("right")}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
