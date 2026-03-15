@@ -146,14 +146,14 @@ export default function C2CPublicListingDetail() {
         reviewCount={seller?.total_reviews}
       />
 
-      <div className="light min-h-screen bg-white text-zinc-900" style={{ colorScheme: 'light' }}>
+      <div className="min-h-screen bg-zinc-950 text-zinc-100">
         {/* Header */}
-        <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-zinc-200">
-          <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+        <header className="sticky top-0 z-30 bg-zinc-900/95 backdrop-blur-md border-b border-zinc-800">
+          <div className="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
             <Button
               variant="ghost"
               size="sm"
-              className="text-zinc-500 hover:text-amber-600"
+              className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
               onClick={() => navigate(`/marketplace/${workspaceSlug}`)}
             >
               <ArrowLeft className="h-4 w-4 mr-2" /> Marketplace
@@ -162,6 +162,7 @@ export default function C2CPublicListingDetail() {
               url={getShareUrl("c2c-listing", `${workspaceSlug}/${id}`)}
               title={listing.title}
               description={ogDesc}
+              variant="dark"
             />
           </div>
         </header>
