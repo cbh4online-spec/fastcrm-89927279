@@ -63,6 +63,7 @@ export function MarketplaceSearchOverlay({
   onClose,
   onSearch,
   initialQuery = "",
+  workspaceId,
 }: MarketplaceSearchOverlayProps) {
   const { t } = useTranslation('marketplace');
   const [query, setQuery] = useState(initialQuery);
@@ -72,7 +73,6 @@ export function MarketplaceSearchOverlay({
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const { currentWorkspace } = useWorkspace();
   const debouncedQuery = useDebounce(query, 300);
 
   useEffect(() => {
