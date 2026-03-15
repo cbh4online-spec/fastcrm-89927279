@@ -221,20 +221,17 @@ function HowItWorks() {
     { icon: ShieldCheck, title: "Compra Seguro", desc: "Pagamento protegido pela plataforma com garantia." },
   ];
   return (
-    <section className="py-12 bg-muted/30">
+    <section className="py-12 bg-zinc-900 border-t border-zinc-800">
       <div className="container mx-auto px-4">
-        <h2 className="text-2xl font-bold text-center mb-8">Como funciona</h2>
+        <h2 className="text-2xl font-bold text-center mb-8 text-white">Como funciona</h2>
         <div className="grid md:grid-cols-3 gap-8">
-          {steps.map((step, i) => (
-            <div
-              key={step.title}
-              className="text-center space-y-3"
-            >
-              <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                <step.icon className="h-7 w-7 text-primary" />
+          {steps.map((step) => (
+            <div key={step.title} className="text-center space-y-3">
+              <div className="mx-auto w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+                <step.icon className="h-7 w-7 text-amber-400" />
               </div>
-              <h3 className="font-semibold text-lg">{step.title}</h3>
-              <p className="text-sm text-muted-foreground max-w-xs mx-auto">{step.desc}</p>
+              <h3 className="font-semibold text-lg text-white">{step.title}</h3>
+              <p className="text-sm text-zinc-400 max-w-xs mx-auto">{step.desc}</p>
             </div>
           ))}
         </div>
