@@ -83,7 +83,7 @@ function CategoryCarousel({ categories, onSelect, selected }: {
   if (categories.length === 0) return null;
   return (
     <div className="relative">
-      <Button variant="ghost" size="icon" className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-card shadow-md border hidden md:flex" onClick={() => scroll("left")}>
+      <Button variant="ghost" size="icon" className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-zinc-800 shadow-md border border-zinc-700 text-zinc-300 hidden md:flex" onClick={() => scroll("left")}>
         <ChevronLeft className="h-4 w-4" />
       </Button>
       <div ref={scrollRef} className="flex gap-3 overflow-x-auto scrollbar-hide snap-x py-2 px-1">
@@ -93,7 +93,7 @@ function CategoryCarousel({ categories, onSelect, selected }: {
             onClick={() => onSelect(selected === cat.id ? undefined : cat.id)}
             className={cn(
               "flex flex-col items-center gap-2 px-4 py-3 rounded-xl border transition-all shrink-0 snap-start min-w-[100px] hover:shadow-md",
-              selected === cat.id ? "bg-primary/10 border-primary shadow-sm" : "bg-card border-border hover:border-primary/30"
+              selected === cat.id ? "bg-amber-500/10 border-amber-500 shadow-sm text-amber-400" : "bg-zinc-800 border-zinc-700 hover:border-amber-500/30 text-zinc-300"
             )}
           >
             {cat.image_url ? (
@@ -105,7 +105,7 @@ function CategoryCarousel({ categories, onSelect, selected }: {
           </button>
         ))}
       </div>
-      <Button variant="ghost" size="icon" className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-card shadow-md border hidden md:flex" onClick={() => scroll("right")}>
+      <Button variant="ghost" size="icon" className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-zinc-800 shadow-md border border-zinc-700 text-zinc-300 hidden md:flex" onClick={() => scroll("right")}>
         <ChevronRight className="h-4 w-4" />
       </Button>
     </div>
