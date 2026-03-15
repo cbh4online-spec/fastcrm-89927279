@@ -75,6 +75,7 @@ export default function C2CPublicListingDetail() {
   const navigate = useNavigate();
   const [photoIndex, setPhotoIndex] = useState(0);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  usePublicMarketplaceTheme();
 
   const { data: workspace, isLoading: wsLoading } = usePublicWorkspace(workspaceSlug);
   const { data: listing, isLoading: listingLoading } = usePublicListing(id);
