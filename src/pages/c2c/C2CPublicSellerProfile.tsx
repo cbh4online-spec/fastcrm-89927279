@@ -103,10 +103,10 @@ export default function C2CPublicSellerProfile() {
 
   if (!workspace) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <Store className="h-12 w-12 text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-zinc-950 text-zinc-100">
+        <Store className="h-12 w-12 text-zinc-500" />
         <h1 className="text-xl font-bold">Marketplace não encontrado</h1>
-        <p className="text-muted-foreground">O marketplace que procura não existe ou não está disponível.</p>
+        <p className="text-zinc-500">O marketplace que procura não existe ou não está disponível.</p>
       </div>
     );
   }
