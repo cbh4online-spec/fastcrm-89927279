@@ -5,6 +5,7 @@ import { getPublicBaseUrl } from "@/utils/getPublicDomain";
 import { getShareUrl } from "@/utils/getShareUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
+import { usePublicMarketplaceTheme } from "@/hooks/c2c/usePublicMarketplaceTheme";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
