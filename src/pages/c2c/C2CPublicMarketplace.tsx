@@ -165,28 +165,28 @@ function SectionCarousel({ title, icon, listings, onNavigate, seeMoreHref, spons
 /* ── Hero Section ────────────────────────────────────────────────── */
 function HeroSection({ onExplore, onSell }: { onExplore: () => void; onSell: () => void }) {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-primary-foreground">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.15),transparent_50%)]" />
+    <section className="relative overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-800">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(245,158,11,0.15),transparent_50%)]" />
       <div className="container mx-auto px-4 py-16 md:py-24 relative z-10">
         <div className="grid md:grid-cols-2 gap-10 items-center">
            <div className="space-y-6">
-            <Badge className="bg-white/20 text-primary-foreground hover:bg-white/30 border-0 text-xs">
+            <Badge className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border-amber-500/30 text-xs">
               <Sparkles className="h-3 w-3 mr-1" /> Marketplace C2C
             </Badge>
-            <h1 className="text-3xl md:text-5xl font-extrabold leading-tight tracking-tight">
+            <h1 className="text-3xl md:text-5xl font-extrabold leading-tight tracking-tight text-white">
               Compra e vende entre<br />
-              <span className="text-white/90">utilizadores reais</span>
+              <span className="text-amber-400">utilizadores reais</span>
             </h1>
-            <p className="text-lg text-primary-foreground/80 max-w-md">
+            <p className="text-lg text-zinc-400 max-w-md">
               O teu marketplace de confiança. Publica os teus produtos, 
               encontra oportunidades e negoceia diretamente.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Button size="lg" variant="secondary" className="gap-2 rounded-full font-semibold" onClick={onExplore}>
+              <Button size="lg" className="gap-2 rounded-full font-semibold bg-amber-500 hover:bg-amber-600 text-zinc-900 border-0" onClick={onExplore}>
                 <Search className="h-4 w-4" />
                 Explorar Produtos
               </Button>
-              <Button size="lg" className="gap-2 rounded-full font-semibold bg-white/20 hover:bg-white/30 text-primary-foreground border-0" onClick={onSell}>
+              <Button size="lg" variant="outline" className="gap-2 rounded-full font-semibold border-zinc-600 text-zinc-200 hover:bg-zinc-800 hover:text-white" onClick={onSell}>
                 <Plus className="h-4 w-4" />
                 Começar a Vender
               </Button>
@@ -200,10 +200,10 @@ function HeroSection({ onExplore, onSell }: { onExplore: () => void; onSell: () 
               { icon: DollarSign, label: "Sem Taxas p/ Comprador", desc: "Compra sem comissões" },
               { icon: Zap, label: "Publicação Rápida", desc: "Anuncia em 2 minutos" },
             ].map(({ icon: Icon, label, desc }) => (
-              <div key={label} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:bg-white/15 transition-colors">
-                <Icon className="h-6 w-6 mb-2 text-primary-foreground/90" />
-                <h3 className="font-semibold text-sm">{label}</h3>
-                <p className="text-xs text-primary-foreground/70">{desc}</p>
+              <div key={label} className="bg-zinc-800/80 backdrop-blur-sm rounded-xl p-4 border border-zinc-700/50 hover:border-amber-500/30 hover:bg-zinc-800 transition-colors">
+                <Icon className="h-6 w-6 mb-2 text-amber-400" />
+                <h3 className="font-semibold text-sm text-white">{label}</h3>
+                <p className="text-xs text-zinc-400">{desc}</p>
               </div>
             ))}
           </div>
