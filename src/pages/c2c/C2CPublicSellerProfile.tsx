@@ -81,6 +81,7 @@ function usePublicSellerReviews(sellerId: string | undefined) {
 export default function C2CPublicSellerProfile() {
   const { workspaceSlug, sellerId } = useParams<{ workspaceSlug: string; sellerId: string }>();
   const navigate = useNavigate();
+  usePublicMarketplaceTheme();
 
   const { data: workspace, isLoading: wsLoading } = usePublicMarketplaceWorkspace(workspaceSlug);
   const workspaceId = workspace?.id;
