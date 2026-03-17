@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useCreateLead, LeadStatus, LeadType } from "@/hooks/useLeads";
+import { useNifLookup, NifLookupResult } from "@/hooks/useNifLookup";
 import {
   Dialog,
   DialogContent,
