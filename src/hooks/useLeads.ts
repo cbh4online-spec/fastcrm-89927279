@@ -383,6 +383,8 @@ export function useDeleteLead() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-leads", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["leads-kpis", currentWorkspace?.id] });
     },
   });
 }
