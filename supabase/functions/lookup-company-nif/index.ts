@@ -253,10 +253,10 @@ function parseRaciusMarkdown(markdown: string, nif: string, sourceUrl: string): 
     const locationLines: string[] = [];
     let foundAddress = false;
     for (const ml of moradaLines) {
+      if (ml.includes('ico-') || ml.startsWith('-') || ml.startsWith('!')) continue;
       if (ml.length > 5 && !ml.startsWith('#') && !isSectionHeader(ml)) {
-        if (!foundAddress) { foundAddress = true; continue; } // skip the address line
-        // Only accept short location-like lines (city/region names)
-        if (ml.length >= 2 && ml.length < 40 && !/[€\d]{5}/.test(ml) && !isSectionHeader(ml)) {
+        if (!foundAddress) { foundAddress = true; continue; }
+        if (ml.length >= 2 && ml.length < 40 && !/[€\d]{5}/.test(ml) && !isSectionHeader(ml) && !ml.includes('ico-')) {
           locationLines.push(ml);
         }
         if (locationLines.length >= 2 || isSectionHeader(ml)) break;
