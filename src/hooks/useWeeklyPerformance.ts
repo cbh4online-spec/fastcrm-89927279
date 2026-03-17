@@ -82,13 +82,18 @@ export function useWeeklyPerformance() {
       const revenueTarget = tMap.revenue || 0;
       const pipelineCoverage = revenueTarget > 0 ? pipelineValue / revenueTarget : 0;
 
+      // Combine meetings from both tables
+      const totalMeetings = (meetingsRes.count || 0) + (calendarEventsRes.count || 0);
+      const totalNewDeals = newDealsRes.count || 0;
+
       const raw: { key: string; label: string; actual: number; target: number; format: "number" | "currency" }[] = [
         { key: "revenue", label: "Receita", actual: revenue, target: revenueTarget, format: "currency" },
         { key: "deals", label: "Deals Fechados", actual: wonDeals.length, target: tMap.deals || 0, format: "number" },
         { key: "pipeline", label: "Pipeline Coverage", actual: Math.round(pipelineCoverage * 100) / 100, target: 3, format: "number" },
-        { key: "meetings", label: "Reuniões", actual: meetingsRes.count || 0, target: tMap.meetings || 0, format: "number" },
+        { key: "meetings", label: "Reuniões", actual: totalMeetings, target: tMap.meetings || 0, format: "number" },
         { key: "leads", label: "Leads Gerados", actual: leadsRes.count || 0, target: tMap.leads || 0, format: "number" },
         { key: "proposals", label: "Propostas Enviadas", actual: proposalsRes.count || 0, target: tMap.proposals || 0, format: "number" },
+        { key: "new_deals", label: "Negócios Criados", actual: totalNewDeals, target: tMap.new_deals || 0, format: "number" },
       ];
 
       const metrics: WeeklyMetric[] = raw.map((m) => {
