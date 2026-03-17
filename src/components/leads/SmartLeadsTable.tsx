@@ -420,7 +420,7 @@ export function SmartLeadsTable() {
                               </div>
                             </div>
                           </TableCell>
-                          {orderedVisibleColumns.map(col => <TableCell key={col.id}><DynamicTableCell columnId={col.id} entity={lead as any} entityType="lead" /></TableCell>)}
+                          {orderedVisibleColumns.map(col => <TableCell key={col.id} onClick={(e) => e.stopPropagation()}><InlineEditableTableCell columnId={col.id} entity={lead as any} entityType="lead" onUpdate={handleInlineUpdate} /></TableCell>)}
                           <TableCell onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleAnalyzeLead(lead.id)} disabled={analyzingId === lead.id}><Sparkles className={cn("w-4 h-4", analyzingId === lead.id && "animate-pulse")} /></Button>
