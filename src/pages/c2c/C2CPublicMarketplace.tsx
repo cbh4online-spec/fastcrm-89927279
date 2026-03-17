@@ -12,6 +12,7 @@ import { getShareUrl } from "@/utils/getShareUrl";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ListingCard } from "@/components/c2c/ListingCard";
 import { MarketplaceSearchOverlay } from "@/components/c2c/MarketplaceSearchOverlay";
 import { MarketplaceFooter } from "@/components/c2c/MarketplaceFooter";
@@ -164,7 +165,6 @@ function SectionCarousel({ title, icon, listings, onNavigate, seeMoreHref, spons
 }
 
 /* ── Feature Detail Dialog ────────────────────────────────────────── */
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const featureDetails = [
   {
