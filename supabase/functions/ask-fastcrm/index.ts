@@ -240,6 +240,40 @@ const KEYWORD_MAP: Record<string, string> = {
   "menos leads": "lead_drop_analysis",
   "lead drop": "lead_drop_analysis",
   "entrada de leads": "lead_drop_analysis",
+  // Goal / target setting
+  "meta de receita": "set_target",
+  "meta receita": "set_target",
+  "objetivo receita": "set_target",
+  "definir meta": "set_target",
+  "alterar meta": "set_target",
+  "mudar meta": "set_target",
+  "meta de reuniões": "set_target",
+  "meta reuniões": "set_target",
+  "meta de deals": "set_target",
+  "meta deals": "set_target",
+  "meta de pipeline": "set_target",
+  "meta pipeline": "set_target",
+  "quero fechar": "set_target",
+  "objetivo:": "set_target",
+  "minha meta": "set_target",
+  // View current goals
+  "metas actuais": "view_targets",
+  "metas atuais": "view_targets",
+  "quais são as metas": "view_targets",
+  "ver metas": "view_targets",
+  "objetivos actuais": "view_targets",
+  "objetivos atuais": "view_targets",
+  // CEO copilot
+  "ceo copilot": "ceo_summary",
+  "resumo executivo completo": "ceo_summary",
+  "visão global": "ceo_summary",
+  "executive summary": "ceo_summary",
+  // Revenue radar
+  "revenue radar": "revenue_radar",
+  "estado da receita": "revenue_radar",
+  // Flight control
+  "flight control": "flight_control",
+  "saúde do negócio": "flight_control",
 };
 
 const EXACT_PHRASES: Record<string, string> = {
