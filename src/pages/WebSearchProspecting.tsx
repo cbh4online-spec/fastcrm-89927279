@@ -21,6 +21,8 @@ interface WebResult {
   markdown?: string;
   added?: boolean;
   enriching?: boolean;
+  alreadyExists?: boolean;
+  previouslyFound?: boolean;
 }
 
 function detectContentType(url: string): { label: string; icon: typeof Globe } {
