@@ -356,6 +356,25 @@ const EXACT_PHRASES: Record<string, string> = {
   "porque caíram os leads": "lead_drop_analysis",
   "queda de leads": "lead_drop_analysis",
   "menos leads esta semana": "lead_drop_analysis",
+  // Goal/target setting
+  "definir meta": "set_target",
+  "quero definir uma meta": "set_target",
+  "alterar meta": "set_target",
+  "meta de receita": "set_target",
+  // View targets
+  "quais são as metas": "view_targets",
+  "ver metas": "view_targets",
+  "metas actuais": "view_targets",
+  "metas atuais": "view_targets",
+  // CEO
+  "ceo copilot": "ceo_summary",
+  "resumo executivo completo": "ceo_summary",
+  // Revenue
+  "revenue radar": "revenue_radar",
+  "estado da receita": "revenue_radar",
+  // Flight
+  "flight control": "flight_control",
+  "saúde do negócio": "flight_control",
 };
 
 function classifyByKeyword(question: string): KeywordMatch | null {
