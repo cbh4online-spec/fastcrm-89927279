@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePublicMarketplaceWorkspace } from "@/hooks/c2c/usePublicMarketplaceWorkspace";
 import { usePublicMarketplaceTheme } from "@/hooks/c2c/usePublicMarketplaceTheme";
 import { ListingCard } from "@/components/c2c/ListingCard";
+import { MarketplaceFooter } from "@/components/c2c/MarketplaceFooter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Search } from "lucide-react";
@@ -109,6 +110,7 @@ export default function C2CPublicSearchPage() {
             </>
           )}
         </main>
+        <MarketplaceFooter workspaceName={workspace?.name || ""} workspaceSlug={workspaceSlug || ""} />
       </div>
     </>
   );
