@@ -1,29 +1,43 @@
 
+## Plano: Footer completo estilo marketplace (inspirado em Vinted, sem plágio)
 
-# Fix: Vulnerable Dependencies
+### Situação actual
+O footer do marketplace público (`C2CPublicMarketplace.tsx`, linhas 573-583) é minimalista — apenas copyright e uma linha de comissão. As páginas públicas (`C2CPublicListingDetail`, `C2CPublicSellerProfile`, `C2CPublicCategoryPage`, `C2CPublicSearchPage`) provavelmente têm footers similares ou nenhum.
 
-## Analysis
+### Solução
+Criar um componente reutilizável `MarketplaceFooter` com estrutura em 3 colunas + barra inferior, adaptado ao contexto FastCRM Marketplace:
 
-**xlsx**: Already at version 0.20.3 via CDN tarball (`https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`). The security scanner is likely flagging based on the npm registry name which maps to older vulnerable versions. Version 0.20.3 from the official SheetJS CDN includes fixes for both the Prototype Pollution (GHSA-4r6h-8v6p-xvw6) and ReDoS (GHSA-5pgg-2g8v-p4x9) advisories. **No action needed** — this is a false positive from the scanner not recognizing the CDN tarball version.
+**Coluna 1 — Marketplace** (equivalente a "Vinted")
+- Sobre nós → `/marketplace/:slug/sobre`
+- Como funciona → `/marketplace/:slug/como-funciona`
+- Sustentabilidade → link estático
+- Blog / Novidades → link ou placeholder
 
-**@trigger.dev/sdk**: Not present in `package.json` at all (neither dependencies nor devDependencies). This is either a transitive dependency or a scanner false positive. The project uses Trigger.dev concepts via custom code (`src/trigger/client.ts`) and edge functions, but does not import the SDK package directly.
+**Coluna 2 — Descobrir**
+- Categorias populares → scroll para categorias
+- Novidades → filtro recentes
+- Vendedores verificados → link
+- FAQ / Centro de ajuda → link
 
-## Plan
+**Coluna 3 — Ajuda**
+- Apoio ao cliente → link contacto/chat
+- Vender → redirect sell flow
+- Comprar → redirect explore
+- Confiança e Segurança → link
 
-### 1. Confirm xlsx is safe (no code change needed)
-The installed version 0.20.3 from the SheetJS CDN already patches both known vulnerabilities. The scanner cannot resolve the version from the tarball URL.
+**Barra inferior:**
+- Ícones sociais (Facebook, Instagram, LinkedIn) — links placeholder
+- Links legais: Privacidade, Termos, Cookies, RGPD
+- Copyright dinâmico com nome do workspace
 
-### 2. Handle @trigger.dev/sdk
-Since it's not in `package.json`, this is either:
-- A stale lockfile entry — delete and regenerate `package-lock.json`
-- A scanner false positive
+### Ficheiros
+1. **Criar** `src/components/c2c/MarketplaceFooter.tsx` — componente reutilizável com workspace name/slug como props
+2. **Editar** `src/pages/c2c/C2CPublicMarketplace.tsx` — substituir footer inline pelo novo componente
+3. **Editar** `src/pages/c2c/C2CPublicListingDetail.tsx` — adicionar o footer (se ausente)
+4. **Editar** `src/pages/c2c/C2CPublicSellerProfile.tsx` — adicionar o footer (se ausente)
 
-**Action**: No code changes required. Both findings are false positives based on the current `package.json`.
-
-### 3. Optional: Add explicit comment for future audits
-Add a comment in `package.json` near the xlsx entry noting the CDN version is patched, to prevent repeated investigation.
-
-## Summary
-
-No code changes are necessary. Both flagged packages are either already patched (xlsx 0.20.3) or not actually installed (@trigger.dev/sdk). The security findings can be safely dismissed.
-
+### Estética
+- Mantém o tema dark premium (zinc-900/950 + amber accents)
+- Tipografia clean, espaçamento generoso
+- Sem badges de App Store (não é app nativa) — diferenciação face ao Vinted
+- Layout 3 colunas em desktop, stack em mobile
