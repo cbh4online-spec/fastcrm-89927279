@@ -33,7 +33,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { CustomFieldsFormCreate, CustomFieldsFormCreateRef } from "@/components/custom-fields/CustomFieldsForm";
-import { User, Building2 } from "lucide-react";
+import { User, Building2, Search, Loader2 } from "lucide-react";
 
 const leadSchema = z.object({
   lead_type: z.enum(["person", "company"]).default("person"),
