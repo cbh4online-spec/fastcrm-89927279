@@ -229,7 +229,7 @@ function parseRaciusMarkdown(markdown: string, nif: string, sourceUrl: string): 
   if (moradaIdx !== -1) {
     const afterMorada = fullText.substring(moradaIdx + 6, moradaIdx + 500);
     const moradaLines = afterMorada.split('\n').map(l => l.trim()).filter(l => 
-      l && !l.startsWith('ico-') && l !== 'Morada' && !l.startsWith('![')
+      l && !l.startsWith('ico-') && !l.includes('ico-') && l !== 'Morada' && !l.startsWith('![') && !l.startsWith('- ico')
     );
     
     // First meaningful line has the address + postal code
