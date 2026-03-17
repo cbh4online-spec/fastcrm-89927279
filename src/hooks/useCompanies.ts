@@ -220,6 +220,8 @@ export function useCompanies() {
     },
     onSuccess: (company, variables) => {
       queryClient.invalidateQueries({ queryKey: ["companies", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-companies", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["companies-kpis", currentWorkspace?.id] });
       toast.success("Empresa criada com sucesso");
       console.log(`[COMPANIES] Company created: ${company.id}`);
       if (currentWorkspace) {
@@ -310,6 +312,8 @@ export function useCompanies() {
     },
     onSuccess: (company, variables) => {
       queryClient.invalidateQueries({ queryKey: ["companies", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-companies", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["companies-kpis", currentWorkspace?.id] });
       const { id, ...changed } = variables;
       const fieldsChanged = Object.keys(changed);
       console.log(`[COMPANIES] Company updated: ${id}, fields: ${fieldsChanged.join(', ')}`);
@@ -349,6 +353,8 @@ export function useCompanies() {
     },
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["companies", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-companies", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["companies-kpis", currentWorkspace?.id] });
       toast.success("Empresa arquivada com sucesso");
       console.log(`[COMPANIES] Company deleted (soft): ${id}`);
       if (currentWorkspace) {
@@ -379,6 +385,8 @@ export function useCompanies() {
     },
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["companies", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-companies", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["companies-kpis", currentWorkspace?.id] });
       toast.success("Empresa restaurada com sucesso");
       console.log(`[COMPANIES] Company restored: ${id}`);
       if (currentWorkspace) {

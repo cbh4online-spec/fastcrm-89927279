@@ -264,6 +264,8 @@ export function useCreateLead() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["leads", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-leads", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["leads-kpis", currentWorkspace?.id] });
       
       // Track lead creation in GTM
       trackLeadCreated({
@@ -324,6 +326,8 @@ export function useUpdateLead() {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["leads", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-leads", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["leads-kpis", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["lead", data.id] });
 
       if (currentWorkspace?.id) {
@@ -379,6 +383,8 @@ export function useDeleteLead() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-leads", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["leads-kpis", currentWorkspace?.id] });
     },
   });
 }
@@ -398,6 +404,8 @@ export function useDeleteLeads() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-leads", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["leads-kpis", currentWorkspace?.id] });
     },
   });
 }
