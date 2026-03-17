@@ -35,6 +35,7 @@ export function ExecutionRequirements({ metrics, pipelineValue, isLoading }: Pro
     meetings: { label: t("meetingsLabel"), icon: <Calendar className="h-3.5 w-3.5" /> },
     proposals: { label: t("proposalsLabel"), icon: <FileText className="h-3.5 w-3.5" /> },
     deals: { label: t("dealsLabel"), icon: <Handshake className="h-3.5 w-3.5" /> },
+    new_deals: { label: "Negócios", icon: <Handshake className="h-3.5 w-3.5" /> },
   };
 
   if (isLoading) {
