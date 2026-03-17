@@ -1259,7 +1259,40 @@ export default function GoogleLocalProspecting() {
         </div>
 
         {/* History Sidebar */}
-        <div>
+        <div className="space-y-4">
+          {/* Search History */}
+          {searches.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Search className="h-4 w-4" />
+                  Pesquisas Anteriores
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {searches.slice(0, 10).map((s) => (
+                    <div
+                      key={s.id}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 cursor-pointer text-sm"
+                      onClick={() => {
+                        setSearchQuery(s.query || "");
+                        if (s.location) setLocation(s.location);
+                        if (s.category) setCategory(s.category);
+                        toast.info(`Pesquisa carregada: "${s.query}"`);
+                      }}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{s.query}</p>
+                        <p className="text-xs text-muted-foreground">{s.results_count} res. / {s.imported_count} imp.</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
