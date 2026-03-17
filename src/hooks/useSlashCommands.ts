@@ -16,16 +16,26 @@ export interface SlashCommand {
 }
 
 export const SLASH_COMMANDS: SlashCommand[] = [
+  // Strategy / CEO
+  { id: "ceo", command: "/ceo", label: "CEO Copilot", description: "Resumo executivo completo: receita, pipeline, riscos e ações", icon: "Brain", category: "strategy" },
+  { id: "revenue", command: "/revenue", label: "Revenue Radar", description: "Estado da receita, forecast e oportunidades de crescimento", icon: "TrendingUp", category: "strategy" },
+  { id: "flight", command: "/flight", label: "Flight Control", description: "Painel de controlo: saúde do negócio em tempo real", icon: "BarChart3", category: "strategy" },
+  { id: "metas", command: "/metas", label: "Metas & Objetivos", description: "Ver ou definir metas via conversa (ex: meta receita 5000)", icon: "Target", category: "strategy" },
+  // Intelligence
   { id: "brief", command: "/brief", label: "Brief Executivo", description: "Resumo executivo gerado pela IA estratégica", icon: "FileText", category: "intelligence" },
-  { id: "forecast", command: "/forecast", label: "Previsão de Receita", description: "Previsão de receita com cenários", icon: "TrendingUp", category: "revenue" },
-  { id: "leads", command: "/leads", label: "Estado dos Leads", description: "Leads activos e sem resposta", icon: "Users", category: "leads" },
+  { id: "kernel", command: "/kernel", label: "Decisões do Kernel", description: "Decisões e acções pendentes do Kernel", icon: "Brain", category: "intelligence" },
+  { id: "drift", command: "/drift", label: "Contexto Drift", description: "Contexto estratégico desactualizado", icon: "AlertTriangle", category: "intelligence" },
+  // Pipeline
   { id: "pipeline", command: "/pipeline", label: "Análise do Pipeline", description: "Resumo do estado actual do pipeline", icon: "BarChart3", category: "pipeline" },
   { id: "risk", command: "/risk", label: "Deals em Risco", description: "Oportunidades em risco com ações sugeridas", icon: "AlertTriangle", category: "pipeline" },
   { id: "stalled", command: "/stalled", label: "Deals Parados", description: "Oportunidades paradas na etapa actual", icon: "Target", category: "pipeline" },
+  // Revenue
+  { id: "forecast", command: "/forecast", label: "Previsão de Receita", description: "Previsão de receita com cenários", icon: "TrendingUp", category: "revenue" },
+  // Leads
+  { id: "leads", command: "/leads", label: "Estado dos Leads", description: "Leads activos e sem resposta", icon: "Users", category: "leads" },
+  // Actions
   { id: "priorities", command: "/priorities", label: "Prioridades do Dia", description: "Acções prioritárias combinadas", icon: "Target", category: "actions" },
-  { id: "drift", command: "/drift", label: "Contexto Drift", description: "Contexto estratégico desactualizado", icon: "AlertTriangle", category: "intelligence" },
   { id: "tarefas", command: "/tarefas", label: "Tarefas de Hoje", description: "Tarefas e follow-ups pendentes", icon: "CheckSquare", category: "actions" },
-  { id: "kernel", command: "/kernel", label: "Decisões do Kernel", description: "Decisões e acções pendentes do Kernel", icon: "Brain", category: "intelligence" },
   // Legacy commands
   { id: "resumir-pipeline", command: "/resumir pipeline", label: "Resumir Pipeline", description: "Resumo do estado actual do pipeline", icon: "BarChart3", category: "pipeline" },
   { id: "prioridades", command: "/prioridades", label: "Prioridades do Dia", description: "Acções prioritárias sugeridas pela IA", icon: "Target", category: "actions" },
