@@ -30,10 +30,13 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { CustomFieldsFormCreate, CustomFieldsFormCreateRef } from "@/components/custom-fields/CustomFieldsForm";
-import { User, Building2, Search, Loader2 } from "lucide-react";
+import { User, Building2, Search, Loader2, ChevronDown, Link2 } from "lucide-react";
 
 const leadSchema = z.object({
   lead_type: z.enum(["person", "company"]).default("person"),
@@ -46,7 +49,7 @@ const leadSchema = z.object({
   company_name: z.string().max(200).optional().or(z.literal("")),
   tax_id: z.string().max(50).optional().or(z.literal("")),
   website: z.string().max(200).optional().or(z.literal("")),
-  industry: z.string().max(100).optional().or(z.literal("")),
+  industry: z.string().max(2000).optional().or(z.literal("")),
   number_of_employees: z.string().max(50).optional().or(z.literal("")),
   contact_person: z.string().max(100).optional().or(z.literal("")),
   contact_person_role: z.string().max(100).optional().or(z.literal("")),
@@ -57,6 +60,38 @@ const leadSchema = z.object({
 
 type LeadFormValues = z.infer<typeof leadSchema>;
 
+interface NifEnrichmentState {
+  cae_codes: string[];
+  cae_description: string | null;
+  legal_nature: string | null;
+  capital_social: string | null;
+  founding_date: string | null;
+  company_status: string | null;
+  region: string | null;
+  county: string | null;
+  parish: string | null;
+  fax: string | null;
+  about: string | null;
+  activity_description: string | null;
+  racius_url: string | null;
+}
+
+const emptyEnrichment: NifEnrichmentState = {
+  cae_codes: [],
+  cae_description: null,
+  legal_nature: null,
+  capital_social: null,
+  founding_date: null,
+  company_status: null,
+  region: null,
+  county: null,
+  parish: null,
+  fax: null,
+  about: null,
+  activity_description: null,
+  racius_url: null,
+};
+
 interface CreateLeadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -66,10 +101,13 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
   const createLead = useCreateLead();
   const customFieldsRef = useRef<CustomFieldsFormCreateRef>(null);
   const { trackLeadCreated } = useCRMAnalytics();
+  const [nifData, setNifData] = useState<NifEnrichmentState>(emptyEnrichment);
+  const [optionalsOpen, setOptionalsOpen] = useState(false);
+
   const { lookup, isLoading: isNifSearching } = useNifLookup({
     showToasts: true,
     onSuccess: (data: NifLookupResult) => {
-      // Auto-fill fields from NIF lookup
+      // Auto-fill form fields
       if (data.company_name) form.setValue("name", data.company_name);
       if (data.address) form.setValue("address", data.address);
       if (data.city) form.setValue("city", data.city);
@@ -78,6 +116,26 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
       if (data.phone) form.setValue("phone", data.phone);
       if (data.website) form.setValue("website", data.website);
       if (data.cae_description) form.setValue("industry", data.cae_description);
+
+      // Store enrichment state for card display and submission
+      setNifData({
+        cae_codes: data.cae_codes || [],
+        cae_description: data.cae_description || null,
+        legal_nature: data.legal_nature || null,
+        capital_social: data.capital_social || null,
+        founding_date: data.founding_date || null,
+        company_status: data.company_status || null,
+        region: data.region || null,
+        county: data.county || null,
+        parish: data.parish || null,
+        fax: data.fax || null,
+        about: data.about || null,
+        activity_description: data.activity_description || null,
+        racius_url: data.racius_url || null,
+      });
+
+      // Auto-expand optional fields when NIF data is found
+      setOptionalsOpen(true);
     },
   });
 
@@ -116,6 +174,8 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
     await lookup(cleanNif);
   };
 
+  const hasNifData = nifData.cae_codes.length > 0 || nifData.legal_nature || nifData.about || nifData.region;
+
   const onSubmit = async (values: LeadFormValues) => {
     try {
       const result = await createLead.mutateAsync({
@@ -135,6 +195,19 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
         address: values.address || undefined,
         city: values.city || undefined,
         postal_code: values.postal_code || undefined,
+        // NIF enrichment fields
+        cae_codes: nifData.cae_codes.length > 0 ? nifData.cae_codes : undefined,
+        cae_description: nifData.cae_description || undefined,
+        legal_nature: nifData.legal_nature || undefined,
+        capital_social: nifData.capital_social || undefined,
+        founding_date: nifData.founding_date || undefined,
+        region: nifData.region || undefined,
+        county: nifData.county || undefined,
+        parish: nifData.parish || undefined,
+        fax: nifData.fax || undefined,
+        about: nifData.about || undefined,
+        activity_description: nifData.activity_description || undefined,
+        racius_url: nifData.racius_url || undefined,
       });
       
       if (result?.id && customFieldsRef.current) {
@@ -149,6 +222,8 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
       
       toast.success("Lead criado com sucesso");
       form.reset();
+      setNifData(emptyEnrichment);
+      setOptionalsOpen(false);
       onOpenChange(false);
     } catch (error) {
       toast.error("Erro ao criar lead");
@@ -157,7 +232,7 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Novo Lead</DialogTitle>
           <DialogDescription>
@@ -173,7 +248,13 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tipo de Lead</FormLabel>
-                  <Tabs value={field.value} onValueChange={field.onChange} className="w-full">
+                  <Tabs value={field.value} onValueChange={(val) => {
+                    field.onChange(val);
+                    // Reset NIF data when switching type
+                    if (val === "person") {
+                      setNifData(emptyEnrichment);
+                    }
+                  }} className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                       <TabsTrigger value="person" className="flex items-center gap-2">
                         <User className="h-4 w-4" />
@@ -254,7 +335,7 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                     name="industry"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Setor</FormLabel>
+                        <FormLabel>Setor / CAE</FormLabel>
                         <FormControl>
                           <Input placeholder="Tecnologia, Saúde..." {...field} />
                         </FormControl>
@@ -263,6 +344,74 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                     )}
                   />
                 </div>
+
+                {/* NIF Data Card - identical to CreateCompanyDialog */}
+                {hasNifData && (
+                  <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30">
+                    <CardContent className="p-4 space-y-3">
+                      <p className="text-xs font-medium text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                        <Search className="w-3.5 h-3.5" />
+                        Dados obtidos via NIF
+                      </p>
+                      <div className="grid gap-1.5 text-xs">
+                        {form.getValues("address") && (
+                          <div>
+                            <span className="text-muted-foreground">Morada:</span>{" "}
+                            {form.getValues("address")}
+                            {form.getValues("postal_code") ? `, ${form.getValues("postal_code")}` : ""}
+                            {form.getValues("city") ? ` ${form.getValues("city")}` : ""}
+                          </div>
+                        )}
+                        {nifData.region && (
+                          <div>
+                            <span className="text-muted-foreground">Distrito/Concelho:</span>{" "}
+                            {nifData.region}
+                            {nifData.county ? ` / ${nifData.county}` : ""}
+                            {nifData.parish ? ` / ${nifData.parish}` : ""}
+                          </div>
+                        )}
+                        {nifData.legal_nature && (
+                          <div><span className="text-muted-foreground">Natureza Jurídica:</span> {nifData.legal_nature}</div>
+                        )}
+                        {nifData.capital_social && (
+                          <div><span className="text-muted-foreground">Capital Social:</span> {nifData.capital_social}</div>
+                        )}
+                        {nifData.founding_date && (
+                          <div><span className="text-muted-foreground">Data de Constituição:</span> {nifData.founding_date}</div>
+                        )}
+                        {nifData.company_status && (
+                          <div><span className="text-muted-foreground">Estado:</span> {nifData.company_status}</div>
+                        )}
+                        {nifData.cae_codes.length > 0 && (
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <span className="text-muted-foreground">CAE:</span>
+                            {nifData.cae_codes.map((code) => (
+                              <Badge key={code} variant="secondary" className="text-[10px] px-1.5 py-0">{code}</Badge>
+                            ))}
+                            {nifData.cae_description && <span className="text-muted-foreground">— {nifData.cae_description}</span>}
+                          </div>
+                        )}
+                        {nifData.activity_description && (
+                          <div><span className="text-muted-foreground">Atividade:</span> {nifData.activity_description}</div>
+                        )}
+                        {nifData.about && (
+                          <div className="pt-1 border-t border-blue-200 dark:border-blue-800 mt-1">
+                            <span className="text-muted-foreground">Acerca:</span>{" "}
+                            <span className="line-clamp-3">{nifData.about}</span>
+                          </div>
+                        )}
+                        {nifData.racius_url && (
+                          <div>
+                            <a href={nifData.racius_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                              <Link2 className="w-3 h-3" /> Ver no Racius
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <FormField
                   control={form.control}
                   name="website"
@@ -317,44 +466,56 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-3 gap-3">
-                  <FormField
-                    control={form.control}
-                    name="address"
-                    render={({ field }) => (
-                      <FormItem className="col-span-3 sm:col-span-1">
-                        <FormLabel>Morada</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Rua..." {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cidade</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Lisboa" {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="postal_code"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Código Postal</FormLabel>
-                        <FormControl>
-                          <Input placeholder="1000-001" {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
+
+                {/* Address fields - collapsible if not already filled by NIF */}
+                <Collapsible open={optionalsOpen} onOpenChange={setOptionalsOpen}>
+                  <CollapsibleTrigger asChild>
+                    <Button type="button" variant="ghost" size="sm" className="w-full justify-between text-muted-foreground">
+                      Morada e mais campos
+                      <ChevronDown className={`h-4 w-4 transition-transform ${optionalsOpen ? "rotate-180" : ""}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-3 pt-2">
+                    <div className="grid grid-cols-3 gap-3">
+                      <FormField
+                        control={form.control}
+                        name="address"
+                        render={({ field }) => (
+                          <FormItem className="col-span-3 sm:col-span-1">
+                            <FormLabel>Morada</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Rua..." {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="city"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Cidade</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Lisboa" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="postal_code"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Código Postal</FormLabel>
+                            <FormControl>
+                              <Input placeholder="1000-001" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               </>
             )}
 

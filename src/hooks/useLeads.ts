@@ -74,6 +74,23 @@ export interface Lead {
   contact_person: string | null;
   contact_person_role: string | null;
 
+  // NIF enrichment fields
+  tax_id: string | null;
+  address: string | null;
+  postal_code: string | null;
+  cae_codes: string[] | null;
+  cae_description: string | null;
+  legal_nature: string | null;
+  capital_social: string | null;
+  founding_date: string | null;
+  region: string | null;
+  county: string | null;
+  parish: string | null;
+  fax: string | null;
+  about: string | null;
+  activity_description: string | null;
+  racius_url: string | null;
+
   // Scores
   icp_fit_score: number | null;
   engagement_score: number | null;
@@ -108,6 +125,19 @@ export interface CreateLeadInput {
   address?: string;
   city?: string;
   postal_code?: string;
+  // NIF enrichment fields
+  cae_codes?: string[];
+  cae_description?: string;
+  legal_nature?: string;
+  capital_social?: string;
+  founding_date?: string;
+  region?: string;
+  county?: string;
+  parish?: string;
+  fax?: string;
+  about?: string;
+  activity_description?: string;
+  racius_url?: string;
 }
 
 export interface UpdateLeadInput extends Partial<CreateLeadInput> {
@@ -207,6 +237,19 @@ export function useCreateLead() {
           address: input.address || null,
           city: input.city || null,
           postal_code: input.postal_code || null,
+          // NIF enrichment fields
+          cae_codes: input.cae_codes || null,
+          cae_description: input.cae_description || null,
+          legal_nature: input.legal_nature || null,
+          capital_social: input.capital_social || null,
+          founding_date: input.founding_date || null,
+          region: input.region || null,
+          county: input.county || null,
+          parish: input.parish || null,
+          fax: input.fax || null,
+          about: input.about || null,
+          activity_description: input.activity_description || null,
+          racius_url: input.racius_url || null,
         })
         .select()
         .single();
