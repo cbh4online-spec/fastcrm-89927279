@@ -326,6 +326,8 @@ export function useUpdateLead() {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["leads", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-leads", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["leads-kpis", currentWorkspace?.id] });
       queryClient.invalidateQueries({ queryKey: ["lead", data.id] });
 
       if (currentWorkspace?.id) {
