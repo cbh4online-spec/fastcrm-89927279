@@ -337,6 +337,8 @@ export function useContacts() {
     },
     onSuccess: (_, ids) => {
       queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-contacts", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["contacts-kpis", currentWorkspace?.id] });
       console.log(`[CONTACTS] Bulk deleted: ${ids.length} contacts`);
       if (currentWorkspace) {
         emitKernelEvent({
