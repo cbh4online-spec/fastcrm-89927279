@@ -68,6 +68,11 @@ export interface Lead {
   // Enrichment
   company_name: string | null;
   website: string | null;
+  industry: string | null;
+  number_of_employees: string | null;
+  annual_revenue: number | null;
+  contact_person: string | null;
+  contact_person_role: string | null;
 
   // Scores
   icp_fit_score: number | null;
