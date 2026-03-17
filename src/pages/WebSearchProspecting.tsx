@@ -45,8 +45,11 @@ export default function WebSearchProspecting() {
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<WebResult[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   
   const createLead = useCreateLead();
+  const { searches, allPreviousIdentifiers, saveSearch } = useProspectingSearchHistory("web_search");
+  const { isExistingLead } = useExistingLeadIdentifiers();
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
