@@ -186,6 +186,7 @@ export function useCreateLead() {
         .insert({
           workspace_id: currentWorkspace.id,
           created_by: user.id,
+          lead_type: input.lead_type || "person",
           name: input.name,
           email: input.email || null,
           phone: input.phone || null,
@@ -195,6 +196,17 @@ export function useCreateLead() {
           facebook_url: input.facebook_url || null,
           instagram_url: input.instagram_url || null,
           twitter_url: input.twitter_url || null,
+          company_name: input.company_name || null,
+          tax_id: input.tax_id || null,
+          website: input.website || null,
+          industry: input.industry || null,
+          number_of_employees: input.number_of_employees || null,
+          annual_revenue: input.annual_revenue || null,
+          contact_person: input.contact_person || null,
+          contact_person_role: input.contact_person_role || null,
+          address: input.address || null,
+          city: input.city || null,
+          postal_code: input.postal_code || null,
         })
         .select()
         .single();
