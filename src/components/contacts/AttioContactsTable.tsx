@@ -346,7 +346,7 @@ export function AttioContactsTable() {
                       </div>
                     </td>
                     {orderedVisibleColumns.map(col => (
-                      <td key={col.id} className="px-3 py-2.5"><DynamicTableCell columnId={col.id} entity={contact as any} entityType="contact" /></td>
+                      <td key={col.id} className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}><InlineEditableTableCell columnId={col.id} entity={contact as any} entityType="contact" onUpdate={handleInlineUpdate} /></td>
                     ))}
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
