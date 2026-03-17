@@ -142,10 +142,19 @@ export function AttioContactsTable() {
   }, [visibleColumns, columnOrder, CONTACT_COLUMNS]);
 
   const { data: contacts, isLoading, refetch } = useSmartContacts(filters);
-  const { deleteContacts, addTagsToContacts, bulkUpdateContacts } = useContacts();
+  const { deleteContacts, addTagsToContacts, bulkUpdateContacts, updateContact } = useContacts();
   const analyze = useAnalyzeContact();
   const bulkAnalyze = useBulkAnalyzeContacts();
   const bulkAnalyzeLinkedIn = useBulkAnalyzeEntityLinkedIn('contact');
+
+  const handleInlineUpdate = useCallback(async (entityId: string, field: string, value: unknown) => {
+    try {
+      await updateContact.mutateAsync({ id: entityId, [field]: value });
+      toast.success("Campo atualizado");
+    } catch {
+      toast.error("Erro ao atualizar campo");
+    }
+  }, [updateContact]);
 
   // Search + sort
   const filteredContacts = useMemo(() => {
