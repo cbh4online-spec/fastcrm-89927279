@@ -24,7 +24,7 @@ export const CONVERSION_RATIOS = {
   proposal_to_deal: 0.3,
 };
 
-const order = ["leads", "meetings", "proposals", "deals"];
+const order = ["leads", "meetings", "proposals", "deals", "new_deals"];
 
 export function ExecutionRequirements({ metrics, pipelineValue, isLoading }: Props) {
   const { t } = useTranslation("dashboard");
