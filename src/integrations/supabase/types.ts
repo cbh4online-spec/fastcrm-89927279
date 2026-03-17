@@ -21275,6 +21275,8 @@ export type Database = {
       }
       leads: {
         Row: {
+          about: string | null
+          activity_description: string | null
           address: string | null
           ai_analyzed_at: string | null
           ai_insight: string | null
@@ -21353,6 +21355,7 @@ export type Database = {
           postal_code: string | null
           price_level: number | null
           prospecting_profile_id: string | null
+          racius_url: string | null
           rating: number | null
           region: string | null
           reviews: Json | null
@@ -21368,6 +21371,8 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          about?: string | null
+          activity_description?: string | null
           address?: string | null
           ai_analyzed_at?: string | null
           ai_insight?: string | null
@@ -21446,6 +21451,7 @@ export type Database = {
           postal_code?: string | null
           price_level?: number | null
           prospecting_profile_id?: string | null
+          racius_url?: string | null
           rating?: number | null
           region?: string | null
           reviews?: Json | null
@@ -21461,6 +21467,8 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          about?: string | null
+          activity_description?: string | null
           address?: string | null
           ai_analyzed_at?: string | null
           ai_insight?: string | null
@@ -21539,6 +21547,7 @@ export type Database = {
           postal_code?: string | null
           price_level?: number | null
           prospecting_profile_id?: string | null
+          racius_url?: string | null
           rating?: number | null
           region?: string | null
           reviews?: Json | null
