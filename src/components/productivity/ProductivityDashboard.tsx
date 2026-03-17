@@ -37,6 +37,9 @@ export function ProductivityDashboard() {
   // Data hooks
   const { priorities, prioritiesLoading, goals, goalsLoading } = useProductivityCoach();
   const { meetings, isLoading: meetingsLoading } = useMeetings();
+  const { data: weeklyData } = useWeeklyPerformance();
+  const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
 
   // Calculate stats
   const stats = useMemo(() => {
