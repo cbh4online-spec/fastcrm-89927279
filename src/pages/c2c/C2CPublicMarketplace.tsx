@@ -570,17 +570,7 @@ export default function C2CPublicMarketplace() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-zinc-800 bg-zinc-900/50 py-8">
-        <div className="container mx-auto px-4 text-center space-y-2">
-          <p className="text-sm text-zinc-400">
-            © {new Date().getFullYear()} {workspace.name} Marketplace. Todos os direitos reservados.
-          </p>
-          <p className="text-xs text-zinc-600">
-            Comissão de 5% sobre vendas concluídas · Pagamentos protegidos
-          </p>
-        </div>
-      </footer>
+      <MarketplaceFooter workspaceName={workspace.name} workspaceSlug={workspace.slug} />
 
       {/* Search overlay */}
       <MarketplaceSearchOverlay
