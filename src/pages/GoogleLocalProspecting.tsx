@@ -737,6 +737,7 @@ export default function GoogleLocalProspecting() {
           query,
           location: selectedLocation,
           limit: 20,
+          start: searchOffset,
         },
       });
 
