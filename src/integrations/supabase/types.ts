@@ -29797,6 +29797,56 @@ export type Database = {
           },
         ]
       }
+      prospecting_search_history: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          imported_count: number
+          location: string | null
+          query: string
+          result_identifiers: Json
+          results_count: number
+          search_type: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          imported_count?: number
+          location?: string | null
+          query: string
+          result_identifiers?: Json
+          results_count?: number
+          search_type: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          imported_count?: number
+          location?: string | null
+          query?: string
+          result_identifiers?: Json
+          results_count?: number
+          search_type?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospecting_search_history_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       protocol_kit_items: {
         Row: {
           created_at: string | null
