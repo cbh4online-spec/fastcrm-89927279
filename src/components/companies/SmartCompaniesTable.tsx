@@ -313,7 +313,7 @@ export function SmartCompaniesTable() {
                 </TableCell></TableRow>
               ) : (
                 paginatedCompanies.map(c => (
-                  <SmartCompanyRow key={c.id} company={c} isSelected={selectedIds.has(c.id)} onToggleSelect={() => toggleSelect(c.id)} onAnalyze={() => handleAnalyze(c.id)} isAnalyzing={analyzingId === c.id} columnOrder={orderedVisibleColumns.map(col => col.id)} />
+                  <SmartCompanyRow key={c.id} company={c} isSelected={selectedIds.has(c.id)} onToggleSelect={() => toggleSelect(c.id)} onAnalyze={() => handleAnalyze(c.id)} isAnalyzing={analyzingId === c.id} columnOrder={orderedVisibleColumns.map(col => col.id)} onUpdate={handleInlineUpdate} />
                 ))
               )}
             </TableBody>
