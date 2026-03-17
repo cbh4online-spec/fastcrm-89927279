@@ -149,6 +149,15 @@ export function SmartCompaniesTable() {
     }
   };
 
+  const handleInlineUpdate = useCallback(async (entityId: string, field: string, value: unknown) => {
+    try {
+      await updateCompany.mutateAsync({ id: entityId, [field]: value } as any);
+      toast.success("Campo atualizado");
+    } catch {
+      toast.error("Erro ao atualizar campo");
+    }
+  }, [updateCompany]);
+
   const handleBulkSocialAnalyze = async () => {
     const selected = companies?.filter(c => selectedIds.has(c.id) && c.linkedin_url) || [];
     if (selected.length === 0) { toast.error(t("noLinkedInUrlCompanies")); return; }
