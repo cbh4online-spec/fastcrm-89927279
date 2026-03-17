@@ -427,6 +427,130 @@ function parseRaciusMarkdown(markdown: string, nif: string, sourceUrl: string): 
   };
 }
 
+// ─── EU VIES (VAT Information Exchange System) ───
+async function tryVIES(cleanNif: string): Promise<{ company_name: string | null; address: string | null; valid: boolean } | null> {
+  const VIES_URL = 'https://ec.europa.eu/taxation_customs/vies/services/checkVatService';
+  const soapBody = `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:ec.europa.eu:taxud:vies:services:checkVat:types">
+  <soapenv:Body>
+    <urn:checkVat>
+      <urn:countryCode>PT</urn:countryCode>
+      <urn:vatNumber>${cleanNif}</urn:vatNumber>
+    </urn:checkVat>
+  </soapenv:Body>
+</soapenv:Envelope>`;
+
+  try {
+    const response = await fetch(VIES_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/xml; charset=utf-8',
+        'SOAPAction': '',
+      },
+      body: soapBody,
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!response.ok) {
+      console.warn('[NIF] VIES returned status:', response.status);
+      return null;
+    }
+
+    const xml = await response.text();
+    console.log('[NIF] VIES response length:', xml.length);
+
+    const validMatch = xml.match(/<valid>(true|false)<\/valid>/i);
+    const nameMatch = xml.match(/<name>([^<]*)<\/name>/i);
+    const addressMatch = xml.match(/<address>([^<]*)<\/address>/i);
+
+    const valid = validMatch?.[1]?.toLowerCase() === 'true';
+    const name = nameMatch?.[1]?.trim() || null;
+    const addr = addressMatch?.[1]?.trim() || null;
+
+    // VIES returns "---" for unavailable fields
+    const cleanName = name && name !== '---' && name.length > 1 ? name : null;
+    const cleanAddr = addr && addr !== '---' && addr.length > 1 ? addr : null;
+
+    console.log('[NIF] VIES result:', { valid, name: cleanName, address: cleanAddr?.substring(0, 60) });
+
+    return { company_name: cleanName, address: cleanAddr, valid };
+  } catch (error) {
+    console.warn('[NIF] VIES error:', error);
+    return null;
+  }
+}
+
+// ─── Merge helper: fill null fields from VIES ───
+function mergeWithVIES(result: LookupResult, vies: { company_name: string | null; address: string | null; valid: boolean }): LookupResult {
+  const merged = { ...result };
+
+  if (!merged.company_name && vies.company_name) {
+    merged.company_name = vies.company_name;
+  }
+
+  if (!merged.address && vies.address) {
+    // Try to parse postal code and city from VIES address
+    const parts = vies.address;
+    const pcMatch = parts.match(/(\d{4}[-\s]?\d{3})/);
+    if (pcMatch) {
+      if (!merged.postal_code) merged.postal_code = pcMatch[1].replace(/\s/, '-');
+      const beforePc = parts.substring(0, parts.indexOf(pcMatch[0])).trim();
+      const afterPc = parts.substring(parts.indexOf(pcMatch[0]) + pcMatch[0].length).trim();
+      if (beforePc && !merged.address) merged.address = beforePc;
+      if (afterPc && !merged.city) merged.city = afterPc;
+    } else {
+      merged.address = parts;
+    }
+  }
+
+  return merged;
+}
+
+// ─── Build minimal result from VIES only ───
+function buildFromVIES(vies: { company_name: string | null; address: string | null; valid: boolean }, nif: string): LookupResult | null {
+  if (!vies.valid && !vies.company_name) return null;
+
+  let address: string | null = null;
+  let postalCode: string | null = null;
+  let city: string | null = null;
+
+  if (vies.address) {
+    const pcMatch = vies.address.match(/(\d{4}[-\s]?\d{3})/);
+    if (pcMatch) {
+      postalCode = pcMatch[1].replace(/\s/, '-');
+      address = vies.address.substring(0, vies.address.indexOf(pcMatch[0])).trim() || null;
+      city = vies.address.substring(vies.address.indexOf(pcMatch[0]) + pcMatch[0].length).trim() || null;
+    } else {
+      address = vies.address;
+    }
+  }
+
+  return {
+    company_name: vies.company_name,
+    tax_id: nif,
+    address,
+    postal_code: postalCode,
+    city,
+    region: null,
+    county: null,
+    parish: null,
+    cae_codes: [],
+    cae_description: null,
+    company_status: vies.valid ? 'Ativa' : null,
+    legal_nature: null,
+    capital_social: null,
+    founding_date: null,
+    email: null,
+    phone: null,
+    website: null,
+    fax: null,
+    racius_url: `https://www.racius.com/empresas/?q=${nif}`,
+    about: null,
+    activity_description: null,
+    company_age: null,
+  };
+}
+
 // ─── Main handler ───
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -453,13 +577,19 @@ Deno.serve(async (req) => {
 
     console.log('[NIF] Looking up:', cleanNif);
 
+    // Start VIES in parallel (it's free and complements any source)
+    const viesPromise = tryVIES(cleanNif);
+
     // Strategy 1: Try nif.pt first
     const nifPtResult = await tryNifPt(cleanNif);
     
     if (nifPtResult.result) {
       console.log('[NIF] Success via nif.pt');
+      // Merge with VIES data if available
+      const vies = await viesPromise;
+      const finalResult = vies ? mergeWithVIES(nifPtResult.result, vies) : nifPtResult.result;
       return new Response(
-        JSON.stringify({ success: true, data: nifPtResult.result, source: 'nif.pt' }),
+        JSON.stringify({ success: true, data: finalResult, source: 'nif.pt', vies_valid: vies?.valid ?? null }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -471,14 +601,30 @@ Deno.serve(async (req) => {
       
       if (firecrawlResult) {
         console.log('[NIF] Success via Firecrawl + Racius');
+        const vies = await viesPromise;
+        const finalResult = vies ? mergeWithVIES(firecrawlResult, vies) : firecrawlResult;
         return new Response(
-          JSON.stringify({ success: true, data: firecrawlResult, source: 'racius' }),
+          JSON.stringify({ success: true, data: finalResult, source: 'racius', vies_valid: vies?.valid ?? null }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     }
 
-    // Both failed
+    // Strategy 3: VIES as last resort (basic data: name + address)
+    console.log('[NIF] Trying VIES as last resort...');
+    const vies = await viesPromise;
+    if (vies) {
+      const viesResult = buildFromVIES(vies, cleanNif);
+      if (viesResult) {
+        console.log('[NIF] Success via VIES (basic data)');
+        return new Response(
+          JSON.stringify({ success: true, data: viesResult, source: 'vies', vies_valid: vies.valid }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // All three failed
     return new Response(
       JSON.stringify({ 
         success: false, 
