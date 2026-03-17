@@ -141,6 +141,7 @@
   "col_fax": "Fax",
   "col_source": "Origem",
   "col_status": "Status",
+  "col_leadType": "Tipo",
   "col_tags": "Tags",
   "col_company": "Empresa",
   "col_companyStatus": "Estado Empresa",

@@ -48,6 +48,7 @@ export function SmartLeadsTable() {
     { id: "fax", label: t("col_fax"), category: "basic", defaultVisible: false },
     { id: "source", label: t("col_source"), category: "basic", defaultVisible: false },
     { id: "status", label: t("col_status"), category: "basic", defaultVisible: true },
+    { id: "lead_type", label: t("col_leadType"), category: "basic", defaultVisible: true },
     { id: "tags", label: t("col_tags"), category: "basic", defaultVisible: false },
     { id: "company_name", label: t("col_company"), category: "basic", defaultVisible: false },
     { id: "company_status", label: t("col_companyStatus"), category: "basic", defaultVisible: false },

@@ -7,12 +7,14 @@ import { toast } from "sonner";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { generateRequestId } from "@/lib/requestId";
 
+export type LeadType = "person" | "company";
 export type LeadStatus = "new" | "in_progress" | "completed";
 export type LeadSource = "instagram" | "whatsapp" | "email" | "form" | string;
 
 export interface Lead {
   id: string;
   workspace_id: string;
+  lead_type: LeadType;
   name: string;
   email: string | null;
   phone: string | null;
@@ -66,6 +68,11 @@ export interface Lead {
   // Enrichment
   company_name: string | null;
   website: string | null;
+  industry: string | null;
+  number_of_employees: string | null;
+  annual_revenue: number | null;
+  contact_person: string | null;
+  contact_person_role: string | null;
 
   // Scores
   icp_fit_score: number | null;
@@ -74,6 +81,7 @@ export interface Lead {
 }
 
 export interface CreateLeadInput {
+  lead_type?: LeadType;
   name: string;
   email?: string;
   phone?: string;
@@ -88,6 +96,18 @@ export interface CreateLeadInput {
   facebook_url?: string;
   instagram_url?: string;
   twitter_url?: string;
+  // Company fields
+  company_name?: string;
+  tax_id?: string;
+  website?: string;
+  industry?: string;
+  number_of_employees?: string;
+  annual_revenue?: number;
+  contact_person?: string;
+  contact_person_role?: string;
+  address?: string;
+  city?: string;
+  postal_code?: string;
 }
 
 export interface UpdateLeadInput extends Partial<CreateLeadInput> {
@@ -166,6 +186,7 @@ export function useCreateLead() {
         .insert({
           workspace_id: currentWorkspace.id,
           created_by: user.id,
+          lead_type: input.lead_type || "person",
           name: input.name,
           email: input.email || null,
           phone: input.phone || null,
@@ -175,6 +196,17 @@ export function useCreateLead() {
           facebook_url: input.facebook_url || null,
           instagram_url: input.instagram_url || null,
           twitter_url: input.twitter_url || null,
+          company_name: input.company_name || null,
+          tax_id: input.tax_id || null,
+          website: input.website || null,
+          industry: input.industry || null,
+          number_of_employees: input.number_of_employees || null,
+          annual_revenue: input.annual_revenue || null,
+          contact_person: input.contact_person || null,
+          contact_person_role: input.contact_person_role || null,
+          address: input.address || null,
+          city: input.city || null,
+          postal_code: input.postal_code || null,
         })
         .select()
         .single();

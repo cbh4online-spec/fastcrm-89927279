@@ -85,6 +85,15 @@ export function DynamicTableCell({ columnId, entity, entityType }: DynamicTableC
 
   // Handle specific column types
   switch (columnId) {
+    case "lead_type": {
+      const isCompany = value === "company";
+      return (
+        <Badge variant="outline" className={cn("text-xs", isCompany ? "bg-primary/10 text-primary border-primary/20" : "bg-muted text-muted-foreground")}>
+          {isCompany ? "Empresa" : "Pessoa"}
+        </Badge>
+      );
+    }
+
     case "temperature": {
       const temp = temperatureConfig[value as keyof typeof temperatureConfig];
       if (!temp) return <span className="text-muted-foreground">—</span>;

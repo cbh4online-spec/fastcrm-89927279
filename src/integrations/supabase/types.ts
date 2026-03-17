@@ -21282,6 +21282,7 @@ export type Database = {
           ai_next_action: string | null
           ai_next_action_type: string | null
           ai_temperature: string | null
+          annual_revenue: number | null
           assigned_to: string | null
           automation_active: boolean | null
           avatar_url: string | null
@@ -21295,6 +21296,8 @@ export type Database = {
           company_name: string | null
           company_status: string | null
           confidence_score: number | null
+          contact_person: string | null
+          contact_person_role: string | null
           conversion_probability: number | null
           county: string | null
           created_at: string
@@ -21316,6 +21319,7 @@ export type Database = {
           google_place_id: string | null
           icp_fit_score: number | null
           id: string
+          industry: string | null
           inferred_profession: string | null
           inferred_specialty: string | null
           inferred_type: string | null
@@ -21335,11 +21339,13 @@ export type Database = {
           lead_score: number | null
           lead_score_explanation: string | null
           lead_score_factors: Json | null
+          lead_type: string
           legal_nature: string | null
           linkedin_url: string | null
           longitude: number | null
           name: string
           notes: string | null
+          number_of_employees: string | null
           pare_score: number | null
           parish: string | null
           phone: string | null
@@ -21369,6 +21375,7 @@ export type Database = {
           ai_next_action?: string | null
           ai_next_action_type?: string | null
           ai_temperature?: string | null
+          annual_revenue?: number | null
           assigned_to?: string | null
           automation_active?: boolean | null
           avatar_url?: string | null
@@ -21382,6 +21389,8 @@ export type Database = {
           company_name?: string | null
           company_status?: string | null
           confidence_score?: number | null
+          contact_person?: string | null
+          contact_person_role?: string | null
           conversion_probability?: number | null
           county?: string | null
           created_at?: string
@@ -21403,6 +21412,7 @@ export type Database = {
           google_place_id?: string | null
           icp_fit_score?: number | null
           id?: string
+          industry?: string | null
           inferred_profession?: string | null
           inferred_specialty?: string | null
           inferred_type?: string | null
@@ -21422,11 +21432,13 @@ export type Database = {
           lead_score?: number | null
           lead_score_explanation?: string | null
           lead_score_factors?: Json | null
+          lead_type?: string
           legal_nature?: string | null
           linkedin_url?: string | null
           longitude?: number | null
           name: string
           notes?: string | null
+          number_of_employees?: string | null
           pare_score?: number | null
           parish?: string | null
           phone?: string | null
@@ -21456,6 +21468,7 @@ export type Database = {
           ai_next_action?: string | null
           ai_next_action_type?: string | null
           ai_temperature?: string | null
+          annual_revenue?: number | null
           assigned_to?: string | null
           automation_active?: boolean | null
           avatar_url?: string | null
@@ -21469,6 +21482,8 @@ export type Database = {
           company_name?: string | null
           company_status?: string | null
           confidence_score?: number | null
+          contact_person?: string | null
+          contact_person_role?: string | null
           conversion_probability?: number | null
           county?: string | null
           created_at?: string
@@ -21490,6 +21505,7 @@ export type Database = {
           google_place_id?: string | null
           icp_fit_score?: number | null
           id?: string
+          industry?: string | null
           inferred_profession?: string | null
           inferred_specialty?: string | null
           inferred_type?: string | null
@@ -21509,11 +21525,13 @@ export type Database = {
           lead_score?: number | null
           lead_score_explanation?: string | null
           lead_score_factors?: Json | null
+          lead_type?: string
           legal_nature?: string | null
           linkedin_url?: string | null
           longitude?: number | null
           name?: string
           notes?: string | null
+          number_of_employees?: string | null
           pare_score?: number | null
           parish?: string | null
           phone?: string | null
