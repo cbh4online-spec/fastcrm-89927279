@@ -10,7 +10,7 @@ import { AttioFilterBar, SortOption } from "./AttioFilterBar";
 import { BulkActionsBar } from "@/components/crm/unified/BulkActionsBar";
 import { BulkEditField } from "@/components/crm/unified/BulkEditDialog";
 import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
-import { DynamicTableCell } from "@/components/common/DynamicTableCell";
+import { InlineEditableTableCell } from "@/components/common/InlineEditableTableCell";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
