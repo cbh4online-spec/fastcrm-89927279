@@ -18,6 +18,7 @@ const metricTypeKeys = [
   { key: "meetings", labelKey: "meetingsLabel" },
   { key: "proposals", labelKey: "proposalsLabel" },
   { key: "deals", labelKey: "dealsClosedLabel" },
+  { key: "new_deals", labelKey: "newDealsLabel" },
 ];
 
 const conversionKeys = [

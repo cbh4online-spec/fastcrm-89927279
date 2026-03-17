@@ -34,8 +34,8 @@ export function ExecutionRequirements({ metrics, pipelineValue, isLoading }: Pro
     leads: { label: t("qualifiedLeads"), icon: <Users className="h-3.5 w-3.5" /> },
     meetings: { label: t("meetingsLabel"), icon: <Calendar className="h-3.5 w-3.5" /> },
     proposals: { label: t("proposalsLabel"), icon: <FileText className="h-3.5 w-3.5" /> },
-    deals: { label: t("dealsLabel"), icon: <Handshake className="h-3.5 w-3.5" /> },
-    new_deals: { label: "Negócios", icon: <Handshake className="h-3.5 w-3.5" /> },
+    deals: { label: t("dealsClosedLabel"), icon: <Handshake className="h-3.5 w-3.5" /> },
+    new_deals: { label: t("newDealsLabel"), icon: <Handshake className="h-3.5 w-3.5" /> },
   };
 
   if (isLoading) {
@@ -125,47 +125,56 @@ export function ExecutionRequirements({ metrics, pipelineValue, isLoading }: Pro
           </div>
         )}
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {items.map((item) => (
-            <div key={item.key} className="space-y-1.5">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                {item.config.icon}
-                <span className="text-xs font-medium">{item.config.label}</span>
-              </div>
-              <div className="flex items-baseline gap-1.5">
-                {item.done ? (
-                  <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-                ) : (
-                  <span className={cn(
-                    "text-lg font-bold",
-                    item.status === "red" ? "text-destructive" : item.status === "yellow" ? "text-warning" : "text-success"
-                  )}>
-                    {item.remaining}
-                  </span>
-                )}
-                <span className="text-xs text-muted-foreground">
-                  {item.done ? t("completed") : t("remaining", { actual: item.actual, target: item.target })}
-                </span>
-              </div>
-              {hasGap && item.gapBased > 0 && !item.done && (
-                <div className="flex items-center gap-1 text-[10px] text-primary">
-                  <ArrowDown className="h-2.5 w-2.5" />
-                  <span>{t("gapEstimate", { count: item.gapBased })}</span>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          {items.map((item) => {
+            const hasTarget = item.target > 0;
+            return (
+              <div key={item.key} className="space-y-1.5">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  {item.config.icon}
+                  <span className="text-xs font-medium">{item.config.label}</span>
                 </div>
-              )}
-              {item.target > 0 && (
-                <Progress
-                  value={Math.min(item.pct, 100)}
-                  className={cn(
-                    "h-1.5",
-                    item.status === "green" && "[&>div]:bg-success",
-                    item.status === "yellow" && "[&>div]:bg-warning",
-                    item.status === "red" && "[&>div]:bg-destructive"
+                <div className="flex items-baseline gap-1.5">
+                  {hasTarget && item.done ? (
+                    <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                  ) : hasTarget ? (
+                    <span className={cn(
+                      "text-lg font-bold",
+                      item.status === "red" ? "text-destructive" : item.status === "yellow" ? "text-warning" : "text-success"
+                    )}>
+                      {item.remaining}
+                    </span>
+                  ) : (
+                    <span className="text-lg font-bold text-foreground">
+                      {item.actual}
+                    </span>
                   )}
-                />
-              )}
-            </div>
-          ))}
+                  <span className="text-xs text-muted-foreground">
+                    {hasTarget
+                      ? (item.done ? t("completed") : t("remaining", { actual: item.actual, target: item.target }))
+                      : t("thisWeek", { count: item.actual })}
+                  </span>
+                </div>
+                {hasGap && item.gapBased > 0 && !item.done && hasTarget && (
+                  <div className="flex items-center gap-1 text-[10px] text-primary">
+                    <ArrowDown className="h-2.5 w-2.5" />
+                    <span>{t("gapEstimate", { count: item.gapBased })}</span>
+                  </div>
+                )}
+                {hasTarget && (
+                  <Progress
+                    value={Math.min(item.pct, 100)}
+                    className={cn(
+                      "h-1.5",
+                      item.status === "green" && "[&>div]:bg-success",
+                      item.status === "yellow" && "[&>div]:bg-warning",
+                      item.status === "red" && "[&>div]:bg-destructive"
+                    )}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       </CardContent>
     </Card>
