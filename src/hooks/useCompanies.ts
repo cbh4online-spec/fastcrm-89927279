@@ -220,6 +220,8 @@ export function useCompanies() {
     },
     onSuccess: (company, variables) => {
       queryClient.invalidateQueries({ queryKey: ["companies", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-companies", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["companies-kpis", currentWorkspace?.id] });
       toast.success("Empresa criada com sucesso");
       console.log(`[COMPANIES] Company created: ${company.id}`);
       if (currentWorkspace) {

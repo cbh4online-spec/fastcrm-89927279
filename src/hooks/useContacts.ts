@@ -166,6 +166,8 @@ export function useContacts() {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-contacts", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["contacts-kpis", currentWorkspace?.id] });
       console.log(`[CONTACTS] Contact created: ${data.id}`);
       if (currentWorkspace) {
         emitKernelEvent({
