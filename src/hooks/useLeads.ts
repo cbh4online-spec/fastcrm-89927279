@@ -264,6 +264,8 @@ export function useCreateLead() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["leads", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-leads", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["leads-kpis", currentWorkspace?.id] });
       
       // Track lead creation in GTM
       trackLeadCreated({
