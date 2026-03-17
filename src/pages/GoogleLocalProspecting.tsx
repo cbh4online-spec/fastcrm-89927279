@@ -1166,6 +1166,17 @@ export default function GoogleLocalProspecting() {
                                       Importado
                                     </Badge>
                                   )}
+                                  {result._alreadyExists && !importedIds.includes(result.id) && (
+                                    <Badge variant="destructive" className="text-xs">
+                                      Já existe
+                                    </Badge>
+                                  )}
+                                  {result._previouslyFound && !result._alreadyExists && !importedIds.includes(result.id) && (
+                                    <Badge variant="secondary" className="text-xs gap-1">
+                                      <History className="h-3 w-3" />
+                                      Já encontrado
+                                    </Badge>
+                                  )}
                                 </h3>
                                 <Badge variant="outline" className="mt-1 text-xs">
                                   {result.category}
