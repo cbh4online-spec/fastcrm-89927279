@@ -312,6 +312,8 @@ export function useCompanies() {
     },
     onSuccess: (company, variables) => {
       queryClient.invalidateQueries({ queryKey: ["companies", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-companies", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["companies-kpis", currentWorkspace?.id] });
       const { id, ...changed } = variables;
       const fieldsChanged = Object.keys(changed);
       console.log(`[COMPANIES] Company updated: ${id}, fields: ${fieldsChanged.join(', ')}`);
