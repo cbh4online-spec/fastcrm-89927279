@@ -10,6 +10,7 @@ import { ShareButtons } from "@/components/c2c/ShareButtons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ListingCard } from "@/components/c2c/ListingCard";
+import { MarketplaceFooter } from "@/components/c2c/MarketplaceFooter";
 import { ArrowLeft, Star, ShieldCheck, Calendar, Package, Store } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";

@@ -15,6 +15,7 @@ import { C2CPublicOfferDialog } from "@/components/c2c/C2CPublicOfferDialog";
 import { C2CQuickCheckoutDialog } from "@/components/c2c/C2CQuickCheckoutDialog";
 import { ReportListingButton } from "@/components/c2c/public/ReportListingButton";
 import { SchemaOrgProduct } from "@/components/c2c/public/SchemaOrgProduct";
+import { MarketplaceFooter } from "@/components/c2c/MarketplaceFooter";
 import { getShareUrl } from "@/utils/getShareUrl";
 import {
   ArrowLeft, MapPin, Eye, Clock, ShieldCheck, MessageCircle, HandCoins,
