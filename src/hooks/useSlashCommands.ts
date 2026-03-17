@@ -58,6 +58,10 @@ export interface SlashCommandResult {
 
 // Map of slash command IDs to their ask-fastcrm question strings
 const SLASH_TO_QUESTION: Record<string, string> = {
+  ceo: "CEO copilot executive summary brief executivo completo receita pipeline riscos",
+  revenue: "revenue radar estado da receita forecast oportunidades de crescimento",
+  flight: "flight control saúde do negócio pipeline health deals em risco",
+  metas: "quais são as metas actuais desta semana objetivos performance targets",
   forecast: "previsão de receita forecast summary",
   "prever-receita": "previsão de receita forecast summary",
   leads: "leads sem resposta activos sem atividade",
