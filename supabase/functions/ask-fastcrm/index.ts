@@ -844,6 +844,52 @@ Deno.serve(async (req) => {
       });
     }
 
+    // --- Goal-setting intent: extract and upsert target ---
+    if (keywordResult?.intent === "set_target") {
+      const targetResponse = await handleSetTarget(question, workspaceId, claimsData.claims.sub, serviceClient);
+      return new Response(JSON.stringify(targetResponse), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- View targets intent ---
+    if (keywordResult?.intent === "view_targets") {
+      const viewResponse = await handleViewTargets(workspaceId, serviceClient);
+      return new Response(JSON.stringify(viewResponse), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- CEO/Revenue/Flight: route to combined pipeline+forecast summary ---
+    if (keywordResult?.intent === "ceo_summary" || keywordResult?.intent === "revenue_radar" || keywordResult?.intent === "flight_control") {
+      // Map to pipeline_summary which gives a comprehensive overview
+      const mappedIntent = "pipeline_summary";
+      const query = buildStructuredQuery(mappedIntent, 14);
+      const handlerResult = await executeIntent(serviceClient, workspaceId, mappedIntent, 14);
+      
+      const intentLabels: Record<string, string> = {
+        ceo_summary: "🧠 CEO Copilot",
+        revenue_radar: "💰 Revenue Radar",
+        flight_control: "🛫 Flight Control",
+      };
+      
+      // Override headline with strategic framing
+      handlerResult.headline = `${intentLabels[keywordResult.intent]} — ${handlerResult.headline || "Visão Global"}`;
+      
+      const response = buildResponse(keywordResult.intent, "deals", query, "deterministic", 0.90, {
+        ...handlerResult,
+        actions_available: [ACTIONS_ENUM.NAVIGATE],
+        actions: [
+          ...(handlerResult.actions || []),
+          { id: "nav-ceo", type: "navigate", label: "Ver CEO Copilot →", payload: { link: "/dashboard/ceo-copilot" } },
+          { id: "nav-revenue", type: "navigate", label: "Ver Revenue Radar →", payload: { link: "/dashboard/revenue-radar" } },
+        ],
+      });
+      return new Response(JSON.stringify(response), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (keywordResult && keywordResult.confidence >= 0.50) {
       intent = keywordResult.intent;
       days = keywordResult.days;
