@@ -74,6 +74,23 @@ export interface Lead {
   contact_person: string | null;
   contact_person_role: string | null;
 
+  // NIF enrichment fields
+  tax_id: string | null;
+  address: string | null;
+  postal_code: string | null;
+  cae_codes: string[] | null;
+  cae_description: string | null;
+  legal_nature: string | null;
+  capital_social: string | null;
+  founding_date: string | null;
+  region: string | null;
+  county: string | null;
+  parish: string | null;
+  fax: string | null;
+  about: string | null;
+  activity_description: string | null;
+  racius_url: string | null;
+
   // Scores
   icp_fit_score: number | null;
   engagement_score: number | null;
