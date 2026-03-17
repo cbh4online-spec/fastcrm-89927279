@@ -173,10 +173,20 @@ export function SmartLeadsTable() {
 
   const { data: leads, isLoading, refetch } = useSmartLeads(filters);
   const deleteLeads = useDeleteLeads();
+  const updateLead = useUpdateLead();
   const analyzeLead = useAnalyzeLead();
   const bulkAnalyze = useBulkAnalyzeLeads();
   const bulkAnalyzeLinkedIn = useBulkAnalyzeEntityLinkedIn('lead');
   const { data: duplicateGroups = [] } = useLeadDuplicateGroupsPersisted();
+
+  const handleInlineUpdate = useCallback(async (entityId: string, field: string, value: unknown) => {
+    try {
+      await updateLead.mutateAsync({ id: entityId, [field]: value } as any);
+      toast.success("Campo atualizado");
+    } catch {
+      toast.error("Erro ao atualizar campo");
+    }
+  }, [updateLead]);
 
   // Build a map of leadId -> duplicate group count
   const duplicateLeadIds = useMemo(() => {
