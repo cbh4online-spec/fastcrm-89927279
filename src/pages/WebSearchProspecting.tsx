@@ -250,6 +250,42 @@ export default function WebSearchProspecting() {
         </CardContent>
       </Card>
 
+      {/* Search History */}
+      {searches.length > 0 && (
+        <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="gap-2 text-muted-foreground">
+              <History className="h-4 w-4" />
+              Pesquisas anteriores ({searches.length})
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {searches.map((s) => (
+                <Badge
+                  key={s.id}
+                  variant="outline"
+                  className="cursor-pointer hover:bg-muted py-1.5 px-3"
+                  onClick={() => {
+                    setSearchQuery(s.query);
+                    toast.info(`Pesquisa "${s.query}" carregada`);
+                  }}
+                >
+                  <Search className="h-3 w-3 mr-1" />
+                  {s.query}
+                  <span className="ml-1 text-muted-foreground">
+                    ({s.results_count} res. / {s.imported_count} imp.)
+                  </span>
+                  <span className="ml-1 text-muted-foreground text-[10px]">
+                    {format(new Date(s.created_at), "dd/MM HH:mm", { locale: pt })}
+                  </span>
+                </Badge>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
       {hasSearched && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
