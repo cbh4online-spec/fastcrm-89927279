@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
 import { generateRequestId } from "@/lib/requestId";
 
+export type LeadType = "person" | "company";
 export type LeadStatus = "new" | "in_progress" | "completed";
 export type LeadSource = "instagram" | "whatsapp" | "email" | "form" | string;
 
