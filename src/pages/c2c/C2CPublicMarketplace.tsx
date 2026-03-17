@@ -273,15 +273,46 @@ function SellCTA({ onSell }: { onSell: () => void }) {
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
-            <div className="hidden md:flex justify-center">
-              <div className="bg-zinc-800 rounded-2xl shadow-xl border border-zinc-700 p-6 space-y-4 w-72">
-                <div className="h-32 bg-zinc-700 rounded-lg flex items-center justify-center">
-                  <Store className="h-12 w-12 text-zinc-500" />
-                </div>
-                <div className="space-y-2">
-                  <div className="h-4 bg-zinc-700 rounded w-3/4" />
-                  <div className="h-3 bg-zinc-700 rounded w-1/2" />
-                  <div className="h-5 bg-amber-500/20 rounded w-20 mt-2" />
+            <div className="hidden md:flex justify-center items-center" style={{ perspective: '1000px' }}>
+              <div className="relative group">
+                {/* Back card (stack effect) */}
+                <div
+                  className="absolute inset-0 rounded-2xl border border-amber-500/10 bg-zinc-800/60"
+                  style={{
+                    transform: 'rotateY(-12deg) rotateX(6deg) translateZ(-40px) translateX(20px)',
+                    boxShadow: '0 20px 40px -15px rgba(0,0,0,0.5)',
+                  }}
+                />
+                {/* Main 3D card */}
+                <div
+                  className="relative w-72 rounded-2xl border border-amber-500/20 bg-zinc-800 p-5 space-y-4 transition-transform duration-500 group-hover:[transform:rotateY(-2deg)_rotateX(2deg)]"
+                  style={{
+                    transform: 'rotateY(-8deg) rotateX(5deg)',
+                    boxShadow: '0 0 30px hsl(43 96% 56% / 0.12), 0 20px 40px -15px rgba(0,0,0,0.5)',
+                  }}
+                >
+                  {/* Image area with gradient */}
+                  <div className="h-32 rounded-lg overflow-hidden relative bg-gradient-to-br from-amber-500/20 via-zinc-700 to-zinc-800 flex items-center justify-center">
+                    <Store className="h-10 w-10 text-amber-400/60" />
+                    {/* Featured badge */}
+                    <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5">
+                      <Star className="h-3 w-3 fill-zinc-900 text-zinc-900" />
+                      <span className="text-[10px] font-bold text-zinc-900">Em destaque</span>
+                    </div>
+                  </div>
+                  {/* Card content */}
+                  <div className="space-y-2">
+                    <div className="h-4 rounded w-3/4 bg-zinc-600" />
+                    <div className="h-3 rounded w-1/2 bg-zinc-700" />
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-sm font-bold text-amber-400">€ 149,00</span>
+                      <div className="flex items-center gap-0.5">
+                        {[1,2,3,4,5].map(i => (
+                          <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
