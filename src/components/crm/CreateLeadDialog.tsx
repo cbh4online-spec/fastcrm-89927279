@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useCreateLead, LeadStatus, LeadType } from "@/hooks/useLeads";
+import { useNifLookup, NifLookupResult } from "@/hooks/useNifLookup";
 import {
   Dialog,
   DialogContent,
@@ -32,7 +33,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { CustomFieldsFormCreate, CustomFieldsFormCreateRef } from "@/components/custom-fields/CustomFieldsForm";
-import { User, Building2 } from "lucide-react";
+import { User, Building2, Search, Loader2 } from "lucide-react";
 
 const leadSchema = z.object({
   lead_type: z.enum(["person", "company"]).default("person"),
@@ -65,6 +66,20 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
   const createLead = useCreateLead();
   const customFieldsRef = useRef<CustomFieldsFormCreateRef>(null);
   const { trackLeadCreated } = useCRMAnalytics();
+  const { lookup, isLoading: isNifSearching } = useNifLookup({
+    showToasts: true,
+    onSuccess: (data: NifLookupResult) => {
+      // Auto-fill fields from NIF lookup
+      if (data.company_name) form.setValue("name", data.company_name);
+      if (data.address) form.setValue("address", data.address);
+      if (data.city) form.setValue("city", data.city);
+      if (data.postal_code) form.setValue("postal_code", data.postal_code);
+      if (data.email) form.setValue("email", data.email);
+      if (data.phone) form.setValue("phone", data.phone);
+      if (data.website) form.setValue("website", data.website);
+      if (data.cae_description) form.setValue("industry", data.cae_description);
+    },
+  });
 
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadSchema),
@@ -89,6 +104,17 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
   });
 
   const leadType = form.watch("lead_type");
+
+  const handleNifSearch = async () => {
+    const nif = form.getValues("tax_id");
+    const cleanNif = (nif || "").replace(/\D/g, "");
+    if (cleanNif.length !== 9) {
+      toast.error("NIF deve ter 9 dígitos");
+      return;
+    }
+    form.setValue("tax_id", cleanNif);
+    await lookup(cleanNif);
+  };
 
   const onSubmit = async (values: LeadFormValues) => {
     try {
@@ -192,7 +218,32 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                       <FormItem>
                         <FormLabel>NIF</FormLabel>
                         <FormControl>
-                          <Input placeholder="123456789" {...field} />
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="123456789"
+                              maxLength={9}
+                              {...field}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/\D/g, "").slice(0, 9);
+                                field.onChange(val);
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="shrink-0"
+                              onClick={handleNifSearch}
+                              disabled={isNifSearching || (field.value || "").replace(/\D/g, "").length !== 9}
+                              title="Pesquisar dados pelo NIF"
+                            >
+                              {isNifSearching ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Search className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
