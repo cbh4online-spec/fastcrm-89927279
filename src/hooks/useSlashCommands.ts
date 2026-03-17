@@ -12,7 +12,7 @@ export interface SlashCommand {
   label: string;
   description: string;
   icon: string;
-  category: "pipeline" | "leads" | "revenue" | "actions" | "intelligence";
+  category: "pipeline" | "leads" | "revenue" | "actions" | "intelligence" | "strategy";
 }
 
 export const SLASH_COMMANDS: SlashCommand[] = [
