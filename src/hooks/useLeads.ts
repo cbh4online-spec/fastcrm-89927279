@@ -14,6 +14,7 @@ export type LeadSource = "instagram" | "whatsapp" | "email" | "form" | string;
 export interface Lead {
   id: string;
   workspace_id: string;
+  lead_type: LeadType;
   name: string;
   email: string | null;
   phone: string | null;
