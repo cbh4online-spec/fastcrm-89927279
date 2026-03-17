@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { 
   useSmartLeads, 
@@ -8,7 +8,7 @@ import {
   SmartLead,
 } from "@/hooks/useSmartLeads";
 import { useBulkAnalyzeEntityLinkedIn } from "@/hooks/useEntitySocialMediaAnalysis";
-import { useDeleteLeads } from "@/hooks/useLeads";
+import { useDeleteLeads, useUpdateLead } from "@/hooks/useLeads";
 import { useLeadDuplicateGroupsPersisted } from "@/hooks/useLeadDuplicateEngine";
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -16,7 +16,7 @@ import { Toolbar } from "@/components/common/Toolbar";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
 import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
 import { StickyTableWrapper, stickyHeaderCheckboxStyles, stickyHeaderNameStyles, stickyCheckboxStyles, stickyNameStyles } from "@/components/common/StickyTable";
-import { DynamicTableCell } from "@/components/common/DynamicTableCell";
+import { InlineEditableTableCell } from "@/components/common/InlineEditableTableCell";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -173,10 +173,20 @@ export function SmartLeadsTable() {
 
   const { data: leads, isLoading, refetch } = useSmartLeads(filters);
   const deleteLeads = useDeleteLeads();
+  const updateLead = useUpdateLead();
   const analyzeLead = useAnalyzeLead();
   const bulkAnalyze = useBulkAnalyzeLeads();
   const bulkAnalyzeLinkedIn = useBulkAnalyzeEntityLinkedIn('lead');
   const { data: duplicateGroups = [] } = useLeadDuplicateGroupsPersisted();
+
+  const handleInlineUpdate = useCallback(async (entityId: string, field: string, value: unknown) => {
+    try {
+      await updateLead.mutateAsync({ id: entityId, [field]: value } as any);
+      toast.success("Campo atualizado");
+    } catch {
+      toast.error("Erro ao atualizar campo");
+    }
+  }, [updateLead]);
 
   // Build a map of leadId -> duplicate group count
   const duplicateLeadIds = useMemo(() => {
@@ -410,7 +420,7 @@ export function SmartLeadsTable() {
                               </div>
                             </div>
                           </TableCell>
-                          {orderedVisibleColumns.map(col => <TableCell key={col.id}><DynamicTableCell columnId={col.id} entity={lead as any} entityType="lead" /></TableCell>)}
+                          {orderedVisibleColumns.map(col => <TableCell key={col.id} onClick={(e) => e.stopPropagation()}><InlineEditableTableCell columnId={col.id} entity={lead as any} entityType="lead" onUpdate={handleInlineUpdate} /></TableCell>)}
                           <TableCell onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleAnalyzeLead(lead.id)} disabled={analyzingId === lead.id}><Sparkles className={cn("w-4 h-4", analyzingId === lead.id && "animate-pulse")} /></Button>

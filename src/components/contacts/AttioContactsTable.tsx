@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useSmartContacts, useAnalyzeContact, useBulkAnalyzeContacts, SmartContactsFilters, SmartContact } from "@/hooks/useSmartContacts";
 import { useBulkAnalyzeEntityLinkedIn } from "@/hooks/useEntitySocialMediaAnalysis";
@@ -10,7 +10,7 @@ import { AttioFilterBar, SortOption } from "./AttioFilterBar";
 import { BulkActionsBar } from "@/components/crm/unified/BulkActionsBar";
 import { BulkEditField } from "@/components/crm/unified/BulkEditDialog";
 import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
-import { DynamicTableCell } from "@/components/common/DynamicTableCell";
+import { InlineEditableTableCell } from "@/components/common/InlineEditableTableCell";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -142,10 +142,19 @@ export function AttioContactsTable() {
   }, [visibleColumns, columnOrder, CONTACT_COLUMNS]);
 
   const { data: contacts, isLoading, refetch } = useSmartContacts(filters);
-  const { deleteContacts, addTagsToContacts, bulkUpdateContacts } = useContacts();
+  const { deleteContacts, addTagsToContacts, bulkUpdateContacts, updateContact } = useContacts();
   const analyze = useAnalyzeContact();
   const bulkAnalyze = useBulkAnalyzeContacts();
   const bulkAnalyzeLinkedIn = useBulkAnalyzeEntityLinkedIn('contact');
+
+  const handleInlineUpdate = useCallback(async (entityId: string, field: string, value: unknown) => {
+    try {
+      await updateContact.mutateAsync({ id: entityId, [field]: value });
+      toast.success("Campo atualizado");
+    } catch {
+      toast.error("Erro ao atualizar campo");
+    }
+  }, [updateContact]);
 
   // Search + sort
   const filteredContacts = useMemo(() => {
@@ -337,7 +346,7 @@ export function AttioContactsTable() {
                       </div>
                     </td>
                     {orderedVisibleColumns.map(col => (
-                      <td key={col.id} className="px-3 py-2.5"><DynamicTableCell columnId={col.id} entity={contact as any} entityType="contact" /></td>
+                      <td key={col.id} className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}><InlineEditableTableCell columnId={col.id} entity={contact as any} entityType="contact" onUpdate={handleInlineUpdate} /></td>
                     ))}
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">

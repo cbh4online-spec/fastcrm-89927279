@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { SmartListsPanel } from "@/components/objects/SmartListsPanel";
 import { useSmartCompanies, useAnalyzeCompany, useBulkAnalyzeCompanies, SmartCompaniesFilters } from "@/hooks/useSmartCompanies";
 import { useBulkAnalyzeRevenue } from "@/hooks/useAIRevenueEngine";
@@ -130,7 +130,7 @@ export function SmartCompaniesTable() {
     .sort((a, b) => columnOrder.indexOf(a.id) - columnOrder.indexOf(b.id));
 
   const { data: companies, isLoading, refetch } = useSmartCompanies(filters);
-  const { deleteCompany } = useCompanies();
+  const { deleteCompany, updateCompany } = useCompanies();
   const analyze = useAnalyzeCompany();
   const bulkAnalyze = useBulkAnalyzeCompanies();
   const bulkSocialAnalyze = useBulkSocialMediaAnalysis();
@@ -148,6 +148,15 @@ export function SmartCompaniesTable() {
       toast.error(t("errorRevenueAnalysis"));
     }
   };
+
+  const handleInlineUpdate = useCallback(async (entityId: string, field: string, value: unknown) => {
+    try {
+      await updateCompany.mutateAsync({ id: entityId, [field]: value } as any);
+      toast.success("Campo atualizado");
+    } catch {
+      toast.error("Erro ao atualizar campo");
+    }
+  }, [updateCompany]);
 
   const handleBulkSocialAnalyze = async () => {
     const selected = companies?.filter(c => selectedIds.has(c.id) && c.linkedin_url) || [];
@@ -304,7 +313,7 @@ export function SmartCompaniesTable() {
                 </TableCell></TableRow>
               ) : (
                 paginatedCompanies.map(c => (
-                  <SmartCompanyRow key={c.id} company={c} isSelected={selectedIds.has(c.id)} onToggleSelect={() => toggleSelect(c.id)} onAnalyze={() => handleAnalyze(c.id)} isAnalyzing={analyzingId === c.id} columnOrder={orderedVisibleColumns.map(col => col.id)} />
+                  <SmartCompanyRow key={c.id} company={c} isSelected={selectedIds.has(c.id)} onToggleSelect={() => toggleSelect(c.id)} onAnalyze={() => handleAnalyze(c.id)} isAnalyzing={analyzingId === c.id} columnOrder={orderedVisibleColumns.map(col => col.id)} onUpdate={handleInlineUpdate} />
                 ))
               )}
             </TableBody>
