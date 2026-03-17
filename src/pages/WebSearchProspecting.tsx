@@ -70,15 +70,39 @@ export default function WebSearchProspecting() {
       });
 
       if (response.success && response.data) {
-        const searchResults: WebResult[] = response.data.map((item: any) => ({
-          url: item.url || "",
-          title: item.title || item.url || "Sem título",
-          description: item.description || item.markdown?.substring(0, 200) || "",
-          markdown: item.markdown || "",
-          added: false,
-        }));
-        setResults(searchResults);
-        toast.success(`${searchResults.length} resultados encontrados`);
+        const searchResults: WebResult[] = response.data.map((item: any) => {
+          const url = item.url || "";
+          const title = item.title || item.url || "Sem título";
+          const cleanName = cleanTitle(title);
+          return {
+            url,
+            title,
+            description: item.description || item.markdown?.substring(0, 200) || "",
+            markdown: item.markdown || "",
+            added: false,
+            alreadyExists: isExistingLead(cleanName, undefined, url),
+            previouslyFound: allPreviousIdentifiers.has(url),
+          };
+        });
+        
+        // Sort: new results first, then previously found, then existing
+        const sorted = [...searchResults].sort((a, b) => {
+          if (a.alreadyExists !== b.alreadyExists) return a.alreadyExists ? 1 : -1;
+          if (a.previouslyFound !== b.previouslyFound) return a.previouslyFound ? 1 : -1;
+          return 0;
+        });
+        
+        setResults(sorted);
+        
+        const newCount = sorted.filter(r => !r.alreadyExists && !r.previouslyFound).length;
+        toast.success(`${sorted.length} resultados (${newCount} novos)`);
+        
+        // Save search history
+        saveSearch.mutate({
+          query: searchQuery,
+          results_count: sorted.length,
+          result_identifiers: sorted.map(r => r.url).filter(Boolean),
+        });
       } else {
         toast.error(response.error || "Erro na pesquisa");
       }
