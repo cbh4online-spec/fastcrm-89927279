@@ -35,6 +35,7 @@ import {
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import { useCreateLead, useLeads } from "@/hooks/useLeads";
 import { useCreditWallet } from "@/hooks/useCreditWallet";
+import { useProspectingSearchHistory, useExistingLeadIdentifiers } from "@/hooks/useProspectingSearchHistory";
 import { cn } from "@/lib/utils";
 
 interface GooglePlaceResult {
@@ -50,6 +51,8 @@ interface GooglePlaceResult {
   description?: string;
   services?: string[];
   thumbnail?: string;
+  _alreadyExists?: boolean;
+  _previouslyFound?: boolean;
 }
 
 // Category to search query mapping for Google Maps
@@ -648,6 +651,7 @@ export default function GoogleLocalProspecting() {
   const [results, setResults] = useState<GooglePlaceResult[]>([]);
   const [selectedResults, setSelectedResults] = useState<string[]>([]);
   const [importedIds, setImportedIds] = useState<string[]>([]);
+  const [searchOffset, setSearchOffset] = useState(0);
   
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [autoImport, setAutoImport] = useState(false);
@@ -662,6 +666,8 @@ export default function GoogleLocalProspecting() {
   const { data: recentLeads = [] } = useLeads({ 
     status: undefined 
   });
+  const { searches, allPreviousIdentifiers, saveSearch } = useProspectingSearchHistory("google_local");
+  const { isExistingLead } = useExistingLeadIdentifiers();
   
   // Filter leads from google_local source
   const prospectionLeads = recentLeads
@@ -733,6 +739,7 @@ export default function GoogleLocalProspecting() {
           query,
           location: selectedLocation,
           limit: 20,
+          start: searchOffset,
         },
       });
 
@@ -782,14 +789,38 @@ export default function GoogleLocalProspecting() {
         ? apiResults.filter(r => r.rating >= minRatingValue)
         : apiResults;
 
-      setResults(filteredByRating);
+      // Mark existing leads and previously found
+      const enrichedResults = filteredByRating.map(r => ({
+        ...r,
+        _alreadyExists: isExistingLead(r.title, r.phone, r.website),
+        _previouslyFound: allPreviousIdentifiers.has(r.id),
+      }));
+
+      // Sort: new first
+      enrichedResults.sort((a, b) => {
+        if (a._alreadyExists !== b._alreadyExists) return a._alreadyExists ? 1 : -1;
+        if (a._previouslyFound !== b._previouslyFound) return a._previouslyFound ? 1 : -1;
+        return 0;
+      });
+
+      setResults(enrichedResults);
       setImportedIds([]);
 
-      if (filteredByRating.length > 0) {
-        toast.success(`Encontrados ${filteredByRating.length} resultados`);
+      const newCount = enrichedResults.filter(r => !r._alreadyExists && !r._previouslyFound).length;
+      if (enrichedResults.length > 0) {
+        toast.success(`Encontrados ${enrichedResults.length} resultados (${newCount} novos)`);
       } else {
         toast.info("Nenhum resultado encontrado para esta pesquisa");
       }
+      
+      // Save to history
+      saveSearch.mutate({
+        query,
+        location: selectedLocation || undefined,
+        category: category !== "all" ? category : undefined,
+        results_count: enrichedResults.length,
+        result_identifiers: enrichedResults.map(r => r.id),
+      });
 
     } catch (error) {
       console.error("Search error:", error);
@@ -814,9 +845,27 @@ export default function GoogleLocalProspecting() {
     
     for (const result of leadsToImport) {
       try {
+        // Extract city from address (last part before postal code or last comma segment)
+        const addressParts = result.address?.split(",").map(s => s.trim()) || [];
+        const city = addressParts.length >= 2 ? addressParts[addressParts.length - 1].replace(/\d{4}-\d{3}/, "").trim() || addressParts[addressParts.length - 2] : "";
+        
+        // Build notes with rating, reviews, hours
+        const notesParts: string[] = [];
+        if (result.rating) notesParts.push(`⭐ Rating: ${result.rating}/5 (${result.reviews_count} avaliações)`);
+        if (result.hours) notesParts.push(`🕐 Horário: ${result.hours}`);
+        if (result.services?.length) notesParts.push(`📋 Serviços: ${result.services.join(", ")}`);
+        
+        const aboutText = [result.description || result.category, ...notesParts].filter(Boolean).join("\n");
+        
         await createLead.mutateAsync({
           name: result.title,
           phone: result.phone || undefined,
+          website: result.website || undefined,
+          address: result.address || undefined,
+          city: city || undefined,
+          about: aboutText || undefined,
+          industry: result.category || undefined,
+          lead_type: "company",
           source: "google_local",
           status: "new",
         });
@@ -1054,6 +1103,7 @@ export default function GoogleLocalProspecting() {
 
           {/* Results */}
           {results.length > 0 && (
+            <>
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -1094,6 +1144,8 @@ export default function GoogleLocalProspecting() {
                         className={`p-4 rounded-lg border transition-colors ${
                           importedIds.includes(result.id)
                             ? "border-green-500 bg-green-500/5"
+                            : result._alreadyExists
+                            ? "opacity-60 border-muted"
                             : selectedResults.includes(result.id)
                             ? "border-primary bg-primary/5"
                             : "hover:border-primary/50"
@@ -1115,6 +1167,17 @@ export default function GoogleLocalProspecting() {
                                     <Badge variant="outline" className="text-green-600 border-green-600">
                                       <CheckCircle2 className="h-3 w-3 mr-1" />
                                       Importado
+                                    </Badge>
+                                  )}
+                                  {result._alreadyExists && !importedIds.includes(result.id) && (
+                                    <Badge variant="destructive" className="text-xs">
+                                      Já existe
+                                    </Badge>
+                                  )}
+                                  {result._previouslyFound && !result._alreadyExists && !importedIds.includes(result.id) && (
+                                    <Badge variant="secondary" className="text-xs gap-1">
+                                      <History className="h-3 w-3" />
+                                      Já encontrado
                                     </Badge>
                                   )}
                                 </h3>
@@ -1146,6 +1209,12 @@ export default function GoogleLocalProspecting() {
                                   {result.phone}
                                 </span>
                               )}
+                              {result.website && (
+                                <a href={result.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline">
+                                  <Globe className="h-3 w-3" />
+                                  Website
+                                </a>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1155,6 +1224,24 @@ export default function GoogleLocalProspecting() {
                 </ScrollArea>
               </CardContent>
             </Card>
+
+            {/* Load More Button */}
+            {results.length >= 10 && (
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchOffset(prev => prev + 20);
+                    handleSearch();
+                  }}
+                  disabled={isSearching}
+                >
+                  {isSearching ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
+                  Carregar mais resultados
+                </Button>
+              </div>
+            )}
+            </>
           )}
 
           {/* Empty State */}
@@ -1172,7 +1259,40 @@ export default function GoogleLocalProspecting() {
         </div>
 
         {/* History Sidebar */}
-        <div>
+        <div className="space-y-4">
+          {/* Search History */}
+          {searches.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Search className="h-4 w-4" />
+                  Pesquisas Anteriores
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {searches.slice(0, 10).map((s) => (
+                    <div
+                      key={s.id}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 cursor-pointer text-sm"
+                      onClick={() => {
+                        setSearchQuery(s.query || "");
+                        if (s.location) setLocation(s.location);
+                        if (s.category) setCategory(s.category);
+                        toast.info(`Pesquisa carregada: "${s.query}"`);
+                      }}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{s.query}</p>
+                        <p className="text-xs text-muted-foreground">{s.results_count} res. / {s.imported_count} imp.</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">

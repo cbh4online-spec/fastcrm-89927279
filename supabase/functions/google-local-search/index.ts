@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { query, location, limit = 20 } = await req.json();
+    const { query, location, limit = 20, start = 0 } = await req.json();
 
     console.log("Google Local Search request:", { query, location, limit });
 
@@ -89,7 +89,10 @@ Deno.serve(async (req) => {
     searchUrl.searchParams.set("type", "search");
     searchUrl.searchParams.set("hl", "pt");  // Portuguese language
     searchUrl.searchParams.set("gl", "pt");  // Portugal country
-    searchUrl.searchParams.set("num", String(Math.min(limit, 40))); // Max 40 results
+    searchUrl.searchParams.set("num", String(Math.min(limit, 40)));
+    if (start > 0) {
+      searchUrl.searchParams.set("start", String(start));
+    }
     searchUrl.searchParams.set("api_key", SERPAPI_API_KEY);
 
     console.log("Searching Google Maps for:", searchQuery);

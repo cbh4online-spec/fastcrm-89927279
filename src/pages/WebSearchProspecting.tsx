@@ -4,11 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Globe, Building2, ExternalLink, Plus, Loader2, Check, Sparkles, Linkedin, MapPin } from "lucide-react";
+import { Search, Globe, Building2, ExternalLink, Plus, Loader2, Check, Sparkles, Linkedin, MapPin, History, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { firecrawlApi } from "@/lib/api/firecrawl";
 import { useCreateLead } from "@/hooks/useLeads";
 import { supabase } from "@/integrations/supabase/client";
+import { useProspectingSearchHistory, useExistingLeadIdentifiers } from "@/hooks/useProspectingSearchHistory";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { format } from "date-fns";
+import { pt } from "date-fns/locale";
 
 interface WebResult {
   url: string;
@@ -17,6 +21,8 @@ interface WebResult {
   markdown?: string;
   added?: boolean;
   enriching?: boolean;
+  alreadyExists?: boolean;
+  previouslyFound?: boolean;
 }
 
 function detectContentType(url: string): { label: string; icon: typeof Globe } {
@@ -39,8 +45,11 @@ export default function WebSearchProspecting() {
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<WebResult[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   
   const createLead = useCreateLead();
+  const { searches, allPreviousIdentifiers, saveSearch } = useProspectingSearchHistory("web_search");
+  const { isExistingLead } = useExistingLeadIdentifiers();
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -61,15 +70,39 @@ export default function WebSearchProspecting() {
       });
 
       if (response.success && response.data) {
-        const searchResults: WebResult[] = response.data.map((item: any) => ({
-          url: item.url || "",
-          title: item.title || item.url || "Sem título",
-          description: item.description || item.markdown?.substring(0, 200) || "",
-          markdown: item.markdown || "",
-          added: false,
-        }));
-        setResults(searchResults);
-        toast.success(`${searchResults.length} resultados encontrados`);
+        const searchResults: WebResult[] = response.data.map((item: any) => {
+          const url = item.url || "";
+          const title = item.title || item.url || "Sem título";
+          const cleanName = cleanTitle(title);
+          return {
+            url,
+            title,
+            description: item.description || item.markdown?.substring(0, 200) || "",
+            markdown: item.markdown || "",
+            added: false,
+            alreadyExists: isExistingLead(cleanName, undefined, url),
+            previouslyFound: allPreviousIdentifiers.has(url),
+          };
+        });
+        
+        // Sort: new results first, then previously found, then existing
+        const sorted = [...searchResults].sort((a, b) => {
+          if (a.alreadyExists !== b.alreadyExists) return a.alreadyExists ? 1 : -1;
+          if (a.previouslyFound !== b.previouslyFound) return a.previouslyFound ? 1 : -1;
+          return 0;
+        });
+        
+        setResults(sorted);
+        
+        const newCount = sorted.filter(r => !r.alreadyExists && !r.previouslyFound).length;
+        toast.success(`${sorted.length} resultados (${newCount} novos)`);
+        
+        // Save search history
+        saveSearch.mutate({
+          query: searchQuery,
+          results_count: sorted.length,
+          result_identifiers: sorted.map(r => r.url).filter(Boolean),
+        });
       } else {
         toast.error(response.error || "Erro na pesquisa");
       }
@@ -217,6 +250,42 @@ export default function WebSearchProspecting() {
         </CardContent>
       </Card>
 
+      {/* Search History */}
+      {searches.length > 0 && (
+        <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="gap-2 text-muted-foreground">
+              <History className="h-4 w-4" />
+              Pesquisas anteriores ({searches.length})
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {searches.map((s) => (
+                <Badge
+                  key={s.id}
+                  variant="outline"
+                  className="cursor-pointer hover:bg-muted py-1.5 px-3"
+                  onClick={() => {
+                    setSearchQuery(s.query);
+                    toast.info(`Pesquisa "${s.query}" carregada`);
+                  }}
+                >
+                  <Search className="h-3 w-3 mr-1" />
+                  {s.query}
+                  <span className="ml-1 text-muted-foreground">
+                    ({s.results_count} res. / {s.imported_count} imp.)
+                  </span>
+                  <span className="ml-1 text-muted-foreground text-[10px]">
+                    {format(new Date(s.created_at), "dd/MM HH:mm", { locale: pt })}
+                  </span>
+                </Badge>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
       {hasSearched && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -237,7 +306,7 @@ export default function WebSearchProspecting() {
                 const contentType = detectContentType(result.url);
                 const ContentIcon = contentType.icon;
                 return (
-                  <Card key={index} className="hover:shadow-md transition-shadow">
+                  <Card key={index} className={`hover:shadow-md transition-shadow ${result.alreadyExists ? "opacity-60 border-muted" : ""}`}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 space-y-2">
@@ -252,6 +321,18 @@ export default function WebSearchProspecting() {
                               <Badge variant="secondary" className="shrink-0 text-xs gap-1">
                                 <Sparkles className="h-3 w-3" />
                                 IA
+                              </Badge>
+                            )}
+                            {result.alreadyExists && (
+                              <Badge variant="destructive" className="shrink-0 text-xs gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                Já existe
+                              </Badge>
+                            )}
+                            {!result.alreadyExists && result.previouslyFound && (
+                              <Badge variant="secondary" className="shrink-0 text-xs gap-1">
+                                <History className="h-3 w-3" />
+                                Já encontrado
                               </Badge>
                             )}
                           </div>
