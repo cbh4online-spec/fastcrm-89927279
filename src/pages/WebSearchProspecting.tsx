@@ -3,16 +3,35 @@ import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Globe, Building2, ExternalLink, Plus, Loader2, Check } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Search, Globe, Building2, ExternalLink, Plus, Loader2, Check, Sparkles, Linkedin, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { firecrawlApi } from "@/lib/api/firecrawl";
 import { useCreateLead } from "@/hooks/useLeads";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WebResult {
   url: string;
   title: string;
   description: string;
+  markdown?: string;
   added?: boolean;
+  enriching?: boolean;
+}
+
+function detectContentType(url: string): { label: string; icon: typeof Globe } {
+  if (url.includes("linkedin.com")) return { label: "LinkedIn", icon: Linkedin };
+  if (url.includes("maps.google") || url.includes("google.com/maps")) return { label: "Google Maps", icon: MapPin };
+  return { label: "Website", icon: Globe };
+}
+
+function cleanTitle(title: string): string {
+  // Remove common SEO suffixes
+  return title
+    .replace(/\s*[-–|]\s*(LinkedIn|Facebook|Instagram|Google Maps|Yelp|TripAdvisor).*$/i, "")
+    .replace(/\s*[-–|]\s*Home$/i, "")
+    .replace(/\s*[-–|]\s*Página Inicial$/i, "")
+    .trim();
 }
 
 export default function WebSearchProspecting() {
@@ -38,6 +57,7 @@ export default function WebSearchProspecting() {
         limit: 15,
         lang: "pt",
         country: "pt",
+        scrapeOptions: { formats: ["markdown"] },
       });
 
       if (response.success && response.data) {
@@ -45,6 +65,7 @@ export default function WebSearchProspecting() {
           url: item.url || "",
           title: item.title || item.url || "Sem título",
           description: item.description || item.markdown?.substring(0, 200) || "",
+          markdown: item.markdown || "",
           added: false,
         }));
         setResults(searchResults);
@@ -62,21 +83,90 @@ export default function WebSearchProspecting() {
 
   const handleAddToLeads = async (result: WebResult, index: number) => {
     try {
-      await createLead.mutateAsync({
-        name: result.title,
+      const cleanName = cleanTitle(result.title);
+      
+      // Create lead with all available data
+      const newLead = await createLead.mutateAsync({
+        name: cleanName,
         source: "web_search",
         status: "new",
+        lead_type: "company",
+        website: result.url,
+        about: result.description?.substring(0, 500) || null,
       });
       
       // Mark as added
       setResults(prev => prev.map((r, i) => 
-        i === index ? { ...r, added: true } : r
+        i === index ? { ...r, added: true, enriching: !!result.markdown } : r
       ));
+
+      const fieldsAdded = ["nome", "website", "descrição"];
+      toast.success(`"${cleanName}" adicionado com ${fieldsAdded.join(", ")}`, {
+        description: result.markdown ? "A enriquecer com IA..." : undefined,
+      });
       
-      toast.success(`"${result.title}" adicionado aos leads`);
+      // Fire-and-forget AI enrichment if we have markdown
+      if (result.markdown && newLead?.id) {
+        enrichLeadFromMarkdown(newLead.id, result).catch(err => {
+          console.warn("[WEB-SEARCH] AI enrichment failed:", err);
+        }).finally(() => {
+          setResults(prev => prev.map((r, i) => 
+            i === index ? { ...r, enriching: false } : r
+          ));
+        });
+      }
     } catch (error) {
       console.error("Error creating lead:", error);
       toast.error("Erro ao adicionar lead");
+    }
+  };
+
+  const enrichLeadFromMarkdown = async (leadId: string, result: WebResult) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("web-search-enrich", {
+        body: {
+          markdown: result.markdown,
+          title: result.title,
+          url: result.url,
+          description: result.description,
+        },
+      });
+
+      if (error || !data?.success || !data?.data) {
+        console.warn("[WEB-SEARCH] Enrichment response:", data?.error || error?.message);
+        return;
+      }
+
+      const extracted = data.data as Record<string, string>;
+      if (Object.keys(extracted).length === 0) return;
+
+      // Map extracted fields to lead update
+      const updates: Record<string, any> = {};
+      if (extracted.company_name) updates.company_name = extracted.company_name;
+      if (extracted.about) updates.about = extracted.about;
+      if (extracted.industry) updates.industry = extracted.industry;
+      if (extracted.city) updates.city = extracted.city;
+      if (extracted.address) updates.address = extracted.address;
+      if (extracted.phone) updates.phone = extracted.phone;
+      if (extracted.email) updates.email = extracted.email;
+      if (extracted.website) updates.website = extracted.website;
+
+      if (Object.keys(updates).length > 0) {
+        const { error: updateError } = await supabase
+          .from("leads")
+          .update(updates)
+          .eq("id", leadId);
+
+        if (updateError) {
+          console.warn("[WEB-SEARCH] Lead update failed:", updateError);
+        } else {
+          const fieldNames = Object.keys(updates).join(", ");
+          console.log(`[WEB-SEARCH] Lead ${leadId} enriched: ${fieldNames}`);
+          toast.success(`Dados enriquecidos: ${fieldNames}`, { duration: 3000 });
+        }
+      }
+    } catch (err) {
+      console.warn("[WEB-SEARCH] enrichLeadFromMarkdown error:", err);
     }
   };
 
@@ -92,7 +182,7 @@ export default function WebSearchProspecting() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Pesquisa Web</h1>
         <p className="text-muted-foreground">
-          Pesquise empresas na web e adicione-as como leads
+          Pesquise empresas na web e adicione-as como leads enriquecidos automaticamente
         </p>
       </div>
 
@@ -103,7 +193,7 @@ export default function WebSearchProspecting() {
             Pesquisar na Web
           </CardTitle>
           <CardDescription>
-            Introduza termos de pesquisa para encontrar potenciais clientes
+            Introduza termos de pesquisa para encontrar potenciais clientes. Os dados serão extraídos automaticamente com IA.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -143,55 +233,74 @@ export default function WebSearchProspecting() {
             </Card>
           ) : (
             <div className="grid gap-4">
-              {results.map((result, index) => (
-                <Card key={index} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-muted-foreground" />
-                          <h3 className="font-semibold line-clamp-1">{result.title}</h3>
+              {results.map((result, index) => {
+                const contentType = detectContentType(result.url);
+                const ContentIcon = contentType.icon;
+                return (
+                  <Card key={index} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <h3 className="font-semibold line-clamp-1">{cleanTitle(result.title)}</h3>
+                            <Badge variant="outline" className="shrink-0 text-xs gap-1">
+                              <ContentIcon className="h-3 w-3" />
+                              {contentType.label}
+                            </Badge>
+                            {result.markdown && (
+                              <Badge variant="secondary" className="shrink-0 text-xs gap-1">
+                                <Sparkles className="h-3 w-3" />
+                                IA
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          {result.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {result.description}
+                            </p>
+                          )}
+
+                          <a
+                            href={result.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            <span className="line-clamp-1">{result.url}</span>
+                          </a>
                         </div>
-                        
-                        {result.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {result.description}
-                          </p>
-                        )}
 
-                        <a
-                          href={result.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                        <Button
+                          size="sm"
+                          variant={result.added ? "outline" : "default"}
+                          onClick={() => handleAddToLeads(result, index)}
+                          disabled={result.added || createLead.isPending}
                         >
-                          <ExternalLink className="h-3 w-3" />
-                          <span className="line-clamp-1">{result.url}</span>
-                        </a>
+                          {result.enriching ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                              A enriquecer
+                            </>
+                          ) : result.added ? (
+                            <>
+                              <Check className="h-4 w-4 mr-1" />
+                              Adicionado
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-4 w-4 mr-1" />
+                              Adicionar
+                            </>
+                          )}
+                        </Button>
                       </div>
-
-                      <Button
-                        size="sm"
-                        variant={result.added ? "outline" : "default"}
-                        onClick={() => handleAddToLeads(result, index)}
-                        disabled={result.added || createLead.isPending}
-                      >
-                        {result.added ? (
-                          <>
-                            <Check className="h-4 w-4 mr-1" />
-                            Adicionado
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="h-4 w-4 mr-1" />
-                            Adicionar
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
