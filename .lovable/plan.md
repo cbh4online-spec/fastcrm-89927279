@@ -1,29 +1,41 @@
 
 
-# Fix: Vulnerable Dependencies
+## Plano: Adicionar EU VIES como 3ª fonte de dados no lookup de NIF
 
-## Analysis
+### Situação atual
+A edge function `lookup-company-nif` já tem 2 estratégias:
+1. **nif.pt API** (primária) — dados completos mas com rate-limit
+2. **Firecrawl + Racius** (fallback) — scraping quando nif.pt falha
 
-**xlsx**: Already at version 0.20.3 via CDN tarball (`https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`). The security scanner is likely flagging based on the npm registry name which maps to older vulnerable versions. Version 0.20.3 from the official SheetJS CDN includes fixes for both the Prototype Pollution (GHSA-4r6h-8v6p-xvw6) and ReDoS (GHSA-5pgg-2g8v-p4x9) advisories. **No action needed** — this is a false positive from the scanner not recognizing the CDN tarball version.
+### O que muda
+Adicionar o **VIES (EU VAT Information Exchange System)** como 3ª estratégia. O VIES valida NIFs europeus e retorna nome da empresa + morada oficial. Será usado como fonte complementar para preencher campos que as outras fontes não conseguiram.
 
-**@trigger.dev/sdk**: Not present in `package.json` at all (neither dependencies nor devDependencies). This is either a transitive dependency or a scanner false positive. The project uses Trigger.dev concepts via custom code (`src/trigger/client.ts`) and edge functions, but does not import the SDK package directly.
+### Implementação
 
-## Plan
+**1. Nova função `tryVIES()` na edge function `lookup-company-nif/index.ts`**
+- Chamar o endpoint SOAP do VIES: `https://ec.europa.eu/taxation_customs/vies/services/checkVatService`
+- Enviar request XML com `countryCode: PT` e `vatNumber: <9 dígitos>`
+- Parsear a resposta XML para extrair `name` e `address`
+- Retornar dados parciais (nome, morada, status de validação)
+- Sem API key necessária — serviço público e gratuito
 
-### 1. Confirm xlsx is safe (no code change needed)
-The installed version 0.20.3 from the SheetJS CDN already patches both known vulnerabilities. The scanner cannot resolve the version from the tarball URL.
+**2. Alterar a estratégia de lookup (mesma edge function)**
+- Manter a ordem: nif.pt → Racius → (novo) VIES
+- Após obter resultado de qualquer fonte, tentar VIES em paralelo para **complementar campos em falta** (merge)
+- Se nif.pt e Racius falharem, usar VIES como último recurso (dados básicos: nome + morada)
+- Lógica de merge: campos `null` no resultado principal são preenchidos pelo VIES
 
-### 2. Handle @trigger.dev/sdk
-Since it's not in `package.json`, this is either:
-- A stale lockfile entry — delete and regenerate `package-lock.json`
-- A scanner false positive
+**3. Dados obtidos do VIES**
+- `company_name` (nome oficial registado na AT)
+- `address` (morada fiscal completa)
+- `valid` (boolean — confirma se o NIF é válido na UE)
+- Estes dados são autoritativos (fonte oficial da UE)
 
-**Action**: No code changes required. Both findings are false positives based on the current `package.json`.
+### Ficheiro a alterar
+- `supabase/functions/lookup-company-nif/index.ts` — adicionar `tryVIES()` + lógica de merge
 
-### 3. Optional: Add explicit comment for future audits
-Add a comment in `package.json` near the xlsx entry noting the CDN version is patched, to prevent repeated investigation.
-
-## Summary
-
-No code changes are necessary. Both flagged packages are either already patched (xlsx 0.20.3) or not actually installed (@trigger.dev/sdk). The security findings can be safely dismissed.
+### Resultado esperado
+- NIFs que falham nas 2 fontes actuais passam a ter dados básicos via VIES
+- Resultados de nif.pt/Racius ficam enriquecidos com a confirmação oficial de validade UE
+- Sem custos adicionais (API gratuita)
 
