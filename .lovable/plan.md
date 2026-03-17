@@ -1,29 +1,19 @@
 
 
-# Fix: Vulnerable Dependencies
+## Plano: Corrigir filtros de segmentos que não funcionam
 
-## Analysis
+### Problema
+A função `applyConditions` em `useMarketingSegments.ts` (linha 186-204) só processa dois campos: `tags` e `company`. Campos como `source` (Origem), `job_title`, `city` são completamente ignorados — a query corre sem filtro e depois conta 0 porque a lógica nunca é aplicada. Existem 56 leads com source "Lista de Instaladoras de Sistemas de Segurança" na base de dados.
 
-**xlsx**: Already at version 0.20.3 via CDN tarball (`https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`). The security scanner is likely flagging based on the npm registry name which maps to older vulnerable versions. Version 0.20.3 from the official SheetJS CDN includes fixes for both the Prototype Pollution (GHSA-4r6h-8v6p-xvw6) and ReDoS (GHSA-5pgg-2g8v-p4x9) advisories. **No action needed** — this is a false positive from the scanner not recognizing the CDN tarball version.
+### Solução
+Expandir `applyConditions` para suportar **todos os campos e operadores** disponíveis no formulário de segmentos:
 
-**@trigger.dev/sdk**: Not present in `package.json` at all (neither dependencies nor devDependencies). This is either a transitive dependency or a scanner false positive. The project uses Trigger.dev concepts via custom code (`src/trigger/client.ts`) and edge functions, but does not import the SDK package directly.
+**Campos**: `tags`, `company`, `source`, `job_title`, `city`
 
-## Plan
+**Operadores**: `equals` → `.eq()`, `not_equals` → `.neq()`, `contains` → `.ilike(%val%)`, `not_contains` → `.not.ilike()`, `is_empty` → `.is(null)`, `is_not_empty` → `.not.is(null)`
 
-### 1. Confirm xlsx is safe (no code change needed)
-The installed version 0.20.3 from the SheetJS CDN already patches both known vulnerabilities. The scanner cannot resolve the version from the tarball URL.
+### Ficheiro a editar
+- `src/hooks/useMarketingSegments.ts` — reescrever `applyConditions` (linhas 186-204) com switch genérico por operador aplicável a qualquer campo texto
 
-### 2. Handle @trigger.dev/sdk
-Since it's not in `package.json`, this is either:
-- A stale lockfile entry — delete and regenerate `package-lock.json`
-- A scanner false positive
-
-**Action**: No code changes required. Both findings are false positives based on the current `package.json`.
-
-### 3. Optional: Add explicit comment for future audits
-Add a comment in `package.json` near the xlsx entry noting the CDN version is patched, to prevent repeated investigation.
-
-## Summary
-
-No code changes are necessary. Both flagged packages are either already patched (xlsx 0.20.3) or not actually installed (@trigger.dev/sdk). The security findings can be safely dismissed.
+A mesma função `applyConditions` é usada tanto no `countSegmentEntities` como no `useSegmentEntities`, portanto a correção resolve contagem e listagem de uma só vez.
 
