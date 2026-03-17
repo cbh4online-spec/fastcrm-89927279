@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Brain, Target, Zap, TrendingUp, Trophy, Calendar, RefreshCw, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Brain, Target, Zap, TrendingUp, Trophy, Calendar, RefreshCw, Sparkles, CheckCircle2, Download, FileDown, FileSpreadsheet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { DailyCoachPanel } from '@/components/productivity/DailyCoachPanel';
 import { GoalsManager } from '@/components/productivity/GoalsManager';
@@ -8,10 +8,23 @@ import { Toolbar } from '@/components/common/Toolbar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useProductivityCoach } from '@/hooks/useProductivityCoach';
 import { useMeetings } from '@/hooks/useMeetings';
+import { useWeeklyPerformance } from '@/hooks/useWeeklyPerformance';
 import { useQueryClient } from '@tanstack/react-query';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { exportProductivityPDF, exportProductivityCSV } from '@/utils/productivityExport';
+import { toast } from 'sonner';
 
 type ActiveTab = 'coach' | 'goals';
 
@@ -24,6 +37,9 @@ export function ProductivityDashboard() {
   // Data hooks
   const { priorities, prioritiesLoading, goals, goalsLoading } = useProductivityCoach();
   const { meetings, isLoading: meetingsLoading } = useMeetings();
+  const { data: weeklyData } = useWeeklyPerformance();
+  const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -59,6 +75,30 @@ export function ProductivityDashboard() {
     { id: 'coach', label: 'Coach Diário', icon: <Brain className="h-4 w-4" /> },
     { id: 'goals', label: 'Metas', icon: <Target className="h-4 w-4" />, count: stats.totalGoals },
   ];
+
+  const handleExport = (mode: 'daily' | 'weekly', format: 'pdf' | 'csv') => {
+    const exportData = {
+      priorities,
+      goals,
+      meetings,
+      weeklyMetrics: weeklyData?.metrics,
+      weekLabel: weeklyData?.weekLabel,
+      workspaceName: currentWorkspace?.name || '',
+      userName: user?.user_metadata?.full_name || '',
+    };
+
+    try {
+      if (format === 'pdf') {
+        exportProductivityPDF(mode, exportData);
+      } else {
+        exportProductivityCSV(mode, exportData);
+      }
+      toast.success(`Briefing ${mode === 'daily' ? 'diário' : 'semanal'} exportado!`);
+    } catch (err) {
+      toast.error('Erro ao exportar');
+      console.error('Export error:', err);
+    }
+  };
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['productivity-priorities'] });
@@ -166,10 +206,41 @@ export function ProductivityDashboard() {
         searchPlaceholder={activeTab === 'coach' ? 'Pesquisar prioridades...' : 'Pesquisar metas...'}
         onSearchChange={setSearchValue}
         rightActions={
-          <Button variant="outline" size="sm" onClick={handleRefresh}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[220px] bg-popover z-50">
+                <DropdownMenuLabel>Briefing PDF</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleExport('daily', 'pdf')} className="gap-2">
+                  <FileDown className="h-4 w-4 text-red-500" />
+                  Briefing Diário (PDF)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('weekly', 'pdf')} className="gap-2">
+                  <FileDown className="h-4 w-4 text-red-500" />
+                  Briefing Semanal (PDF)
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Dados CSV</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleExport('daily', 'csv')} className="gap-2">
+                  <FileSpreadsheet className="h-4 w-4 text-green-500" />
+                  Dados Diários (CSV)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('weekly', 'csv')} className="gap-2">
+                  <FileSpreadsheet className="h-4 w-4 text-green-500" />
+                  Dados Semanais (CSV)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="outline" size="sm" onClick={handleRefresh}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Atualizar
+            </Button>
+          </div>
         }
       />
 
