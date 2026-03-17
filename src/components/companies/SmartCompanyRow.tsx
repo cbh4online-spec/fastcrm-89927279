@@ -78,6 +78,27 @@ const nextActionIcons: Record<NextActionType, React.ReactNode> = {
   research: <Globe className="w-3 h-3" />,
 };
 
+function EditableText({ field, value, entityId, onUpdate, children }: { field: string; value: string | null | undefined; entityId: string; onUpdate?: (entityId: string, field: string, value: unknown) => void; children: React.ReactNode }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value || "");
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (editing && ref.current) { ref.current.focus(); ref.current.select(); } }, [editing]);
+  if (!onUpdate) return <>{children}</>;
+  if (editing) {
+    return (
+      <div onClick={e => e.stopPropagation()}>
+        <input ref={ref} className="h-7 w-full min-w-[100px] rounded border border-primary/30 bg-background px-2 text-xs outline-none focus:ring-1 focus:ring-primary/50" value={draft} onChange={e => setDraft(e.target.value)} onBlur={() => { setEditing(false); if (draft !== (value || "")) onUpdate(entityId, field, draft || null); }} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); } if (e.key === "Escape") { setEditing(false); setDraft(value || ""); } }} />
+      </div>
+    );
+  }
+  return (
+    <div className="group/ec cursor-pointer inline-flex items-center gap-1 rounded px-1 -mx-1 hover:bg-muted/60 transition-colors min-h-[28px]" onClick={e => { e.stopPropagation(); setDraft(value || ""); setEditing(true); }} title="Clique para editar">
+      {children}
+      <Pencil className="h-3 w-3 text-muted-foreground/30 opacity-0 group-hover/ec:opacity-100 transition-opacity shrink-0" />
+    </div>
+  );
+}
+
 export function SmartCompanyRow({ 
   company, 
   isSelected, 
