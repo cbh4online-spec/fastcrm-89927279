@@ -225,6 +225,7 @@ export default function C2CPublicSellerProfile() {
           </div>
         )}
       </div>
+      <MarketplaceFooter workspaceName={workspace?.name || ""} workspaceSlug={workspaceSlug || ""} />
     </div>
   );
 }

@@ -109,6 +109,7 @@ export default function C2CPublicSearchPage() {
             </>
           )}
         </main>
+        <MarketplaceFooter workspaceName={workspace?.name || ""} workspaceSlug={workspaceSlug || ""} />
       </div>
     </>
   );

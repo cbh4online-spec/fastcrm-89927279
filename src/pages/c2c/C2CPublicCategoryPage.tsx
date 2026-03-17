@@ -86,6 +86,7 @@ export default function C2CPublicCategoryPage() {
             </div>
           )}
         </main>
+        <MarketplaceFooter workspaceName={workspace?.name || ""} workspaceSlug={workspaceSlug || ""} />
       </div>
     </>
   );

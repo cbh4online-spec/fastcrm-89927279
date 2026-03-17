@@ -385,6 +385,7 @@ export default function C2CPublicListingDetail() {
             </div>
           </div>
         </main>
+        <MarketplaceFooter workspaceName={workspace?.name || ""} workspaceSlug={workspaceSlug || ""} />
       </div>
     </>
   );

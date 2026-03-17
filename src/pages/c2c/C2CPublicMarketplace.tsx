@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ListingCard } from "@/components/c2c/ListingCard";
 import { MarketplaceSearchOverlay } from "@/components/c2c/MarketplaceSearchOverlay";
+import { MarketplaceFooter } from "@/components/c2c/MarketplaceFooter";
 import { useC2CSponsoredListings } from "@/hooks/useC2CBoost";
 import type { C2CListing, C2CCategory, C2CListingFilters } from "@/hooks/useC2CListings";
 import {
