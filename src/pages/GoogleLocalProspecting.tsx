@@ -649,6 +649,7 @@ export default function GoogleLocalProspecting() {
   const [results, setResults] = useState<GooglePlaceResult[]>([]);
   const [selectedResults, setSelectedResults] = useState<string[]>([]);
   const [importedIds, setImportedIds] = useState<string[]>([]);
+  const [searchOffset, setSearchOffset] = useState(0);
   
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [autoImport, setAutoImport] = useState(false);
@@ -663,6 +664,8 @@ export default function GoogleLocalProspecting() {
   const { data: recentLeads = [] } = useLeads({ 
     status: undefined 
   });
+  const { searches, allPreviousIdentifiers, saveSearch } = useProspectingSearchHistory("google_local");
+  const { isExistingLead } = useExistingLeadIdentifiers();
   
   // Filter leads from google_local source
   const prospectionLeads = recentLeads
