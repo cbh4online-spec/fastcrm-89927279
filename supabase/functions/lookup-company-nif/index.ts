@@ -23,18 +23,17 @@ interface LookupResult {
   website: string | null;
   fax: string | null;
   racius_url: string | null;
-  // New fields from Racius
   about: string | null;
   activity_description: string | null;
   company_age: number | null;
 }
 
-// ─── nif.pt API attempt ───
-async function tryNifPt(cleanNif: string): Promise<{ result: LookupResult | null; shouldFallback: boolean; error?: string }> {
+// ─── nif.pt API attempt (with timeout) ───
+async function tryNifPt(cleanNif: string): Promise<LookupResult | null> {
   const apiKey = Deno.env.get('NIF_PT_API_KEY');
   if (!apiKey) {
     console.log('[NIF] NIF_PT_API_KEY not configured, skipping nif.pt');
-    return { result: null, shouldFallback: true };
+    return null;
   }
 
   try {
@@ -42,27 +41,19 @@ async function tryNifPt(cleanNif: string): Promise<{ result: LookupResult | null
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(6000),
     });
 
     if (!response.ok) {
       console.warn('[NIF] nif.pt API returned:', response.status);
-      return { result: null, shouldFallback: true };
+      return null;
     }
 
     const data = await response.json();
     console.log('[NIF] nif.pt response result:', data.result);
 
-    if (data.result === 'error') {
-      const message = (data.message || '').toLowerCase();
-      if (message.includes('limit') || message.includes('minute') || message.includes('no records') || message.includes('not found')) {
-        console.log('[NIF] nif.pt rate limited or not found, falling back to Firecrawl');
-        return { result: null, shouldFallback: true };
-      }
-      return { result: null, shouldFallback: true, error: data.message };
-    }
-
-    if (data.result !== 'success' || !data.records || Object.keys(data.records).length === 0) {
-      return { result: null, shouldFallback: true };
+    if (data.result === 'error' || data.result !== 'success' || !data.records || Object.keys(data.records).length === 0) {
+      return null;
     }
 
     const recordKey = Object.keys(data.records)[0];
@@ -79,7 +70,7 @@ async function tryNifPt(cleanNif: string): Promise<{ result: LookupResult | null
       caeCodes = [record.rapiea.code];
     }
 
-    const result: LookupResult = {
+    return {
       company_name: record.title || null,
       tax_id: String(record.nif) || cleanNif,
       address: record.place?.address || record.address || null,
@@ -103,24 +94,21 @@ async function tryNifPt(cleanNif: string): Promise<{ result: LookupResult | null
       activity_description: record.activity || null,
       company_age: null,
     };
-
-    return { result, shouldFallback: false };
   } catch (error) {
-    console.warn('[NIF] nif.pt error:', error);
-    return { result: null, shouldFallback: true };
+    console.warn('[NIF] nif.pt error:', (error as Error).message);
+    return null;
   }
 }
 
-// ─── Firecrawl + Racius fallback ───
+// ─── Firecrawl + Racius (with timeout) ───
 async function tryFirecrawlRacius(cleanNif: string): Promise<LookupResult | null> {
   const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
   if (!firecrawlKey) {
-    console.error('[NIF] FIRECRAWL_API_KEY not configured');
+    console.log('[NIF] FIRECRAWL_API_KEY not configured');
     return null;
   }
 
-  // Step 1: Search for the company page on Racius using Firecrawl search
-  console.log('[NIF] Step 1: Searching Racius for NIF:', cleanNif);
+  console.log('[NIF] Searching Racius for NIF:', cleanNif);
   let companyPageUrl: string | null = null;
 
   try {
@@ -132,17 +120,16 @@ async function tryFirecrawlRacius(cleanNif: string): Promise<LookupResult | null
       },
       body: JSON.stringify({
         query: `site:racius.com ${cleanNif}`,
-        limit: 5,
+        limit: 3,
       }),
+      signal: AbortSignal.timeout(8000),
     });
 
     const searchData = await searchResponse.json();
     
     if (searchResponse.ok && searchData?.success && searchData?.data?.length > 0) {
-      // Find the actual company page (not /empresas/ or /nif/)
       for (const result of searchData.data) {
         const url = result.url || '';
-        // Company pages on Racius look like: racius.com/company-slug/
         if (url.includes('racius.com/') && 
             !url.includes('/empresas/') && 
             !url.includes('/nif/') && 
@@ -155,22 +142,15 @@ async function tryFirecrawlRacius(cleanNif: string): Promise<LookupResult | null
         }
       }
     }
-    
-    if (!companyPageUrl) {
-      console.log('[NIF] Search results:', JSON.stringify(searchData?.data?.map((r: any) => r.url)));
-    }
   } catch (error) {
-    console.warn('[NIF] Firecrawl search error:', error);
+    console.warn('[NIF] Firecrawl search error:', (error as Error).message);
   }
 
-  // Fallback: try direct search URL if search didn't find a company page
   if (!companyPageUrl) {
     companyPageUrl = `https://www.racius.com/empresas/?q=${cleanNif}`;
-    console.log('[NIF] Using fallback search URL:', companyPageUrl);
   }
 
-  // Step 2: Scrape the company page
-  console.log('[NIF] Step 2: Scraping company page:', companyPageUrl);
+  console.log('[NIF] Scraping:', companyPageUrl);
   try {
     const scrapeResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
@@ -182,20 +162,19 @@ async function tryFirecrawlRacius(cleanNif: string): Promise<LookupResult | null
         url: companyPageUrl,
         formats: ['markdown'],
         onlyMainContent: true,
-        waitFor: 3000,
+        waitFor: 1500,
       }),
+      signal: AbortSignal.timeout(12000),
     });
 
     const scrapeData = await scrapeResponse.json();
 
     if (!scrapeResponse.ok) {
-      console.error('[NIF] Firecrawl scrape error:', scrapeResponse.status, JSON.stringify(scrapeData));
+      console.error('[NIF] Firecrawl scrape error:', scrapeResponse.status);
       return null;
     }
 
     const markdown = scrapeData?.data?.markdown || scrapeData?.markdown || '';
-    console.log('[NIF] Scraped markdown length:', markdown.length);
-
     if (!markdown || markdown.length < 50) {
       console.warn('[NIF] No meaningful content from Racius');
       return null;
@@ -203,9 +182,20 @@ async function tryFirecrawlRacius(cleanNif: string): Promise<LookupResult | null
 
     return parseRaciusMarkdown(markdown, cleanNif, companyPageUrl);
   } catch (error) {
-    console.error('[NIF] Firecrawl scrape error:', error);
+    console.error('[NIF] Firecrawl scrape error:', (error as Error).message);
     return null;
   }
+}
+
+// Known section headers in Racius markdown — used to stop parsing location lines
+const SECTION_HEADERS = [
+  'forma jur', 'capital social', 'atividade', 'acerca', 'cae',
+  'contacto', 'estado', 'objeto', 'nif', 'certidão', 'relatório',
+];
+
+function isSectionHeader(line: string): boolean {
+  const lower = line.toLowerCase();
+  return SECTION_HEADERS.some(h => lower.includes(h)) || /^#{1,4}\s/.test(line);
 }
 
 function parseRaciusMarkdown(markdown: string, nif: string, sourceUrl: string): LookupResult | null {
@@ -217,44 +207,39 @@ function parseRaciusMarkdown(markdown: string, nif: string, sourceUrl: string): 
   for (const line of lines) {
     if (line.startsWith('# ') && !companyName) {
       const name = line.replace(/^#+\s*/, '').trim();
-      // Skip generic page titles
       if (name.toLowerCase() !== 'empresas' && name.length > 2) {
         companyName = name;
       }
       break;
     }
   }
-  // Fallback: bold text
   if (!companyName) {
     const nameMatch = fullText.match(/\*\*([^*]{3,})\*\*/);
     if (nameMatch) companyName = nameMatch[1].trim();
   }
 
-  // ── Address ──
-  // Racius format: "Rua ..., Nº XX, Localidade XXXX-XXX Concelho"
+  // ── Address + Location ──
   let address: string | null = null;
   let postalCode: string | null = null;
   let city: string | null = null;
   let region: string | null = null;
+  let county: string | null = null;
 
-  // Look for "Morada" section
   const moradaIdx = fullText.indexOf('Morada');
   if (moradaIdx !== -1) {
-    // Get text after "Morada" up to the next section
     const afterMorada = fullText.substring(moradaIdx + 6, moradaIdx + 500);
-    const moradaLines = afterMorada.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('ico-') && l !== 'Morada');
+    const moradaLines = afterMorada.split('\n').map(l => l.trim()).filter(l => 
+      l && !l.startsWith('ico-') && !l.includes('ico-') && l !== 'Morada' && !l.startsWith('![') && !l.startsWith('- ico')
+    );
     
-    // First non-empty line is the full address with postal code
+    // First meaningful line has the address + postal code
     for (const ml of moradaLines) {
-      if (ml.length > 5 && !ml.startsWith('#')) {
-        // Extract postal code from the address line
+      if (ml.length > 5 && !ml.startsWith('#') && !isSectionHeader(ml)) {
         const pcMatch = ml.match(/(\d{4}[-\s]?\d{3})/);
         if (pcMatch) {
           postalCode = pcMatch[1].replace(/\s/, '-');
-          // Address is everything before the postal code
           const addrPart = ml.substring(0, ml.indexOf(pcMatch[0])).trim();
           if (addrPart) address = addrPart;
-          // City is after the postal code
           const afterPc = ml.substring(ml.indexOf(pcMatch[0]) + pcMatch[0].length).trim();
           if (afterPc) city = afterPc;
         } else if (!address) {
@@ -264,19 +249,28 @@ function parseRaciusMarkdown(markdown: string, nif: string, sourceUrl: string): 
       }
     }
 
-    // Next distinct lines after address are usually Concelho and Distrito
-    const locationLines = moradaLines.filter(l => 
-      l.length > 1 && l.length < 50 && 
-      l !== address && l !== postalCode && l !== city &&
-      !l.includes('ico-') && !l.startsWith('#')
-    );
+    // Subsequent short lines before next section = Concelho, Distrito
+    const locationLines: string[] = [];
+    let foundAddress = false;
+    for (const ml of moradaLines) {
+      if (ml.includes('ico-') || ml.startsWith('-') || ml.startsWith('!')) continue;
+      if (ml.length > 5 && !ml.startsWith('#') && !isSectionHeader(ml)) {
+        if (!foundAddress) { foundAddress = true; continue; }
+        if (ml.length >= 2 && ml.length < 40 && !/[€\d]{5}/.test(ml) && !isSectionHeader(ml) && !ml.includes('ico-')) {
+          locationLines.push(ml);
+        }
+        if (locationLines.length >= 2 || isSectionHeader(ml)) break;
+      }
+      if (foundAddress && isSectionHeader(ml)) break;
+    }
     
     if (locationLines.length >= 2) {
-      // Typically: Concelho then Distrito
-      if (!city) city = locationLines[0];
-      region = locationLines[1] || null;
-    } else if (locationLines.length === 1 && !city) {
-      city = locationLines[0];
+      county = locationLines[0];
+      region = locationLines[1];
+      if (!city) city = county;
+    } else if (locationLines.length === 1) {
+      county = locationLines[0];
+      if (!city) city = county;
     }
   }
 
@@ -285,7 +279,7 @@ function parseRaciusMarkdown(markdown: string, nif: string, sourceUrl: string): 
   const formaMatch = fullText.match(/Forma\s*Jur[ií]dica[\s\S]*?\n\s*\n\s*([^\n]+)/i);
   if (formaMatch) {
     const val = formaMatch[1].replace(/\*+/g, '').trim();
-    if (val && !val.startsWith('ico-') && val.length > 2) legalNature = val;
+    if (val && !val.startsWith('ico-') && val.length > 2 && !isSectionHeader(val)) legalNature = val;
   }
 
   // ── Capital Social ──
@@ -295,17 +289,15 @@ function parseRaciusMarkdown(markdown: string, nif: string, sourceUrl: string): 
     const val = capitalMatch[1].replace(/\*+/g, '').trim();
     if (val && val.includes('€')) capitalSocial = val;
   }
-  // Fallback
   if (!capitalSocial) {
     const capFallback = fullText.match(/€\s*[\d.,]+/);
     if (capFallback) capitalSocial = capFallback[0].trim();
   }
 
-  // ── Atividade (Activity Description) ──
+  // ── Atividade ──
   let activityDescription: string | null = null;
   const atividadeIdx = fullText.indexOf('Atividade');
   if (atividadeIdx !== -1) {
-    // Avoid matching "Estado de Atividade"
     const beforeAtividade = fullText.substring(Math.max(0, atividadeIdx - 15), atividadeIdx);
     if (!beforeAtividade.includes('Estado')) {
       const afterAtividade = fullText.substring(atividadeIdx + 9, atividadeIdx + 1000);
@@ -319,7 +311,7 @@ function parseRaciusMarkdown(markdown: string, nif: string, sourceUrl: string): 
     }
   }
 
-  // ── Acerca da Empresa (About) ──
+  // ── Acerca da Empresa ──
   let about: string | null = null;
   let foundingDate: string | null = null;
   let companyAge: number | null = null;
@@ -329,17 +321,14 @@ function parseRaciusMarkdown(markdown: string, nif: string, sourceUrl: string): 
     const aboutText = acercaMatch[1].replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
     if (aboutText.length > 10) about = aboutText;
   }
-  // Fallback: look for the typical pattern
   if (!about) {
     const aboutFallback = fullText.match(/A\s+empresa\s+.+?tem\s+\d+\s+anos[\s\S]*?(?:similares|relacionados|n\.?\s*e\.)\./i);
     if (aboutFallback) about = aboutFallback[0].replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
-  // Extract founding date from About text
   if (about) {
     const dateInAbout = about.match(/constitu[ií]da\s+em\s+(\d{2}\/\d{2}\/\d{4})/i);
     if (dateInAbout) foundingDate = dateInAbout[1];
-
     const ageInAbout = about.match(/tem\s+(\d+)\s+anos/i);
     if (ageInAbout) companyAge = parseInt(ageInAbout[1]);
   }
@@ -357,17 +346,15 @@ function parseRaciusMarkdown(markdown: string, nif: string, sourceUrl: string): 
     }
   }
 
-  // ── Phone ──
+  // ── Contacts ──
   let phone: string | null = null;
   const phoneMatch = fullText.match(/(?:Telefone|Tel)[:\s]*([+\d\s()-]+)/i);
   if (phoneMatch) phone = phoneMatch[1].trim();
 
-  // ── Email ──
   let email: string | null = null;
   const emailMatch = fullText.match(/(?:Email|E-mail)[:\s]*([^\s\n]+@[^\s\n]+)/i);
   if (emailMatch) email = emailMatch[1].trim();
 
-  // ── Website ──
   let website: string | null = null;
   const websiteMatch = fullText.match(/(?:Website|Site|Web)[:\s]*((?:https?:\/\/)?[^\s\n]+\.[a-z]{2,})/i);
   if (websiteMatch) website = websiteMatch[1].trim();
@@ -388,18 +375,12 @@ function parseRaciusMarkdown(markdown: string, nif: string, sourceUrl: string): 
     raciusUrl = `https://www.racius.com/empresas/?q=${nif}`;
   }
 
-  // If we couldn't find anything meaningful, return null
   if (!companyName && !address && caeCodes.length === 0 && !about) {
     console.warn('[NIF] Could not parse any meaningful data from Racius');
     return null;
   }
 
-  console.log('[NIF] Parsed Racius data:', {
-    companyName, address, postalCode, city, region,
-    legalNature, capitalSocial, caeCodes, about: about?.substring(0, 60),
-    activityDescription: activityDescription?.substring(0, 60),
-    foundingDate, companyAge,
-  });
+  console.log('[NIF] Parsed Racius:', { companyName, city, county, region, caeCodes: caeCodes.length });
 
   return {
     company_name: companyName,
@@ -408,7 +389,7 @@ function parseRaciusMarkdown(markdown: string, nif: string, sourceUrl: string): 
     postal_code: postalCode,
     city,
     region,
-    county: city, // Racius shows Concelho in the same position as city
+    county: county || city,
     parish: null,
     cae_codes: caeCodes,
     cae_description: caeDescription,
@@ -427,7 +408,7 @@ function parseRaciusMarkdown(markdown: string, nif: string, sourceUrl: string): 
   };
 }
 
-// ─── EU VIES (VAT Information Exchange System) ───
+// ─── EU VIES ───
 async function tryVIES(cleanNif: string): Promise<{ company_name: string | null; address: string | null; valid: boolean } | null> {
   const VIES_URL = 'https://ec.europa.eu/taxation_customs/vies/services/checkVatService';
   const soapBody = `<?xml version="1.0" encoding="UTF-8"?>
@@ -443,12 +424,9 @@ async function tryVIES(cleanNif: string): Promise<{ company_name: string | null;
   try {
     const response = await fetch(VIES_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'text/xml; charset=utf-8',
-        'SOAPAction': '',
-      },
+      headers: { 'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': '' },
       body: soapBody,
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(6000),
     });
 
     if (!response.ok) {
@@ -457,8 +435,6 @@ async function tryVIES(cleanNif: string): Promise<{ company_name: string | null;
     }
 
     const xml = await response.text();
-    console.log('[NIF] VIES response length:', xml.length);
-
     const validMatch = xml.match(/<valid>(true|false)<\/valid>/i);
     const nameMatch = xml.match(/<name>([^<]*)<\/name>/i);
     const addressMatch = xml.match(/<address>([^<]*)<\/address>/i);
@@ -467,88 +443,52 @@ async function tryVIES(cleanNif: string): Promise<{ company_name: string | null;
     const name = nameMatch?.[1]?.trim() || null;
     const addr = addressMatch?.[1]?.trim() || null;
 
-    // VIES returns "---" for unavailable fields
     const cleanName = name && name !== '---' && name.length > 1 ? name : null;
     const cleanAddr = addr && addr !== '---' && addr.length > 1 ? addr : null;
 
-    console.log('[NIF] VIES result:', { valid, name: cleanName, address: cleanAddr?.substring(0, 60) });
-
+    console.log('[NIF] VIES:', { valid, name: cleanName?.substring(0, 40) });
     return { company_name: cleanName, address: cleanAddr, valid };
   } catch (error) {
-    console.warn('[NIF] VIES error:', error);
+    console.warn('[NIF] VIES error:', (error as Error).message);
     return null;
   }
 }
 
-// ─── Merge helper: fill null fields from VIES ───
-function mergeWithVIES(result: LookupResult, vies: { company_name: string | null; address: string | null; valid: boolean }): LookupResult {
-  const merged = { ...result };
-
-  if (!merged.company_name && vies.company_name) {
-    merged.company_name = vies.company_name;
-  }
-
-  if (!merged.address && vies.address) {
-    // Try to parse postal code and city from VIES address
-    const parts = vies.address;
-    const pcMatch = parts.match(/(\d{4}[-\s]?\d{3})/);
-    if (pcMatch) {
-      if (!merged.postal_code) merged.postal_code = pcMatch[1].replace(/\s/, '-');
-      const beforePc = parts.substring(0, parts.indexOf(pcMatch[0])).trim();
-      const afterPc = parts.substring(parts.indexOf(pcMatch[0]) + pcMatch[0].length).trim();
-      if (beforePc && !merged.address) merged.address = beforePc;
-      if (afterPc && !merged.city) merged.city = afterPc;
-    } else {
-      merged.address = parts;
+// ─── Merge: fill null fields in primary with secondary ───
+function mergeResults(primary: LookupResult, secondary: Partial<LookupResult>): LookupResult {
+  const merged = { ...primary };
+  for (const key of Object.keys(secondary) as (keyof LookupResult)[]) {
+    if (key === 'cae_codes') {
+      // Merge arrays
+      const pCodes = primary.cae_codes || [];
+      const sCodes = (secondary.cae_codes as string[]) || [];
+      merged.cae_codes = [...new Set([...pCodes, ...sCodes])];
+    } else if (merged[key] === null || merged[key] === undefined) {
+      (merged as any)[key] = secondary[key];
     }
   }
-
   return merged;
 }
 
-// ─── Build minimal result from VIES only ───
-function buildFromVIES(vies: { company_name: string | null; address: string | null; valid: boolean }, nif: string): LookupResult | null {
-  if (!vies.valid && !vies.company_name) return null;
-
-  let address: string | null = null;
-  let postalCode: string | null = null;
-  let city: string | null = null;
+function viesAsLookup(vies: { company_name: string | null; address: string | null; valid: boolean }, nif: string): Partial<LookupResult> {
+  const result: Partial<LookupResult> = {
+    company_name: vies.company_name,
+    tax_id: nif,
+    company_status: vies.valid ? 'Ativa' : null,
+  };
 
   if (vies.address) {
     const pcMatch = vies.address.match(/(\d{4}[-\s]?\d{3})/);
     if (pcMatch) {
-      postalCode = pcMatch[1].replace(/\s/, '-');
-      address = vies.address.substring(0, vies.address.indexOf(pcMatch[0])).trim() || null;
-      city = vies.address.substring(vies.address.indexOf(pcMatch[0]) + pcMatch[0].length).trim() || null;
+      result.postal_code = pcMatch[1].replace(/\s/, '-');
+      result.address = vies.address.substring(0, vies.address.indexOf(pcMatch[0])).trim() || null;
+      result.city = vies.address.substring(vies.address.indexOf(pcMatch[0]) + pcMatch[0].length).trim() || null;
     } else {
-      address = vies.address;
+      result.address = vies.address;
     }
   }
 
-  return {
-    company_name: vies.company_name,
-    tax_id: nif,
-    address,
-    postal_code: postalCode,
-    city,
-    region: null,
-    county: null,
-    parish: null,
-    cae_codes: [],
-    cae_description: null,
-    company_status: vies.valid ? 'Ativa' : null,
-    legal_nature: null,
-    capital_social: null,
-    founding_date: null,
-    email: null,
-    phone: null,
-    website: null,
-    fax: null,
-    racius_url: `https://www.racius.com/empresas/?q=${nif}`,
-    about: null,
-    activity_description: null,
-    company_age: null,
-  };
+  return result;
 }
 
 // ─── Main handler ───
@@ -576,52 +516,71 @@ Deno.serve(async (req) => {
     }
 
     console.log('[NIF] Looking up:', cleanNif);
+    const startTime = Date.now();
 
-    // Start VIES in parallel (it's free and complements any source)
-    const viesPromise = tryVIES(cleanNif);
+    // 🚀 Run ALL strategies in parallel for maximum speed
+    const [nifPtResult, raciusResult, viesResult] = await Promise.all([
+      tryNifPt(cleanNif).catch(() => null),
+      tryFirecrawlRacius(cleanNif).catch(() => null),
+      tryVIES(cleanNif).catch(() => null),
+    ]);
 
-    // Strategy 1: Try nif.pt first
-    const nifPtResult = await tryNifPt(cleanNif);
-    
-    if (nifPtResult.result) {
-      console.log('[NIF] Success via nif.pt');
-      // Merge with VIES data if available
-      const vies = await viesPromise;
-      const finalResult = vies ? mergeWithVIES(nifPtResult.result, vies) : nifPtResult.result;
+    const elapsed = Date.now() - startTime;
+    console.log(`[NIF] All strategies completed in ${elapsed}ms`);
+
+    // Pick the best primary result (nif.pt > Racius > VIES-only)
+    let bestResult: LookupResult | null = null;
+    let source = 'unknown';
+
+    if (nifPtResult) {
+      bestResult = nifPtResult;
+      source = 'nif.pt';
+    } else if (raciusResult) {
+      bestResult = raciusResult;
+      source = 'racius';
+    }
+
+    // Merge secondary sources into the best result
+    if (bestResult) {
+      // Merge Racius into nif.pt (for about, activity_description, etc.)
+      if (source === 'nif.pt' && raciusResult) {
+        bestResult = mergeResults(bestResult, raciusResult);
+      }
+      // Merge VIES data
+      if (viesResult) {
+        bestResult = mergeResults(bestResult, viesAsLookup(viesResult, cleanNif));
+      }
+
+      console.log(`[NIF] Success via ${source} (+merge) in ${elapsed}ms`);
       return new Response(
-        JSON.stringify({ success: true, data: finalResult, source: 'nif.pt', vies_valid: vies?.valid ?? null }),
+        JSON.stringify({ success: true, data: bestResult, source, vies_valid: viesResult?.valid ?? null }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Strategy 2: Fallback to Firecrawl + Racius
-    if (nifPtResult.shouldFallback) {
-      console.log('[NIF] Trying Firecrawl + Racius fallback...');
-      const firecrawlResult = await tryFirecrawlRacius(cleanNif);
-      
-      if (firecrawlResult) {
-        console.log('[NIF] Success via Firecrawl + Racius');
-        const vies = await viesPromise;
-        const finalResult = vies ? mergeWithVIES(firecrawlResult, vies) : firecrawlResult;
-        return new Response(
-          JSON.stringify({ success: true, data: finalResult, source: 'racius', vies_valid: vies?.valid ?? null }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    }
+    // Last resort: VIES alone
+    if (viesResult && (viesResult.valid || viesResult.company_name)) {
+      const viesLookup = viesAsLookup(viesResult, cleanNif);
+      const fallback: LookupResult = {
+        company_name: viesLookup.company_name || null,
+        tax_id: cleanNif,
+        address: viesLookup.address || null,
+        postal_code: viesLookup.postal_code || null,
+        city: viesLookup.city || null,
+        region: null, county: null, parish: null,
+        cae_codes: [], cae_description: null,
+        company_status: viesResult.valid ? 'Ativa' : null,
+        legal_nature: null, capital_social: null, founding_date: null,
+        email: null, phone: null, website: null, fax: null,
+        racius_url: `https://www.racius.com/empresas/?q=${cleanNif}`,
+        about: null, activity_description: null, company_age: null,
+      };
 
-    // Strategy 3: VIES as last resort (basic data: name + address)
-    console.log('[NIF] Trying VIES as last resort...');
-    const vies = await viesPromise;
-    if (vies) {
-      const viesResult = buildFromVIES(vies, cleanNif);
-      if (viesResult) {
-        console.log('[NIF] Success via VIES (basic data)');
-        return new Response(
-          JSON.stringify({ success: true, data: viesResult, source: 'vies', vies_valid: vies.valid }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      console.log(`[NIF] Success via VIES-only in ${elapsed}ms`);
+      return new Response(
+        JSON.stringify({ success: true, data: fallback, source: 'vies', vies_valid: viesResult.valid }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // All three failed
