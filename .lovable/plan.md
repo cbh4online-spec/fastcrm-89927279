@@ -1,29 +1,40 @@
 
 
-# Fix: Vulnerable Dependencies
+## Plano: Command Center mais abrangente + Metas via conversa IA
 
-## Analysis
+### Problema
+1. O chat "Pergunte algo" apenas responde a queries de pipeline/deals — não cobre brief executivo, CEO copilot, revenue flight control nem permite definir metas por conversa
+2. Para definir metas, o utilizador tem de usar o sheet de formulário (⚙️ Metas) — não pode simplesmente dizer "a minha meta de receita esta semana é 5000€"
 
-**xlsx**: Already at version 0.20.3 via CDN tarball (`https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`). The security scanner is likely flagging based on the npm registry name which maps to older vulnerable versions. Version 0.20.3 from the official SheetJS CDN includes fixes for both the Prototype Pollution (GHSA-4r6h-8v6p-xvw6) and ReDoS (GHSA-5pgg-2g8v-p4x9) advisories. **No action needed** — this is a false positive from the scanner not recognizing the CDN tarball version.
+### Solução
 
-**@trigger.dev/sdk**: Not present in `package.json` at all (neither dependencies nor devDependencies). This is either a transitive dependency or a scanner false positive. The project uses Trigger.dev concepts via custom code (`src/trigger/client.ts`) and edge functions, but does not import the SDK package directly.
+**1. Expandir sugestões e placeholders do Command Center** (`AIQuestionBox.tsx`)
+- Adicionar placeholders que cobrem as áreas estratégicas: "Gera um brief executivo", "Como está a saúde do pipeline?", "Qual o risco de churn esta semana?"
+- Adicionar chips de sugestão rápida para: Brief Executivo, Revenue Radar, CEO Copilot, Flight Control
+- Quando não há conversa activa, mostrar grid de atalhos agrupados por categoria (Estratégia, Revenue, Operações)
 
-## Plan
+**2. Novos slash commands** (`useSlashCommands.ts`)
+- `/ceo` → invoca CEO Copilot summary (redireciona ask-fastcrm com intent "ceo copilot executive summary")
+- `/revenue` → invoca Revenue Radar summary
+- `/flight` → invoca Revenue Flight Control status
+- `/metas` → mostra metas actuais da semana e permite alterá-las via conversa
 
-### 1. Confirm xlsx is safe (no code change needed)
-The installed version 0.20.3 from the SheetJS CDN already patches both known vulnerabilities. The scanner cannot resolve the version from the tarball URL.
+**3. Intent de metas conversacional** (`ask-fastcrm` edge function)
+- Detectar intenções de definição de metas no texto: "meta de receita 5000", "quero fechar 3 deals", "objetivo: 10 reuniões"
+- Extrair via IA: `metric_type` + `target_value`
+- Chamar upsert em `performance_targets` directamente a partir da edge function
+- Responder com confirmação: "Meta de receita semanal definida: 5.000€ ✅"
 
-### 2. Handle @trigger.dev/sdk
-Since it's not in `package.json`, this is either:
-- A stale lockfile entry — delete and regenerate `package-lock.json`
-- A scanner false positive
+**4. Enriquecer respostas do chat com navegação contextual** (`AIQuestionBox.tsx`)
+- Nas sugestões de follow-up, incluir links directos: "Ver Brief completo →", "Abrir Revenue Radar →", "Ajustar metas →"
+- Após definir metas via chat, sugerir: "Gerar brief com base nas novas metas", "Ver progresso actual"
 
-**Action**: No code changes required. Both findings are false positives based on the current `package.json`.
+### Ficheiros a editar
+- `src/components/command-center/AIQuestionBox.tsx` — placeholders, chips estratégicos, sugestões expandidas
+- `src/hooks/useSlashCommands.ts` — novos comandos `/ceo`, `/revenue`, `/flight`, `/metas`
+- `supabase/functions/ask-fastcrm/index.ts` — detectar intent de metas, fazer upsert em `performance_targets`, responder com confirmação
+- `src/components/command-center/QuickCommandGrid.tsx` — adicionar novos comandos ao grid
 
-### 3. Optional: Add explicit comment for future audits
-Add a comment in `package.json` near the xlsx entry noting the CDN version is patched, to prevent repeated investigation.
-
-## Summary
-
-No code changes are necessary. Both flagged packages are either already patched (xlsx 0.20.3) or not actually installed (@trigger.dev/sdk). The security findings can be safely dismissed.
+### Sem alterações de base de dados
+Usa a tabela `performance_targets` existente para guardar metas definidas via conversa.
 
