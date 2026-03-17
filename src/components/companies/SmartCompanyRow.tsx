@@ -46,6 +46,8 @@ import { cn } from "@/lib/utils";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { SmartCompany, NextActionType } from "@/hooks/useSmartCompanies";
+
 interface SmartCompanyRowProps {
   company: SmartCompany;
   isSelected: boolean;
@@ -53,6 +55,7 @@ interface SmartCompanyRowProps {
   onAnalyze: () => void;
   isAnalyzing?: boolean;
   columnOrder: string[];
+  onUpdate?: (entityId: string, field: string, value: unknown) => void;
 }
 
 const sourceColors: Record<string, string> = {
