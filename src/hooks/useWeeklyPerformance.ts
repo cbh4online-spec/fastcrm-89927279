@@ -56,17 +56,24 @@ export function useWeeklyPerformance() {
       (targets || []).forEach((t: any) => { tMap[t.metric_type] = Number(t.target_value); });
 
       // Actuals
-      const [leadsRes, meetingsRes, proposalsRes, oppsRes, pipelineRes] = await Promise.all([
+      const [leadsRes, meetingsRes, calendarEventsRes, proposalsRes, oppsRes, pipelineRes, newDealsRes] = await Promise.all([
         supabase.from("leads").select("id", { count: "exact", head: true })
           .eq("workspace_id", wid!).gte("created_at", start).lte("created_at", end),
         supabase.from("meetings").select("id", { count: "exact", head: true })
           .eq("workspace_id", wid!).gte("created_at", start).lte("created_at", end),
+        // Also count calendar_events (meetings created via calendar)
+        supabase.from("calendar_events").select("id", { count: "exact", head: true })
+          .eq("workspace_id", wid!).gte("created_at", start).lte("created_at", end),
         supabase.from("proposals").select("id", { count: "exact", head: true })
           .eq("workspace_id", wid!).eq("status", "published").gte("created_at", start).lte("created_at", end),
-        supabase.from("opportunities").select("id, value, status, won_at")
-          .eq("workspace_id", wid!).eq("status", "won").gte("won_at", start).lte("won_at", end),
+        // Won deals: use updated_at as proxy for when deal was won (since won_at doesn't exist)
+        supabase.from("opportunities").select("id, value, status")
+          .eq("workspace_id", wid!).eq("status", "won").gte("updated_at", start).lte("updated_at", end),
         supabase.from("opportunities").select("id, value")
           .eq("workspace_id", wid!).in("status", ["open", "active", "negotiation"]),
+        // New deals created this week (any status)
+        supabase.from("opportunities").select("id", { count: "exact", head: true })
+          .eq("workspace_id", wid!).gte("created_at", start).lte("created_at", end),
       ]);
 
       const wonDeals = oppsRes.data || [];
