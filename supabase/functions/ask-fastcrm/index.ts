@@ -608,6 +608,168 @@ function getActionsAvailable(intent: string, hasItems: boolean): string[] {
   }
 }
 
+// --- Goal-setting handler ---
+async function handleSetTarget(
+  question: string,
+  workspaceId: string,
+  userId: string,
+  serviceClient: any
+): Promise<AskResponse> {
+  // Extract metric type and value using patterns
+  const lower = question.toLowerCase();
+  let metricType = "revenue";
+  let targetValue: number | null = null;
+
+  // Detect metric type
+  if (/reuni[õo]|meetings?/i.test(lower)) metricType = "meetings";
+  else if (/deals?|oportunidade/i.test(lower)) metricType = "deals_closed";
+  else if (/pipeline/i.test(lower)) metricType = "pipeline_generated";
+  else if (/leads?/i.test(lower)) metricType = "leads";
+
+  // Extract number
+  const numMatch = lower.match(/(\d[\d.,]*)\s*[€$]?/);
+  if (numMatch) {
+    targetValue = parseFloat(numMatch[1].replace(/\./g, "").replace(",", "."));
+  }
+  // Also try €X format
+  const euroMatch = lower.match(/[€$]\s*(\d[\d.,]*)/);
+  if (!targetValue && euroMatch) {
+    targetValue = parseFloat(euroMatch[1].replace(/\./g, "").replace(",", "."));
+  }
+
+  if (!targetValue || targetValue <= 0) {
+    return buildResponse("set_target", "deals", { filters: [], sort: [], limit: 0 }, "deterministic", 0.8, {
+      headline: "Não consegui extrair o valor da meta",
+      subtext: "Diz algo como: \"Meta de receita 5000€\" ou \"Quero fechar 3 deals esta semana\".",
+    });
+  }
+
+  // Calculate period (current week)
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const periodStart = new Date(now);
+  periodStart.setDate(now.getDate() + mondayOffset);
+  periodStart.setHours(0, 0, 0, 0);
+  const periodEnd = new Date(periodStart);
+  periodEnd.setDate(periodStart.getDate() + 6);
+  periodEnd.setHours(23, 59, 59, 999);
+
+  const startStr = periodStart.toISOString().split("T")[0];
+  const endStr = periodEnd.toISOString().split("T")[0];
+
+  // Upsert to performance_targets
+  const { error } = await serviceClient
+    .from("performance_targets")
+    .upsert(
+      {
+        workspace_id: workspaceId,
+        metric_type: metricType,
+        target_value: targetValue,
+        period_type: "weekly",
+        period_start: startStr,
+        period_end: endStr,
+        created_by: userId,
+      },
+      { onConflict: "workspace_id,metric_type,period_start" }
+    );
+
+  if (error) {
+    // If unique constraint doesn't exist, try insert/update separately
+    const { data: existing } = await serviceClient
+      .from("performance_targets")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("metric_type", metricType)
+      .eq("period_start", startStr)
+      .maybeSingle();
+
+    if (existing) {
+      await serviceClient
+        .from("performance_targets")
+        .update({ target_value: targetValue })
+        .eq("id", existing.id);
+    } else {
+      await serviceClient
+        .from("performance_targets")
+        .insert({
+          workspace_id: workspaceId,
+          metric_type: metricType,
+          target_value: targetValue,
+          period_type: "weekly",
+          period_start: startStr,
+          period_end: endStr,
+          created_by: userId,
+        });
+    }
+  }
+
+  const metricLabels: Record<string, string> = {
+    revenue: "receita",
+    meetings: "reuniões",
+    deals_closed: "deals fechados",
+    pipeline_generated: "pipeline gerado",
+    leads: "leads",
+  };
+
+  const formattedValue = metricType === "revenue" || metricType === "pipeline_generated"
+    ? `${targetValue.toLocaleString("pt-PT")}€`
+    : `${targetValue}`;
+
+  return buildResponse("set_target", "deals", { filters: [], sort: [], limit: 0 }, "deterministic", 0.95, {
+    headline: `Meta de ${metricLabels[metricType] || metricType} semanal definida: ${formattedValue} ✅`,
+    subtext: `Período: ${startStr} a ${endStr}. Podes acompanhar o progresso no Performance Engine ou perguntar-me "como estão as metas".`,
+  });
+}
+
+// --- View targets handler ---
+async function handleViewTargets(
+  workspaceId: string,
+  serviceClient: any
+): Promise<AskResponse> {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const periodStart = new Date(now);
+  periodStart.setDate(now.getDate() + mondayOffset);
+  periodStart.setHours(0, 0, 0, 0);
+  const startStr = periodStart.toISOString().split("T")[0];
+
+  const { data: targets } = await serviceClient
+    .from("performance_targets")
+    .select("*")
+    .eq("workspace_id", workspaceId)
+    .eq("period_start", startStr);
+
+  if (!targets || targets.length === 0) {
+    return buildResponse("view_targets", "deals", { filters: [], sort: [], limit: 0 }, "deterministic", 0.9, {
+      headline: "Sem metas definidas para esta semana",
+      subtext: "Diz algo como: \"Meta de receita 5000€\" ou \"Quero fechar 3 deals\" para definir uma meta.",
+    });
+  }
+
+  const metricLabels: Record<string, string> = {
+    revenue: "💰 Receita",
+    meetings: "📅 Reuniões",
+    deals_closed: "🤝 Deals Fechados",
+    pipeline_generated: "📊 Pipeline Gerado",
+    leads: "👥 Leads",
+  };
+
+  const lines = targets.map((t: any) => {
+    const label = metricLabels[t.metric_type] || t.metric_type;
+    const val = t.metric_type === "revenue" || t.metric_type === "pipeline_generated"
+      ? `${Number(t.target_value).toLocaleString("pt-PT")}€`
+      : `${t.target_value}`;
+    return `- ${label}: **${val}**`;
+  });
+
+  return buildResponse("view_targets", "deals", { filters: [], sort: [], limit: 0 }, "deterministic", 0.95, {
+    headline: `Metas desta semana (${startStr})`,
+    subtext: lines.join("\n") + "\n\nPara alterar, diz: \"Meta de receita 8000€\"",
+  });
+}
+
 // --- Main handler ---
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
