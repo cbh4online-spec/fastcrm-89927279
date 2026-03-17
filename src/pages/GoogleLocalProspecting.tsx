@@ -51,6 +51,8 @@ interface GooglePlaceResult {
   description?: string;
   services?: string[];
   thumbnail?: string;
+  _alreadyExists?: boolean;
+  _previouslyFound?: boolean;
 }
 
 // Category to search query mapping for Google Maps
