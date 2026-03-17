@@ -1,29 +1,33 @@
 
 
-# Fix: Vulnerable Dependencies
+## Plano: Exportar Produtividade Diária e Semanal (PDF/CSV) para Briefings
 
-## Analysis
+### Objetivo
+Adicionar botões de exportação PDF e CSV à página de Produtividade para preparar reuniões de briefing com dados de prioridades, reuniões e metas.
 
-**xlsx**: Already at version 0.20.3 via CDN tarball (`https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`). The security scanner is likely flagging based on the npm registry name which maps to older vulnerable versions. Version 0.20.3 from the official SheetJS CDN includes fixes for both the Prototype Pollution (GHSA-4r6h-8v6p-xvw6) and ReDoS (GHSA-5pgg-2g8v-p4x9) advisories. **No action needed** — this is a false positive from the scanner not recognizing the CDN tarball version.
+### Implementação
 
-**@trigger.dev/sdk**: Not present in `package.json` at all (neither dependencies nor devDependencies). This is either a transitive dependency or a scanner false positive. The project uses Trigger.dev concepts via custom code (`src/trigger/client.ts`) and edge functions, but does not import the SDK package directly.
+**1. Criar utilitário `src/utils/productivityExport.ts`**
+- Função `exportProductivityPDF(mode: 'daily' | 'weekly', data)` usando jsPDF (já disponível no projeto)
+  - **Modo diário**: Data do dia, Top 3 prioridades (status ✓/○), reuniões do dia (hora + título + contacto), metas diárias com progresso
+  - **Modo semanal**: Semana (segunda-domingo), resumo de metas semanais, progresso global, lista de reuniões da semana
+  - Header com título "Briefing Diário/Semanal — [data]" e nome do workspace
+  - Secções separadas com linhas divisórias
+- Função `exportProductivityCSV(mode, data)` usando papaparse (já disponível)
 
-## Plan
+**2. Atualizar `src/components/productivity/ProductivityDashboard.tsx`**
+- Adicionar dropdown "Exportar" na Toolbar (ao lado do botão Atualizar) com opções:
+  - "Briefing Diário (PDF)"
+  - "Briefing Semanal (PDF)"
+  - "Dados Diários (CSV)"
+  - "Dados Semanais (CSV)"
+- Recolher dados necessários dos hooks existentes (`useProductivityCoach`, `useMeetings`) e passar ao utilitário
 
-### 1. Confirm xlsx is safe (no code change needed)
-The installed version 0.20.3 from the SheetJS CDN already patches both known vulnerabilities. The scanner cannot resolve the version from the tarball URL.
+**3. Dados incluídos no export**
+- **Diário**: prioridades de hoje + estado, reuniões de hoje (hora, título, contacto, categoria), metas diárias + progresso
+- **Semanal**: todas as prioridades da semana, reuniões da semana, metas semanais + progresso, KPIs resumidos (prioridades concluídas, reuniões totais, metas atingidas)
 
-### 2. Handle @trigger.dev/sdk
-Since it's not in `package.json`, this is either:
-- A stale lockfile entry — delete and regenerate `package-lock.json`
-- A scanner false positive
-
-**Action**: No code changes required. Both findings are false positives based on the current `package.json`.
-
-### 3. Optional: Add explicit comment for future audits
-Add a comment in `package.json` near the xlsx entry noting the CDN version is patched, to prevent repeated investigation.
-
-## Summary
-
-No code changes are necessary. Both flagged packages are either already patched (xlsx 0.20.3) or not actually installed (@trigger.dev/sdk). The security findings can be safely dismissed.
+### Ficheiros a criar/alterar
+- `src/utils/productivityExport.ts` — novo (funções PDF e CSV)
+- `src/components/productivity/ProductivityDashboard.tsx` — adicionar dropdown de exportação na toolbar
 
