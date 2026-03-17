@@ -4,11 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Globe, Building2, ExternalLink, Plus, Loader2, Check, Sparkles, Linkedin, MapPin } from "lucide-react";
+import { Search, Globe, Building2, ExternalLink, Plus, Loader2, Check, Sparkles, Linkedin, MapPin, History, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { firecrawlApi } from "@/lib/api/firecrawl";
 import { useCreateLead } from "@/hooks/useLeads";
 import { supabase } from "@/integrations/supabase/client";
+import { useProspectingSearchHistory, useExistingLeadIdentifiers } from "@/hooks/useProspectingSearchHistory";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { format } from "date-fns";
+import { pt } from "date-fns/locale";
 
 interface WebResult {
   url: string;

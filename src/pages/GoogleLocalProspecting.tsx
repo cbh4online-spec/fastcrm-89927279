@@ -35,6 +35,7 @@ import {
 import { PageBreadcrumbs } from "@/components/layout/PageBreadcrumbs";
 import { useCreateLead, useLeads } from "@/hooks/useLeads";
 import { useCreditWallet } from "@/hooks/useCreditWallet";
+import { useProspectingSearchHistory, useExistingLeadIdentifiers } from "@/hooks/useProspectingSearchHistory";
 import { cn } from "@/lib/utils";
 
 interface GooglePlaceResult {
