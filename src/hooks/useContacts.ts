@@ -233,6 +233,8 @@ export function useContacts() {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-contacts", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["contacts-kpis", currentWorkspace?.id] });
       const { id, ...changedFields } = variables;
       console.log(`[CONTACTS] Contact updated: ${id}, fields: ${Object.keys(changedFields).join(', ')}`);
       if (currentWorkspace) {
