@@ -1,5 +1,5 @@
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { SmartCompany, NextActionType } from "@/hooks/useSmartCompanies";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { stickyCheckboxStyles, stickyNameStyles } from "@/components/common/StickyTable";
 import { Badge } from "@/components/ui/badge";
