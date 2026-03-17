@@ -845,11 +845,28 @@ export default function GoogleLocalProspecting() {
     
     for (const result of leadsToImport) {
       try {
+        // Extract city from address (last part before postal code or last comma segment)
+        const addressParts = result.address?.split(",").map(s => s.trim()) || [];
+        const city = addressParts.length >= 2 ? addressParts[addressParts.length - 1].replace(/\d{4}-\d{3}/, "").trim() || addressParts[addressParts.length - 2] : "";
+        
+        // Build notes with rating, reviews, hours
+        const notesParts: string[] = [];
+        if (result.rating) notesParts.push(`⭐ Rating: ${result.rating}/5 (${result.reviews_count} avaliações)`);
+        if (result.hours) notesParts.push(`🕐 Horário: ${result.hours}`);
+        if (result.services?.length) notesParts.push(`📋 Serviços: ${result.services.join(", ")}`);
+        
         await createLead.mutateAsync({
           name: result.title,
           phone: result.phone || undefined,
+          website: result.website || undefined,
+          address: result.address || undefined,
+          city: city || undefined,
+          about: result.description || result.category || undefined,
+          industry: result.category || undefined,
+          lead_type: "company",
           source: "google_local",
           status: "new",
+          notes: notesParts.length > 0 ? notesParts.join("\n") : undefined,
         });
         setImportedIds(prev => [...prev, result.id]);
         successCount++;
