@@ -218,7 +218,32 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                       <FormItem>
                         <FormLabel>NIF</FormLabel>
                         <FormControl>
-                          <Input placeholder="123456789" {...field} />
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="123456789"
+                              maxLength={9}
+                              {...field}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/\D/g, "").slice(0, 9);
+                                field.onChange(val);
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="shrink-0"
+                              onClick={handleNifSearch}
+                              disabled={isNifSearching || (field.value || "").replace(/\D/g, "").length !== 9}
+                              title="Pesquisar dados pelo NIF"
+                            >
+                              {isNifSearching ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Search className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
