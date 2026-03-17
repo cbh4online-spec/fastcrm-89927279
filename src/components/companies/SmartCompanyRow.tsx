@@ -176,7 +176,7 @@ export function SmartCompanyRow({
     ),
     industry: () => (
       <TableCell key="industry">
-        <EditableText field="industry" value={company.industry}>
+        <EditableText field="industry" value={company.industry} entityId={company.id} onUpdate={onUpdate}>
           {company.industry ? (
             <div className="flex items-center gap-1.5 text-sm"><Factory className="w-3 h-3 text-muted-foreground" /><span className="truncate max-w-[120px]">{company.industry}</span></div>
           ) : <span className="text-muted-foreground">—</span>}
@@ -185,17 +185,17 @@ export function SmartCompanyRow({
     ),
     source: () => (
       <TableCell key="source">
-        <EditableText field="source" value={company.source}>
+        <EditableText field="source" value={company.source} entityId={company.id} onUpdate={onUpdate}>
           <Badge variant="outline" className={cn("text-xs capitalize", sourceColor)}>{company.source || "Website"}</Badge>
         </EditableText>
       </TableCell>
     ),
-    city: () => <TableCell key="city"><EditableText field="city" value={company.city}><span className="text-sm">{company.city || "—"}</span></EditableText></TableCell>,
-    size: () => <TableCell key="size"><EditableText field="size" value={company.size}><span className="text-sm">{company.size || "—"}</span></EditableText></TableCell>,
-    phone: () => <TableCell key="phone"><EditableText field="phone" value={company.phone}><span className="text-sm">{company.phone || "—"}</span></EditableText></TableCell>,
+    city: () => <TableCell key="city"><EditableText field="city" value={company.city} entityId={company.id} onUpdate={onUpdate}><span className="text-sm">{company.city || "—"}</span></EditableText></TableCell>,
+    size: () => <TableCell key="size"><EditableText field="size" value={company.size} entityId={company.id} onUpdate={onUpdate}><span className="text-sm">{company.size || "—"}</span></EditableText></TableCell>,
+    phone: () => <TableCell key="phone"><EditableText field="phone" value={company.phone} entityId={company.id} onUpdate={onUpdate}><span className="text-sm">{company.phone || "—"}</span></EditableText></TableCell>,
     email: () => (
       <TableCell key="email">
-        <EditableText field="email" value={company.email}>
+        <EditableText field="email" value={company.email} entityId={company.id} onUpdate={onUpdate}>
           {company.email ? <a href={`mailto:${company.email}`} className="text-sm text-primary hover:underline">{company.email}</a> : <span className="text-sm text-muted-foreground">—</span>}
         </EditableText>
       </TableCell>
