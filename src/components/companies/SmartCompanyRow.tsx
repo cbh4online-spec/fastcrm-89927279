@@ -40,7 +40,8 @@ import {
   Users,
   TrendingUp,
   Signal,
-  Rocket
+  Rocket,
+  Pencil
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import React from "react";
