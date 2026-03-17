@@ -1103,6 +1103,7 @@ export default function GoogleLocalProspecting() {
 
           {/* Results */}
           {results.length > 0 && (
+            <>
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -1143,6 +1144,8 @@ export default function GoogleLocalProspecting() {
                         className={`p-4 rounded-lg border transition-colors ${
                           importedIds.includes(result.id)
                             ? "border-green-500 bg-green-500/5"
+                            : result._alreadyExists
+                            ? "opacity-60 border-muted"
                             : selectedResults.includes(result.id)
                             ? "border-primary bg-primary/5"
                             : "hover:border-primary/50"
@@ -1206,6 +1209,12 @@ export default function GoogleLocalProspecting() {
                                   {result.phone}
                                 </span>
                               )}
+                              {result.website && (
+                                <a href={result.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline">
+                                  <Globe className="h-3 w-3" />
+                                  Website
+                                </a>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1232,6 +1241,7 @@ export default function GoogleLocalProspecting() {
                 </Button>
               </div>
             )}
+            </>
           )}
 
           {/* Empty State */}
