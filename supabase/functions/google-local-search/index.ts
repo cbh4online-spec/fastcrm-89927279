@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { query, location, limit = 20 } = await req.json();
+    const { query, location, limit = 20, start = 0 } = await req.json();
 
     console.log("Google Local Search request:", { query, location, limit });
 
