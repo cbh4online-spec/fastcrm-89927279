@@ -92,15 +92,30 @@ export default function C2CSellerRegistration() {
     );
   }
 
-  // Already registered
+  // Already registered — approved sellers go straight to create listing
+  useEffect(() => {
+    if (sellerProfile?.status === "approved") {
+      navigate(`/marketplace/${workspaceSlug}/create`, { replace: true });
+    }
+  }, [sellerProfile, workspaceSlug, navigate]);
+
   if (sellerProfile) {
+    // If approved, the useEffect above will redirect — show nothing briefly
+    if (sellerProfile.status === "approved") {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="animate-pulse text-muted-foreground">A redirecionar...</div>
+        </div>
+      );
+    }
+
     const statusConfig = {
       pending: { icon: Clock, color: "text-yellow-600", bg: "bg-yellow-50", label: "Em Análise", desc: "A tua candidatura está a ser analisada pela equipa." },
-      approved: { icon: CheckCircle2, color: "text-green-600", bg: "bg-green-50", label: "Aprovado", desc: "Parabéns! Já podes publicar anúncios no marketplace." },
       rejected: { icon: XCircle, color: "text-red-600", bg: "bg-red-50", label: "Rejeitado", desc: sellerProfile.rejection_reason || "A tua candidatura não foi aprovada." },
       suspended: { icon: XCircle, color: "text-orange-600", bg: "bg-orange-50", label: "Suspenso", desc: "A tua conta de vendedor está suspensa." },
-    };
-    const s = statusConfig[sellerProfile.status];
+    } as const;
+    const s = statusConfig[sellerProfile.status as keyof typeof statusConfig];
+    if (!s) return null;
     const StatusIcon = s.icon;
 
     return (
@@ -122,11 +137,6 @@ export default function C2CSellerRegistration() {
               </div>
               <Badge variant="outline" className={s.color}>{s.label}</Badge>
               <p className="text-muted-foreground">{s.desc}</p>
-              {sellerProfile.status === "approved" && (
-                <Button className="mt-4" onClick={() => navigate(`/marketplace/${workspaceSlug}`)}>
-                  Ir para o Marketplace
-                </Button>
-              )}
             </CardContent>
           </Card>
         </div>
