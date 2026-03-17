@@ -55,59 +55,28 @@ export function useRegisterPayment() {
     mutationFn: async (input: RegisterPaymentInput) => {
       if (!currentWorkspace) throw new Error("No workspace");
 
-      const userId = (await workspaceClient.auth.getUser()).data.user?.id;
-
-      // Insert payment record
-      const { error: paymentError } = await workspaceClient
-        .from("invoice_payments")
-        .insert({
-          invoice_id: input.invoice_id,
-          workspace_id: currentWorkspace.id,
-          amount: input.amount,
-          payment_date: input.payment_date,
-          payment_method: input.payment_method || null,
-          reference: input.reference || null,
-          notes: input.notes || null,
-          created_by: userId,
-        });
-
-      if (paymentError) throw paymentError;
-
-      // Get invoice total and sum of all payments
-      const { data: invoice, error: invError } = await workspaceClient
-        .from("invoices")
-        .select("total, amount_paid")
-        .eq("id", input.invoice_id)
-        .single();
-
-      if (invError) throw invError;
-
-      const { data: payments, error: paymentsError } = await workspaceClient
-        .from("invoice_payments")
-        .select("amount")
-        .eq("invoice_id", input.invoice_id);
-
-      if (paymentsError) throw paymentsError;
-
-      const totalPaid = (payments || []).reduce((sum, p) => sum + Number(p.amount), 0);
-      const newStatus = totalPaid >= invoice.total ? "paid" : "partially_paid";
-
-      const updateData: Record<string, unknown> = {
-        amount_paid: totalPaid,
-        status: newStatus,
-      };
-      if (newStatus === "paid") {
-        updateData.paid_at = new Date().toISOString();
+      const normalizedAmount = Number(input.amount);
+      if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
+        throw new Error("Invalid payment amount");
       }
 
-      const { error: updateError } = await workspaceClient
-        .from("invoices")
-        .update(updateData)
-        .eq("id", input.invoice_id);
+      const { data, error } = await workspaceClient.rpc("register_invoice_payment", {
+        p_invoice_id: input.invoice_id,
+        p_workspace_id: currentWorkspace.id,
+        p_amount: normalizedAmount,
+        p_payment_date: input.payment_date,
+        p_payment_method: input.payment_method || null,
+        p_reference: input.reference || null,
+        p_notes: input.notes || null,
+      });
 
-      if (updateError) throw updateError;
+      if (error) throw error;
 
-      return { totalPaid, newStatus };
+      const result = Array.isArray(data) ? data[0] : data;
+      return {
+        totalPaid: Number(result?.total_paid ?? 0),
+        newStatus: String(result?.new_status ?? "partially_paid"),
+      };
     },
     onSuccess: (_, input) => {
       queryClient.invalidateQueries({ queryKey: ["invoice-payments", input.invoice_id] });
@@ -116,9 +85,9 @@ export function useRegisterPayment() {
       queryClient.invalidateQueries({ queryKey: ["invoice-stats"] });
       toast.success(t("paymentRegistered"));
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error registering payment:", error);
-      toast.error(t("paymentError"));
+      toast.error(error?.message || t("paymentError"));
     },
   });
 }

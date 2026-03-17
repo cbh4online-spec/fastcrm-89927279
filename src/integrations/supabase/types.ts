@@ -41658,6 +41658,21 @@ export type Database = {
           source_table: string
         }[]
       }
+      register_invoice_payment: {
+        Args: {
+          p_amount: number
+          p_invoice_id: string
+          p_notes?: string
+          p_payment_date?: string
+          p_payment_method?: string
+          p_reference?: string
+          p_workspace_id: string
+        }
+        Returns: {
+          new_status: string
+          total_paid: number
+        }[]
+      }
       release_agent_lock: {
         Args: {
           p_agent_type: string
