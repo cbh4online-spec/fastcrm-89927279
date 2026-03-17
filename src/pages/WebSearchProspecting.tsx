@@ -306,7 +306,7 @@ export default function WebSearchProspecting() {
                 const contentType = detectContentType(result.url);
                 const ContentIcon = contentType.icon;
                 return (
-                  <Card key={index} className="hover:shadow-md transition-shadow">
+                  <Card key={index} className={`hover:shadow-md transition-shadow ${result.alreadyExists ? "opacity-60 border-muted" : ""}`}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 space-y-2">
