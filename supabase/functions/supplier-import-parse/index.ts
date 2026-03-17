@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import * as XLSX from "xlsx";
+import * as XLSX from "https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
