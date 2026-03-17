@@ -241,6 +241,7 @@ export function ProductivityDashboard() {
               Atualizar
             </Button>
           </div>
+        }
       />
 
       {/* Content */}
