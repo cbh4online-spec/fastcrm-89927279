@@ -165,7 +165,6 @@ function SectionCarousel({ title, icon, listings, onNavigate, seeMoreHref, spons
 }
 
 /* ── Feature Detail Dialog ────────────────────────────────────────── */
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const featureDetails = [
   {
