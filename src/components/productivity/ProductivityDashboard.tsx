@@ -206,11 +206,41 @@ export function ProductivityDashboard() {
         searchPlaceholder={activeTab === 'coach' ? 'Pesquisar prioridades...' : 'Pesquisar metas...'}
         onSearchChange={setSearchValue}
         rightActions={
-          <Button variant="outline" size="sm" onClick={handleRefresh}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar
-          </Button>
-        }
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[220px] bg-popover z-50">
+                <DropdownMenuLabel>Briefing PDF</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleExport('daily', 'pdf')} className="gap-2">
+                  <FileDown className="h-4 w-4 text-red-500" />
+                  Briefing Diário (PDF)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('weekly', 'pdf')} className="gap-2">
+                  <FileDown className="h-4 w-4 text-red-500" />
+                  Briefing Semanal (PDF)
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Dados CSV</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleExport('daily', 'csv')} className="gap-2">
+                  <FileSpreadsheet className="h-4 w-4 text-green-500" />
+                  Dados Diários (CSV)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('weekly', 'csv')} className="gap-2">
+                  <FileSpreadsheet className="h-4 w-4 text-green-500" />
+                  Dados Semanais (CSV)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="outline" size="sm" onClick={handleRefresh}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Atualizar
+            </Button>
+          </div>
       />
 
       {/* Content */}
