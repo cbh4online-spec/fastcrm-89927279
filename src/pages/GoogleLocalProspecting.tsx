@@ -787,14 +787,38 @@ export default function GoogleLocalProspecting() {
         ? apiResults.filter(r => r.rating >= minRatingValue)
         : apiResults;
 
-      setResults(filteredByRating);
+      // Mark existing leads and previously found
+      const enrichedResults = filteredByRating.map(r => ({
+        ...r,
+        _alreadyExists: isExistingLead(r.title, r.phone, r.website),
+        _previouslyFound: allPreviousIdentifiers.has(r.id),
+      }));
+
+      // Sort: new first
+      enrichedResults.sort((a, b) => {
+        if (a._alreadyExists !== b._alreadyExists) return a._alreadyExists ? 1 : -1;
+        if (a._previouslyFound !== b._previouslyFound) return a._previouslyFound ? 1 : -1;
+        return 0;
+      });
+
+      setResults(enrichedResults);
       setImportedIds([]);
 
-      if (filteredByRating.length > 0) {
-        toast.success(`Encontrados ${filteredByRating.length} resultados`);
+      const newCount = enrichedResults.filter(r => !r._alreadyExists && !r._previouslyFound).length;
+      if (enrichedResults.length > 0) {
+        toast.success(`Encontrados ${enrichedResults.length} resultados (${newCount} novos)`);
       } else {
         toast.info("Nenhum resultado encontrado para esta pesquisa");
       }
+      
+      // Save to history
+      saveSearch.mutate({
+        query,
+        location: selectedLocation || undefined,
+        category: category !== "all" ? category : undefined,
+        results_count: enrichedResults.length,
+        result_identifiers: enrichedResults.map(r => r.id),
+      });
 
     } catch (error) {
       console.error("Search error:", error);
