@@ -163,8 +163,96 @@ function SectionCarousel({ title, icon, listings, onNavigate, seeMoreHref, spons
   );
 }
 
+/* ── Feature Detail Dialog ────────────────────────────────────────── */
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+
+const featureDetails = [
+  {
+    icon: ShieldCheck,
+    label: "Compra Segura",
+    desc: "Transações protegidas",
+    title: "Compra 100% Segura",
+    content: [
+      { heading: "Pagamentos protegidos", text: "Todos os pagamentos são processados de forma segura via Stripe. O dinheiro só é libertado ao vendedor após confirmação de receção." },
+      { heading: "Sistema de Escrow", text: "O valor da compra fica retido numa conta de garantia até o comprador confirmar que recebeu o artigo em boas condições." },
+      { heading: "Garantia de reembolso", text: "Se o artigo não corresponder à descrição ou não for entregue, recebes o reembolso total. Sem complicações." },
+      { heading: "Suporte dedicado", text: "Em caso de disputa, a nossa equipa de mediação intervém para garantir uma resolução justa para ambas as partes." },
+    ],
+  },
+  {
+    icon: Users,
+    label: "Comunidade Ativa",
+    desc: "Milhares de utilizadores",
+    title: "Comunidade de Confiança",
+    content: [
+      { heading: "Vendedores verificados", text: "Cada vendedor passa por um processo de verificação de identidade antes de poder publicar. Procura o selo azul de verificado." },
+      { heading: "Sistema de avaliações", text: "Após cada transação, compradores e vendedores avaliam-se mutuamente com estrelas e comentários públicos." },
+      { heading: "Badges de reputação", text: "Vendedores ganham badges como 'Super Seller' e 'Top Rated' baseado no seu histórico de vendas e avaliações." },
+      { heading: "Chat integrado", text: "Comunica diretamente com vendedores através do chat da plataforma. Sem partilhar dados pessoais." },
+    ],
+  },
+  {
+    icon: DollarSign,
+    label: "Sem Taxas p/ Comprador",
+    desc: "Compra sem comissões",
+    title: "Zero Taxas para Compradores",
+    content: [
+      { heading: "Compra sem custos extra", text: "Enquanto comprador, o preço que vês é o preço que pagas. Não existem comissões escondidas nem taxas de serviço." },
+      { heading: "Comissão apenas para vendedores", text: "A plataforma cobra apenas 5% de comissão sobre cada venda concluída. Este custo é suportado exclusivamente pelo vendedor." },
+      { heading: "Envio transparente", text: "Os custos de envio são sempre apresentados de forma clara antes de confirmar a compra. Sem surpresas." },
+      { heading: "Negociação livre", text: "Podes fazer ofertas e negociar preços diretamente com o vendedor através do sistema de propostas." },
+    ],
+  },
+  {
+    icon: Zap,
+    label: "Publicação Rápida",
+    desc: "Anuncia em 2 minutos",
+    title: "Publica em 2 Minutos",
+    content: [
+      { heading: "1. Tira fotos", text: "Fotografa o teu artigo com o telemóvel. Adiciona até 10 imagens para mostrar todos os detalhes." },
+      { heading: "2. Descreve o produto", text: "Preenche o título, descrição, categoria e estado do artigo. A IA pode ajudar-te a escrever a descrição perfeita." },
+      { heading: "3. Define o preço", text: "Escolhe o preço de venda. Vê sugestões baseadas em artigos semelhantes no marketplace." },
+      { heading: "4. Publica!", text: "Clica em publicar e o teu anúncio fica imediatamente visível para milhares de compradores." },
+    ],
+  },
+];
+
+function FeatureDetailDialog({ feature, open, onOpenChange }: {
+  feature: typeof featureDetails[number] | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  if (!feature) return null;
+  const Icon = feature.icon;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-zinc-900 border-zinc-700 text-white max-w-lg">
+        <DialogHeader>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="p-2.5 rounded-xl bg-amber-500/10">
+              <Icon className="h-6 w-6 text-amber-400" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-white">{feature.title}</DialogTitle>
+          </div>
+          <DialogDescription className="text-zinc-400 sr-only">{feature.desc}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-5 mt-2">
+          {feature.content.map((item, i) => (
+            <div key={i} className="space-y-1">
+              <h4 className="font-semibold text-sm text-amber-400">{item.heading}</h4>
+              <p className="text-sm text-zinc-300 leading-relaxed">{item.text}</p>
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /* ── Hero Section ────────────────────────────────────────────────── */
 function HeroSection({ onExplore, onSell }: { onExplore: () => void; onSell: () => void }) {
+  const [selectedFeature, setSelectedFeature] = useState<typeof featureDetails[number] | null>(null);
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-800">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(245,158,11,0.15),transparent_50%)]" />
@@ -195,21 +283,30 @@ function HeroSection({ onExplore, onSell }: { onExplore: () => void; onSell: () 
           </div>
 
           <div className="hidden md:grid grid-cols-2 gap-4">
-            {[
-              { icon: ShieldCheck, label: "Compra Segura", desc: "Transações protegidas" },
-              { icon: Users, label: "Comunidade Ativa", desc: "Milhares de utilizadores" },
-              { icon: DollarSign, label: "Sem Taxas p/ Comprador", desc: "Compra sem comissões" },
-              { icon: Zap, label: "Publicação Rápida", desc: "Anuncia em 2 minutos" },
-            ].map(({ icon: Icon, label, desc }) => (
-              <div key={label} className="bg-zinc-800/80 backdrop-blur-sm rounded-xl p-4 border border-zinc-700/50 hover:border-amber-500/30 hover:bg-zinc-800 transition-colors">
-                <Icon className="h-6 w-6 mb-2 text-amber-400" />
-                <h3 className="font-semibold text-sm text-white">{label}</h3>
-                <p className="text-xs text-zinc-400">{desc}</p>
-              </div>
-            ))}
+            {featureDetails.map((feat) => {
+              const Icon = feat.icon;
+              return (
+                <button
+                  key={feat.label}
+                  onClick={() => setSelectedFeature(feat)}
+                  className="bg-zinc-800/80 backdrop-blur-sm rounded-xl p-4 border border-zinc-700/50 hover:border-amber-500/30 hover:bg-zinc-800 transition-all text-left cursor-pointer group"
+                >
+                  <Icon className="h-6 w-6 mb-2 text-amber-400 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-semibold text-sm text-white">{feat.label}</h3>
+                  <p className="text-xs text-zinc-400">{feat.desc}</p>
+                  <span className="text-[10px] text-amber-500/60 mt-1 block group-hover:text-amber-400 transition-colors">Saber mais →</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
+
+      <FeatureDetailDialog
+        feature={selectedFeature}
+        open={!!selectedFeature}
+        onOpenChange={(open) => !open && setSelectedFeature(null)}
+      />
     </section>
   );
 }
