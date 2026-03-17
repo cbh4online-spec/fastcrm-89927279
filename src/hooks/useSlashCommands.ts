@@ -139,6 +139,36 @@ export function useSlashCommands() {
 
     try {
       switch (command.id) {
+        // === /ceo → CEO Copilot executive summary ===
+        case "ceo": {
+          const r = await callAskFastCRM(SLASH_TO_QUESTION.ceo, command, "🧠");
+          setResult(r);
+          break;
+        }
+        // === /revenue → Revenue Radar ===
+        case "revenue": {
+          const r = await callAskFastCRM(SLASH_TO_QUESTION.revenue, command, "💰");
+          setResult(r);
+          break;
+        }
+        // === /flight → Flight Control ===
+        case "flight": {
+          const r = await callAskFastCRM(SLASH_TO_QUESTION.flight, command, "🛫");
+          setResult(r);
+          break;
+        }
+        // === /metas → Goals/Targets ===
+        case "metas": {
+          if (args) {
+            // User wants to set a goal via conversation, pass to ask-fastcrm
+            const r = await callAskFastCRM(`definir meta: ${args}`, command, "🎯");
+            setResult(r);
+          } else {
+            const r = await callAskFastCRM(SLASH_TO_QUESTION.metas, command, "🎯");
+            setResult(r);
+          }
+          break;
+        }
         // === /brief → invoke strategic-intelligence-brief directly ===
         case "brief": {
           if (!currentWorkspace?.id) {
