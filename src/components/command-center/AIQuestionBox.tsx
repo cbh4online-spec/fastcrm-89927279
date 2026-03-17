@@ -14,10 +14,14 @@ import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 
 const PLACEHOLDERS = [
+  "Gera um brief executivo do meu negócio...",
+  "Como está a saúde do pipeline?",
+  "Qual o risco de churn esta semana?",
+  "Quero definir uma meta de receita de 5000€",
   "Quais deals estão parados há mais de 7 dias?",
   "Resumo de revenue desta semana...",
-  "Leads sem resposta nos últimos 3 dias",
-  "Qual é o meu pipeline total?",
+  "O que devo priorizar hoje?",
+  "Qual é o forecast para este mês?",
 ];
 
 interface ChatMessage {
