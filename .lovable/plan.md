@@ -1,29 +1,47 @@
 
+Objetivo: eliminar falsos “NIF não encontrado” (ex.: 514076380) sem perder rapidez.
 
-# Fix: Vulnerable Dependencies
+1) Diagnóstico confirmado
+- Verifiquei a função `lookup-company-nif` com `514076380`: atualmente devolve sucesso.
+- Nos logs, o mesmo NIF já falhou por erro transitório da fonte externa (`Firecrawl scrape error: 500` e `Signal timed out`).
+- Causa raiz: quando `nif.pt` devolve `result:error` e VIES não valida, uma falha temporária do Racius é tratada como “não encontrado”.
 
-## Analysis
+2) Correção no backend (principal)
+Ficheiro: `supabase/functions/lookup-company-nif/index.ts`
 
-**xlsx**: Already at version 0.20.3 via CDN tarball (`https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`). The security scanner is likely flagging based on the npm registry name which maps to older vulnerable versions. Version 0.20.3 from the official SheetJS CDN includes fixes for both the Prototype Pollution (GHSA-4r6h-8v6p-xvw6) and ReDoS (GHSA-5pgg-2g8v-p4x9) advisories. **No action needed** — this is a false positive from the scanner not recognizing the CDN tarball version.
+- Introduzir estado por fonte:
+  - `success` | `no_data` | `transient_error`.
+- Refatorar `tryFirecrawlRacius` para resiliência:
+  - retry curto (ex.: 2 tentativas) em 5xx/timeout;
+  - fallback de scrape da URL direta para URL de pesquisa;
+  - fallback final sem Firecrawl (fetch alternativo de conteúdo Racius em markdown) para reduzir dependência de um único provedor.
+- Melhorar decisão final:
+  - só devolver “não encontrado” quando houver evidência consistente de `no_data`;
+  - se todas as fontes falharem por erro transitório, devolver erro “temporário/retryable” (não “empresa não encontrada”).
+- Manter execução paralela para velocidade e timeouts agressivos.
 
-**@trigger.dev/sdk**: Not present in `package.json` at all (neither dependencies nor devDependencies). This is either a transitive dependency or a scanner false positive. The project uses Trigger.dev concepts via custom code (`src/trigger/client.ts`) and edge functions, but does not import the SDK package directly.
+3) Correção no frontend (evitar falha intermitente ao utilizador)
+Ficheiro: `src/hooks/useNifLookup.ts`
 
-## Plan
+- Interpretar novo erro retryable do backend.
+- Fazer 1 retry automático silencioso (sem toast duplicado) antes de mostrar erro.
+- Mensagens distintas:
+  - “não encontrado” (definitivo),
+  - “serviço temporariamente indisponível, tente novamente” (transitório).
 
-### 1. Confirm xlsx is safe (no code change needed)
-The installed version 0.20.3 from the SheetJS CDN already patches both known vulnerabilities. The scanner cannot resolve the version from the tarball URL.
+4) Uniformização dos pontos que não usam o hook
+Ficheiro: `src/components/settings/sections/CompanyBillingForm.tsx`
 
-### 2. Handle @trigger.dev/sdk
-Since it's not in `package.json`, this is either:
-- A stale lockfile entry — delete and regenerate `package-lock.json`
-- A scanner false positive
+- Substituir invoke manual por lógica partilhada (hook/helper) para herdar retry e mensagens corretas.
 
-**Action**: No code changes required. Both findings are false positives based on the current `package.json`.
+5) Validação da correção
+- Testar o NIF `514076380` em múltiplas chamadas seguidas e confirmar ausência de falsos negativos.
+- Testar um NIF realmente inexistente e confirmar resposta “não encontrado”.
+- Verificar logs da função para confirmar:
+  - retries acionados apenas em erro transitório;
+  - tempos médios mantidos (objetivo: resposta rápida na maioria dos casos).
 
-### 3. Optional: Add explicit comment for future audits
-Add a comment in `package.json` near the xlsx entry noting the CDN version is patched, to prevent repeated investigation.
-
-## Summary
-
-No code changes are necessary. Both flagged packages are either already patched (xlsx 0.20.3) or not actually installed (@trigger.dev/sdk). The security findings can be safely dismissed.
-
+Detalhes técnicos
+- Não requer alterações de base de dados.
+- Mantém a estratégia de fontes em paralelo; a melhoria é na classificação de erro, retries curtos e fallback de scraping.
+- Resultado esperado: menos falhas intermitentes e melhor perceção de fiabilidade sem degradar performance.
