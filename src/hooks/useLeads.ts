@@ -125,6 +125,19 @@ export interface CreateLeadInput {
   address?: string;
   city?: string;
   postal_code?: string;
+  // NIF enrichment fields
+  cae_codes?: string[];
+  cae_description?: string;
+  legal_nature?: string;
+  capital_social?: string;
+  founding_date?: string;
+  region?: string;
+  county?: string;
+  parish?: string;
+  fax?: string;
+  about?: string;
+  activity_description?: string;
+  racius_url?: string;
 }
 
 export interface UpdateLeadInput extends Partial<CreateLeadInput> {
