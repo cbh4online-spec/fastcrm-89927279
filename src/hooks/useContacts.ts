@@ -401,7 +401,8 @@ export function useContacts() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
-      queryClient.invalidateQueries({ queryKey: ["smart-contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["smart-contacts", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["contacts-kpis", currentWorkspace?.id] });
       console.log(`[CONTACTS] Bulk updated: ${variables.ids.length} contacts, fields: ${Object.keys(variables.changes).join(', ')}`);
       if (currentWorkspace) {
         emitKernelEvent({
