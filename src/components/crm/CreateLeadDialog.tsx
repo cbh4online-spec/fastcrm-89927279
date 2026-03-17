@@ -66,6 +66,20 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
   const createLead = useCreateLead();
   const customFieldsRef = useRef<CustomFieldsFormCreateRef>(null);
   const { trackLeadCreated } = useCRMAnalytics();
+  const { lookup, isLoading: isNifSearching } = useNifLookup({
+    showToasts: true,
+    onSuccess: (data: NifLookupResult) => {
+      // Auto-fill fields from NIF lookup
+      if (data.company_name) form.setValue("name", data.company_name);
+      if (data.address) form.setValue("address", data.address);
+      if (data.city) form.setValue("city", data.city);
+      if (data.postal_code) form.setValue("postal_code", data.postal_code);
+      if (data.email) form.setValue("email", data.email);
+      if (data.phone) form.setValue("phone", data.phone);
+      if (data.website) form.setValue("website", data.website);
+      if (data.cae_description) form.setValue("industry", data.cae_description);
+    },
+  });
 
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadSchema),
@@ -90,6 +104,17 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
   });
 
   const leadType = form.watch("lead_type");
+
+  const handleNifSearch = async () => {
+    const nif = form.getValues("tax_id");
+    const cleanNif = (nif || "").replace(/\D/g, "");
+    if (cleanNif.length !== 9) {
+      toast.error("NIF deve ter 9 dígitos");
+      return;
+    }
+    form.setValue("tax_id", cleanNif);
+    await lookup(cleanNif);
+  };
 
   const onSubmit = async (values: LeadFormValues) => {
     try {
