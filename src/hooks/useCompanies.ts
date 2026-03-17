@@ -385,6 +385,8 @@ export function useCompanies() {
     },
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["companies", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-companies", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["companies-kpis", currentWorkspace?.id] });
       toast.success("Empresa restaurada com sucesso");
       console.log(`[COMPANIES] Company restored: ${id}`);
       if (currentWorkspace) {
