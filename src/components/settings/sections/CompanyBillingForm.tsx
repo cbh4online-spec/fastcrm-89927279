@@ -51,27 +51,6 @@ const companyBillingSchema = z.object({
 
 type CompanyBillingFormData = z.infer<typeof companyBillingSchema>;
 
-interface LookupResult {
-  company_name?: string | null;
-  tax_id?: string | null;
-  address?: string | null;
-  postal_code?: string | null;
-  city?: string | null;
-  region?: string | null;
-  county?: string | null;
-  parish?: string | null;
-  cae_codes?: string[];
-  cae_description?: string | null;
-  company_status?: string | null;
-  legal_nature?: string | null;
-  capital_social?: string | null;
-  founding_date?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  website?: string | null;
-  fax?: string | null;
-  racius_url?: string | null;
-}
 
 export function CompanyBillingForm() {
   const { currentWorkspace, refreshWorkspaces } = useWorkspace();
