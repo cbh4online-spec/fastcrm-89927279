@@ -323,6 +323,18 @@ export default function WebSearchProspecting() {
                                 IA
                               </Badge>
                             )}
+                            {result.alreadyExists && (
+                              <Badge variant="destructive" className="shrink-0 text-xs gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                Já existe
+                              </Badge>
+                            )}
+                            {!result.alreadyExists && result.previouslyFound && (
+                              <Badge variant="secondary" className="shrink-0 text-xs gap-1">
+                                <History className="h-3 w-3" />
+                                Já encontrado
+                              </Badge>
+                            )}
                           </div>
                           
                           {result.description && (
