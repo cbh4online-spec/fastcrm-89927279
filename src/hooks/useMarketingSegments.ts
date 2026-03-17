@@ -186,18 +186,46 @@ export async function countSegmentEntities(
   const applyConditions = (query: any, conditions: typeof filterRules.conditions) => {
     for (const condition of conditions || []) {
       const value = typeof condition.value === 'string' ? condition.value : '';
-      switch (condition.field) {
-        case 'tags':
-          if (condition.operator === 'contains' && value) {
-            query = query.contains('tags', [value]);
-          }
+      const field = condition.field;
+
+      // Special handling for array fields like tags
+      if (field === 'tags') {
+        switch (condition.operator) {
+          case 'contains':
+            if (value) query = query.contains('tags', [value]);
+            break;
+          case 'not_contains':
+            if (value) query = query.not('tags', 'cs', `{${value}}`);
+            break;
+          case 'is_empty':
+            query = query.or('tags.is.null,tags.eq.{}');
+            break;
+          case 'is_not_empty':
+            query = query.not('tags', 'is', null).neq('tags', '{}');
+            break;
+        }
+        continue;
+      }
+
+      // Generic handling for text fields: source, company, job_title, city, lead_status, entity_type, etc.
+      switch (condition.operator) {
+        case 'equals':
+          if (value) query = query.eq(field, value);
           break;
-        case 'company':
-          if (condition.operator === 'equals' && value) {
-            query = query.eq('company', value);
-          } else if (condition.operator === 'contains' && value) {
-            query = query.ilike('company', `%${value}%`);
-          }
+        case 'not_equals':
+          if (value) query = query.neq(field, value);
+          break;
+        case 'contains':
+          if (value) query = query.ilike(field, `%${value}%`);
+          break;
+        case 'not_contains':
+          if (value) query = query.not(field, 'ilike', `%${value}%`);
+          break;
+        case 'is_empty':
+          query = query.is(field, null);
+          break;
+        case 'is_not_empty':
+          query = query.not(field, 'is', null);
           break;
       }
     }
