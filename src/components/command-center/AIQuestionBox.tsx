@@ -14,10 +14,14 @@ import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 
 const PLACEHOLDERS = [
+  "Gera um brief executivo do meu negócio...",
+  "Como está a saúde do pipeline?",
+  "Qual o risco de churn esta semana?",
+  "Quero definir uma meta de receita de 5000€",
   "Quais deals estão parados há mais de 7 dias?",
   "Resumo de revenue desta semana...",
-  "Leads sem resposta nos últimos 3 dias",
-  "Qual é o meu pipeline total?",
+  "O que devo priorizar hoje?",
+  "Qual é o forecast para este mês?",
 ];
 
 interface ChatMessage {
@@ -37,9 +41,17 @@ interface ChatMessage {
 function getContextualSuggestions(content: string): string[] {
   const lower = content.toLowerCase();
 
+  // Meta/goal set confirmation
+  if (lower.includes("meta") && (lower.includes("definida") || lower.includes("atualizada") || lower.includes("✅"))) {
+    return ["Gerar brief com base nas novas metas", "Ver progresso actual", "/revenue"];
+  }
   // Forecast / revenue with €0 or low confidence
   if ((lower.includes("€0") || lower.includes("0 €") || lower.includes("confiança baixa") || lower.includes("sem receita"))) {
     return ["O que posso fazer para melhorar?", "Como está o pipeline?", "/leads"];
+  }
+  // CEO / executive
+  if (lower.includes("ceo") || lower.includes("executivo") || lower.includes("visão global")) {
+    return ["Quais os maiores riscos?", "Ver Revenue Radar →", "/metas"];
   }
   // Lead-related
   if (lower.includes("lead") || lower.includes("leads")) {
@@ -50,15 +62,19 @@ function getContextualSuggestions(content: string): string[] {
     return ["Quais estão em risco?", "Como acelerar o fecho?", "/forecast"];
   }
   // Brief
-  if (lower.includes("brief") || lower.includes("executivo") || lower.includes("resumo")) {
-    return ["Quais são as prioridades?", "/pipeline", "/forecast"];
+  if (lower.includes("brief") || lower.includes("resumo")) {
+    return ["Quais são as prioridades?", "Ajustar metas →", "/revenue"];
   }
   // Forecast
   if (lower.includes("previsão") || lower.includes("forecast") || lower.includes("receita")) {
     return ["Que deals estão em risco?", "Como melhorar a previsão?", "/brief"];
   }
+  // Metas / goals
+  if (lower.includes("meta") || lower.includes("objetivo") || lower.includes("target")) {
+    return ["Definir meta de receita", "Ver performance", "/ceo"];
+  }
   // Default
-  return ["Explica mais", "O que devo fazer?", "/brief"];
+  return ["Explica mais", "O que devo fazer?", "/ceo"];
 }
 
 export function AIQuestionBox() {

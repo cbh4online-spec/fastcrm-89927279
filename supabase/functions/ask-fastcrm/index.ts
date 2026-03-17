@@ -240,6 +240,40 @@ const KEYWORD_MAP: Record<string, string> = {
   "menos leads": "lead_drop_analysis",
   "lead drop": "lead_drop_analysis",
   "entrada de leads": "lead_drop_analysis",
+  // Goal / target setting
+  "meta de receita": "set_target",
+  "meta receita": "set_target",
+  "objetivo receita": "set_target",
+  "definir meta": "set_target",
+  "alterar meta": "set_target",
+  "mudar meta": "set_target",
+  "meta de reuniões": "set_target",
+  "meta reuniões": "set_target",
+  "meta de deals": "set_target",
+  "meta deals": "set_target",
+  "meta de pipeline": "set_target",
+  "meta pipeline": "set_target",
+  "quero fechar": "set_target",
+  "objetivo:": "set_target",
+  "minha meta": "set_target",
+  // View current goals
+  "metas actuais": "view_targets",
+  "metas atuais": "view_targets",
+  "quais são as metas": "view_targets",
+  "ver metas": "view_targets",
+  "objetivos actuais": "view_targets",
+  "objetivos atuais": "view_targets",
+  // CEO copilot
+  "ceo copilot": "ceo_summary",
+  "resumo executivo completo": "ceo_summary",
+  "visão global": "ceo_summary",
+  "executive summary": "ceo_summary",
+  // Revenue radar
+  "revenue radar": "revenue_radar",
+  "estado da receita": "revenue_radar",
+  // Flight control
+  "flight control": "flight_control",
+  "saúde do negócio": "flight_control",
 };
 
 const EXACT_PHRASES: Record<string, string> = {
@@ -322,6 +356,25 @@ const EXACT_PHRASES: Record<string, string> = {
   "porque caíram os leads": "lead_drop_analysis",
   "queda de leads": "lead_drop_analysis",
   "menos leads esta semana": "lead_drop_analysis",
+  // Goal/target setting
+  "definir meta": "set_target",
+  "quero definir uma meta": "set_target",
+  "alterar meta": "set_target",
+  "meta de receita": "set_target",
+  // View targets
+  "quais são as metas": "view_targets",
+  "ver metas": "view_targets",
+  "metas actuais": "view_targets",
+  "metas atuais": "view_targets",
+  // CEO
+  "ceo copilot": "ceo_summary",
+  "resumo executivo completo": "ceo_summary",
+  // Revenue
+  "revenue radar": "revenue_radar",
+  "estado da receita": "revenue_radar",
+  // Flight
+  "flight control": "flight_control",
+  "saúde do negócio": "flight_control",
 };
 
 function classifyByKeyword(question: string): KeywordMatch | null {
@@ -555,6 +608,168 @@ function getActionsAvailable(intent: string, hasItems: boolean): string[] {
   }
 }
 
+// --- Goal-setting handler ---
+async function handleSetTarget(
+  question: string,
+  workspaceId: string,
+  userId: string,
+  serviceClient: any
+): Promise<AskResponse> {
+  // Extract metric type and value using patterns
+  const lower = question.toLowerCase();
+  let metricType = "revenue";
+  let targetValue: number | null = null;
+
+  // Detect metric type
+  if (/reuni[õo]|meetings?/i.test(lower)) metricType = "meetings";
+  else if (/deals?|oportunidade/i.test(lower)) metricType = "deals_closed";
+  else if (/pipeline/i.test(lower)) metricType = "pipeline_generated";
+  else if (/leads?/i.test(lower)) metricType = "leads";
+
+  // Extract number
+  const numMatch = lower.match(/(\d[\d.,]*)\s*[€$]?/);
+  if (numMatch) {
+    targetValue = parseFloat(numMatch[1].replace(/\./g, "").replace(",", "."));
+  }
+  // Also try €X format
+  const euroMatch = lower.match(/[€$]\s*(\d[\d.,]*)/);
+  if (!targetValue && euroMatch) {
+    targetValue = parseFloat(euroMatch[1].replace(/\./g, "").replace(",", "."));
+  }
+
+  if (!targetValue || targetValue <= 0) {
+    return buildResponse("set_target", "deals", { filters: [], sort: [], limit: 0 }, "deterministic", 0.8, {
+      headline: "Não consegui extrair o valor da meta",
+      subtext: "Diz algo como: \"Meta de receita 5000€\" ou \"Quero fechar 3 deals esta semana\".",
+    });
+  }
+
+  // Calculate period (current week)
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const periodStart = new Date(now);
+  periodStart.setDate(now.getDate() + mondayOffset);
+  periodStart.setHours(0, 0, 0, 0);
+  const periodEnd = new Date(periodStart);
+  periodEnd.setDate(periodStart.getDate() + 6);
+  periodEnd.setHours(23, 59, 59, 999);
+
+  const startStr = periodStart.toISOString().split("T")[0];
+  const endStr = periodEnd.toISOString().split("T")[0];
+
+  // Upsert to performance_targets
+  const { error } = await serviceClient
+    .from("performance_targets")
+    .upsert(
+      {
+        workspace_id: workspaceId,
+        metric_type: metricType,
+        target_value: targetValue,
+        period_type: "weekly",
+        period_start: startStr,
+        period_end: endStr,
+        created_by: userId,
+      },
+      { onConflict: "workspace_id,metric_type,period_start" }
+    );
+
+  if (error) {
+    // If unique constraint doesn't exist, try insert/update separately
+    const { data: existing } = await serviceClient
+      .from("performance_targets")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("metric_type", metricType)
+      .eq("period_start", startStr)
+      .maybeSingle();
+
+    if (existing) {
+      await serviceClient
+        .from("performance_targets")
+        .update({ target_value: targetValue })
+        .eq("id", existing.id);
+    } else {
+      await serviceClient
+        .from("performance_targets")
+        .insert({
+          workspace_id: workspaceId,
+          metric_type: metricType,
+          target_value: targetValue,
+          period_type: "weekly",
+          period_start: startStr,
+          period_end: endStr,
+          created_by: userId,
+        });
+    }
+  }
+
+  const metricLabels: Record<string, string> = {
+    revenue: "receita",
+    meetings: "reuniões",
+    deals_closed: "deals fechados",
+    pipeline_generated: "pipeline gerado",
+    leads: "leads",
+  };
+
+  const formattedValue = metricType === "revenue" || metricType === "pipeline_generated"
+    ? `${targetValue.toLocaleString("pt-PT")}€`
+    : `${targetValue}`;
+
+  return buildResponse("set_target", "deals", { filters: [], sort: [], limit: 0 }, "deterministic", 0.95, {
+    headline: `Meta de ${metricLabels[metricType] || metricType} semanal definida: ${formattedValue} ✅`,
+    subtext: `Período: ${startStr} a ${endStr}. Podes acompanhar o progresso no Performance Engine ou perguntar-me "como estão as metas".`,
+  });
+}
+
+// --- View targets handler ---
+async function handleViewTargets(
+  workspaceId: string,
+  serviceClient: any
+): Promise<AskResponse> {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const periodStart = new Date(now);
+  periodStart.setDate(now.getDate() + mondayOffset);
+  periodStart.setHours(0, 0, 0, 0);
+  const startStr = periodStart.toISOString().split("T")[0];
+
+  const { data: targets } = await serviceClient
+    .from("performance_targets")
+    .select("*")
+    .eq("workspace_id", workspaceId)
+    .eq("period_start", startStr);
+
+  if (!targets || targets.length === 0) {
+    return buildResponse("view_targets", "deals", { filters: [], sort: [], limit: 0 }, "deterministic", 0.9, {
+      headline: "Sem metas definidas para esta semana",
+      subtext: "Diz algo como: \"Meta de receita 5000€\" ou \"Quero fechar 3 deals\" para definir uma meta.",
+    });
+  }
+
+  const metricLabels: Record<string, string> = {
+    revenue: "💰 Receita",
+    meetings: "📅 Reuniões",
+    deals_closed: "🤝 Deals Fechados",
+    pipeline_generated: "📊 Pipeline Gerado",
+    leads: "👥 Leads",
+  };
+
+  const lines = targets.map((t: any) => {
+    const label = metricLabels[t.metric_type] || t.metric_type;
+    const val = t.metric_type === "revenue" || t.metric_type === "pipeline_generated"
+      ? `${Number(t.target_value).toLocaleString("pt-PT")}€`
+      : `${t.target_value}`;
+    return `- ${label}: **${val}**`;
+  });
+
+  return buildResponse("view_targets", "deals", { filters: [], sort: [], limit: 0 }, "deterministic", 0.95, {
+    headline: `Metas desta semana (${startStr})`,
+    subtext: lines.join("\n") + "\n\nPara alterar, diz: \"Meta de receita 8000€\"",
+  });
+}
+
 // --- Main handler ---
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -625,6 +840,52 @@ Deno.serve(async (req) => {
       const detectedObjectType = detectAutomationObjectType(question);
       const automationResponse = await handleAutomationIntent(question, workspaceId, claimsData.claims.sub, serviceClient, detectedObjectType);
       return new Response(JSON.stringify(automationResponse), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- Goal-setting intent: extract and upsert target ---
+    if (keywordResult?.intent === "set_target") {
+      const targetResponse = await handleSetTarget(question, workspaceId, claimsData.claims.sub, serviceClient);
+      return new Response(JSON.stringify(targetResponse), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- View targets intent ---
+    if (keywordResult?.intent === "view_targets") {
+      const viewResponse = await handleViewTargets(workspaceId, serviceClient);
+      return new Response(JSON.stringify(viewResponse), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- CEO/Revenue/Flight: route to combined pipeline+forecast summary ---
+    if (keywordResult?.intent === "ceo_summary" || keywordResult?.intent === "revenue_radar" || keywordResult?.intent === "flight_control") {
+      // Map to pipeline_summary which gives a comprehensive overview
+      const mappedIntent = "pipeline_summary";
+      const query = buildStructuredQuery(mappedIntent, 14);
+      const handlerResult = await executeIntent(serviceClient, workspaceId, mappedIntent, 14);
+      
+      const intentLabels: Record<string, string> = {
+        ceo_summary: "🧠 CEO Copilot",
+        revenue_radar: "💰 Revenue Radar",
+        flight_control: "🛫 Flight Control",
+      };
+      
+      // Override headline with strategic framing
+      handlerResult.headline = `${intentLabels[keywordResult.intent]} — ${handlerResult.headline || "Visão Global"}`;
+      
+      const response = buildResponse(keywordResult.intent, "deals", query, "deterministic", 0.90, {
+        ...handlerResult,
+        actions_available: [ACTIONS_ENUM.NAVIGATE],
+        actions: [
+          ...(handlerResult.actions || []),
+          { id: "nav-ceo", type: "navigate", label: "Ver CEO Copilot →", payload: { link: "/dashboard/ceo-copilot" } },
+          { id: "nav-revenue", type: "navigate", label: "Ver Revenue Radar →", payload: { link: "/dashboard/revenue-radar" } },
+        ],
+      });
+      return new Response(JSON.stringify(response), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
