@@ -855,18 +855,19 @@ export default function GoogleLocalProspecting() {
         if (result.hours) notesParts.push(`🕐 Horário: ${result.hours}`);
         if (result.services?.length) notesParts.push(`📋 Serviços: ${result.services.join(", ")}`);
         
+        const aboutText = [result.description || result.category, ...notesParts].filter(Boolean).join("\n");
+        
         await createLead.mutateAsync({
           name: result.title,
           phone: result.phone || undefined,
           website: result.website || undefined,
           address: result.address || undefined,
           city: city || undefined,
-          about: result.description || result.category || undefined,
+          about: aboutText || undefined,
           industry: result.category || undefined,
           lead_type: "company",
           source: "google_local",
           status: "new",
-          notes: notesParts.length > 0 ? notesParts.join("\n") : undefined,
         });
         setImportedIds(prev => [...prev, result.id]);
         successCount++;
