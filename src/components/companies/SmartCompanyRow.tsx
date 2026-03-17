@@ -133,6 +133,37 @@ export function SmartCompanyRow({
     return `€${value}`;
   };
 
+  // Inline editable text cell helper
+  const EditableText = ({ field, value, children }: { field: string; value: string | null | undefined; children: React.ReactNode }) => {
+    const [editing, setEditing] = useState(false);
+    const [draft, setDraft] = useState(value || "");
+    const ref = useRef<HTMLInputElement>(null);
+
+    useEffect(() => { if (editing && ref.current) { ref.current.focus(); ref.current.select(); } }, [editing]);
+
+    if (!onUpdate) return <>{children}</>;
+    if (editing) {
+      return (
+        <div onClick={e => e.stopPropagation()}>
+          <input
+            ref={ref}
+            className="h-7 w-full min-w-[100px] rounded border border-primary/30 bg-background px-2 text-xs outline-none focus:ring-1 focus:ring-primary/50"
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onBlur={() => { setEditing(false); if (draft !== (value || "")) onUpdate(company.id, field, draft || null); }}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); } if (e.key === "Escape") { setEditing(false); setDraft(value || ""); } }}
+          />
+        </div>
+      );
+    }
+    return (
+      <div className="group/ec cursor-pointer inline-flex items-center gap-1 rounded px-1 -mx-1 hover:bg-muted/60 transition-colors min-h-[28px]" onClick={e => { e.stopPropagation(); setDraft(value || ""); setEditing(true); }} title="Clique para editar">
+        {children}
+        <Pencil className="h-3 w-3 text-muted-foreground/30 opacity-0 group-hover/ec:opacity-100 transition-opacity shrink-0" />
+      </div>
+    );
+  };
+
   const cellRenderers: Record<string, () => React.ReactNode> = {
     name: () => (
       <TableCell key="name" className={cn("min-w-[200px]", stickyNameStyles)}>
@@ -154,17 +185,23 @@ export function SmartCompanyRow({
     ),
     industry: () => (
       <TableCell key="industry">
-        {company.industry ? (
-          <div className="flex items-center gap-1.5 text-sm"><Factory className="w-3 h-3 text-muted-foreground" /><span className="truncate max-w-[120px]">{company.industry}</span></div>
-        ) : <span className="text-muted-foreground">—</span>}
+        <EditableText field="industry" value={company.industry}>
+          {company.industry ? (
+            <div className="flex items-center gap-1.5 text-sm"><Factory className="w-3 h-3 text-muted-foreground" /><span className="truncate max-w-[120px]">{company.industry}</span></div>
+          ) : <span className="text-muted-foreground">—</span>}
+        </EditableText>
       </TableCell>
     ),
     source: () => (
-      <TableCell key="source"><Badge variant="outline" className={cn("text-xs capitalize", sourceColor)}>{company.source || "Website"}</Badge></TableCell>
+      <TableCell key="source">
+        <EditableText field="source" value={company.source}>
+          <Badge variant="outline" className={cn("text-xs capitalize", sourceColor)}>{company.source || "Website"}</Badge>
+        </EditableText>
+      </TableCell>
     ),
-    city: () => <TableCell key="city"><span className="text-sm">{company.city || "—"}</span></TableCell>,
-    size: () => <TableCell key="size"><span className="text-sm">{company.size || "—"}</span></TableCell>,
-    phone: () => <TableCell key="phone"><span className="text-sm">{company.phone || "—"}</span></TableCell>,
+    city: () => <TableCell key="city"><EditableText field="city" value={company.city}><span className="text-sm">{company.city || "—"}</span></EditableText></TableCell>,
+    size: () => <TableCell key="size"><EditableText field="size" value={company.size}><span className="text-sm">{company.size || "—"}</span></EditableText></TableCell>,
+    phone: () => <TableCell key="phone"><EditableText field="phone" value={company.phone}><span className="text-sm">{company.phone || "—"}</span></EditableText></TableCell>,
     email: () => (
       <TableCell key="email">
         {company.email ? <a href={`mailto:${company.email}`} className="text-sm text-primary hover:underline">{company.email}</a> : <span className="text-sm text-muted-foreground">—</span>}
