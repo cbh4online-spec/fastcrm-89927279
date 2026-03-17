@@ -76,6 +76,30 @@ export function ProductivityDashboard() {
     { id: 'goals', label: 'Metas', icon: <Target className="h-4 w-4" />, count: stats.totalGoals },
   ];
 
+  const handleExport = (mode: 'daily' | 'weekly', format: 'pdf' | 'csv') => {
+    const exportData = {
+      priorities,
+      goals,
+      meetings,
+      weeklyMetrics: weeklyData?.metrics,
+      weekLabel: weeklyData?.weekLabel,
+      workspaceName: currentWorkspace?.name || '',
+      userName: user?.user_metadata?.full_name || '',
+    };
+
+    try {
+      if (format === 'pdf') {
+        exportProductivityPDF(mode, exportData);
+      } else {
+        exportProductivityCSV(mode, exportData);
+      }
+      toast.success(`Briefing ${mode === 'daily' ? 'diário' : 'semanal'} exportado!`);
+    } catch (err) {
+      toast.error('Erro ao exportar');
+      console.error('Export error:', err);
+    }
+  };
+
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['productivity-priorities'] });
     queryClient.invalidateQueries({ queryKey: ['productivity-goals'] });
