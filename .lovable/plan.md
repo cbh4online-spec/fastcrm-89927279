@@ -1,29 +1,42 @@
 
 
-# Fix: Vulnerable Dependencies
+## Plano: Histórico de pesquisas + Desduplicação de resultados (Web Search & Google Local)
 
-## Analysis
+### Problemas
+1. **Sem histórico** — pesquisas anteriores perdem-se ao navegar para outra página
+2. **Resultados repetidos** — pesquisar novamente devolve os mesmos resultados já importados
+3. **Google Local perde dados** — `importLeads` só guarda `name`, `phone`, `source`; ignora `website`, `address`, `category`, `rating`, `hours`
 
-**xlsx**: Already at version 0.20.3 via CDN tarball (`https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`). The security scanner is likely flagging based on the npm registry name which maps to older vulnerable versions. Version 0.20.3 from the official SheetJS CDN includes fixes for both the Prototype Pollution (GHSA-4r6h-8v6p-xvw6) and ReDoS (GHSA-5pgg-2g8v-p4x9) advisories. **No action needed** — this is a false positive from the scanner not recognizing the CDN tarball version.
+### Solução
 
-**@trigger.dev/sdk**: Not present in `package.json` at all (neither dependencies nor devDependencies). This is either a transitive dependency or a scanner false positive. The project uses Trigger.dev concepts via custom code (`src/trigger/client.ts`) and edge functions, but does not import the SDK package directly.
+**1. Tabela de histórico de pesquisas** (nova migração)
+- Tabela `prospecting_searches`: `id`, `workspace_id`, `user_id`, `search_type` (web_search | google_local), `query`, `location`, `category`, `results_count`, `imported_count`, `result_urls` (text[]), `created_at`
+- RLS: utilizadores autenticados veem apenas do seu workspace
 
-## Plan
+**2. Desduplicação nos resultados** (ambas as páginas)
+- Após receber resultados, comparar com leads existentes no workspace por `name` + `phone` ou `website`
+- Marcar visualmente com badge "Já existe" os que já foram importados
+- Permitir reimportar manualmente se desejado
+- Também comparar com `result_urls` do histórico de pesquisas para marcar "Já encontrado antes"
 
-### 1. Confirm xlsx is safe (no code change needed)
-The installed version 0.20.3 from the SheetJS CDN already patches both known vulnerabilities. The scanner cannot resolve the version from the tarball URL.
+**3. Histórico visível na UI** (ambas as páginas)
+- Secção colapsável "Pesquisas anteriores" com últimas 20 pesquisas
+- Clicar numa pesquisa anterior repete-a (pre-fill dos termos)
+- Badge com contagem de leads importados por pesquisa
 
-### 2. Handle @trigger.dev/sdk
-Since it's not in `package.json`, this is either:
-- A stale lockfile entry — delete and regenerate `package-lock.json`
-- A scanner false positive
+**4. Google Local — enriquecer importação** (`importLeads`)
+- Mapear todos os campos disponíveis: `website`, `address`, `city` (extraído da morada), `about` (businessType + description), `industry` (category), `lead_type: "company"`
+- Formatar `notes` com rating, reviews, horário
 
-**Action**: No code changes required. Both findings are false positives based on the current `package.json`.
+**5. Paginação/offset no Google Local** (edge function + frontend)
+- Suporte a `start` offset na SerpAPI
+- Botão "Carregar mais" que incrementa offset para obter resultados novos
+- Na Web Search (Firecrawl), não há offset nativo — a desduplicação via histórico resolve o problema
 
-### 3. Optional: Add explicit comment for future audits
-Add a comment in `package.json` near the xlsx entry noting the CDN version is patched, to prevent repeated investigation.
-
-## Summary
-
-No code changes are necessary. Both flagged packages are either already patched (xlsx 0.20.3) or not actually installed (@trigger.dev/sdk). The security findings can be safely dismissed.
+### Ficheiros a criar/editar
+- **Migração SQL**: tabela `prospecting_searches` + RLS
+- `src/hooks/useProspectingHistory.ts` — hook para CRUD do histórico
+- `src/pages/GoogleLocalProspecting.tsx` — enriquecer importação + desduplicação + histórico + offset
+- `src/pages/WebSearchProspecting.tsx` — desduplicação + histórico
+- `supabase/functions/google-local-search/index.ts` — suporte a parâmetro `start`
 
