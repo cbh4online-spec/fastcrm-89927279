@@ -19,7 +19,7 @@ import type { C2CListing, C2CCategory, C2CListingFilters } from "@/hooks/useC2CL
 import {
   Store, Search, Sparkles, TrendingUp, Clock, ChevronRight, ChevronLeft,
   ShieldCheck, Truck, Award, MessageCircle, Plus, Users, ArrowRight,
-  DollarSign, Eye, Zap,
+  DollarSign, Eye, Zap, Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ShareButtons } from "@/components/c2c/ShareButtons";
