@@ -46,6 +46,12 @@ export interface UseNifLookupOptions {
   showToasts?: boolean;
 }
 
+async function invokeNifLookup(cleanNif: string): Promise<{ data: any; error: any }> {
+  return supabase.functions.invoke("lookup-company-nif", {
+    body: { nif: cleanNif },
+  });
+}
+
 export function useNifLookup(options: UseNifLookupOptions = {}) {
   const { onSuccess, onError, showToasts = true } = options;
   
@@ -70,62 +76,94 @@ export function useNifLookup(options: UseNifLookupOptions = {}) {
     setStatus("idle");
     setMessage(null);
 
-    try {
-      const { data: response, error } = await supabase.functions.invoke("lookup-company-nif", {
-        body: { nif: cleanNif },
-      });
+    // Try up to 2 attempts (initial + 1 silent retry for transient errors)
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const { data: response, error } = await invokeNifLookup(cleanNif);
 
-      if (error) {
-        // Try to extract error message from the response context
-        const ctx = (error as any)?.context;
-        if (ctx && typeof ctx.json === 'function') {
-          try {
-            const body = await ctx.json();
-            if (body?.error) {
-              setStatus("error");
-              setMessage(body.error);
-              if (showToasts) toast.error(body.error);
-              onError?.(body.error);
-              return null;
-            }
-          } catch {}
+        if (error) {
+          // Try to extract error message from the response context
+          const ctx = (error as any)?.context;
+          if (ctx && typeof ctx.json === 'function') {
+            try {
+              const body = await ctx.json();
+              if (body?.retryable && attempt === 0) {
+                console.log(`[NIF] Retryable error on attempt ${attempt + 1}, retrying...`);
+                await new Promise(r => setTimeout(r, 600));
+                continue;
+              }
+              if (body?.error) {
+                setStatus("error");
+                setMessage(body.error);
+                if (showToasts) toast.error(body.error);
+                onError?.(body.error);
+                return null;
+              }
+            } catch {}
+          }
+          throw error;
         }
-        throw error;
-      }
 
-      if (response.error) {
-        setStatus("error");
-        setMessage(response.error);
-        if (showToasts) toast.error(response.error);
-        onError?.(response.error);
-        return null;
-      }
+        // Handle retryable errors from backend (returned as 200 with retryable flag)
+        if (response?.retryable && !response?.success && attempt === 0) {
+          console.log(`[NIF] Retryable error on attempt ${attempt + 1}, retrying silently...`);
+          await new Promise(r => setTimeout(r, 600));
+          continue;
+        }
 
-      if (response.success && response.data) {
-        const result: NifLookupResult = response.data;
-        setData(result);
-        setStatus("success");
-        setMessage("Dados da empresa encontrados!");
-        if (showToasts) toast.success("Dados da empresa encontrados!");
-        console.log(`[COMPANIES] NIF lookup success: ${cleanNif}`);
-        onSuccess?.(result);
-        return result;
-      } else {
-        const errorMsg = "Empresa não encontrada para este NIF";
+        if (response?.error && !response?.success) {
+          const errorMsg = response.retryable
+            ? "Serviço temporariamente indisponível. Tente novamente."
+            : response.error;
+          setStatus("error");
+          setMessage(errorMsg);
+          if (showToasts) toast.error(errorMsg);
+          onError?.(errorMsg);
+          return null;
+        }
+
+        if (response?.success && response?.data) {
+          const result: NifLookupResult = response.data;
+          setData(result);
+          setStatus("success");
+          setMessage("Dados da empresa encontrados!");
+          if (showToasts) toast.success("Dados da empresa encontrados!");
+          console.log(`[COMPANIES] NIF lookup success: ${cleanNif}`);
+          onSuccess?.(result);
+          return result;
+        } else {
+          const errorMsg = "Empresa não encontrada para este NIF";
+          setStatus("error");
+          setMessage(errorMsg);
+          if (showToasts) toast.error(errorMsg);
+          onError?.(errorMsg);
+          return null;
+        }
+      } catch (error) {
+        // On first attempt, retry silently
+        if (attempt === 0) {
+          console.warn(`[NIF] Attempt ${attempt + 1} failed, retrying...`, (error as Error).message);
+          await new Promise(r => setTimeout(r, 600));
+          continue;
+        }
+        console.warn(`[COMPANIES] NIF lookup failed: ${cleanNif}`, error);
+        const errorMsg = "Erro ao pesquisar empresa. Tente novamente.";
         setStatus("error");
         setMessage(errorMsg);
         if (showToasts) toast.error(errorMsg);
         onError?.(errorMsg);
         return null;
       }
-    } catch (error) {
-      console.warn(`[COMPANIES] NIF lookup failed: ${cleanNif}`, error);
-      const errorMsg = "Erro ao pesquisar empresa. Tente novamente.";
-      setStatus("error");
-      setMessage(errorMsg);
-      if (showToasts) toast.error(errorMsg);
-      onError?.(errorMsg);
-      return null;
+    }
+
+    setIsLoading(false);
+    return null;
+  }
+
+  // Wrap lookup to always clear loading
+  async function lookupWithCleanup(nif: string): Promise<NifLookupResult | null> {
+    try {
+      return await lookup(nif);
     } finally {
       setIsLoading(false);
     }
@@ -139,7 +177,7 @@ export function useNifLookup(options: UseNifLookupOptions = {}) {
   }
 
   return {
-    lookup,
+    lookup: lookupWithCleanup,
     reset,
     isLoading,
     status,

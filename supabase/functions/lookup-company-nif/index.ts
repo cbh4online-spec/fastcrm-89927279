@@ -28,88 +28,163 @@ interface LookupResult {
   company_age: number | null;
 }
 
+type SourceStatus = 'success' | 'no_data' | 'transient_error';
+
+interface SourceResult {
+  status: SourceStatus;
+  data: LookupResult | null;
+}
+
+interface ViesSourceResult {
+  status: SourceStatus;
+  data: { company_name: string | null; address: string | null; valid: boolean } | null;
+}
+
+// ─── Retry helper for transient errors ───
+async function withRetry<T>(fn: () => Promise<T>, retries = 1, delayMs = 500): Promise<T> {
+  let lastError: Error | null = null;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error as Error;
+      const msg = lastError.message || '';
+      const isTransient = msg.includes('timed out') || msg.includes('timeout') || msg.includes('500') || msg.includes('502') || msg.includes('503') || msg.includes('abort');
+      if (!isTransient || i === retries) throw lastError;
+      console.log(`[NIF] Retry ${i + 1}/${retries} after: ${msg}`);
+      if (delayMs > 0) await new Promise(r => setTimeout(r, delayMs));
+    }
+  }
+  throw lastError;
+}
+
 // ─── nif.pt API attempt (with timeout) ───
-async function tryNifPt(cleanNif: string): Promise<LookupResult | null> {
+async function tryNifPt(cleanNif: string): Promise<SourceResult> {
   const apiKey = Deno.env.get('NIF_PT_API_KEY');
   if (!apiKey) {
     console.log('[NIF] NIF_PT_API_KEY not configured, skipping nif.pt');
-    return null;
+    return { status: 'no_data', data: null };
   }
 
   try {
-    const apiUrl = `https://www.nif.pt/?json=1&q=${cleanNif}&key=${apiKey}`;
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(6000),
-    });
+    const result = await withRetry(async () => {
+      const apiUrl = `https://www.nif.pt/?json=1&q=${cleanNif}&key=${apiKey}`;
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(6000),
+      });
 
-    if (!response.ok) {
-      console.warn('[NIF] nif.pt API returned:', response.status);
-      return null;
+      if (!response.ok) {
+        if (response.status >= 500) {
+          throw new Error(`nif.pt server error: ${response.status}`);
+        }
+        console.warn('[NIF] nif.pt API returned:', response.status);
+        return null;
+      }
+
+      const data = await response.json();
+      console.log('[NIF] nif.pt response result:', data.result);
+
+      if (data.result === 'error' || data.result !== 'success' || !data.records || Object.keys(data.records).length === 0) {
+        return null;
+      }
+
+      const recordKey = Object.keys(data.records)[0];
+      const record = data.records[recordKey];
+
+      let caeCodes: string[] = [];
+      if (record.cae) {
+        caeCodes = Array.isArray(record.cae)
+          ? record.cae.map((c: any) => String(c))
+          : [String(record.cae)];
+      } else if (record.cae_main?.code) {
+        caeCodes = [record.cae_main.code];
+      } else if (record.rapiea?.code) {
+        caeCodes = [record.rapiea.code];
+      }
+
+      return {
+        company_name: record.title || null,
+        tax_id: String(record.nif) || cleanNif,
+        address: record.place?.address || record.address || null,
+        postal_code: formatPostalCode(record.place?.pc4 || record.pc4, record.place?.pc3 || record.pc3),
+        city: record.place?.city || record.city || null,
+        region: record.geo?.region || null,
+        county: record.geo?.county || null,
+        parish: record.geo?.parish || null,
+        cae_codes: caeCodes,
+        cae_description: record.cae_main?.description || record.rapiea?.description_short || record.activity || null,
+        company_status: parseStatus(record.status),
+        legal_nature: parseLegalNature(record.structure?.nature),
+        capital_social: formatCapital(record.structure?.capital, record.structure?.capital_currency),
+        founding_date: record.start_date || null,
+        email: record.contacts?.email || null,
+        phone: record.contacts?.phone || null,
+        website: record.contacts?.website || null,
+        fax: record.contacts?.fax || null,
+        racius_url: record.racius || null,
+        about: null,
+        activity_description: record.activity || null,
+        company_age: null,
+      } as LookupResult;
+    }, 1, 300);
+
+    if (result) {
+      return { status: 'success', data: result };
     }
-
-    const data = await response.json();
-    console.log('[NIF] nif.pt response result:', data.result);
-
-    if (data.result === 'error' || data.result !== 'success' || !data.records || Object.keys(data.records).length === 0) {
-      return null;
-    }
-
-    const recordKey = Object.keys(data.records)[0];
-    const record = data.records[recordKey];
-
-    let caeCodes: string[] = [];
-    if (record.cae) {
-      caeCodes = Array.isArray(record.cae)
-        ? record.cae.map((c: any) => String(c))
-        : [String(record.cae)];
-    } else if (record.cae_main?.code) {
-      caeCodes = [record.cae_main.code];
-    } else if (record.rapiea?.code) {
-      caeCodes = [record.rapiea.code];
-    }
-
-    return {
-      company_name: record.title || null,
-      tax_id: String(record.nif) || cleanNif,
-      address: record.place?.address || record.address || null,
-      postal_code: formatPostalCode(record.place?.pc4 || record.pc4, record.place?.pc3 || record.pc3),
-      city: record.place?.city || record.city || null,
-      region: record.geo?.region || null,
-      county: record.geo?.county || null,
-      parish: record.geo?.parish || null,
-      cae_codes: caeCodes,
-      cae_description: record.cae_main?.description || record.rapiea?.description_short || record.activity || null,
-      company_status: parseStatus(record.status),
-      legal_nature: parseLegalNature(record.structure?.nature),
-      capital_social: formatCapital(record.structure?.capital, record.structure?.capital_currency),
-      founding_date: record.start_date || null,
-      email: record.contacts?.email || null,
-      phone: record.contacts?.phone || null,
-      website: record.contacts?.website || null,
-      fax: record.contacts?.fax || null,
-      racius_url: record.racius || null,
-      about: null,
-      activity_description: record.activity || null,
-      company_age: null,
-    };
+    return { status: 'no_data', data: null };
   } catch (error) {
-    console.warn('[NIF] nif.pt error:', (error as Error).message);
-    return null;
+    const msg = (error as Error).message || '';
+    console.warn('[NIF] nif.pt error:', msg);
+    const isTransient = msg.includes('timed out') || msg.includes('timeout') || msg.includes('500') || msg.includes('502') || msg.includes('503') || msg.includes('abort');
+    return { status: isTransient ? 'transient_error' : 'no_data', data: null };
   }
 }
 
-// ─── Firecrawl + Racius (with timeout) ───
-async function tryFirecrawlRacius(cleanNif: string): Promise<LookupResult | null> {
+// ─── Firecrawl scrape with retry ───
+async function firecrawlScrape(firecrawlKey: string, url: string, timeoutMs: number): Promise<{ ok: boolean; markdown: string; transient: boolean }> {
+  const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${firecrawlKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      url,
+      formats: ['markdown'],
+      onlyMainContent: true,
+      waitFor: 1500,
+    }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+
+  if (!response.ok) {
+    const status = response.status;
+    // Consume body to avoid leaks
+    try { await response.text(); } catch {}
+    if (status >= 500 || status === 429) {
+      return { ok: false, markdown: '', transient: true };
+    }
+    return { ok: false, markdown: '', transient: false };
+  }
+
+  const scrapeData = await response.json();
+  const markdown = scrapeData?.data?.markdown || scrapeData?.markdown || '';
+  return { ok: true, markdown, transient: false };
+}
+
+// ─── Firecrawl + Racius (with retry and fallback) ───
+async function tryFirecrawlRacius(cleanNif: string): Promise<SourceResult> {
   const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
   if (!firecrawlKey) {
     console.log('[NIF] FIRECRAWL_API_KEY not configured');
-    return null;
+    return { status: 'no_data', data: null };
   }
 
   console.log('[NIF] Searching Racius for NIF:', cleanNif);
   let companyPageUrl: string | null = null;
+  let searchTransientError = false;
 
   try {
     const searchResponse = await fetch('https://api.firecrawl.dev/v1/search', {
@@ -141,50 +216,64 @@ async function tryFirecrawlRacius(cleanNif: string): Promise<LookupResult | null
           break;
         }
       }
+    } else if (!searchResponse.ok && searchResponse.status >= 500) {
+      searchTransientError = true;
     }
   } catch (error) {
     console.warn('[NIF] Firecrawl search error:', (error as Error).message);
+    searchTransientError = true;
   }
 
-  if (!companyPageUrl) {
-    companyPageUrl = `https://www.racius.com/empresas/?q=${cleanNif}`;
+  // Strategy 1: Scrape the found company page
+  if (companyPageUrl) {
+    console.log('[NIF] Scraping company page:', companyPageUrl);
+    try {
+      const scrapeResult = await withRetry(async () => {
+        const r = await firecrawlScrape(firecrawlKey, companyPageUrl!, 12000);
+        if (!r.ok && r.transient) throw new Error('Firecrawl scrape transient error');
+        return r;
+      }, 1, 400);
+
+      if (scrapeResult.ok && scrapeResult.markdown.length >= 50) {
+        const parsed = parseRaciusMarkdown(scrapeResult.markdown, cleanNif, companyPageUrl);
+        if (parsed) return { status: 'success', data: parsed };
+      }
+    } catch (error) {
+      console.warn('[NIF] Scrape company page failed:', (error as Error).message);
+    }
   }
 
-  console.log('[NIF] Scraping:', companyPageUrl);
+  // Strategy 2: Fallback - scrape the search results page on Racius directly
+  const fallbackUrl = `https://www.racius.com/empresas/?q=${cleanNif}`;
+  console.log('[NIF] Fallback scraping:', fallbackUrl);
   try {
-    const scrapeResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${firecrawlKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: companyPageUrl,
-        formats: ['markdown'],
-        onlyMainContent: true,
-        waitFor: 1500,
-      }),
-      signal: AbortSignal.timeout(12000),
-    });
+    const scrapeResult = await withRetry(async () => {
+      const r = await firecrawlScrape(firecrawlKey, fallbackUrl, 12000);
+      if (!r.ok && r.transient) throw new Error('Firecrawl fallback scrape transient error');
+      return r;
+    }, 1, 400);
 
-    const scrapeData = await scrapeResponse.json();
-
-    if (!scrapeResponse.ok) {
-      console.error('[NIF] Firecrawl scrape error:', scrapeResponse.status);
-      return null;
+    if (scrapeResult.ok && scrapeResult.markdown.length >= 50) {
+      const parsed = parseRaciusMarkdown(scrapeResult.markdown, cleanNif, fallbackUrl);
+      if (parsed) return { status: 'success', data: parsed };
+      // Got content but couldn't parse meaningful data
+      return { status: 'no_data', data: null };
     }
 
-    const markdown = scrapeData?.data?.markdown || scrapeData?.markdown || '';
-    if (!markdown || markdown.length < 50) {
-      console.warn('[NIF] No meaningful content from Racius');
-      return null;
+    if (!scrapeResult.ok && scrapeResult.transient) {
+      return { status: 'transient_error', data: null };
     }
-
-    return parseRaciusMarkdown(markdown, cleanNif, companyPageUrl);
   } catch (error) {
-    console.error('[NIF] Firecrawl scrape error:', (error as Error).message);
-    return null;
+    console.error('[NIF] Firecrawl fallback scrape error:', (error as Error).message);
+    return { status: 'transient_error', data: null };
   }
+
+  // If search had transient error and scraping also failed, mark as transient
+  if (searchTransientError) {
+    return { status: 'transient_error', data: null };
+  }
+
+  return { status: 'no_data', data: null };
 }
 
 // Known section headers in Racius markdown — used to stop parsing location lines
@@ -232,7 +321,6 @@ function parseRaciusMarkdown(markdown: string, nif: string, sourceUrl: string): 
       l && !l.startsWith('ico-') && !l.includes('ico-') && l !== 'Morada' && !l.startsWith('![') && !l.startsWith('- ico')
     );
     
-    // First meaningful line has the address + postal code
     for (const ml of moradaLines) {
       if (ml.length > 5 && !ml.startsWith('#') && !isSectionHeader(ml)) {
         const pcMatch = ml.match(/(\d{4}[-\s]?\d{3})/);
@@ -249,7 +337,6 @@ function parseRaciusMarkdown(markdown: string, nif: string, sourceUrl: string): 
       }
     }
 
-    // Subsequent short lines before next section = Concelho, Distrito
     const locationLines: string[] = [];
     let foundAddress = false;
     for (const ml of moradaLines) {
@@ -409,7 +496,7 @@ function parseRaciusMarkdown(markdown: string, nif: string, sourceUrl: string): 
 }
 
 // ─── EU VIES ───
-async function tryVIES(cleanNif: string): Promise<{ company_name: string | null; address: string | null; valid: boolean } | null> {
+async function tryVIES(cleanNif: string): Promise<ViesSourceResult> {
   const VIES_URL = 'https://ec.europa.eu/taxation_customs/vies/services/checkVatService';
   const soapBody = `<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:ec.europa.eu:taxud:vies:services:checkVat:types">
@@ -422,35 +509,46 @@ async function tryVIES(cleanNif: string): Promise<{ company_name: string | null;
 </soapenv:Envelope>`;
 
   try {
-    const response = await fetch(VIES_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': '' },
-      body: soapBody,
-      signal: AbortSignal.timeout(6000),
-    });
+    const result = await withRetry(async () => {
+      const response = await fetch(VIES_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': '' },
+        body: soapBody,
+        signal: AbortSignal.timeout(6000),
+      });
 
-    if (!response.ok) {
-      console.warn('[NIF] VIES returned status:', response.status);
-      return null;
+      if (!response.ok) {
+        if (response.status >= 500) {
+          throw new Error(`VIES server error: ${response.status}`);
+        }
+        console.warn('[NIF] VIES returned status:', response.status);
+        return null;
+      }
+
+      const xml = await response.text();
+      const validMatch = xml.match(/<valid>(true|false)<\/valid>/i);
+      const nameMatch = xml.match(/<name>([^<]*)<\/name>/i);
+      const addressMatch = xml.match(/<address>([^<]*)<\/address>/i);
+
+      const valid = validMatch?.[1]?.toLowerCase() === 'true';
+      const name = nameMatch?.[1]?.trim() || null;
+      const addr = addressMatch?.[1]?.trim() || null;
+
+      const cleanName = name && name !== '---' && name.length > 1 ? name : null;
+      const cleanAddr = addr && addr !== '---' && addr.length > 1 ? addr : null;
+
+      console.log('[NIF] VIES:', { valid, name: cleanName?.substring(0, 40) });
+      return { company_name: cleanName, address: cleanAddr, valid };
+    }, 1, 300);
+
+    if (result) {
+      return { status: 'success', data: result };
     }
-
-    const xml = await response.text();
-    const validMatch = xml.match(/<valid>(true|false)<\/valid>/i);
-    const nameMatch = xml.match(/<name>([^<]*)<\/name>/i);
-    const addressMatch = xml.match(/<address>([^<]*)<\/address>/i);
-
-    const valid = validMatch?.[1]?.toLowerCase() === 'true';
-    const name = nameMatch?.[1]?.trim() || null;
-    const addr = addressMatch?.[1]?.trim() || null;
-
-    const cleanName = name && name !== '---' && name.length > 1 ? name : null;
-    const cleanAddr = addr && addr !== '---' && addr.length > 1 ? addr : null;
-
-    console.log('[NIF] VIES:', { valid, name: cleanName?.substring(0, 40) });
-    return { company_name: cleanName, address: cleanAddr, valid };
+    return { status: 'no_data', data: null };
   } catch (error) {
-    console.warn('[NIF] VIES error:', (error as Error).message);
-    return null;
+    const msg = (error as Error).message || '';
+    console.warn('[NIF] VIES error:', msg);
+    return { status: 'transient_error', data: null };
   }
 }
 
@@ -459,7 +557,6 @@ function mergeResults(primary: LookupResult, secondary: Partial<LookupResult>): 
   const merged = { ...primary };
   for (const key of Object.keys(secondary) as (keyof LookupResult)[]) {
     if (key === 'cae_codes') {
-      // Merge arrays
       const pCodes = primary.cae_codes || [];
       const sCodes = (secondary.cae_codes as string[]) || [];
       merged.cae_codes = [...new Set([...pCodes, ...sCodes])];
@@ -519,48 +616,46 @@ Deno.serve(async (req) => {
     const startTime = Date.now();
 
     // 🚀 Run ALL strategies in parallel for maximum speed
-    const [nifPtResult, raciusResult, viesResult] = await Promise.all([
-      tryNifPt(cleanNif).catch(() => null),
-      tryFirecrawlRacius(cleanNif).catch(() => null),
-      tryVIES(cleanNif).catch(() => null),
+    const [nifPtSrc, raciusSrc, viesSrc] = await Promise.all([
+      tryNifPt(cleanNif),
+      tryFirecrawlRacius(cleanNif),
+      tryVIES(cleanNif),
     ]);
 
     const elapsed = Date.now() - startTime;
-    console.log(`[NIF] All strategies completed in ${elapsed}ms`);
+    console.log(`[NIF] All strategies completed in ${elapsed}ms — nif.pt:${nifPtSrc.status} racius:${raciusSrc.status} vies:${viesSrc.status}`);
 
     // Pick the best primary result (nif.pt > Racius > VIES-only)
     let bestResult: LookupResult | null = null;
     let source = 'unknown';
 
-    if (nifPtResult) {
-      bestResult = nifPtResult;
+    if (nifPtSrc.status === 'success' && nifPtSrc.data) {
+      bestResult = nifPtSrc.data;
       source = 'nif.pt';
-    } else if (raciusResult) {
-      bestResult = raciusResult;
+    } else if (raciusSrc.status === 'success' && raciusSrc.data) {
+      bestResult = raciusSrc.data;
       source = 'racius';
     }
 
     // Merge secondary sources into the best result
     if (bestResult) {
-      // Merge Racius into nif.pt (for about, activity_description, etc.)
-      if (source === 'nif.pt' && raciusResult) {
-        bestResult = mergeResults(bestResult, raciusResult);
+      if (source === 'nif.pt' && raciusSrc.data) {
+        bestResult = mergeResults(bestResult, raciusSrc.data);
       }
-      // Merge VIES data
-      if (viesResult) {
-        bestResult = mergeResults(bestResult, viesAsLookup(viesResult, cleanNif));
+      if (viesSrc.data) {
+        bestResult = mergeResults(bestResult, viesAsLookup(viesSrc.data, cleanNif));
       }
 
       console.log(`[NIF] Success via ${source} (+merge) in ${elapsed}ms`);
       return new Response(
-        JSON.stringify({ success: true, data: bestResult, source, vies_valid: viesResult?.valid ?? null }),
+        JSON.stringify({ success: true, data: bestResult, source, vies_valid: viesSrc.data?.valid ?? null }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Last resort: VIES alone
-    if (viesResult && (viesResult.valid || viesResult.company_name)) {
-      const viesLookup = viesAsLookup(viesResult, cleanNif);
+    if (viesSrc.data && (viesSrc.data.valid || viesSrc.data.company_name)) {
+      const viesLookup = viesAsLookup(viesSrc.data, cleanNif);
       const fallback: LookupResult = {
         company_name: viesLookup.company_name || null,
         tax_id: cleanNif,
@@ -569,7 +664,7 @@ Deno.serve(async (req) => {
         city: viesLookup.city || null,
         region: null, county: null, parish: null,
         cae_codes: [], cae_description: null,
-        company_status: viesResult.valid ? 'Ativa' : null,
+        company_status: viesSrc.data.valid ? 'Ativa' : null,
         legal_nature: null, capital_social: null, founding_date: null,
         email: null, phone: null, website: null, fax: null,
         racius_url: `https://www.racius.com/empresas/?q=${cleanNif}`,
@@ -578,18 +673,36 @@ Deno.serve(async (req) => {
 
       console.log(`[NIF] Success via VIES-only in ${elapsed}ms`);
       return new Response(
-        JSON.stringify({ success: true, data: fallback, source: 'vies', vies_valid: viesResult.valid }),
+        JSON.stringify({ success: true, data: fallback, source: 'vies', vies_valid: viesSrc.data.valid }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // All three failed
+    // Check if ALL sources had transient errors — this is NOT "not found", it's a service issue
+    const allStatuses = [nifPtSrc.status, raciusSrc.status, viesSrc.status];
+    const hasAnyNoData = allStatuses.includes('no_data');
+    const allTransientOrNoKey = allStatuses.every(s => s === 'transient_error' || s === 'no_data') && !hasAnyNoData;
+
+    if (allTransientOrNoKey || allStatuses.every(s => s === 'transient_error')) {
+      console.warn(`[NIF] All sources had transient errors for ${cleanNif}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Serviço temporariamente indisponível. Tente novamente em alguns segundos.',
+          retryable: true,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // At least one source confirmed no_data — genuinely not found
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: 'Empresa não encontrada com este NIF. Verifique o número e tente novamente.' 
+        error: 'Empresa não encontrada com este NIF. Verifique o número e tente novamente.',
+        retryable: false,
       }),
-      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
@@ -597,9 +710,10 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error instanceof Error ? error.message : 'Erro ao pesquisar empresa' 
+        error: error instanceof Error ? error.message : 'Erro ao pesquisar empresa',
+        retryable: true,
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

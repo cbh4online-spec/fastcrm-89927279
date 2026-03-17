@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useNifLookup, NifLookupResult } from "@/hooks/useNifLookup";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,34 +51,38 @@ const companyBillingSchema = z.object({
 
 type CompanyBillingFormData = z.infer<typeof companyBillingSchema>;
 
-interface LookupResult {
-  company_name?: string | null;
-  tax_id?: string | null;
-  address?: string | null;
-  postal_code?: string | null;
-  city?: string | null;
-  region?: string | null;
-  county?: string | null;
-  parish?: string | null;
-  cae_codes?: string[];
-  cae_description?: string | null;
-  company_status?: string | null;
-  legal_nature?: string | null;
-  capital_social?: string | null;
-  founding_date?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  website?: string | null;
-  fax?: string | null;
-  racius_url?: string | null;
-}
 
 export function CompanyBillingForm() {
   const { currentWorkspace, refreshWorkspaces } = useWorkspace();
   const [isLoading, setIsLoading] = useState(false);
-  const [isLookingUp, setIsLookingUp] = useState(false);
-  const [lookupStatus, setLookupStatus] = useState<"idle" | "success" | "error">("idle");
-  const [lookupMessage, setLookupMessage] = useState<string | null>(null);
+
+  const applyLookupData = (companyData: NifLookupResult) => {
+    if (companyData.company_name) form.setValue("company_name", companyData.company_name);
+    if (companyData.address) form.setValue("billing_address", companyData.address);
+    if (companyData.city) form.setValue("billing_city", companyData.city);
+    if (companyData.postal_code) form.setValue("billing_postal_code", companyData.postal_code);
+    if (companyData.cae_codes && companyData.cae_codes.length > 0) form.setValue("cae_codes", companyData.cae_codes);
+    if (companyData.cae_description) form.setValue("cae_description", companyData.cae_description);
+    if (companyData.company_status) form.setValue("company_status", companyData.company_status);
+    if (companyData.legal_nature) form.setValue("legal_nature", companyData.legal_nature);
+    if (companyData.capital_social) form.setValue("capital_social", companyData.capital_social);
+    if (companyData.founding_date) form.setValue("founding_date", companyData.founding_date);
+    if (companyData.region) form.setValue("region", companyData.region);
+    if (companyData.county) form.setValue("county", companyData.county);
+    if (companyData.parish) form.setValue("parish", companyData.parish);
+    if (companyData.email) form.setValue("billing_email", companyData.email);
+    if (companyData.phone) form.setValue("phone", companyData.phone);
+    if (companyData.fax) form.setValue("fax", companyData.fax);
+    if (companyData.website) form.setValue("website", companyData.website);
+    if (companyData.racius_url) form.setValue("racius_url", companyData.racius_url);
+  };
+
+  const { lookup: lookupNif, isLoading: isLookingUp, status: lookupStatus, message: lookupMessage } = useNifLookup({
+    showToasts: true,
+    onSuccess: (data) => {
+      applyLookupData(data);
+    },
+  });
 
   const form = useForm<CompanyBillingFormData>({
     resolver: zodResolver(companyBillingSchema),
@@ -161,104 +166,7 @@ export function CompanyBillingForm() {
 
   async function handleLookupByNif() {
     const nif = form.getValues("tax_id");
-
-    if (!nif || nif.length !== 9 || !/^\d{9}$/.test(nif)) {
-      toast.error("Introduza um NIF válido com 9 dígitos");
-      return;
-    }
-
-    setIsLookingUp(true);
-    setLookupStatus("idle");
-    setLookupMessage(null);
-
-    try {
-      const { data, error } = await supabase.functions.invoke("lookup-company-nif", {
-        body: { nif },
-      });
-
-      if (error) throw error;
-
-      if (data.error) {
-        setLookupStatus("error");
-        setLookupMessage(data.error);
-        toast.error(data.error);
-        return;
-      }
-
-      if (data.success && data.data) {
-        const companyData: LookupResult = data.data;
-        
-        // Update form fields with found data
-        if (companyData.company_name) {
-          form.setValue("company_name", companyData.company_name);
-        }
-        if (companyData.address) {
-          form.setValue("billing_address", companyData.address);
-        }
-        if (companyData.city) {
-          form.setValue("billing_city", companyData.city);
-        }
-        if (companyData.postal_code) {
-          form.setValue("billing_postal_code", companyData.postal_code);
-        }
-        if (companyData.cae_codes && companyData.cae_codes.length > 0) {
-          form.setValue("cae_codes", companyData.cae_codes);
-        }
-        if (companyData.cae_description) {
-          form.setValue("cae_description", companyData.cae_description);
-        }
-        if (companyData.company_status) {
-          form.setValue("company_status", companyData.company_status);
-        }
-        if (companyData.legal_nature) {
-          form.setValue("legal_nature", companyData.legal_nature);
-        }
-        if (companyData.capital_social) {
-          form.setValue("capital_social", companyData.capital_social);
-        }
-        if (companyData.founding_date) {
-          form.setValue("founding_date", companyData.founding_date);
-        }
-        if (companyData.region) {
-          form.setValue("region", companyData.region);
-        }
-        if (companyData.county) {
-          form.setValue("county", companyData.county);
-        }
-        if (companyData.parish) {
-          form.setValue("parish", companyData.parish);
-        }
-        if (companyData.email) {
-          form.setValue("billing_email", companyData.email);
-        }
-        if (companyData.phone) {
-          form.setValue("phone", companyData.phone);
-        }
-        if (companyData.fax) {
-          form.setValue("fax", companyData.fax);
-        }
-        if (companyData.website) {
-          form.setValue("website", companyData.website);
-        }
-        if (companyData.racius_url) {
-          form.setValue("racius_url", companyData.racius_url);
-        }
-
-        setLookupStatus("success");
-        setLookupMessage("Dados preenchidos automaticamente. Verifique e edite se necessário antes de guardar.");
-        toast.success("Dados da empresa encontrados!");
-      } else {
-        setLookupStatus("error");
-        setLookupMessage("Empresa não encontrada para este NIF");
-      }
-    } catch (error) {
-      console.error("Error looking up company:", error);
-      setLookupStatus("error");
-      setLookupMessage("Erro ao pesquisar empresa. Tente novamente.");
-      toast.error("Erro ao pesquisar empresa");
-    } finally {
-      setIsLookingUp(false);
-    }
+    await lookupNif(nif);
   }
 
   async function onSubmit(data: CompanyBillingFormData) {
