@@ -275,6 +275,8 @@ export function useContacts() {
     },
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["contacts", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["smart-contacts", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["contacts-kpis", currentWorkspace?.id] });
       console.log(`[CONTACTS] Contact soft-deleted: ${id}`);
       if (currentWorkspace) {
         emitKernelEvent({
