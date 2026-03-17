@@ -81,6 +81,7 @@ export interface Lead {
 }
 
 export interface CreateLeadInput {
+  lead_type?: LeadType;
   name: string;
   email?: string;
   phone?: string;
@@ -95,6 +96,18 @@ export interface CreateLeadInput {
   facebook_url?: string;
   instagram_url?: string;
   twitter_url?: string;
+  // Company fields
+  company_name?: string;
+  tax_id?: string;
+  website?: string;
+  industry?: string;
+  number_of_employees?: string;
+  annual_revenue?: number;
+  contact_person?: string;
+  contact_person_role?: string;
+  address?: string;
+  city?: string;
+  postal_code?: string;
 }
 
 export interface UpdateLeadInput extends Partial<CreateLeadInput> {
