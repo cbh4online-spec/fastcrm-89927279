@@ -1215,6 +1215,23 @@ export default function GoogleLocalProspecting() {
                 </ScrollArea>
               </CardContent>
             </Card>
+
+            {/* Load More Button */}
+            {results.length >= 10 && (
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchOffset(prev => prev + 20);
+                    handleSearch();
+                  }}
+                  disabled={isSearching}
+                >
+                  {isSearching ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
+                  Carregar mais resultados
+                </Button>
+              </div>
+            )}
           )}
 
           {/* Empty State */}
