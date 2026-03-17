@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { 
   useSmartLeads, 
@@ -8,7 +8,7 @@ import {
   SmartLead,
 } from "@/hooks/useSmartLeads";
 import { useBulkAnalyzeEntityLinkedIn } from "@/hooks/useEntitySocialMediaAnalysis";
-import { useDeleteLeads } from "@/hooks/useLeads";
+import { useDeleteLeads, useUpdateLead } from "@/hooks/useLeads";
 import { useLeadDuplicateGroupsPersisted } from "@/hooks/useLeadDuplicateEngine";
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
 import { PageHeader } from "@/components/common/PageHeader";
