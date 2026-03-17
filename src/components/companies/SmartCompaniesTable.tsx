@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { SmartListsPanel } from "@/components/objects/SmartListsPanel";
 import { useSmartCompanies, useAnalyzeCompany, useBulkAnalyzeCompanies, SmartCompaniesFilters } from "@/hooks/useSmartCompanies";
 import { useBulkAnalyzeRevenue } from "@/hooks/useAIRevenueEngine";
