@@ -237,6 +237,19 @@ export function useCreateLead() {
           address: input.address || null,
           city: input.city || null,
           postal_code: input.postal_code || null,
+          // NIF enrichment fields
+          cae_codes: input.cae_codes || null,
+          cae_description: input.cae_description || null,
+          legal_nature: input.legal_nature || null,
+          capital_social: input.capital_social || null,
+          founding_date: input.founding_date || null,
+          region: input.region || null,
+          county: input.county || null,
+          parish: input.parish || null,
+          fax: input.fax || null,
+          about: input.about || null,
+          activity_description: input.activity_description || null,
+          racius_url: input.racius_url || null,
         })
         .select()
         .single();
