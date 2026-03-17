@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Brain, Target, Zap, TrendingUp, Trophy, Calendar, RefreshCw, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Brain, Target, Zap, TrendingUp, Trophy, Calendar, RefreshCw, Sparkles, CheckCircle2, Download, FileDown, FileSpreadsheet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { DailyCoachPanel } from '@/components/productivity/DailyCoachPanel';
 import { GoalsManager } from '@/components/productivity/GoalsManager';
@@ -8,10 +8,23 @@ import { Toolbar } from '@/components/common/Toolbar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useProductivityCoach } from '@/hooks/useProductivityCoach';
 import { useMeetings } from '@/hooks/useMeetings';
+import { useWeeklyPerformance } from '@/hooks/useWeeklyPerformance';
 import { useQueryClient } from '@tanstack/react-query';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { exportProductivityPDF, exportProductivityCSV } from '@/utils/productivityExport';
+import { toast } from 'sonner';
 
 type ActiveTab = 'coach' | 'goals';
 
