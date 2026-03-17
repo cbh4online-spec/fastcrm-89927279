@@ -83,7 +83,8 @@ export function SmartCompanyRow({
   onToggleSelect, 
   onAnalyze,
   isAnalyzing,
-  columnOrder
+  columnOrder,
+  onUpdate
 }: SmartCompanyRowProps) {
   const { t } = useTranslation("crm");
 
