@@ -85,9 +85,9 @@ export function useRegisterPayment() {
       queryClient.invalidateQueries({ queryKey: ["invoice-stats"] });
       toast.success(t("paymentRegistered"));
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error registering payment:", error);
-      toast.error(t("paymentError"));
+      toast.error(error?.message || t("paymentError"));
     },
   });
 }
