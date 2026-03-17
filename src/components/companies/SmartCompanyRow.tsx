@@ -205,7 +205,9 @@ export function SmartCompanyRow({
     phone: () => <TableCell key="phone"><EditableText field="phone" value={company.phone}><span className="text-sm">{company.phone || "—"}</span></EditableText></TableCell>,
     email: () => (
       <TableCell key="email">
-        {company.email ? <a href={`mailto:${company.email}`} className="text-sm text-primary hover:underline">{company.email}</a> : <span className="text-sm text-muted-foreground">—</span>}
+        <EditableText field="email" value={company.email}>
+          {company.email ? <a href={`mailto:${company.email}`} className="text-sm text-primary hover:underline">{company.email}</a> : <span className="text-sm text-muted-foreground">—</span>}
+        </EditableText>
       </TableCell>
     ),
     website: () => (
