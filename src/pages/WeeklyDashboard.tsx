@@ -63,7 +63,13 @@ export default function WeeklyDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <TargetsSettingsSheet />
+            <WarRoomBriefingExport
+              metrics={data?.metrics || []}
+              pipelineValue={data?.pipelineValue ?? 0}
+              weekLabel={weekLabel}
+              todaysBrief={todaysBrief}
+              strategy={strategy}
+            />
             <Button
               variant="ghost"
               size="sm"
