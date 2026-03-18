@@ -118,11 +118,11 @@ export function DealsAtRiskList() {
           </div>
         ) : (
           <div className="space-y-1">
-            {risks.map((risk) => {
+            {risks.map((risk, idx) => {
               const action = actionMap[risk.deal_id];
               return (
                 <button
-                  key={risk.deal_id}
+                  key={`${risk.deal_id}-${idx}`}
                   className="w-full flex items-start justify-between py-2.5 px-2 rounded-md hover:bg-muted/50 transition-colors text-left group"
                   onClick={() => navigate(`/dashboard/opportunities/${risk.deal_id}`)}
                 >
