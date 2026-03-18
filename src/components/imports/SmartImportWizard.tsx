@@ -145,62 +145,47 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
   ): Promise<{ isDuplicate: boolean; existingId?: string; matchField?: string }> => {
     // Check by tax_id (NIF) first - strongest identifier
     if (insertData.tax_id && String(insertData.tax_id).trim()) {
-      const { data } = await supabase
-        .from(tableName)
+      const { data } = await (supabase
+        .from(tableName as any)
         .select("id")
         .eq("workspace_id", workspaceId)
         .eq("tax_id", String(insertData.tax_id).trim())
-        .limit(1);
-      if (data && data.length > 0) {
-        return { isDuplicate: true, existingId: data[0].id, matchField: "NIF" };
+        .limit(1) as any);
+      if (data && (data as any[]).length > 0) {
+        return { isDuplicate: true, existingId: (data as any[])[0].id, matchField: "NIF" };
       }
     }
 
     // Check by email
     if (insertData.email && String(insertData.email).trim()) {
-      const { data } = await supabase
-        .from(tableName)
+      const { data } = await (supabase
+        .from(tableName as any)
         .select("id")
         .eq("workspace_id", workspaceId)
         .eq("email", String(insertData.email).trim().toLowerCase())
-        .limit(1);
-      if (data && data.length > 0) {
-        return { isDuplicate: true, existingId: data[0].id, matchField: "Email" };
+        .limit(1) as any);
+      if (data && (data as any[]).length > 0) {
+        return { isDuplicate: true, existingId: (data as any[])[0].id, matchField: "Email" };
       }
     }
 
     // Check by phone
     if (insertData.phone && String(insertData.phone).trim()) {
       const normalizedPhone = String(insertData.phone).replace(/\s+/g, "").replace(/^(\+351|00351)/, "");
-      const { data } = await supabase
-        .from(tableName)
+      const { data } = await (supabase
+        .from(tableName as any)
         .select("id, phone")
         .eq("workspace_id", workspaceId)
         .not("phone", "is", null)
-        .limit(1000);
+        .limit(1000) as any);
       if (data) {
-        const match = data.find(row => {
+        const match = (data as any[]).find((row: any) => {
           const existingPhone = (row.phone || "").replace(/\s+/g, "").replace(/^(\+351|00351)/, "");
           return existingPhone === normalizedPhone && normalizedPhone.length >= 9;
         });
         if (match) {
           return { isDuplicate: true, existingId: match.id, matchField: "Telefone" };
         }
-      }
-    }
-
-    // Check by name + company (weaker match)
-    if (insertData.name && (insertData.company_name || insertData.company)) {
-      const companyField = insertData.company_name || insertData.company;
-      const { data } = await supabase
-        .from(tableName)
-        .select("id")
-        .eq("workspace_id", workspaceId)
-        .ilike("name", String(insertData.name).trim())
-        .or(`company_name.ilike.${String(companyField).trim()},company.ilike.${String(companyField).trim()}`)
-        .limit(1);
-      if (data && data.length > 0) {
-        return { isDuplicate: true, existingId: data[0].id, matchField: "Nome+Empresa" };
       }
     }
 
