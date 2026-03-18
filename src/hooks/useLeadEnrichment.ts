@@ -152,6 +152,7 @@ export function useEnrichLead(enricherSettings?: LeadEnricherSettings) {
           }
         } else {
           // Create new company
+          const userId = (await supabase.auth.getUser()).data.user?.id || "";
           const { data: newCompany } = await workspaceClient
             .from("companies")
             .insert({
@@ -159,7 +160,8 @@ export function useEnrichLead(enricherSettings?: LeadEnricherSettings) {
               website: updates.website || null,
               city: updates.city || null,
               source: "lead-enricher",
-              created_by: (await supabase.auth.getUser()).data.user?.id || "",
+              created_by: userId,
+              workspace_id: currentWorkspace.id,
             })
             .select("id")
             .single();
