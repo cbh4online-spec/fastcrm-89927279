@@ -155,6 +155,8 @@ export function SmartLeadsTable() {
   const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
   const [searchValue, setSearchValue] = useState("");
   const [sortValue, setSortValue] = useState("created_desc");
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { visibleColumns, setVisibleColumns, columnOrder, setColumnOrder } = useColumnPreferences("leads-table-columns", LEAD_COLUMNS);
 
