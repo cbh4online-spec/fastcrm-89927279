@@ -14,6 +14,7 @@ import { DailyBriefWidget } from "@/components/dashboard/DailyBriefWidget";
 import { PipelineHealthCard } from "@/components/dashboard/PipelineHealthCard";
 import { useWeeklyPerformance } from "@/hooks/useWeeklyPerformance";
 import { useWeeklyStrategy } from "@/hooks/useWeeklyStrategy";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useDailyBrief } from "@/hooks/useDailyBrief";
 import { useKernelDecisions } from "@/hooks/useKernelDecisions";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ export default function WeeklyDashboard() {
   const { strategy, isLoading: strategyLoading, generate } = useWeeklyStrategy();
   const { todaysBrief, generateDailyBrief } = useDailyBrief();
   const weekLabel = data?.weekLabel || "...";
+  const { currentWorkspace } = useWorkspace();
   const { openDecisions } = useKernelDecisions();
 
   const briefMetrics = todaysBrief?.key_metrics;
@@ -69,6 +71,8 @@ export default function WeeklyDashboard() {
               weekLabel={weekLabel}
               todaysBrief={todaysBrief}
               strategy={strategy}
+              workspaceName={currentWorkspace?.name}
+              workspaceLogoUrl={currentWorkspace?.logo_url}
             />
             <Button
               variant="ghost"
