@@ -362,6 +362,10 @@ function LeadDetails({ entity, onUpdate }: { entity: LeadEntity; onUpdate?: (fie
         <EditableFieldRow label="Instagram" value={e.instagram_url} icon={Instagram} iconClassName="text-[#E4405F]" isLink linkType="url" fieldKey="instagram_url" onUpdate={onUpdate} />
         <EditableFieldRow label="Facebook" value={e.facebook_url} icon={Facebook} iconClassName="text-[#1877F2]" isLink linkType="url" fieldKey="facebook_url" onUpdate={onUpdate} />
         <EditableFieldRow label="Twitter/X" value={e.twitter_url} icon={Twitter} iconClassName="text-foreground" isLink linkType="url" fieldKey="twitter_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="YouTube" value={e.youtube_url} icon={Youtube} iconClassName="text-[#FF0000]" isLink linkType="url" fieldKey="youtube_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="TikTok" value={e.tiktok_url} icon={TikTokIcon} iconClassName="text-foreground" isLink linkType="url" fieldKey="tiktok_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Pinterest" value={e.pinterest_url} icon={Pin} iconClassName="text-[#E60023]" isLink linkType="url" fieldKey="pinterest_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="WhatsApp" value={e.whatsapp_url} icon={MessageCircle} iconClassName="text-[#25D366]" isLink linkType="url" fieldKey="whatsapp_url" onUpdate={onUpdate} />
       </CollapsibleSection>
     </div>
   );
