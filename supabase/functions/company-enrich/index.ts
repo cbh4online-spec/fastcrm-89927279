@@ -188,6 +188,10 @@ function extractSocialFromContent(content: string): Record<string, string> {
     { key: "instagram", regex: /https?:\/\/(www\.)?instagram\.com\/[^\s"'<>)]+/gi },
     { key: "facebook", regex: /https?:\/\/(www\.)?facebook\.com\/[^\s"'<>)]+/gi },
     { key: "twitter", regex: /https?:\/\/(www\.)?(twitter\.com|x\.com)\/[^\s"'<>)]+/gi },
+    { key: "youtube", regex: /https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s"'<>)]+/gi },
+    { key: "tiktok", regex: /https?:\/\/(www\.)?tiktok\.com\/[^\s"'<>)]+/gi },
+    { key: "pinterest", regex: /https?:\/\/(www\.)?(pinterest\.(com|pt)|pin\.it)\/[^\s"'<>)]+/gi },
+    { key: "whatsapp", regex: /https?:\/\/(wa\.me|api\.whatsapp\.com|chat\.whatsapp\.com)\/[^\s"'<>)]+/gi },
   ];
   
   for (const { key, regex } of patterns) {
