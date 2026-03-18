@@ -338,7 +338,7 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
         }
 
         // No duplicate — insert
-        const { error } = await supabase.from(tableName).insert(insertData as never);
+        const { error } = await (supabase.from(tableName as any).insert(insertData as never) as any);
         
         if (error) {
           result.errors++;
