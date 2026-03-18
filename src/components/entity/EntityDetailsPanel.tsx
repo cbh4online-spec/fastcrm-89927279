@@ -330,6 +330,7 @@ function LeadDetails({ entity, onUpdate }: { entity: LeadEntity; onUpdate?: (fie
           <EditableFieldRow label="Telefone" value={entity.phone} icon={Phone} iconClassName="text-green-500" isLink linkType="phone" fieldKey="phone" onUpdate={onUpdate} />
           <EditableFieldRow label="Fonte" value={entity.source} icon={TrendingUp} iconClassName="text-emerald-500" fieldKey="source" onUpdate={onUpdate} />
           <EditableFieldRow label="Empresa" value={entity.company} icon={Building2} iconClassName="text-slate-500" fieldKey="company" onUpdate={onUpdate} />
+          <EditableFieldRow label="Website" value={e.website} icon={Globe} iconClassName="text-purple-500" isLink linkType="url" fieldKey="website" onUpdate={onUpdate} />
           {entity.tags && entity.tags.length > 0 && (
             <div className="pt-1">
               <span className="text-sm text-muted-foreground">Tags</span>
