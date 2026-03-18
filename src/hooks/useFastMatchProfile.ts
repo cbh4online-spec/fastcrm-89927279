@@ -101,6 +101,7 @@ export function useUpdateFastMatchProfile() {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["fastmatch-profile", currentWorkspace?.id, user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["fastmatch-discovery"] });
 
       emitKernelEvent({
         workspace_id: currentWorkspace!.id,
@@ -115,6 +116,20 @@ export function useUpdateFastMatchProfile() {
         },
       });
       console.log(`[FASTMATCH] Profile ${result.is_new ? 'created' : 'updated'}: ${result.data.id}`);
+
+      // Trigger AI scoring in the background
+      if (currentWorkspace) {
+        supabase.functions.invoke("fastmatch-score", {
+          body: { profile_id: result.data.id, workspace_id: currentWorkspace.id },
+        }).then((res) => {
+          if (res.data?.scored) {
+            console.log(`[FASTMATCH] Scored ${res.data.scored} profiles`);
+            queryClient.invalidateQueries({ queryKey: ["fastmatch-discovery"] });
+          }
+        }).catch((err) => {
+          console.warn("[FASTMATCH] Score trigger failed:", err);
+        });
+      }
     },
     onError: (err: any) => {
       console.warn('[FASTMATCH] PROFILE_UPDATE_FAILED', err?.message);
