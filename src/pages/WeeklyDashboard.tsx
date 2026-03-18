@@ -14,6 +14,7 @@ import { DailyBriefWidget } from "@/components/dashboard/DailyBriefWidget";
 import { PipelineHealthCard } from "@/components/dashboard/PipelineHealthCard";
 import { useWeeklyPerformance } from "@/hooks/useWeeklyPerformance";
 import { useWeeklyStrategy } from "@/hooks/useWeeklyStrategy";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useDailyBrief } from "@/hooks/useDailyBrief";
 import { useKernelDecisions } from "@/hooks/useKernelDecisions";
 import { Button } from "@/components/ui/button";
