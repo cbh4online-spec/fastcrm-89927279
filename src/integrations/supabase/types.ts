@@ -28760,6 +28760,7 @@ export type Database = {
           last_cost: number | null
           last_purchase_date: string | null
           line: string | null
+          location: string | null
           low_stock_threshold: number
           metadata: Json | null
           min_order_quantity: number | null
@@ -28845,6 +28846,7 @@ export type Database = {
           last_cost?: number | null
           last_purchase_date?: string | null
           line?: string | null
+          location?: string | null
           low_stock_threshold?: number
           metadata?: Json | null
           min_order_quantity?: number | null
@@ -28930,6 +28932,7 @@ export type Database = {
           last_cost?: number | null
           last_purchase_date?: string | null
           line?: string | null
+          location?: string | null
           low_stock_threshold?: number
           metadata?: Json | null
           min_order_quantity?: number | null
