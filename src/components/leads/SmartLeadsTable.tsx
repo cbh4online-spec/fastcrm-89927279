@@ -326,7 +326,7 @@ export function SmartLeadsTable() {
       <div className="flex-1 flex flex-col min-w-0">
         <PageHeader title={t("leads")} count={totalLeads} tabs={pageTabs} activeTab={activeTab} onTabChange={setActiveTab}
           actions={[
-            { label: t("import"), icon: <Download className="h-4 w-4" />, onClick: () => toast.info(t("importLeads")), variant: "outline" },
+            { label: t("import"), icon: <Upload className="h-4 w-4" />, onClick: () => setActiveTab("import"), variant: "outline" },
             { label: t("newLead"), icon: <Plus className="h-4 w-4" />, onClick: () => setIsCreateDialogOpen(true) },
           ]}
         />
