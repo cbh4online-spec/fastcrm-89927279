@@ -248,6 +248,10 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                 facebookUrl={formData.facebook_url}
                 instagramUrl={formData.instagram_url}
                 twitterUrl={formData.twitter_url}
+                youtubeUrl={formData.youtube_url}
+                tiktokUrl={formData.tiktok_url}
+                pinterestUrl={formData.pinterest_url}
+                whatsappUrl={formData.whatsapp_url}
                 onChange={handleSocialChange}
               />
             </div>

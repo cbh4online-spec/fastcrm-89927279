@@ -23,6 +23,10 @@ export interface EnrichmentResult {
     instagram?: string;
     facebook?: string;
     twitter?: string;
+    youtube?: string;
+    tiktok?: string;
+    pinterest?: string;
+    whatsapp?: string;
   };
   // Rich context fields for company analysis
   about_us?: EnrichmentField;
