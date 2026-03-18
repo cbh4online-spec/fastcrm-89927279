@@ -19,12 +19,14 @@ import { useKernelDecisions } from "@/hooks/useKernelDecisions";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Crosshair } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { WarRoomBriefingExport } from "@/components/weekly-dashboard/WarRoomBriefingExport";
 
 export default function WeeklyDashboard() {
   const { t } = useTranslation("dashboard");
   const { data, isLoading } = useWeeklyPerformance();
   const { strategy, isLoading: strategyLoading, generate } = useWeeklyStrategy();
   const { todaysBrief, generateDailyBrief } = useDailyBrief();
+  const weekLabel = data?.weekLabel || "...";
   const { openDecisions } = useKernelDecisions();
 
   const briefMetrics = todaysBrief?.key_metrics;
@@ -61,7 +63,13 @@ export default function WeeklyDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <TargetsSettingsSheet />
+            <WarRoomBriefingExport
+              metrics={data?.metrics || []}
+              pipelineValue={data?.pipelineValue ?? 0}
+              weekLabel={weekLabel}
+              todaysBrief={todaysBrief}
+              strategy={strategy}
+            />
             <Button
               variant="ghost"
               size="sm"
