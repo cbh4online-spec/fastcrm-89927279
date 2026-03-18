@@ -70,6 +70,10 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
         facebook_url: contact.facebook_url || "",
         instagram_url: contact.instagram_url || "",
         twitter_url: contact.twitter_url || "",
+        youtube_url: (contact as any).youtube_url || "",
+        tiktok_url: (contact as any).tiktok_url || "",
+        pinterest_url: (contact as any).pinterest_url || "",
+        whatsapp_url: (contact as any).whatsapp_url || "",
       });
     }
   }, [contact]);

@@ -91,6 +91,10 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         facebook_url: company.facebook_url || "",
         instagram_url: company.instagram_url || "",
         twitter_url: company.twitter_url || "",
+        youtube_url: (company as any).youtube_url || "",
+        tiktok_url: (company as any).tiktok_url || "",
+        pinterest_url: (company as any).pinterest_url || "",
+        whatsapp_url: (company as any).whatsapp_url || "",
       });
     }
   }, [company]);
