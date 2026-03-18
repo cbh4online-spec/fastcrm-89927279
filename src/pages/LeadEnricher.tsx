@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ModuleGuard } from "@/components/guards/ModuleGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,6 +72,7 @@ function EmailVerifiedBadge({ verified }: { verified: boolean | null | undefined
 }
 
 function LeadCard({ lead, onEnrich, isEnriching }: { lead: Lead; onEnrich: (lead: Lead) => void; isEnriching: boolean }) {
+  const navigate = useNavigate();
   const status = getEnrichmentStatus(lead);
   const companyName = lead.company_name;
   const website = lead.website;
@@ -82,7 +84,13 @@ function LeadCard({ lead, onEnrich, isEnriching }: { lead: Lead; onEnrich: (lead
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-2">
-              <h3 className="font-semibold truncate">{lead.name}</h3>
+              <h3
+                className="font-semibold truncate cursor-pointer hover:text-primary transition-colors hover:underline"
+                onClick={() => navigate(`/dashboard/leads/${lead.id}`)}
+                title="Abrir ficha do lead"
+              >
+                {lead.name}
+              </h3>
               <StatusBadge status={status} />
               {lead.confidence_score != null && lead.confidence_score > 0 && (
                 <span className="text-xs text-muted-foreground">
