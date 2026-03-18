@@ -216,17 +216,27 @@ export function useLeadsKPIs() {
       const weekStart = startOfWeek(now, { weekStartsOn: 1 });
       const threshold24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
-      // Fetch all leads with their conversations and opportunities
-      const { data: leads, error } = await workspaceClient
-        .from("leads")
-        .select(`
-          *,
-          conversations:conversations(last_message_at),
-          opportunities:opportunities(value, status)
-        `)
-        .eq("workspace_id", currentWorkspace.id);
-
-      if (error) throw error;
+      // Fetch all leads (bypass 1000 row limit)
+      const allLeads: any[] = [];
+      let kpiFrom = 0;
+      const kpiBatch = 1000;
+      while (true) {
+        const { data: batch, error } = await workspaceClient
+          .from("leads")
+          .select(`
+            *,
+            conversations:conversations(last_message_at),
+            opportunities:opportunities(value, status)
+          `)
+          .eq("workspace_id", currentWorkspace.id)
+          .range(kpiFrom, kpiFrom + kpiBatch - 1);
+        if (error) throw error;
+        if (!batch || batch.length === 0) break;
+        allLeads.push(...batch);
+        if (batch.length < kpiBatch) break;
+        kpiFrom += kpiBatch;
+      }
+      const leads = allLeads;
 
       const receivedToday = leads?.filter(l => 
         new Date(l.created_at) >= today
