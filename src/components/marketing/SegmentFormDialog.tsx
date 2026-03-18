@@ -31,6 +31,7 @@ interface SegmentFormDialogProps {
 }
 
 const FIELD_OPTIONS = [
+  { value: 'email', label: 'Email' },
   { value: 'tags', label: 'Tags' },
   { value: 'company', label: 'Empresa' },
   { value: 'job_title', label: 'Cargo' },
