@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { ConsentState, GDPRConsent } from '../types';
+import type { ConsentState } from '../types';
 
 const CONSENT_STORAGE_KEY = 'gdpr_consent';
 const VISITOR_ID_KEY = 'gdpr_visitor_id';
@@ -31,22 +31,22 @@ export function useConsent() {
   useEffect(() => {
     const loadConsent = async () => {
       try {
-        // First check localStorage for quick load
         const stored = localStorage.getItem(CONSENT_STORAGE_KEY);
         if (stored) {
           const parsed = JSON.parse(stored) as ConsentState;
           setConsent(parsed);
         }
 
-        // Then sync with database
         const visitorId = getVisitorId();
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('gdpr_consents')
           .select('*')
           .eq('visitor_id', visitorId)
-          .single();
+          .maybeSingle();
 
-        if (data) {
+        if (error) {
+          console.warn('GDPR consent lookup failed:', error.message);
+        } else if (data) {
           const dbConsent: ConsentState = {
             necessary: data.consent_necessary,
             analytics: data.consent_analytics,
@@ -68,7 +68,7 @@ export function useConsent() {
 
   const updateConsent = useCallback(async (newConsent: Partial<Omit<ConsentState, 'hasConsented'>>) => {
     const visitorId = getVisitorId();
-    
+
     const updatedConsent: ConsentState = {
       necessary: newConsent.necessary ?? consent.necessary,
       analytics: newConsent.analytics ?? consent.analytics,
@@ -76,11 +76,9 @@ export function useConsent() {
       hasConsented: true,
     };
 
-    // Update local state immediately
     setConsent(updatedConsent);
     localStorage.setItem(CONSENT_STORAGE_KEY, JSON.stringify(updatedConsent));
 
-    // Push consent update to dataLayer for GTM
     if (typeof window !== 'undefined' && window.dataLayer) {
       window.dataLayer.push({
         event: 'consent_update',
@@ -89,16 +87,19 @@ export function useConsent() {
       });
     }
 
-    // Persist to database
     try {
-      const { data: existing } = await supabase
+      const { data: existing, error: existingError } = await supabase
         .from('gdpr_consents')
         .select('id')
         .eq('visitor_id', visitorId)
-        .single();
+        .maybeSingle();
+
+      if (existingError) {
+        throw existingError;
+      }
 
       if (existing) {
-        await supabase
+        const { error: updateError } = await supabase
           .from('gdpr_consents')
           .update({
             consent_necessary: updatedConsent.necessary,
@@ -107,8 +108,10 @@ export function useConsent() {
             consent_updated_at: new Date().toISOString(),
           })
           .eq('visitor_id', visitorId);
+
+        if (updateError) throw updateError;
       } else {
-        await supabase
+        const { error: insertError } = await supabase
           .from('gdpr_consents')
           .insert({
             visitor_id: visitorId,
@@ -117,6 +120,8 @@ export function useConsent() {
             consent_marketing: updatedConsent.marketing,
             user_agent: navigator.userAgent,
           });
+
+        if (insertError) throw insertError;
       }
     } catch (error) {
       console.error('Error saving consent:', error);
