@@ -204,6 +204,9 @@ export function useAIInsights({ entityId, entityType, autoFetch = true }: UseAII
       });
       
       if (error) throw error;
+      if (data.success === false) {
+        throw new Error(data.error || "Erro ao gerar insights");
+      }
       if (data.error) throw new Error(data.error);
       
       return data;
