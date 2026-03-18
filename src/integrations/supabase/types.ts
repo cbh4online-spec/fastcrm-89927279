@@ -12928,6 +12928,62 @@ export type Database = {
           },
         ]
       }
+      credit_ledger: {
+        Row: {
+          action_key: string
+          created_at: string
+          credits_amount: number
+          description: string | null
+          direction: string
+          id: string
+          metadata: Json
+          module: string
+          reference_id: string | null
+          reference_type: string | null
+          status: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action_key: string
+          created_at?: string
+          credits_amount: number
+          description?: string | null
+          direction: string
+          id?: string
+          metadata?: Json
+          module?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action_key?: string
+          created_at?: string
+          credits_amount?: number
+          description?: string | null
+          direction?: string
+          id?: string
+          metadata?: Json
+          module?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_ledger_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_packages: {
         Row: {
           created_at: string
@@ -13174,6 +13230,47 @@ export type Database = {
             foreignKeyName: "credit_purchases_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          daily_limit: number | null
+          id: string
+          monthly_limit: number | null
+          reserved_balance: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          daily_limit?: number | null
+          id?: string
+          monthly_limit?: number | null
+          reserved_balance?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          daily_limit?: number | null
+          id?: string
+          monthly_limit?: number | null
+          reserved_balance?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_wallets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
