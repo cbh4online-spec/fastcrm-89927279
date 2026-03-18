@@ -159,7 +159,6 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
       children: [
         { nameKey: "inbox", name: t("inbox"), href: "/dashboard/inbox", icon: Inbox, iconColor: "text-blue-500" },
         { nameKey: "whatsapp", name: t("whatsapp"), href: "/dashboard/whatsapp", icon: Phone, iconColor: "text-blue-500" },
-        { nameKey: "email", name: t("email"), href: "/dashboard/email-campaigns", icon: Mail, moduleSlug: "email-campaigns", iconColor: "text-blue-500" },
         { nameKey: "internalFeed", name: t("internalFeed"), href: "/dashboard/feed", icon: MessageSquare, iconColor: "text-blue-500" },
         { nameKey: "templates", name: t("templates"), href: "/dashboard/communication/templates", icon: FileText, iconColor: "text-blue-500" },
       ],
