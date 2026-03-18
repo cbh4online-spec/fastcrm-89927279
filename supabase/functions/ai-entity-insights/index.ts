@@ -247,14 +247,22 @@ Gere insights acionáveis baseados nestes dados.`;
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded" }), { 
-          status: 429, 
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: "Rate limit exceeded. Tente novamente em alguns minutos.",
+          code: "RATE_LIMITED"
+        }), { 
+          status: 200, 
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Payment required" }), { 
-          status: 402, 
+      if (response.status === 402 || response.status === 403) {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: "Créditos de IA esgotados. Os insights ficarão disponíveis quando os créditos forem repostos.",
+          code: "CREDITS_EXHAUSTED"
+        }), { 
+          status: 200, 
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
         });
       }
