@@ -20,6 +20,7 @@ import { HelpSupportDropdown } from "./HelpSupportDropdown";
 import { ContextScoreIndicator } from "./ContextScoreIndicator";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { LanguageSelector } from "@/components/ui/LanguageSelector";
+import { TopBarCreditsBadge } from "./TopBarCreditsBadge";
 
 interface TopBarProps {
   onMenuClick: () => void;
