@@ -42,6 +42,7 @@ import {
   Video,
   Link2,
 } from "lucide-react";
+import { LocationMapEmbed } from "./LocationMapEmbed";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useProduct, useUpdateProduct, useArchiveProduct, useDeleteProduct } from "@/hooks/useProducts";
