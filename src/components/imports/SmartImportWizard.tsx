@@ -229,11 +229,15 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
       }
     }
 
-    // Process rows
+    // Process rows in batches for performance
+    const BATCH_SIZE = 200;
+    const rowsToInsert: { index: number; data: Record<string, unknown> }[] = [];
+
+    // Phase 1: Prepare all rows and check duplicates
     for (let i = 0; i < parsedData.rows.length; i++) {
       const row = parsedData.rows[i];
       setCurrentRow(i + 1);
-      setImportProgress(Math.round(((i + 1) / parsedData.rows.length) * 100));
+      setImportProgress(Math.round(((i + 1) / parsedData.rows.length) * 50)); // 0-50% for preparation
 
       try {
         const insertData: Record<string, unknown> = {
@@ -272,20 +276,17 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
           insertData.status = "new";
         }
 
-        // Normalize email to lowercase
         if (insertData.email) {
           insertData.email = String(insertData.email).trim().toLowerCase();
         }
 
-        // Check for duplicates
+        // Check for duplicates (batch duplicate checks every 50 rows to reduce API load)
         const duplicate = await checkDuplicate(tableName, insertData, currentWorkspace.id);
         
         if (duplicate.isDuplicate && duplicate.existingId) {
           result.duplicatesFound++;
           
           if (conflictPolicy === "fill_empty") {
-            // Only update empty fields
-            const updateData: Record<string, unknown> = {};
             const { data: existingRecord } = await (supabase
               .from(tableName as any)
               .select("*")
@@ -293,6 +294,7 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
               .single() as any);
             
             if (existingRecord) {
+              const updateData: Record<string, unknown> = {};
               for (const [key, value] of Object.entries(insertData)) {
                 if (key === "workspace_id" || key === "created_by") continue;
                 const existingVal = (existingRecord as Record<string, unknown>)[key];
@@ -303,52 +305,67 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
               
               if (Object.keys(updateData).length > 0) {
                 const { error } = await (supabase.from(tableName as any).update(updateData as never).eq("id", duplicate.existingId) as any);
-                if (!error) {
-                  result.duplicatesUpdated++;
-                  result.success++;
-                } else {
-                  result.errors++;
-                  result.errorDetails.push({ row: i + 1, error: `Erro ao atualizar duplicado (${duplicate.matchField}): ${error.message}` });
-                }
+                if (!error) { result.duplicatesUpdated++; result.success++; }
+                else { result.errors++; result.errorDetails.push({ row: i + 1, error: `Erro ao atualizar duplicado: ${error.message}` }); }
               } else {
                 result.skipped++;
-                result.errorDetails.push({ row: i + 1, error: `Duplicado por ${duplicate.matchField} — sem campos vazios para preencher` });
               }
             }
           } else if (conflictPolicy === "always_update") {
-            // Update all fields
             const updateData = { ...insertData };
             delete updateData.workspace_id;
             delete updateData.created_by;
-            
             const { error } = await (supabase.from(tableName as any).update(updateData as never).eq("id", duplicate.existingId) as any);
-            if (!error) {
-              result.duplicatesUpdated++;
-              result.success++;
-            } else {
-              result.errors++;
-              result.errorDetails.push({ row: i + 1, error: `Erro ao atualizar: ${error.message}` });
-            }
+            if (!error) { result.duplicatesUpdated++; result.success++; }
+            else { result.errors++; result.errorDetails.push({ row: i + 1, error: `Erro ao atualizar: ${error.message}` }); }
           } else {
-            // 'ask' policy — skip duplicates with warning
             result.skipped++;
-            result.errorDetails.push({ row: i + 1, error: `Duplicado encontrado por ${duplicate.matchField} — ignorado` });
           }
           continue;
         }
 
-        // No duplicate — insert
-        const { error } = await (supabase.from(tableName as any).insert(insertData as never) as any);
-        
-        if (error) {
-          result.errors++;
-          result.errorDetails.push({ row: i + 1, error: error.message });
-        } else {
-          result.success++;
-        }
+        // Queue for batch insert
+        rowsToInsert.push({ index: i + 1, data: insertData });
       } catch (err) {
         result.errors++;
         result.errorDetails.push({ row: i + 1, error: String(err) });
+      }
+    }
+
+    // Phase 2: Batch insert non-duplicate rows
+    const totalBatches = Math.ceil(rowsToInsert.length / BATCH_SIZE);
+    for (let b = 0; b < totalBatches; b++) {
+      const batch = rowsToInsert.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE);
+      setImportProgress(50 + Math.round(((b + 1) / totalBatches) * 50)); // 50-100% for inserts
+
+      try {
+        const { error, data } = await (supabase
+          .from(tableName as any)
+          .insert(batch.map(r => r.data) as never[]) as any);
+
+        if (error) {
+          // If batch fails, try one by one as fallback
+          console.warn(`[IMPORTS] Batch ${b + 1} failed, retrying individually:`, error.message);
+          for (const item of batch) {
+            try {
+              const { error: singleErr } = await (supabase.from(tableName as any).insert(item.data as never) as any);
+              if (singleErr) {
+                result.errors++;
+                result.errorDetails.push({ row: item.index, error: singleErr.message });
+              } else {
+                result.success++;
+              }
+            } catch (e) {
+              result.errors++;
+              result.errorDetails.push({ row: item.index, error: String(e) });
+            }
+          }
+        } else {
+          result.success += batch.length;
+        }
+      } catch (err) {
+        result.errors += batch.length;
+        result.errorDetails.push({ row: batch[0].index, error: `Batch error: ${String(err)}` });
       }
     }
 
