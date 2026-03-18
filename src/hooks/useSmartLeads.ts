@@ -114,8 +114,24 @@ export function useSmartLeads(filters?: SmartLeadsFilters) {
         );
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
+      // Fetch all results - bypass Supabase default 1000 row limit
+      // We need all rows for client-side smart filters, search, and sorting
+      const allData: any[] = [];
+      let from = 0;
+      const batchSize = 1000;
+      let totalCount = 0;
+
+      while (true) {
+        const { data: batch, error, count } = await query.range(from, from + batchSize - 1);
+        if (error) throw error;
+        if (count !== null && from === 0) totalCount = count;
+        if (!batch || batch.length === 0) break;
+        allData.push(...batch);
+        if (batch.length < batchSize) break;
+        from += batchSize;
+      }
+
+      const data = allData;
 
       const now = new Date();
       const today = startOfDay(now);
