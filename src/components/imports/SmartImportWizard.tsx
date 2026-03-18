@@ -286,11 +286,11 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
           if (conflictPolicy === "fill_empty") {
             // Only update empty fields
             const updateData: Record<string, unknown> = {};
-            const { data: existingRecord } = await supabase
-              .from(tableName)
+            const { data: existingRecord } = await (supabase
+              .from(tableName as any)
               .select("*")
               .eq("id", duplicate.existingId)
-              .single();
+              .single() as any);
             
             if (existingRecord) {
               for (const [key, value] of Object.entries(insertData)) {
