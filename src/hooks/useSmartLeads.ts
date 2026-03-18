@@ -87,7 +87,7 @@ export function useSmartLeads(filters?: SmartLeadsFilters) {
           *,
           conversations:conversations(id, channel, last_message_at, last_message_preview, unread_count),
           opportunities:opportunities(id, value, status)
-        `)
+        `, { count: 'exact' })
         .eq("workspace_id", currentWorkspace.id)
         .order("lead_score", { ascending: false });
 
@@ -114,8 +114,24 @@ export function useSmartLeads(filters?: SmartLeadsFilters) {
         );
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
+      // Fetch all results - bypass Supabase default 1000 row limit
+      // We need all rows for client-side smart filters, search, and sorting
+      const allData: any[] = [];
+      let from = 0;
+      const batchSize = 1000;
+      let totalCount = 0;
+
+      while (true) {
+        const { data: batch, error, count } = await query.range(from, from + batchSize - 1);
+        if (error) throw error;
+        if (count !== null && from === 0) totalCount = count;
+        if (!batch || batch.length === 0) break;
+        allData.push(...batch);
+        if (batch.length < batchSize) break;
+        from += batchSize;
+      }
+
+      const data = allData;
 
       const now = new Date();
       const today = startOfDay(now);
@@ -200,17 +216,27 @@ export function useLeadsKPIs() {
       const weekStart = startOfWeek(now, { weekStartsOn: 1 });
       const threshold24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
-      // Fetch all leads with their conversations and opportunities
-      const { data: leads, error } = await workspaceClient
-        .from("leads")
-        .select(`
-          *,
-          conversations:conversations(last_message_at),
-          opportunities:opportunities(value, status)
-        `)
-        .eq("workspace_id", currentWorkspace.id);
-
-      if (error) throw error;
+      // Fetch all leads (bypass 1000 row limit)
+      const allLeads: any[] = [];
+      let kpiFrom = 0;
+      const kpiBatch = 1000;
+      while (true) {
+        const { data: batch, error } = await workspaceClient
+          .from("leads")
+          .select(`
+            *,
+            conversations:conversations(last_message_at),
+            opportunities:opportunities(value, status)
+          `)
+          .eq("workspace_id", currentWorkspace.id)
+          .range(kpiFrom, kpiFrom + kpiBatch - 1);
+        if (error) throw error;
+        if (!batch || batch.length === 0) break;
+        allLeads.push(...batch);
+        if (batch.length < kpiBatch) break;
+        kpiFrom += kpiBatch;
+      }
+      const leads = allLeads;
 
       const receivedToday = leads?.filter(l => 
         new Date(l.created_at) >= today
