@@ -205,6 +205,7 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
         { nameKey: "bioOs", name: t("bioOs"), href: "/dashboard/bio", icon: Globe, moduleSlug: "bio-os", iconColor: "text-indigo-500" },
         { nameKey: "prospecting", name: t("prospecting"), href: "/dashboard/prospecting", icon: Search, iconColor: "text-indigo-500" },
         { nameKey: "funnels", name: t("funnels"), href: "/dashboard/funnels", icon: GitBranch, iconColor: "text-indigo-500" },
+        { nameKey: "leadEnricher", name: t("leadEnricher"), href: "/dashboard/lead-enricher", icon: Sparkles, moduleSlug: "lead-enricher", iconColor: "text-indigo-500" },
       ],
     },
     {
