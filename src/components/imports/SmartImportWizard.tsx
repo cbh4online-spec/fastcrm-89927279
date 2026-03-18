@@ -321,7 +321,7 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
             delete updateData.workspace_id;
             delete updateData.created_by;
             
-            const { error } = await supabase.from(tableName).update(updateData as never).eq("id", duplicate.existingId);
+            const { error } = await (supabase.from(tableName as any).update(updateData as never).eq("id", duplicate.existingId) as any);
             if (!error) {
               result.duplicatesUpdated++;
               result.success++;
