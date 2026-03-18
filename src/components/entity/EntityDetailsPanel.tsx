@@ -1,6 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { ChevronRight, Mail, Phone, Globe, MapPin, Linkedin, Facebook, Twitter, Instagram, Building2, Briefcase, Tag, Calendar, Users, TrendingUp, DollarSign, Pencil, Clock } from 'lucide-react';
+import { ChevronRight, Mail, Phone, Globe, MapPin, Linkedin, Facebook, Twitter, Instagram, Building2, Briefcase, Tag, Calendar, Users, TrendingUp, DollarSign, Pencil, Clock, Youtube, Pin, MessageCircle } from 'lucide-react';
+
+function TikTokIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 0 0-.79-.05A6.34 6.34 0 0 0 3.16 15a6.34 6.34 0 0 0 6.33 6.33 6.34 6.34 0 0 0 6.33-6.33V8.28a8.28 8.28 0 0 0 4.77 1.51V6.35a4.85 4.85 0 0 1-1-.16z" />
+    </svg>
+  );
+}
 import { EntityType, Entity, CompanyEntity, ContactEntity, LeadEntity } from '@/types/entity';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -278,7 +286,11 @@ function CompanyDetails({ entity, onUpdate }: { entity: CompanyEntity; onUpdate?
         <EditableFieldRow label="LinkedIn" value={e.linkedin_url} icon={Linkedin} iconClassName="text-[#0A66C2]" isLink linkType="url" fieldKey="linkedin_url" onUpdate={onUpdate} />
         <EditableFieldRow label="Facebook" value={e.facebook_url} icon={Facebook} iconClassName="text-[#1877F2]" isLink linkType="url" fieldKey="facebook_url" onUpdate={onUpdate} />
         <EditableFieldRow label="Instagram" value={e.instagram_url} icon={Instagram} iconClassName="text-[#E4405F]" isLink linkType="url" fieldKey="instagram_url" onUpdate={onUpdate} />
-        <EditableFieldRow label="Twitter" value={e.twitter_url} icon={Twitter} iconClassName="text-foreground" isLink linkType="url" fieldKey="twitter_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Twitter/X" value={e.twitter_url} icon={Twitter} iconClassName="text-foreground" isLink linkType="url" fieldKey="twitter_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="YouTube" value={e.youtube_url} icon={Youtube} iconClassName="text-[#FF0000]" isLink linkType="url" fieldKey="youtube_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="TikTok" value={e.tiktok_url} icon={TikTokIcon} iconClassName="text-foreground" isLink linkType="url" fieldKey="tiktok_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Pinterest" value={e.pinterest_url} icon={Pin} iconClassName="text-[#E60023]" isLink linkType="url" fieldKey="pinterest_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="WhatsApp" value={e.whatsapp_url} icon={MessageCircle} iconClassName="text-[#25D366]" isLink linkType="url" fieldKey="whatsapp_url" onUpdate={onUpdate} />
       </CollapsibleSection>
     </div>
   );
@@ -315,6 +327,11 @@ function ContactDetails({ entity, onUpdate }: { entity: ContactEntity; onUpdate?
         <EditableFieldRow label="LinkedIn" value={e.linkedin_url} icon={Linkedin} iconClassName="text-[#0A66C2]" isLink linkType="url" fieldKey="linkedin_url" onUpdate={onUpdate} />
         <EditableFieldRow label="Facebook" value={e.facebook_url} icon={Facebook} iconClassName="text-[#1877F2]" isLink linkType="url" fieldKey="facebook_url" onUpdate={onUpdate} />
         <EditableFieldRow label="Instagram" value={e.instagram_url} icon={Instagram} iconClassName="text-[#E4405F]" isLink linkType="url" fieldKey="instagram_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Twitter/X" value={e.twitter_url} icon={Twitter} iconClassName="text-foreground" isLink linkType="url" fieldKey="twitter_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="YouTube" value={e.youtube_url} icon={Youtube} iconClassName="text-[#FF0000]" isLink linkType="url" fieldKey="youtube_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="TikTok" value={e.tiktok_url} icon={TikTokIcon} iconClassName="text-foreground" isLink linkType="url" fieldKey="tiktok_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Pinterest" value={e.pinterest_url} icon={Pin} iconClassName="text-[#E60023]" isLink linkType="url" fieldKey="pinterest_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="WhatsApp" value={e.whatsapp_url} icon={MessageCircle} iconClassName="text-[#25D366]" isLink linkType="url" fieldKey="whatsapp_url" onUpdate={onUpdate} />
       </CollapsibleSection>
     </div>
   );
@@ -345,6 +362,10 @@ function LeadDetails({ entity, onUpdate }: { entity: LeadEntity; onUpdate?: (fie
         <EditableFieldRow label="Instagram" value={e.instagram_url} icon={Instagram} iconClassName="text-[#E4405F]" isLink linkType="url" fieldKey="instagram_url" onUpdate={onUpdate} />
         <EditableFieldRow label="Facebook" value={e.facebook_url} icon={Facebook} iconClassName="text-[#1877F2]" isLink linkType="url" fieldKey="facebook_url" onUpdate={onUpdate} />
         <EditableFieldRow label="Twitter/X" value={e.twitter_url} icon={Twitter} iconClassName="text-foreground" isLink linkType="url" fieldKey="twitter_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="YouTube" value={e.youtube_url} icon={Youtube} iconClassName="text-[#FF0000]" isLink linkType="url" fieldKey="youtube_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="TikTok" value={e.tiktok_url} icon={TikTokIcon} iconClassName="text-foreground" isLink linkType="url" fieldKey="tiktok_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="Pinterest" value={e.pinterest_url} icon={Pin} iconClassName="text-[#E60023]" isLink linkType="url" fieldKey="pinterest_url" onUpdate={onUpdate} />
+        <EditableFieldRow label="WhatsApp" value={e.whatsapp_url} icon={MessageCircle} iconClassName="text-[#25D366]" isLink linkType="url" fieldKey="whatsapp_url" onUpdate={onUpdate} />
       </CollapsibleSection>
     </div>
   );
