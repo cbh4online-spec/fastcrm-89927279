@@ -87,7 +87,7 @@ export function useSmartLeads(filters?: SmartLeadsFilters) {
           *,
           conversations:conversations(id, channel, last_message_at, last_message_preview, unread_count),
           opportunities:opportunities(id, value, status)
-        `)
+        `, { count: 'exact' })
         .eq("workspace_id", currentWorkspace.id)
         .order("lead_score", { ascending: false });
 
