@@ -177,86 +177,102 @@ export function useDeleteSegment() {
 }
 
 // Helper function to count segment entities without fetching all data
+type SegmentEntityType = 'contact' | 'lead' | 'company';
+
+const SEGMENT_FIELDS_BY_ENTITY: Record<SegmentEntityType, Set<string>> = {
+  contact: new Set(['email', 'tags', 'company', 'job_title', 'city', 'source']),
+  lead: new Set(['email', 'tags', 'company', 'city', 'source']),
+  company: new Set(['email', 'tags', 'company', 'city', 'source']),
+};
+
+function applySegmentConditions(
+  query: any,
+  conditions: SegmentFilterRules['conditions'] | undefined,
+  entityType: SegmentEntityType
+) {
+  for (const condition of conditions || []) {
+    const field = condition.field;
+    const isSupportedField = SEGMENT_FIELDS_BY_ENTITY[entityType].has(field);
+
+    if (!isSupportedField) continue;
+
+    const value = typeof condition.value === 'string' ? condition.value.trim() : '';
+
+    if (field === 'tags') {
+      switch (condition.operator) {
+        case 'contains':
+          if (value) query = query.contains('tags', [value]);
+          break;
+        case 'not_contains':
+          if (value) query = query.not('tags', 'cs', `{${value}}`);
+          break;
+        case 'is_empty':
+          query = query.or('tags.is.null,tags.eq.{}');
+          break;
+        case 'is_not_empty':
+          query = query.not('tags', 'is', null).neq('tags', '{}');
+          break;
+      }
+      continue;
+    }
+
+    switch (condition.operator) {
+      case 'equals':
+        if (value) query = query.eq(field, value);
+        break;
+      case 'not_equals':
+        if (value) query = query.neq(field, value);
+        break;
+      case 'contains':
+        if (value) query = query.ilike(field, `%${value}%`);
+        break;
+      case 'not_contains':
+        if (value) query = query.not(field, 'ilike', `%${value}%`);
+        break;
+      case 'is_empty':
+        query = query.or(`${field}.is.null,${field}.eq.""`);
+        break;
+      case 'is_not_empty':
+        query = query.not(field, 'is', null).neq(field, '');
+        break;
+    }
+  }
+
+  return query;
+}
+
 export async function countSegmentEntities(
   workspaceId: string,
   filterRules: SegmentFilterRules
 ): Promise<number> {
   let totalCount = 0;
+  const conditions = filterRules?.conditions;
 
-  const applyConditions = (query: any, conditions: typeof filterRules.conditions) => {
-    for (const condition of conditions || []) {
-      const value = typeof condition.value === 'string' ? condition.value : '';
-      const field = condition.field;
-
-      // Special handling for array fields like tags
-      if (field === 'tags') {
-        switch (condition.operator) {
-          case 'contains':
-            if (value) query = query.contains('tags', [value]);
-            break;
-          case 'not_contains':
-            if (value) query = query.not('tags', 'cs', `{${value}}`);
-            break;
-          case 'is_empty':
-            query = query.or('tags.is.null,tags.eq.{}');
-            break;
-          case 'is_not_empty':
-            query = query.not('tags', 'is', null).neq('tags', '{}');
-            break;
-        }
-        continue;
-      }
-
-      // Generic handling for text fields: source, company, job_title, city, lead_status, entity_type, etc.
-      switch (condition.operator) {
-        case 'equals':
-          if (value) query = query.eq(field, value);
-          break;
-        case 'not_equals':
-          if (value) query = query.neq(field, value);
-          break;
-        case 'contains':
-          if (value) query = query.ilike(field, `%${value}%`);
-          break;
-        case 'not_contains':
-          if (value) query = query.not(field, 'ilike', `%${value}%`);
-          break;
-        case 'is_empty':
-          query = query.is(field, null);
-          break;
-        case 'is_not_empty':
-          query = query.not(field, 'is', null);
-          break;
-      }
-    }
-    return query;
-  };
-
-  // Count contacts
   let contactsQuery = supabase
     .from('contacts')
     .select('id', { count: 'exact', head: true })
     .eq('workspace_id', workspaceId);
-  contactsQuery = applyConditions(contactsQuery, filterRules?.conditions);
-  const { count: contactsCount } = await contactsQuery;
+  contactsQuery = applySegmentConditions(contactsQuery, conditions, 'contact');
+  const { count: contactsCount, error: contactsError } = await contactsQuery;
+  if (contactsError) throw contactsError;
   totalCount += contactsCount || 0;
 
-  // Count leads
   let leadsQuery = supabase
     .from('leads')
     .select('id', { count: 'exact', head: true })
     .eq('workspace_id', workspaceId);
-  leadsQuery = applyConditions(leadsQuery, filterRules?.conditions);
-  const { count: leadsCount } = await leadsQuery;
+  leadsQuery = applySegmentConditions(leadsQuery, conditions, 'lead');
+  const { count: leadsCount, error: leadsError } = await leadsQuery;
+  if (leadsError) throw leadsError;
   totalCount += leadsCount || 0;
 
-  // Count companies
   let companiesQuery = supabase
     .from('companies')
     .select('id', { count: 'exact', head: true })
     .eq('workspace_id', workspaceId);
-  companiesQuery = applyConditions(companiesQuery, filterRules?.conditions);
-  const { count: companiesCount } = await companiesQuery;
+  companiesQuery = applySegmentConditions(companiesQuery, conditions, 'company');
+  const { count: companiesCount, error: companiesError } = await companiesQuery;
+  if (companiesError) throw companiesError;
   totalCount += companiesCount || 0;
 
   return totalCount;
@@ -267,7 +283,7 @@ export function useSegmentLiveCount(segment: { id: string; filterRules: SegmentF
   const { currentWorkspace } = useWorkspace();
 
   return useQuery({
-    queryKey: ['segment-live-count', segment?.id],
+    queryKey: ['segment-live-count', segment?.id, JSON.stringify(segment?.filterRules ?? {})],
     queryFn: async () => {
       if (!segment || !currentWorkspace?.id) return 0;
       const count = await countSegmentEntities(currentWorkspace.id, segment.filterRules);
@@ -281,7 +297,7 @@ export function useSegmentLiveCount(segment: { id: string; filterRules: SegmentF
       return count;
     },
     enabled: !!segment && !!currentWorkspace?.id,
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 30000,
   });
 }
 
@@ -289,97 +305,72 @@ export interface SegmentEntity {
   id: string;
   name: string;
   email: string | null;
-  type: 'contact' | 'lead' | 'company';
+  type: SegmentEntityType;
 }
 
 export function useSegmentContacts(segmentId: string | undefined) {
   const { currentWorkspace } = useWorkspace();
 
   return useQuery({
-    queryKey: ['segment-contacts', segmentId],
+    queryKey: ['segment-contacts', currentWorkspace?.id, segmentId],
     queryFn: async () => {
       if (!segmentId || !currentWorkspace?.id) return { contacts: [], count: 0 };
 
-      // Get segment rules
-      const { data: segment } = await supabase
+      const { data: segment, error: segmentError } = await supabase
         .from('marketing_segments')
         .select('filter_rules')
         .eq('id', segmentId)
         .single();
 
+      if (segmentError) throw segmentError;
       if (!segment) return { contacts: [], count: 0 };
 
       const rules = segment.filter_rules as unknown as SegmentFilterRules;
-      
       const allEntities: SegmentEntity[] = [];
 
-      // Helper function to apply filter conditions
-      const applyConditions = (query: any, conditions: typeof rules.conditions) => {
-        for (const condition of conditions || []) {
-          const value = typeof condition.value === 'string' ? condition.value : '';
-          switch (condition.field) {
-            case 'tags':
-              if (condition.operator === 'contains' && value) {
-                query = query.contains('tags', [value]);
-              }
-              break;
-            case 'company':
-              if (condition.operator === 'equals' && value) {
-                query = query.eq('company', value);
-              } else if (condition.operator === 'contains' && value) {
-                query = query.ilike('company', `%${value}%`);
-              }
-              break;
-          }
-        }
-        return query;
-      };
-
-      // Query contacts
       let contactsQuery = supabase
         .from('contacts')
         .select('id, name, email')
         .eq('workspace_id', currentWorkspace.id);
-      contactsQuery = applyConditions(contactsQuery, rules?.conditions);
-      const { data: contacts } = await contactsQuery.limit(200);
-      
+      contactsQuery = applySegmentConditions(contactsQuery, rules?.conditions, 'contact');
+      const { data: contacts, error: contactsError } = await contactsQuery.limit(1000);
+      if (contactsError) throw contactsError;
       if (contacts) {
         allEntities.push(...contacts.map(c => ({ ...c, type: 'contact' as const })));
       }
 
-      // Query leads
       let leadsQuery = supabase
         .from('leads')
         .select('id, name, email')
         .eq('workspace_id', currentWorkspace.id);
-      leadsQuery = applyConditions(leadsQuery, rules?.conditions);
-      const { data: leads } = await leadsQuery.limit(200);
-      
+      leadsQuery = applySegmentConditions(leadsQuery, rules?.conditions, 'lead');
+      const { data: leads, error: leadsError } = await leadsQuery.limit(1000);
+      if (leadsError) throw leadsError;
       if (leads) {
         allEntities.push(...leads.map(l => ({ ...l, type: 'lead' as const })));
       }
 
-      // Query companies (use 'name' as name and 'email' field)
       let companiesQuery = supabase
         .from('companies')
         .select('id, name, email')
         .eq('workspace_id', currentWorkspace.id);
-      companiesQuery = applyConditions(companiesQuery, rules?.conditions);
-      const { data: companies } = await companiesQuery.limit(200);
-      
+      companiesQuery = applySegmentConditions(companiesQuery, rules?.conditions, 'company');
+      const { data: companies, error: companiesError } = await companiesQuery.limit(1000);
+      if (companiesError) throw companiesError;
       if (companies) {
         allEntities.push(...companies.map(c => ({ ...c, type: 'company' as const })));
       }
 
-      // Update segment contact count
+      const sortedEntities = allEntities.sort((a, b) => a.name.localeCompare(b.name, 'pt'));
+
       await supabase
         .from('marketing_segments')
-        .update({ contact_count: allEntities.length })
+        .update({ contact_count: sortedEntities.length })
         .eq('id', segmentId);
 
       return {
-        contacts: allEntities,
-        count: allEntities.length,
+        contacts: sortedEntities,
+        count: sortedEntities.length,
       };
     },
     enabled: !!segmentId && !!currentWorkspace?.id,
