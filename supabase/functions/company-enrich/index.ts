@@ -25,6 +25,10 @@ interface EnrichmentResult {
     instagram?: string;
     facebook?: string;
     twitter?: string;
+    youtube?: string;
+    tiktok?: string;
+    pinterest?: string;
+    whatsapp?: string;
   };
   // Rich context fields
   about_us?: EnrichmentField;
@@ -184,6 +188,10 @@ function extractSocialFromContent(content: string): Record<string, string> {
     { key: "instagram", regex: /https?:\/\/(www\.)?instagram\.com\/[^\s"'<>)]+/gi },
     { key: "facebook", regex: /https?:\/\/(www\.)?facebook\.com\/[^\s"'<>)]+/gi },
     { key: "twitter", regex: /https?:\/\/(www\.)?(twitter\.com|x\.com)\/[^\s"'<>)]+/gi },
+    { key: "youtube", regex: /https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s"'<>)]+/gi },
+    { key: "tiktok", regex: /https?:\/\/(www\.)?tiktok\.com\/[^\s"'<>)]+/gi },
+    { key: "pinterest", regex: /https?:\/\/(www\.)?(pinterest\.(com|pt)|pin\.it)\/[^\s"'<>)]+/gi },
+    { key: "whatsapp", regex: /https?:\/\/(wa\.me|api\.whatsapp\.com|chat\.whatsapp\.com)\/[^\s"'<>)]+/gi },
   ];
   
   for (const { key, regex } of patterns) {
@@ -305,6 +313,78 @@ async function searchSocialMedia(
       if (instagramUrl && instagramUrl.includes("instagram.com") && !instagramUrl.includes("/accounts/")) {
         social.instagram = instagramUrl;
         console.log("Found Instagram via search:", instagramUrl);
+      }
+    }
+    
+    // Search for YouTube
+    const youtubeSearch = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `${companyName} site:youtube.com`,
+        limit: 3,
+        lang: "pt",
+        country: "PT",
+      }),
+    });
+    
+    const youtubeData = await youtubeSearch.json();
+    if (youtubeData.success && youtubeData.data?.length > 0) {
+      const youtubeUrl = youtubeData.data[0]?.url;
+      if (youtubeUrl && youtubeUrl.includes("youtube.com") && !youtubeUrl.includes("/results")) {
+        social.youtube = youtubeUrl;
+        console.log("Found YouTube via search:", youtubeUrl);
+      }
+    }
+    
+    // Search for TikTok
+    const tiktokSearch = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `${companyName} site:tiktok.com`,
+        limit: 3,
+        lang: "pt",
+        country: "PT",
+      }),
+    });
+    
+    const tiktokData = await tiktokSearch.json();
+    if (tiktokData.success && tiktokData.data?.length > 0) {
+      const tiktokUrl = tiktokData.data[0]?.url;
+      if (tiktokUrl && tiktokUrl.includes("tiktok.com/@")) {
+        social.tiktok = tiktokUrl;
+        console.log("Found TikTok via search:", tiktokUrl);
+      }
+    }
+    
+    // Search for Pinterest
+    const pinterestSearch = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `${companyName} site:pinterest.com`,
+        limit: 3,
+        lang: "pt",
+        country: "PT",
+      }),
+    });
+    
+    const pinterestData = await pinterestSearch.json();
+    if (pinterestData.success && pinterestData.data?.length > 0) {
+      const pinterestUrl = pinterestData.data[0]?.url;
+      if (pinterestUrl && (pinterestUrl.includes("pinterest.com") || pinterestUrl.includes("pinterest.pt"))) {
+        social.pinterest = pinterestUrl;
+        console.log("Found Pinterest via search:", pinterestUrl);
       }
     }
   } catch (e) {
@@ -472,6 +552,10 @@ async function enrichFromWebsite(
     if (link.includes("instagram.com") && !socialLinks.instagram) socialLinks.instagram = link;
     if (link.includes("facebook.com") && !socialLinks.facebook) socialLinks.facebook = link;
     if ((link.includes("twitter.com") || link.includes("x.com")) && !socialLinks.twitter) socialLinks.twitter = link;
+    if ((link.includes("youtube.com") || link.includes("youtu.be")) && !socialLinks.youtube) socialLinks.youtube = link;
+    if (link.includes("tiktok.com") && !socialLinks.tiktok) socialLinks.tiktok = link;
+    if ((link.includes("pinterest.com") || link.includes("pinterest.pt") || link.includes("pin.it")) && !socialLinks.pinterest) socialLinks.pinterest = link;
+    if ((link.includes("wa.me") || link.includes("whatsapp.com")) && !socialLinks.whatsapp) socialLinks.whatsapp = link;
   }
   
   // Also search in HTML content for social links
@@ -480,6 +564,10 @@ async function enrichFromWebsite(
   if (!socialLinks.instagram && htmlSocial.instagram) socialLinks.instagram = htmlSocial.instagram;
   if (!socialLinks.facebook && htmlSocial.facebook) socialLinks.facebook = htmlSocial.facebook;
   if (!socialLinks.twitter && htmlSocial.twitter) socialLinks.twitter = htmlSocial.twitter;
+  if (!socialLinks.youtube && htmlSocial.youtube) socialLinks.youtube = htmlSocial.youtube;
+  if (!socialLinks.tiktok && htmlSocial.tiktok) socialLinks.tiktok = htmlSocial.tiktok;
+  if (!socialLinks.pinterest && htmlSocial.pinterest) socialLinks.pinterest = htmlSocial.pinterest;
+  if (!socialLinks.whatsapp && htmlSocial.whatsapp) socialLinks.whatsapp = htmlSocial.whatsapp;
   
   // If no social links found, search the web for them
   const hasSocialLinks = Object.keys(socialLinks).length > 0;
@@ -490,6 +578,10 @@ async function enrichFromWebsite(
     if (webSocial.facebook) socialLinks.facebook = webSocial.facebook;
     if (webSocial.instagram) socialLinks.instagram = webSocial.instagram;
     if (webSocial.twitter) socialLinks.twitter = webSocial.twitter;
+    if (webSocial.youtube) socialLinks.youtube = webSocial.youtube;
+    if (webSocial.tiktok) socialLinks.tiktok = webSocial.tiktok;
+    if (webSocial.pinterest) socialLinks.pinterest = webSocial.pinterest;
+    if (webSocial.whatsapp) socialLinks.whatsapp = webSocial.whatsapp;
   }
   
   // Extract contact info from content
