@@ -506,6 +506,10 @@ async function enrichFromWebsite(
     if (webSocial.facebook) socialLinks.facebook = webSocial.facebook;
     if (webSocial.instagram) socialLinks.instagram = webSocial.instagram;
     if (webSocial.twitter) socialLinks.twitter = webSocial.twitter;
+    if (webSocial.youtube) socialLinks.youtube = webSocial.youtube;
+    if (webSocial.tiktok) socialLinks.tiktok = webSocial.tiktok;
+    if (webSocial.pinterest) socialLinks.pinterest = webSocial.pinterest;
+    if (webSocial.whatsapp) socialLinks.whatsapp = webSocial.whatsapp;
   }
   
   // Extract contact info from content
