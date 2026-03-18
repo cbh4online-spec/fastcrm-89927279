@@ -9278,6 +9278,7 @@ export type Database = {
           parish: string | null
           payment_conditions: string | null
           phone: string | null
+          pinterest_url: string | null
           postal_code: string | null
           preferred_currency: string | null
           preferred_payment_method: string | null
@@ -9293,13 +9294,16 @@ export type Database = {
           source: string | null
           tags: string[] | null
           tax_id: string | null
+          tiktok_url: string | null
           timezone: string | null
           total_revenue: number | null
           twitter_url: string | null
           updated_at: string
           updated_by: string | null
           website: string | null
+          whatsapp_url: string | null
           workspace_id: string
+          youtube_url: string | null
         }
         Insert: {
           abc_category?: string | null
@@ -9389,6 +9393,7 @@ export type Database = {
           parish?: string | null
           payment_conditions?: string | null
           phone?: string | null
+          pinterest_url?: string | null
           postal_code?: string | null
           preferred_currency?: string | null
           preferred_payment_method?: string | null
@@ -9404,13 +9409,16 @@ export type Database = {
           source?: string | null
           tags?: string[] | null
           tax_id?: string | null
+          tiktok_url?: string | null
           timezone?: string | null
           total_revenue?: number | null
           twitter_url?: string | null
           updated_at?: string
           updated_by?: string | null
           website?: string | null
+          whatsapp_url?: string | null
           workspace_id: string
+          youtube_url?: string | null
         }
         Update: {
           abc_category?: string | null
@@ -9500,6 +9508,7 @@ export type Database = {
           parish?: string | null
           payment_conditions?: string | null
           phone?: string | null
+          pinterest_url?: string | null
           postal_code?: string | null
           preferred_currency?: string | null
           preferred_payment_method?: string | null
@@ -9515,13 +9524,16 @@ export type Database = {
           source?: string | null
           tags?: string[] | null
           tax_id?: string | null
+          tiktok_url?: string | null
           timezone?: string | null
           total_revenue?: number | null
           twitter_url?: string | null
           updated_at?: string
           updated_by?: string | null
           website?: string | null
+          whatsapp_url?: string | null
           workspace_id?: string
+          youtube_url?: string | null
         }
         Relationships: [
           {
@@ -10554,6 +10566,7 @@ export type Database = {
           payment_conditions: string | null
           phone: string | null
           phones: Json
+          pinterest_url: string | null
           postal_code: string | null
           preferred_currency: string | null
           preferred_payment_method: string | null
@@ -10566,13 +10579,16 @@ export type Database = {
           source: string | null
           tags: string[] | null
           tax_id: string | null
+          tiktok_url: string | null
           timezone: string | null
           total_revenue: number | null
           twitter_url: string | null
           updated_at: string
           updated_by: string | null
           whatsapp_number: string | null
+          whatsapp_url: string | null
           workspace_id: string
+          youtube_url: string | null
         }
         Insert: {
           abc_category?: string | null
@@ -10655,6 +10671,7 @@ export type Database = {
           payment_conditions?: string | null
           phone?: string | null
           phones?: Json
+          pinterest_url?: string | null
           postal_code?: string | null
           preferred_currency?: string | null
           preferred_payment_method?: string | null
@@ -10667,13 +10684,16 @@ export type Database = {
           source?: string | null
           tags?: string[] | null
           tax_id?: string | null
+          tiktok_url?: string | null
           timezone?: string | null
           total_revenue?: number | null
           twitter_url?: string | null
           updated_at?: string
           updated_by?: string | null
           whatsapp_number?: string | null
+          whatsapp_url?: string | null
           workspace_id: string
+          youtube_url?: string | null
         }
         Update: {
           abc_category?: string | null
@@ -10756,6 +10776,7 @@ export type Database = {
           payment_conditions?: string | null
           phone?: string | null
           phones?: Json
+          pinterest_url?: string | null
           postal_code?: string | null
           preferred_currency?: string | null
           preferred_payment_method?: string | null
@@ -10768,13 +10789,16 @@ export type Database = {
           source?: string | null
           tags?: string[] | null
           tax_id?: string | null
+          tiktok_url?: string | null
           timezone?: string | null
           total_revenue?: number | null
           twitter_url?: string | null
           updated_at?: string
           updated_by?: string | null
           whatsapp_number?: string | null
+          whatsapp_url?: string | null
           workspace_id?: string
+          youtube_url?: string | null
         }
         Relationships: [
           {
@@ -21352,6 +21376,7 @@ export type Database = {
           parish: string | null
           phone: string | null
           photos: string[] | null
+          pinterest_url: string | null
           postal_code: string | null
           price_level: number | null
           prospecting_profile_id: string | null
@@ -21365,10 +21390,13 @@ export type Database = {
           status: string
           tags: string[] | null
           tax_id: string | null
+          tiktok_url: string | null
           twitter_url: string | null
           updated_at: string
           website: string | null
+          whatsapp_url: string | null
           workspace_id: string
+          youtube_url: string | null
         }
         Insert: {
           about?: string | null
@@ -21448,6 +21476,7 @@ export type Database = {
           parish?: string | null
           phone?: string | null
           photos?: string[] | null
+          pinterest_url?: string | null
           postal_code?: string | null
           price_level?: number | null
           prospecting_profile_id?: string | null
@@ -21461,10 +21490,13 @@ export type Database = {
           status?: string
           tags?: string[] | null
           tax_id?: string | null
+          tiktok_url?: string | null
           twitter_url?: string | null
           updated_at?: string
           website?: string | null
+          whatsapp_url?: string | null
           workspace_id: string
+          youtube_url?: string | null
         }
         Update: {
           about?: string | null
@@ -21544,6 +21576,7 @@ export type Database = {
           parish?: string | null
           phone?: string | null
           photos?: string[] | null
+          pinterest_url?: string | null
           postal_code?: string | null
           price_level?: number | null
           prospecting_profile_id?: string | null
@@ -21557,10 +21590,13 @@ export type Database = {
           status?: string
           tags?: string[] | null
           tax_id?: string | null
+          tiktok_url?: string | null
           twitter_url?: string | null
           updated_at?: string
           website?: string | null
+          whatsapp_url?: string | null
           workspace_id?: string
+          youtube_url?: string | null
         }
         Relationships: [
           {
