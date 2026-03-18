@@ -19,6 +19,7 @@ import { useKernelDecisions } from "@/hooks/useKernelDecisions";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Crosshair } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { WarRoomBriefingExport } from "@/components/weekly-dashboard/WarRoomBriefingExport";
 
 export default function WeeklyDashboard() {
   const { t } = useTranslation("dashboard");
