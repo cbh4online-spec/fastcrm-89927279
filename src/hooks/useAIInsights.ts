@@ -167,14 +167,38 @@ export function useAIInsights({ entityId, entityType, autoFetch = true }: UseAII
           proactivityLevel: settings.proactivityLevel,
         },
       });
-      
+
       if (error) throw error;
-      if (data.success === false) {
-        throw new Error(data.error || "Erro ao gerar insights");
+
+      if (data?.success === false || data?.error) {
+        const message = data?.error || 'Não foi possível gerar insights de IA';
+
+        if (data?.code === 'CREDITS_EXHAUSTED' || data?.code === 'RATE_LIMITED') {
+          return {
+            score: {
+              value: 0,
+              temperature: 'cold',
+              factors: [
+                {
+                  name: 'Disponibilidade IA',
+                  impact: 'negative',
+                  weight: 100,
+                  description: message,
+                },
+              ],
+              lastUpdated: new Date().toISOString(),
+            },
+            insights: [],
+            summary: message,
+            predictedActions: [],
+            analysisTimestamp: new Date().toISOString(),
+          };
+        }
+
+        throw new Error(message);
       }
-      if (data.error) throw new Error(data.error);
-      
-      return data;
+
+      return data as InsightsAnalysisResult;
     },
     enabled: autoFetch && !!entityId && !!currentWorkspace?.id && !!entityQuery.data,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -187,10 +211,10 @@ export function useAIInsights({ entityId, entityType, autoFetch = true }: UseAII
       await queryClient.invalidateQueries({ queryKey: ['entity-for-insights', entityType, entityId] });
       await queryClient.invalidateQueries({ queryKey: ['conversations-for-insights', entityType, entityId] });
       await queryClient.invalidateQueries({ queryKey: ['activities-for-insights', entityType, entityId] });
-      
+
       // Wait for data to be fresh
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       const { data, error } = await supabase.functions.invoke('ai-entity-insights', {
         body: {
           entityId,
@@ -202,14 +226,38 @@ export function useAIInsights({ entityId, entityType, autoFetch = true }: UseAII
           proactivityLevel: settings.proactivityLevel,
         },
       });
-      
+
       if (error) throw error;
-      if (data.success === false) {
-        throw new Error(data.error || "Erro ao gerar insights");
+
+      if (data?.success === false || data?.error) {
+        const message = data?.error || 'Não foi possível gerar insights de IA';
+
+        if (data?.code === 'CREDITS_EXHAUSTED' || data?.code === 'RATE_LIMITED') {
+          return {
+            score: {
+              value: 0,
+              temperature: 'cold',
+              factors: [
+                {
+                  name: 'Disponibilidade IA',
+                  impact: 'negative',
+                  weight: 100,
+                  description: message,
+                },
+              ],
+              lastUpdated: new Date().toISOString(),
+            },
+            insights: [],
+            summary: message,
+            predictedActions: [],
+            analysisTimestamp: new Date().toISOString(),
+          } satisfies InsightsAnalysisResult;
+        }
+
+        throw new Error(message);
       }
-      if (data.error) throw new Error(data.error);
-      
-      return data;
+
+      return data as InsightsAnalysisResult;
     },
     onSuccess: (data) => {
       queryClient.setQueryData(['ai-insights', entityType, entityId, settings.proactivityLevel], data);
