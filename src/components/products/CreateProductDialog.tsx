@@ -24,7 +24,8 @@ import {
 } from "@/components/ui/collapsible";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Package, ChevronDown, ChevronRight, TrendingUp, Percent, Layers, Info, BarChart3, Sparkles, Trash2, Wrench, Search, AlertTriangle, Save } from "lucide-react";
+import { Loader2, Package, ChevronDown, ChevronRight, TrendingUp, Percent, Layers, Info, BarChart3, Sparkles, Trash2, Wrench, Search, AlertTriangle, Save, MapPin } from "lucide-react";
+import { LocationMapEmbed } from "./LocationMapEmbed";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -139,6 +140,8 @@ export function CreateProductDialog({
   const [skuSearchTrigger, setSkuSearchTrigger] = useState(0);
   // B2B Portal visibility
   const [b2bPublished, setB2bPublished] = useState(true);
+  // Location
+  const [location, setLocation] = useState("");
   // Post-creation suggestions
   const [createdProduct, setCreatedProduct] = useState<{ id: string; name: string; workspace_id: string } | null>(null);
 
@@ -265,6 +268,8 @@ export function CreateProductDialog({
       setLaborNotes(product.labor_notes || "");
       // B2B Portal visibility
       setB2bPublished(product.b2b_published ?? true);
+      // Location
+      setLocation((product as any).location || "");
       setHasDraft(false);
     } else {
       // Try to load draft from localStorage
@@ -444,6 +449,8 @@ export function CreateProductDialog({
 
     // B2B Portal visibility
     data.b2b_published = b2bPublished;
+    // Location
+    data.location = location || undefined;
 
     if (isEditing) {
       await updateProduct.mutateAsync({ id: product!.id, ...data });
@@ -826,6 +833,23 @@ export function CreateProductDialog({
                   placeholder="Breve descrição do produto"
                   rows={2}
                 />
+              </div>
+
+              {/* Location */}
+              <div className="space-y-2">
+                <Label htmlFor="location" className="flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" />
+                  Localização
+                </Label>
+                <Input
+                  id="location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="ex: Albergaria-a-Velha, Portugal"
+                />
+                {location && (
+                  <LocationMapEmbed location={location} height={180} showHeader={false} />
+                )}
               </div>
 
               {/* Product Images Gallery */}

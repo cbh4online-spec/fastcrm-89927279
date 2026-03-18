@@ -42,6 +42,7 @@ import {
   Video,
   Link2,
 } from "lucide-react";
+import { LocationMapEmbed } from "./LocationMapEmbed";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { useProduct, useUpdateProduct, useArchiveProduct, useDeleteProduct } from "@/hooks/useProducts";
@@ -341,6 +342,14 @@ export function ProductDetailDialog({
                       <p className="text-sm text-muted-foreground mb-1">Descrição</p>
                       <p className="text-sm">{product.short_description}</p>
                     </div>
+                  </>
+                )}
+
+                {/* Location Map */}
+                {(product as any).location && (
+                  <>
+                    <Separator />
+                    <LocationMapEmbed location={(product as any).location} />
                   </>
                 )}
 
