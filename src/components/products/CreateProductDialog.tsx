@@ -267,6 +267,8 @@ export function CreateProductDialog({
       setLaborNotes(product.labor_notes || "");
       // B2B Portal visibility
       setB2bPublished(product.b2b_published ?? true);
+      // Location
+      setLocation((product as any).location || "");
       setHasDraft(false);
     } else {
       // Try to load draft from localStorage
