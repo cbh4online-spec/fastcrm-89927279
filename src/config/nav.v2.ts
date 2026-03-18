@@ -323,7 +323,6 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
         { nameKey: "aiEmployees", name: t("aiEmployees"), href: "/dashboard/ai-employees", icon: Bot, iconColor: "text-slate-500" },
         { nameKey: "knowledgeBaseNav", name: t("knowledgeBaseNav"), href: "/dashboard/knowledge", icon: BookOpen, iconColor: "text-slate-500" },
         { nameKey: "integrations", name: t("integrations"), href: "/settings/integrations", icon: Plug, iconColor: "text-slate-500" },
-        { nameKey: "seoGrowth", name: t("seoGrowth"), href: "/dashboard/seo", icon: Search, moduleSlug: "seo-growth", iconColor: "text-slate-500" },
         { nameKey: "conversationalEngine", name: t("conversationalEngine"), href: "/dashboard/conversational-engine", icon: MessageSquare, moduleSlug: "conversational-engine", iconColor: "text-slate-500" },
         { nameKey: "systemHealth", name: t("systemHealth"), href: "/dashboard/system/health", icon: BarChart3, iconColor: "text-slate-500" },
         { nameKey: "eventMap", name: t("eventMap"), href: "/dashboard/system/events", icon: Radio, iconColor: "text-slate-500" },
