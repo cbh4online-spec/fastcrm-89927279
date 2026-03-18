@@ -41082,6 +41082,20 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_assign_credits: {
+        Args: {
+          p_admin_user_id: string
+          p_credits_amount: number
+          p_description?: string
+          p_module?: string
+          p_workspace_id: string
+        }
+        Returns: {
+          message: string
+          new_balance: number
+          success: boolean
+        }[]
+      }
       advance_journey_stage: {
         Args: {
           p_conversation_id: string
