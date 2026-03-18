@@ -1,29 +1,34 @@
 
 
-# Fix: Vulnerable Dependencies
+## Plano: Mover Lead Enricher para Marketing + Sincronizar dados enriquecidos com Contactos e Empresas
 
-## Analysis
+### Problema 1 — Menu lateral
+O Lead Enricher não aparece no grupo **Marketing** da sidebar. Está registado no `extensionRegistry.ts` mas não tem entrada no `src/config/nav.v2.ts` dentro do `groupMarketing`.
 
-**xlsx**: Already at version 0.20.3 via CDN tarball (`https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`). The security scanner is likely flagging based on the npm registry name which maps to older vulnerable versions. Version 0.20.3 from the official SheetJS CDN includes fixes for both the Prototype Pollution (GHSA-4r6h-8v6p-xvw6) and ReDoS (GHSA-5pgg-2g8v-p4x9) advisories. **No action needed** — this is a false positive from the scanner not recognizing the CDN tarball version.
+### Problema 2 — Dados enriquecidos não aparecem em Contactos/Empresas
+O `useLeadEnrichment.ts` atualiza apenas a tabela `leads` (linhas 123-129). Após enriquecer, os campos `company_name`, `website`, `city`, `inferred_profession` ficam no lead mas nunca são propagados para:
+- **Contactos** (`contacts`) — se o lead tiver um contacto associado
+- **Empresas** (`companies`) — se a empresa enriquecida existir ou precisar ser criada
 
-**@trigger.dev/sdk**: Not present in `package.json` at all (neither dependencies nor devDependencies). This is either a transitive dependency or a scanner false positive. The project uses Trigger.dev concepts via custom code (`src/trigger/client.ts`) and edge functions, but does not import the SDK package directly.
+### Solução
 
-## Plan
+**Ficheiro 1: `src/config/nav.v2.ts`** (linha ~208)
+- Adicionar entrada `leadEnricher` no grupo `groupMarketing`:
+  ```
+  { nameKey: "leadEnricher", name: "Lead Enricher", href: "/dashboard/lead-enricher", 
+    icon: Sparkles, moduleSlug: "lead-enricher", iconColor: "text-indigo-500" }
+  ```
 
-### 1. Confirm xlsx is safe (no code change needed)
-The installed version 0.20.3 from the SheetJS CDN already patches both known vulnerabilities. The scanner cannot resolve the version from the tarball URL.
+**Ficheiro 2: `src/hooks/useLeadEnrichment.ts`** (após o update do lead, ~linha 130)
+- Após atualizar o lead, propagar dados para entidades relacionadas:
+  1. **Empresa**: Se `company_name` foi enriquecido, verificar se já existe na tabela `companies` (por nome + workspace). Se não existir, criar automaticamente com `name`, `website`, `city`. Se existir, atualizar campos em falta.
+  2. **Contacto**: Se o lead tem `email` ou `phone` que corresponde a um contacto existente na tabela `contacts`, atualizar campos como `company`, `job_title`, `city`.
+- Após criar/atualizar empresa, associar o `company_id` ao lead (se o campo existir na tabela leads).
+- Invalidar queries de `contacts` e `companies` no `onSuccess`.
 
-### 2. Handle @trigger.dev/sdk
-Since it's not in `package.json`, this is either:
-- A stale lockfile entry — delete and regenerate `package-lock.json`
-- A scanner false positive
+**Ficheiro 3: Traduções** — adicionar `leadEnricher` key nos ficheiros i18n relevantes.
 
-**Action**: No code changes required. Both findings are false positives based on the current `package.json`.
-
-### 3. Optional: Add explicit comment for future audits
-Add a comment in `package.json` near the xlsx entry noting the CDN version is patched, to prevent repeated investigation.
-
-## Summary
-
-No code changes are necessary. Both flagged packages are either already patched (xlsx 0.20.3) or not actually installed (@trigger.dev/sdk). The security findings can be safely dismissed.
+### Resultado
+- Lead Enricher aparece no menu Marketing
+- Dados enriquecidos propagam automaticamente para Contactos e Empresas existentes/novos
 
