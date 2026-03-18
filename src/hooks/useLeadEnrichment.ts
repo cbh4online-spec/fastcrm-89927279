@@ -129,6 +129,73 @@ export function useEnrichLead(enricherSettings?: LeadEnricherSettings) {
         if (updateError) throw updateError;
       }
 
+      // --- Propagate to Companies ---
+      let companyId: string | null = null;
+      if (updates.company_name) {
+        const { data: existingCompany } = await workspaceClient
+          .from("companies")
+          .select("id, website, city")
+          .eq("name", updates.company_name)
+          .maybeSingle();
+
+        if (existingCompany) {
+          companyId = existingCompany.id;
+          // Update missing fields on existing company
+          const companyUpdates: Record<string, any> = {};
+          if (!existingCompany.website && updates.website) companyUpdates.website = updates.website;
+          if (!existingCompany.city && updates.city) companyUpdates.city = updates.city;
+          if (Object.keys(companyUpdates).length > 0) {
+            await workspaceClient
+              .from("companies")
+              .update(companyUpdates)
+              .eq("id", existingCompany.id);
+          }
+        } else {
+          // Create new company
+          const userId = (await supabase.auth.getUser()).data.user?.id || "";
+          const { data: newCompany } = await workspaceClient
+            .from("companies")
+            .insert({
+              name: updates.company_name,
+              website: updates.website || null,
+              city: updates.city || null,
+              source: "lead-enricher",
+              created_by: userId,
+              workspace_id: currentWorkspace.id,
+            })
+            .select("id")
+            .single();
+          if (newCompany) companyId = newCompany.id;
+        }
+      }
+
+      // --- Propagate to Contacts ---
+      if (lead.email || lead.phone) {
+        let contactQuery = workspaceClient.from("contacts").select("id, company, company_id, job_title, city");
+        if (lead.email) {
+          contactQuery = contactQuery.eq("email", lead.email);
+        } else if (lead.phone) {
+          contactQuery = contactQuery.eq("phone", lead.phone);
+        }
+        const { data: matchingContacts } = await contactQuery;
+
+        if (matchingContacts && matchingContacts.length > 0) {
+          for (const contact of matchingContacts) {
+            const contactUpdates: Record<string, any> = {};
+            if (!contact.company && updates.company_name) contactUpdates.company = updates.company_name;
+            if (!contact.company_id && companyId) contactUpdates.company_id = companyId;
+            if (!contact.job_title && updates.inferred_profession) contactUpdates.job_title = updates.inferred_profession;
+            if (!contact.city && updates.city) contactUpdates.city = updates.city;
+            if (Object.keys(contactUpdates).length > 0) {
+              await workspaceClient
+                .from("contacts")
+                .update(contactUpdates)
+                .eq("id", contact.id);
+            }
+          }
+        }
+      }
+
       // Emit ENRICH_COMPLETED
       emitKernelEvent({
         workspace_id: currentWorkspace.id,
@@ -140,15 +207,19 @@ export function useEnrichLead(enricherSettings?: LeadEnricherSettings) {
           fields_updated: Object.keys(updates),
           confidence_score: updates.confidence_score,
           email_validated: emailValidated,
+          company_synced: !!companyId,
+          contacts_updated: !!(lead.email || lead.phone),
         },
       });
 
-      console.log(`[ENRICHER] Lead enriched: ${lead.id}, fields: ${Object.keys(updates).join(', ')}`);
+      console.log(`[ENRICHER] Lead enriched: ${lead.id}, fields: ${Object.keys(updates).join(', ')}, company_synced: ${!!companyId}`);
 
       return { ...lead, ...updates };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
     },
     onError: (error, lead) => {
       console.warn('[ENRICHER] ENRICH_FAILED', { leadId: lead.id, error: error.message });
