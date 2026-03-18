@@ -138,21 +138,72 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
     setStep("industry");
   };
 
+  const checkDuplicate = async (
+    tableName: string,
+    insertData: Record<string, unknown>,
+    workspaceId: string
+  ): Promise<{ isDuplicate: boolean; existingId?: string; matchField?: string }> => {
+    // Check by tax_id (NIF) first - strongest identifier
+    if (insertData.tax_id && String(insertData.tax_id).trim()) {
+      const { data } = await (supabase
+        .from(tableName as any)
+        .select("id")
+        .eq("workspace_id", workspaceId)
+        .eq("tax_id", String(insertData.tax_id).trim())
+        .limit(1) as any);
+      if (data && (data as any[]).length > 0) {
+        return { isDuplicate: true, existingId: (data as any[])[0].id, matchField: "NIF" };
+      }
+    }
+
+    // Check by email
+    if (insertData.email && String(insertData.email).trim()) {
+      const { data } = await (supabase
+        .from(tableName as any)
+        .select("id")
+        .eq("workspace_id", workspaceId)
+        .eq("email", String(insertData.email).trim().toLowerCase())
+        .limit(1) as any);
+      if (data && (data as any[]).length > 0) {
+        return { isDuplicate: true, existingId: (data as any[])[0].id, matchField: "Email" };
+      }
+    }
+
+    // Check by phone
+    if (insertData.phone && String(insertData.phone).trim()) {
+      const normalizedPhone = String(insertData.phone).replace(/\s+/g, "").replace(/^(\+351|00351)/, "");
+      const { data } = await (supabase
+        .from(tableName as any)
+        .select("id, phone")
+        .eq("workspace_id", workspaceId)
+        .not("phone", "is", null)
+        .limit(1000) as any);
+      if (data) {
+        const match = (data as any[]).find((row: any) => {
+          const existingPhone = (row.phone || "").replace(/\s+/g, "").replace(/^(\+351|00351)/, "");
+          return existingPhone === normalizedPhone && normalizedPhone.length >= 9;
+        });
+        if (match) {
+          return { isDuplicate: true, existingId: match.id, matchField: "Telefone" };
+        }
+      }
+    }
+
+    return { isDuplicate: false };
+  };
+
   const processImport = async () => {
     if (!currentWorkspace || !user || !parsedData) return;
     
     setStep("importing");
     setImportStatus("processing");
-    console.log(`[IMPORTS] Import started: ${importType}, ${parsedData.rows.length} rows`);
+    console.log(`[IMPORTS] Import started: ${importType}, ${parsedData.rows.length} rows, policy: ${conflictPolicy}`);
     
-    // Save industry labels (optional, doesn't block import)
+    // Save industry labels
     try {
-      await setIndustryLabels.mutateAsync({
-        industryType: selectedIndustry,
-      });
+      await setIndustryLabels.mutateAsync({ industryType: selectedIndustry });
     } catch (error) {
       console.warn("Não foi possível guardar preferências de indústria:", error);
-      // Continue with import even if this fails
     }
 
     const tableName = importType === "contacts" ? "contacts" : 
@@ -173,7 +224,6 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
           required: mapping.newFieldConfig!.required,
         });
         result.fieldsCreated.push(mapping.newFieldConfig!.label);
-        console.log(`[IMPORTS] Custom field created: ${mapping.newFieldConfig!.label}`);
       } catch (err) {
         console.warn('[IMPORTS] CUSTOM_FIELD_CREATE_FAILED:', err);
       }
@@ -196,14 +246,12 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
           
           let value = row[mapping.sourceColumn] || "";
           
-          // Apply transformations
           for (const transform of mapping.transformations) {
             if (transform.enabled && value) {
               value = applyTransformation(value, transform.type);
             }
           }
 
-          // Type conversions
           const fieldDef = ENTITY_FIELDS[importType]?.find(f => f.field === mapping.targetField);
           if (fieldDef?.type === "currency" || fieldDef?.type === "number") {
             insertData[mapping.targetField] = parseFloat(value) || null;
@@ -224,7 +272,73 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
           insertData.status = "new";
         }
 
-        const { error } = await supabase.from(tableName).insert(insertData as never);
+        // Normalize email to lowercase
+        if (insertData.email) {
+          insertData.email = String(insertData.email).trim().toLowerCase();
+        }
+
+        // Check for duplicates
+        const duplicate = await checkDuplicate(tableName, insertData, currentWorkspace.id);
+        
+        if (duplicate.isDuplicate && duplicate.existingId) {
+          result.duplicatesFound++;
+          
+          if (conflictPolicy === "fill_empty") {
+            // Only update empty fields
+            const updateData: Record<string, unknown> = {};
+            const { data: existingRecord } = await (supabase
+              .from(tableName as any)
+              .select("*")
+              .eq("id", duplicate.existingId)
+              .single() as any);
+            
+            if (existingRecord) {
+              for (const [key, value] of Object.entries(insertData)) {
+                if (key === "workspace_id" || key === "created_by") continue;
+                const existingVal = (existingRecord as Record<string, unknown>)[key];
+                if (!existingVal || existingVal === "" || (Array.isArray(existingVal) && existingVal.length === 0)) {
+                  updateData[key] = value;
+                }
+              }
+              
+              if (Object.keys(updateData).length > 0) {
+                const { error } = await (supabase.from(tableName as any).update(updateData as never).eq("id", duplicate.existingId) as any);
+                if (!error) {
+                  result.duplicatesUpdated++;
+                  result.success++;
+                } else {
+                  result.errors++;
+                  result.errorDetails.push({ row: i + 1, error: `Erro ao atualizar duplicado (${duplicate.matchField}): ${error.message}` });
+                }
+              } else {
+                result.skipped++;
+                result.errorDetails.push({ row: i + 1, error: `Duplicado por ${duplicate.matchField} — sem campos vazios para preencher` });
+              }
+            }
+          } else if (conflictPolicy === "always_update") {
+            // Update all fields
+            const updateData = { ...insertData };
+            delete updateData.workspace_id;
+            delete updateData.created_by;
+            
+            const { error } = await (supabase.from(tableName as any).update(updateData as never).eq("id", duplicate.existingId) as any);
+            if (!error) {
+              result.duplicatesUpdated++;
+              result.success++;
+            } else {
+              result.errors++;
+              result.errorDetails.push({ row: i + 1, error: `Erro ao atualizar: ${error.message}` });
+            }
+          } else {
+            // 'ask' policy — skip duplicates with warning
+            result.skipped++;
+            result.errorDetails.push({ row: i + 1, error: `Duplicado encontrado por ${duplicate.matchField} — ignorado` });
+          }
+          continue;
+        }
+
+        // No duplicate — insert
+        const { error } = await (supabase.from(tableName as any).insert(insertData as never) as any);
         
         if (error) {
           result.errors++;
@@ -240,9 +354,9 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
 
     setImportResult(result);
     setImportStatus("complete");
-    console.log(`[IMPORTS] Import complete: ${result.success} success, ${result.errors} errors, ${result.skipped} skipped`);
+    console.log(`[IMPORTS] Import complete: ${result.success} success, ${result.errors} errors, ${result.skipped} skipped, ${result.duplicatesFound} duplicates found, ${result.duplicatesUpdated} updated`);
     if (result.errorDetails.length > 0) {
-      console.warn(`[IMPORTS] Row failures summary: ${result.errorDetails.length} errors`);
+      console.warn(`[IMPORTS] Row issues: ${result.errorDetails.length}`);
       result.errorDetails.slice(0, 10).forEach(e => console.warn(`[IMPORTS]   Row ${e.row}: ${e.error}`));
     }
   };
