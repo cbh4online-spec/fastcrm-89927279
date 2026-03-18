@@ -89,8 +89,13 @@ export function SegmentMembersDialog({ open, onOpenChange, segment }: SegmentMem
                 return (
                   <div
                     key={`${member.type}-${member.id}`}
-                    className="flex items-center justify-between gap-3 rounded-md border p-3"
+                    className="flex items-center gap-3 rounded-md border p-3"
                   >
+                    <Badge variant="outline" className="shrink-0 flex items-center gap-1">
+                      <TypeIcon className="h-3.5 w-3.5" />
+                      {TYPE_LABELS[member.type]}
+                    </Badge>
+
                     <div className="min-w-0">
                       <p className="font-medium truncate">{member.name}</p>
                       <p className="text-sm text-muted-foreground truncate flex items-center gap-1.5">
@@ -98,11 +103,6 @@ export function SegmentMembersDialog({ open, onOpenChange, segment }: SegmentMem
                         {member.email || 'Sem email'}
                       </p>
                     </div>
-
-                    <Badge variant="outline" className="shrink-0 flex items-center gap-1">
-                      <TypeIcon className="h-3.5 w-3.5" />
-                      {TYPE_LABELS[member.type]}
-                    </Badge>
                   </div>
                 );
               })}
