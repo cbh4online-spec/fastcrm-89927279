@@ -345,6 +345,14 @@ export function ProductDetailDialog({
                   </>
                 )}
 
+                {/* Location Map */}
+                {(product as any).location && (
+                  <>
+                    <Separator />
+                    <LocationMapEmbed location={(product as any).location} />
+                  </>
+                )}
+
                 {/* Consumption Model Section */}
                 {(product.consumption_model || product.included_quantity || product.recommended_frequency || product.typical_duration_days) && (
                   <>
