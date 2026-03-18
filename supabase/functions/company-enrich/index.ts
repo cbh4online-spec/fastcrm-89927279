@@ -315,6 +315,78 @@ async function searchSocialMedia(
         console.log("Found Instagram via search:", instagramUrl);
       }
     }
+    
+    // Search for YouTube
+    const youtubeSearch = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `${companyName} site:youtube.com`,
+        limit: 3,
+        lang: "pt",
+        country: "PT",
+      }),
+    });
+    
+    const youtubeData = await youtubeSearch.json();
+    if (youtubeData.success && youtubeData.data?.length > 0) {
+      const youtubeUrl = youtubeData.data[0]?.url;
+      if (youtubeUrl && youtubeUrl.includes("youtube.com") && !youtubeUrl.includes("/results")) {
+        social.youtube = youtubeUrl;
+        console.log("Found YouTube via search:", youtubeUrl);
+      }
+    }
+    
+    // Search for TikTok
+    const tiktokSearch = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `${companyName} site:tiktok.com`,
+        limit: 3,
+        lang: "pt",
+        country: "PT",
+      }),
+    });
+    
+    const tiktokData = await tiktokSearch.json();
+    if (tiktokData.success && tiktokData.data?.length > 0) {
+      const tiktokUrl = tiktokData.data[0]?.url;
+      if (tiktokUrl && tiktokUrl.includes("tiktok.com/@")) {
+        social.tiktok = tiktokUrl;
+        console.log("Found TikTok via search:", tiktokUrl);
+      }
+    }
+    
+    // Search for Pinterest
+    const pinterestSearch = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `${companyName} site:pinterest.com`,
+        limit: 3,
+        lang: "pt",
+        country: "PT",
+      }),
+    });
+    
+    const pinterestData = await pinterestSearch.json();
+    if (pinterestData.success && pinterestData.data?.length > 0) {
+      const pinterestUrl = pinterestData.data[0]?.url;
+      if (pinterestUrl && (pinterestUrl.includes("pinterest.com") || pinterestUrl.includes("pinterest.pt"))) {
+        social.pinterest = pinterestUrl;
+        console.log("Found Pinterest via search:", pinterestUrl);
+      }
+    }
   } catch (e) {
     console.error("Social media search error:", e);
   }
