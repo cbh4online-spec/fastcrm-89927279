@@ -99,7 +99,7 @@ Retorne a análise usando a função analyze_lead.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
@@ -171,18 +171,19 @@ Retorne a análise usando a função analyze_lead.`;
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
+        return new Response(JSON.stringify({ error: "Rate limit exceeded", fallback: true }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Payment required" }), {
-          status: 402,
+        return new Response(JSON.stringify({ error: "Payment required - AI credits exhausted", fallback: true }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
-      throw new Error(`AI gateway error: ${response.status}`);
+      const errorBody = await response.text();
+      throw new Error(`AI gateway error: ${response.status} - ${errorBody}`);
     }
 
     const aiResponse = await response.json();
