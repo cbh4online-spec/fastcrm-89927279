@@ -50,6 +50,10 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
     facebook_url: "",
     instagram_url: "",
     twitter_url: "",
+    youtube_url: "",
+    tiktok_url: "",
+    pinterest_url: "",
+    whatsapp_url: "",
   });
 
   useEffect(() => {
