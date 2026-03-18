@@ -480,6 +480,10 @@ async function enrichFromWebsite(
     if (link.includes("instagram.com") && !socialLinks.instagram) socialLinks.instagram = link;
     if (link.includes("facebook.com") && !socialLinks.facebook) socialLinks.facebook = link;
     if ((link.includes("twitter.com") || link.includes("x.com")) && !socialLinks.twitter) socialLinks.twitter = link;
+    if ((link.includes("youtube.com") || link.includes("youtu.be")) && !socialLinks.youtube) socialLinks.youtube = link;
+    if (link.includes("tiktok.com") && !socialLinks.tiktok) socialLinks.tiktok = link;
+    if ((link.includes("pinterest.com") || link.includes("pinterest.pt") || link.includes("pin.it")) && !socialLinks.pinterest) socialLinks.pinterest = link;
+    if ((link.includes("wa.me") || link.includes("whatsapp.com")) && !socialLinks.whatsapp) socialLinks.whatsapp = link;
   }
   
   // Also search in HTML content for social links
@@ -488,6 +492,10 @@ async function enrichFromWebsite(
   if (!socialLinks.instagram && htmlSocial.instagram) socialLinks.instagram = htmlSocial.instagram;
   if (!socialLinks.facebook && htmlSocial.facebook) socialLinks.facebook = htmlSocial.facebook;
   if (!socialLinks.twitter && htmlSocial.twitter) socialLinks.twitter = htmlSocial.twitter;
+  if (!socialLinks.youtube && htmlSocial.youtube) socialLinks.youtube = htmlSocial.youtube;
+  if (!socialLinks.tiktok && htmlSocial.tiktok) socialLinks.tiktok = htmlSocial.tiktok;
+  if (!socialLinks.pinterest && htmlSocial.pinterest) socialLinks.pinterest = htmlSocial.pinterest;
+  if (!socialLinks.whatsapp && htmlSocial.whatsapp) socialLinks.whatsapp = htmlSocial.whatsapp;
   
   // If no social links found, search the web for them
   const hasSocialLinks = Object.keys(socialLinks).length > 0;
