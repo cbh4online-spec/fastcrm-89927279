@@ -834,6 +834,23 @@ export function CreateProductDialog({
                 />
               </div>
 
+              {/* Location */}
+              <div className="space-y-2">
+                <Label htmlFor="location" className="flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" />
+                  Localização
+                </Label>
+                <Input
+                  id="location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="ex: Albergaria-a-Velha, Portugal"
+                />
+                {location && (
+                  <LocationMapEmbed location={location} height={180} showHeader={false} />
+                )}
+              </div>
+
               {/* Product Images Gallery */}
               <ProductImageGalleryManager
                 images={productImages}
