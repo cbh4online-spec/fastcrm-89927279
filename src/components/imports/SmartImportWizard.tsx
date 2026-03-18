@@ -302,7 +302,7 @@ export function SmartImportWizard({ file, importType, onClose, onComplete }: Sma
               }
               
               if (Object.keys(updateData).length > 0) {
-                const { error } = await supabase.from(tableName).update(updateData as never).eq("id", duplicate.existingId);
+                const { error } = await (supabase.from(tableName as any).update(updateData as never).eq("id", duplicate.existingId) as any);
                 if (!error) {
                   result.duplicatesUpdated++;
                   result.success++;
