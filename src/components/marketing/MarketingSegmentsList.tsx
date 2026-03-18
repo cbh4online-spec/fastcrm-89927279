@@ -20,20 +20,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { 
-  Target, 
-  MoreHorizontal, 
-  Search, 
-  Edit, 
-  Trash2, 
+import {
+  Target,
+  MoreHorizontal,
+  Search,
+  Edit,
+  Trash2,
   Users,
-  Filter
+  Filter,
+  Eye,
 } from 'lucide-react';
 import { useMarketingSegments, useDeleteSegment } from '@/hooks/useMarketingSegments';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { SegmentFormDialog } from './SegmentFormDialog';
 import { SegmentContactCount } from './SegmentContactCount';
+import { SegmentMembersDialog } from './SegmentMembersDialog';
 import type { MarketingSegment } from '@/types/marketing';
 
 interface MarketingSegmentsListProps {
@@ -44,6 +46,7 @@ export function MarketingSegmentsList({ onCreateNew }: MarketingSegmentsListProp
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSegment, setSelectedSegment] = useState<MarketingSegment | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showMembersDialog, setShowMembersDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [segmentToDelete, setSegmentToDelete] = useState<string | null>(null);
 
@@ -59,6 +62,11 @@ export function MarketingSegmentsList({ onCreateNew }: MarketingSegmentsListProp
   const handleEdit = (segment: MarketingSegment) => {
     setSelectedSegment(segment);
     setShowEditDialog(true);
+  };
+
+  const handleViewMembers = (segment: MarketingSegment) => {
+    setSelectedSegment(segment);
+    setShowMembersDialog(true);
   };
 
   const handleDelete = (id: string) => {
@@ -145,6 +153,10 @@ export function MarketingSegmentsList({ onCreateNew }: MarketingSegmentsListProp
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewMembers(segment)}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            Ver Lista
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEdit(segment)}>
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
@@ -177,7 +189,7 @@ export function MarketingSegmentsList({ onCreateNew }: MarketingSegmentsListProp
                       ))}
                     </div>
                     <p className="text-xs text-muted-foreground mt-3">
-                      Criado em {format(new Date(segment.createdAt), "d MMM yyyy", { locale: pt })}
+                      Criado em {format(new Date(segment.createdAt), 'd MMM yyyy', { locale: pt })}
                     </p>
                   </CardContent>
                 </Card>
@@ -187,7 +199,12 @@ export function MarketingSegmentsList({ onCreateNew }: MarketingSegmentsListProp
         </CardContent>
       </Card>
 
-      {/* Edit Dialog */}
+      <SegmentMembersDialog
+        open={showMembersDialog}
+        onOpenChange={setShowMembersDialog}
+        segment={selectedSegment}
+      />
+
       <SegmentFormDialog
         open={showEditDialog}
         onOpenChange={setShowEditDialog}
@@ -198,7 +215,6 @@ export function MarketingSegmentsList({ onCreateNew }: MarketingSegmentsListProp
         }}
       />
 
-      {/* Delete Confirmation */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
