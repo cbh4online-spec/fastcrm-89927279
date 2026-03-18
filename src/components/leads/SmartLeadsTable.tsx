@@ -352,12 +352,75 @@ export function SmartLeadsTable() {
         ) : activeTab === "automations" ? (
           <div className="mt-4 flex-1"><EntityAutomationsSection entityType="lead" showHeader={false} /></div>
         ) : activeTab === "smart-lists" ? (
-          <div className="mt-4 flex-1 flex items-center justify-center text-muted-foreground">
-            <div className="text-center py-12"><Target className="w-12 h-12 mx-auto mb-4 opacity-20" /><p className="font-medium">{t("smartListsTitle")}</p><p className="text-sm mt-1">{t("smartListsWIP")}</p></div>
+          <div className="mt-4 flex-1 px-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[
+                { icon: <Flame className="h-5 w-5 text-destructive" />, title: "Leads Quentes", desc: "Score alto e atividade recente", filter: "smart_hot" },
+                { icon: <TrendingUp className="h-5 w-5 text-primary" />, title: "Prontos a Converter", desc: "Alta intenção de compra detetada", filter: "smart_ready" },
+                { icon: <AlertTriangle className="h-5 w-5 text-warning" />, title: "Em Risco", desc: "Sem resposta há mais de 48h", filter: "smart_risk" },
+                { icon: <Thermometer className="h-5 w-5 text-orange-500" />, title: "Nurture", desc: "Leads mornos para acompanhar", filter: "smart_nurture" },
+                { icon: <Star className="h-5 w-5 text-yellow-500" />, title: "Melhor Score", desc: "Top leads por pontuação AI", filter: "score_desc" },
+                { icon: <Clock className="h-5 w-5 text-muted-foreground" />, title: "Contacto Recente", desc: "Últimos leads contactados", filter: "last_contact_desc" },
+              ].map((list) => (
+                <Card key={list.title} className="cursor-pointer hover:border-primary/40 transition-colors" onClick={() => {
+                  if (list.filter.includes("_desc")) {
+                    setSortValue(list.filter);
+                  } else {
+                    handleFilterSelect(list.filter);
+                  }
+                  setActiveTab("leads");
+                }}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      {list.icon}
+                      {list.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-muted-foreground">{list.desc}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         ) : activeTab === "import" ? (
-          <div className="mt-4 flex-1 flex items-center justify-center text-muted-foreground">
-            <div className="text-center py-12"><Download className="w-12 h-12 mx-auto mb-4 opacity-20" /><p className="font-medium">{t("importLeadsTitle")}</p><p className="text-sm mt-1">{t("importLeadsWIP")}</p></div>
+          <div className="mt-4 flex-1 px-4">
+            {importFile ? (
+              <SmartImportWizard
+                file={importFile}
+                importType="leads"
+                onClose={() => setImportFile(null)}
+                onComplete={() => { setImportFile(null); setActiveTab("leads"); refetch(); }}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
+                  <Upload className="w-10 h-10 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Importar Leads</h3>
+                <p className="text-sm text-muted-foreground mb-6 max-w-md text-center">
+                  Carregue um ficheiro CSV ou Excel para importar leads em massa. O assistente inteligente irá mapear automaticamente as colunas.
+                </p>
+                <div className="flex gap-3">
+                  <Button onClick={() => fileInputRef.current?.click()} className="gap-2">
+                    <FileSpreadsheet className="h-4 w-4" />
+                    Selecionar Ficheiro
+                  </Button>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setImportFile(file);
+                    e.target.value = "";
+                  }}
+                />
+                <p className="text-xs text-muted-foreground mt-4">Formatos suportados: CSV, XLSX, XLS</p>
+              </div>
+            )}
           </div>
         ) : (
           <>
