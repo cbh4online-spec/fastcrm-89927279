@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { 
   useSmartLeads, 
@@ -17,6 +17,7 @@ import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
 import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
 import { StickyTableWrapper, stickyHeaderCheckboxStyles, stickyHeaderNameStyles, stickyCheckboxStyles, stickyNameStyles } from "@/components/common/StickyTable";
 import { InlineEditableTableCell } from "@/components/common/InlineEditableTableCell";
+import { SmartImportWizard } from "@/components/imports/SmartImportWizard";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -25,7 +26,8 @@ import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/compon
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Sparkles, Trash2, RefreshCw, Download, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Clock, UserX, MessageSquare, Target, Activity, Linkedin, ExternalLink, MoreHorizontal, Reply, Settings2, Archive, Building2, Users, Copy } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, Sparkles, Trash2, RefreshCw, Download, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Flame, Thermometer, Snowflake, Clock, UserX, MessageSquare, Target, Activity, Linkedin, ExternalLink, MoreHorizontal, Reply, Settings2, Archive, Building2, Users, Copy, Upload, FileSpreadsheet, Zap, TrendingUp, AlertTriangle, Star } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { EmptyState, SearchEmptyState, LoadingSpinner, TableSkeleton } from "@/components/design-system";
