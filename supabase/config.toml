@@ -1,1 +1,4 @@
 project_id = "eumnfkccyvlyoyjchiwe"
+
+[functions.fastmatch-score]
+verify_jwt = false

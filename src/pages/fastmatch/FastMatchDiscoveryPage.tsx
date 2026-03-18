@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { motion } from "framer-motion";
-import { Search, Filter, Users, Link2 } from "lucide-react";
+import { Search, Filter, Users, Link2, Settings2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MatchProfileCard } from "@/components/fastmatch/MatchProfileCard";
@@ -12,6 +13,8 @@ import { UpgradeBanner } from "@/components/fastmatch/UpgradeBanner";
 import { InterestConfirmDialog } from "@/components/fastmatch/InterestConfirmDialog";
 import { ConnectionUnlockedDialog } from "@/components/fastmatch/ConnectionUnlockedDialog";
 import { ConnectionCard } from "@/components/fastmatch/ConnectionCard";
+import { ProfileSetupWizard } from "@/components/fastmatch/ProfileSetupWizard";
+import { ProfileEditDialog } from "@/components/fastmatch/ProfileEditDialog";
 import { useFastMatchDiscovery } from "@/hooks/useFastMatchDiscovery";
 import { useFastMatchQuota } from "@/hooks/useFastMatchQuota";
 import { useFastMatchInterests, useSendInterest } from "@/hooks/useFastMatchInterests";
@@ -19,11 +22,19 @@ import { useConsumeMatchQuota } from "@/hooks/useFastMatchQuota";
 import { useFastMatchConnections, useUnlockConnection } from "@/hooks/useFastMatchConnections";
 import { useFastMatchProfile } from "@/hooks/useFastMatchProfile";
 
+function CompatibilityBadge({ score }: { score: number | null }) {
+  if (score === null) return null;
+  if (score >= 75) return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px]">Alta {score}%</Badge>;
+  if (score >= 50) return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px]">Média {score}%</Badge>;
+  return <Badge variant="outline" className="text-[10px]">{score}%</Badge>;
+}
+
 export default function FastMatchDiscoveryPage() {
   const [industry, setIndustry] = useState<string>();
   const [searchTerm, setSearchTerm] = useState("");
   const [confirmProfile, setConfirmProfile] = useState<{ id: string; name: string } | null>(null);
   const [unlockedConnection, setUnlockedConnection] = useState<{ name: string; oppId?: string } | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data: profiles = [], isLoading } = useFastMatchDiscovery({ industry });
   const quota = useFastMatchQuota();
@@ -32,7 +43,7 @@ export default function FastMatchDiscoveryPage() {
   const consumeQuota = useConsumeMatchQuota();
   const unlockConnection = useUnlockConnection();
   const { data: connections = [], isLoading: connectionsLoading } = useFastMatchConnections();
-  const { data: myProfile } = useFastMatchProfile();
+  const { data: myProfile, isLoading: profileLoading } = useFastMatchProfile();
 
   const sentInterestIds = new Set((interests?.sent || []).map((i) => i.to_profile_id));
 
@@ -74,17 +85,26 @@ export default function FastMatchDiscoveryPage() {
     }
   };
 
-  // Build connection profiles map for display
   const connectionProfiles = connections.map((conn) => {
     const otherProfileId = conn.profile_a_id === myProfile?.id ? conn.profile_b_id : conn.profile_a_id;
-    // Find the profile from discovery data or use basic info
     const discoveredProfile = profiles.find((p) => p.id === otherProfileId);
-    return {
-      connection: conn,
-      otherProfileId,
-      profile: discoveredProfile || null,
-    };
+    return { connection: conn, otherProfileId, profile: discoveredProfile || null };
   });
+
+  // Show wizard if no profile
+  if (!profileLoading && !myProfile) {
+    return (
+      <DashboardLayout>
+        <div className="bg-background">
+          <div className="max-w-6xl mx-auto px-4 py-8">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <ProfileSetupWizard />
+            </motion.div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -92,16 +112,24 @@ export default function FastMatchDiscoveryPage() {
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-1">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-primary/10">
-              <Users className="w-6 h-6 text-primary" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-primary/10">
+                <Users className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">FastMatch</h1>
+                <p className="text-sm text-muted-foreground">
+                  Descubra conexões estratégicas e desbloqueie oportunidades de negócio
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">FastMatch</h1>
-              <p className="text-sm text-muted-foreground">
-                Descubra conexões estratégicas e desbloqueie oportunidades de negócio
-              </p>
-            </div>
+            {myProfile && (
+              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)} className="gap-1.5">
+                <Settings2 className="w-4 h-4" />
+                Editar Perfil
+              </Button>
+            )}
           </div>
         </motion.div>
 
@@ -173,6 +201,7 @@ export default function FastMatchDiscoveryPage() {
               <div className="text-center py-16 space-y-3">
                 <Users className="w-10 h-10 mx-auto text-muted-foreground/50" />
                 <p className="text-muted-foreground">Nenhum perfil encontrado.</p>
+                <p className="text-xs text-muted-foreground">Convida membros do teu workspace para criarem os seus perfis FastMatch.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -253,6 +282,13 @@ export default function FastMatchDiscoveryPage() {
           companyName={unlockedConnection?.name || ""}
           opportunityId={unlockedConnection?.oppId}
         />
+        {myProfile && (
+          <ProfileEditDialog
+            open={editOpen}
+            onOpenChange={setEditOpen}
+            profile={myProfile}
+          />
+        )}
       </div>
     </div>
     </DashboardLayout>
