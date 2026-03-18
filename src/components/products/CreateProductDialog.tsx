@@ -448,6 +448,8 @@ export function CreateProductDialog({
 
     // B2B Portal visibility
     data.b2b_published = b2bPublished;
+    // Location
+    data.location = location || undefined;
 
     if (isEditing) {
       await updateProduct.mutateAsync({ id: product!.id, ...data });
