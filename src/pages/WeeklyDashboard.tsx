@@ -71,6 +71,8 @@ export default function WeeklyDashboard() {
               weekLabel={weekLabel}
               todaysBrief={todaysBrief}
               strategy={strategy}
+              workspaceName={currentWorkspace?.name}
+              workspaceLogoUrl={currentWorkspace?.logo_url}
             />
             <Button
               variant="ghost"
