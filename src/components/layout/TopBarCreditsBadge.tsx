@@ -80,7 +80,7 @@ export function TopBarCreditsBadge() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-semibold text-primary">
-                    €{(pkg.price / 100).toFixed(2)}
+                    €{pkg.price.toFixed(2)}
                   </span>
                   <Zap className="h-3.5 w-3.5 text-primary" />
                 </div>
