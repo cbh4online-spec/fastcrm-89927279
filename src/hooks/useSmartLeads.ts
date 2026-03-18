@@ -319,6 +319,10 @@ export function useAnalyzeLead() {
       });
 
       if (error) throw error;
+      if (data?.fallback || data?.error) {
+        console.warn('[LEADS] AI analysis fallback:', data.error);
+        throw new Error(data.error || 'AI analysis unavailable');
+      }
       return data;
     },
     onSuccess: (data, variables) => {
