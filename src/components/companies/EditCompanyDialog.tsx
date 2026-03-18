@@ -69,6 +69,10 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     facebook_url: "",
     instagram_url: "",
     twitter_url: "",
+    youtube_url: "",
+    tiktok_url: "",
+    pinterest_url: "",
+    whatsapp_url: "",
   });
 
   useEffect(() => {
@@ -87,6 +91,10 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         facebook_url: company.facebook_url || "",
         instagram_url: company.instagram_url || "",
         twitter_url: company.twitter_url || "",
+        youtube_url: (company as any).youtube_url || "",
+        tiktok_url: (company as any).tiktok_url || "",
+        pinterest_url: (company as any).pinterest_url || "",
+        whatsapp_url: (company as any).whatsapp_url || "",
       });
     }
   }, [company]);
@@ -248,6 +256,10 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                 facebookUrl={formData.facebook_url}
                 instagramUrl={formData.instagram_url}
                 twitterUrl={formData.twitter_url}
+                youtubeUrl={formData.youtube_url}
+                tiktokUrl={formData.tiktok_url}
+                pinterestUrl={formData.pinterest_url}
+                whatsappUrl={formData.whatsapp_url}
                 onChange={handleSocialChange}
               />
             </div>

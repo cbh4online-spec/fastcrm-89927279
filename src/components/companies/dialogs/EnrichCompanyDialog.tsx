@@ -118,6 +118,10 @@ const SOCIAL_MAPPING: Record<string, { label: string; dbKey: string }> = {
   instagram: { label: "Instagram", dbKey: "instagram_url" },
   facebook: { label: "Facebook", dbKey: "facebook_url" },
   twitter: { label: "Twitter/X", dbKey: "twitter_url" },
+  youtube: { label: "YouTube", dbKey: "youtube_url" },
+  tiktok: { label: "TikTok", dbKey: "tiktok_url" },
+  pinterest: { label: "Pinterest", dbKey: "pinterest_url" },
+  whatsapp: { label: "WhatsApp", dbKey: "whatsapp_url" },
 };
 
 const GOOGLE_FIELD_MAPPING: Record<string, { 

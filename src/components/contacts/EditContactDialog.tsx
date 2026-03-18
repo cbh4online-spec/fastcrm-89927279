@@ -50,6 +50,10 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
     facebook_url: "",
     instagram_url: "",
     twitter_url: "",
+    youtube_url: "",
+    tiktok_url: "",
+    pinterest_url: "",
+    whatsapp_url: "",
   });
 
   useEffect(() => {
@@ -66,6 +70,10 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
         facebook_url: contact.facebook_url || "",
         instagram_url: contact.instagram_url || "",
         twitter_url: contact.twitter_url || "",
+        youtube_url: (contact as any).youtube_url || "",
+        tiktok_url: (contact as any).tiktok_url || "",
+        pinterest_url: (contact as any).pinterest_url || "",
+        whatsapp_url: (contact as any).whatsapp_url || "",
       });
     }
   }, [contact]);
@@ -282,6 +290,10 @@ export function EditContactDialog({ contact, open, onOpenChange }: EditContactDi
                 facebookUrl={formData.facebook_url}
                 instagramUrl={formData.instagram_url}
                 twitterUrl={formData.twitter_url}
+                youtubeUrl={formData.youtube_url}
+                tiktokUrl={formData.tiktok_url}
+                pinterestUrl={formData.pinterest_url}
+                whatsappUrl={formData.whatsapp_url}
                 onChange={handleSocialChange}
               />
             </div>
