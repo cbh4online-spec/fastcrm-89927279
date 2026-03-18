@@ -28,6 +28,7 @@ export default function WeeklyDashboard() {
   const { strategy, isLoading: strategyLoading, generate } = useWeeklyStrategy();
   const { todaysBrief, generateDailyBrief } = useDailyBrief();
   const weekLabel = data?.weekLabel || "...";
+  const { currentWorkspace } = useWorkspace();
   const { openDecisions } = useKernelDecisions();
 
   const briefMetrics = todaysBrief?.key_metrics;
