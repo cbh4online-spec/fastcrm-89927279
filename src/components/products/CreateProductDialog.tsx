@@ -139,6 +139,8 @@ export function CreateProductDialog({
   const [skuSearchTrigger, setSkuSearchTrigger] = useState(0);
   // B2B Portal visibility
   const [b2bPublished, setB2bPublished] = useState(true);
+  // Location
+  const [location, setLocation] = useState("");
   // Post-creation suggestions
   const [createdProduct, setCreatedProduct] = useState<{ id: string; name: string; workspace_id: string } | null>(null);
 
