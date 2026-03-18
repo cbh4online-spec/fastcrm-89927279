@@ -218,6 +218,8 @@ export function useEnrichLead(enricherSettings?: LeadEnricherSettings) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads", currentWorkspace?.id] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
     },
     onError: (error, lead) => {
       console.warn('[ENRICHER] ENRICH_FAILED', { leadId: lead.id, error: error.message });
