@@ -5,21 +5,51 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface EnrichmentField {
+  value: string;
+  confidence: "high" | "medium" | "low";
+  source: string;
+}
+
 interface EnrichmentResult {
-  fullName?: { value: string; confidence: "high" | "medium" | "low"; source: string };
-  company?: { value: string; confidence: "high" | "medium" | "low"; source: string };
-  jobTitle?: { value: string; confidence: "high" | "medium" | "low"; source: string };
-  preferredChannel?: { value: string; confidence: "high" | "medium" | "low"; source: string };
-  country?: { value: string; confidence: "high" | "medium" | "low"; source: string };
-  language?: { value: string; confidence: "high" | "medium" | "low"; source: string };
+  fullName?: EnrichmentField;
+  company?: EnrichmentField;
+  jobTitle?: EnrichmentField;
+  preferredChannel?: EnrichmentField;
+  country?: EnrichmentField;
+  language?: EnrichmentField;
   companyWebsite?: string;
+  // Expanded fields
+  industry?: EnrichmentField;
+  numberOfEmployees?: EnrichmentField;
+  annualRevenue?: EnrichmentField;
+  about?: EnrichmentField;
+  linkedinUrl?: EnrichmentField;
+  facebookUrl?: EnrichmentField;
+  instagramUrl?: EnrichmentField;
+  twitterUrl?: EnrichmentField;
+  address?: EnrichmentField;
+  city?: EnrichmentField;
+  postalCode?: EnrichmentField;
+  region?: EnrichmentField;
+  // NIF/fiscal
+  taxId?: EnrichmentField;
+  caeCodes?: { value: string[]; confidence: "high" | "medium" | "low"; source: string };
+  caeDescription?: EnrichmentField;
+  legalNature?: EnrichmentField;
+  capitalSocial?: EnrichmentField;
+  foundingDate?: EnrichmentField;
+  // Instagram metrics
+  instagramFollowers?: { value: number; confidence: "high" | "medium" | "low"; source: string };
+  instagramBio?: EnrichmentField;
+  // ICP
+  icpFitScore?: { value: number; confidence: "high" | "medium" | "low"; source: string };
 }
 
 function extractDomainFromEmail(email: string): string | null {
   const match = email.match(/@([^@]+)$/);
   if (!match) return null;
   const domain = match[1].toLowerCase();
-  // Skip common free email providers
   const freeProviders = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "live.com", "icloud.com", "sapo.pt", "mail.com", "protonmail.com"];
   if (freeProviders.includes(domain)) return null;
   return domain;
@@ -53,13 +83,61 @@ function detectLanguageFromCountry(country: string | null): string | null {
   return langMap[country] || null;
 }
 
+function calculateIcpScore(result: EnrichmentResult): number {
+  let score = 0;
+  let maxScore = 0;
+
+  // Company identified (+20)
+  maxScore += 20;
+  if (result.company?.value) {
+    score += result.company.confidence === "high" ? 20 : result.company.confidence === "medium" ? 15 : 8;
+  }
+
+  // Has website (+10)
+  maxScore += 10;
+  if (result.companyWebsite) score += 10;
+
+  // Has industry (+10)
+  maxScore += 10;
+  if (result.industry?.value) score += 10;
+
+  // Has contact info (+10)
+  maxScore += 10;
+  if (result.preferredChannel?.value) score += 10;
+
+  // Has location (+10)
+  maxScore += 10;
+  if (result.city?.value || result.address?.value || result.country?.value) score += 10;
+
+  // Has job title (+10)
+  maxScore += 10;
+  if (result.jobTitle?.value) score += 10;
+
+  // Has social presence (+10)
+  maxScore += 10;
+  if (result.linkedinUrl?.value || result.instagramUrl?.value || result.facebookUrl?.value) score += 10;
+
+  // Has fiscal data (+10)
+  maxScore += 10;
+  if (result.taxId?.value) score += 10;
+
+  // Has about/description (+5)
+  maxScore += 5;
+  if (result.about?.value) score += 5;
+
+  // Has employee count (+5)
+  maxScore += 5;
+  if (result.numberOfEmployees?.value) score += 5;
+
+  return maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Validate auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
@@ -88,10 +166,13 @@ Deno.serve(async (req) => {
 
     const { name, email, phone, workspaceId, settings: enrichSettings } = await req.json();
 
-    // Configuration flags (default to true for backward compatibility)
+    // Configuration flags
     const googleEnabled = enrichSettings?.google_enabled ?? true;
-    const linkedinEnabled = enrichSettings?.linkedin_enabled ?? true;
     const webscrapingEnabled = enrichSettings?.webscraping_enabled ?? true;
+    const googlePlacesEnabled = enrichSettings?.google_places_enabled ?? false;
+    const nifLookupEnabled = enrichSettings?.nif_lookup_enabled ?? false;
+    const instagramEnrichEnabled = enrichSettings?.instagram_enrich_enabled ?? false;
+    const icpScoreEnabled = enrichSettings?.icp_score_enabled ?? false;
 
     if (!workspaceId) {
       return new Response(
@@ -108,7 +189,6 @@ Deno.serve(async (req) => {
     if (email) {
       companyDomain = extractDomainFromEmail(email);
       if (companyDomain) {
-        // Check if we have a company with this domain in CRM
         const { data: existingCompany } = await supabase
           .from("companies")
           .select("name, website")
@@ -118,14 +198,9 @@ Deno.serve(async (req) => {
           .single();
 
         if (existingCompany) {
-          result.company = {
-            value: existingCompany.name,
-            confidence: "high",
-            source: "CRM existente"
-          };
+          result.company = { value: existingCompany.name, confidence: "high", source: "CRM existente" };
           result.companyWebsite = existingCompany.website;
         } else {
-          // Use domain as company name suggestion
           const companyName = companyDomain.split('.')[0];
           result.company = {
             value: companyName.charAt(0).toUpperCase() + companyName.slice(1),
@@ -141,53 +216,29 @@ Deno.serve(async (req) => {
     if (phone) {
       const country = detectCountryFromPhone(phone);
       if (country) {
-        result.country = {
-          value: country,
-          confidence: "high",
-          source: "Código do país"
-        };
+        result.country = { value: country, confidence: "high", source: "Código do país" };
         const language = detectLanguageFromCountry(country);
         if (language) {
-          result.language = {
-            value: language,
-            confidence: "high",
-            source: "País detectado"
-          };
+          result.language = { value: language, confidence: "high", source: "País detectado" };
         }
       }
-
-      // Suggest WhatsApp as preferred channel if phone provided
-      result.preferredChannel = {
-        value: "WhatsApp",
-        confidence: "medium",
-        source: "Telefone fornecido"
-      };
+      result.preferredChannel = { value: "WhatsApp", confidence: "medium", source: "Telefone fornecido" };
     } else if (email) {
-      result.preferredChannel = {
-        value: "Email",
-        confidence: "medium",
-        source: "Email fornecido"
-      };
+      result.preferredChannel = { value: "Email", confidence: "medium", source: "Email fornecido" };
     }
 
-    // 3. Analyze conversation history for patterns
+    // 3. Analyze conversation history
     if (email || phone) {
       const { data: conversations } = await supabase
         .from("conversations")
-        .select(`
-          id,
-          channel,
-          messages (id, direction)
-        `)
+        .select(`id, channel, messages (id, direction)`)
         .eq("workspace_id", workspaceId)
         .limit(10);
 
       if (conversations && conversations.length > 0) {
-        // Find most used channel
         const channelCounts: Record<string, number> = {};
         for (const conv of conversations) {
-          const channel = conv.channel;
-          channelCounts[channel] = (channelCounts[channel] || 0) + 1;
+          channelCounts[conv.channel] = (channelCounts[conv.channel] || 0) + 1;
         }
         const topChannel = Object.entries(channelCounts).sort((a, b) => b[1] - a[1])[0];
         if (topChannel) {
@@ -200,13 +251,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 4. Use AI to enrich if we have company website
+    // 4. AI enrichment with expanded extraction
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (LOVABLE_API_KEY && result.companyWebsite && googleEnabled) {
       try {
-        // Try to scrape company website for more context
-        const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
         let companyContext = "";
+        const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
 
         if (FIRECRAWL_API_KEY && webscrapingEnabled) {
           try {
@@ -227,31 +277,37 @@ Deno.serve(async (req) => {
             if (scrapeResponse.ok) {
               const scrapeData = await scrapeResponse.json();
               if (scrapeData.success && scrapeData.data?.markdown) {
-                companyContext = scrapeData.data.markdown.slice(0, 3000);
+                companyContext = scrapeData.data.markdown.slice(0, 4000);
               }
             }
           } catch (e) {
-            console.log("Scraping failed, continuing without company context:", e);
+            console.log("Scraping failed, continuing:", e);
           }
         }
 
-        // Use AI to suggest role based on name and company
+        // Expanded AI prompt
         const prompt = `Given this contact information:
 - Name: ${name || "Unknown"}
 - Email: ${email || "Unknown"}
 - Company: ${result.company?.value || "Unknown"}
-${companyContext ? `\nCompany website content:\n${companyContext}` : ""}
+- Website: ${result.companyWebsite || "Unknown"}
+${companyContext ? `\nCompany website content (first 4000 chars):\n${companyContext}` : ""}
 
-Suggest the most likely job title/role for this person. Consider:
-- Email patterns (e.g., ceo@, director@, marketing@)
-- Common roles in similar companies
-- Name patterns
-
-Return ONLY a JSON object with this structure (no markdown):
+Extract ALL available information. Return ONLY a JSON object (no markdown):
 {
-  "jobTitle": "Suggested title or null",
-  "jobTitleConfidence": "low" | "medium",
-  "reasoning": "Brief explanation"
+  "jobTitle": "string or null",
+  "jobTitleConfidence": "low" | "medium" | "high",
+  "industry": "string or null (e.g. 'Software', 'Marketing', 'Construção', 'Restauração')",
+  "industryConfidence": "low" | "medium" | "high",
+  "numberOfEmployees": "string or null (e.g. '1-10', '11-50', '51-200', '201-500', '500+')",
+  "employeesConfidence": "low" | "medium" | "high",
+  "annualRevenue": "string or null (e.g. '< 100k€', '100k-500k€', '500k-2M€', '2M-10M€', '> 10M€')",
+  "revenueConfidence": "low" | "medium" | "high",
+  "about": "string or null (brief company description, max 200 chars)",
+  "linkedinUrl": "string or null (company LinkedIn URL if found on website)",
+  "facebookUrl": "string or null",
+  "instagramUrl": "string or null",
+  "twitterUrl": "string or null"
 }`;
 
         const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -263,10 +319,10 @@ Return ONLY a JSON object with this structure (no markdown):
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
             messages: [
-              { role: "system", content: "You are a CRM assistant that helps enrich contact data. Be conservative - only suggest when you have reasonable confidence." },
+              { role: "system", content: "You are a CRM data enrichment assistant. Extract factual data from the website content provided. Be conservative - only include data you can verify from the content. Return valid JSON only." },
               { role: "user", content: prompt },
             ],
-            temperature: 0.3,
+            temperature: 0.2,
           }),
         });
 
@@ -277,21 +333,186 @@ Return ONLY a JSON object with this structure (no markdown):
             try {
               const cleanContent = content.replace(/```json\n?|\n?```/g, "").trim();
               const parsed = JSON.parse(cleanContent);
+
               if (parsed.jobTitle) {
-                result.jobTitle = {
-                  value: parsed.jobTitle,
-                  confidence: parsed.jobTitleConfidence || "low",
-                  source: "Análise IA"
-                };
+                result.jobTitle = { value: parsed.jobTitle, confidence: parsed.jobTitleConfidence || "low", source: "Análise IA" };
+              }
+              if (parsed.industry) {
+                result.industry = { value: parsed.industry, confidence: parsed.industryConfidence || "low", source: "Análise IA (website)" };
+              }
+              if (parsed.numberOfEmployees) {
+                result.numberOfEmployees = { value: parsed.numberOfEmployees, confidence: parsed.employeesConfidence || "low", source: "Análise IA (website)" };
+              }
+              if (parsed.annualRevenue) {
+                result.annualRevenue = { value: parsed.annualRevenue, confidence: parsed.revenueConfidence || "low", source: "Análise IA (website)" };
+              }
+              if (parsed.about) {
+                result.about = { value: parsed.about, confidence: "medium", source: "Website" };
+              }
+              if (parsed.linkedinUrl) {
+                result.linkedinUrl = { value: parsed.linkedinUrl, confidence: "medium", source: "Website" };
+              }
+              if (parsed.facebookUrl) {
+                result.facebookUrl = { value: parsed.facebookUrl, confidence: "medium", source: "Website" };
+              }
+              if (parsed.instagramUrl) {
+                result.instagramUrl = { value: parsed.instagramUrl, confidence: "medium", source: "Website" };
+              }
+              if (parsed.twitterUrl) {
+                result.twitterUrl = { value: parsed.twitterUrl, confidence: "medium", source: "Website" };
               }
             } catch (e) {
               console.log("Failed to parse AI response:", e);
             }
           }
+        } else if (aiResponse.status === 402 || aiResponse.status === 429) {
+          console.warn(`[ENRICHER] AI returned ${aiResponse.status}, skipping AI enrichment`);
         }
       } catch (e) {
         console.error("AI enrichment failed:", e);
       }
+    }
+
+    // 5. Google Places enrichment (parallel-safe)
+    if (googlePlacesEnabled && result.company?.value) {
+      try {
+        const placesResponse = await fetch(`${supabaseUrl}/functions/v1/google-places-enrich`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": authHeader,
+            "apikey": supabaseAnonKey,
+          },
+          body: JSON.stringify({
+            companyName: result.company.value,
+            city: result.country?.value === "Portugal" ? undefined : undefined,
+          }),
+        });
+
+        if (placesResponse.ok) {
+          const placesData = await placesResponse.json();
+          if (placesData.success && placesData.data?.length > 0) {
+            const place = placesData.data[0];
+            if (place.formatted_address && !result.address) {
+              result.address = { value: place.formatted_address, confidence: "high", source: "Google Places" };
+            }
+            if (place.city && !result.city) {
+              result.city = { value: place.city, confidence: "high", source: "Google Places" };
+            }
+            if (place.postal_code) {
+              result.postalCode = { value: place.postal_code, confidence: "high", source: "Google Places" };
+            }
+            if (place.region) {
+              result.region = { value: place.region, confidence: "high", source: "Google Places" };
+            }
+            if (place.phone && !result.preferredChannel) {
+              result.preferredChannel = { value: "Telefone", confidence: "medium", source: "Google Places" };
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("[ENRICHER] Google Places failed:", e);
+      }
+    }
+
+    // 6. NIF Lookup (Portuguese companies only)
+    if (nifLookupEnabled && (result.country?.value === "Portugal" || !result.country)) {
+      try {
+        const nifResponse = await fetch(`${supabaseUrl}/functions/v1/lookup-company-nif`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": authHeader,
+            "apikey": supabaseAnonKey,
+          },
+          body: JSON.stringify({
+            companyName: result.company?.value,
+          }),
+        });
+
+        if (nifResponse.ok) {
+          const nifData = await nifResponse.json();
+          if (nifData.success && nifData.data) {
+            const nif = nifData.data;
+            if (nif.tax_id) {
+              result.taxId = { value: nif.tax_id, confidence: "high", source: "Registo fiscal" };
+            }
+            if (nif.cae_codes?.length) {
+              result.caeCodes = { value: nif.cae_codes, confidence: "high", source: "Registo fiscal" };
+            }
+            if (nif.cae_description) {
+              result.caeDescription = { value: nif.cae_description, confidence: "high", source: "Registo fiscal" };
+            }
+            if (nif.legal_nature) {
+              result.legalNature = { value: nif.legal_nature, confidence: "high", source: "Registo fiscal" };
+            }
+            if (nif.capital_social) {
+              result.capitalSocial = { value: nif.capital_social, confidence: "high", source: "Registo fiscal" };
+            }
+            if (nif.founding_date) {
+              result.foundingDate = { value: nif.founding_date, confidence: "high", source: "Registo fiscal" };
+            }
+            if (nif.company_name && result.company?.confidence !== "high") {
+              result.company = { value: nif.company_name, confidence: "high", source: "Registo fiscal" };
+            }
+            if (nif.address && !result.address) {
+              result.address = { value: nif.address, confidence: "high", source: "Registo fiscal" };
+            }
+            if (nif.city && !result.city) {
+              result.city = { value: nif.city, confidence: "high", source: "Registo fiscal" };
+            }
+            if (nif.postal_code && !result.postalCode) {
+              result.postalCode = { value: nif.postal_code, confidence: "high", source: "Registo fiscal" };
+            }
+            if (nif.about && !result.about) {
+              result.about = { value: nif.about, confidence: "high", source: "Registo fiscal" };
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("[ENRICHER] NIF lookup failed:", e);
+      }
+    }
+
+    // 7. Instagram enrichment
+    if (instagramEnrichEnabled && result.instagramUrl?.value) {
+      try {
+        const igResponse = await fetch(`${supabaseUrl}/functions/v1/enrich-instagram-profile`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": authHeader,
+            "apikey": supabaseAnonKey,
+          },
+          body: JSON.stringify({
+            instagramUrl: result.instagramUrl.value,
+          }),
+        });
+
+        if (igResponse.ok) {
+          const igData = await igResponse.json();
+          if (igData.success && igData.data) {
+            if (igData.data.followers_count != null) {
+              result.instagramFollowers = { value: igData.data.followers_count, confidence: "high", source: "Instagram" };
+            }
+            if (igData.data.bio) {
+              result.instagramBio = { value: igData.data.bio, confidence: "high", source: "Instagram" };
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("[ENRICHER] Instagram enrich failed:", e);
+      }
+    }
+
+    // 8. Calculate ICP Fit Score
+    if (icpScoreEnabled) {
+      const score = calculateIcpScore(result);
+      result.icpFitScore = {
+        value: score,
+        confidence: score >= 70 ? "high" : score >= 40 ? "medium" : "low",
+        source: "Cálculo automático",
+      };
     }
 
     return new Response(

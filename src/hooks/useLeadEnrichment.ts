@@ -103,10 +103,36 @@ export function useEnrichLead(enricherSettings?: LeadEnricherSettings) {
       if (enrichment.company?.value) updates.company_name = enrichment.company.value;
       if (enrichment.companyWebsite) updates.website = enrichment.companyWebsite;
       if (enrichment.jobTitle?.value) updates.inferred_profession = enrichment.jobTitle.value;
-      if (enrichment.country?.value) updates.city = enrichment.country.value;
+      if (enrichment.country?.value && !enrichment.city?.value) updates.city = enrichment.country.value;
       if (enrichment.company?.confidence === "high") updates.confidence_score = 90;
       else if (enrichment.company?.confidence === "medium") updates.confidence_score = 70;
       else if (enrichment.company?.confidence === "low") updates.confidence_score = 40;
+
+      // Expanded fields
+      if (enrichment.industry?.value) updates.industry = enrichment.industry.value;
+      if (enrichment.numberOfEmployees?.value) updates.number_of_employees = enrichment.numberOfEmployees.value;
+      if (enrichment.annualRevenue?.value) updates.annual_revenue = enrichment.annualRevenue.value;
+      if (enrichment.about?.value) updates.about = enrichment.about.value;
+      if (enrichment.linkedinUrl?.value) updates.linkedin_url = enrichment.linkedinUrl.value;
+      if (enrichment.facebookUrl?.value) updates.facebook_url = enrichment.facebookUrl.value;
+      if (enrichment.instagramUrl?.value) updates.instagram_url = enrichment.instagramUrl.value;
+      if (enrichment.twitterUrl?.value) updates.twitter_url = enrichment.twitterUrl.value;
+      if (enrichment.address?.value) updates.address = enrichment.address.value;
+      if (enrichment.city?.value) updates.city = enrichment.city.value;
+      if (enrichment.postalCode?.value) updates.postal_code = enrichment.postalCode.value;
+      if (enrichment.region?.value) updates.region = enrichment.region.value;
+      // Fiscal
+      if (enrichment.taxId?.value) updates.tax_id = enrichment.taxId.value;
+      if (enrichment.caeCodes?.value) updates.cae_codes = enrichment.caeCodes.value;
+      if (enrichment.caeDescription?.value) updates.cae_description = enrichment.caeDescription.value;
+      if (enrichment.legalNature?.value) updates.legal_nature = enrichment.legalNature.value;
+      if (enrichment.capitalSocial?.value) updates.capital_social = enrichment.capitalSocial.value;
+      if (enrichment.foundingDate?.value) updates.founding_date = enrichment.foundingDate.value;
+      // Instagram
+      if (enrichment.instagramFollowers?.value != null) updates.instagram_followers_count = enrichment.instagramFollowers.value;
+      if (enrichment.instagramBio?.value) updates.instagram_bio = enrichment.instagramBio.value;
+      // ICP
+      if (enrichment.icpFitScore?.value != null) updates.icp_fit_score = enrichment.icpFitScore.value;
 
       // Email validation if enabled
       let emailValidated = false;
