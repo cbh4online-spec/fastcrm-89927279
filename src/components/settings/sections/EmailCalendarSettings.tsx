@@ -23,12 +23,11 @@ export function EmailCalendarSettings() {
   const { t } = useTranslation("settings");
   const { data: connections, isLoading } = useEmailConnections();
   const disconnectEmail = useDisconnectEmail();
+  const { signaturePayload, saveSignature, isSaving: isSavingSignature } = useEmailSignature();
 
   const [showConnectDialog, setShowConnectDialog] = useState(false);
   const [defaultAccountId, setDefaultAccountId] = useState<string>("");
-  const [signature, setSignature] = useState("");
   const [watermarkEnabled, setWatermarkEnabled] = useState(true);
-  const [isSavingSignature, setIsSavingSignature] = useState(false);
 
   const handleSetDefault = (id: string) => {
     setDefaultAccountId(id);
