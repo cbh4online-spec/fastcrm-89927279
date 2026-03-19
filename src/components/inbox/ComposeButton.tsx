@@ -46,6 +46,7 @@ function QuickComposeDialog({
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const { data: emailConnections } = useEmailConnections();
+  const { signatureHtml } = useEmailSignature();
   const [recipientEmail, setRecipientEmail] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [subject, setSubject] = useState("");
