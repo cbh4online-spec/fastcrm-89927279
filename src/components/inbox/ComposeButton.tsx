@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEmailConnections } from "@/hooks/useEmailConnection";
+import { useEmailSignature } from "@/hooks/useEmailSignature";
 import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
 import { useInstagramConnection } from "@/hooks/useInstagramConnection";
 import { toast } from "sonner";
