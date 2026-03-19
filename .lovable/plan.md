@@ -1,39 +1,38 @@
 
 
-## Corrigir erro `entity_id` no ComposeButton
+## Corrigir cabeçalho de email, adicionar assinatura a respostas e melhorar campos do email
 
-### Problema
-O `ComposeButton.tsx` tenta inserir campos `entity_id` e `entity_type` na tabela `conversations`, mas esses campos nao existem. A tabela usa `lead_id`, `contact_id` e `company_id`.
+### Problemas identificados
 
-### Alteracao
+1. **Cabeçalho "Desconhecido"**: O `ConversationDetail.tsx` (linha 227) mostra `conversation.lead?.name || "Desconhecido"`, mas para emails sem lead associado, deveria extrair o remetente de `channel_metadata` (campos `from_email`, `from_name`).
 
-**Ficheiro**: `src/components/inbox/ComposeButton.tsx` (linhas 118-130)
+2. **Assinatura ausente nas respostas**: O `useMessages.ts` (linha 260) envia `isHtml: false` e o `content` puro sem anexar a assinatura. O `EmailRichComposer.tsx` tambem nao anexa assinatura. Ambos precisam integrar o hook `useEmailSignature`.
 
-Substituir o insert da conversa para usar os campos corretos:
+3. **Campos de email em falta no EmailMessageBubble**: Nao mostra De/Para/Cc — apenas o assunto. Estes campos existem em `channel_metadata` da conversa mas nao sao passados nem exibidos.
 
-```typescript
-// Antes (errado):
-.insert({
-  workspace_id: currentWorkspace?.id,
-  channel: "email",
-  status: "open",
-  subject: subject.trim(),
-  entity_id: entityId,
-  entity_type: entityType,
-  last_message_at: new Date().toISOString(),
-})
+### Alteracoes
 
-// Depois (correto):
-.insert({
-  workspace_id: currentWorkspace?.id,
-  channel: "email",
-  status: "open",
-  last_message_at: new Date().toISOString(),
-  ...(entityType === 'lead' && entityId ? { lead_id: entityId } : {}),
-  ...(entityType === 'contact' && entityId ? { contact_id: entityId } : {}),
-  ...(entityType === 'company' && entityId ? { company_id: entityId } : {}),
-})
-```
+**1. ConversationDetail.tsx — Resolver "Desconhecido"**
+- Extrair `channel_metadata` da conversa (ja disponivel via select `*`)
+- No cabeçalho, usar: `lead?.name || contact?.name || channel_metadata?.from_name || channel_metadata?.from_email || external_thread_id || "Desconhecido"`
 
-Isto tambem resolve o segundo erro (`email-send` retornando 400) porque o insert da conversa falhava antes de chamar a edge function, logo nao havia `conversationId` valido.
+**2. useMessages.ts — Anexar assinatura nas respostas por email**
+- Nao e possivel usar hooks dentro de `mutationFn`, entao a assinatura sera carregada directamente via query ao `workspace_settings` dentro do bloco de email do `useSendMessage`
+- Concatenar `signatureHtml` ao `content` antes de enviar, e definir `isHtml: true` quando houver assinatura
+
+**3. EmailRichComposer.tsx — Anexar assinatura no composer de email**
+- Importar `useEmailSignature`
+- No `handleSend`, concatenar a assinatura ao `body` antes de enviar
+- Mostrar indicador de que a assinatura sera incluida
+
+**4. EmailMessageBubble.tsx — Mostrar campos De/Para**
+- Adicionar props `fromEmail`, `toEmail`, `cc` ao componente
+- Exibir estes campos no cabeçalho da bolha de email (abaixo do assunto)
+- No `ConversationDetail.tsx`, passar `channel_metadata` ao `EmailMessageBubble`
+
+### Ficheiros a alterar
+- `src/components/inbox/ConversationDetail.tsx`
+- `src/components/inbox/EmailMessageBubble.tsx`
+- `src/components/inbox/EmailRichComposer.tsx`
+- `src/hooks/useMessages.ts`
 
