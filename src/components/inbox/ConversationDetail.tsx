@@ -342,7 +342,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                           <div className="flex-1 h-px bg-border" />
                         </div>
                       )}
-                      <EmailMessageBubble message={message} />
+                      <EmailMessageBubble message={message} channelMetadata={(conversation as any).channel_metadata as Record<string, unknown> | null} />
                     </div>
                   );
                 }
