@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import type { Calendar as CalendarType, CalendarGroup } from '@/hooks/useCalendars';
+import { GoogleCalendarConnect } from './GoogleCalendarConnect';
 
 interface CalendarSidebarProps {
   calendars: CalendarType[];
@@ -228,6 +229,11 @@ export function CalendarSidebar({
               </CollapsibleContent>
           </Collapsible>
           </>
+        )}
+
+        {/* Google Calendar sync for first active calendar */}
+        {realCalendars.length > 0 && (
+          <GoogleCalendarConnect calendarId={realCalendars[0].id} className="px-3" />
         )}
 
         {/* Category color legend */}

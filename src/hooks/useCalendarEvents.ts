@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { emitKernelEvent } from '@/lib/kernelEmitter';
 import type { CalendarEvent, CreateEventData } from './useCalendars';
+import { useGoogleCalendarSync } from './useGoogleCalendarSync';
 
 export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { start: Date; end: Date }) {
   const { currentWorkspace } = useWorkspace();
@@ -12,6 +13,7 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { pushEvent, deleteRemoteEvent } = useGoogleCalendarSync();
 
   // Stabilize calendarIds to avoid infinite loops
   const calendarIdsKey = calendarIds.join(',');
@@ -93,6 +95,8 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
       });
 
       toast.success('Evento criado');
+      // Push to Google Calendar if synced
+      pushEvent(event.id, data.calendar_id);
       await fetchEvents();
       return event as unknown as CalendarEvent;
     } catch (err) {
@@ -121,6 +125,8 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
       });
 
       toast.success('Evento atualizado');
+      // Push update to Google Calendar
+      pushEvent(id, data.calendar_id || '');
       await fetchEvents();
       return true;
     } catch (err) {
@@ -132,12 +138,25 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
 
   const deleteEvent = async (id: string): Promise<boolean> => {
     try {
+      // Fetch event first to get google_event_id before deleting
+      const { data: eventToDelete } = await supabase
+        .from('calendar_events')
+        .select('calendar_id, metadata')
+        .eq('id', id)
+        .maybeSingle();
+
       const { error: deleteError } = await supabase
         .from('calendar_events')
         .delete()
         .eq('id', id);
 
       if (deleteError) throw deleteError;
+
+      // Delete from Google Calendar if synced
+      const googleEventId = (eventToDelete?.metadata as any)?.google_event_id;
+      if (googleEventId && eventToDelete?.calendar_id) {
+        deleteRemoteEvent(eventToDelete.calendar_id, googleEventId);
+      }
 
       console.log(`[CALENDAR] Event deleted: ${id}`);
       emitKernelEvent({
