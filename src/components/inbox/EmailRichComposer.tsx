@@ -56,6 +56,7 @@ import { useActiveEmailConnection, useSendEmail, EmailConnection } from "@/hooks
 import { useTranslateEmail, LANGUAGE_OPTIONS, TranslationLanguage } from "@/hooks/useEmailTranslation";
 import { InboxTemplatePanel } from "./InboxTemplatePanel";
 import { VariableContext } from "@/lib/templateVariables";
+import { useEmailSignature } from "@/hooks/useEmailSignature";
 import { Message } from "@/hooks/useMessages";
 
 interface EmailRichComposerProps {
