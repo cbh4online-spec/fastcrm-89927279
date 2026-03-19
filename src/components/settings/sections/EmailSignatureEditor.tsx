@@ -37,6 +37,9 @@ interface SignatureData {
   linkedin: string;
   twitter: string;
   instagram: string;
+  facebook: string;
+  youtube: string;
+  whatsapp: string;
   logoUrl: string;
   avatarUrl: string;
   primaryColor: string;
