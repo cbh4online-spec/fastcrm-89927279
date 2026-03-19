@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { emitKernelEvent } from '@/lib/kernelEmitter';
 import type { CalendarEvent, CreateEventData } from './useCalendars';
+import { useGoogleCalendarSync } from './useGoogleCalendarSync';
 
 export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { start: Date; end: Date }) {
   const { currentWorkspace } = useWorkspace();
