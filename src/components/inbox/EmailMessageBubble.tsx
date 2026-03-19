@@ -86,7 +86,7 @@ function plainTextToHtml(text: string): string {
     .replace(/\n/g, '<br />');
 }
 
-export function EmailMessageBubble({ message }: EmailMessageBubbleProps) {
+export function EmailMessageBubble({ message, channelMetadata }: EmailMessageBubbleProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showHtml, setShowHtml] = useState(true);
   
@@ -96,6 +96,11 @@ export function EmailMessageBubble({ message }: EmailMessageBubbleProps) {
   
   // Fix encoding in subject
   const displaySubject = hasSubject ? fixEncoding(message.email_subject!) : null;
+
+  // Extract email metadata
+  const fromEmail = (channelMetadata?.from_email as string) || (channelMetadata?.from_name as string) || null;
+  const toEmail = (channelMetadata?.to_email as string) || (channelMetadata?.email as string) || null;
+  const ccEmail = (channelMetadata?.cc as string) || null;
   
   // Clean MIME artifacts, then prepare for display
   const cleanedContent = cleanEmailContent(message.content);
