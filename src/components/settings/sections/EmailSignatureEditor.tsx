@@ -359,6 +359,9 @@ function generateSignatureHtml(data: SignatureData): string {
     if (linkedin) socialLinks.push(`<a href="${ensureUrl(linkedin)}" style="color:${primaryColor};text-decoration:none;font-size:12px;" target="_blank">LinkedIn</a>`);
     if (twitter) socialLinks.push(`<a href="${ensureUrl(twitter)}" style="color:${primaryColor};text-decoration:none;font-size:12px;" target="_blank">X</a>`);
     if (instagram) socialLinks.push(`<a href="${ensureUrl(instagram)}" style="color:${primaryColor};text-decoration:none;font-size:12px;" target="_blank">Instagram</a>`);
+    if (facebook) socialLinks.push(`<a href="${ensureUrl(facebook)}" style="color:${primaryColor};text-decoration:none;font-size:12px;" target="_blank">Facebook</a>`);
+    if (youtube) socialLinks.push(`<a href="${ensureUrl(youtube)}" style="color:${primaryColor};text-decoration:none;font-size:12px;" target="_blank">YouTube</a>`);
+    if (whatsapp) socialLinks.push(`<a href="${ensureUrl(whatsapp)}" style="color:${primaryColor};text-decoration:none;font-size:12px;" target="_blank">WhatsApp</a>`);
   }
 
   const avatarHtml = showAvatar && avatarUrl
