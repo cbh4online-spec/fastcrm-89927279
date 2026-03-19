@@ -147,13 +147,21 @@ export function EmailRichComposer({
     }
 
     try {
+      // Append email signature if available
+      let finalBody = body.trim();
+      let finalIsHtml = isHtml;
+      if (signatureHtml) {
+        finalBody = `${finalBody}<br/><br/>--<br/>${signatureHtml}`;
+        finalIsHtml = true;
+      }
+
       await sendEmail.mutateAsync({
         connectionId: connection.id,
         conversationId,
         to,
         subject: subject.trim(),
-        body: body.trim(),
-        isHtml,
+        body: finalBody,
+        isHtml: finalIsHtml,
         inReplyTo,
         references,
       });
