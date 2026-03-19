@@ -27,6 +27,7 @@ export function EmailCalendarSettings() {
   const [defaultAccountId, setDefaultAccountId] = useState<string>("");
   const [signature, setSignature] = useState("");
   const [watermarkEnabled, setWatermarkEnabled] = useState(true);
+  const [isSavingSignature, setIsSavingSignature] = useState(false);
 
   const handleSetDefault = (id: string) => {
     setDefaultAccountId(id);
