@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import type { Calendar as CalendarType, CalendarGroup } from '@/hooks/useCalendars';
+import { GoogleCalendarConnect } from './GoogleCalendarConnect';
 
 interface CalendarSidebarProps {
   calendars: CalendarType[];
