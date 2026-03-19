@@ -121,10 +121,9 @@ function QuickComposeDialog({
           workspace_id: currentWorkspace?.id,
           channel: "email",
           status: "open",
-          subject: subject.trim(),
-          entity_id: entityId,
-          entity_type: entityType,
           last_message_at: new Date().toISOString(),
+          ...(entityType === 'lead' && entityId ? { lead_id: entityId } : {}),
+          ...(entityType === 'contact' && entityId ? { contact_id: entityId } : {}),
         })
         .select("id")
         .single();
