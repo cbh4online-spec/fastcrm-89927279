@@ -1,9 +1,11 @@
-import { useState } from "react";
-import { Plus, Mail, Phone, Instagram, Facebook, Globe, MessageSquare, Send, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { Plus, Mail, Phone, Instagram, Facebook, Globe, MessageSquare, Send, Loader2, CheckCircle2, AlertCircle, Search, User, Users, X, ChevronDown, ChevronUp, FileSignature } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -27,13 +29,175 @@ import { useEmailConnections } from "@/hooks/useEmailConnection";
 import { useEmailSignature } from "@/hooks/useEmailSignature";
 import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
 import { useInstagramConnection } from "@/hooks/useInstagramConnection";
+import { useContacts } from "@/hooks/useContacts";
+import { useLeads } from "@/hooks/useLeads";
 import { toast } from "sonner";
 import { QuickGHLChannelDialog, GHLChannel } from "./QuickGHLChannelDialog";
 import { QuickInstagramDialog } from "./QuickInstagramDialog";
 
-interface ComposeButtonProps {
-  className?: string;
-  variant?: "default" | "floating";
+interface RecipientSuggestion {
+  id: string;
+  name: string;
+  email: string;
+  type: "contact" | "lead";
+}
+
+function RecipientAutocomplete({
+  value,
+  onSelect,
+  onManualEmail,
+  onClear,
+}: {
+  value: { id?: string; name: string; email: string; type?: "contact" | "lead" } | null;
+  onSelect: (s: RecipientSuggestion) => void;
+  onManualEmail: (email: string, name: string) => void;
+  onClear: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const { contacts, isLoading: contactsLoading } = useContacts();
+  const { data: leads, isLoading: leadsLoading } = useLeads();
+
+  const suggestions = useMemo(() => {
+    if (!search || search.length < 2) return [];
+    const lowerSearch = search.toLowerCase();
+    const results: RecipientSuggestion[] = [];
+
+    (contacts || []).forEach((c) => {
+      if (
+        c.email &&
+        (c.name?.toLowerCase().includes(lowerSearch) ||
+          c.email?.toLowerCase().includes(lowerSearch))
+      ) {
+        results.push({ id: c.id, name: c.name, email: c.email, type: "contact" });
+      }
+    });
+
+    (leads || []).forEach((l) => {
+      if (
+        l.email &&
+        (l.name?.toLowerCase().includes(lowerSearch) ||
+          l.email?.toLowerCase().includes(lowerSearch))
+      ) {
+        results.push({ id: l.id, name: l.name, email: l.email, type: "lead" });
+      }
+    });
+
+    return results.slice(0, 10);
+  }, [search, contacts, leads]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  if (value) {
+    return (
+      <div className="flex items-center gap-2 border rounded-md px-3 py-2 bg-muted/30">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-sm truncate">{value.name}</span>
+            {value.type && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                {value.type === "contact" ? "Contacto" : "Lead"}
+              </Badge>
+            )}
+          </div>
+          <span className="text-xs text-muted-foreground truncate block">{value.email}</span>
+        </div>
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClear}>
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          ref={inputRef}
+          placeholder="Pesquisar contacto ou digitar email..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setShowDropdown(true);
+          }}
+          onFocus={() => search.length >= 2 && setShowDropdown(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && search.includes("@")) {
+              e.preventDefault();
+              const namePart = search.split("@")[0];
+              onManualEmail(search.trim(), namePart);
+              setSearch("");
+              setShowDropdown(false);
+            }
+          }}
+          className="pl-8"
+        />
+      </div>
+
+      {showDropdown && search.length >= 2 && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 border rounded-md bg-popover shadow-md">
+          {contactsLoading || leadsLoading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          ) : suggestions.length > 0 ? (
+            <ScrollArea className="max-h-[200px]">
+              <div className="p-1">
+                {suggestions.map((s) => (
+                  <button
+                    key={`${s.type}-${s.id}`}
+                    className="w-full flex items-center gap-2 px-2 py-2 text-left rounded-md hover:bg-muted/50 transition-colors"
+                    onClick={() => {
+                      onSelect(s);
+                      setSearch("");
+                      setShowDropdown(false);
+                    }}
+                  >
+                    <div className={cn(
+                      "h-7 w-7 rounded-full flex items-center justify-center shrink-0",
+                      s.type === "contact" ? "bg-blue-500/10 text-blue-500" : "bg-green-500/10 text-green-500"
+                    )}>
+                      {s.type === "contact" ? <User className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{s.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">{s.email}</div>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] shrink-0">
+                      {s.type === "contact" ? "Contacto" : "Lead"}
+                    </Badge>
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
+          ) : (
+            <div className="p-3 text-center text-sm text-muted-foreground">
+              {search.includes("@") ? (
+                <span>
+                  Pressione <kbd className="px-1 py-0.5 rounded bg-muted text-[10px] font-mono">Enter</kbd> para usar <strong>{search}</strong>
+                </span>
+              ) : (
+                "Nenhum resultado. Digite um email completo para enviar manualmente."
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function QuickComposeDialog({
@@ -47,16 +211,24 @@ function QuickComposeDialog({
   const { user } = useAuth();
   const { data: emailConnections } = useEmailConnections();
   const { signatureHtml } = useEmailSignature();
-  const [recipientEmail, setRecipientEmail] = useState("");
-  const [recipientName, setRecipientName] = useState("");
+
+  const [recipient, setRecipient] = useState<{
+    id?: string;
+    name: string;
+    email: string;
+    type?: "contact" | "lead";
+  } | null>(null);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [cc, setCc] = useState("");
+  const [bcc, setBcc] = useState("");
+  const [showCcBcc, setShowCcBcc] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
   const activeConnection = emailConnections?.find(c => c.is_active);
 
   const handleSend = async () => {
-    if (!recipientEmail.trim() || !subject.trim() || !body.trim()) {
+    if (!recipient?.email || !subject.trim() || !body.trim()) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -68,55 +240,53 @@ function QuickComposeDialog({
 
     setIsSending(true);
     try {
-      // Find or create contact/lead
-      let entityId: string | null = null;
-      let entityType: 'contact' | 'lead' = 'lead';
+      let entityId: string | null = recipient.id || null;
+      let entityType: "contact" | "lead" = recipient.type || "lead";
 
-      // Check if contact exists
-      const { data: existingContact } = await supabase
-        .from("contacts")
-        .select("id")
-        .eq("workspace_id", currentWorkspace?.id)
-        .eq("email", recipientEmail.trim())
-        .maybeSingle();
-
-      if (existingContact) {
-        entityId = existingContact.id;
-        entityType = 'contact';
-      } else {
-        // Check if lead exists
-        const { data: existingLead } = await supabase
-          .from("leads")
+      // If no entity was selected from autocomplete, find or create
+      if (!entityId) {
+        const { data: existingContact } = await supabase
+          .from("contacts")
           .select("id")
           .eq("workspace_id", currentWorkspace?.id)
-          .eq("email", recipientEmail.trim())
+          .eq("email", recipient.email)
           .maybeSingle();
 
-        if (existingLead) {
-          entityId = existingLead.id;
-          entityType = 'lead';
+        if (existingContact) {
+          entityId = existingContact.id;
+          entityType = "contact";
         } else {
-          // Create new lead
-          const { data: newLead, error: createError } = await supabase
+          const { data: existingLead } = await supabase
             .from("leads")
-            .insert([{
-              workspace_id: currentWorkspace?.id,
-              email: recipientEmail.trim(),
-              name: recipientName.trim() || recipientEmail.split("@")[0],
-              source: "email" as const,
-              status: "new" as const,
-              created_by: user?.id,
-            }])
             .select("id")
-            .single();
+            .eq("workspace_id", currentWorkspace?.id)
+            .eq("email", recipient.email)
+            .maybeSingle();
 
-          if (createError) throw createError;
-          entityId = newLead.id;
-          entityType = 'lead';
+          if (existingLead) {
+            entityId = existingLead.id;
+            entityType = "lead";
+          } else {
+            const { data: newLead, error: createError } = await supabase
+              .from("leads")
+              .insert([{
+                workspace_id: currentWorkspace?.id,
+                email: recipient.email,
+                name: recipient.name || recipient.email.split("@")[0],
+                source: "email" as const,
+                status: "new" as const,
+                created_by: user?.id,
+              }])
+              .select("id")
+              .single();
+
+            if (createError) throw createError;
+            entityId = newLead.id;
+            entityType = "lead";
+          }
         }
       }
 
-      // Create conversation first
       const { data: conversation, error: convError } = await supabase
         .from("conversations")
         .insert({
@@ -124,29 +294,29 @@ function QuickComposeDialog({
           channel: "email",
           status: "open",
           last_message_at: new Date().toISOString(),
-          ...(entityType === 'lead' && entityId ? { lead_id: entityId } : {}),
-          ...(entityType === 'contact' && entityId ? { contact_id: entityId } : {}),
+          ...(entityType === "lead" && entityId ? { lead_id: entityId } : {}),
+          ...(entityType === "contact" && entityId ? { contact_id: entityId } : {}),
         })
         .select("id")
         .single();
 
       if (convError) throw convError;
 
-      // Build email body with signature
       const fullBody = signatureHtml
         ? `${body.trim()}<br/><br/>--<br/>${signatureHtml}`
         : body.trim();
 
-      // Send email via edge function
-      const { data, error } = await supabase.functions.invoke("email-send", {
+      const { error } = await supabase.functions.invoke("email-send", {
         body: {
           connectionId: activeConnection.id,
           workspaceId: currentWorkspace?.id,
           conversationId: conversation.id,
-          to: recipientEmail.trim(),
+          to: recipient.email,
           subject: subject.trim(),
           body: fullBody,
           isHtml: !!signatureHtml,
+          ...(cc.trim() ? { cc: cc.trim() } : {}),
+          ...(bcc.trim() ? { bcc: bcc.trim() } : {}),
         },
       });
 
@@ -154,10 +324,12 @@ function QuickComposeDialog({
 
       toast.success("Email enviado com sucesso!");
       onOpenChange(false);
-      setRecipientEmail("");
-      setRecipientName("");
+      setRecipient(null);
       setSubject("");
       setBody("");
+      setCc("");
+      setBcc("");
+      setShowCcBcc(false);
     } catch (error: any) {
       console.error("Error sending email:", error);
       toast.error(error.message || "Erro ao enviar email");
@@ -168,7 +340,7 @@ function QuickComposeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[640px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="w-5 h-5 text-blue-500" />
@@ -183,27 +355,49 @@ function QuickComposeDialog({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="recipient-email">Email do destinatário *</Label>
-              <Input
-                id="recipient-email"
-                type="email"
-                placeholder="exemplo@email.com"
-                value={recipientEmail}
-                onChange={(e) => setRecipientEmail(e.target.value)}
-              />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Para *</Label>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs text-muted-foreground gap-1 px-2"
+                onClick={() => setShowCcBcc(!showCcBcc)}
+              >
+                {showCcBcc ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                Cc / Bcc
+              </Button>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="recipient-name">Nome (opcional)</Label>
-              <Input
-                id="recipient-name"
-                placeholder="Nome do contacto"
-                value={recipientName}
-                onChange={(e) => setRecipientName(e.target.value)}
-              />
-            </div>
+            <RecipientAutocomplete
+              value={recipient}
+              onSelect={(s) => setRecipient({ id: s.id, name: s.name, email: s.email, type: s.type })}
+              onManualEmail={(email, name) => setRecipient({ name, email })}
+              onClear={() => setRecipient(null)}
+            />
           </div>
+
+          {showCcBcc && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="cc">Cc</Label>
+                <Input
+                  id="cc"
+                  placeholder="email@exemplo.com"
+                  value={cc}
+                  onChange={(e) => setCc(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bcc">Bcc</Label>
+                <Input
+                  id="bcc"
+                  placeholder="email@exemplo.com"
+                  value={bcc}
+                  onChange={(e) => setBcc(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="subject">Assunto *</Label>
@@ -225,6 +419,13 @@ function QuickComposeDialog({
               onChange={(e) => setBody(e.target.value)}
             />
           </div>
+
+          {signatureHtml && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <FileSignature className="h-3.5 w-3.5" />
+              <span>A assinatura será incluída automaticamente</span>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -233,7 +434,7 @@ function QuickComposeDialog({
           </Button>
           <Button
             onClick={handleSend}
-            disabled={isSending || !recipientEmail.trim() || !subject.trim() || !body.trim() || !activeConnection}
+            disabled={isSending || !recipient?.email || !subject.trim() || !body.trim() || !activeConnection}
             className="gap-2 bg-green-500 hover:bg-green-600"
           >
             {isSending ? (
@@ -247,6 +448,11 @@ function QuickComposeDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+interface ComposeButtonProps {
+  className?: string;
+  variant?: "default" | "floating";
 }
 
 export function ComposeButton({ className, variant = "default" }: ComposeButtonProps) {
