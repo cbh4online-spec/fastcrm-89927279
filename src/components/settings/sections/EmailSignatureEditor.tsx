@@ -345,7 +345,8 @@ function ToggleOption({
 function generateSignatureHtml(data: SignatureData): string {
   const {
     fullName, jobTitle, company, email, phone, website, address,
-    linkedin, twitter, instagram, logoUrl, avatarUrl,
+    linkedin, twitter, instagram, facebook, youtube, whatsapp,
+    logoUrl, avatarUrl,
     primaryColor, layout, showAvatar, showLogo, showSocials, fontFamily,
   } = data;
 
