@@ -17791,6 +17791,66 @@ export type Database = {
           },
         ]
       }
+      google_calendar_sync: {
+        Row: {
+          calendar_id: string
+          created_at: string
+          created_by: string | null
+          google_calendar_id: string
+          google_calendar_name: string | null
+          id: string
+          is_active: boolean
+          last_synced_at: string | null
+          sync_direction: string
+          sync_token: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          calendar_id: string
+          created_at?: string
+          created_by?: string | null
+          google_calendar_id: string
+          google_calendar_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          sync_direction?: string
+          sync_token?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          calendar_id?: string
+          created_at?: string
+          created_by?: string | null
+          google_calendar_id?: string
+          google_calendar_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          sync_direction?: string
+          sync_token?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_calendar_sync_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "calendars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_calendar_sync_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       growth_settings: {
         Row: {
           base_url: string | null
