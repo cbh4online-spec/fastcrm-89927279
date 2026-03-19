@@ -1,29 +1,76 @@
 
 
-# Fix: Vulnerable Dependencies
+## Análise: Dados Atuais vs Dados Possíveis
 
-## Analysis
+### O que o Enricher recolhe HOJE
 
-**xlsx**: Already at version 0.20.3 via CDN tarball (`https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`). The security scanner is likely flagging based on the npm registry name which maps to older vulnerable versions. Version 0.20.3 from the official SheetJS CDN includes fixes for both the Prototype Pollution (GHSA-4r6h-8v6p-xvw6) and ReDoS (GHSA-5pgg-2g8v-p4x9) advisories. **No action needed** — this is a false positive from the scanner not recognizing the CDN tarball version.
+O `contact-enrich` edge function atualmente extrai apenas:
+- **Empresa** (do domínio do email)
+- **País/Idioma** (do código do telefone)
+- **Canal preferido** (do histórico de conversas)
+- **Cargo/Função** (via IA, se houver website)
+- **Website da empresa** (do domínio do email)
 
-**@trigger.dev/sdk**: Not present in `package.json` at all (neither dependencies nor devDependencies). This is either a transitive dependency or a scanner false positive. The project uses Trigger.dev concepts via custom code (`src/trigger/client.ts`) and edge functions, but does not import the SDK package directly.
+### O que PODE ser adicionado (campos já existem na tabela `leads`)
 
-## Plan
+A tabela já tem colunas vazias que o enricher poderia preencher:
 
-### 1. Confirm xlsx is safe (no code change needed)
-The installed version 0.20.3 from the SheetJS CDN already patches both known vulnerabilities. The scanner cannot resolve the version from the tarball URL.
+1. **Indústria/Setor** (`industry`) — via scraping do website + IA
+2. **Nº de Funcionários** (`number_of_employees`) — via scraping/IA
+3. **Receita Anual estimada** (`annual_revenue`) — via IA com base no website
+4. **Pessoa de Contacto e Cargo** (`contact_person`, `contact_person_role`) — via IA
+5. **Morada completa** (`address`, `postal_code`, `region`, `county`, `parish`) — via Google Places ou scraping
+6. **Descrição/About** (`about`, `activity_description`) — via scraping do website
+7. **Redes sociais** (`linkedin_url`, `facebook_url`, `instagram_url`, `twitter_url`) — via scraping do website
+8. **NIF e dados fiscais** (`tax_id`, `cae_codes`, `cae_description`, `legal_nature`, `capital_social`, `founding_date`) — já existe o `lookup-company-nif` edge function
+9. **Instagram métricas** (`instagram_followers_count`, `instagram_bio`, etc.) — já existe o `enrich-instagram-profile` edge function
+10. **ICP Fit Score** (`icp_fit_score`) — calculável via IA com base nos dados enriquecidos
 
-### 2. Handle @trigger.dev/sdk
-Since it's not in `package.json`, this is either:
-- A stale lockfile entry — delete and regenerate `package-lock.json`
-- A scanner false positive
+### Plano de Implementação
 
-**Action**: No code changes required. Both findings are false positives based on the current `package.json`.
+#### 1. Expandir o prompt IA no `contact-enrich`
+- Pedir à IA que extraia do website: indústria, nº funcionários, receita estimada, descrição, redes sociais
+- Usar tool calling estruturado em vez de JSON livre
 
-### 3. Optional: Add explicit comment for future audits
-Add a comment in `package.json` near the xlsx entry noting the CDN version is patched, to prevent repeated investigation.
+#### 2. Integrar Google Places (já existe `google-places-enrich`)
+- Após identificar a empresa, chamar Google Places para morada completa
+- Preencher `address`, `city`, `postal_code`, `region`
 
-## Summary
+#### 3. Integrar NIF lookup (já existe `lookup-company-nif`)
+- Se o lead for empresa portuguesa, tentar lookup por nome
+- Preencher campos fiscais (`tax_id`, `cae_codes`, `legal_nature`, etc.)
 
-No code changes are necessary. Both flagged packages are either already patched (xlsx 0.20.3) or not actually installed (@trigger.dev/sdk). The security findings can be safely dismissed.
+#### 4. Integrar Instagram enrich (já existe `enrich-instagram-profile`)
+- Se o lead tiver `instagram_url`, extrair métricas do perfil
+
+#### 5. Calcular ICP Fit Score
+- Com os novos dados, calcular score de adequação ao perfil ideal de cliente
+
+#### 6. Atualizar `useLeadEnrichment.ts`
+- Mapear os novos campos retornados para updates na tabela `leads`
+- Propagar dados adicionais para `companies` e `contacts`
+
+#### 7. Adicionar toggles nas configurações
+- Novos switches: "Google Places", "NIF Lookup", "Instagram Enrich", "ICP Score"
+- No `LeadEnricherSettings` e na UI de configurações
+
+### Detalhes técnicos
+
+```text
+contact-enrich (expandido)
+├── Email domain → empresa + website
+├── Phone → país + idioma
+├── Firecrawl scrape → conteúdo do website
+├── IA (Gemini) → cargo, indústria, funcionários, receita, descrição, redes sociais
+├── Google Places → morada completa
+├── NIF lookup → dados fiscais (empresas PT)
+├── Instagram profile → métricas sociais
+└── ICP Score → cálculo final
+```
+
+**Ficheiros a alterar:**
+- `supabase/functions/contact-enrich/index.ts` — expandir IA e integrar sub-serviços
+- `src/hooks/useLeadEnrichment.ts` — mapear novos campos
+- `src/hooks/useLeadEnricherSettings.ts` — adicionar novos toggles
+- Página de configurações do Lead Enricher — novos switches na UI
 
