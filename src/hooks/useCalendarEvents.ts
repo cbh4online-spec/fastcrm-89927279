@@ -13,6 +13,7 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { pushEvent, deleteRemoteEvent } = useGoogleCalendarSync();
 
   // Stabilize calendarIds to avoid infinite loops
   const calendarIdsKey = calendarIds.join(',');
