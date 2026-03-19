@@ -16,6 +16,7 @@ import { Mail, ShieldCheck } from "lucide-react";
 import { useEmailConnections, useDisconnectEmail } from "@/hooks/useEmailConnection";
 import { EmailConnectDialog } from "@/components/inbox/EmailConnectDialog";
 import { EmailAccountRow } from "./EmailAccountRow";
+import { EmailSignatureEditor } from "./EmailSignatureEditor";
 
 export function EmailCalendarSettings() {
   const { t } = useTranslation("settings");
