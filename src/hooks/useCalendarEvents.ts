@@ -125,6 +125,8 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
       });
 
       toast.success('Evento atualizado');
+      // Push update to Google Calendar
+      pushEvent(id, data.calendar_id || '');
       await fetchEvents();
       return true;
     } catch (err) {
