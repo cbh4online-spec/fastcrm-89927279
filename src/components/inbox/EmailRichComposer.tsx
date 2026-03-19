@@ -453,13 +453,21 @@ export function EmailRichComposer({
           )}
         </div>
 
-        {/* HTML indicator */}
-        {isHtml && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant="outline" className="text-[10px]">HTML</Badge>
-            <span>O email será enviado com formatação HTML</span>
-          </div>
-        )}
+        {/* HTML / Signature indicator */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+          {isHtml && (
+            <>
+              <Badge variant="outline" className="text-[10px]">HTML</Badge>
+              <span>O email será enviado com formatação HTML</span>
+            </>
+          )}
+          {signatureHtml && (
+            <>
+              <Badge variant="outline" className="text-[10px] border-green-500/50 text-green-600">Assinatura</Badge>
+              <span>A assinatura será incluída automaticamente</span>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Footer */}

@@ -371,7 +371,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                       }}
                       senderName={
                         message.direction === "inbound"
-                          ? conversation.lead?.name || "Desconhecido"
+                          ? conversation.lead?.name || ((conversation as any).channel_metadata as any)?.from_name || ((conversation as any).channel_metadata as any)?.from_email || "Desconhecido"
                           : undefined
                       }
                       companyName="Você"

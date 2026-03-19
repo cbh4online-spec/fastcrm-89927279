@@ -127,34 +127,54 @@ export function EmailMessageBubble({ message, channelMetadata }: EmailMessageBub
             : "bg-muted text-foreground"
         )}
       >
-        {/* Email Header with Subject */}
-        {displaySubject && (
+        {/* Email Header with Subject and From/To */}
+        {(displaySubject || fromEmail || toEmail) && (
           <div className={cn(
-            "px-3 py-2 border-b flex items-center gap-2",
+            "px-3 py-2 border-b space-y-1",
             isOutbound 
               ? "bg-primary/90 border-primary-foreground/20" 
               : "bg-muted/80 border-border"
           )}>
-            <Mail className="w-4 h-4 flex-shrink-0" />
-            <span className="text-sm font-medium truncate flex-1">
-              {displaySubject}
-            </span>
-            {hasHtmlContent && (
-              <Badge 
-                variant="outline" 
-                className={cn(
-                  "text-[10px] py-0 cursor-pointer",
-                  isOutbound 
-                    ? "border-primary-foreground/30 text-primary-foreground/80 hover:bg-primary-foreground/10"
-                    : "border-border"
+            {displaySubject && (
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 flex-shrink-0" />
+                <span className="text-sm font-medium truncate flex-1">
+                  {displaySubject}
+                </span>
+                {hasHtmlContent && (
+                  <Badge 
+                    variant="outline" 
+                    className={cn(
+                      "text-[10px] py-0 cursor-pointer",
+                      isOutbound 
+                        ? "border-primary-foreground/30 text-primary-foreground/80 hover:bg-primary-foreground/10"
+                        : "border-border"
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowHtml(!showHtml);
+                    }}
+                  >
+                    {showHtml ? "HTML" : "Texto"}
+                  </Badge>
                 )}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowHtml(!showHtml);
-                }}
-              >
-                {showHtml ? "HTML" : "Texto"}
-              </Badge>
+              </div>
+            )}
+            {(fromEmail || toEmail) && (
+              <div className={cn(
+                "text-[11px] space-y-0.5",
+                isOutbound ? "text-primary-foreground/70" : "text-muted-foreground"
+              )}>
+                {fromEmail && (
+                  <div><span className="font-medium">De:</span> {fromEmail}</div>
+                )}
+                {toEmail && (
+                  <div><span className="font-medium">Para:</span> {toEmail}</div>
+                )}
+                {ccEmail && (
+                  <div><span className="font-medium">Cc:</span> {ccEmail}</div>
+                )}
+              </div>
             )}
           </div>
         )}
