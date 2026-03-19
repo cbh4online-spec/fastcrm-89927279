@@ -132,6 +132,11 @@ function QuickComposeDialog({
 
       if (convError) throw convError;
 
+      // Build email body with signature
+      const fullBody = signatureHtml
+        ? `${body.trim()}<br/><br/>--<br/>${signatureHtml}`
+        : body.trim();
+
       // Send email via edge function
       const { data, error } = await supabase.functions.invoke("email-send", {
         body: {
@@ -140,8 +145,8 @@ function QuickComposeDialog({
           conversationId: conversation.id,
           to: recipientEmail.trim(),
           subject: subject.trim(),
-          body: body.trim(),
-          isHtml: false,
+          body: fullBody,
+          isHtml: !!signatureHtml,
         },
       });
 
