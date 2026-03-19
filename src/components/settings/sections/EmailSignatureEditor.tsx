@@ -179,6 +179,9 @@ export function EmailSignatureEditor({ initialSignature, onSave, isSaving }: Ema
                 <InputField icon={Linkedin} label="LinkedIn" value={data.linkedin} onChange={v => update('linkedin', v)} placeholder="linkedin.com/in/username" />
                 <InputField icon={Twitter} label="X (Twitter)" value={data.twitter} onChange={v => update('twitter', v)} placeholder="x.com/username" />
                 <InputField icon={Instagram} label="Instagram" value={data.instagram} onChange={v => update('instagram', v)} placeholder="instagram.com/username" />
+                <InputField icon={Facebook} label="Facebook" value={data.facebook} onChange={v => update('facebook', v)} placeholder="facebook.com/page" />
+                <InputField icon={Youtube} label="YouTube" value={data.youtube} onChange={v => update('youtube', v)} placeholder="youtube.com/@channel" />
+                <InputField icon={MessageCircle} label="WhatsApp" value={data.whatsapp} onChange={v => update('whatsapp', v)} placeholder="wa.me/351..." />
                 <Separator />
                 <InputField icon={User} label="URL do avatar" value={data.avatarUrl} onChange={v => update('avatarUrl', v)} placeholder="https://..." />
                 <InputField icon={Briefcase} label="URL do logotipo" value={data.logoUrl} onChange={v => update('logoUrl', v)} placeholder="https://..." />
