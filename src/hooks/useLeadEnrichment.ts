@@ -84,6 +84,10 @@ export function useEnrichLead(enricherSettings?: LeadEnricherSettings) {
             google_enabled: enricherSettings.google_enabled,
             linkedin_enabled: enricherSettings.linkedin_enabled,
             webscraping_enabled: enricherSettings.webscraping_enabled,
+            google_places_enabled: enricherSettings.google_places_enabled,
+            nif_lookup_enabled: enricherSettings.nif_lookup_enabled,
+            instagram_enrich_enabled: enricherSettings.instagram_enrich_enabled,
+            icp_score_enabled: enricherSettings.icp_score_enabled,
           } : undefined,
         },
       });
