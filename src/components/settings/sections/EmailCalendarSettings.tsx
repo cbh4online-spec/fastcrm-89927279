@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Mail, ShieldCheck } from "lucide-react";
 import { useEmailConnections, useDisconnectEmail } from "@/hooks/useEmailConnection";
+import { useEmailSignature } from "@/hooks/useEmailSignature";
 import { EmailConnectDialog } from "@/components/inbox/EmailConnectDialog";
 import { EmailAccountRow } from "./EmailAccountRow";
 import { EmailSignatureEditor } from "./EmailSignatureEditor";
@@ -22,12 +23,11 @@ export function EmailCalendarSettings() {
   const { t } = useTranslation("settings");
   const { data: connections, isLoading } = useEmailConnections();
   const disconnectEmail = useDisconnectEmail();
+  const { signaturePayload, saveSignature, isSaving: isSavingSignature } = useEmailSignature();
 
   const [showConnectDialog, setShowConnectDialog] = useState(false);
   const [defaultAccountId, setDefaultAccountId] = useState<string>("");
-  const [signature, setSignature] = useState("");
   const [watermarkEnabled, setWatermarkEnabled] = useState(true);
-  const [isSavingSignature, setIsSavingSignature] = useState(false);
 
   const handleSetDefault = (id: string) => {
     setDefaultAccountId(id);
@@ -128,15 +128,14 @@ export function EmailCalendarSettings() {
 
       {/* Email Signature */}
       <EmailSignatureEditor
-        initialSignature={signature}
-        onSave={(html) => {
-          setIsSavingSignature(true);
-          setSignature(html);
-          // Simulate save — replace with actual API call
-          setTimeout(() => {
-            setIsSavingSignature(false);
+        initialSignature={signaturePayload || ""}
+        onSave={async (html) => {
+          try {
+            await saveSignature(html);
             toast.success("Assinatura gravada com sucesso");
-          }, 500);
+          } catch {
+            toast.error("Erro ao gravar assinatura");
+          }
         }}
         isSaving={isSavingSignature}
       />

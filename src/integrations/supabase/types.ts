@@ -40618,6 +40618,7 @@ export type Database = {
       workspace_settings: {
         Row: {
           created_at: string
+          email_signature_html: string | null
           id: string
           ip_restrictions_enabled: boolean
           updated_at: string
@@ -40625,6 +40626,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          email_signature_html?: string | null
           id?: string
           ip_restrictions_enabled?: boolean
           updated_at?: string
@@ -40632,6 +40634,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          email_signature_html?: string | null
           id?: string
           ip_restrictions_enabled?: boolean
           updated_at?: string

@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEmailConnections } from "@/hooks/useEmailConnection";
+import { useEmailSignature } from "@/hooks/useEmailSignature";
 import { useWorkspaceGHLConfig } from "@/hooks/useWorkspaceGHLConfig";
 import { useInstagramConnection } from "@/hooks/useInstagramConnection";
 import { toast } from "sonner";
@@ -45,6 +46,7 @@ function QuickComposeDialog({
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const { data: emailConnections } = useEmailConnections();
+  const { signatureHtml } = useEmailSignature();
   const [recipientEmail, setRecipientEmail] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [subject, setSubject] = useState("");
@@ -130,6 +132,11 @@ function QuickComposeDialog({
 
       if (convError) throw convError;
 
+      // Build email body with signature
+      const fullBody = signatureHtml
+        ? `${body.trim()}<br/><br/>--<br/>${signatureHtml}`
+        : body.trim();
+
       // Send email via edge function
       const { data, error } = await supabase.functions.invoke("email-send", {
         body: {
@@ -138,8 +145,8 @@ function QuickComposeDialog({
           conversationId: conversation.id,
           to: recipientEmail.trim(),
           subject: subject.trim(),
-          body: body.trim(),
-          isHtml: false,
+          body: fullBody,
+          isHtml: !!signatureHtml,
         },
       });
 
