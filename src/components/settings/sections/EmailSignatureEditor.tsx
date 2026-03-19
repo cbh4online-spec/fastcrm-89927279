@@ -259,7 +259,7 @@ export function EmailSignatureEditor({ initialSignature, onSave, isSaving }: Ema
               <TabsContent value="options" className="mt-0 space-y-4">
                 <ToggleOption label="Mostrar avatar" description="Foto de perfil na assinatura" checked={data.showAvatar} onChange={v => update('showAvatar', v)} />
                 <ToggleOption label="Mostrar logotipo" description="Logotipo da empresa" checked={data.showLogo} onChange={v => update('showLogo', v)} />
-                <ToggleOption label="Mostrar redes sociais" description="Links para LinkedIn, X, Instagram" checked={data.showSocials} onChange={v => update('showSocials', v)} />
+                <ToggleOption label="Mostrar redes sociais" description="Links para LinkedIn, X, Instagram, Facebook, YouTube, WhatsApp" checked={data.showSocials} onChange={v => update('showSocials', v)} />
               </TabsContent>
             </div>
           </Tabs>
