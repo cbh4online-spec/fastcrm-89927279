@@ -138,12 +138,25 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
 
   const deleteEvent = async (id: string): Promise<boolean> => {
     try {
+      // Fetch event first to get google_event_id before deleting
+      const { data: eventToDelete } = await supabase
+        .from('calendar_events')
+        .select('calendar_id, metadata')
+        .eq('id', id)
+        .maybeSingle();
+
       const { error: deleteError } = await supabase
         .from('calendar_events')
         .delete()
         .eq('id', id);
 
       if (deleteError) throw deleteError;
+
+      // Delete from Google Calendar if synced
+      const googleEventId = (eventToDelete?.metadata as any)?.google_event_id;
+      if (googleEventId && eventToDelete?.calendar_id) {
+        deleteRemoteEvent(eventToDelete.calendar_id, googleEventId);
+      }
 
       console.log(`[CALENDAR] Event deleted: ${id}`);
       emitKernelEvent({

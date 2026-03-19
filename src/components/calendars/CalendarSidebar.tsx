@@ -231,6 +231,11 @@ export function CalendarSidebar({
           </>
         )}
 
+        {/* Google Calendar sync for first active calendar */}
+        {realCalendars.length > 0 && (
+          <GoogleCalendarConnect calendarId={realCalendars[0].id} className="px-3" />
+        )}
+
         {/* Category color legend */}
         {virtualCalendarIds.includes('community-events') && (
           <>
