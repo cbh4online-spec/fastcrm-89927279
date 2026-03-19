@@ -15,6 +15,7 @@ import { cleanEmailContent } from "@/lib/cleanEmailPreview";
 
 interface EmailMessageBubbleProps {
   message: Message;
+  channelMetadata?: Record<string, unknown> | null;
 }
 
 // Fix UTF-8 encoding issues (mojibake) - common double-encoded patterns
