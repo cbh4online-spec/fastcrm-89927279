@@ -128,15 +128,14 @@ export function EmailCalendarSettings() {
 
       {/* Email Signature */}
       <EmailSignatureEditor
-        initialSignature={signature}
-        onSave={(html) => {
-          setIsSavingSignature(true);
-          setSignature(html);
-          // Simulate save — replace with actual API call
-          setTimeout(() => {
-            setIsSavingSignature(false);
+        initialSignature={signaturePayload || ""}
+        onSave={async (html) => {
+          try {
+            await saveSignature(html);
             toast.success("Assinatura gravada com sucesso");
-          }, 500);
+          } catch {
+            toast.error("Erro ao gravar assinatura");
+          }
         }}
         isSaving={isSavingSignature}
       />
