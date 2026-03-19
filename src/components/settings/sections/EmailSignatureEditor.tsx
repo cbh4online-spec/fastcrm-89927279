@@ -16,6 +16,9 @@ import {
   Linkedin,
   Twitter,
   Instagram,
+  Facebook,
+  Youtube,
+  MessageCircle,
   Palette,
   Eye,
   Settings2,
@@ -34,6 +37,9 @@ interface SignatureData {
   linkedin: string;
   twitter: string;
   instagram: string;
+  facebook: string;
+  youtube: string;
+  whatsapp: string;
   logoUrl: string;
   avatarUrl: string;
   primaryColor: string;
@@ -55,6 +61,9 @@ const defaultData: SignatureData = {
   linkedin: '',
   twitter: '',
   instagram: '',
+  facebook: '',
+  youtube: '',
+  whatsapp: '',
   logoUrl: '',
   avatarUrl: '',
   primaryColor: '#C28816',
@@ -170,6 +179,9 @@ export function EmailSignatureEditor({ initialSignature, onSave, isSaving }: Ema
                 <InputField icon={Linkedin} label="LinkedIn" value={data.linkedin} onChange={v => update('linkedin', v)} placeholder="linkedin.com/in/username" />
                 <InputField icon={Twitter} label="X (Twitter)" value={data.twitter} onChange={v => update('twitter', v)} placeholder="x.com/username" />
                 <InputField icon={Instagram} label="Instagram" value={data.instagram} onChange={v => update('instagram', v)} placeholder="instagram.com/username" />
+                <InputField icon={Facebook} label="Facebook" value={data.facebook} onChange={v => update('facebook', v)} placeholder="facebook.com/page" />
+                <InputField icon={Youtube} label="YouTube" value={data.youtube} onChange={v => update('youtube', v)} placeholder="youtube.com/@channel" />
+                <InputField icon={MessageCircle} label="WhatsApp" value={data.whatsapp} onChange={v => update('whatsapp', v)} placeholder="wa.me/351..." />
                 <Separator />
                 <InputField icon={User} label="URL do avatar" value={data.avatarUrl} onChange={v => update('avatarUrl', v)} placeholder="https://..." />
                 <InputField icon={Briefcase} label="URL do logotipo" value={data.logoUrl} onChange={v => update('logoUrl', v)} placeholder="https://..." />
@@ -247,7 +259,7 @@ export function EmailSignatureEditor({ initialSignature, onSave, isSaving }: Ema
               <TabsContent value="options" className="mt-0 space-y-4">
                 <ToggleOption label="Mostrar avatar" description="Foto de perfil na assinatura" checked={data.showAvatar} onChange={v => update('showAvatar', v)} />
                 <ToggleOption label="Mostrar logotipo" description="Logotipo da empresa" checked={data.showLogo} onChange={v => update('showLogo', v)} />
-                <ToggleOption label="Mostrar redes sociais" description="Links para LinkedIn, X, Instagram" checked={data.showSocials} onChange={v => update('showSocials', v)} />
+                <ToggleOption label="Mostrar redes sociais" description="Links para LinkedIn, X, Instagram, Facebook, YouTube, WhatsApp" checked={data.showSocials} onChange={v => update('showSocials', v)} />
               </TabsContent>
             </div>
           </Tabs>
@@ -333,7 +345,8 @@ function ToggleOption({
 function generateSignatureHtml(data: SignatureData): string {
   const {
     fullName, jobTitle, company, email, phone, website, address,
-    linkedin, twitter, instagram, logoUrl, avatarUrl,
+    linkedin, twitter, instagram, facebook, youtube, whatsapp,
+    logoUrl, avatarUrl,
     primaryColor, layout, showAvatar, showLogo, showSocials, fontFamily,
   } = data;
 
@@ -346,6 +359,9 @@ function generateSignatureHtml(data: SignatureData): string {
     if (linkedin) socialLinks.push(`<a href="${ensureUrl(linkedin)}" style="color:${primaryColor};text-decoration:none;font-size:12px;" target="_blank">LinkedIn</a>`);
     if (twitter) socialLinks.push(`<a href="${ensureUrl(twitter)}" style="color:${primaryColor};text-decoration:none;font-size:12px;" target="_blank">X</a>`);
     if (instagram) socialLinks.push(`<a href="${ensureUrl(instagram)}" style="color:${primaryColor};text-decoration:none;font-size:12px;" target="_blank">Instagram</a>`);
+    if (facebook) socialLinks.push(`<a href="${ensureUrl(facebook)}" style="color:${primaryColor};text-decoration:none;font-size:12px;" target="_blank">Facebook</a>`);
+    if (youtube) socialLinks.push(`<a href="${ensureUrl(youtube)}" style="color:${primaryColor};text-decoration:none;font-size:12px;" target="_blank">YouTube</a>`);
+    if (whatsapp) socialLinks.push(`<a href="${ensureUrl(whatsapp)}" style="color:${primaryColor};text-decoration:none;font-size:12px;" target="_blank">WhatsApp</a>`);
   }
 
   const avatarHtml = showAvatar && avatarUrl
