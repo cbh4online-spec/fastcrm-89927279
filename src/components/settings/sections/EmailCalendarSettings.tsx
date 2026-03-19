@@ -127,18 +127,19 @@ export function EmailCalendarSettings() {
       <Separator />
 
       {/* Email Signature */}
-      <div className="space-y-3">
-        <div>
-          <Label className="text-base font-semibold">{t("emailCalendar_signature")}</Label>
-          <p className="text-sm text-muted-foreground mt-0.5">{t("emailCalendar_signatureDesc")}</p>
-        </div>
-        <Textarea
-          value={signature}
-          onChange={(e) => setSignature(e.target.value)}
-          placeholder={t("emailCalendar_signature")}
-          className="min-h-[100px]"
-        />
-      </div>
+      <EmailSignatureEditor
+        initialSignature={signature}
+        onSave={(html) => {
+          setIsSavingSignature(true);
+          setSignature(html);
+          // Simulate save — replace with actual API call
+          setTimeout(() => {
+            setIsSavingSignature(false);
+            toast.success("Assinatura gravada com sucesso");
+          }, 500);
+        }}
+        isSaving={isSavingSignature}
+      />
 
       <Separator />
 
