@@ -95,6 +95,8 @@ export function useCalendarEvents(calendarIds: string[] = [], dateRange?: { star
       });
 
       toast.success('Evento criado');
+      // Push to Google Calendar if synced
+      pushEvent(event.id, data.calendar_id);
       await fetchEvents();
       return event as unknown as CalendarEvent;
     } catch (err) {
