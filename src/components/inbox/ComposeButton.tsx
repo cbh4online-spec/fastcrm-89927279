@@ -450,6 +450,11 @@ function QuickComposeDialog({
   );
 }
 
+interface ComposeButtonProps {
+  className?: string;
+  variant?: "default" | "floating";
+}
+
 export function ComposeButton({ className, variant = "default" }: ComposeButtonProps) {
   const [showEmailCompose, setShowEmailCompose] = useState(false);
   const [showGHLDialog, setShowGHLDialog] = useState(false);
