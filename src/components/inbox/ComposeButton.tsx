@@ -114,10 +114,29 @@ function QuickComposeDialog({
         }
       }
 
+      // Create conversation first
+      const { data: conversation, error: convError } = await supabase
+        .from("conversations")
+        .insert({
+          workspace_id: currentWorkspace?.id,
+          channel: "email",
+          status: "open",
+          subject: subject.trim(),
+          entity_id: entityId,
+          entity_type: entityType,
+          last_message_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
+
+      if (convError) throw convError;
+
       // Send email via edge function
       const { data, error } = await supabase.functions.invoke("email-send", {
         body: {
           connectionId: activeConnection.id,
+          workspaceId: currentWorkspace?.id,
+          conversationId: conversation.id,
           to: recipientEmail.trim(),
           subject: subject.trim(),
           body: body.trim(),
