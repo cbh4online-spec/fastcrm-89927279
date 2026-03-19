@@ -21143,8 +21143,12 @@ export type Database = {
           default_prospecting_tone: string
           email_validation_enabled: boolean
           google_enabled: boolean
+          google_places_enabled: boolean
+          icp_score_enabled: boolean
           id: string
+          instagram_enrich_enabled: boolean
           linkedin_enabled: boolean
+          nif_lookup_enabled: boolean
           service_offer: string | null
           service_pain_points: string | null
           updated_at: string
@@ -21157,8 +21161,12 @@ export type Database = {
           default_prospecting_tone?: string
           email_validation_enabled?: boolean
           google_enabled?: boolean
+          google_places_enabled?: boolean
+          icp_score_enabled?: boolean
           id?: string
+          instagram_enrich_enabled?: boolean
           linkedin_enabled?: boolean
+          nif_lookup_enabled?: boolean
           service_offer?: string | null
           service_pain_points?: string | null
           updated_at?: string
@@ -21171,8 +21179,12 @@ export type Database = {
           default_prospecting_tone?: string
           email_validation_enabled?: boolean
           google_enabled?: boolean
+          google_places_enabled?: boolean
+          icp_score_enabled?: boolean
           id?: string
+          instagram_enrich_enabled?: boolean
           linkedin_enabled?: boolean
+          nif_lookup_enabled?: boolean
           service_offer?: string | null
           service_pain_points?: string | null
           updated_at?: string

@@ -585,6 +585,63 @@ export default function LeadEnricher() {
                         disabled={updateSettings.isPending}
                       />
                     </div>
+
+                    {/* Expanded enrichment sources */}
+                    <div className="pt-4 pb-2">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Fontes Avançadas</h3>
+                    </div>
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h4 className="font-medium">Google Places</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Obter morada, rating e dados de localização via Google
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings.google_places_enabled}
+                        onCheckedChange={(v) => handleSettingChange("google_places_enabled", v)}
+                        disabled={updateSettings.isPending}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h4 className="font-medium">Consulta NIF (Portugal)</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Extrair dados fiscais: CAE, capital social, natureza jurídica
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings.nif_lookup_enabled}
+                        onCheckedChange={(v) => handleSettingChange("nif_lookup_enabled", v)}
+                        disabled={updateSettings.isPending}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h4 className="font-medium">Instagram Enrich</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Extrair seguidores, bio e métricas do perfil Instagram
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings.instagram_enrich_enabled}
+                        onCheckedChange={(v) => handleSettingChange("instagram_enrich_enabled", v)}
+                        disabled={updateSettings.isPending}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h4 className="font-medium">ICP Fit Score</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Calcular automaticamente a adequação do lead ao perfil ideal de cliente
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings.icp_score_enabled}
+                        onCheckedChange={(v) => handleSettingChange("icp_score_enabled", v)}
+                        disabled={updateSettings.isPending}
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
