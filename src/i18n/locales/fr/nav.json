@@ -56,6 +56,7 @@
   "pipeline": "Pipeline",
   "lifecycle": "Cycle de Vie",
   "fastmatch": "FastMatch",
+  "scheduling": "Agenda",
   "groupCommunication": "Communication",
   "whatsapp": "WhatsApp",
   "email": "Email",
