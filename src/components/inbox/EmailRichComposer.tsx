@@ -124,6 +124,7 @@ export function EmailRichComposer({
   const { data: connection } = useActiveEmailConnection();
   const sendEmail = useSendEmail();
   const translateEmail = useTranslateEmail();
+  const { signatureHtml } = useEmailSignature();
 
   // Determine sender display name
   const senderDisplayName = connection?.display_name || connection?.email_address?.split("@")[0] || "Remetente";
