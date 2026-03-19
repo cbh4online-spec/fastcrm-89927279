@@ -124,7 +124,6 @@ function QuickComposeDialog({
           last_message_at: new Date().toISOString(),
           ...(entityType === 'lead' && entityId ? { lead_id: entityId } : {}),
           ...(entityType === 'contact' && entityId ? { contact_id: entityId } : {}),
-          ...(entityType === 'company' && entityId ? { company_id: entityId } : {}),
         })
         .select("id")
         .single();
