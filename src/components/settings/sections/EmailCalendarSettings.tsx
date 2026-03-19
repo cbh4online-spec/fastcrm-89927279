@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -16,6 +16,7 @@ import { Mail, ShieldCheck } from "lucide-react";
 import { useEmailConnections, useDisconnectEmail } from "@/hooks/useEmailConnection";
 import { EmailConnectDialog } from "@/components/inbox/EmailConnectDialog";
 import { EmailAccountRow } from "./EmailAccountRow";
+import { EmailSignatureEditor } from "./EmailSignatureEditor";
 
 export function EmailCalendarSettings() {
   const { t } = useTranslation("settings");
@@ -26,6 +27,7 @@ export function EmailCalendarSettings() {
   const [defaultAccountId, setDefaultAccountId] = useState<string>("");
   const [signature, setSignature] = useState("");
   const [watermarkEnabled, setWatermarkEnabled] = useState(true);
+  const [isSavingSignature, setIsSavingSignature] = useState(false);
 
   const handleSetDefault = (id: string) => {
     setDefaultAccountId(id);
@@ -125,18 +127,19 @@ export function EmailCalendarSettings() {
       <Separator />
 
       {/* Email Signature */}
-      <div className="space-y-3">
-        <div>
-          <Label className="text-base font-semibold">{t("emailCalendar_signature")}</Label>
-          <p className="text-sm text-muted-foreground mt-0.5">{t("emailCalendar_signatureDesc")}</p>
-        </div>
-        <Textarea
-          value={signature}
-          onChange={(e) => setSignature(e.target.value)}
-          placeholder={t("emailCalendar_signature")}
-          className="min-h-[100px]"
-        />
-      </div>
+      <EmailSignatureEditor
+        initialSignature={signature}
+        onSave={(html) => {
+          setIsSavingSignature(true);
+          setSignature(html);
+          // Simulate save — replace with actual API call
+          setTimeout(() => {
+            setIsSavingSignature(false);
+            toast.success("Assinatura gravada com sucesso");
+          }, 500);
+        }}
+        isSaving={isSavingSignature}
+      />
 
       <Separator />
 
