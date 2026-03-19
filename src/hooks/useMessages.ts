@@ -248,6 +248,34 @@ export function useSendMessage() {
         const inReplyTo = lastInbound?.email_message_id || undefined;
         const references = lastInbound?.email_references as string[] | undefined;
 
+        // Load email signature from workspace_settings
+        let finalBody = content;
+        let finalIsHtml = false;
+        try {
+          const { data: wsSettings } = await workspaceClient
+            .from("workspace_settings")
+            .select("email_signature_html")
+            .eq("workspace_id", currentWorkspace.id)
+            .maybeSingle();
+          
+          if ((wsSettings as any)?.email_signature_html) {
+            const raw = (wsSettings as any).email_signature_html as string;
+            let sigHtml: string | null = null;
+            try {
+              const parsed = JSON.parse(raw);
+              sigHtml = parsed.html || null;
+            } catch {
+              sigHtml = raw;
+            }
+            if (sigHtml) {
+              finalBody = `${content}<br/><br/>--<br/>${sigHtml}`;
+              finalIsHtml = true;
+            }
+          }
+        } catch {
+          // Signature load failed, send without it
+        }
+
         // Send email via edge function
         const { data, error } = await mainClient.functions.invoke("email-send", {
           body: {
@@ -256,8 +284,8 @@ export function useSendMessage() {
             conversationId,
             to: recipientEmail,
             subject: subject.startsWith("Re:") ? subject : `Re: ${subject}`,
-            body: content,
-            isHtml: false,
+            body: finalBody,
+            isHtml: finalIsHtml,
             inReplyTo,
             references,
           },

@@ -224,7 +224,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-foreground text-sm truncate">
-                {conversation.lead?.name || conversation.external_thread_id || "Desconhecido"}
+                {conversation.lead?.name || (conversation as any).contact?.name || ((conversation as any).channel_metadata as any)?.from_name || ((conversation as any).channel_metadata as any)?.from_email || conversation.external_thread_id || "Desconhecido"}
               </h3>
               <Badge
                 variant="outline"
@@ -342,7 +342,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                           <div className="flex-1 h-px bg-border" />
                         </div>
                       )}
-                      <EmailMessageBubble message={message} />
+                      <EmailMessageBubble message={message} channelMetadata={(conversation as any).channel_metadata as Record<string, unknown> | null} />
                     </div>
                   );
                 }
@@ -371,7 +371,7 @@ export function ConversationDetail({ conversationId }: ConversationDetailProps) 
                       }}
                       senderName={
                         message.direction === "inbound"
-                          ? conversation.lead?.name || "Desconhecido"
+                          ? conversation.lead?.name || ((conversation as any).channel_metadata as any)?.from_name || ((conversation as any).channel_metadata as any)?.from_email || "Desconhecido"
                           : undefined
                       }
                       companyName="Você"

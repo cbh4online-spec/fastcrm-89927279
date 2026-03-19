@@ -56,6 +56,7 @@ import { useActiveEmailConnection, useSendEmail, EmailConnection } from "@/hooks
 import { useTranslateEmail, LANGUAGE_OPTIONS, TranslationLanguage } from "@/hooks/useEmailTranslation";
 import { InboxTemplatePanel } from "./InboxTemplatePanel";
 import { VariableContext } from "@/lib/templateVariables";
+import { useEmailSignature } from "@/hooks/useEmailSignature";
 import { Message } from "@/hooks/useMessages";
 
 interface EmailRichComposerProps {
@@ -123,6 +124,7 @@ export function EmailRichComposer({
   const { data: connection } = useActiveEmailConnection();
   const sendEmail = useSendEmail();
   const translateEmail = useTranslateEmail();
+  const { signatureHtml } = useEmailSignature();
 
   // Determine sender display name
   const senderDisplayName = connection?.display_name || connection?.email_address?.split("@")[0] || "Remetente";
@@ -145,13 +147,21 @@ export function EmailRichComposer({
     }
 
     try {
+      // Append email signature if available
+      let finalBody = body.trim();
+      let finalIsHtml = isHtml;
+      if (signatureHtml) {
+        finalBody = `${finalBody}<br/><br/>--<br/>${signatureHtml}`;
+        finalIsHtml = true;
+      }
+
       await sendEmail.mutateAsync({
         connectionId: connection.id,
         conversationId,
         to,
         subject: subject.trim(),
-        body: body.trim(),
-        isHtml,
+        body: finalBody,
+        isHtml: finalIsHtml,
         inReplyTo,
         references,
       });
@@ -443,13 +453,21 @@ export function EmailRichComposer({
           )}
         </div>
 
-        {/* HTML indicator */}
-        {isHtml && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant="outline" className="text-[10px]">HTML</Badge>
-            <span>O email será enviado com formatação HTML</span>
-          </div>
-        )}
+        {/* HTML / Signature indicator */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+          {isHtml && (
+            <>
+              <Badge variant="outline" className="text-[10px]">HTML</Badge>
+              <span>O email será enviado com formatação HTML</span>
+            </>
+          )}
+          {signatureHtml && (
+            <>
+              <Badge variant="outline" className="text-[10px] border-green-500/50 text-green-600">Assinatura</Badge>
+              <span>A assinatura será incluída automaticamente</span>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Footer */}
