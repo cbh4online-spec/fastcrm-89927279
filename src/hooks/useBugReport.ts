@@ -69,7 +69,7 @@ export function useBugReport() {
     if (result.success) {
       setScreenshotDataUrl(result.dataUrl);
       setScreenshotBlob(result.blob);
-    } else {
+    } else if (!result.success) {
       setCaptureError(result.error);
     }
     setIsCapturing(false);
