@@ -185,6 +185,8 @@ export function VerticalTemplateBuilder({ templateId, onBack }: Props) {
       description: form.seo.description || "",
       canonical: form.seo.canonical || "",
     },
+    testimonials: form.testimonials || [],
+    video_section: form.video_section || undefined,
   }), [form]);
 
   if (preview) {
