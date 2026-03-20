@@ -502,20 +502,85 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
     setSkuList(prev => prev.map((s, idx) => idx === index ? { ...s, editedPrice: value } : s));
   };
 
+  // AI price enrichment: suggest selling prices based on cost price
+  const [isEnrichingPrices, setIsEnrichingPrices] = useState(false);
+  const enrichPricesWithAI = async () => {
+    const itemsToEnrich = skuList.filter(
+      s => s.selected && s.data && s.data.costPrice && !s.data.suggestedPrice && !s.editedPrice
+    );
+    if (itemsToEnrich.length === 0) {
+      toast.info("Todos os produtos selecionados já têm preço de venda");
+      return;
+    }
+    setIsEnrichingPrices(true);
+    toast.info(`A enriquecer preços de ${itemsToEnrich.length} produtos...`);
+
+    for (let batchStart = 0; batchStart < itemsToEnrich.length; batchStart += BATCH_SIZE) {
+      const batch = itemsToEnrich.slice(batchStart, batchStart + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(async (item) => {
+          const { data, error } = await supabase.functions.invoke("ai-product-assistant", {
+            body: {
+              mode: "price-analysis",
+              productName: item.data?.name || item.sku,
+              category: item.data?.category,
+              productType: "physical",
+            },
+          });
+          if (error) throw error;
+          return { sku: item.sku, suggestedPrice: data?.data?.suggestedPrice };
+        })
+      );
+
+      setSkuList(prev => prev.map(s => {
+        const result = results.find((_, i) => batch[i]?.sku === s.sku);
+        if (!result || result.status !== "fulfilled" || !result.value?.suggestedPrice) return s;
+        return {
+          ...s,
+          data: { ...s.data, suggestedPrice: result.value.suggestedPrice },
+        };
+      }));
+
+      if (batchStart + BATCH_SIZE < itemsToEnrich.length) {
+        await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
+      }
+    }
+
+    setIsEnrichingPrices(false);
+    toast.success("Preços sugeridos pela IA aplicados");
+  };
+
   const createSelectedProducts = async () => {
     const selected = skuList.filter(s => s.selected && (s.status === "success" || s.data));
     if (selected.length === 0) { toast.error("Nenhum produto seleccionado"); return; }
     setIsCreating(true);
 
     const items = selected.map(item => {
-      const finalName = item.editedName || item.data?.commercialName || item.data?.name || item.sku;
-      const finalPrice = item.editedPrice ? parseFloat(item.editedPrice) : (item.data?.suggestedPrice || 0);
+      const d = item.data;
+      const finalName = item.editedName || d?.commercialName || d?.name || item.sku;
+      const finalPrice = item.editedPrice ? parseFloat(item.editedPrice) : (d?.suggestedPrice || d?.recommendedPrice || 0);
+
+      // Build specifications from extra data fields
+      const specs: Record<string, string> = {};
+      if (d?.specifications) Object.assign(specs, d.specifications);
+      if (d?.weight) specs.weight = d.weight;
+      if (d?.dimensions) specs.dimensions = d.dimensions;
+      if (d?.color) specs.color = d.color;
+      if (d?.material) specs.material = d.material;
+      if (d?.warranty) specs.warranty = d.warranty;
+      if (d?.model) specs.model = d.model;
+
       return {
         name: finalName,
         sku: item.sku,
-        short_description: item.data?.commercialDescription || item.data?.description,
-        category: item.data?.category,
+        short_description: d?.shortDescription || d?.commercialDescription || undefined,
+        commercial_description: d?.description || undefined,
+        category: d?.category,
+        subcategory: d?.subcategory,
         base_price: finalPrice,
+        direct_cost: d?.costPrice || undefined,
+        barcode: d?.barcode || undefined,
+        specifications: Object.keys(specs).length > 0 ? specs : undefined,
         product_type: "physical" as const,
         status: "active" as const,
       };
