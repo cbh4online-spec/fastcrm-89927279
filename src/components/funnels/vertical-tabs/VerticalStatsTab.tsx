@@ -224,6 +224,7 @@ export function VerticalStatsTab({ templateSlug }: Props) {
               sources={sources}
               onAnalyzeAI={analyzeWithAI}
               aiLoading={aiLoading}
+              templateSlug={templateSlug}
             />
           </TabsContent>
 
