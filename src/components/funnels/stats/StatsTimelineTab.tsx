@@ -67,9 +67,23 @@ export function StatsTimelineTab({ timeline, templateSlug }: Props) {
         <span className="text-xs text-muted-foreground truncate flex-1">{evt.source}</span>
         <span className="text-xs text-muted-foreground shrink-0">{evt.location}</span>
         {evt.contactName && (
-          <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 gap-1">
+          <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 gap-1" onClick={(e) => { e.stopPropagation(); }}>
             <User className="h-3 w-3" />
             {evt.contactName}
+          </Button>
+        )}
+        {isConversion && templateSlug && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-[10px] px-2 gap-1 text-emerald-400 hover:text-emerald-300"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/dashboard/leads?source=${encodeURIComponent(`Landing Vertical: ${templateSlug}`)}`);
+            }}
+          >
+            <ExternalLink className="h-3 w-3" />
+            Ver Lead
           </Button>
         )}
       </div>
