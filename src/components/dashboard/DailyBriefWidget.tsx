@@ -45,8 +45,8 @@ export function DailyBriefWidget() {
           </div>
           <p className="text-sm font-medium text-foreground mb-1">{t("noBriefGenerated")}</p>
           <p className="text-xs text-muted-foreground mb-3 max-w-xs">{t("noBriefHint")}</p>
-          <Button size="sm" onClick={generateDailyBrief} disabled={isGenerating}>
-            {isGenerating ? <><RefreshCw className="h-3 w-3 mr-1.5 animate-spin" /> {t("generating")}</> : t("generateBrief")}
+          <Button size="sm" onClick={generateDailyBrief} disabled={isGenerating || !canAffordBrief}>
+            {isGenerating ? <><RefreshCw className="h-3 w-3 mr-1.5 animate-spin" /> {t("generating")}</> : `${t("generateBrief")} (${briefCost} créd.)`}
           </Button>
         </CardContent>
       </Card>

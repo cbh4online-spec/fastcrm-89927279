@@ -55,8 +55,8 @@ export default function DailyBriefPage() {
               <p className="text-sm text-muted-foreground mb-4 max-w-md">
                 Gere o seu primeiro Daily Revenue Brief para obter um resumo executivo das últimas 24h.
               </p>
-              <Button onClick={generateDailyBrief} disabled={isGenerating}>
-                {isGenerating ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" /> A gerar...</> : "Gerar Agora"}
+              <Button onClick={generateDailyBrief} disabled={isGenerating || !canAffordBrief}>
+                {isGenerating ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" /> A gerar...</> : `Gerar Agora (${briefCost} créd.)`}
               </Button>
             </CardContent>
           </Card>

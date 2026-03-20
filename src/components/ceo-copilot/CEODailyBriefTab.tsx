@@ -151,9 +151,9 @@ export function CEODailyBriefTab() {
 
       {/* Regenerate */}
       <div className="flex justify-end">
-        <Button variant="outline" onClick={generateDailyBrief} disabled={isGenerating} size="sm">
+        <Button variant="outline" onClick={generateDailyBrief} disabled={isGenerating || !canAffordBrief} size="sm">
           <RefreshCw className={cn("h-4 w-4 mr-2", isGenerating && "animate-spin")} />
-          Regenerar Brief
+          Regenerar Brief ({briefCost} créd.)
         </Button>
       </div>
     </div>

@@ -90,9 +90,9 @@ export function StrategicBriefCard({ delay = 0 }: { delay?: number }) {
             size="sm"
             className="text-xs"
             onClick={generateBrief}
-            disabled={isGenerating}
+            disabled={isGenerating || !canAffordBrief}
           >
-            {isGenerating ? "A gerar..." : "Gerar primeiro brief"}
+            {isGenerating ? "A gerar..." : `Gerar primeiro brief (${briefCost} créd.)`}
           </Button>
         </div>
       )}
