@@ -25,15 +25,15 @@ export function VerticalLandingTemplate({ config, templateId, workspaceId }: Pro
       <VerticalLandingTracker slug={config.slug} templateId={templateId} workspaceId={workspaceId} />
       <VerticalStickyHeader config={config} />
       <main>
-        <VerticalHero config={config} />
-        <VerticalProblems config={config} />
-        <VerticalSolution config={config} />
-        <VerticalTransformation config={config} />
-        <VerticalTestimonials config={config} />
-        <VerticalVideo config={config} />
-        <VerticalAuthority />
-        <VerticalROI config={config} />
-        <VerticalCTAForm config={config} />
+        <div data-section="hero"><VerticalHero config={config} /></div>
+        <div data-section="problems"><VerticalProblems config={config} /></div>
+        <div data-section="solution"><VerticalSolution config={config} /></div>
+        <div data-section="transformation"><VerticalTransformation config={config} /></div>
+        <div data-section="testimonials"><VerticalTestimonials config={config} /></div>
+        <div data-section="video"><VerticalVideo config={config} /></div>
+        <div data-section="authority"><VerticalAuthority /></div>
+        <div data-section="roi"><VerticalROI config={config} /></div>
+        <div data-section="cta-form"><VerticalCTAForm config={config} /></div>
       </main>
       <VerticalFooter config={config} />
       <VerticalFloatingCTA config={config} />
