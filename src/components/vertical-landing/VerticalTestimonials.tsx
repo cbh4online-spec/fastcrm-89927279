@@ -1,5 +1,13 @@
-import { Star } from "lucide-react";
+import { Star, Linkedin, Instagram, Facebook, Twitter, ExternalLink } from "lucide-react";
 import type { VerticalConfig } from "@/config/verticalConfigs";
+
+function getSocialIcon(url: string) {
+  if (url.includes("linkedin.com")) return <Linkedin className="h-3.5 w-3.5" />;
+  if (url.includes("instagram.com")) return <Instagram className="h-3.5 w-3.5" />;
+  if (url.includes("facebook.com")) return <Facebook className="h-3.5 w-3.5" />;
+  if (url.includes("twitter.com") || url.includes("x.com")) return <Twitter className="h-3.5 w-3.5" />;
+  return <ExternalLink className="h-3.5 w-3.5" />;
+}
 
 interface Props {
   config: VerticalConfig;
@@ -51,10 +59,21 @@ export function VerticalTestimonials({ config }: Props) {
                     </span>
                   </div>
                 )}
-                <div>
+                <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold">{t.name}</p>
                   {t.role && <p className="text-xs text-[hsl(215,20%,65%)]">{t.role}</p>}
                 </div>
+                {t.post_url && (
+                  <a
+                    href={t.post_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-8 h-8 rounded-full bg-[hsl(217,33%,12%)] flex items-center justify-center text-[hsl(215,20%,65%)] hover:text-[hsl(210,40%,98%)] hover:bg-[hsl(217,33%,17%)] transition-colors shrink-0"
+                    title="Ver post original"
+                  >
+                    {getSocialIcon(t.post_url)}
+                  </a>
+                )}
               </div>
             </div>
           ))}

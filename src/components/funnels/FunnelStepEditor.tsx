@@ -628,6 +628,10 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
                         </div>
                       </div>
                     </div>
+                    <div>
+                      <Label className="text-xs">Link do Post (opcional)</Label>
+                      <Input value={t.post_url || ""} onChange={(e) => updateTestimonial(index, { post_url: e.target.value })} placeholder="https://linkedin.com/posts/..." className="h-8 text-sm" />
+                    </div>
                   </div>
                 ))}
                 {testimonials.length === 0 && (
