@@ -562,7 +562,7 @@ export function VerticalTemplateBuilder({ templateId, onBack }: Props) {
                 <Label>URL do Vídeo</Label>
                 <Input
                   value={form.video_section?.url || ""}
-                  onChange={(e) => updateField("video_section", { url: "", ...(form.video_section || {}), url: e.target.value } as any)}
+                  onChange={(e) => updateField("video_section", { ...form.video_section, url: e.target.value } as any)}
                   placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..."
                 />
                 <p className="text-xs text-muted-foreground mt-1">Suporta YouTube, Vimeo ou URL direta (.mp4)</p>
@@ -571,7 +571,7 @@ export function VerticalTemplateBuilder({ templateId, onBack }: Props) {
                 <Label>Legenda / Título da secção</Label>
                 <Input
                   value={form.video_section?.caption || ""}
-                  onChange={(e) => updateField("video_section", { ...(form.video_section || {}), caption: e.target.value })}
+                  onChange={(e) => updateField("video_section", { ...form.video_section, caption: e.target.value } as any)}
                   placeholder="Veja como funciona o FastCRM"
                 />
               </div>
@@ -579,21 +579,21 @@ export function VerticalTemplateBuilder({ templateId, onBack }: Props) {
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={form.video_section?.autoplay || false}
-                    onCheckedChange={(v) => updateField("video_section", { ...(form.video_section || {}), autoplay: v })}
+                    onCheckedChange={(v) => updateField("video_section", { ...form.video_section, autoplay: v } as any)}
                   />
                   <Label className="text-sm">Autoplay</Label>
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={form.video_section?.loop || false}
-                    onCheckedChange={(v) => updateField("video_section", { ...(form.video_section || {}), loop: v })}
+                    onCheckedChange={(v) => updateField("video_section", { ...form.video_section, loop: v } as any)}
                   />
                   <Label className="text-sm">Loop</Label>
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={form.video_section?.muted ?? true}
-                    onCheckedChange={(v) => updateField("video_section", { ...(form.video_section || {}), muted: v })}
+                    onCheckedChange={(v) => updateField("video_section", { ...form.video_section, muted: v } as any)}
                   />
                   <Label className="text-sm">Mudo</Label>
                 </div>
