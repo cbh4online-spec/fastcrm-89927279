@@ -63,9 +63,25 @@ interface SKUResult {
     technicalName?: string;
     description?: string;
     commercialDescription?: string;
+    shortDescription?: string;
     category?: string;
+    subcategory?: string;
+    brand?: string;
     suggestedPrice?: number;
+    costPrice?: number;
+    recommendedPrice?: number;
+    barcode?: string;
+    weight?: string;
+    imageUrl?: string;
+    stock?: number;
+    model?: string;
+    specifications?: Record<string, string>;
     priceRange?: { min: number; max: number };
+    color?: string;
+    material?: string;
+    warranty?: string;
+    dimensions?: string;
+    relatedProducts?: string;
   };
   error?: string;
   selected?: boolean;
@@ -138,6 +154,60 @@ const AUTO_MAP_PATTERNS: [RegExp, string][] = [
 const BATCH_SIZE = 5;
 const BATCH_DELAY_MS = 500;
 
+/** RFC 4180–compliant CSV line parser that handles quoted fields containing delimiters */
+function parseCSVLine(line: string, delimiter: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (i + 1 < line.length && line[i + 1] === '"') {
+          current += '"';
+          i++; // skip escaped quote
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === delimiter) {
+        result.push(current.trim());
+        current = "";
+      } else {
+        current += ch;
+      }
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+/** Clean price string: remove currency symbols, spaces; convert comma decimal */
+function sanitizePrice(val: string): number | undefined {
+  if (!val) return undefined;
+  // Remove currency symbols, spaces, non-breaking spaces
+  let cleaned = val.replace(/[€$£\s\u00A0]/g, "").trim();
+  // If has both . and , — determine which is decimal separator
+  if (cleaned.includes(",") && cleaned.includes(".")) {
+    // e.g. "1.234,56" → European format
+    if (cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".")) {
+      cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+    } else {
+      // e.g. "1,234.56" → US format
+      cleaned = cleaned.replace(/,/g, "");
+    }
+  } else if (cleaned.includes(",")) {
+    cleaned = cleaned.replace(",", ".");
+  }
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? undefined : num;
+}
+
 const SYSTEM_COLUMNS = [
   { key: "__status", label: "Estado" },
   { key: "__ai_name", label: "Nome (IA)" },
@@ -162,6 +232,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
   // URL import state
   const [feedUrl, setFeedUrl] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isEnrichingPrices, setIsEnrichingPrices] = useState(false);
 
   // Mapping phase state
   const [allCsvHeaders, setAllCsvHeaders] = useState<string[]>([]);
@@ -256,10 +327,8 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
       if (lines.length === 0) return;
 
       const delimiter = detectDelimiter(lines[0]);
-      const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^["']|["']$/g, ""));
-      const rows = lines.slice(1).map(line =>
-        line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ""))
-      );
+      const headers = parseCSVLine(lines[0], delimiter).map(h => h.replace(/^["']|["']$/g, ""));
+      const rows = lines.slice(1).map(line => parseCSVLine(line, delimiter));
 
       toast.success(`${rows.length} linhas · ${headers.length} colunas detectadas`);
       goToMapping(headers, rows, rows.length);
@@ -273,13 +342,11 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
     if (lines.length === 0) { toast.error("Nenhum SKU válido encontrado"); return; }
 
     const delimiter = detectDelimiter(lines[0]);
-    const firstCols = lines[0].split(delimiter);
+    const firstCols = parseCSVLine(lines[0], delimiter);
 
     if (firstCols.length > 1) {
-      const headers = firstCols.map(h => h.trim().replace(/^["']|["']$/g, ""));
-      const rows = lines.slice(1).map(line =>
-        line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ""))
-      );
+      const headers = firstCols.map(h => h.replace(/^["']|["']$/g, ""));
+      const rows = lines.slice(1).map(line => parseCSVLine(line, delimiter));
       if (rows.length > 0) {
         toast.success(`${rows.length} linhas · ${headers.length} colunas`);
         goToMapping(headers, rows, rows.length);
@@ -339,10 +406,29 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
           if (field === "ignore" || field === "extra" || !columnIncluded[header]) continue;
           const idx = allCsvHeaders.indexOf(header);
           const val = cells[idx] || "";
-          if (field === "name") itemData.name = val;
-          if (field === "description") itemData.description = val;
-          if (field === "price") itemData.suggestedPrice = parseFloat(val.replace(",", ".")) || undefined;
-          if (field === "category") itemData.category = val;
+          if (!val) continue;
+          switch (field) {
+            case "name": itemData.name = val; break;
+            case "description": itemData.description = val; break;
+            case "short_description": itemData.shortDescription = val; break;
+            case "price": itemData.suggestedPrice = sanitizePrice(val); break;
+            case "cost_price": itemData.costPrice = sanitizePrice(val); break;
+            case "recommended_price": itemData.recommendedPrice = sanitizePrice(val); break;
+            case "category": itemData.category = val; break;
+            case "subcategory": itemData.subcategory = val; break;
+            case "brand": itemData.brand = val; break;
+            case "barcode": itemData.barcode = val; break;
+            case "stock": itemData.stock = parseInt(val) || undefined; break;
+            case "weight": itemData.weight = val; break;
+            case "image_url": itemData.imageUrl = val; break;
+            case "model": itemData.model = val; break;
+            case "specifications": itemData.specifications = { specs: val }; break;
+            case "related_products": itemData.relatedProducts = val; break;
+            case "dimensions": itemData.dimensions = val; break;
+            case "color": itemData.color = val; break;
+            case "material": itemData.material = val; break;
+            case "warranty": itemData.warranty = val; break;
+          }
         }
       }
 
@@ -417,20 +503,84 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
     setSkuList(prev => prev.map((s, idx) => idx === index ? { ...s, editedPrice: value } : s));
   };
 
+  // AI price enrichment: suggest selling prices based on cost price
+  const enrichPricesWithAI = async () => {
+    const itemsToEnrich = skuList.filter(
+      s => s.selected && s.data && s.data.costPrice && !s.data.suggestedPrice && !s.editedPrice
+    );
+    if (itemsToEnrich.length === 0) {
+      toast.info("Todos os produtos selecionados já têm preço de venda");
+      return;
+    }
+    setIsEnrichingPrices(true);
+    toast.info(`A enriquecer preços de ${itemsToEnrich.length} produtos...`);
+
+    for (let batchStart = 0; batchStart < itemsToEnrich.length; batchStart += BATCH_SIZE) {
+      const batch = itemsToEnrich.slice(batchStart, batchStart + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(async (item) => {
+          const { data, error } = await supabase.functions.invoke("ai-product-assistant", {
+            body: {
+              mode: "price-analysis",
+              productName: item.data?.name || item.sku,
+              category: item.data?.category,
+              productType: "physical",
+            },
+          });
+          if (error) throw error;
+          return { sku: item.sku, suggestedPrice: data?.data?.suggestedPrice };
+        })
+      );
+
+      setSkuList(prev => prev.map(s => {
+        const result = results.find((_, i) => batch[i]?.sku === s.sku);
+        if (!result || result.status !== "fulfilled" || !result.value?.suggestedPrice) return s;
+        return {
+          ...s,
+          data: { ...s.data, suggestedPrice: result.value.suggestedPrice },
+        };
+      }));
+
+      if (batchStart + BATCH_SIZE < itemsToEnrich.length) {
+        await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
+      }
+    }
+
+    setIsEnrichingPrices(false);
+    toast.success("Preços sugeridos pela IA aplicados");
+  };
+
   const createSelectedProducts = async () => {
     const selected = skuList.filter(s => s.selected && (s.status === "success" || s.data));
     if (selected.length === 0) { toast.error("Nenhum produto seleccionado"); return; }
     setIsCreating(true);
 
     const items = selected.map(item => {
-      const finalName = item.editedName || item.data?.commercialName || item.data?.name || item.sku;
-      const finalPrice = item.editedPrice ? parseFloat(item.editedPrice) : (item.data?.suggestedPrice || 0);
+      const d = item.data;
+      const finalName = item.editedName || d?.commercialName || d?.name || item.sku;
+      const finalPrice = item.editedPrice ? parseFloat(item.editedPrice) : (d?.suggestedPrice || d?.recommendedPrice || 0);
+
+      // Build specifications from extra data fields
+      const specs: Record<string, string> = {};
+      if (d?.specifications) Object.assign(specs, d.specifications);
+      if (d?.weight) specs.weight = d.weight;
+      if (d?.dimensions) specs.dimensions = d.dimensions;
+      if (d?.color) specs.color = d.color;
+      if (d?.material) specs.material = d.material;
+      if (d?.warranty) specs.warranty = d.warranty;
+      if (d?.model) specs.model = d.model;
+
       return {
         name: finalName,
         sku: item.sku,
-        short_description: item.data?.commercialDescription || item.data?.description,
-        category: item.data?.category,
+        short_description: d?.shortDescription || d?.commercialDescription || undefined,
+        commercial_description: d?.description || undefined,
+        category: d?.category,
+        subcategory: d?.subcategory,
         base_price: finalPrice,
+        direct_cost: d?.costPrice || undefined,
+        barcode: d?.barcode || undefined,
+        specifications: Object.keys(specs).length > 0 ? specs : undefined,
         product_type: "physical" as const,
         status: "active" as const,
       };
@@ -989,7 +1139,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
           )}
           {(phase === "processing" || phase === "results") && (
             <>
-              <Button variant="outline" onClick={resetDialog} disabled={isProcessing || isCreating}>Limpar</Button>
+              <Button variant="outline" onClick={resetDialog} disabled={isProcessing || isCreating || isEnrichingPrices}>Limpar</Button>
               {phase === "processing" && !isProcessing && progress < 100 && (
                 <Button onClick={processSkus} className="flex-1">
                   <Sparkles className="h-4 w-4 mr-2" />Iniciar Pesquisa IA
@@ -1001,12 +1151,25 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
                 </Button>
               )}
               {(phase === "results" || (phase === "processing" && progress === 100)) && (
-                <Button onClick={createSelectedProducts} disabled={isCreating || selectedCount === 0} className="flex-1">
-                  {isCreating
-                    ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />A criar...</>
-                    : <><Plus className="h-4 w-4 mr-2" />Criar {selectedCount} Produtos</>
-                  }
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={enrichPricesWithAI}
+                    disabled={isCreating || isEnrichingPrices || selectedCount === 0}
+                    className="gap-1.5"
+                  >
+                    {isEnrichingPrices
+                      ? <><Loader2 className="h-4 w-4 animate-spin" />Enriquecendo...</>
+                      : <><Sparkles className="h-4 w-4" />Sugerir Preços (IA)</>
+                    }
+                  </Button>
+                  <Button onClick={createSelectedProducts} disabled={isCreating || selectedCount === 0} className="flex-1">
+                    {isCreating
+                      ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />A criar...</>
+                      : <><Plus className="h-4 w-4 mr-2" />Criar {selectedCount} Produtos</>
+                    }
+                  </Button>
+                </>
               )}
             </>
           )}
