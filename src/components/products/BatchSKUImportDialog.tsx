@@ -22,6 +22,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Upload,
   FileSpreadsheet,
   Loader2,
@@ -31,6 +38,9 @@ import {
   Plus,
   ClipboardList,
   Sparkles,
+  Link,
+  ArrowRight,
+  Globe,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -63,7 +73,7 @@ interface SKUResult {
   editedPrice?: string;
 }
 
-type DialogPhase = "input" | "processing" | "results" | "summary";
+type DialogPhase = "input" | "mapping" | "processing" | "results" | "summary";
 
 interface CreationSummary {
   successCount: number;
@@ -73,10 +83,43 @@ interface CreationSummary {
   lastCreatedProductName?: string;
 }
 
+// System fields products can be mapped to
+const SYSTEM_FIELDS = [
+  { key: "ignore", label: "Ignorar" },
+  { key: "sku", label: "SKU / Referência" },
+  { key: "name", label: "Nome" },
+  { key: "description", label: "Descrição" },
+  { key: "price", label: "Preço" },
+  { key: "category", label: "Categoria" },
+  { key: "brand", label: "Marca" },
+  { key: "barcode", label: "Código de barras" },
+  { key: "stock", label: "Stock" },
+  { key: "weight", label: "Peso" },
+  { key: "image_url", label: "URL da Imagem" },
+  { key: "model", label: "Modelo" },
+  { key: "subcategory", label: "Subcategoria" },
+  { key: "extra", label: "Dados extra" },
+];
+
+// Auto-mapping patterns: regex → system field key
+const AUTO_MAP_PATTERNS: [RegExp, string][] = [
+  [/^(sku|ref|reference|referencia|referência|código|codigo|code|part.?number|codart)$/i, "sku"],
+  [/^(name|nome|product.?name|título|titulo|designação|designacao|description_short|nom)$/i, "name"],
+  [/^(desc|description|descrição|descricao|description_long|descripcion)$/i, "description"],
+  [/^(price|preço|preco|precio|pvp|cost|prix|tarifa)$/i, "price"],
+  [/^(category|categoria|cat|famille|familia)$/i, "category"],
+  [/^(subcategory|subcategoria|sub.?cat|sous.?famille)$/i, "subcategory"],
+  [/^(brand|marca|fabricante|manufacturer|marque)$/i, "brand"],
+  [/^(barcode|ean|upc|gtin|código.?barras|codebar)$/i, "barcode"],
+  [/^(stock|qty|quantity|quantidade|existencias|inventario)$/i, "stock"],
+  [/^(weight|peso|poids|kg)$/i, "weight"],
+  [/^(image|img|imagem|image_url|foto|photo|url_image|url_img)$/i, "image_url"],
+  [/^(model|modelo|modèle)$/i, "model"],
+];
+
 const BATCH_SIZE = 2;
 const BATCH_DELAY_MS = 1000;
 
-// System columns shown after AI processing
 const SYSTEM_COLUMNS = [
   { key: "__status", label: "Estado" },
   { key: "__ai_name", label: "Nome (IA)" },
@@ -91,15 +134,25 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
   const [manualInput, setManualInput] = useState("");
   const [phase, setPhase] = useState<DialogPhase>("input");
   const [summary, setSummary] = useState<CreationSummary | null>(null);
-  // CSV headers from file
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
-  // Which CSV columns are visible (by header name)
   const [visibleCsvCols, setVisibleCsvCols] = useState<Set<string>>(new Set());
-  // Which system columns are visible
   const [visibleSysCols, setVisibleSysCols] = useState<Set<string>>(
     new Set(SYSTEM_COLUMNS.map(c => c.key))
   );
   const [showColumnPicker, setShowColumnPicker] = useState(false);
+
+  // URL import state
+  const [feedUrl, setFeedUrl] = useState("");
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Mapping phase state
+  const [allCsvHeaders, setAllCsvHeaders] = useState<string[]>([]);
+  const [sampleRows, setSampleRows] = useState<string[][]>([]);
+  const [totalUrlRows, setTotalUrlRows] = useState(0);
+  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
+  const [columnIncluded, setColumnIncluded] = useState<Record<string, boolean>>({});
+  // Full rows data for direct creation
+  const [allRows, setAllRows] = useState<string[][]>([]);
 
   const createProduct = useCreateProduct();
   const { currentWorkspace } = useWorkspace();
@@ -117,6 +170,63 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
     return max > 0 ? best : ";";
   };
 
+  const autoMapHeaders = (headers: string[]) => {
+    const mapping: Record<string, string> = {};
+    const included: Record<string, boolean> = {};
+    const usedFields = new Set<string>();
+
+    for (const h of headers) {
+      let mapped = "ignore";
+      for (const [regex, field] of AUTO_MAP_PATTERNS) {
+        if (regex.test(h) && !usedFields.has(field)) {
+          mapped = field;
+          usedFields.add(field);
+          break;
+        }
+      }
+      mapping[h] = mapped;
+      included[h] = mapped !== "ignore";
+    }
+    return { mapping, included };
+  };
+
+  // Transition to mapping phase with headers + sample data
+  const goToMapping = (headers: string[], rows: string[][], totalRows: number) => {
+    setAllCsvHeaders(headers);
+    setSampleRows(rows.slice(0, 5));
+    setAllRows(rows);
+    setTotalUrlRows(totalRows);
+    const { mapping, included } = autoMapHeaders(headers);
+    setColumnMapping(mapping);
+    setColumnIncluded(included);
+    setPhase("mapping");
+  };
+
+  // Download CSV from URL via edge function
+  const handleUrlDownload = async () => {
+    if (!feedUrl.trim()) { toast.error("Introduza um URL"); return; }
+    setIsDownloading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("csv-url-fetch", {
+        body: { url: feedUrl.trim(), max_rows: 5000 },
+      });
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+
+      const headers: string[] = data.headers;
+      const rows: string[][] = data.rows;
+
+      if (headers.length === 0) { toast.error("CSV vazio ou sem colunas"); return; }
+
+      toast.success(`${data.total_rows} linhas · ${headers.length} colunas detectadas`);
+      goToMapping(headers, rows, data.total_rows);
+    } catch (err) {
+      toast.error(`Erro ao descarregar: ${err instanceof Error ? err.message : "Erro desconhecido"}`);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -128,36 +238,12 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
 
       const delimiter = detectDelimiter(lines[0]);
       const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^["']|["']$/g, ""));
-
-      // Find the SKU column (first column, or one named sku/SKU/ref/reference/código)
-      const skuColIdx = headers.findIndex(h =>
-        /^(sku|ref|reference|referencia|referência|código|codigo|code|part.?number)$/i.test(h)
+      const rows = lines.slice(1).map(line =>
+        line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ""))
       );
-      const skuIdx = skuColIdx >= 0 ? skuColIdx : 0;
 
-      // Parse all rows into objects
-      const dataRows = lines.slice(1);
-      const parsedItems: SKUResult[] = [];
-      const seenSkus = new Set<string>();
-
-      for (const line of dataRows) {
-        const cells = line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ""));
-        const sku = cells[skuIdx]?.trim();
-        if (!sku || sku.length < 3 || seenSkus.has(sku)) continue;
-        seenSkus.add(sku);
-
-        const rawRow: Record<string, string> = {};
-        headers.forEach((h, i) => { rawRow[h] = cells[i] || ""; });
-
-        parsedItems.push({ sku, status: "pending", selected: true, rawRow });
-      }
-
-      setCsvHeaders(headers);
-      // Show all CSV columns by default
-      setVisibleCsvCols(new Set(headers));
-      setSkuList(parsedItems);
-      setPhase("processing");
-      toast.success(`${parsedItems.length} SKUs carregados · ${headers.length} colunas detectadas`);
+      toast.success(`${rows.length} linhas · ${headers.length} colunas detectadas`);
+      goToMapping(headers, rows, rows.length);
     };
     reader.readAsText(file);
     e.target.value = "";
@@ -167,42 +253,22 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
     const lines = manualInput.split(/[\r\n]+/).filter(Boolean);
     if (lines.length === 0) { toast.error("Nenhum SKU válido encontrado"); return; }
 
-    // Check if it's multi-column (has delimiters)
     const delimiter = detectDelimiter(lines[0]);
     const firstCols = lines[0].split(delimiter);
 
     if (firstCols.length > 1) {
-      // Treat as CSV with headers
       const headers = firstCols.map(h => h.trim().replace(/^["']|["']$/g, ""));
-      const skuIdx = headers.findIndex(h =>
-        /^(sku|ref|reference|referencia|referência|código|codigo|code)$/i.test(h)
+      const rows = lines.slice(1).map(line =>
+        line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ""))
       );
-      const idx = skuIdx >= 0 ? skuIdx : 0;
-
-      const parsedItems: SKUResult[] = [];
-      const seenSkus = new Set<string>();
-
-      for (const line of lines.slice(1)) {
-        const cells = line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ""));
-        const sku = cells[idx]?.trim();
-        if (!sku || sku.length < 3 || seenSkus.has(sku)) continue;
-        seenSkus.add(sku);
-        const rawRow: Record<string, string> = {};
-        headers.forEach((h, i) => { rawRow[h] = cells[i] || ""; });
-        parsedItems.push({ sku, status: "pending", selected: true, rawRow });
-      }
-
-      if (parsedItems.length > 0) {
-        setCsvHeaders(headers);
-        setVisibleCsvCols(new Set(headers));
-        setSkuList(parsedItems);
-        setPhase("processing");
-        toast.success(`${parsedItems.length} SKUs carregados · ${headers.length} colunas`);
+      if (rows.length > 0) {
+        toast.success(`${rows.length} linhas · ${headers.length} colunas`);
+        goToMapping(headers, rows, rows.length);
         return;
       }
     }
 
-    // Simple list of SKUs
+    // Simple list of SKUs — skip mapping, go to processing
     const skus = lines
       .map(l => l.split(/[,;|\t]/)[0]?.trim())
       .filter(s => s && s.length >= 3);
@@ -213,6 +279,64 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
     setSkuList(unique.map(sku => ({ sku, status: "pending", selected: true })));
     setPhase("processing");
     toast.success(`${unique.length} SKUs carregados`);
+  };
+
+  // Confirm mapping → build SKUResult list from data
+  const confirmMapping = (useAi: boolean) => {
+    const skuCol = Object.entries(columnMapping).find(([, v]) => v === "sku")?.[0];
+    if (!skuCol) {
+      toast.error("Selecione uma coluna como SKU / Referência");
+      return;
+    }
+    const skuIdx = allCsvHeaders.indexOf(skuCol);
+
+    const includedHeaders = allCsvHeaders.filter(h => columnIncluded[h]);
+    setCsvHeaders(includedHeaders);
+    setVisibleCsvCols(new Set(includedHeaders));
+
+    const parsedItems: SKUResult[] = [];
+    const seenSkus = new Set<string>();
+
+    for (const cells of allRows) {
+      const sku = cells[skuIdx]?.trim();
+      if (!sku || sku.length < 2 || seenSkus.has(sku)) continue;
+      seenSkus.add(sku);
+
+      const rawRow: Record<string, string> = {};
+      allCsvHeaders.forEach((h, i) => {
+        if (columnIncluded[h]) rawRow[h] = cells[i] || "";
+      });
+
+      // If not using AI, pre-fill data from mapped columns
+      const itemData: SKUResult["data"] = {};
+      if (!useAi) {
+        for (const [header, field] of Object.entries(columnMapping)) {
+          if (field === "ignore" || field === "extra" || !columnIncluded[header]) continue;
+          const idx = allCsvHeaders.indexOf(header);
+          const val = cells[idx] || "";
+          if (field === "name") itemData.name = val;
+          if (field === "description") itemData.description = val;
+          if (field === "price") itemData.suggestedPrice = parseFloat(val.replace(",", ".")) || undefined;
+          if (field === "category") itemData.category = val;
+        }
+      }
+
+      parsedItems.push({
+        sku,
+        status: useAi ? "pending" : "success",
+        selected: true,
+        rawRow,
+        data: useAi ? undefined : (Object.keys(itemData).length > 0 ? itemData : undefined),
+      });
+    }
+
+    setSkuList(parsedItems);
+    if (useAi) {
+      setPhase("processing");
+    } else {
+      setPhase("results");
+    }
+    toast.success(`${parsedItems.length} produtos preparados`);
   };
 
   const processSkus = async () => {
@@ -259,7 +383,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
   const toggleSelection = (index: number) => {
     setSkuList(prev => prev.map((s, idx) => idx === index ? { ...s, selected: !s.selected } : s));
   };
-  const selectAll = () => { setSkuList(prev => prev.map(s => ({ ...s, selected: s.status === "success" }))); };
+  const selectAll = () => { setSkuList(prev => prev.map(s => ({ ...s, selected: s.status === "success" || s.status === "pending" ? true : s.selected }))); };
   const deselectAll = () => { setSkuList(prev => prev.map(s => ({ ...s, selected: false }))); };
   const updateEditedName = (index: number, value: string) => {
     setSkuList(prev => prev.map((s, idx) => idx === index ? { ...s, editedName: value } : s));
@@ -269,7 +393,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
   };
 
   const createSelectedProducts = async () => {
-    const selected = skuList.filter(s => s.selected && s.status === "success" && s.data);
+    const selected = skuList.filter(s => s.selected && (s.status === "success" || s.data));
     if (selected.length === 0) { toast.error("Nenhum produto seleccionado"); return; }
     setIsCreating(true);
     let successCount = 0, errorCount = 0;
@@ -292,9 +416,8 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
         failedSkus.push({ sku: item.sku, error: err instanceof Error ? err.message : "Erro desconhecido" });
       }
     }
-    const processingErrors = skuList.filter(s => s.status === "error").map(s => ({ sku: s.sku, error: s.error || "Erro na pesquisa" }));
     setIsCreating(false);
-    setSummary({ successCount, errorCount, failedSkus: [...failedSkus, ...processingErrors], lastCreatedProductId: lastProductId, lastCreatedProductName: lastProductName });
+    setSummary({ successCount, errorCount, failedSkus, lastCreatedProductId: lastProductId, lastCreatedProductName: lastProductName });
     setPhase("summary");
   };
 
@@ -318,7 +441,9 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
 
   const resetDialog = () => {
     setSkuList([]); setManualInput(""); setPhase("input"); setSummary(null);
-    setCsvHeaders([]); setVisibleCsvCols(new Set());
+    setCsvHeaders([]); setVisibleCsvCols(new Set()); setFeedUrl("");
+    setAllCsvHeaders([]); setSampleRows([]); setAllRows([]);
+    setColumnMapping({}); setColumnIncluded({});
   };
 
   const progress = skuList.length > 0
@@ -326,32 +451,31 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
     : 0;
   const successCount = skuList.filter(s => s.status === "success").length;
   const errorCount = skuList.filter(s => s.status === "error").length;
-  const selectedCount = skuList.filter(s => s.selected && s.status === "success").length;
-  const allSelected = skuList.length > 0 && skuList.filter(s => s.status === "success").every(s => s.selected);
+  const selectedCount = skuList.filter(s => s.selected && (s.status === "success" || s.data)).length;
+  const allSelected = skuList.length > 0 && skuList.filter(s => s.status === "success" || s.data).every(s => s.selected);
 
   const hasCsvData = csvHeaders.length > 0;
 
-  // Build ordered list of visible column keys
   const activeColumns: { key: string; label: string; type: "csv" | "system" }[] = [];
-  // CSV columns first
   for (const h of csvHeaders) {
     if (visibleCsvCols.has(h)) activeColumns.push({ key: h, label: h, type: "csv" });
   }
-  // Then system columns
   for (const sc of SYSTEM_COLUMNS) {
     if (visibleSysCols.has(sc.key)) activeColumns.push({ key: sc.key, label: sc.label, type: "system" });
   }
 
   const totalAvailableCols = csvHeaders.length + SYSTEM_COLUMNS.length;
 
+  // Count included & mapped columns in mapping phase
+  const includedCount = Object.values(columnIncluded).filter(Boolean).length;
+  const mappedCount = Object.entries(columnMapping).filter(([h, v]) => columnIncluded[h] && v !== "ignore" && v !== "extra").length;
+
   const renderCellValue = (item: SKUResult, col: { key: string; type: "csv" | "system" }, idx: number) => {
     if (col.type === "csv") {
       const val = item.rawRow?.[col.key] || "";
-      // Truncate HTML-like content
       const display = val.length > 120 ? val.slice(0, 120) + "…" : val;
       return <span className="text-xs whitespace-nowrap">{display || "—"}</span>;
     }
-    // System columns
     switch (col.key) {
       case "__status":
         if (item.status === "pending") return <Badge variant="outline" className="text-[10px] px-1.5 py-0">Pendente</Badge>;
@@ -393,40 +517,68 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
-            Importação em Lote de SKUs
+            Importação em Lote de Produtos
           </DialogTitle>
           <DialogDescription>
-            Carregue um CSV ou cole SKUs para pesquisar e criar produtos automaticamente com IA.
+            Importe produtos via URL, CSV ou SKUs. Mapeie colunas antes de criar.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 flex-1 overflow-hidden flex flex-col min-h-0">
           {/* Phase: Input */}
           {phase === "input" && (
-            <Tabs defaultValue="paste" className="w-full">
+            <Tabs defaultValue="url" className="w-full">
               <TabsList className="w-full">
-                <TabsTrigger value="paste" className="flex-1 gap-2">
-                  <ClipboardList className="h-4 w-4" />
-                  Colar SKUs
+                <TabsTrigger value="url" className="flex-1 gap-2">
+                  <Globe className="h-4 w-4" />
+                  Importar por URL
                 </TabsTrigger>
                 <TabsTrigger value="csv" className="flex-1 gap-2">
                   <Upload className="h-4 w-4" />
                   Carregar CSV
                 </TabsTrigger>
+                <TabsTrigger value="paste" className="flex-1 gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  Colar SKUs
+                </TabsTrigger>
               </TabsList>
-              <TabsContent value="paste" className="space-y-3 mt-3">
-                <Textarea
-                  placeholder={"Cole os SKUs aqui, um por linha:\n\nSF-IPD821WA-2PW\nHIK-DS-2CD2043G2-I\nDAH-IPC-HDW2431T-AS"}
-                  value={manualInput}
-                  onChange={(e) => setManualInput(e.target.value)}
-                  rows={8}
-                  className="font-mono text-sm"
-                />
-                <Button onClick={handleManualSubmit} disabled={!manualInput.trim()} className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Carregar SKUs
-                </Button>
+
+              <TabsContent value="url" className="space-y-3 mt-3">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">URL do catálogo CSV</label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={feedUrl}
+                      onChange={(e) => setFeedUrl(e.target.value)}
+                      placeholder="https://www.visiotechsecurity.com/?option=com_csvgeneration&..."
+                      className="flex-1 font-mono text-xs"
+                    />
+                    <Button onClick={handleUrlDownload} disabled={isDownloading || !feedUrl.trim()}>
+                      {isDownloading ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" />A descarregar...</>
+                      ) : (
+                        <><Download className="h-4 w-4 mr-2" />Descarregar e Analisar</>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    O sistema descarrega o CSV, detecta as colunas e permite mapear cada uma antes de importar.
+                  </p>
+                </div>
+                <div className="rounded-lg border border-dashed p-4 bg-muted/30">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Fornecedores pré-configurados:</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7 gap-1.5"
+                    onClick={() => setFeedUrl("https://www.visiotechsecurity.com/?option=com_csvgeneration&task=generate.generateCSV&token=b6f2863a59d0085252999a4d0fa5162e&username=VT4128HGN")}
+                  >
+                    <Link className="h-3 w-3" />
+                    Visiotech Security
+                  </Button>
+                </div>
               </TabsContent>
+
               <TabsContent value="csv" className="space-y-3 mt-3">
                 <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
                   <input type="file" accept=".csv,.txt,.tsv" onChange={handleFileUpload} className="hidden" id="csv-upload" />
@@ -441,13 +593,151 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
                   Descarregar Template CSV
                 </Button>
               </TabsContent>
+
+              <TabsContent value="paste" className="space-y-3 mt-3">
+                <Textarea
+                  placeholder={"Cole os SKUs aqui, um por linha:\n\nSF-IPD821WA-2PW\nHIK-DS-2CD2043G2-I\nDAH-IPC-HDW2431T-AS"}
+                  value={manualInput}
+                  onChange={(e) => setManualInput(e.target.value)}
+                  rows={8}
+                  className="font-mono text-sm"
+                />
+                <Button onClick={handleManualSubmit} disabled={!manualInput.trim()} className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Carregar SKUs
+                </Button>
+              </TabsContent>
             </Tabs>
+          )}
+
+          {/* Phase: Mapping — column-by-column confirmation */}
+          {phase === "mapping" && (
+            <div className="flex flex-col gap-3 flex-1 min-h-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold">Mapeamento de Colunas</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {allCsvHeaders.length} colunas detectadas · {totalUrlRows} linhas · {includedCount} incluídas · {mappedCount} mapeadas
+                  </p>
+                </div>
+                <div className="flex gap-1.5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7"
+                    onClick={() => {
+                      const all: Record<string, boolean> = {};
+                      allCsvHeaders.forEach(h => { all[h] = true; });
+                      setColumnIncluded(all);
+                    }}
+                  >
+                    Incluir todas
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7"
+                    onClick={() => {
+                      const only: Record<string, boolean> = {};
+                      allCsvHeaders.forEach(h => {
+                        only[h] = columnMapping[h] !== "ignore";
+                      });
+                      setColumnIncluded(only);
+                    }}
+                  >
+                    Só mapeadas
+                  </Button>
+                </div>
+              </div>
+
+              {/* Mapping table — spreadsheet-like */}
+              <div className="flex-1 overflow-auto border rounded-md min-h-0">
+                <Table>
+                  <TableHeader className="sticky top-0 z-10 bg-muted/90 backdrop-blur-sm">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-12 text-center px-2 text-[10px] sticky left-0 bg-muted/90 z-20">Incluir</TableHead>
+                      <TableHead className="min-w-[160px] text-xs px-2 sticky left-12 bg-muted/90 z-20">Coluna CSV</TableHead>
+                      <TableHead className="min-w-[180px] text-xs px-2">Mapear para</TableHead>
+                      {sampleRows.slice(0, 3).map((_, i) => (
+                        <TableHead key={i} className="text-xs px-2 min-w-[200px]">
+                          <span className="text-muted-foreground">Linha {i + 1}</span>
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allCsvHeaders.map((header) => {
+                      const isIncluded = columnIncluded[header] ?? false;
+                      const mappedTo = columnMapping[header] || "ignore";
+                      return (
+                        <TableRow
+                          key={header}
+                          className={`h-8 ${!isIncluded ? "opacity-40" : ""} ${mappedTo !== "ignore" && mappedTo !== "extra" && isIncluded ? "bg-primary/5" : ""}`}
+                        >
+                          <TableCell className="text-center px-2 sticky left-0 bg-background z-10">
+                            <Checkbox
+                              checked={isIncluded}
+                              onCheckedChange={() => {
+                                setColumnIncluded(prev => ({ ...prev, [header]: !prev[header] }));
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell className="px-2 sticky left-12 bg-background z-10">
+                            <span className="text-xs font-mono font-medium truncate block max-w-[150px]" title={header}>
+                              {header}
+                            </span>
+                          </TableCell>
+                          <TableCell className="px-2">
+                            <Select
+                              value={mappedTo}
+                              onValueChange={(val) => {
+                                setColumnMapping(prev => ({ ...prev, [header]: val }));
+                                if (val !== "ignore") {
+                                  setColumnIncluded(prev => ({ ...prev, [header]: true }));
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="h-7 text-xs min-w-[160px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {SYSTEM_FIELDS.map(f => (
+                                  <SelectItem key={f.key} value={f.key} className="text-xs">
+                                    {f.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          {sampleRows.slice(0, 3).map((row, ri) => {
+                            const colIdx = allCsvHeaders.indexOf(header);
+                            const val = row[colIdx] || "";
+                            const display = val.length > 80 ? val.slice(0, 80) + "…" : val;
+                            return (
+                              <TableCell key={ri} className="px-2">
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">{display || "—"}</span>
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mapping not valid warning */}
+              {!Object.values(columnMapping).includes("sku") && (
+                <div className="rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
+                  ⚠ Selecione pelo menos uma coluna como <strong>SKU / Referência</strong> para continuar.
+                </div>
+              )}
+            </div>
           )}
 
           {/* Phase: Processing & Results — Excel-like table */}
           {(phase === "processing" || phase === "results") && (
             <>
-              {/* Progress bar */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-sm">
                   <span>
@@ -468,7 +758,6 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
                 <Progress value={progress} className="h-1.5" />
               </div>
 
-              {/* Toolbar */}
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <span className="text-sm text-muted-foreground">
                   {selectedCount} seleccionados para criar
@@ -547,7 +836,6 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
                 </div>
               </div>
 
-              {/* Spreadsheet table */}
               <div className="flex-1 overflow-auto border rounded-md min-h-0">
                 <Table>
                   <TableHeader className="sticky top-0 z-10 bg-muted/90 backdrop-blur-sm">
@@ -579,7 +867,6 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
                           <Checkbox
                             checked={item.selected}
                             onCheckedChange={() => toggleSelection(idx)}
-                            disabled={item.status !== "success"}
                           />
                         </TableCell>
                         <TableCell className="text-center px-1 text-[10px] text-muted-foreground tabular-nums sticky left-9 bg-background z-10">
@@ -635,6 +922,30 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
         <div className="flex gap-2 pt-3 border-t">
           {phase === "input" && (
             <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">Cancelar</Button>
+          )}
+          {phase === "mapping" && (
+            <>
+              <Button variant="outline" onClick={resetDialog}>
+                <ArrowRight className="h-4 w-4 mr-2 rotate-180" />Voltar
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => confirmMapping(false)}
+                disabled={!Object.values(columnMapping).includes("sku")}
+                className="flex-1"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Criar directamente ({totalUrlRows} produtos)
+              </Button>
+              <Button
+                onClick={() => confirmMapping(true)}
+                disabled={!Object.values(columnMapping).includes("sku")}
+                className="flex-1"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Enriquecer com IA
+              </Button>
+            </>
           )}
           {(phase === "processing" || phase === "results") && (
             <>
