@@ -28,11 +28,11 @@ interface KnowledgeBaseHelpModalProps {
 }
 
 const TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  guide: { label: "Guia", color: "bg-blue-500/15 text-blue-500 border-blue-500/20" },
-  "how-to": { label: "Como fazer", color: "bg-emerald-500/15 text-emerald-500 border-emerald-500/20" },
-  reference: { label: "Referência", color: "bg-purple-500/15 text-purple-500 border-purple-500/20" },
-  faq: { label: "FAQ", color: "bg-amber-500/15 text-amber-500 border-amber-500/20" },
-  video: { label: "Vídeo", color: "bg-red-500/15 text-red-500 border-red-500/20" },
+  guide: { label: "Guia", color: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" },
+  "how-to": { label: "Como fazer", color: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800" },
+  reference: { label: "Referência", color: "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700" },
+  faq: { label: "FAQ", color: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800" },
+  video: { label: "Vídeo", color: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800" },
 };
 
 export function KnowledgeBaseHelpModal({ open, onOpenChange }: KnowledgeBaseHelpModalProps) {
