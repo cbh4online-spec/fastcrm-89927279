@@ -37781,6 +37781,144 @@ export type Database = {
           },
         ]
       }
+      supplier_feed_logs: {
+        Row: {
+          completed_at: string | null
+          created_count: number
+          error_count: number
+          error_message: string | null
+          feed_id: string
+          id: string
+          skipped_count: number
+          started_at: string
+          status: string
+          total_rows: number
+          updated_count: number
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_count?: number
+          error_count?: number
+          error_message?: string | null
+          feed_id: string
+          id?: string
+          skipped_count?: number
+          started_at?: string
+          status?: string
+          total_rows?: number
+          updated_count?: number
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_count?: number
+          error_count?: number
+          error_message?: string | null
+          feed_id?: string
+          id?: string
+          skipped_count?: number
+          started_at?: string
+          status?: string
+          total_rows?: number
+          updated_count?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_feed_logs_feed_id_fkey"
+            columns: ["feed_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_feeds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_feed_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_feeds: {
+        Row: {
+          auth_config: Json | null
+          auto_sync_enabled: boolean
+          column_mapping: Json
+          created_at: string
+          csv_delimiter: string
+          csv_encoding: string
+          feed_name: string
+          feed_type: string
+          feed_url: string
+          id: string
+          is_active: boolean
+          last_sync_at: string | null
+          last_sync_rows: number | null
+          last_sync_status: string | null
+          supplier_id: string | null
+          sync_interval_hours: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auth_config?: Json | null
+          auto_sync_enabled?: boolean
+          column_mapping?: Json
+          created_at?: string
+          csv_delimiter?: string
+          csv_encoding?: string
+          feed_name: string
+          feed_type?: string
+          feed_url: string
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          last_sync_rows?: number | null
+          last_sync_status?: string | null
+          supplier_id?: string | null
+          sync_interval_hours?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auth_config?: Json | null
+          auto_sync_enabled?: boolean
+          column_mapping?: Json
+          created_at?: string
+          csv_delimiter?: string
+          csv_encoding?: string
+          feed_name?: string
+          feed_type?: string
+          feed_url?: string
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          last_sync_rows?: number | null
+          last_sync_status?: string | null
+          supplier_id?: string | null
+          sync_interval_hours?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_feeds_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_feeds_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_invoices: {
         Row: {
           created_at: string
