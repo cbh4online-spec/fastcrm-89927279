@@ -35,6 +35,15 @@ const TYPE_LABELS: Record<string, { label: string; color: string }> = {
   video: { label: "Vídeo", color: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800" },
 };
 
+const POPULAR_SLUGS = [
+  "bem-vindo-ao-fastcrm",
+  "configurar-workspace",
+  "introducao-crm",
+  "primeira-campanha-email",
+  "introducao-security-ops",
+  "introducao-automacoes",
+];
+
 export function KnowledgeBaseHelpModal({ open, onOpenChange }: KnowledgeBaseHelpModalProps) {
   const {
     categories,
@@ -153,7 +162,45 @@ export function KnowledgeBaseHelpModal({ open, onOpenChange }: KnowledgeBaseHelp
                       </div>
                     )}
 
-                    {!isLoadingArticles && articles.map((article) => (
+                    {/* Welcome tiles when fresh (no search, no category, has articles) */}
+                    {!isLoadingArticles && !searchQuery && !selectedCategory && articles.length > 0 && (
+                      <div className="mb-4">
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                          <Sparkles className="h-3 w-3" />
+                          Tópicos populares
+                        </h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          {POPULAR_SLUGS
+                            .map((slug) => articles.find((a) => a.slug === slug))
+                            .filter(Boolean)
+                            .slice(0, 6)
+                            .map((article) => {
+                              const cat = categories.find((c) => c.slug === article!.category_slug);
+                              const typeInfo = TYPE_LABELS[article!.article_type] || TYPE_LABELS.guide;
+                              return (
+                                <button
+                                  key={article!.id}
+                                  onClick={() => openArticle(article!)}
+                                  className="text-left rounded-lg border bg-card p-3 hover:bg-secondary cursor-pointer transition-all group"
+                                >
+                                  <div className="flex items-center gap-1.5 mb-1">
+                                    {cat && <span className="text-sm">{cat.icon}</span>}
+                                    <Badge variant="outline" className={`text-[9px] h-3.5 px-1 ${typeInfo.color}`}>
+                                      {typeInfo.label}
+                                    </Badge>
+                                  </div>
+                                  <h5 className="text-xs font-medium line-clamp-2 group-hover:text-primary transition-colors">
+                                    {article!.title}
+                                  </h5>
+                                </button>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Regular article list */}
+                    {!isLoadingArticles && (searchQuery || selectedCategory) && articles.map((article) => (
                       <ArticleCard
                         key={article.id}
                         article={article}
@@ -161,6 +208,23 @@ export function KnowledgeBaseHelpModal({ open, onOpenChange }: KnowledgeBaseHelp
                         onClick={() => openArticle(article)}
                       />
                     ))}
+
+                    {/* Full list when browsing all (below popular tiles) */}
+                    {!isLoadingArticles && !searchQuery && !selectedCategory && articles.length > 0 && (
+                      <>
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-2 mb-2">
+                          Todos os artigos
+                        </h4>
+                        {articles.map((article) => (
+                          <ArticleCard
+                            key={article.id}
+                            article={article}
+                            category={categories.find((c) => c.slug === article.category_slug)}
+                            onClick={() => openArticle(article)}
+                          />
+                        ))}
+                      </>
+                    )}
 
                     {showAiOption && !aiAnswer && !isAiLoading && (
                       <div className="text-center py-8 space-y-3">
