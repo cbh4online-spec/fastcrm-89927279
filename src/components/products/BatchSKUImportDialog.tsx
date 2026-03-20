@@ -503,7 +503,6 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
   };
 
   // AI price enrichment: suggest selling prices based on cost price
-  const [isEnrichingPrices, setIsEnrichingPrices] = useState(false);
   const enrichPricesWithAI = async () => {
     const itemsToEnrich = skuList.filter(
       s => s.selected && s.data && s.data.costPrice && !s.data.suggestedPrice && !s.editedPrice
