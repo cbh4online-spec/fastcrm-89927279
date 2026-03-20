@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { ArrowLeft, Eye, Save, Globe, Sparkles, Loader2, Star, Trash2, Plus, Play } from "lucide-react";
+import { ArrowLeft, Eye, Save, Globe, Sparkles, Loader2, Star, Trash2, Plus, Play, Facebook, Instagram, Linkedin, Youtube, Twitter, MessageCircle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ import {
 } from "@/hooks/useVerticalTemplates";
 import { VerticalLandingTemplate } from "@/components/vertical-landing/VerticalLandingTemplate";
 import { AppearanceEditor, defaultAppearance, type AppearanceValues } from "@/components/funnels/AppearanceEditor";
-import type { VerticalConfig, VerticalTestimonial, VerticalVideoSection } from "@/config/verticalConfigs";
+import type { VerticalConfig, VerticalTestimonial, VerticalVideoSection, SocialLinks } from "@/config/verticalConfigs";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -52,6 +52,7 @@ const defaultForm = (): FormData => ({
   seo: { title: "", description: "", canonical: "" },
   testimonials: [],
   video_section: { url: "", caption: "", autoplay: false, muted: true, loop: false },
+  social_links: { facebook: "", instagram: "", linkedin: "", whatsapp: "", youtube: "", tiktok: "", twitter: "", website: "", publications: [] },
 });
 
 type FormData = Omit<VerticalTemplateRow, "id" | "workspace_id" | "created_at" | "updated_at" | "created_by" | "is_published">;
@@ -187,6 +188,7 @@ export function VerticalTemplateBuilder({ templateId, onBack }: Props) {
     },
     testimonials: form.testimonials || [],
     video_section: form.video_section || undefined,
+    social_links: form.social_links || undefined,
   }), [form]);
 
   if (preview) {
@@ -245,6 +247,7 @@ export function VerticalTemplateBuilder({ templateId, onBack }: Props) {
           <TabsTrigger value="roi">ROI</TabsTrigger>
           <TabsTrigger value="aparencia">Aparência</TabsTrigger>
           <TabsTrigger value="cta-seo">CTAs & SEO</TabsTrigger>
+          <TabsTrigger value="social">Redes Sociais</TabsTrigger>
         </TabsList>
 
         {/* Tab: Identidade */}
@@ -742,6 +745,99 @@ export function VerticalTemplateBuilder({ templateId, onBack }: Props) {
                     updateField("seo", { ...form.seo, canonical: e.target.value })
                   }
                 />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab: Redes Sociais */}
+        <TabsContent value="social">
+          <Card>
+            <CardHeader><CardTitle>Redes Sociais & Publicações</CardTitle></CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {([
+                  { key: "facebook", label: "Facebook", icon: <Facebook className="h-3.5 w-3.5" />, placeholder: "https://facebook.com/..." },
+                  { key: "instagram", label: "Instagram", icon: <Instagram className="h-3.5 w-3.5" />, placeholder: "https://instagram.com/..." },
+                  { key: "linkedin", label: "LinkedIn", icon: <Linkedin className="h-3.5 w-3.5" />, placeholder: "https://linkedin.com/..." },
+                  { key: "youtube", label: "YouTube", icon: <Youtube className="h-3.5 w-3.5" />, placeholder: "https://youtube.com/@..." },
+                  { key: "twitter", label: "X (Twitter)", icon: <Twitter className="h-3.5 w-3.5" />, placeholder: "https://x.com/..." },
+                  { key: "whatsapp", label: "WhatsApp", icon: <MessageCircle className="h-3.5 w-3.5" />, placeholder: "https://wa.me/..." },
+                  { key: "tiktok", label: "TikTok", icon: <Sparkles className="h-3.5 w-3.5" />, placeholder: "https://tiktok.com/@..." },
+                  { key: "website", label: "Website", icon: <Globe className="h-3.5 w-3.5" />, placeholder: "https://..." },
+                ] as const).map((s) => (
+                  <div key={s.key} className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      {s.icon} {s.label}
+                    </Label>
+                    <Input
+                      placeholder={s.placeholder}
+                      value={(form.social_links as any)?.[s.key] || ""}
+                      onChange={(e) =>
+                        updateField("social_links", {
+                          ...(form.social_links || {}),
+                          [s.key]: e.target.value,
+                        } as any)
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Publications */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="font-medium">Links de Publicações / Artigos</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const pubs = [...((form.social_links as any)?.publications || []), { title: "", url: "" }];
+                      updateField("social_links", { ...(form.social_links || {}), publications: pubs } as any);
+                    }}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
+                  </Button>
+                </div>
+                {((form.social_links as any)?.publications || []).map((pub: { title: string; url: string }, i: number) => (
+                  <div key={i} className="grid gap-2 md:grid-cols-[1fr_2fr_auto] items-end border rounded-lg p-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Título</Label>
+                      <Input
+                        value={pub.title}
+                        placeholder="Nome do artigo"
+                        onChange={(e) => {
+                          const pubs = [...((form.social_links as any)?.publications || [])];
+                          pubs[i] = { ...pub, title: e.target.value };
+                          updateField("social_links", { ...(form.social_links || {}), publications: pubs } as any);
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">URL</Label>
+                      <Input
+                        value={pub.url}
+                        placeholder="https://..."
+                        onChange={(e) => {
+                          const pubs = [...((form.social_links as any)?.publications || [])];
+                          pubs[i] = { ...pub, url: e.target.value };
+                          updateField("social_links", { ...(form.social_links || {}), publications: pubs } as any);
+                        }}
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive"
+                      onClick={() => {
+                        const pubs = ((form.social_links as any)?.publications || []).filter((_: any, idx: number) => idx !== i);
+                        updateField("social_links", { ...(form.social_links || {}), publications: pubs } as any);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>

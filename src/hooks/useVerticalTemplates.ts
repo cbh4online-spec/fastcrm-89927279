@@ -21,6 +21,17 @@ export interface VerticalTemplateRow {
   seo: { title: string; description: string; canonical: string };
   testimonials?: { name: string; role: string; quote: string; avatar_url?: string; rating: number }[];
   video_section?: { url: string; caption?: string; autoplay?: boolean; muted?: boolean; loop?: boolean };
+  social_links?: {
+    facebook?: string;
+    instagram?: string;
+    linkedin?: string;
+    whatsapp?: string;
+    youtube?: string;
+    tiktok?: string;
+    twitter?: string;
+    website?: string;
+    publications?: { title: string; url: string }[];
+  };
   is_published: boolean;
   created_at: string;
   updated_at: string;

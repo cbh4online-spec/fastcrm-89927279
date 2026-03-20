@@ -1,0 +1,1 @@
+ALTER TABLE public.vertical_templates ADD COLUMN IF NOT EXISTS social_links jsonb DEFAULT '{}'::jsonb;
