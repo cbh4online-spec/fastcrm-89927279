@@ -17,7 +17,10 @@ import {
   CheckCircle,
   Clock,
   Users,
-  Mail
+  Mail,
+  ShieldCheck,
+  Activity as ActivityIcon,
+  MousePointerClick
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -30,6 +33,11 @@ import {
   EVENT_TYPE_LABELS
 } from '@/types/marketing';
 import type { MarketingCampaign } from '@/types/marketing';
+import { DeliverabilityPanel } from './DeliverabilityPanel';
+import { ActivityFeed } from './ActivityFeed';
+import { ClickHeatmapPanel } from './ClickHeatmapPanel';
+import { TriggerBuilder } from './TriggerBuilder';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 interface CampaignDetailDialogProps {
   open: boolean;
@@ -44,6 +52,7 @@ export function CampaignDetailDialog({
 }: CampaignDetailDialogProps) {
   const { data: recipients = [] } = useCampaignRecipients(campaign?.id);
   const { data: events = [] } = useCampaignEvents(campaign?.id);
+  const { currentWorkspace } = useWorkspace();
 
   if (!campaign) return null;
 
@@ -51,7 +60,7 @@ export function CampaignDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <DialogTitle className="flex items-center gap-2">
@@ -68,10 +77,13 @@ export function CampaignDetailDialog({
         </DialogHeader>
 
         <Tabs defaultValue="stats" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="stats">Estatísticas</TabsTrigger>
+            <TabsTrigger value="deliverability">Entregabilidade</TabsTrigger>
+            <TabsTrigger value="clicks">Cliques</TabsTrigger>
+            <TabsTrigger value="activity">Actividade</TabsTrigger>
             <TabsTrigger value="recipients">Destinatários</TabsTrigger>
-            <TabsTrigger value="events">Eventos</TabsTrigger>
+            <TabsTrigger value="automation">Automação</TabsTrigger>
             <TabsTrigger value="content">Conteúdo</TabsTrigger>
           </TabsList>
 
@@ -149,7 +161,6 @@ export function CampaignDetailDialog({
                   </div>
                   <Progress value={100} className="h-3" />
                 </div>
-
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Entregues</span>
@@ -157,7 +168,6 @@ export function CampaignDetailDialog({
                   </div>
                   <Progress value={stats.deliveryRate} className="h-3" />
                 </div>
-
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Abertos</span>
@@ -165,7 +175,6 @@ export function CampaignDetailDialog({
                   </div>
                   <Progress value={stats.openRate} className="h-3" />
                 </div>
-
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Clicados</span>
@@ -203,6 +212,36 @@ export function CampaignDetailDialog({
             )}
           </TabsContent>
 
+          {/* Deliverability Tab */}
+          <TabsContent value="deliverability" className="space-y-4">
+            <DeliverabilityPanel
+              campaignId={campaign.id}
+              sentCount={campaign.sentCount}
+              deliveredCount={campaign.deliveredCount}
+              openedCount={campaign.openedCount}
+              clickedCount={campaign.clickedCount}
+              bouncedCount={campaign.bouncedCount}
+              complainedCount={campaign.complainedCount}
+              unsubscribedCount={campaign.unsubscribedCount}
+            />
+          </TabsContent>
+
+          {/* Click Heatmap Tab */}
+          <TabsContent value="clicks" className="space-y-4">
+            <ClickHeatmapPanel
+              campaignId={campaign.id}
+              workspaceId={currentWorkspace?.id || ''}
+            />
+          </TabsContent>
+
+          {/* Activity Feed Tab */}
+          <TabsContent value="activity" className="space-y-4">
+            <ActivityFeed
+              campaignId={campaign.id}
+              workspaceId={currentWorkspace?.id || ''}
+            />
+          </TabsContent>
+
           <TabsContent value="recipients" className="space-y-4">
             <Card>
               <CardHeader>
@@ -238,46 +277,9 @@ export function CampaignDetailDialog({
             </Card>
           </TabsContent>
 
-          <TabsContent value="events" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  Eventos ({events.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {events.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    Ainda não há eventos registados
-                  </p>
-                ) : (
-                  <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                    {events.map((event: any) => (
-                      <div
-                        key={event.id}
-                        className="flex items-center justify-between p-3 border rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Badge variant="outline">
-                            {EVENT_TYPE_LABELS[event.event_type as keyof typeof EVENT_TYPE_LABELS] || event.event_type}
-                          </Badge>
-                          <span className="text-sm">{event.email}</span>
-                          {event.link_url && (
-                            <span className="text-xs text-muted-foreground truncate max-w-[200px]">
-                              → {event.link_url}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {format(new Date(event.occurred_at), "d MMM HH:mm", { locale: pt })}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          {/* Automation Tab */}
+          <TabsContent value="automation" className="space-y-4">
+            <TriggerBuilder campaignId={campaign.id} />
           </TabsContent>
 
           <TabsContent value="content" className="space-y-4">

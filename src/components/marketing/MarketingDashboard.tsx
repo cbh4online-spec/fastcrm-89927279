@@ -21,6 +21,8 @@ import { pt } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { CampaignDetailDialog } from './CampaignDetailDialog';
+import { ReengagementCard } from './ReengagementCard';
+import { DynamicSegmentsPanel } from './DynamicSegmentsPanel';
 
 interface MarketingDashboardProps {
   onCreateCampaign?: () => void;
@@ -121,6 +123,12 @@ export function MarketingDashboard({ onCreateCampaign }: MarketingDashboardProps
             </p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* AI & Segments Row */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <ReengagementCard />
+        <DynamicSegmentsPanel />
       </div>
 
       {/* Recent Campaigns */}

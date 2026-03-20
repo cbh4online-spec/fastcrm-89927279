@@ -13,6 +13,9 @@ import { ArrowLeft, Send, Eye, X } from 'lucide-react';
 import { useMarketingSegments } from '@/hooks/useMarketingSegments';
 import { useMarketingSettings } from '@/hooks/useMarketingSettings';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { SendModeSelector } from './SendModeSelector';
+import { AbTestPanel } from './AbTestPanel';
+import { Separator } from '@/components/ui/separator';
 
 interface CampaignMetadataFormProps {
   html: string;
@@ -23,10 +26,14 @@ interface CampaignMetadataFormProps {
     fromName: string;
     replyTo?: string;
     segmentId?: string;
+    sendMode?: string;
+    batchSize?: number;
+    batchIntervalMinutes?: number;
   }) => void;
   onBack: () => void;
   onCancel: () => void;
   isLoading: boolean;
+  campaignId?: string;
 }
 
 export function CampaignMetadataForm({
@@ -35,6 +42,7 @@ export function CampaignMetadataForm({
   onBack,
   onCancel,
   isLoading,
+  campaignId,
 }: CampaignMetadataFormProps) {
   const { data: segments = [] } = useMarketingSegments();
   const { data: settings } = useMarketingSettings();
@@ -48,6 +56,9 @@ export function CampaignMetadataForm({
     segmentId: '',
   });
 
+  const [sendMode, setSendMode] = useState('immediate');
+  const [batchSize, setBatchSize] = useState(100);
+  const [batchIntervalMinutes, setBatchIntervalMinutes] = useState(60);
   const [showPreview, setShowPreview] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -61,10 +72,17 @@ export function CampaignMetadataForm({
       fromName: formData.fromName,
       replyTo: formData.replyTo || undefined,
       segmentId: formData.segmentId || undefined,
+      sendMode,
+      batchSize,
+      batchIntervalMinutes,
     });
   };
 
   const isValid = formData.name && formData.subject && formData.fromName;
+
+  // Estimate recipient count from selected segment
+  const selectedSegment = segments.find(s => s.id === formData.segmentId);
+  const estimatedRecipients = selectedSegment?.contactCount || 0;
 
   return (
     <div className="h-full flex flex-col">
@@ -169,6 +187,28 @@ export function CampaignMetadataForm({
                 </Select>
               </div>
             </div>
+
+            <Separator />
+
+            {/* Send Mode */}
+            <SendModeSelector
+              sendMode={sendMode}
+              batchSize={batchSize}
+              batchIntervalMinutes={batchIntervalMinutes}
+              recipientCount={estimatedRecipients}
+              onModeChange={setSendMode}
+              onBatchSizeChange={setBatchSize}
+              onBatchIntervalChange={setBatchIntervalMinutes}
+            />
+
+            {/* A/B Test - only show if campaign already exists and has enough recipients */}
+            {campaignId && estimatedRecipients >= 100 && (
+              <AbTestPanel
+                campaignId={campaignId}
+                currentSubject={formData.subject}
+                recipientCount={estimatedRecipients}
+              />
+            )}
 
             <div className="flex gap-3 pt-4">
               <Button
