@@ -149,7 +149,14 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
     setAppearance({ ...defaultAppearance, ...design });
     setImagePrompt("");
     setNewImageUrl("");
+    const savedTestimonials = c.testimonials as TestimonialItem[] | undefined;
+    setTestimonials(savedTestimonials?.length ? savedTestimonials : []);
+    const savedVideo = c.video as VideoConfig | undefined;
+    setVideoConfig(savedVideo || { url: "", autoplay: false, loop: false, muted: true, poster_url: "", caption: "" });
   }, [step.id]);
+
+  const isTestimonials = step.step_type === "testimonials";
+  const isVideo = step.step_type === "video";
 
   const handleSave = () => {
     updateStep.mutate({
