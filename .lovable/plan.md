@@ -1,51 +1,37 @@
 
 
-## Corrigir Estatísticas de Visitas nos Funis Verticais
+## Adicionar Links de Posts de Redes Sociais aos Testemunhos
 
-### Problema raiz
-Os eventos de tracking são inseridos com `workspace_id: null` porque `VerticalLandingPage.tsx` passa `workspaceId={undefined}` ao tracker. A política RLS de SELECT exige que `workspace_id` pertença ao workspace do utilizador autenticado, logo eventos com `workspace_id: null` nunca são lidos — daí "0 visitantes" mesmo com visitas reais.
+### O que será feito
+Cada testemunho passará a ter um campo opcional `post_url` para colocar o link do post original (LinkedIn, Instagram, etc.). Esse link será exibido como ícone clicável junto ao testemunho na landing page.
 
 ### Alterações
 
-#### 1. `src/pages/VerticalLandingPage.tsx`
-- Extrair `workspace_id` e `id` do row retornado por `fetchPublishedTemplateBySlug`
-- Passar esses valores ao `VerticalLandingTemplate`:
-  - `templateId={row.id}`
-  - `workspaceId={row.workspace_id}`
-- Isto garante que novos eventos são inseridos com `workspace_id` correcto
+#### 1. Interfaces — Adicionar `post_url` ao tipo de testemunho
+- **`src/config/verticalConfigs.ts`** — `VerticalTestimonial`: adicionar `post_url?: string`
+- **`src/components/funnels/FunnelStepEditor.tsx`** — `TestimonialItem`: adicionar `post_url?: string`
+- **`src/hooks/useVerticalTemplates.ts`** — tipo inline de testimonials: adicionar `post_url?: string`
 
-#### 2. Migração DB — Corrigir eventos existentes com `workspace_id` null
-- UPDATE `vertical_landing_events` para preencher `workspace_id` a partir do `template_slug`, cruzando com `vertical_templates`:
-```sql
-UPDATE public.vertical_landing_events e
-SET workspace_id = t.workspace_id
-FROM public.vertical_templates t
-WHERE e.template_slug = t.slug
-  AND e.workspace_id IS NULL
-  AND t.workspace_id IS NOT NULL;
-```
+#### 2. Editores — Campo de input para o link do post
+- **`src/components/funnels/FunnelStepEditor.tsx`** (linha ~614-629): adicionar campo "Link do Post (opcional)" com input URL ao lado do Avatar URL
+- **`src/components/landing-pages/VerticalTemplateBuilder.tsx`**: adicionar campo equivalente no formulário de testemunhos do template AIDA
 
-#### 3. Migração DB — Política RLS alternativa para leitura por slug
-- Adicionar política de SELECT que também permita leitura quando o `template_slug` corresponde a um template do workspace do utilizador (para cobrir eventos antigos que possam não ter workspace_id):
-```sql
-CREATE POLICY "Members read events by template ownership"
-  ON public.vertical_landing_events FOR SELECT TO authenticated
-  USING (
-    template_slug IN (
-      SELECT slug FROM public.vertical_templates
-      WHERE workspace_id IN (
-        SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()
-      )
-    )
-  );
-```
+#### 3. Renderização — Mostrar link na landing page
+- **`src/components/vertical-landing/VerticalTestimonials.tsx`**: se `post_url` existir, mostrar ícone da rede social (detectar automaticamente se é LinkedIn, Instagram, etc. pelo domínio) com link externo junto ao nome/role
+- **`src/components/funnels/FunnelStepRenderer.tsx`** (se renderiza testemunhos): mesma lógica
 
-### Resultado
-- Eventos passados são corrigidos via UPDATE
-- Novos eventos têm `workspace_id` preenchido
-- As stats passam a aparecer correctamente no dashboard
+### Detecção automática da rede social
+Função utilitária que analisa o URL e retorna o ícone correcto:
+- `linkedin.com` → ícone LinkedIn
+- `instagram.com` → ícone Instagram  
+- `facebook.com` → ícone Facebook
+- `twitter.com` / `x.com` → ícone X
+- Outro → ícone ExternalLink genérico
 
 ### Ficheiros a alterar
-- `src/pages/VerticalLandingPage.tsx`
-- Nova migração SQL (update dados + política RLS)
+- `src/config/verticalConfigs.ts`
+- `src/hooks/useVerticalTemplates.ts`
+- `src/components/funnels/FunnelStepEditor.tsx`
+- `src/components/landing-pages/VerticalTemplateBuilder.tsx`
+- `src/components/vertical-landing/VerticalTestimonials.tsx`
 
