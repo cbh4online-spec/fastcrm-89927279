@@ -77,6 +77,11 @@ export const verticalConfigs: Record<string, VerticalConfig> = {
       description: "CRM com IA para clínicas: agendamento automático, follow-up inteligente e comunicação omnicanal. Aumente a retenção de pacientes.",
       canonical: "https://fastcrm.metodopare.ai/clinicas",
     },
+    testimonials: [
+      { name: "Dra. Ana Martins", role: "Diretora Clínica, CliniCare", quote: "Desde que implementámos o FastCRM, a nossa taxa de retorno de pacientes subiu 40%. O follow-up automático faz toda a diferença.", rating: 5 },
+      { name: "Dr. Pedro Lopes", role: "Médico Dentista, SmilePlus", quote: "Reduzi o tempo administrativo em 60%. Agora foco-me no que realmente importa — os meus pacientes.", rating: 5 },
+      { name: "Sofia Almeida", role: "Gestora, Centro Médico Vida", quote: "A integração omnicanal unificou toda a nossa comunicação. Os pacientes adoram a experiência.", rating: 4 },
+    ],
   },
   imobiliarias: {
     slug: "imobiliarias",
