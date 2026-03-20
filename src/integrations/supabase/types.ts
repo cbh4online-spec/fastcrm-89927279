@@ -6310,6 +6310,377 @@ export type Database = {
           },
         ]
       }
+      campaign_ab_tests: {
+        Row: {
+          campaign_id: string
+          created_at: string | null
+          id: string
+          status: string | null
+          test_percentage: number | null
+          variant_a_clicks: number | null
+          variant_a_opens: number | null
+          variant_a_sent: number | null
+          variant_a_subject: string
+          variant_b_clicks: number | null
+          variant_b_opens: number | null
+          variant_b_sent: number | null
+          variant_b_subject: string
+          wait_hours: number | null
+          winner_metric: string | null
+          winner_variant: string | null
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          test_percentage?: number | null
+          variant_a_clicks?: number | null
+          variant_a_opens?: number | null
+          variant_a_sent?: number | null
+          variant_a_subject: string
+          variant_b_clicks?: number | null
+          variant_b_opens?: number | null
+          variant_b_sent?: number | null
+          variant_b_subject: string
+          wait_hours?: number | null
+          winner_metric?: string | null
+          winner_variant?: string | null
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          test_percentage?: number | null
+          variant_a_clicks?: number | null
+          variant_a_opens?: number | null
+          variant_a_sent?: number | null
+          variant_a_subject?: string
+          variant_b_clicks?: number | null
+          variant_b_opens?: number | null
+          variant_b_sent?: number | null
+          variant_b_subject?: string
+          wait_hours?: number | null
+          winner_metric?: string | null
+          winner_variant?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_ab_tests_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_ab_tests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_link_clicks: {
+        Row: {
+          campaign_id: string
+          clicked_at: string | null
+          contact_id: string | null
+          id: string
+          ip_hash: string | null
+          link_label: string | null
+          link_position: number | null
+          link_url: string
+          recipient_email: string | null
+          user_agent: string | null
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id: string
+          clicked_at?: string | null
+          contact_id?: string | null
+          id?: string
+          ip_hash?: string | null
+          link_label?: string | null
+          link_position?: number | null
+          link_url: string
+          recipient_email?: string | null
+          user_agent?: string | null
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string
+          clicked_at?: string | null
+          contact_id?: string | null
+          id?: string
+          ip_hash?: string | null
+          link_label?: string | null
+          link_position?: number | null
+          link_url?: string
+          recipient_email?: string | null
+          user_agent?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_link_clicks_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_link_clicks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_saved_segments: {
+        Row: {
+          contact_count: number | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          rules: Json
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          contact_count?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name: string
+          rules: Json
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          contact_count?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name?: string
+          rules?: Json
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_saved_segments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_send_queue: {
+        Row: {
+          batch_number: number | null
+          campaign_id: string
+          contact_id: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          recipient_email: string
+          recipient_name: string | null
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string | null
+          workspace_id: string
+        }
+        Insert: {
+          batch_number?: number | null
+          campaign_id: string
+          contact_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          recipient_email: string
+          recipient_name?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string | null
+          workspace_id: string
+        }
+        Update: {
+          batch_number?: number | null
+          campaign_id?: string
+          contact_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          recipient_email?: string
+          recipient_name?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_send_queue_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_send_queue_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_suppressions: {
+        Row: {
+          campaign_id: string | null
+          created_at: string | null
+          email: string
+          id: string
+          reason: string
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          reason: string
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          reason?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_suppressions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_suppressions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_trigger_executions: {
+        Row: {
+          action_result: Json | null
+          contact_id: string | null
+          executed_at: string | null
+          id: string
+          recipient_email: string
+          trigger_id: string
+          workspace_id: string
+        }
+        Insert: {
+          action_result?: Json | null
+          contact_id?: string | null
+          executed_at?: string | null
+          id?: string
+          recipient_email: string
+          trigger_id: string
+          workspace_id: string
+        }
+        Update: {
+          action_result?: Json | null
+          contact_id?: string | null
+          executed_at?: string | null
+          id?: string
+          recipient_email?: string
+          trigger_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_trigger_executions_trigger_id_fkey"
+            columns: ["trigger_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_triggers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_trigger_executions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_triggers: {
+        Row: {
+          action_payload: Json | null
+          action_type: string
+          campaign_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          trigger_event: string
+          wait_hours: number | null
+          workspace_id: string
+        }
+        Insert: {
+          action_payload?: Json | null
+          action_type: string
+          campaign_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          trigger_event: string
+          wait_hours?: number | null
+          workspace_id: string
+        }
+        Update: {
+          action_payload?: Json | null
+          action_type?: string
+          campaign_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          trigger_event?: string
+          wait_hours?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_triggers_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_triggers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       capture_types: {
         Row: {
           created_at: string
@@ -10504,6 +10875,51 @@ export type Database = {
           },
           {
             foreignKeyName: "contact_products_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_send_time_profile: {
+        Row: {
+          contact_id: string
+          id: string
+          last_computed_at: string | null
+          open_rate_score: number | null
+          preferred_day_of_week: number | null
+          preferred_hour: number | null
+          workspace_id: string
+        }
+        Insert: {
+          contact_id: string
+          id?: string
+          last_computed_at?: string | null
+          open_rate_score?: number | null
+          preferred_day_of_week?: number | null
+          preferred_hour?: number | null
+          workspace_id: string
+        }
+        Update: {
+          contact_id?: string
+          id?: string
+          last_computed_at?: string | null
+          open_rate_score?: number | null
+          preferred_day_of_week?: number | null
+          preferred_hour?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_send_time_profile_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_send_time_profile_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -22085,8 +22501,11 @@ export type Database = {
       }
       marketing_campaigns: {
         Row: {
+          ab_test_id: string | null
           ai_insights: Json | null
           ai_insights_generated_at: string | null
+          batch_interval_minutes: number | null
+          batch_size: number | null
           body_html: string
           body_text: string | null
           bounced_count: number | null
@@ -22099,6 +22518,7 @@ export type Database = {
           design_json: Json | null
           from_name: string
           id: string
+          invalid_count: number | null
           link_count: number | null
           name: string
           opened_count: number | null
@@ -22107,19 +22527,26 @@ export type Database = {
           scheduled_at: string | null
           segment_id: string | null
           send_hour: number | null
+          send_mode: string | null
           sent_count: number | null
           started_at: string | null
           status: string
           subject: string
+          suppression_count: number | null
           template_id: string | null
           total_recipients: number | null
           unsubscribed_count: number | null
           updated_at: string
+          validated_count: number | null
+          validation_run_at: string | null
           workspace_id: string
         }
         Insert: {
+          ab_test_id?: string | null
           ai_insights?: Json | null
           ai_insights_generated_at?: string | null
+          batch_interval_minutes?: number | null
+          batch_size?: number | null
           body_html: string
           body_text?: string | null
           bounced_count?: number | null
@@ -22132,6 +22559,7 @@ export type Database = {
           design_json?: Json | null
           from_name: string
           id?: string
+          invalid_count?: number | null
           link_count?: number | null
           name: string
           opened_count?: number | null
@@ -22140,19 +22568,26 @@ export type Database = {
           scheduled_at?: string | null
           segment_id?: string | null
           send_hour?: number | null
+          send_mode?: string | null
           sent_count?: number | null
           started_at?: string | null
           status?: string
           subject: string
+          suppression_count?: number | null
           template_id?: string | null
           total_recipients?: number | null
           unsubscribed_count?: number | null
           updated_at?: string
+          validated_count?: number | null
+          validation_run_at?: string | null
           workspace_id: string
         }
         Update: {
+          ab_test_id?: string | null
           ai_insights?: Json | null
           ai_insights_generated_at?: string | null
+          batch_interval_minutes?: number | null
+          batch_size?: number | null
           body_html?: string
           body_text?: string | null
           bounced_count?: number | null
@@ -22165,6 +22600,7 @@ export type Database = {
           design_json?: Json | null
           from_name?: string
           id?: string
+          invalid_count?: number | null
           link_count?: number | null
           name?: string
           opened_count?: number | null
@@ -22173,14 +22609,18 @@ export type Database = {
           scheduled_at?: string | null
           segment_id?: string | null
           send_hour?: number | null
+          send_mode?: string | null
           sent_count?: number | null
           started_at?: string | null
           status?: string
           subject?: string
+          suppression_count?: number | null
           template_id?: string | null
           total_recipients?: number | null
           unsubscribed_count?: number | null
           updated_at?: string
+          validated_count?: number | null
+          validation_run_at?: string | null
           workspace_id?: string
         }
         Relationships: [
