@@ -28,9 +28,10 @@ interface Props {
   templateSlug?: string;
 }
 
-function KPICard({ title, value, subtitle, icon: Icon, tooltip, trend, belowBenchmark }: {
+function KPICard({ title, value, subtitle, icon: Icon, tooltip, trend, belowBenchmark, onClick }: {
   title: string; value: string; subtitle?: string;
   icon: any; tooltip: string; trend: KPITrend; belowBenchmark?: boolean;
+  onClick?: () => void;
 }) {
   const trendColor = trend.direction === "up" ? "text-emerald-400" : trend.direction === "down" ? "text-red-400" : "text-muted-foreground";
   const TrendIcon = trend.direction === "up" ? ArrowUpRight : trend.direction === "down" ? ArrowDownRight : Minus;
