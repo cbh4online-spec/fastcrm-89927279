@@ -25,6 +25,7 @@ interface Props {
   sources: SourceData[];
   onAnalyzeAI: () => void;
   aiLoading: boolean;
+  templateSlug?: string;
 }
 
 function KPICard({ title, value, subtitle, icon: Icon, tooltip, trend, belowBenchmark }: {
