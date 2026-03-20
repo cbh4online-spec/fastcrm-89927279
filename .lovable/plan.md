@@ -1,52 +1,56 @@
 
 
-# Diagnóstico e Correção da Lentidão na Criação de Produtos
+# Briefs Apenas Manual + Consumo de Créditos
 
-## Problemas Identificados
+## Problema
 
-### 1. Criação sequencial produto-a-produto (principal bottleneck)
-`createSelectedProducts` (linha 413-440) cria cada produto **um a um** num loop `for...of`. Cada chamada a `createProduct.mutateAsync()` executa **4 queries DB sequenciais**:
-- Query 1: Verificar SKU duplicado
-- Query 2: Verificar nome duplicado
-- Query 3: `ensureCategoryExists` (verificar + possível insert)
-- Query 4: Insert do produto
+Os Daily Briefs e Strategic Briefs geram-se automaticamente ao abrir certas páginas (CommandCenter, WeeklyDashboard, CEODailyBriefTab), gastando créditos de IA sem controlo do utilizador.
 
-Para 100 produtos = **400 queries sequenciais**.
+## Alterações
 
-### 2. Invalidação de cache + toast em cada produto
-O `onSuccess` do `useCreateProduct` chama `queryClient.invalidateQueries(["products"])` e `toast.success()` **em cada produto criado** — causando re-renders massivos e spam de toasts.
+### 1. Remover auto-geração (3 ficheiros)
 
-### 3. Batch de IA com BATCH_SIZE = 2
-O `processSkus` processa apenas **2 SKUs por vez** com 1s de delay entre batches. Para 100 SKUs = ~50 segundos só de delays.
+**`src/pages/CommandCenter.tsx`** — remover o `useEffect` (linhas 20-25) que chama `generateDailyBrief()` automaticamente.
 
-## Correções Propostas
+**`src/pages/WeeklyDashboard.tsx`** — remover o `useEffect` (linhas 37-41) que chama `generateDailyBrief()` automaticamente.
 
-### Ficheiro: `src/components/products/BatchSKUImportDialog.tsx`
+**`src/components/ceo-copilot/CEODailyBriefTab.tsx`** — remover o `useEffect` (linhas 15-20) e o `autoGenRef` que disparam `generateDailyBrief()` automaticamente.
 
-**A. Criação em batch direto (bypass do hook individual)**
-- Substituir o loop sequencial `createProduct.mutateAsync()` por uma chamada direta ao Supabase com **batch insert** de até 500 produtos de uma vez
-- Fazer verificação de SKUs duplicados com uma única query `IN(...)` antes do insert
-- Chamar `ensureCategoryExists` apenas para categorias únicas (não para cada produto)
-- Invalidar queries **uma única vez** no final
-- Mostrar **um único toast** com resumo
+### 2. Adicionar pricing rules para briefs (DB Migration)
 
-**B. Aumentar BATCH_SIZE de IA para 5**
-- `BATCH_SIZE = 5` e `BATCH_DELAY_MS = 500` — processamento IA 5x mais rápido
+Inserir regras de preço na tabela `credit_pricing_rules`:
 
-### Ficheiro: `src/hooks/useProducts.ts`
+```sql
+INSERT INTO credit_pricing_rules (action_key, label, description, credits_cost, module, category, is_active)
+VALUES
+  ('daily_brief', 'Daily Revenue Brief', 'Gerar resumo executivo diário', 2, 'strategy', 'intelligence', true),
+  ('weekly_brief', 'Brief Executivo Semanal', 'Gerar brief estratégico semanal', 3, 'strategy', 'intelligence', true)
+ON CONFLICT DO NOTHING;
+```
 
-**C. Adicionar `useCreateProductsBatch` mutation**
-- Nova mutation que aceita array de produtos
-- Faz dedup de categorias e cria-as em batch
-- Faz um único `supabase.from("products").insert(items)` com array
-- Um único `invalidateQueries` e `emitKernelEvent` no final
+### 3. Consumir créditos antes de gerar (2 hooks)
 
-## Impacto Estimado
+**`src/hooks/useDailyBrief.ts`** — em `generateDailyBrief()`:
+- Importar `useCreditWallet`
+- Antes de chamar a edge function, chamar `consumeCredits.mutateAsync({ actionKey: 'daily_brief' })`
+- Se falhar (saldo insuficiente), mostrar toast de erro e não prosseguir
+- Expor `canAfford('daily_brief')` para desabilitar o botão na UI quando sem créditos
 
-| Cenário (100 produtos) | Antes | Depois |
-|---|---|---|
-| Queries DB | ~400 | ~5 |
-| Toasts | 100 | 1 |
-| Re-renders | ~200 | ~2 |
-| Tempo total | ~60-120s | ~3-5s |
+**`src/hooks/useStrategicBriefs.ts`** — em `generateBrief()`:
+- Mesma lógica, com `actionKey: 'weekly_brief'`
+
+### 4. UI — indicar custo nos botões
+
+Nos botões "Gerar Brief" / "Gerar novo", mostrar o custo em créditos:
+- `"Gerar Brief (2 créditos)"` no daily
+- `"Gerar novo (3 créditos)"` no weekly
+- Botão disabled quando `!canAfford`
+
+Ficheiros afetados: `DailyBriefWidget.tsx`, `DailyBriefPage.tsx`, `CEODailyBriefTab.tsx`, `StrategicBriefCard.tsx`, `CommandCenter.tsx`
+
+## Resultado
+
+- Briefs nunca se geram automaticamente
+- Cada geração consome créditos da carteira do workspace
+- Utilizador vê o custo antes de clicar e não pode gerar sem saldo
 
