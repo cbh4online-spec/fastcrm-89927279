@@ -15037,6 +15037,8 @@ export type Database = {
         Row: {
           body: string | null
           channel: string | null
+          condition_type: string | null
+          condition_value: Json | null
           created_at: string | null
           delay_days: number | null
           delay_hours: number | null
@@ -15044,6 +15046,7 @@ export type Database = {
           is_active: boolean | null
           sequence_id: string
           step_order: number
+          step_type: string | null
           subject: string | null
           template_id: string | null
           updated_at: string | null
@@ -15051,6 +15054,8 @@ export type Database = {
         Insert: {
           body?: string | null
           channel?: string | null
+          condition_type?: string | null
+          condition_value?: Json | null
           created_at?: string | null
           delay_days?: number | null
           delay_hours?: number | null
@@ -15058,6 +15063,7 @@ export type Database = {
           is_active?: boolean | null
           sequence_id: string
           step_order: number
+          step_type?: string | null
           subject?: string | null
           template_id?: string | null
           updated_at?: string | null
@@ -15065,6 +15071,8 @@ export type Database = {
         Update: {
           body?: string | null
           channel?: string | null
+          condition_type?: string | null
+          condition_value?: Json | null
           created_at?: string | null
           delay_days?: number | null
           delay_hours?: number | null
@@ -15072,6 +15080,7 @@ export type Database = {
           is_active?: boolean | null
           sequence_id?: string
           step_order?: number
+          step_type?: string | null
           subject?: string | null
           template_id?: string | null
           updated_at?: string | null
@@ -15139,6 +15148,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      email_template_library: {
+        Row: {
+          body_html: string
+          category: string
+          created_at: string | null
+          description: string | null
+          design_json: Json | null
+          id: string
+          industry: string | null
+          is_premium: boolean | null
+          name: string
+          objective: string | null
+          sort_order: number | null
+          tags: string[] | null
+          thumbnail_url: string | null
+        }
+        Insert: {
+          body_html: string
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          design_json?: Json | null
+          id?: string
+          industry?: string | null
+          is_premium?: boolean | null
+          name: string
+          objective?: string | null
+          sort_order?: number | null
+          tags?: string[] | null
+          thumbnail_url?: string | null
+        }
+        Update: {
+          body_html?: string
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          design_json?: Json | null
+          id?: string
+          industry?: string | null
+          is_premium?: boolean | null
+          name?: string
+          objective?: string | null
+          sort_order?: number | null
+          tags?: string[] | null
+          thumbnail_url?: string | null
+        }
+        Relationships: []
       }
       entity_activities: {
         Row: {
@@ -27164,6 +27221,68 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pipeline_email_triggers: {
+        Row: {
+          action_type: string
+          campaign_id: string | null
+          created_at: string | null
+          delay_minutes: number | null
+          email_body: string | null
+          email_subject: string | null
+          from_stage: string | null
+          id: string
+          is_active: boolean | null
+          pipeline_id: string | null
+          sequence_id: string | null
+          template_id: string | null
+          to_stage: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action_type?: string
+          campaign_id?: string | null
+          created_at?: string | null
+          delay_minutes?: number | null
+          email_body?: string | null
+          email_subject?: string | null
+          from_stage?: string | null
+          id?: string
+          is_active?: boolean | null
+          pipeline_id?: string | null
+          sequence_id?: string | null
+          template_id?: string | null
+          to_stage: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action_type?: string
+          campaign_id?: string | null
+          created_at?: string | null
+          delay_minutes?: number | null
+          email_body?: string | null
+          email_subject?: string | null
+          from_stage?: string | null
+          id?: string
+          is_active?: boolean | null
+          pipeline_id?: string | null
+          sequence_id?: string | null
+          template_id?: string | null
+          to_stage?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_email_triggers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pipeline_stage_benchmarks: {
         Row: {
