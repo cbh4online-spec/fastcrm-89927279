@@ -84,7 +84,7 @@ export function CampaignTriggerBuilder({ campaignId }: Props) {
       const seq = sequences?.find((s: any) => s.id === actionPayload.sequence_id);
       detail = seq ? ` "${seq.name}"` : '';
     } else if (actionType === 'send_campaign' && actionPayload.campaign_id) {
-      const camp = campaigns?.find((c: any) => c.id === actionPayload.campaign_id);
+      const camp = draftCampaigns?.find((c: any) => c.id === actionPayload.campaign_id);
       detail = camp ? ` "${camp.name}"` : '';
     } else if (actionType === 'add_tag' && actionPayload.tag) {
       detail = ` "${actionPayload.tag}"`;
