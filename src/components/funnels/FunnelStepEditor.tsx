@@ -170,6 +170,8 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
         image_url: images[0] || imageUrl || "",
         images,
         form_fields: step.step_type === "optin" ? formFields : undefined,
+        testimonials: isTestimonials ? testimonials : undefined,
+        video: isVideo ? videoConfig : undefined,
         design: appearance,
       },
     });
