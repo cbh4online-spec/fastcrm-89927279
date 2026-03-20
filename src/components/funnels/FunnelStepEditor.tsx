@@ -111,6 +111,18 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
     return { ...defaultAppearance, ...design };
   });
 
+  // Testimonials state
+  const [testimonials, setTestimonials] = useState<TestimonialItem[]>(() => {
+    const saved = content.testimonials as TestimonialItem[] | undefined;
+    return saved?.length ? saved : [];
+  });
+
+  // Video state
+  const [videoConfig, setVideoConfig] = useState<VideoConfig>(() => {
+    const saved = content.video as VideoConfig | undefined;
+    return saved || { url: "", autoplay: false, loop: false, muted: true, poster_url: "", caption: "" };
+  });
+
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
