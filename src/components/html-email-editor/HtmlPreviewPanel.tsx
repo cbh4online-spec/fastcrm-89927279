@@ -1,6 +1,7 @@
 import { useEffect, useCallback, RefObject } from 'react';
 import { cn } from '@/lib/utils';
 import { getIframeScript, getIframeStyles } from './iframeBridge';
+import { ElementTreePanel } from './ElementTreePanel';
 import type { EditableElement } from './types';
 
 interface HtmlPreviewPanelProps {
@@ -8,6 +9,7 @@ interface HtmlPreviewPanelProps {
   previewMode: 'desktop' | 'mobile';
   isPreviewOnly: boolean;
   iframeRef: RefObject<HTMLIFrameElement>;
+  selectedElementId: string | null;
   onElementSelect: (element: EditableElement) => void;
   onElementDeselect: () => void;
   onHtmlUpdated: (html: string) => void;
@@ -18,6 +20,7 @@ export function HtmlPreviewPanel({
   previewMode,
   isPreviewOnly,
   iframeRef,
+  selectedElementId,
   onElementSelect,
   onElementDeselect,
   onHtmlUpdated,
@@ -55,20 +58,17 @@ export function HtmlPreviewPanel({
 
   // Build the iframe srcDoc with injected scripts
   const buildSrcDoc = useCallback(() => {
-    // Inject editor styles and script into the HTML
     const editorStyle = `<style data-editor>${getIframeStyles()}</style>`;
     const editorScript = `<script data-editor>${getIframeScript()}</script>`;
 
     let doc = htmlContent;
 
-    // Insert styles before </head> or at the start
     if (doc.includes('</head>')) {
       doc = doc.replace('</head>', `${editorStyle}</head>`);
     } else {
       doc = editorStyle + doc;
     }
 
-    // Insert script before </body> or at the end
     if (doc.includes('</body>')) {
       doc = doc.replace('</body>', `${editorScript}</body>`);
     } else {
@@ -81,23 +81,34 @@ export function HtmlPreviewPanel({
   const previewWidth = previewMode === 'mobile' ? 375 : 600;
 
   return (
-    <div className="flex-1 overflow-auto p-6 bg-muted/50 flex justify-center">
-      <div
-        className={cn(
-          "bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300",
-          isPreviewOnly && "pointer-events-none"
-        )}
-        style={{ width: previewWidth, maxWidth: '100%' }}
-      >
-        <iframe
-          ref={iframeRef as any}
-          srcDoc={buildSrcDoc()}
-          className="w-full border-0"
-          style={{ minHeight: 600, height: '100%' }}
-          title="Email Preview"
-          sandbox="allow-scripts allow-same-origin"
-        />
+    <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 overflow-auto p-6 bg-muted/50 flex justify-center">
+        <div
+          className={cn(
+            "bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300",
+            isPreviewOnly && "pointer-events-none"
+          )}
+          style={{ width: previewWidth, maxWidth: '100%' }}
+        >
+          <iframe
+            ref={iframeRef as any}
+            srcDoc={buildSrcDoc()}
+            className="w-full border-0"
+            style={{ minHeight: 600, height: '100%' }}
+            title="Email Preview"
+            sandbox="allow-scripts allow-same-origin"
+          />
+        </div>
       </div>
+
+      {/* Element Tree */}
+      {!isPreviewOnly && (
+        <ElementTreePanel
+          iframeRef={iframeRef}
+          selectedElementId={selectedElementId}
+          onSelectElement={() => {}}
+        />
+      )}
     </div>
   );
 }
