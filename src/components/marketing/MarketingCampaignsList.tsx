@@ -190,6 +190,26 @@ export function MarketingCampaignsList({ onCreateNew }: MarketingCampaignsListPr
                       </p>
                     </div>
 
+                    {campaign.status === 'sending' && (campaign as any).sendMode === 'throttled' && (
+                      <div className="hidden md:flex items-center gap-3 mx-4 min-w-[120px]">
+                        <div className="flex-1 space-y-1">
+                          <Progress
+                            value={
+                              (campaign as any).queueTotal > 0
+                                ? Math.round(((campaign as any).queueSent / (campaign as any).queueTotal) * 100)
+                                : 0
+                            }
+                            className="h-1.5"
+                          />
+                          <p className="text-[10px] text-muted-foreground text-center">
+                            Em curso · {(campaign as any).queueTotal > 0
+                              ? Math.round(((campaign as any).queueSent / (campaign as any).queueTotal) * 100)
+                              : 0}%
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {campaign.status === 'sent' && (
                       <div className="hidden md:flex items-center gap-6 mx-4 text-sm">
                         <div className="text-center">
