@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useReengagementAI } from '@/hooks/useReengagementAI';
-import { Brain, Users, Loader2, Sparkles, ArrowRight } from 'lucide-react';
+import { Brain, Users, Loader2, Sparkles, ArrowRight, Eye } from 'lucide-react';
 
 interface Props {
   onCampaignCreated?: (campaignId: string) => void;
@@ -14,17 +14,26 @@ export function ReengagementCard({ onCampaignCreated }: Props) {
   const {
     inactiveThreshold,
     setInactiveThreshold,
+    inactiveCount,
+    previewSubjects,
+    generatePreview,
     generateReengagementCampaign,
     isGenerating,
-    previewSubjects,
-    inactiveCount,
   } = useReengagementAI();
 
   const [hasGenerated, setHasGenerated] = useState(false);
 
-  const handleGenerate = () => {
-    generateReengagementCampaign.mutate(undefined, {
+  const handlePreview = () => {
+    generatePreview.mutate(undefined, {
       onSuccess: () => setHasGenerated(true),
+    });
+  };
+
+  const handleCreateCampaign = () => {
+    generateReengagementCampaign.mutate(undefined, {
+      onSuccess: (data) => {
+        if (data?.campaign_id) onCampaignCreated?.(data.campaign_id);
+      },
     });
   };
 
@@ -45,6 +54,9 @@ export function ReengagementCard({ onCampaignCreated }: Props) {
                 <p className="text-sm font-medium">Contactos inactivos</p>
                 <p className="text-xs text-muted-foreground">
                   Sem aberturas há mais de {inactiveThreshold} dias
+                  {inactiveCount > 0 && (
+                    <span className="ml-1 font-medium">({inactiveCount} encontrados)</span>
+                  )}
                 </p>
               </div>
               <Select value={String(inactiveThreshold)} onValueChange={(v) => setInactiveThreshold(Number(v))}>
@@ -59,18 +71,18 @@ export function ReengagementCard({ onCampaignCreated }: Props) {
               </Select>
             </div>
 
-            <Button onClick={handleGenerate} disabled={isGenerating} className="w-full" variant="outline">
-              {isGenerating ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> A gerar...</>
+            <Button onClick={handlePreview} disabled={generatePreview.isPending} className="w-full" variant="outline">
+              {generatePreview.isPending ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> A gerar pré-visualização...</>
               ) : (
-                <><Sparkles className="h-4 w-4 mr-2" /> Lançar campanha de re-engajamento com IA</>
+                <><Eye className="h-4 w-4 mr-2" /> Pré-visualizar assuntos IA</>
               )}
             </Button>
           </>
         ) : (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="bg-amber-100 text-amber-700">
+              <Badge variant="outline" className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                 {inactiveCount} contactos encontrados
               </Badge>
             </div>
@@ -82,14 +94,21 @@ export function ReengagementCard({ onCampaignCreated }: Props) {
                   <div key={i} className="p-2 bg-background rounded border text-sm">
                     <p className="font-medium">{ps.subject}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">{ps.preview_text}</p>
-                    <p className="text-[10px] text-muted-foreground">Para: {ps.contact_name}</p>
+                    <p className="text-[10px] text-muted-foreground">Para: {ps.email}</p>
                   </div>
                 ))}
               </div>
             )}
 
-            <Button className="w-full">
-              Gerar campanha <ArrowRight className="h-4 w-4 ml-2" />
+            <Button className="w-full" onClick={handleCreateCampaign} disabled={isGenerating}>
+              {isGenerating ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> A criar campanha...</>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Gerar campanha <ArrowRight className="h-4 w-4 ml-2" />
+                </>
+              )}
             </Button>
           </div>
         )}
