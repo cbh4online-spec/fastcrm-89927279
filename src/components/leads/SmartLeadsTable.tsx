@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { 
   useSmartLeads, 
   useAnalyzeLead, 
