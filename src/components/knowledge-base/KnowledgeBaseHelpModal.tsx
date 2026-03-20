@@ -19,7 +19,7 @@ import {
   ChevronRight,
   Eye,
 } from "lucide-react";
-import { useKnowledgeBase, KBArticle, KBCategory } from "@/hooks/useKnowledgeBase";
+import { useKBHelp, KBHelpArticle, KBHelpCategory } from "@/hooks/useKBHelp";
 import ReactMarkdown from "react-markdown";
 
 interface KnowledgeBaseHelpModalProps {
