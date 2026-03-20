@@ -355,6 +355,85 @@ export function FunnelsList() {
         </Card>
       </div>
 
+      {/* Published Section */}
+      {allPublished.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-emerald-500" />
+              <h2 className="text-lg font-semibold">Funis Publicados</h2>
+              <Badge variant="secondary" className="text-xs">{allPublished.length}</Badge>
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {allPublished.map((item) => {
+              const publicUrl = item.type === "funnel"
+                ? `${getPublicBaseUrl()}/funnel/${item.slug}`
+                : `${getPublicBaseUrl()}/${item.slug}`;
+              const kpi = kpis?.[item.slug];
+              return (
+                <Card key={item.id} className="group hover:shadow-md transition-shadow border-emerald-500/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold truncate">{item.name}</h3>
+                        <p className="text-xs text-muted-foreground">/{item.slug}</p>
+                      </div>
+                      <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shrink-0">
+                        <Globe className="h-3 w-3 mr-1" />
+                        Live
+                      </Badge>
+                    </div>
+                    {kpi && (
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
+                        <span className="flex items-center gap-1">
+                          <Eye className="h-3 w-3" />
+                          {kpi.views} views
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Target className="h-3 w-3" />
+                          {kpi.conversionRate.toFixed(1)}%
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 pt-2 border-t">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => {
+                          if (item.type === "funnel") setEditingFunnelId(item.id);
+                          else if (item.type === "template") setManagingSlug(item.slug);
+                        }}
+                      >
+                        <Pencil className="h-3 w-3 mr-1" />
+                        Editar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(publicUrl, "_blank")}
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        Abrir
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleCopyShareLink(item.type === "funnel" ? "funnel" : "vertical", item.slug)}
+                      >
+                        {copiedSlug === item.slug ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Homepage Tabs */}
       <Tabs value={activeHomeTab} onValueChange={setActiveHomeTab}>
         <div className="overflow-x-auto -mx-1 px-1">
