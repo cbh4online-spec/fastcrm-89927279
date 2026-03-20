@@ -9,11 +9,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Upload,
   FileSpreadsheet,
@@ -23,7 +30,6 @@ import {
   Download,
   Plus,
   ClipboardList,
-  Pencil,
   Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,6 +75,23 @@ interface CreationSummary {
 const BATCH_SIZE = 2;
 const BATCH_DELAY_MS = 1000;
 
+// Which data columns to show
+interface ColumnConfig {
+  key: string;
+  label: string;
+  visible: boolean;
+}
+
+const DEFAULT_COLUMNS: ColumnConfig[] = [
+  { key: "sku", label: "SKU", visible: true },
+  { key: "status", label: "Estado", visible: true },
+  { key: "name", label: "Nome", visible: true },
+  { key: "price", label: "Preço", visible: true },
+  { key: "category", label: "Categoria", visible: true },
+  { key: "description", label: "Descrição", visible: false },
+  { key: "technicalName", label: "Nome Técnico", visible: false },
+];
+
 export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialogProps) {
   const [skuList, setSkuList] = useState<SKUResult[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -76,9 +99,19 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
   const [manualInput, setManualInput] = useState("");
   const [phase, setPhase] = useState<DialogPhase>("input");
   const [summary, setSummary] = useState<CreationSummary | null>(null);
+  const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
+  const [showColumnPicker, setShowColumnPicker] = useState(false);
 
   const createProduct = useCreateProduct();
   const { currentWorkspace } = useWorkspace();
+
+  const visibleColumns = columns.filter(c => c.visible);
+
+  const toggleColumn = (key: string) => {
+    setColumns(prev => prev.map(c =>
+      c.key === key ? { ...c, visible: !c.visible } : c
+    ));
+  };
 
   const parseSkusFromText = (text: string): string[] => {
     const lines = text.split(/[\r\n]+/).filter(Boolean);
@@ -91,7 +124,6 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
@@ -100,23 +132,18 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
       const skus = lines.slice(startIndex)
         .map(line => line.split(/[,;|\t]/)[0]?.trim())
         .filter(sku => sku && sku.length >= 3);
-
       const uniqueSkus = [...new Set(skus)];
       setSkuList(uniqueSkus.map(sku => ({ sku, status: "pending", selected: true })));
       setPhase("processing");
       toast.success(`${uniqueSkus.length} SKUs carregados`);
     };
-
     reader.readAsText(file);
     e.target.value = "";
   }, []);
 
   const handleManualSubmit = () => {
     const skus = parseSkusFromText(manualInput);
-    if (skus.length === 0) {
-      toast.error("Nenhum SKU válido encontrado");
-      return;
-    }
+    if (skus.length === 0) { toast.error("Nenhum SKU válido encontrado"); return; }
     setSkuList(skus.map(sku => ({ sku, status: "pending", selected: true })));
     setPhase("processing");
     toast.success(`${skus.length} SKUs carregados`);
@@ -124,18 +151,13 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
 
   const processSkus = async () => {
     setIsProcessing(true);
-
     const items = [...skuList];
-
     for (let batchStart = 0; batchStart < items.length; batchStart += BATCH_SIZE) {
       const batchEnd = Math.min(batchStart + BATCH_SIZE, items.length);
       const batchIndices = Array.from({ length: batchEnd - batchStart }, (_, i) => batchStart + i);
-
-      // Mark batch as processing
       setSkuList(prev => prev.map((s, idx) =>
         batchIndices.includes(idx) ? { ...s, status: "processing" } : s
       ));
-
       const results = await Promise.allSettled(
         batchIndices.map(async (idx) => {
           const { data, error } = await supabase.functions.invoke("ai-product-assistant", {
@@ -145,7 +167,6 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
           return { idx, data };
         })
       );
-
       setSkuList(prev => {
         const next = [...prev];
         for (const result of results) {
@@ -158,110 +179,61 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
             }
           } else {
             const idx = batchIndices[results.indexOf(result)];
-            next[idx] = {
-              ...next[idx],
-              status: "error",
-              error: result.reason?.message || "Erro desconhecido",
-              selected: false,
-            };
+            next[idx] = { ...next[idx], status: "error", error: result.reason?.message || "Erro desconhecido", selected: false };
           }
         }
         return next;
       });
-
-      // Delay between batches
-      if (batchEnd < items.length) {
-        await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
-      }
+      if (batchEnd < items.length) await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
     }
-
     setIsProcessing(false);
     setPhase("results");
   };
 
   const toggleSelection = (index: number) => {
-    setSkuList(prev => prev.map((s, idx) =>
-      idx === index ? { ...s, selected: !s.selected } : s
-    ));
+    setSkuList(prev => prev.map((s, idx) => idx === index ? { ...s, selected: !s.selected } : s));
   };
 
-  const selectAll = () => {
-    setSkuList(prev => prev.map(s => ({ ...s, selected: s.status === "success" })));
-  };
-
-  const deselectAll = () => {
-    setSkuList(prev => prev.map(s => ({ ...s, selected: false })));
-  };
+  const selectAll = () => { setSkuList(prev => prev.map(s => ({ ...s, selected: s.status === "success" }))); };
+  const deselectAll = () => { setSkuList(prev => prev.map(s => ({ ...s, selected: false }))); };
 
   const updateEditedName = (index: number, value: string) => {
-    setSkuList(prev => prev.map((s, idx) =>
-      idx === index ? { ...s, editedName: value } : s
-    ));
+    setSkuList(prev => prev.map((s, idx) => idx === index ? { ...s, editedName: value } : s));
   };
-
   const updateEditedPrice = (index: number, value: string) => {
-    setSkuList(prev => prev.map((s, idx) =>
-      idx === index ? { ...s, editedPrice: value } : s
-    ));
+    setSkuList(prev => prev.map((s, idx) => idx === index ? { ...s, editedPrice: value } : s));
   };
 
   const createSelectedProducts = async () => {
     const selected = skuList.filter(s => s.selected && s.status === "success" && s.data);
-
-    if (selected.length === 0) {
-      toast.error("Nenhum produto seleccionado");
-      return;
-    }
-
+    if (selected.length === 0) { toast.error("Nenhum produto seleccionado"); return; }
     setIsCreating(true);
     let successCount = 0;
     let errorCount = 0;
     const failedSkus: { sku: string; error: string }[] = [];
     let lastProductId: string | undefined;
     let lastProductName: string | undefined;
-
     for (const item of selected) {
       const finalName = item.editedName || item.data?.commercialName || item.data?.name || item.sku;
       const finalPrice = item.editedPrice ? parseFloat(item.editedPrice) : (item.data?.suggestedPrice || 0);
-
       try {
         const result = await createProduct.mutateAsync({
-          name: finalName,
-          sku: item.sku,
+          name: finalName, sku: item.sku,
           short_description: item.data?.commercialDescription || item.data?.description,
-          category: item.data?.category,
-          base_price: finalPrice,
-          product_type: "physical" as const,
-          status: "active" as const,
+          category: item.data?.category, base_price: finalPrice,
+          product_type: "physical" as const, status: "active" as const,
         });
         successCount++;
-        if (result?.id) {
-          lastProductId = result.id;
-          lastProductName = finalName;
-        }
+        if (result?.id) { lastProductId = result.id; lastProductName = finalName; }
       } catch (err) {
         console.error("Failed to create product:", item.sku, err);
         errorCount++;
-        failedSkus.push({
-          sku: item.sku,
-          error: err instanceof Error ? err.message : "Erro desconhecido",
-        });
+        failedSkus.push({ sku: item.sku, error: err instanceof Error ? err.message : "Erro desconhecido" });
       }
     }
-
-    // Also collect processing errors
-    const processingErrors = skuList
-      .filter(s => s.status === "error")
-      .map(s => ({ sku: s.sku, error: s.error || "Erro na pesquisa" }));
-
+    const processingErrors = skuList.filter(s => s.status === "error").map(s => ({ sku: s.sku, error: s.error || "Erro na pesquisa" }));
     setIsCreating(false);
-    setSummary({
-      successCount,
-      errorCount,
-      failedSkus: [...failedSkus, ...processingErrors],
-      lastCreatedProductId: lastProductId,
-      lastCreatedProductName: lastProductName,
-    });
+    setSummary({ successCount, errorCount, failedSkus: [...failedSkus, ...processingErrors], lastCreatedProductId: lastProductId, lastCreatedProductName: lastProductName });
     setPhase("summary");
   };
 
@@ -269,10 +241,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
     const content = "SKU\nSF-IPD821WA-2PW\nHIK-DS-2CD2043G2-I\nDAH-IPC-HDW2431T-AS";
     const blob = new Blob([content], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "template_skus.csv";
-    a.click();
+    const a = document.createElement("a"); a.href = url; a.download = "template_skus.csv"; a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -283,31 +252,67 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
     const content = [header, ...rows].join("\n");
     const blob = new Blob([content], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "erros_importacao.csv";
-    a.click();
+    const a = document.createElement("a"); a.href = url; a.download = "erros_importacao.csv"; a.click();
     URL.revokeObjectURL(url);
   };
 
-  const resetDialog = () => {
-    setSkuList([]);
-    setManualInput("");
-    setPhase("input");
-    setSummary(null);
-  };
+  const resetDialog = () => { setSkuList([]); setManualInput(""); setPhase("input"); setSummary(null); };
 
   const progress = skuList.length > 0
     ? ((skuList.filter(s => s.status !== "pending" && s.status !== "processing").length) / skuList.length) * 100
     : 0;
-
   const successCount = skuList.filter(s => s.status === "success").length;
   const errorCount = skuList.filter(s => s.status === "error").length;
   const selectedCount = skuList.filter(s => s.selected && s.status === "success").length;
 
+  const getCellValue = (item: SKUResult, colKey: string, idx: number, editable: boolean) => {
+    switch (colKey) {
+      case "sku":
+        return <span className="font-mono text-xs whitespace-nowrap">{item.sku}</span>;
+      case "status":
+        if (item.status === "pending") return <Badge variant="outline" className="text-[10px] px-1.5 py-0">Pendente</Badge>;
+        if (item.status === "processing") return <Badge variant="outline" className="text-[10px] px-1.5 py-0"><Loader2 className="h-3 w-3 mr-1 animate-spin" />...</Badge>;
+        if (item.status === "success") return <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/20 text-[10px] px-1.5 py-0"><CheckCircle className="h-3 w-3 mr-0.5" />OK</Badge>;
+        return <Badge variant="destructive" className="text-[10px] px-1.5 py-0"><XCircle className="h-3 w-3 mr-0.5" />Erro</Badge>;
+      case "name":
+        if (item.status !== "success" || !item.data) return <span className="text-muted-foreground text-xs">—</span>;
+        if (editable) return (
+          <Input
+            value={item.editedName ?? (item.data.commercialName || item.data.name || "")}
+            onChange={(e) => updateEditedName(idx, e.target.value)}
+            className="h-6 text-xs border-transparent bg-transparent hover:border-border focus:border-primary px-1"
+          />
+        );
+        return <span className="text-xs truncate block max-w-[200px]">{item.data.commercialName || item.data.name || "—"}</span>;
+      case "price":
+        if (item.status !== "success" || !item.data) return <span className="text-muted-foreground text-xs">—</span>;
+        if (editable) return (
+          <Input
+            type="number" step="0.01"
+            value={item.editedPrice ?? (item.data.suggestedPrice?.toString() || "")}
+            onChange={(e) => updateEditedPrice(idx, e.target.value)}
+            className="h-6 text-xs w-20 border-transparent bg-transparent hover:border-border focus:border-primary px-1 text-right"
+          />
+        );
+        return <span className="text-xs tabular-nums">{item.data.suggestedPrice ? `${item.data.suggestedPrice.toFixed(2)} €` : "—"}</span>;
+      case "category":
+        if (item.status !== "success" || !item.data?.category) return <span className="text-muted-foreground text-xs">—</span>;
+        return <span className="text-xs truncate block max-w-[140px]">{item.data.category}</span>;
+      case "description":
+        if (item.status !== "success" || !item.data) return <span className="text-muted-foreground text-xs">—</span>;
+        return <span className="text-xs truncate block max-w-[200px]">{item.data.commercialDescription || item.data.description || "—"}</span>;
+      case "technicalName":
+        if (item.status !== "success" || !item.data?.technicalName) return <span className="text-muted-foreground text-xs">—</span>;
+        return <span className="text-xs truncate block max-w-[180px]">{item.data.technicalName}</span>;
+      default: return "—";
+    }
+  };
+
+  const allSelected = skuList.length > 0 && skuList.filter(s => s.status === "success").every(s => s.selected);
+
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetDialog(); onOpenChange(v); }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-[95vw] w-[1200px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
@@ -318,7 +323,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+        <div className="space-y-3 flex-1 overflow-hidden flex flex-col">
           {/* Phase: Input */}
           {phase === "input" && (
             <Tabs defaultValue="paste" className="w-full">
@@ -332,7 +337,6 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
                   Carregar CSV
                 </TabsTrigger>
               </TabsList>
-
               <TabsContent value="paste" className="space-y-3 mt-3">
                 <Textarea
                   placeholder={"Cole os SKUs aqui, um por linha:\n\nSF-IPD821WA-2PW\nHIK-DS-2CD2043G2-I\nDAH-IPC-HDW2431T-AS"}
@@ -346,22 +350,13 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
                   Carregar SKUs
                 </Button>
               </TabsContent>
-
               <TabsContent value="csv" className="space-y-3 mt-3">
                 <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
-                  <input
-                    type="file"
-                    accept=".csv,.txt"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    id="csv-upload"
-                  />
+                  <input type="file" accept=".csv,.txt" onChange={handleFileUpload} className="hidden" id="csv-upload" />
                   <label htmlFor="csv-upload" className="cursor-pointer">
                     <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
                     <p className="text-sm font-medium">Clique para carregar ficheiro CSV</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Uma coluna com SKUs, um por linha
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Uma coluna com SKUs, um por linha</p>
                   </label>
                 </div>
                 <Button variant="outline" size="sm" onClick={downloadTemplate} className="w-full">
@@ -372,130 +367,121 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
             </Tabs>
           )}
 
-          {/* Phase: Processing & Results */}
+          {/* Phase: Processing & Results — Excel-like table */}
           {(phase === "processing" || phase === "results") && (
             <>
+              {/* Progress bar */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span>
-                    {isProcessing ? (
-                      <>A processar {skuList.filter(s => s.status === "processing").length} SKUs...</>
-                    ) : (
-                      <>Processados: {successCount + errorCount} de {skuList.length}</>
-                    )}
+                    {isProcessing
+                      ? <>A processar {skuList.filter(s => s.status === "processing").length} SKUs...</>
+                      : <>Processados: {successCount + errorCount} de {skuList.length}</>
+                    }
                   </span>
                   <div className="flex gap-2">
-                    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      {successCount}
+                    <Badge variant="secondary" className="bg-emerald-500/15 text-emerald-400 border-emerald-500/20">
+                      <CheckCircle className="h-3 w-3 mr-1" />{successCount}
                     </Badge>
-                    <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                      <XCircle className="h-3 w-3 mr-1" />
-                      {errorCount}
+                    <Badge variant="secondary" className="bg-destructive/15 text-destructive border-destructive/20">
+                      <XCircle className="h-3 w-3 mr-1" />{errorCount}
                     </Badge>
                   </div>
                 </div>
-                <Progress value={progress} className="h-2" />
+                <Progress value={progress} className="h-1.5" />
               </div>
 
-              <div className="flex items-center justify-between">
+              {/* Toolbar */}
+              <div className="flex items-center justify-between gap-2">
                 <span className="text-sm text-muted-foreground">
                   {selectedCount} seleccionados para criar
                 </span>
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="sm" onClick={selectAll}>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" onClick={selectAll} className="text-xs h-7">
                     Seleccionar Todos
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={deselectAll}>
+                  <Button variant="ghost" size="sm" onClick={deselectAll} className="text-xs h-7">
                     Limpar Selecção
                   </Button>
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-7"
+                      onClick={() => setShowColumnPicker(!showColumnPicker)}
+                    >
+                      Colunas ({visibleColumns.length})
+                    </Button>
+                    {showColumnPicker && (
+                      <div className="absolute right-0 top-full mt-1 z-50 rounded-md border bg-popover p-2 shadow-md min-w-[180px]">
+                        <p className="text-xs font-medium text-muted-foreground mb-2 px-1">Colunas visíveis</p>
+                        {columns.map(col => (
+                          <label
+                            key={col.key}
+                            className="flex items-center gap-2 py-1 px-1 rounded hover:bg-muted/50 cursor-pointer text-sm"
+                          >
+                            <Checkbox
+                              checked={col.visible}
+                              onCheckedChange={() => toggleColumn(col.key)}
+                              disabled={col.key === "sku"}
+                            />
+                            {col.label}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <ScrollArea className="flex-1 border rounded-md">
-                <div className="divide-y">
-                  {skuList.map((item, idx) => (
-                    <div key={item.sku} className="flex items-start gap-3 p-3 hover:bg-muted/50">
-                      <Checkbox
-                        checked={item.selected}
-                        onCheckedChange={() => toggleSelection(idx)}
-                        disabled={item.status !== "success"}
-                        className="mt-1"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm font-medium">{item.sku}</span>
-                          {item.status === "pending" && (
-                            <Badge variant="outline" className="text-xs">Pendente</Badge>
-                          )}
-                          {item.status === "processing" && (
-                            <Badge variant="outline" className="text-xs">
-                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                              A processar
-                            </Badge>
-                          )}
-                          {item.status === "success" && (
-                            <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-xs">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Encontrado
-                            </Badge>
-                          )}
-                          {item.status === "error" && (
-                            <Badge variant="destructive" className="text-xs">
-                              <XCircle className="h-3 w-3 mr-1" />
-                              Erro
-                            </Badge>
-                          )}
-                        </div>
-
-                        {item.status === "success" && item.data && phase === "results" && (
-                          <div className="mt-2 space-y-1.5">
-                            <div className="flex items-center gap-2">
-                              <Pencil className="h-3 w-3 text-muted-foreground shrink-0" />
-                              <Input
-                                value={item.editedName ?? (item.data.commercialName || item.data.name || "")}
-                                onChange={(e) => updateEditedName(idx, e.target.value)}
-                                className="h-7 text-sm"
-                                placeholder="Nome do produto"
-                              />
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground w-3 text-center">€</span>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={item.editedPrice ?? (item.data.suggestedPrice?.toString() || "")}
-                                onChange={(e) => updateEditedPrice(idx, e.target.value)}
-                                className="h-7 text-sm w-28"
-                                placeholder="Preço"
-                              />
-                              {item.data.category && (
-                                <Badge variant="outline" className="text-xs ml-auto">
-                                  📁 {item.data.category}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {item.status === "success" && item.data && phase === "processing" && (
-                          <div className="mt-1 space-y-1">
-                            <p className="text-sm truncate">{item.data.commercialName || item.data.name}</p>
-                            <div className="flex gap-2 text-xs text-muted-foreground">
-                              {item.data.category && <span>📁 {item.data.category}</span>}
-                              {item.data.suggestedPrice && <span>💰 €{item.data.suggestedPrice.toFixed(2)}</span>}
-                            </div>
-                          </div>
-                        )}
-
-                        {item.status === "error" && item.error && (
-                          <p className="text-xs text-destructive mt-1">{item.error}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
+              {/* Spreadsheet table */}
+              <div className="flex-1 overflow-auto border rounded-md">
+                <Table>
+                  <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-10 text-center px-2">
+                        <Checkbox
+                          checked={allSelected}
+                          onCheckedChange={() => allSelected ? deselectAll() : selectAll()}
+                        />
+                      </TableHead>
+                      <TableHead className="w-8 text-center px-1 text-xs text-muted-foreground">#</TableHead>
+                      {visibleColumns.map(col => (
+                        <TableHead
+                          key={col.key}
+                          className="text-xs font-semibold whitespace-nowrap px-2"
+                        >
+                          {col.label}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {skuList.map((item, idx) => (
+                      <TableRow
+                        key={item.sku}
+                        className={`h-8 ${item.selected ? "bg-primary/5" : ""} ${item.status === "error" ? "opacity-60" : ""}`}
+                      >
+                        <TableCell className="text-center px-2">
+                          <Checkbox
+                            checked={item.selected}
+                            onCheckedChange={() => toggleSelection(idx)}
+                            disabled={item.status !== "success"}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center px-1 text-[10px] text-muted-foreground tabular-nums">
+                          {idx + 1}
+                        </TableCell>
+                        {visibleColumns.map(col => (
+                          <TableCell key={col.key} className="px-2 py-1">
+                            {getCellValue(item, col.key, idx, phase === "results")}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </>
           )}
 
@@ -503,15 +489,15 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
           {phase === "summary" && summary && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-center">
-                  <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-green-700 dark:text-green-400">{summary.successCount}</p>
-                  <p className="text-xs text-green-600 dark:text-green-500">Produtos criados</p>
+                <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
+                  <CheckCircle className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-emerald-400">{summary.successCount}</p>
+                  <p className="text-xs text-emerald-500">Produtos criados</p>
                 </div>
-                <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-center">
-                  <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-red-700 dark:text-red-400">{summary.errorCount + (summary.failedSkus.length - summary.errorCount)}</p>
-                  <p className="text-xs text-red-600 dark:text-red-500">Falhas</p>
+                <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
+                  <XCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-destructive">{summary.errorCount + (summary.failedSkus.length - summary.errorCount)}</p>
+                  <p className="text-xs text-destructive">Falhas</p>
                 </div>
               </div>
 
@@ -544,11 +530,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
 
           {(phase === "processing" || phase === "results") && (
             <>
-              <Button
-                variant="outline"
-                onClick={resetDialog}
-                disabled={isProcessing || isCreating}
-              >
+              <Button variant="outline" onClick={resetDialog} disabled={isProcessing || isCreating}>
                 Limpar
               </Button>
 
@@ -573,15 +555,9 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
                   className="flex-1"
                 >
                   {isCreating ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      A criar...
-                    </>
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />A criar...</>
                   ) : (
-                    <>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Criar {selectedCount} Produtos
-                    </>
+                    <><Plus className="h-4 w-4 mr-2" />Criar {selectedCount} Produtos</>
                   )}
                 </Button>
               )}
