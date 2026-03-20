@@ -36,6 +36,8 @@ interface StepContent {
   image_url?: string;
   images?: string[];
   form_fields?: FormFieldConfig[];
+  testimonials?: { id: string; name: string; role: string; quote: string; avatar_url?: string; rating: number }[];
+  video?: { url: string; autoplay: boolean; loop: boolean; muted: boolean; poster_url?: string; caption?: string };
 }
 
 function parseContent(content: Json | null): StepContent {
