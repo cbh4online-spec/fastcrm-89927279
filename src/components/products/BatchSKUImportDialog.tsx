@@ -232,6 +232,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
   // URL import state
   const [feedUrl, setFeedUrl] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isEnrichingPrices, setIsEnrichingPrices] = useState(false);
 
   // Mapping phase state
   const [allCsvHeaders, setAllCsvHeaders] = useState<string[]>([]);
