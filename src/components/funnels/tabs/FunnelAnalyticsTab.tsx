@@ -29,9 +29,36 @@ const COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3
 export function FunnelAnalyticsTab({ funnelId }: Props) {
   const [dateFrom, setDateFrom] = useState(format(subDays(new Date(), 30), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [aiInsights, setAiInsights] = useState<AIInsight | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const { data: steps = [] } = useFunnelSteps(funnelId);
   const { data: rawStats = [] } = useFunnelStepStats(funnelId, dateFrom, dateTo);
+
+  const analyzeWithAI = async () => {
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("funnel-ai-insights", {
+        body: { funnel_id: funnelId },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+      setAiInsights(data);
+    } catch (e: any) {
+      toast.error("Erro ao gerar insights: " + e.message);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return "text-emerald-500";
+    if (score >= 50) return "text-amber-500";
+    return "text-destructive";
+  };
 
   // Aggregate stats by step
   const statsByStep: Record<string, Record<string, number>> = {};
