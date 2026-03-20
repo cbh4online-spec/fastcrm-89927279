@@ -247,6 +247,7 @@ export function VerticalTemplateBuilder({ templateId, onBack }: Props) {
           <TabsTrigger value="roi">ROI</TabsTrigger>
           <TabsTrigger value="aparencia">Aparência</TabsTrigger>
           <TabsTrigger value="cta-seo">CTAs & SEO</TabsTrigger>
+          <TabsTrigger value="social">Redes Sociais</TabsTrigger>
         </TabsList>
 
         {/* Tab: Identidade */}
