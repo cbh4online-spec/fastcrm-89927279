@@ -112,10 +112,27 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
   };
 
   const handleInsertVariable = useCallback((variable: string) => {
-    // This is now handled by the EmailEditorContext
-    // The VariablePicker will call context.insertVariable directly
     console.log('Insert variable via context:', variable);
   }, []);
+
+  const handleImportHtml = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const html = ev.target?.result as string;
+      if (!html?.trim()) {
+        toast.error('Ficheiro vazio');
+        return;
+      }
+      const newBlockId = addBlock('html');
+      updateBlock(newBlockId, { content: { html } });
+      toast.success('HTML importado com sucesso');
+    };
+    reader.onerror = () => toast.error('Erro ao ler ficheiro');
+    reader.readAsText(file);
+    e.target.value = '';
+  }, [addBlock, updateBlock]);
 
   const previewWidths: Record<PreviewMode, number> = {
     desktop: 600,
