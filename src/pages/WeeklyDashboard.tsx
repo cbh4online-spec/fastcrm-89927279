@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { CommandCenterHeader } from "@/components/command-center/CommandCenterHeader";
 import { AIQuestionBox } from "@/components/command-center/AIQuestionBox";
@@ -26,19 +25,12 @@ export default function WeeklyDashboard() {
   const { t } = useTranslation("dashboard");
   const { data, isLoading } = useWeeklyPerformance();
   const { strategy, isLoading: strategyLoading, generate } = useWeeklyStrategy();
-  const { todaysBrief, generateDailyBrief } = useDailyBrief();
+  const { todaysBrief } = useDailyBrief();
   const weekLabel = data?.weekLabel || "...";
   const { currentWorkspace } = useWorkspace();
   const { openDecisions } = useKernelDecisions();
 
   const briefMetrics = todaysBrief?.key_metrics;
-
-  // Auto-generate daily brief on mount if none exists today
-  useEffect(() => {
-    if (!todaysBrief) {
-      generateDailyBrief();
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <DashboardLayout>

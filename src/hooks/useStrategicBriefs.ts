@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
+import { useCreditWallet } from "@/hooks/useCreditWallet";
+
+const ACTION_KEY = "weekly_brief";
 
 export interface WeeklyBrief {
   id: string;
@@ -32,6 +35,10 @@ export function useStrategicBriefs() {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
   const [isGenerating, setIsGenerating] = useState(false);
+  const { getCost, canAfford, consumeCredits } = useCreditWallet();
+
+  const cost = getCost(ACTION_KEY);
+  const affordable = canAfford(ACTION_KEY);
 
   const queryKey = ["weekly-briefs", currentWorkspace?.id];
 
@@ -56,6 +63,11 @@ export function useStrategicBriefs() {
     if (!currentWorkspace?.id) return;
     setIsGenerating(true);
     try {
+      // Consume credits first
+      if (cost > 0) {
+        await consumeCredits.mutateAsync({ actionKey: ACTION_KEY });
+      }
+
       const { data, error } = await supabase.functions.invoke("strategic-intelligence-brief", {
         body: { workspace_id: currentWorkspace.id },
       });
@@ -72,7 +84,6 @@ export function useStrategicBriefs() {
       }
       await queryClient.invalidateQueries({ queryKey });
       toast.success("Brief executivo gerado com sucesso!");
-      console.log("[STRATEGY-BRIEF] Weekly brief generated successfully", { workspace_id: currentWorkspace.id });
       emitKernelEvent({
         workspace_id: currentWorkspace.id,
         type: "STRATEGIC_BRIEF.GENERATED",
@@ -84,7 +95,9 @@ export function useStrategicBriefs() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro ao gerar brief";
       console.error("[STRATEGY-BRIEF] Weekly brief generation failed", { error: msg });
-      toast.error(msg);
+      if (!msg.includes("créditos") && !msg.includes("credits")) {
+        toast.error(msg);
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -96,5 +109,7 @@ export function useStrategicBriefs() {
     isLoading,
     isGenerating,
     generateBrief,
+    briefCost: cost,
+    canAffordBrief: affordable,
   };
 }

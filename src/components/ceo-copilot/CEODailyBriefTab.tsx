@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import { useDailyBrief } from "@/hooks/useDailyBrief";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,15 +8,6 @@ import { cn } from "@/lib/utils";
 
 export function CEODailyBriefTab() {
   const { todaysBrief, isLoading, isGenerating, generateDailyBrief } = useDailyBrief();
-  const autoGenRef = useRef(false);
-
-  // Auto-generate on mount if no brief exists for today
-  useEffect(() => {
-    if (!isLoading && !todaysBrief && !autoGenRef.current) {
-      autoGenRef.current = true;
-      generateDailyBrief();
-    }
-  }, [isLoading, todaysBrief]);
 
   const metrics = todaysBrief?.key_metrics;
 
