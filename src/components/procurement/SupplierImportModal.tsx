@@ -142,7 +142,7 @@ export function SupplierImportModal({ open, onOpenChange, workspaceId, onComplet
               <Badge variant="default" className="bg-emerald-500/15 text-emerald-700 border-emerald-500/20">{t("validRows", { count: validCount })}</Badge>
               {invalidCount > 0 && <Badge variant="destructive">{t("invalidRows", { count: invalidCount })}</Badge>}
             </div>
-            <div className="max-h-[40vh] overflow-y-auto">
+            <div className="max-h-[40vh] overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -150,7 +150,9 @@ export function SupplierImportModal({ open, onOpenChange, workspaceId, onComplet
                     <TableHead>{t("name")}</TableHead>
                     <TableHead>{t("email")}</TableHead>
                     <TableHead>{t("vatNumber")}</TableHead>
+                    <TableHead>Telefone</TableHead>
                     <TableHead>{t("category")}</TableHead>
+                    <TableHead>Morada</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -162,7 +164,9 @@ export function SupplierImportModal({ open, onOpenChange, workspaceId, onComplet
                       <TableCell className="font-medium">{row.name || "—"}</TableCell>
                       <TableCell>{row.email || "—"}</TableCell>
                       <TableCell>{row.vat_number || "—"}</TableCell>
+                      <TableCell>{row.phone || "—"}</TableCell>
                       <TableCell>{row.category || "—"}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">{row.address || "—"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
