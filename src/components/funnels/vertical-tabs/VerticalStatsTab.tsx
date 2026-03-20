@@ -16,6 +16,8 @@ import {
   Lightbulb, AlertTriangle, DollarSign, TrendingUp
 } from "lucide-react";
 
+import { OptimizationDrawer } from "../stats/OptimizationDrawer";
+
 import { StatsOverviewTab } from "../stats/StatsOverviewTab";
 import { StatsTrendsTab } from "../stats/StatsTrendsTab";
 import { StatsSourcesTab } from "../stats/StatsSourcesTab";
