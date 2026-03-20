@@ -173,6 +173,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
   const [allRows, setAllRows] = useState<string[][]>([]);
 
   const createProduct = useCreateProduct();
+  const createProductsBatch = useCreateProductsBatch();
   const { currentWorkspace } = useWorkspace();
 
   const detectDelimiter = (firstLine: string): string => {
