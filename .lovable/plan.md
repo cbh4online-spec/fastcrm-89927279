@@ -1,56 +1,95 @@
 
 
-# Briefs Apenas Manual + Consumo de Créditos
+# Correção da Importação CSV + Enriquecimento IA de Preços de Venda
 
-## Problema
+## Problemas Identificados no CSV
 
-Os Daily Briefs e Strategic Briefs geram-se automaticamente ao abrir certas páginas (CommandCenter, WeeklyDashboard, CEODailyBriefTab), gastando créditos de IA sem controlo do utilizador.
+O CSV da Visiotech usa `;` como delimitador **e** tem campos entre aspas que contêm `;` dentro (ex: Description). O parser atual usa `.split(delimiter)` simples, que **quebra os campos quoted**. Além disso:
+- Preços têm formato `"421,27 €"` — é preciso remover `€` e espaços
+- O `confirmMapping` só mapeia 4 campos (name/description/price/category) — falta brand, cost_price, etc.
+- O `createSelectedProducts` não passa brand, direct_cost, specifications ao batch hook
 
 ## Alterações
 
-### 1. Remover auto-geração (3 ficheiros)
+### 1. Parser CSV com suporte a campos quoted
 
-**`src/pages/CommandCenter.tsx`** — remover o `useEffect` (linhas 20-25) que chama `generateDailyBrief()` automaticamente.
+**Ficheiro**: `src/components/products/BatchSKUImportDialog.tsx`
 
-**`src/pages/WeeklyDashboard.tsx`** — remover o `useEffect` (linhas 37-41) que chama `generateDailyBrief()` automaticamente.
+Adicionar função `parseCSVLine(line, delimiter)` que respeita aspas:
+- Se um campo começa com `"`, acumula até encontrar `"` de fecho
+- Suporta `""` como escape de aspas dentro de campos
+- Substitui o `.split(delimiter)` no `handleFileUpload` e `handleManualSubmit`
 
-**`src/components/ceo-copilot/CEODailyBriefTab.tsx`** — remover o `useEffect` (linhas 15-20) e o `autoGenRef` que disparam `generateDailyBrief()` automaticamente.
+### 2. Expandir `confirmMapping` para todos os campos mapeados
 
-### 2. Adicionar pricing rules para briefs (DB Migration)
+**Ficheiro**: `src/components/products/BatchSKUImportDialog.tsx`
 
-Inserir regras de preço na tabela `credit_pricing_rules`:
+Atualmente o bloco `if (!useAi)` só extrai `name`, `description`, `price`, `category`. Expandir para:
+- `brand` → `itemData.brand`
+- `cost_price` → `itemData.costPrice` (preço do fornecedor)
+- `recommended_price` → `itemData.recommendedPrice` (PVP)
+- `specifications` → `itemData.specifications`
+- `short_description`, `barcode`, `stock`, `weight`, `image_url`, `model`, `color`, `material`, `warranty`
 
-```sql
-INSERT INTO credit_pricing_rules (action_key, label, description, credits_cost, module, category, is_active)
-VALUES
-  ('daily_brief', 'Daily Revenue Brief', 'Gerar resumo executivo diário', 2, 'strategy', 'intelligence', true),
-  ('weekly_brief', 'Brief Executivo Semanal', 'Gerar brief estratégico semanal', 3, 'strategy', 'intelligence', true)
-ON CONFLICT DO NOTHING;
+Adicionar limpeza de preços: remover `€`, `$`, espaços, converter `,` → `.`
+
+### 3. Expandir `createSelectedProducts` para passar todos os campos
+
+**Ficheiro**: `src/components/products/BatchSKUImportDialog.tsx`
+
+O payload enviado ao batch hook deve incluir:
+- `direct_cost` ← preço do CSV (custo do fornecedor)
+- `base_price` ← preço de venda (calculado pela IA ou editado manualmente)
+- `commercial_description` ← descrição do CSV
+- `specifications` ← specs do CSV
+- Campos do `rawRow` mapeados: brand (guardar em category ou novo campo)
+
+### 4. IA para sugerir preços de venda
+
+**Ficheiro**: `src/components/products/BatchSKUImportDialog.tsx`
+
+Adicionar botão "Enriquecer com IA" no phase `results` que:
+- Para cada produto com preço de custo mas sem preço de venda
+- Chama `ai-product-assistant` com mode `price-analysis` em batch
+- Sugere preço de venda com margem adequada ao tipo de produto
+- Preenche `suggestedPrice` e mostra na coluna "Preço (IA)"
+- O utilizador pode aceitar ou editar antes de criar
+
+Nova opção no `confirmMapping`: **"Criar com dados CSV + Enriquecer preços com IA"**
+- Usa os dados do CSV directamente (nome, categoria, descrição)
+- Apenas chama a IA para sugerir preços de venda baseados no custo
+
+### 5. Expandir interface `SKUResult.data`
+
+Adicionar campos em falta à interface:
+```text
+brand?: string
+costPrice?: number
+recommendedPrice?: number
+barcode?: string
+weight?: string
+imageUrl?: string
+specifications?: Record<string, string>
+shortDescription?: string
 ```
 
-### 3. Consumir créditos antes de gerar (2 hooks)
+### 6. Adaptar o batch hook
 
-**`src/hooks/useDailyBrief.ts`** — em `generateDailyBrief()`:
-- Importar `useCreditWallet`
-- Antes de chamar a edge function, chamar `consumeCredits.mutateAsync({ actionKey: 'daily_brief' })`
-- Se falhar (saldo insuficiente), mostrar toast de erro e não prosseguir
-- Expor `canAfford('daily_brief')` para desabilitar o botão na UI quando sem créditos
+**Ficheiro**: `src/hooks/useProducts.ts`
 
-**`src/hooks/useStrategicBriefs.ts`** — em `generateBrief()`:
-- Mesma lógica, com `actionKey: 'weekly_brief'`
+Garantir que `CreateProductInput` já suporta todos os campos (já suporta — `direct_cost`, `specifications`, `commercial_description`, `short_description` já existem no tipo).
 
-### 4. UI — indicar custo nos botões
+## Fluxo do Utilizador com o CSV da Visiotech
 
-Nos botões "Gerar Brief" / "Gerar novo", mostrar o custo em créditos:
-- `"Gerar Brief (2 créditos)"` no daily
-- `"Gerar novo (3 créditos)"` no weekly
-- Botão disabled quando `!canAfford`
+```text
+1. Upload CSV → parser detecta ";" e campos quoted
+2. Mapping: Reference→SKU, Brand→Marca, Category→Categoria, Description→Descrição, Price→Preço de custo
+3. Opções: "Criar directamente" | "Enriquecer preços com IA" | "Enriquecer tudo com IA"
+4. Se "Enriquecer preços": IA sugere preço de venda com margem (~30-50%)
+5. Preview: utilizador vê custo + preço sugerido, pode editar
+6. Criar → batch insert com custo, preço, categoria, marca, descrição
+```
 
-Ficheiros afetados: `DailyBriefWidget.tsx`, `DailyBriefPage.tsx`, `CEODailyBriefTab.tsx`, `StrategicBriefCard.tsx`, `CommandCenter.tsx`
-
-## Resultado
-
-- Briefs nunca se geram automaticamente
-- Cada geração consome créditos da carteira do workspace
-- Utilizador vê o custo antes de clicar e não pode gerar sem saldo
+## Ficheiros Modificados
+- `src/components/products/BatchSKUImportDialog.tsx` — parser quoted CSV, expandir mapping + criação, botão IA preços
 
