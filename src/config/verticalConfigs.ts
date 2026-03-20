@@ -15,6 +15,18 @@ export interface VerticalVideoSection {
   [key: string]: string | boolean | undefined;
 }
 
+export interface SocialLinks {
+  facebook?: string;
+  instagram?: string;
+  linkedin?: string;
+  whatsapp?: string;
+  youtube?: string;
+  tiktok?: string;
+  twitter?: string;
+  website?: string;
+  publications?: { title: string; url: string }[];
+}
+
 export interface VerticalConfig {
   slug: string;
   nome: string;
@@ -31,6 +43,7 @@ export interface VerticalConfig {
   seo: { title: string; description: string; canonical: string };
   testimonials?: VerticalTestimonial[];
   video_section?: VerticalVideoSection;
+  social_links?: SocialLinks;
 }
 
 export const verticalConfigs: Record<string, VerticalConfig> = {

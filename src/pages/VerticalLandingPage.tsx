@@ -24,6 +24,7 @@ function rowToConfig(row: VerticalTemplateRow): VerticalConfig {
     seo: row.seo as VerticalConfig["seo"],
     testimonials: (row.testimonials as VerticalConfig["testimonials"]) || [],
     video_section: (row.video_section as VerticalConfig["video_section"]) || undefined,
+    social_links: (row.social_links as VerticalConfig["social_links"]) || undefined,
   };
 }
 
