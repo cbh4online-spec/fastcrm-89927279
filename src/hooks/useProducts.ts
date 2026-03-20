@@ -419,7 +419,6 @@ export function useCreateProductsBatch() {
         toInsert.push({
           ...item,
           sku,
-          barcode: item.barcode?.trim() || null,
           workspace_id: workspaceId,
           created_by: user.id,
         });
