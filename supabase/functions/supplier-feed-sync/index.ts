@@ -293,6 +293,7 @@ Responde APENAS JSON: [{"product_name":"...","category":"...","subcategory":"...
                   sku,
                   base_price: price,
                   category,
+                  subcategory,
                   short_description: description,
                   status: 'draft',
                   stock_quantity: stock,

@@ -92,7 +92,7 @@ export function SupplierFeedCategoryPreview({
                           className="p-1 rounded hover:bg-muted"
                         >
                           {s.accepted ? (
-                            <Check className="h-3.5 w-3.5 text-emerald-600" />
+                            <Check className="h-3.5 w-3.5 text-primary" />
                           ) : (
                             <X className="h-3.5 w-3.5 text-muted-foreground" />
                           )}
