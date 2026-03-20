@@ -256,6 +256,7 @@ export function StatsOverviewTab(props: Props) {
         <KPICard
           title="Submissões" value={totalSubmissions.toLocaleString()}
           icon={Users} tooltip={KPI_TOOLTIPS.submissions} trend={convTrend}
+          onClick={totalSubmissions > 0 && templateSlug ? () => navigate(`/dashboard/leads?source=${encodeURIComponent(`Landing Vertical: ${templateSlug}`)}`) : undefined}
         />
         <KPICard
           title="Bounce Rate" value={`${bounceRate.toFixed(1)}%`}
