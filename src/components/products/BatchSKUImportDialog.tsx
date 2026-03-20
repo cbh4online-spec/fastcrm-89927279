@@ -326,10 +326,8 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
       if (lines.length === 0) return;
 
       const delimiter = detectDelimiter(lines[0]);
-      const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^["']|["']$/g, ""));
-      const rows = lines.slice(1).map(line =>
-        line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ""))
-      );
+      const headers = parseCSVLine(lines[0], delimiter).map(h => h.replace(/^["']|["']$/g, ""));
+      const rows = lines.slice(1).map(line => parseCSVLine(line, delimiter));
 
       toast.success(`${rows.length} linhas · ${headers.length} colunas detectadas`);
       goToMapping(headers, rows, rows.length);
