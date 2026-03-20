@@ -188,6 +188,7 @@ export function VerticalTemplateBuilder({ templateId, onBack }: Props) {
     },
     testimonials: form.testimonials || [],
     video_section: form.video_section || undefined,
+    social_links: form.social_links || undefined,
   }), [form]);
 
   if (preview) {
