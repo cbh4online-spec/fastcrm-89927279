@@ -467,12 +467,18 @@ function ImageEditor({ element, onUpdate }: { element: EditableElement; onUpdate
   const [src, setSrc] = useState(element.attributes.src || '');
   const [alt, setAlt] = useState(element.attributes.alt || '');
   const [width, setWidth] = useState(element.attributes.width || element.styles.width || 'auto');
+  const [showUpload, setShowUpload] = useState(false);
 
   useEffect(() => {
     setSrc(element.attributes.src || '');
     setAlt(element.attributes.alt || '');
     setWidth(element.attributes.width || element.styles.width || 'auto');
   }, [element.id]);
+
+  const handleImageSelect = (url: string) => {
+    setSrc(url);
+    onUpdate({ id: element.id, property: 'src', value: url });
+  };
 
   return (
     <div className="space-y-4">
@@ -481,6 +487,23 @@ function ImageEditor({ element, onUpdate }: { element: EditableElement; onUpdate
           <img src={src} alt={alt} className="w-full h-auto max-h-40 object-contain" />
         </div>
       )}
+
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full h-9 text-xs gap-1.5"
+        onClick={() => setShowUpload(true)}
+      >
+        <Upload className="h-3 w-3" />
+        Substituir imagem
+      </Button>
+
+      <ImageUploadDialog
+        open={showUpload}
+        onClose={() => setShowUpload(false)}
+        onSelect={handleImageSelect}
+      />
+
       <div className="space-y-2">
         <Label className="text-xs font-medium">URL da imagem</Label>
         <Input value={src} onChange={(e) => { setSrc(e.target.value); onUpdate({ id: element.id, property: 'src', value: e.target.value }); }} placeholder="https://..." className="h-9 text-xs" />
