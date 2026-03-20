@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { 
   useSmartLeads, 
   useAnalyzeLead, 
@@ -41,6 +41,8 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 export function SmartLeadsTable() {
   const { t } = useTranslation("crm");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const sourceFromUrl = searchParams.get("source") || "";
 
   const LEAD_COLUMNS: ColumnConfig[] = useMemo(() => [
     { id: "name", label: t("col_lead"), category: "basic", defaultVisible: true },
@@ -153,7 +155,14 @@ export function SmartLeadsTable() {
   const [activeTab, setActiveTab] = useState("leads");
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
-  const [searchValue, setSearchValue] = useState("");
+  const [searchValue, setSearchValue] = useState(sourceFromUrl);
+
+  useEffect(() => {
+    if (sourceFromUrl) {
+      setSearchValue(sourceFromUrl);
+      setFilters(prev => ({ ...prev, search: sourceFromUrl }));
+    }
+  }, [sourceFromUrl]);
   const [sortValue, setSortValue] = useState("created_desc");
   const [importFile, setImportFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
