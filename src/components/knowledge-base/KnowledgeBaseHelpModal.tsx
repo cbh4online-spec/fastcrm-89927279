@@ -218,7 +218,7 @@ function ArticleCard({
   return (
     <button
       onClick={onClick}
-      className="w-full text-left rounded-lg border p-3 hover:border-primary/40 hover:bg-muted/30 transition-all group"
+      className="w-full text-left rounded-lg border p-3 hover:bg-secondary hover:border-primary/40 cursor-pointer transition-all group"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
