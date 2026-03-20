@@ -12,7 +12,8 @@ import {
   Send,
   FileText,
   Target,
-  Paintbrush
+  Paintbrush,
+  Code,
 } from 'lucide-react';
 import { MarketingCampaignsList } from '@/components/marketing/MarketingCampaignsList';
 import { MarketingSegmentsList } from '@/components/marketing/MarketingSegmentsList';
@@ -23,6 +24,7 @@ import { CampaignFormDialog } from '@/components/marketing/CampaignFormDialog';
 import { SegmentFormDialog } from '@/components/marketing/SegmentFormDialog';
 import { TemplateFormDialog } from '@/components/marketing/TemplateFormDialog';
 import { EmailBuilderDialog } from '@/components/marketing/EmailBuilderDialog';
+import { HtmlEmailEditorDialog } from '@/components/marketing/HtmlEmailEditorDialog';
 import { CampaignCreationFlow } from '@/components/marketing/CampaignCreationFlow';
 
 export default function Marketing() {
@@ -33,6 +35,7 @@ export default function Marketing() {
   const [showSegmentDialog, setShowSegmentDialog] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showEmailBuilder, setShowEmailBuilder] = useState(false);
+  const [showHtmlEditor, setShowHtmlEditor] = useState(false);
 
   const getAddButton = () => {
     switch (activeTab) {
