@@ -71,7 +71,7 @@ export function useBugReport() {
       setScreenshotBlob(result.blob);
     } else {
       setCaptureError(result.error);
-    }</	
+    }	
     setIsCapturing(false);
   };
 
