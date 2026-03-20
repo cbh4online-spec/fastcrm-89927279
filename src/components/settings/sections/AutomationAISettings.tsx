@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { AIProviderSettings } from "./AIProviderSettings";
 import { SettingsSection, SettingsItem } from "../SettingsSection";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -218,6 +219,9 @@ export function AutomationAISettings({ searchQuery = "", matchedSections }: Auto
           action={<Button variant="outline">Exportar</Button>}
         />
       </SettingsSection>
+
+      {/* AI Provider Configuration */}
+      <AIProviderSettings />
 
       {/* PLG Lead Routing */}
       <LeadRoutingConfig />
