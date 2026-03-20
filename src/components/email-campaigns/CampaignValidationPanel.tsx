@@ -123,70 +123,107 @@ export function CampaignValidationPanel({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {!isValidated ? (
-            <>
-              <p className="text-sm text-muted-foreground">
-                Lista por validar — {recipientCount} destinatários
+          {/* STATE B — Validating */}
+          {isValidating ? (
+            <div className="space-y-4">
+              <div className="rounded-lg border bg-muted/40 p-6 text-center animate-pulse">
+                <Loader2 className="h-8 w-8 mx-auto mb-3 animate-spin text-primary" />
+                <p className="font-medium text-sm">
+                  A validar {recipientCount} endereços...
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  A verificar sintaxe e registos MX...
+                </p>
+              </div>
+              <p className="text-xs text-center text-muted-foreground">
+                Não é possível enviar durante a validação
               </p>
-              <Button onClick={handleValidate} disabled={isValidating} className="w-full">
-                {isValidating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    A validar...
-                  </>
-                ) : (
-                  <>
-                    <ShieldCheck className="h-4 w-4 mr-2" />
-                    Validar agora
-                  </>
-                )}
+            </div>
+          ) : !isValidated ? (
+            /* STATE A — Not yet validated */
+            <>
+              <div className="rounded-lg border border-dashed p-4 text-center">
+                <ShieldCheck className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-sm font-medium">Lista por validar</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {recipientCount} destinatários aguardam verificação
+                </p>
+              </div>
+              <Button onClick={handleValidate} className="w-full">
+                <ShieldCheck className="h-4 w-4 mr-2" />
+                Validar agora
               </Button>
             </>
           ) : (
-            <>
+            /* STATE C — Validated, results shown */
+            <div className="space-y-3">
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  <span className="text-green-700 dark:text-green-400">
-                    {validRecipients} emails válidos prontos a enviar
-                  </span>
-                </div>
-                {invalidCount > 0 && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <AlertTriangle className="h-4 w-4 text-amber-500" />
-                    <span className="text-amber-700 dark:text-amber-400">
-                      {invalidCount} emails inválidos removidos
+                {validRecipients > 0 && (
+                  <div className="flex items-center gap-2 text-sm rounded-md bg-primary/5 p-2">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                    <span className="font-medium">
+                      {validRecipients} emails válidos prontos a enviar
                     </span>
+                  </div>
+                )}
+                {invalidCount > 0 && (
+                  <div className="flex items-center gap-2 text-sm rounded-md bg-destructive/5 p-2">
+                    <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
+                    <span>{invalidCount} emails inválidos removidos</span>
                   </div>
                 )}
                 {suppressedCount > 0 && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <XCircle className="h-4 w-4 text-red-500" />
-                    <span className="text-red-700 dark:text-red-400">
-                      {suppressedCount} endereços na lista de supressão
-                    </span>
+                  <div className="flex items-center gap-2 text-sm rounded-md bg-destructive/5 p-2">
+                    <XCircle className="h-4 w-4 shrink-0 text-destructive" />
+                    <span>{suppressedCount} endereços na lista de supressão</span>
                   </div>
                 )}
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowDetails(!showDetails)}
-                className="text-xs"
-              >
-                {showDetails ? <ChevronUp className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}
-                Ver detalhes
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleValidate}
-                disabled={isValidating}
-              >
-                {isValidating ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
-                Revalidar
-              </Button>
-            </>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDetails(!showDetails)}
+                  className="text-xs"
+                >
+                  {showDetails ? (
+                    <ChevronUp className="h-3 w-3 mr-1" />
+                  ) : (
+                    <ChevronDown className="h-3 w-3 mr-1" />
+                  )}
+                  Ver detalhes
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleValidate}
+                  className="text-xs"
+                >
+                  Revalidar
+                </Button>
+              </div>
+
+              {showDetails && (
+                <div className="rounded-md border p-3 text-xs space-y-1 text-muted-foreground">
+                  <p>Total verificados: {validRecipients + invalidCount + suppressedCount}</p>
+                  <p>Válidos: {validRecipients}</p>
+                  {invalidCount > 0 && <p>Inválidos: {invalidCount} (sintaxe ou MX)</p>}
+                  {suppressedCount > 0 && <p>Suprimidos: {suppressedCount}</p>}
+                  {validationRunAt && (
+                    <p>
+                      Última validação:{' '}
+                      {new Date(validationRunAt).toLocaleString('pt-PT', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -280,7 +317,7 @@ export function CampaignValidationPanel({
       <Button
         className="w-full"
         size="lg"
-        disabled={!isValidated || validRecipients === 0 || isSending}
+        disabled={!isValidated || validRecipients === 0 || isSending || isValidating}
         onClick={onSend}
       >
         {isSending ? (
@@ -295,7 +332,7 @@ export function CampaignValidationPanel({
           </>
         )}
       </Button>
-      {!isValidated && (
+      {!isValidated && !isValidating && (
         <p className="text-xs text-center text-muted-foreground">
           Valide a lista antes de enviar
         </p>
