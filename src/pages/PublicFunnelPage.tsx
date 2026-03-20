@@ -341,6 +341,7 @@ export default function PublicFunnelPage() {
             </div>
           )}
 
+          {hasForm && !formSubmitted && (
             <form onSubmit={handleFormSubmit} className="space-y-4 bg-muted/30 border rounded-xl p-6">
               {content.form_fields!.map((field) => (
                 <div key={field.id} className="space-y-1.5">
