@@ -12,6 +12,7 @@ export interface VerticalVideoSection {
   autoplay?: boolean;
   muted?: boolean;
   loop?: boolean;
+  [key: string]: string | boolean | undefined;
 }
 
 export interface VerticalConfig {
