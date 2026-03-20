@@ -35,6 +35,15 @@ const TYPE_LABELS: Record<string, { label: string; color: string }> = {
   video: { label: "Vídeo", color: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800" },
 };
 
+const POPULAR_SLUGS = [
+  "bem-vindo-ao-fastcrm",
+  "configurar-workspace",
+  "introducao-crm",
+  "primeira-campanha-email",
+  "introducao-security-ops",
+  "introducao-automacoes",
+];
+
 export function KnowledgeBaseHelpModal({ open, onOpenChange }: KnowledgeBaseHelpModalProps) {
   const {
     categories,
