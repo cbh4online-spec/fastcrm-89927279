@@ -543,6 +543,14 @@ export function VerticalTemplateBuilder({ templateId, onBack }: Props) {
                       </div>
                     </div>
                   </div>
+                  <div>
+                    <Label className="text-xs">Link do Post (opcional)</Label>
+                    <Input value={(t as any).post_url || ""} onChange={(e) => {
+                      const updated = [...(form.testimonials || [])];
+                      updated[i] = { ...t, post_url: e.target.value } as any;
+                      updateField("testimonials", updated);
+                    }} placeholder="https://linkedin.com/posts/..." className="h-8 text-sm" />
+                  </div>
                 </div>
               ))}
               {(!form.testimonials || form.testimonials.length === 0) && (
