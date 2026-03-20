@@ -100,7 +100,7 @@ export default function PublicFunnelPage() {
   const [searchParams] = useSearchParams();
   const isPreview = searchParams.get("preview") === "true";
 
-  const [funnel, setFunnel] = useState<{ id: string; name: string; slug: string } | null>(null);
+  const [funnel, setFunnel] = useState<{ id: string; name: string; slug: string; workspace_id?: string } | null>(null);
   const [steps, setSteps] = useState<FunnelStep[]>([]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -109,11 +109,12 @@ export default function PublicFunnelPage() {
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const trackedSteps = useState<Set<string>>(() => new Set())[0];
 
   useEffect(() => {
     async function load() {
       if (!slug) { setError("Funil não encontrado"); setLoading(false); return; }
-      let query = supabase.from("funnels").select("id, name, slug").eq("slug", slug);
+      let query = supabase.from("funnels").select("id, name, slug, workspace_id").eq("slug", slug);
       if (!isPreview) query = query.eq("is_published", true);
       const { data: f, error: fErr } = await query.maybeSingle();
       if (fErr || !f) { setError("Funil não encontrado ou não publicado"); setLoading(false); return; }
@@ -126,6 +127,22 @@ export default function PublicFunnelPage() {
     }
     load();
   }, [slug, isPreview, searchParams]);
+
+  // Track page_view for each step
+  useEffect(() => {
+    if (!funnel?.workspace_id || steps.length === 0) return;
+    const step = steps[currentStepIndex];
+    if (!step || trackedSteps.has(step.id)) return;
+    trackedSteps.add(step.id);
+    const today = new Date().toISOString().split("T")[0];
+    supabase.from("funnel_step_stats").insert({
+      step_id: step.id,
+      workspace_id: funnel.workspace_id,
+      event_type: "page_view",
+      event_date: today,
+      count: 1,
+    }).then(() => {});
+  }, [funnel, steps, currentStepIndex, trackedSteps]);
 
   useEffect(() => {
     setFormData({});
