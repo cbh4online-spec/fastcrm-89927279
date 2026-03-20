@@ -405,10 +405,29 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
           if (field === "ignore" || field === "extra" || !columnIncluded[header]) continue;
           const idx = allCsvHeaders.indexOf(header);
           const val = cells[idx] || "";
-          if (field === "name") itemData.name = val;
-          if (field === "description") itemData.description = val;
-          if (field === "price") itemData.suggestedPrice = parseFloat(val.replace(",", ".")) || undefined;
-          if (field === "category") itemData.category = val;
+          if (!val) continue;
+          switch (field) {
+            case "name": itemData.name = val; break;
+            case "description": itemData.description = val; break;
+            case "short_description": itemData.shortDescription = val; break;
+            case "price": itemData.suggestedPrice = sanitizePrice(val); break;
+            case "cost_price": itemData.costPrice = sanitizePrice(val); break;
+            case "recommended_price": itemData.recommendedPrice = sanitizePrice(val); break;
+            case "category": itemData.category = val; break;
+            case "subcategory": itemData.subcategory = val; break;
+            case "brand": itemData.brand = val; break;
+            case "barcode": itemData.barcode = val; break;
+            case "stock": itemData.stock = parseInt(val) || undefined; break;
+            case "weight": itemData.weight = val; break;
+            case "image_url": itemData.imageUrl = val; break;
+            case "model": itemData.model = val; break;
+            case "specifications": itemData.specifications = { specs: val }; break;
+            case "related_products": itemData.relatedProducts = val; break;
+            case "dimensions": itemData.dimensions = val; break;
+            case "color": itemData.color = val; break;
+            case "material": itemData.material = val; break;
+            case "warranty": itemData.warranty = val; break;
+          }
         }
       }
 
