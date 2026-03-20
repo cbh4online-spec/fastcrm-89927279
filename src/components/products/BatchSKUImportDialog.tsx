@@ -1139,7 +1139,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
           )}
           {(phase === "processing" || phase === "results") && (
             <>
-              <Button variant="outline" onClick={resetDialog} disabled={isProcessing || isCreating}>Limpar</Button>
+              <Button variant="outline" onClick={resetDialog} disabled={isProcessing || isCreating || isEnrichingPrices}>Limpar</Button>
               {phase === "processing" && !isProcessing && progress < 100 && (
                 <Button onClick={processSkus} className="flex-1">
                   <Sparkles className="h-4 w-4 mr-2" />Iniciar Pesquisa IA
@@ -1151,12 +1151,25 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
                 </Button>
               )}
               {(phase === "results" || (phase === "processing" && progress === 100)) && (
-                <Button onClick={createSelectedProducts} disabled={isCreating || selectedCount === 0} className="flex-1">
-                  {isCreating
-                    ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />A criar...</>
-                    : <><Plus className="h-4 w-4 mr-2" />Criar {selectedCount} Produtos</>
-                  }
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={enrichPricesWithAI}
+                    disabled={isCreating || isEnrichingPrices || selectedCount === 0}
+                    className="gap-1.5"
+                  >
+                    {isEnrichingPrices
+                      ? <><Loader2 className="h-4 w-4 animate-spin" />Enriquecendo...</>
+                      : <><Sparkles className="h-4 w-4" />Sugerir Preços (IA)</>
+                    }
+                  </Button>
+                  <Button onClick={createSelectedProducts} disabled={isCreating || selectedCount === 0} className="flex-1">
+                    {isCreating
+                      ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />A criar...</>
+                      : <><Plus className="h-4 w-4 mr-2" />Criar {selectedCount} Produtos</>
+                    }
+                  </Button>
+                </>
               )}
             </>
           )}
