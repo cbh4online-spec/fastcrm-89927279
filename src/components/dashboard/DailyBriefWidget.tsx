@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 export function DailyBriefWidget() {
   const { t } = useTranslation("dashboard");
   const navigate = useNavigate();
-  const { todaysBrief, isLoading, isGenerating, generateDailyBrief } = useDailyBrief();
+  const { todaysBrief, isLoading, isGenerating, generateDailyBrief, briefCost, canAffordBrief } = useDailyBrief();
   const { data: weeklyData } = useWeeklyPerformance();
 
   if (isLoading) {
