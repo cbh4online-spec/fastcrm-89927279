@@ -40,6 +40,7 @@ import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { CampaignFormDialog } from './CampaignFormDialog';
 import { CampaignDetailDialog } from './CampaignDetailDialog';
+import { CampaignCardBadges } from './CampaignCardBadges';
 import type { MarketingCampaign } from '@/types/marketing';
 
 interface MarketingCampaignsListProps {
