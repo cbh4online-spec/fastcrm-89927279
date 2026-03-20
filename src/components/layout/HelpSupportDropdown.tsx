@@ -21,6 +21,7 @@ export function HelpSupportDropdown() {
   const { t } = useTranslation("nav");
   const [kbOpen, setKbOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [bugReportOpen, setBugReportOpen] = useState(false);
 
   // Global "?" shortcut
   useEffect(() => {
