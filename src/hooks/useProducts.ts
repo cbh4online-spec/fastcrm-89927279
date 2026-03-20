@@ -345,6 +345,7 @@ export function useCreateProductsBatch() {
 
   return useMutation({
     mutationFn: async (items: CreateProductInput[]) => {
+      console.log("[BATCH_HOOK] Received items:", items.length);
       if (!currentWorkspace?.id || !user?.id) {
         throw new Error("Workspace ou utilizador não encontrado");
       }
