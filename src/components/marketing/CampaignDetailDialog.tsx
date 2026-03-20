@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -24,7 +25,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { useCampaignRecipients, useCampaignEvents } from '@/hooks/useMarketingCampaigns';
+import { useCampaignRecipients, useCampaignEvents, useUpdateCampaign, useSendCampaign } from '@/hooks/useMarketingCampaigns';
 import { 
   calculateCampaignStats, 
   CAMPAIGN_STATUS_LABELS, 
@@ -37,6 +38,9 @@ import { DeliverabilityPanel } from './DeliverabilityPanel';
 import { ActivityFeed } from './ActivityFeed';
 import { ClickHeatmapPanel } from './ClickHeatmapPanel';
 import { TriggerBuilder } from './TriggerBuilder';
+import { CampaignValidationPanel } from '@/components/email-campaigns/CampaignValidationPanel';
+import { CampaignSendModeSelector } from '@/components/email-campaigns/CampaignSendModeSelector';
+import { CampaignQueueStatus } from '@/components/email-campaigns/CampaignQueueStatus';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 interface CampaignDetailDialogProps {
@@ -50,9 +54,12 @@ export function CampaignDetailDialog({
   onOpenChange,
   campaign,
 }: CampaignDetailDialogProps) {
+  const [readyToSend, setReadyToSend] = useState(false);
   const { data: recipients = [] } = useCampaignRecipients(campaign?.id);
   const { data: events = [] } = useCampaignEvents(campaign?.id);
   const { currentWorkspace } = useWorkspace();
+  const updateCampaign = useUpdateCampaign();
+  const sendCampaign = useSendCampaign();
 
   if (!campaign) return null;
 

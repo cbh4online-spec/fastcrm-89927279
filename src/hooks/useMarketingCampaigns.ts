@@ -181,6 +181,9 @@ export function useUpdateCampaign() {
       segmentId?: string;
       status?: CampaignStatus;
       scheduledAt?: string;
+      sendMode?: string;
+      batchSize?: number;
+      batchIntervalMinutes?: number;
     }) => {
       const updateData: any = {};
       
@@ -195,6 +198,9 @@ export function useUpdateCampaign() {
       if (data.segmentId !== undefined) updateData.segment_id = data.segmentId;
       if (data.status !== undefined) updateData.status = data.status;
       if (data.scheduledAt !== undefined) updateData.scheduled_at = data.scheduledAt;
+      if (data.sendMode !== undefined) updateData.send_mode = data.sendMode;
+      if (data.batchSize !== undefined) updateData.batch_size = data.batchSize;
+      if (data.batchIntervalMinutes !== undefined) updateData.batch_interval_minutes = data.batchIntervalMinutes;
 
       const { data: result, error } = await supabase
         .from('marketing_campaigns')
