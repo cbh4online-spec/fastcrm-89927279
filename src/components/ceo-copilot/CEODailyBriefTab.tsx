@@ -7,7 +7,7 @@ import { RefreshCw, TrendingUp, Users, AlertTriangle, CheckCircle, Flame, Target
 import { cn } from "@/lib/utils";
 
 export function CEODailyBriefTab() {
-  const { todaysBrief, isLoading, isGenerating, generateDailyBrief } = useDailyBrief();
+  const { todaysBrief, isLoading, isGenerating, generateDailyBrief, briefCost, canAffordBrief } = useDailyBrief();
 
   const metrics = todaysBrief?.key_metrics;
 
