@@ -99,8 +99,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Insert event record
-    await supabase.from("marketing_events").insert({
+    // Insert event record (non-blocking)
+    supabase.from("marketing_events").insert({
       workspace_id: recipient.workspace_id,
       campaign_id: recipient.campaign_id,
       recipient_id: recipient.id,
@@ -114,7 +114,32 @@ Deno.serve(async (req) => {
         bounce_type: payload.data.bounce?.type,
       },
       occurred_at: payload.created_at || now,
-    });
+    }).then(() => {});
+
+    // Track clicks in campaign_link_clicks for heatmap
+    if (mappedEventType === "clicked" && payload.data.click?.link) {
+      supabase.from("campaign_link_clicks").insert({
+        campaign_id: recipient.campaign_id,
+        workspace_id: recipient.workspace_id,
+        recipient_email: recipient.email,
+        link_url: payload.data.click.link,
+        link_label: null,
+        clicked_at: payload.created_at || now,
+        user_agent: null,
+        ip_hash: null,
+      }).then(() => {});
+    }
+
+    // Auto-suppress on hard bounce or spam complaint
+    if (mappedEventType === "bounced" || mappedEventType === "complained") {
+      const reason = mappedEventType === "bounced" ? "hard_bounce" : "spam_complaint";
+      supabase.from("campaign_suppressions").upsert({
+        workspace_id: recipient.workspace_id,
+        email: recipient.email,
+        reason,
+        campaign_id: recipient.campaign_id,
+      }, { onConflict: "workspace_id,email" }).then(() => {});
+    }
 
     // Update recipient record based on event type
     const recipientUpdate: Record<string, unknown> = {
