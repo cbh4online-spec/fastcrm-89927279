@@ -14,7 +14,8 @@ interface Props {
 
 type FilterType = "all" | "conversions" | "visits";
 
-export function StatsTimelineTab({ timeline }: Props) {
+export function StatsTimelineTab({ timeline, templateSlug }: Props) {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<FilterType>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("");
 
