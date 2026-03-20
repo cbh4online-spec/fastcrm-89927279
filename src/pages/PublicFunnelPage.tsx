@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase as _supabase } from "@/integrations/supabase/client";
 const supabase = _supabase as any;
-import { Loader2, ArrowRight, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
+import { Loader2, ArrowRight, ChevronLeft, ChevronRight, CheckCircle2, Star, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
