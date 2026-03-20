@@ -60,7 +60,7 @@ export function CampaignValidationPanel({
   isSending,
 }: CampaignValidationPanelProps) {
   const { validate, isValidating } = useCampaignValidation(campaignId);
-  const { queueStats, pauseQueue, resumeQueue } = useCampaignSendQueue(campaignId);
+  const { queueStatus, progressPercentage } = useCampaignSendQueue(campaignId);
   const [showDetails, setShowDetails] = useState(false);
 
   const isValidated = !!validationRunAt;
