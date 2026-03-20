@@ -174,6 +174,15 @@ export function VerticalStatsTab({ templateSlug }: Props) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <OptimizationDrawer
+            templateSlug={templateSlug}
+            conversionRate={conversionRate}
+            bounceRate={bounceRate}
+            sources={sources}
+            devices={devices}
+            sections={sections}
+            events={events as StatsEvent[]}
+          />
         </div>
       </div>
 
