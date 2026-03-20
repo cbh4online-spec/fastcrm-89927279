@@ -35,22 +35,24 @@ export default function VerticalLandingPage() {
   const staticConfig = getVerticalBySlug(slug);
 
   const [dynamicConfig, setDynamicConfig] = useState<VerticalConfig | null>(null);
-  const [loading, setLoading] = useState(!staticConfig);
+  const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    if (!staticConfig) {
-      setLoading(true);
-      fetchPublishedTemplateBySlug(slug).then((row) => {
-        if (row) setDynamicConfig(rowToConfig(row));
-        else setNotFound(true);
-        setLoading(false);
-      });
-    }
+    setLoading(true);
+    fetchPublishedTemplateBySlug(slug).then((row) => {
+      if (row) {
+        setDynamicConfig(rowToConfig(row));
+      } else if (!staticConfig) {
+        setNotFound(true);
+      }
+      setLoading(false);
+    });
   }, [slug, staticConfig]);
 
-  const config = staticConfig || dynamicConfig;
+  // DB template takes priority over static config
+  const config = dynamicConfig || staticConfig;
 
   if (loading) return <div className="min-h-screen bg-[hsl(222,47%,4%)]" />;
   if (!config || notFound) return <NotFound />;

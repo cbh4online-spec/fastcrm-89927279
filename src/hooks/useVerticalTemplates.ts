@@ -163,6 +163,8 @@ export function useEnsureVerticalTemplate(slug: string | undefined) {
         cta_secundario: cfg.cta_secundario,
         ai_persona_nome: cfg.ai_persona_nome,
         seo: cfg.seo,
+        testimonials: cfg.testimonials || [],
+        video_section: cfg.video_section || null,
         is_published: true,
         created_by: null,
       };
