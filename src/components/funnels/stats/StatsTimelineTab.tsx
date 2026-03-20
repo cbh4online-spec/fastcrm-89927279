@@ -1,18 +1,21 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Clock, Monitor, Smartphone, Tablet, ChevronDown, Star, User, Play } from "lucide-react";
+import { Clock, Monitor, Smartphone, Tablet, ChevronDown, Star, User, Play, ExternalLink } from "lucide-react";
 import { type TimelineEvent } from "./statsHelpers";
 
 interface Props {
   timeline: TimelineEvent[];
+  templateSlug?: string;
 }
 
 type FilterType = "all" | "conversions" | "visits";
 
-export function StatsTimelineTab({ timeline }: Props) {
+export function StatsTimelineTab({ timeline, templateSlug }: Props) {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<FilterType>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("");
 
@@ -64,9 +67,23 @@ export function StatsTimelineTab({ timeline }: Props) {
         <span className="text-xs text-muted-foreground truncate flex-1">{evt.source}</span>
         <span className="text-xs text-muted-foreground shrink-0">{evt.location}</span>
         {evt.contactName && (
-          <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 gap-1">
+          <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 gap-1" onClick={(e) => { e.stopPropagation(); }}>
             <User className="h-3 w-3" />
             {evt.contactName}
+          </Button>
+        )}
+        {isConversion && templateSlug && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-[10px] px-2 gap-1 text-emerald-400 hover:text-emerald-300"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/dashboard/leads?source=${encodeURIComponent(`Landing Vertical: ${templateSlug}`)}`);
+            }}
+          >
+            <ExternalLink className="h-3 w-3" />
+            Ver Lead
           </Button>
         )}
       </div>

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useLeads, useDeleteLeads, LeadStatus } from "@/hooks/useLeads";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -47,11 +47,17 @@ const statusLabels: Record<LeadStatus, string> = {
 };
 
 export function LeadsList() {
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  const sourceFromUrl = searchParams.get("source") || "";
+  const [search, setSearch] = useState(sourceFromUrl);
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  useEffect(() => {
+    if (sourceFromUrl) setSearch(sourceFromUrl);
+  }, [sourceFromUrl]);
 
   const { data: leads, isLoading } = useLeads({
     search: search || undefined,

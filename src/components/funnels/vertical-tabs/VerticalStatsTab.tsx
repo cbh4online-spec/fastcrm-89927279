@@ -224,6 +224,7 @@ export function VerticalStatsTab({ templateSlug }: Props) {
               sources={sources}
               onAnalyzeAI={analyzeWithAI}
               aiLoading={aiLoading}
+              templateSlug={templateSlug}
             />
           </TabsContent>
 
@@ -244,7 +245,7 @@ export function VerticalStatsTab({ templateSlug }: Props) {
           </TabsContent>
 
           <TabsContent value="timeline">
-            <StatsTimelineTab timeline={timeline} />
+            <StatsTimelineTab timeline={timeline} templateSlug={templateSlug} />
           </TabsContent>
         </Tabs>
       )}

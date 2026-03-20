@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,17 +25,19 @@ interface Props {
   sources: SourceData[];
   onAnalyzeAI: () => void;
   aiLoading: boolean;
+  templateSlug?: string;
 }
 
-function KPICard({ title, value, subtitle, icon: Icon, tooltip, trend, belowBenchmark }: {
+function KPICard({ title, value, subtitle, icon: Icon, tooltip, trend, belowBenchmark, onClick }: {
   title: string; value: string; subtitle?: string;
   icon: any; tooltip: string; trend: KPITrend; belowBenchmark?: boolean;
+  onClick?: () => void;
 }) {
   const trendColor = trend.direction === "up" ? "text-emerald-400" : trend.direction === "down" ? "text-red-400" : "text-muted-foreground";
   const TrendIcon = trend.direction === "up" ? ArrowUpRight : trend.direction === "down" ? ArrowDownRight : Minus;
 
   return (
-    <Card className="border-white/[0.08] rounded-xl relative group">
+    <Card className={`border-white/[0.08] rounded-xl relative group ${onClick ? "cursor-pointer hover:border-amber-500/30 hover:shadow-md transition-all" : ""}`} onClick={onClick}>
       {belowBenchmark && (
         <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Abaixo do benchmark" />
       )}
@@ -228,7 +231,8 @@ function BenchmarkComparison({ userRate }: { userRate: number }) {
 }
 
 export function StatsOverviewTab(props: Props) {
-  const { totalViews, totalUnique, totalSubmissions, conversionRate, bounceRate, events, sources, onAnalyzeAI, aiLoading } = props;
+  const { totalViews, totalUnique, totalSubmissions, conversionRate, bounceRate, events, sources, onAnalyzeAI, aiLoading, templateSlug } = props;
+  const navigate = useNavigate();
 
   const viewTrend = computeTrend(events, "view");
   const convTrend = computeTrend(events, "form_submit");
@@ -252,6 +256,7 @@ export function StatsOverviewTab(props: Props) {
         <KPICard
           title="Submissões" value={totalSubmissions.toLocaleString()}
           icon={Users} tooltip={KPI_TOOLTIPS.submissions} trend={convTrend}
+          onClick={totalSubmissions > 0 && templateSlug ? () => navigate(`/dashboard/leads?source=${encodeURIComponent(`Landing Vertical: ${templateSlug}`)}`) : undefined}
         />
         <KPICard
           title="Bounce Rate" value={`${bounceRate.toFixed(1)}%`}
