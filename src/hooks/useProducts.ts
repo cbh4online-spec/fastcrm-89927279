@@ -337,6 +337,114 @@ export function useDeleteProduct() {
   });
 }
 
+// Batch insert: creates many products in a single DB call
+export function useCreateProductsBatch() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (items: CreateProductInput[]) => {
+      if (!currentWorkspace?.id || !user?.id) {
+        throw new Error("Workspace ou utilizador não encontrado");
+      }
+
+      const workspaceId = currentWorkspace.id;
+
+      // 1. Collect all SKUs and check duplicates in ONE query
+      const skus = items.map(i => i.sku?.trim()).filter(Boolean) as string[];
+      let existingSkus = new Set<string>();
+      if (skus.length > 0) {
+        // Query in batches of 200 to avoid URL length limits
+        for (let i = 0; i < skus.length; i += 200) {
+          const batch = skus.slice(i, i + 200);
+          const { data } = await supabase
+            .from("products")
+            .select("sku")
+            .eq("workspace_id", workspaceId)
+            .in("sku", batch);
+          if (data) {
+            for (const d of data) {
+              if (d.sku) existingSkus.add(d.sku.toLowerCase());
+            }
+          }
+        }
+      }
+
+      // 2. Collect unique categories and ensure they exist (batch)
+      const uniqueCategories = [...new Set(
+        items.map(i => i.category?.trim()).filter(Boolean) as string[]
+      )];
+      for (const cat of uniqueCategories) {
+        await ensureCategoryExists(cat, workspaceId);
+      }
+
+      // 3. Filter out items with duplicate SKUs and prepare insert payload
+      const toInsert: Record<string, any>[] = [];
+      const skipped: { sku: string; reason: string }[] = [];
+      const seenSkus = new Set<string>();
+
+      for (const item of items) {
+        const sku = item.sku?.trim();
+        if (sku) {
+          const lower = sku.toLowerCase();
+          if (existingSkus.has(lower)) {
+            skipped.push({ sku, reason: "SKU duplicado na base de dados" });
+            continue;
+          }
+          if (seenSkus.has(lower)) {
+            skipped.push({ sku, reason: "SKU duplicado no lote" });
+            continue;
+          }
+          seenSkus.add(lower);
+        }
+
+        toInsert.push({
+          ...item,
+          workspace_id: workspaceId,
+          created_by: user.id,
+        });
+      }
+
+      // 4. Insert in batches of 500
+      let created = 0;
+      for (let i = 0; i < toInsert.length; i += 500) {
+        const batch = toInsert.slice(i, i + 500);
+        const { error } = await supabase
+          .from("products")
+          .insert(batch as any);
+        if (error) throw error;
+        created += batch.length;
+      }
+
+      return { created, skipped };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product-categories"] });
+      const msg = result.skipped.length > 0
+        ? `${result.created} produto(s) criado(s), ${result.skipped.length} ignorado(s) (duplicados)`
+        : `${result.created} produto(s) criado(s) com sucesso!`;
+      toast.success(msg);
+      console.log(`[PRODUCTS] Batch created: ${result.created}, skipped: ${result.skipped.length}`);
+      if (currentWorkspace?.id) {
+        emitKernelEvent({
+          workspace_id: currentWorkspace.id,
+          type: 'PRODUCT.BATCH_CREATED',
+          entity_kind: 'product',
+          entity_id: 'batch',
+          source_module: 'sales-products',
+          payload: { created: result.created, skipped: result.skipped.length },
+        });
+      }
+    },
+    onError: (error) => {
+      console.warn('[PRODUCTS] BATCH_CREATE_FAILED', error.message);
+      toast.error("Erro ao criar produtos em lote: " + error.message);
+    },
+  });
+}
+
 export function useProductCategories() {
   const { currentWorkspace } = useWorkspace();
 
