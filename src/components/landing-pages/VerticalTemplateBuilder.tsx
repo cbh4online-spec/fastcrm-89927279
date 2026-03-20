@@ -52,6 +52,7 @@ const defaultForm = (): FormData => ({
   seo: { title: "", description: "", canonical: "" },
   testimonials: [],
   video_section: { url: "", caption: "", autoplay: false, muted: true, loop: false },
+  social_links: { facebook: "", instagram: "", linkedin: "", whatsapp: "", youtube: "", tiktok: "", twitter: "", website: "", publications: [] },
 });
 
 type FormData = Omit<VerticalTemplateRow, "id" | "workspace_id" | "created_at" | "updated_at" | "created_by" | "is_published">;
