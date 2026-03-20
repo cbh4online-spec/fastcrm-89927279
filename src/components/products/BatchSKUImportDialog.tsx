@@ -154,6 +154,60 @@ const AUTO_MAP_PATTERNS: [RegExp, string][] = [
 const BATCH_SIZE = 5;
 const BATCH_DELAY_MS = 500;
 
+/** RFC 4180–compliant CSV line parser that handles quoted fields containing delimiters */
+function parseCSVLine(line: string, delimiter: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (i + 1 < line.length && line[i + 1] === '"') {
+          current += '"';
+          i++; // skip escaped quote
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === delimiter) {
+        result.push(current.trim());
+        current = "";
+      } else {
+        current += ch;
+      }
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+/** Clean price string: remove currency symbols, spaces; convert comma decimal */
+function sanitizePrice(val: string): number | undefined {
+  if (!val) return undefined;
+  // Remove currency symbols, spaces, non-breaking spaces
+  let cleaned = val.replace(/[€$£\s\u00A0]/g, "").trim();
+  // If has both . and , — determine which is decimal separator
+  if (cleaned.includes(",") && cleaned.includes(".")) {
+    // e.g. "1.234,56" → European format
+    if (cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".")) {
+      cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+    } else {
+      // e.g. "1,234.56" → US format
+      cleaned = cleaned.replace(/,/g, "");
+    }
+  } else if (cleaned.includes(",")) {
+    cleaned = cleaned.replace(",", ".");
+  }
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? undefined : num;
+}
+
 const SYSTEM_COLUMNS = [
   { key: "__status", label: "Estado" },
   { key: "__ai_name", label: "Nome (IA)" },
