@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { ArrowLeft, Eye, Save, Globe, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, Eye, Save, Globe, Sparkles, Loader2, Star, Trash2, Plus, Play } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
