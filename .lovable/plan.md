@@ -1,31 +1,21 @@
 
 
-## Linkar Submissões às Leads do Funil
+## Importar Ficheiro HTML no Editor de Email
 
 ### O que será feito
-Tornar o KPI "Submissões" clicável para navegar para a lista de leads filtrada pela fonte do funil, e nas conversões da Timeline adicionar um botão "Ver Lead" que abre o detalhe da lead.
+Adicionar um botão "Importar HTML" no header do Email Builder que permite ao utilizador carregar um ficheiro `.html` do computador. O conteúdo HTML será inserido como um bloco HTML personalizado no canvas.
 
 ### Alterações
 
-#### 1. `src/components/funnels/stats/StatsOverviewTab.tsx`
-- Adicionar prop `onClick` opcional ao `KPICard`
-- Quando `onClick` existe, mostrar cursor pointer e efeito hover
-- No card "Submissões", passar `onClick` que navega para `/dashboard/leads?source=Landing Vertical: {slug}`
-- Receber `templateSlug` como nova prop do componente
-
-#### 2. `src/components/funnels/stats/StatsTimelineTab.tsx`
-- Nas linhas de conversão (`form_submit`), adicionar botão "Ver Lead" que navega para `/dashboard/leads?source=Landing Vertical: {slug}`
-- Receber `templateSlug` como nova prop
-
-#### 3. `src/components/funnels/vertical-tabs/VerticalStatsTab.tsx`
-- Passar `templateSlug` para `StatsOverviewTab` e `StatsTimelineTab`
-
-#### 4. Verificação da lista de Leads
-- Confirmar que `LeadsList.tsx` suporta filtro via query param `source` — se não, adicionar leitura de `searchParams` para pré-filtrar por fonte
+#### `src/components/email-builder/EmailBuilder.tsx`
+- Adicionar botão "Importar" no header (junto ao botão "HTML"), com ícone `Upload`
+- Criar `<input type="file" accept=".html,.htm" />` hidden, triggered pelo botão
+- No `onChange` do input:
+  - Ler o ficheiro com `FileReader.readAsText()`
+  - Chamar `addBlock('html')` para criar um bloco HTML
+  - Imediatamente fazer `updateBlock(newBlockId, { content: { html: conteúdo } })` com o HTML importado
+- Mostrar toast de sucesso/erro
 
 ### Ficheiros a alterar
-- `src/components/funnels/stats/StatsOverviewTab.tsx`
-- `src/components/funnels/stats/StatsTimelineTab.tsx`
-- `src/components/funnels/vertical-tabs/VerticalStatsTab.tsx`
-- `src/components/crm/LeadsList.tsx` (se necessário para suportar filtro por query param)
+- `src/components/email-builder/EmailBuilder.tsx`
 
