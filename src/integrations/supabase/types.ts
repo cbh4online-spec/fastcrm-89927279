@@ -3773,6 +3773,116 @@ export type Database = {
           },
         ]
       }
+      bug_reports: {
+        Row: {
+          admin_notes: string | null
+          app_version: string | null
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_url: string | null
+          browser_name: string | null
+          browser_version: string | null
+          category: string
+          created_at: string
+          description: string
+          id: string
+          os_name: string | null
+          os_version: string | null
+          priority: string
+          resolved_at: string | null
+          resolved_by: string | null
+          route: string | null
+          screen_height: number | null
+          screen_width: number | null
+          screenshot_url: string | null
+          status: string
+          ticket_number: string
+          title: string
+          updated_at: string
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+          user_name: string | null
+          viewport_height: number | null
+          viewport_width: number | null
+          workspace_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          app_version?: string | null
+          attachment_name?: string | null
+          attachment_size?: number | null
+          attachment_url?: string | null
+          browser_name?: string | null
+          browser_version?: string | null
+          category: string
+          created_at?: string
+          description: string
+          id?: string
+          os_name?: string | null
+          os_version?: string | null
+          priority?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          route?: string | null
+          screen_height?: number | null
+          screen_width?: number | null
+          screenshot_url?: string | null
+          status?: string
+          ticket_number?: string
+          title: string
+          updated_at?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+          viewport_height?: number | null
+          viewport_width?: number | null
+          workspace_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          app_version?: string | null
+          attachment_name?: string | null
+          attachment_size?: number | null
+          attachment_url?: string | null
+          browser_name?: string | null
+          browser_version?: string | null
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          os_name?: string | null
+          os_version?: string | null
+          priority?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          route?: string | null
+          screen_height?: number | null
+          screen_width?: number | null
+          screenshot_url?: string | null
+          status?: string
+          ticket_number?: string
+          title?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+          viewport_height?: number | null
+          viewport_width?: number | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bug_reports_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_context: {
         Row: {
           active_strategies: string[] | null

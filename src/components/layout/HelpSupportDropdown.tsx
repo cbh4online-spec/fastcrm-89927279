@@ -15,11 +15,13 @@ import { toast } from "sonner";
 import { KnowledgeBaseHelpModal } from "@/components/knowledge-base/KnowledgeBaseHelpModal";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts/KeyboardShortcutsModal";
 import { ShortcutCombo } from "@/components/keyboard-shortcuts/KbdKey";
+import { BugReportModal } from "@/components/bug-report/BugReportModal";
 
 export function HelpSupportDropdown() {
   const { t } = useTranslation("nav");
   const [kbOpen, setKbOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [bugReportOpen, setBugReportOpen] = useState(false);
 
   // Global "?" shortcut
   useEffect(() => {
@@ -82,7 +84,7 @@ export function HelpSupportDropdown() {
             <MessageCircle className="mr-2 h-4 w-4" />
             {t("supportChat")}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => toast.info(t("bugReportWip"))} className="text-amber-600">
+          <DropdownMenuItem onClick={() => setBugReportOpen(true)} className="text-destructive">
             <Bug className="mr-2 h-4 w-4" />
             {t("reportBug")}
           </DropdownMenuItem>
@@ -91,6 +93,7 @@ export function HelpSupportDropdown() {
 
       <KnowledgeBaseHelpModal open={kbOpen} onOpenChange={setKbOpen} />
       <KeyboardShortcutsModal open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <BugReportModal open={bugReportOpen} onClose={() => setBugReportOpen(false)} />
     </>
   );
 }

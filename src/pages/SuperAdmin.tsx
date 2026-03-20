@@ -22,6 +22,7 @@ import {
   RolloutDashboardSection,
   PricingManagementSection,
 } from "@/components/super-admin";
+import BugReportsAdminPage from "@/components/super-admin/BugReportsSection";
 import { AdminSettingsPanel } from "@/components/admin/AdminSettingsPanel";
 import { UserRolesPanel } from "@/components/admin/UserRolesPanel";
 import { WorkspaceInstancesTable } from "@/components/admin/WorkspaceInstancesTable";
@@ -104,6 +105,8 @@ export default function SuperAdmin() {
         return <WorkspacesSection />; // Filter for suspended
       case "moderation":
         return <ModerationSection />;
+      case "bug-reports":
+        return <BugReportsAdminPage />;
       case "activity-logs":
         return <ActivityLogsSection />;
       case "logs":

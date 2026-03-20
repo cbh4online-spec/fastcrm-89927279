@@ -25,6 +25,7 @@ import {
   Bell,
   Database,
   Package,
+  Bug,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -101,6 +102,7 @@ const navigation: NavSection[] = [
       { id: "incidents", label: "Incidentes", icon: ShieldAlert },
       { id: "blocks", label: "Bloqueios", icon: Lock },
       { id: "moderation", label: "Moderação", icon: ShieldAlert },
+      { id: "bug-reports", label: "Reportes de Problema", icon: Bug },
     ],
   },
   {
