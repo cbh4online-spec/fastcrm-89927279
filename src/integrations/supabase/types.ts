@@ -20728,6 +20728,189 @@ export type Database = {
           },
         ]
       }
+      kb_ai_queries: {
+        Row: {
+          ai_response: string
+          created_at: string
+          id: string
+          query: string
+          user_id: string | null
+          was_helpful: boolean | null
+        }
+        Insert: {
+          ai_response: string
+          created_at?: string
+          id?: string
+          query: string
+          user_id?: string | null
+          was_helpful?: boolean | null
+        }
+        Update: {
+          ai_response?: string
+          created_at?: string
+          id?: string
+          query?: string
+          user_id?: string | null
+          was_helpful?: boolean | null
+        }
+        Relationships: []
+      }
+      kb_article_views: {
+        Row: {
+          article_id: string
+          id: string
+          user_id: string
+          viewed_at: string
+        }
+        Insert: {
+          article_id: string
+          id?: string
+          user_id: string
+          viewed_at?: string
+        }
+        Update: {
+          article_id?: string
+          id?: string
+          user_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kb_article_views_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "kb_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kb_articles: {
+        Row: {
+          article_type: string
+          category_slug: string
+          content_md: string
+          created_at: string
+          id: string
+          is_published: boolean
+          related_slugs: string[]
+          slug: string
+          sort_order: number
+          summary: string
+          tags: string[]
+          title: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          article_type?: string
+          category_slug: string
+          content_md: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          related_slugs?: string[]
+          slug: string
+          sort_order?: number
+          summary: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          article_type?: string
+          category_slug?: string
+          content_md?: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          related_slugs?: string[]
+          slug?: string
+          sort_order?: number
+          summary?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kb_articles_category_slug_fkey"
+            columns: ["category_slug"]
+            isOneToOne: false
+            referencedRelation: "kb_categories"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
+      kb_categories: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          icon: string
+          id: string
+          slug: string
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          description?: string | null
+          icon: string
+          id?: string
+          slug: string
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          slug?: string
+          sort_order?: number
+          title?: string
+        }
+        Relationships: []
+      }
+      kb_feedback: {
+        Row: {
+          article_id: string
+          comment: string | null
+          created_at: string
+          id: string
+          is_helpful: boolean
+          user_id: string
+        }
+        Insert: {
+          article_id: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_helpful: boolean
+          user_id: string
+        }
+        Update: {
+          article_id?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_helpful?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kb_feedback_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "kb_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kernel_action_runs: {
         Row: {
           action_key: string
@@ -42929,6 +43112,10 @@ export type Database = {
       }
       increment_campaign_stat: {
         Args: { p_campaign_id: string; p_field: string }
+        Returns: undefined
+      }
+      increment_kb_article_views: {
+        Args: { p_article_id: string }
         Returns: undefined
       }
       increment_listing_views: {
