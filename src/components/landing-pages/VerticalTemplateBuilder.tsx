@@ -50,6 +50,8 @@ const defaultForm = (): FormData => ({
   cta_secundario: "Receber Plano Personalizado",
   ai_persona_nome: "",
   seo: { title: "", description: "", canonical: "" },
+  testimonials: [],
+  video_section: { url: "", caption: "", autoplay: false, muted: true, loop: false },
 });
 
 type FormData = Omit<VerticalTemplateRow, "id" | "workspace_id" | "created_at" | "updated_at" | "created_by" | "is_published">;
