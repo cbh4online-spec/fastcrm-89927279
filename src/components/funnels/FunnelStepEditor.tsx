@@ -29,6 +29,7 @@ interface TestimonialItem {
   quote: string;
   avatar_url?: string;
   rating: number;
+  post_url?: string;
 }
 
 interface VideoConfig {
