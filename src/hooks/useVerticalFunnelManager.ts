@@ -185,6 +185,20 @@ export interface VerticalTemplateStatRow {
   rate: number;
 }
 
+export interface VerticalEventRow {
+  event_type: string;
+  session_id: string;
+  created_at: string;
+  referrer: string | null;
+  device_type: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  country: string | null;
+  city: string | null;
+  page_section: string | null;
+}
+
 export function useVerticalTemplateStats(templateSlug: string | null, dateFrom?: string, dateTo?: string) {
   return useQuery({
     queryKey: ["vertical_template_stats", templateSlug, dateFrom, dateTo],
@@ -223,6 +237,26 @@ export function useVerticalTemplateStats(templateSlug: string | null, dateFrom?:
           rate: allViews > 0 ? (submissions / allViews) * 100 : 0,
         },
       ] as VerticalTemplateStatRow[];
+    },
+    enabled: !!templateSlug,
+  });
+}
+
+export function useVerticalFullEvents(templateSlug: string | null, dateFrom?: string, dateTo?: string) {
+  return useQuery({
+    queryKey: ["vertical_full_events", templateSlug, dateFrom, dateTo],
+    queryFn: async (): Promise<VerticalEventRow[]> => {
+      if (!templateSlug) return [];
+      let q = (supabase as any)
+        .from("vertical_landing_events")
+        .select("event_type, session_id, created_at, referrer, device_type, utm_source, utm_medium, utm_campaign, country, city, page_section")
+        .eq("template_slug", templateSlug)
+        .order("created_at", { ascending: true });
+      if (dateFrom) q = q.gte("created_at", dateFrom);
+      if (dateTo) q = q.lte("created_at", dateTo);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as VerticalEventRow[];
     },
     enabled: !!templateSlug,
   });
