@@ -233,11 +233,13 @@ export function VerticalTemplateBuilder({ templateId, onBack }: Props) {
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid grid-cols-7 w-full">
+        <TabsList className="flex flex-wrap gap-1">
           <TabsTrigger value="identidade">Identidade</TabsTrigger>
           <TabsTrigger value="dores">Dores</TabsTrigger>
           <TabsTrigger value="solucao">Solução</TabsTrigger>
           <TabsTrigger value="transformacao">Transformação</TabsTrigger>
+          <TabsTrigger value="testemunhos">Testemunhos</TabsTrigger>
+          <TabsTrigger value="video">Vídeo</TabsTrigger>
           <TabsTrigger value="roi">ROI</TabsTrigger>
           <TabsTrigger value="aparencia">Aparência</TabsTrigger>
           <TabsTrigger value="cta-seo">CTAs & SEO</TabsTrigger>
