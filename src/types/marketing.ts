@@ -91,6 +91,18 @@ export interface MarketingCampaign {
   aiInsightsGeneratedAt?: string;
   sendHour?: number;
   linkCount?: number;
+  // Deliverability
+  sendMode?: string;
+  batchSize?: number;
+  batchIntervalMinutes?: number;
+  sendPaused?: boolean;
+  validationRunAt?: string | null;
+  validatedCount?: number;
+  invalidCount?: number;
+  suppressedCount?: number;
+  queueTotal?: number;
+  queueSent?: number;
+  queueFailed?: number;
   // Computed
   segment?: MarketingSegment;
   template?: MarketingTemplate;
