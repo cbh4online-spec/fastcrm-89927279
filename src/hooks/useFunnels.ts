@@ -202,8 +202,10 @@ export function useCreateFunnel() {
       // Create 3 default steps
       const defaultSteps = [
         { name: "Home", step_type: "page", sort_order: 0 },
-        { name: "Formulário", step_type: "optin", sort_order: 1 },
-        { name: "Obrigado", step_type: "thankyou", sort_order: 2 },
+        { name: "Vídeo", step_type: "video", sort_order: 1 },
+        { name: "Formulário", step_type: "optin", sort_order: 2 },
+        { name: "Testemunhos", step_type: "testimonials", sort_order: 3 },
+        { name: "Obrigado", step_type: "thankyou", sort_order: 4 },
       ];
       await supabase.from("funnel_steps").insert(
         defaultSteps.map((s) => ({

@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { ArrowLeft, Eye, Save, Globe, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, Eye, Save, Globe, Sparkles, Loader2, Star, Trash2, Plus, Play } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,8 @@ import {
 } from "@/hooks/useVerticalTemplates";
 import { VerticalLandingTemplate } from "@/components/vertical-landing/VerticalLandingTemplate";
 import { AppearanceEditor, defaultAppearance, type AppearanceValues } from "@/components/funnels/AppearanceEditor";
-import type { VerticalConfig } from "@/config/verticalConfigs";
+import type { VerticalConfig, VerticalTestimonial, VerticalVideoSection } from "@/config/verticalConfigs";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
@@ -49,6 +50,8 @@ const defaultForm = (): FormData => ({
   cta_secundario: "Receber Plano Personalizado",
   ai_persona_nome: "",
   seo: { title: "", description: "", canonical: "" },
+  testimonials: [],
+  video_section: { url: "", caption: "", autoplay: false, muted: true, loop: false },
 });
 
 type FormData = Omit<VerticalTemplateRow, "id" | "workspace_id" | "created_at" | "updated_at" | "created_by" | "is_published">;
@@ -230,11 +233,13 @@ export function VerticalTemplateBuilder({ templateId, onBack }: Props) {
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid grid-cols-7 w-full">
+        <TabsList className="flex flex-wrap gap-1">
           <TabsTrigger value="identidade">Identidade</TabsTrigger>
           <TabsTrigger value="dores">Dores</TabsTrigger>
           <TabsTrigger value="solucao">Solução</TabsTrigger>
           <TabsTrigger value="transformacao">Transformação</TabsTrigger>
+          <TabsTrigger value="testemunhos">Testemunhos</TabsTrigger>
+          <TabsTrigger value="video">Vídeo</TabsTrigger>
           <TabsTrigger value="roi">ROI</TabsTrigger>
           <TabsTrigger value="aparencia">Aparência</TabsTrigger>
           <TabsTrigger value="cta-seo">CTAs & SEO</TabsTrigger>
@@ -453,6 +458,167 @@ export function VerticalTemplateBuilder({ templateId, onBack }: Props) {
                   ))}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab: Testemunhos */}
+        <TabsContent value="testemunhos">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2"><Star className="h-4 w-4" /> Testemunhos de Clientes</CardTitle>
+                <Button size="sm" variant="outline" onClick={() => updateField("testimonials", [
+                  ...(form.testimonials || []),
+                  { name: "", role: "", quote: "", rating: 5 },
+                ])}>
+                  <Plus className="h-3 w-3 mr-1" /> Adicionar
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {(form.testimonials || []).map((t, i) => (
+                <div key={i} className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                  <div className="flex items-start justify-between">
+                    <span className="text-xs font-semibold text-muted-foreground">Testemunho #{i + 1}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => {
+                      const updated = (form.testimonials || []).filter((_, j) => j !== i);
+                      updateField("testimonials", updated);
+                    }}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Nome</Label>
+                      <Input value={t.name} onChange={(e) => {
+                        const updated = [...(form.testimonials || [])];
+                        updated[i] = { ...t, name: e.target.value };
+                        updateField("testimonials", updated);
+                      }} placeholder="Maria Silva" className="h-8 text-sm" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Cargo / Empresa</Label>
+                      <Input value={t.role} onChange={(e) => {
+                        const updated = [...(form.testimonials || [])];
+                        updated[i] = { ...t, role: e.target.value };
+                        updateField("testimonials", updated);
+                      }} placeholder="CEO, Empresa X" className="h-8 text-sm" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Testemunho</Label>
+                    <Textarea value={t.quote} onChange={(e) => {
+                      const updated = [...(form.testimonials || [])];
+                      updated[i] = { ...t, quote: e.target.value };
+                      updateField("testimonials", updated);
+                    }} placeholder="O que esta pessoa disse..." rows={3} className="text-sm" />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Avatar URL (opcional)</Label>
+                      <Input value={t.avatar_url || ""} onChange={(e) => {
+                        const updated = [...(form.testimonials || [])];
+                        updated[i] = { ...t, avatar_url: e.target.value };
+                        updateField("testimonials", updated);
+                      }} placeholder="https://..." className="h-8 text-sm" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Avaliação</Label>
+                      <div className="flex gap-1 mt-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button key={star} onClick={() => {
+                            const updated = [...(form.testimonials || [])];
+                            updated[i] = { ...t, rating: star };
+                            updateField("testimonials", updated);
+                          }} className="focus:outline-none">
+                            <Star className={`h-5 w-5 ${star <= t.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`} />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {(!form.testimonials || form.testimonials.length === 0) && (
+                <div className="text-center py-8 text-muted-foreground text-sm border-2 border-dashed rounded-lg">
+                  <Star className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Nenhum testemunho</p>
+                  <p className="text-xs mt-1">Adiciona testemunhos para aumentar credibilidade</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab: Vídeo */}
+        <TabsContent value="video">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Play className="h-4 w-4" /> Secção de Vídeo</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>URL do Vídeo</Label>
+                <Input
+                  value={form.video_section?.url || ""}
+                  onChange={(e) => updateField("video_section", { ...form.video_section, url: e.target.value } as any)}
+                  placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..."
+                />
+                <p className="text-xs text-muted-foreground mt-1">Suporta YouTube, Vimeo ou URL direta (.mp4)</p>
+              </div>
+              <div>
+                <Label>Legenda / Título da secção</Label>
+                <Input
+                  value={form.video_section?.caption || ""}
+                  onChange={(e) => updateField("video_section", { ...form.video_section, caption: e.target.value } as any)}
+                  placeholder="Veja como funciona o FastCRM"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={form.video_section?.autoplay || false}
+                    onCheckedChange={(v) => updateField("video_section", { ...form.video_section, autoplay: v } as any)}
+                  />
+                  <Label className="text-sm">Autoplay</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={form.video_section?.loop || false}
+                    onCheckedChange={(v) => updateField("video_section", { ...form.video_section, loop: v } as any)}
+                  />
+                  <Label className="text-sm">Loop</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={form.video_section?.muted ?? true}
+                    onCheckedChange={(v) => updateField("video_section", { ...form.video_section, muted: v } as any)}
+                  />
+                  <Label className="text-sm">Mudo</Label>
+                </div>
+              </div>
+              {form.video_section?.url && (
+                <div className="border rounded-lg overflow-hidden">
+                  <p className="text-xs font-medium text-muted-foreground p-2">Pré-visualização:</p>
+                  {form.video_section.url.includes("youtube.com") || form.video_section.url.includes("youtu.be") ? (
+                    <iframe
+                      src={`https://www.youtube.com/embed/${form.video_section.url.match(/(?:v=|youtu\.be\/)([^&?]+)/)?.[1] || ""}`}
+                      className="w-full aspect-video"
+                      allowFullScreen
+                      allow="autoplay; encrypted-media"
+                    />
+                  ) : form.video_section.url.includes("vimeo.com") ? (
+                    <iframe
+                      src={`https://player.vimeo.com/video/${form.video_section.url.match(/vimeo\.com\/(\d+)/)?.[1] || ""}`}
+                      className="w-full aspect-video"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <video src={form.video_section.url} controls className="w-full aspect-video" />
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
