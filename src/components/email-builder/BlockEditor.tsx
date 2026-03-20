@@ -364,18 +364,44 @@ export function BlockEditor({
     const content = block.content as HtmlBlockContent;
     return (
       <div className="space-y-4">
-        <div className="space-y-2">
-          <Label className="text-xs">Código HTML Personalizado</Label>
-          <Textarea
-            value={content.html}
-            onChange={(e) => updateContent({ html: e.target.value })}
-            className="min-h-[200px] font-mono text-xs"
-            placeholder="<!-- HTML personalizado -->"
-          />
-          <p className="text-xs text-muted-foreground">
-            Código HTML avançado. Use com cuidado.
-          </p>
-        </div>
+        <Tabs defaultValue="code">
+          <TabsList className="grid w-full grid-cols-2 h-8">
+            <TabsTrigger value="code" className="text-xs">Código</TabsTrigger>
+            <TabsTrigger value="preview" className="text-xs">Preview</TabsTrigger>
+          </TabsList>
+          <TabsContent value="code" className="mt-2">
+            <div className="space-y-2">
+              <Label className="text-xs">Código HTML</Label>
+              <Textarea
+                value={content.html}
+                onChange={(e) => updateContent({ html: e.target.value })}
+                className="min-h-[350px] font-mono text-xs leading-relaxed"
+                placeholder="<!-- Cole ou edite o HTML aqui -->"
+                spellCheck={false}
+              />
+            </div>
+          </TabsContent>
+          <TabsContent value="preview" className="mt-2">
+            <div className="border rounded-md overflow-hidden bg-white">
+              {content.html ? (
+                <iframe
+                  srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;font-family:Arial,sans-serif;}</style></head><body>${content.html}</body></html>`}
+                  className="w-full border-0"
+                  style={{ minHeight: 300 }}
+                  title="HTML Preview"
+                  sandbox="allow-same-origin"
+                />
+              ) : (
+                <div className="p-8 text-center text-muted-foreground">
+                  <p className="text-xs">Sem conteúdo HTML</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+        <p className="text-xs text-muted-foreground">
+          Edite o HTML diretamente no separador Código. Use o Preview para verificar o resultado.
+        </p>
       </div>
     );
   };
