@@ -38724,6 +38724,7 @@ export type Database = {
           roi_exemplo: Json
           seo: Json
           slug: string
+          social_links: Json | null
           testimonials: Json | null
           updated_at: string
           vertical_id: string | null
@@ -38748,6 +38749,7 @@ export type Database = {
           roi_exemplo?: Json
           seo?: Json
           slug: string
+          social_links?: Json | null
           testimonials?: Json | null
           updated_at?: string
           vertical_id?: string | null
@@ -38772,6 +38774,7 @@ export type Database = {
           roi_exemplo?: Json
           seo?: Json
           slug?: string
+          social_links?: Json | null
           testimonials?: Json | null
           updated_at?: string
           vertical_id?: string | null
