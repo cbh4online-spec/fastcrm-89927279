@@ -22,6 +22,8 @@ function rowToConfig(row: VerticalTemplateRow): VerticalConfig {
     cta_secundario: row.cta_secundario,
     ai_persona_nome: row.ai_persona_nome,
     seo: row.seo as VerticalConfig["seo"],
+    testimonials: (row.testimonials as VerticalConfig["testimonials"]) || [],
+    video_section: (row.video_section as VerticalConfig["video_section"]) || undefined,
   };
 }
 
