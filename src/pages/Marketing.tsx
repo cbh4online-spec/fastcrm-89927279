@@ -168,6 +168,11 @@ export default function Marketing() {
         open={showEmailBuilder}
         onOpenChange={setShowEmailBuilder}
       />
+
+      <HtmlEmailEditorDialog
+        open={showHtmlEditor}
+        onOpenChange={setShowHtmlEditor}
+      />
     </DashboardLayout>
   );
 }
