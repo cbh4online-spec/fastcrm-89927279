@@ -67,6 +67,16 @@ const AI_SUGGESTIONS: Record<string, string[]> = {
     "Oferta complementar irresistível pós-compra",
     "Bump offer com benefício extra limitado",
   ],
+  testimonials: [
+    "Gera 3 testemunhos para um curso de marketing digital",
+    "Testemunhos de clientes satisfeitos com consultoria",
+    "Avaliações de utilizadores de software SaaS",
+  ],
+  video: [
+    "Copy para vídeo de apresentação do produto",
+    "Texto de introdução para vídeo de vendas",
+    "Descrição para vídeo tutorial de onboarding",
+  ],
   page: [
     "Landing page para serviço de consultoria",
     "Página de vendas com benefícios e prova social",
