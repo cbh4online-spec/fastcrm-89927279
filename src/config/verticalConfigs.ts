@@ -1,3 +1,19 @@
+export interface VerticalTestimonial {
+  name: string;
+  role: string;
+  quote: string;
+  avatar_url?: string;
+  rating: number;
+}
+
+export interface VerticalVideoSection {
+  url: string;
+  caption?: string;
+  autoplay?: boolean;
+  muted?: boolean;
+  loop?: boolean;
+}
+
 export interface VerticalConfig {
   slug: string;
   nome: string;
@@ -12,6 +28,8 @@ export interface VerticalConfig {
   cta_secundario: string;
   ai_persona_nome: string;
   seo: { title: string; description: string; canonical: string };
+  testimonials?: VerticalTestimonial[];
+  video_section?: VerticalVideoSection;
 }
 
 export const verticalConfigs: Record<string, VerticalConfig> = {
