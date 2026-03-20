@@ -620,6 +620,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/ai-sales-coach" element={<AISalesCoachPage />} />
                 <Route path="/dashboard/ai-document-ocr" element={<AIDocumentOCRPage />} />
                 <Route path="/dashboard/email-campaigns" element={<EmailCampaignsPage />} />
+                <Route path="/dashboard/email-campaigns/suppressions" element={<SuppressionsPage />} />
                 <Route path="/dashboard/imo-ai" element={<IMOAIPage />} />
                 <Route path="/dashboard/zapier" element={<ZapierPage />} />
                 
