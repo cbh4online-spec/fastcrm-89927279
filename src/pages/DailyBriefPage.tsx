@@ -13,7 +13,7 @@ import { useDailyBrief } from "@/hooks/useDailyBrief";
 import { formatDate, formatRelativeTime, formatCurrency } from "@/lib/formatters";
 
 export default function DailyBriefPage() {
-  const { briefs, todaysBrief, isLoading, isGenerating, generateDailyBrief } = useDailyBrief();
+  const { briefs, todaysBrief, isLoading, isGenerating, generateDailyBrief, briefCost, canAffordBrief } = useDailyBrief();
   const metrics = todaysBrief?.key_metrics;
 
   const kpis = [
@@ -31,10 +31,10 @@ export default function DailyBriefPage() {
           description={`Resumo executivo das últimas 24h — ${formatDate(new Date(), "dd MMMM yyyy")}`}
           actions={[
             {
-              label: isGenerating ? "A gerar..." : "Gerar Brief",
+              label: isGenerating ? "A gerar..." : `Gerar Brief (${briefCost} créd.)`,
               icon: <RefreshCw className={`h-4 w-4 ${isGenerating ? "animate-spin" : ""}`} />,
               onClick: generateDailyBrief,
-              disabled: isGenerating,
+              disabled: isGenerating || !canAffordBrief,
             },
           ]}
         />
@@ -55,8 +55,8 @@ export default function DailyBriefPage() {
               <p className="text-sm text-muted-foreground mb-4 max-w-md">
                 Gere o seu primeiro Daily Revenue Brief para obter um resumo executivo das últimas 24h.
               </p>
-              <Button onClick={generateDailyBrief} disabled={isGenerating}>
-                {isGenerating ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" /> A gerar...</> : "Gerar Agora"}
+              <Button onClick={generateDailyBrief} disabled={isGenerating || !canAffordBrief}>
+                {isGenerating ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" /> A gerar...</> : `Gerar Agora (${briefCost} créd.)`}
               </Button>
             </CardContent>
           </Card>

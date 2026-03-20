@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { CommandCenterHeader } from "@/components/command-center/CommandCenterHeader";
 import { AIQuestionBox } from "@/components/command-center/AIQuestionBox";
 import { KernelDecisionsCard } from "@/components/command-center/KernelDecisionsCard";
@@ -14,15 +13,8 @@ import { useKernelDecisions } from "@/hooks/useKernelDecisions";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
 export default function CommandCenter() {
-  const { todaysBrief, generateDailyBrief } = useDailyBrief();
+  const { todaysBrief } = useDailyBrief();
   const { openDecisions } = useKernelDecisions();
-
-  // Auto-generate daily brief on mount if none exists today
-  useEffect(() => {
-    if (!todaysBrief) {
-      generateDailyBrief();
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const metrics = todaysBrief?.key_metrics;
 

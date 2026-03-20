@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import { useDailyBrief } from "@/hooks/useDailyBrief";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,16 +7,7 @@ import { RefreshCw, TrendingUp, Users, AlertTriangle, CheckCircle, Flame, Target
 import { cn } from "@/lib/utils";
 
 export function CEODailyBriefTab() {
-  const { todaysBrief, isLoading, isGenerating, generateDailyBrief } = useDailyBrief();
-  const autoGenRef = useRef(false);
-
-  // Auto-generate on mount if no brief exists for today
-  useEffect(() => {
-    if (!isLoading && !todaysBrief && !autoGenRef.current) {
-      autoGenRef.current = true;
-      generateDailyBrief();
-    }
-  }, [isLoading, todaysBrief]);
+  const { todaysBrief, isLoading, isGenerating, generateDailyBrief, briefCost, canAffordBrief } = useDailyBrief();
 
   const metrics = todaysBrief?.key_metrics;
 
@@ -40,9 +30,9 @@ export function CEODailyBriefTab() {
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12 gap-4">
           <p className="text-muted-foreground">Nenhum brief disponível</p>
-          <Button onClick={generateDailyBrief} disabled={isGenerating}>
+          <Button onClick={generateDailyBrief} disabled={isGenerating || !canAffordBrief}>
             <RefreshCw className="h-4 w-4 mr-2" />
-            Gerar Daily Brief
+            Gerar Daily Brief ({briefCost} créd.)
           </Button>
         </CardContent>
       </Card>
@@ -161,9 +151,9 @@ export function CEODailyBriefTab() {
 
       {/* Regenerate */}
       <div className="flex justify-end">
-        <Button variant="outline" onClick={generateDailyBrief} disabled={isGenerating} size="sm">
+        <Button variant="outline" onClick={generateDailyBrief} disabled={isGenerating || !canAffordBrief} size="sm">
           <RefreshCw className={cn("h-4 w-4 mr-2", isGenerating && "animate-spin")} />
-          Regenerar Brief
+          Regenerar Brief ({briefCost} créd.)
         </Button>
       </div>
     </div>

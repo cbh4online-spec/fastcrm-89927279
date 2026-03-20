@@ -8,7 +8,7 @@ import { pt } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 
 export function StrategicBriefCard({ delay = 0 }: { delay?: number }) {
-  const { latestBrief, isLoading, isGenerating, generateBrief } = useStrategicBriefs();
+  const { latestBrief, isLoading, isGenerating, generateBrief, briefCost, canAffordBrief } = useStrategicBriefs();
   const navigate = useNavigate();
 
   if (isLoading) {
@@ -42,14 +42,14 @@ export function StrategicBriefCard({ delay = 0 }: { delay?: number }) {
           size="sm"
           className="h-6 text-[10px] gap-1"
           onClick={generateBrief}
-          disabled={isGenerating}
+          disabled={isGenerating || !canAffordBrief}
         >
           {isGenerating ? (
             <Loader2 className="h-3 w-3 animate-spin" />
           ) : (
             <RefreshCw className="h-3 w-3" />
           )}
-          {isGenerating ? "A gerar..." : "Gerar novo"}
+          {isGenerating ? "A gerar..." : `Gerar novo (${briefCost} créd.)`}
         </Button>
       </div>
 
@@ -90,9 +90,9 @@ export function StrategicBriefCard({ delay = 0 }: { delay?: number }) {
             size="sm"
             className="text-xs"
             onClick={generateBrief}
-            disabled={isGenerating}
+            disabled={isGenerating || !canAffordBrief}
           >
-            {isGenerating ? "A gerar..." : "Gerar primeiro brief"}
+            {isGenerating ? "A gerar..." : `Gerar primeiro brief (${briefCost} créd.)`}
           </Button>
         </div>
       )}

@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 export function DailyBriefWidget() {
   const { t } = useTranslation("dashboard");
   const navigate = useNavigate();
-  const { todaysBrief, isLoading, isGenerating, generateDailyBrief } = useDailyBrief();
+  const { todaysBrief, isLoading, isGenerating, generateDailyBrief, briefCost, canAffordBrief } = useDailyBrief();
   const { data: weeklyData } = useWeeklyPerformance();
 
   if (isLoading) {
@@ -45,8 +45,8 @@ export function DailyBriefWidget() {
           </div>
           <p className="text-sm font-medium text-foreground mb-1">{t("noBriefGenerated")}</p>
           <p className="text-xs text-muted-foreground mb-3 max-w-xs">{t("noBriefHint")}</p>
-          <Button size="sm" onClick={generateDailyBrief} disabled={isGenerating}>
-            {isGenerating ? <><RefreshCw className="h-3 w-3 mr-1.5 animate-spin" /> {t("generating")}</> : t("generateBrief")}
+          <Button size="sm" onClick={generateDailyBrief} disabled={isGenerating || !canAffordBrief}>
+            {isGenerating ? <><RefreshCw className="h-3 w-3 mr-1.5 animate-spin" /> {t("generating")}</> : `${t("generateBrief")} (${briefCost} créd.)`}
           </Button>
         </CardContent>
       </Card>

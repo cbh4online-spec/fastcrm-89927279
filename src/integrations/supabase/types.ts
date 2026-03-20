@@ -13586,6 +13586,42 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_pricing_rules: {
+        Row: {
+          action_key: string
+          category: string
+          created_at: string
+          credits_cost: number
+          description: string | null
+          id: string
+          is_active: boolean
+          label: string
+          module: string
+        }
+        Insert: {
+          action_key: string
+          category?: string
+          created_at?: string
+          credits_cost?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          module?: string
+        }
+        Update: {
+          action_key?: string
+          category?: string
+          created_at?: string
+          credits_cost?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          module?: string
+        }
+        Relationships: []
+      }
       credit_proposals: {
         Row: {
           ai_analyzed_at: string | null
