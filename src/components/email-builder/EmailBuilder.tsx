@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { 
   LayoutGrid, 
   Palette, 
@@ -9,8 +9,10 @@ import {
   Tablet,
   Smartphone,
   Code,
+  Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
@@ -47,6 +49,7 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
   const [showPreview, setShowPreview] = useState(false);
   const [showHtml, setShowHtml] = useState(false);
   const [imageUploaderBlockId, setImageUploaderBlockId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     design,
@@ -109,10 +112,27 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
   };
 
   const handleInsertVariable = useCallback((variable: string) => {
-    // This is now handled by the EmailEditorContext
-    // The VariablePicker will call context.insertVariable directly
     console.log('Insert variable via context:', variable);
   }, []);
+
+  const handleImportHtml = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const html = ev.target?.result as string;
+      if (!html?.trim()) {
+        toast.error('Ficheiro vazio');
+        return;
+      }
+      const newBlockId = addBlock('html');
+      updateBlock(newBlockId, { content: { html } });
+      toast.success('HTML importado com sucesso');
+    };
+    reader.onerror = () => toast.error('Erro ao ler ficheiro');
+    reader.readAsText(file);
+    e.target.value = '';
+  }, [addBlock, updateBlock]);
 
   const previewWidths: Record<PreviewMode, number> = {
     desktop: 600,
@@ -175,6 +195,18 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
             <Code className="h-3.5 w-3.5 mr-1.5" />
             HTML
           </Button>
+          
+          <Button variant="outline" size="sm" className="h-8" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="h-3.5 w-3.5 mr-1.5" />
+            Importar
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".html,.htm"
+            className="hidden"
+            onChange={handleImportHtml}
+          />
           
           <Button variant="outline" size="sm" className="h-8" onClick={() => setShowPreview(true)}>
             <Eye className="h-3.5 w-3.5 mr-1.5" />
