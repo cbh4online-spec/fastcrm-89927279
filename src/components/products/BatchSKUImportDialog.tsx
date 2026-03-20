@@ -291,7 +291,12 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
     const skus = lines
       .map(l => l.split(/[,;|\t]/)[0]?.trim())
       .filter(s => s && s.length >= 3);
-    const unique = [...new Set(skus)];
+    const uniqueByNormalized = new Map<string, string>();
+    for (const sku of skus) {
+      const key = sku.toLowerCase();
+      if (!uniqueByNormalized.has(key)) uniqueByNormalized.set(key, sku);
+    }
+    const unique = [...uniqueByNormalized.values()];
     if (unique.length === 0) { toast.error("Nenhum SKU válido encontrado"); return; }
     setCsvHeaders([]);
     setVisibleCsvCols(new Set());
@@ -318,8 +323,9 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
 
     for (const cells of allRows) {
       const sku = cells[skuIdx]?.trim();
-      if (!sku || sku.length < 2 || seenSkus.has(sku)) continue;
-      seenSkus.add(sku);
+      const normalizedSku = sku?.toLowerCase();
+      if (!sku || sku.length < 2 || !normalizedSku || seenSkus.has(normalizedSku)) continue;
+      seenSkus.add(normalizedSku);
 
       const rawRow: Record<string, string> = {};
       allCsvHeaders.forEach((h, i) => {

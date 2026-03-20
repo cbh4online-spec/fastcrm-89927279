@@ -343,9 +343,25 @@ export function useCreateProductsBatch() {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
 
+  const isUniqueViolation = (error: { code?: string; message?: string } | null) =>
+    error?.code === "23505" || error?.message?.toLowerCase().includes("duplicate key") === true;
+
+  const getDuplicateReason = (
+    error: { message?: string } | null,
+    row: { sku?: string | null; barcode?: string | null }
+  ) => {
+    const msg = error?.message?.toLowerCase() ?? "";
+    if (msg.includes("barcode")) {
+      return `Código de barras duplicado${row.barcode ? ` (${row.barcode})` : ""}`;
+    }
+    if (msg.includes("products_workspace_sku_unique_idx")) {
+      return `SKU duplicado${row.sku ? ` (${row.sku})` : ""}`;
+    }
+    return "Registo duplicado";
+  };
+
   return useMutation({
     mutationFn: async (items: CreateProductInput[]) => {
-      console.log("[BATCH_HOOK] Received items:", items.length);
       if (!currentWorkspace?.id || !user?.id) {
         throw new Error("Workspace ou utilizador não encontrado");
       }
@@ -402,20 +418,54 @@ export function useCreateProductsBatch() {
 
         toInsert.push({
           ...item,
+          sku,
           workspace_id: workspaceId,
           created_by: user.id,
         });
       }
 
       // 4. Insert in batches of 500
+      // If one batch has duplicates missed by pre-check (e.g. case-insensitive SKU index),
+      // fallback to row-by-row insert for that batch and skip only duplicate rows.
       let created = 0;
       for (let i = 0; i < toInsert.length; i += 500) {
         const batch = toInsert.slice(i, i + 500);
         const { error } = await supabase
           .from("products")
           .insert(batch as any);
-        if (error) throw error;
-        created += batch.length;
+
+        if (!error) {
+          created += batch.length;
+          continue;
+        }
+
+        if (!isUniqueViolation(error)) {
+          throw error;
+        }
+
+        for (const row of batch) {
+          const { error: rowError } = await supabase
+            .from("products")
+            .insert(row as any);
+
+          if (!rowError) {
+            created += 1;
+            continue;
+          }
+
+          if (isUniqueViolation(rowError)) {
+            skipped.push({
+              sku: row.sku ?? row.name ?? "(sem SKU)",
+              reason: getDuplicateReason(rowError, {
+                sku: row.sku ?? null,
+                barcode: row.barcode ?? null,
+              }),
+            });
+            continue;
+          }
+
+          throw rowError;
+        }
       }
 
       return { created, skipped };
