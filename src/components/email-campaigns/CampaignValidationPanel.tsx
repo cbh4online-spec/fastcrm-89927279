@@ -78,7 +78,7 @@ export function CampaignValidationPanel({
   };
 
   // Queue progress view
-  if (queueStats && queueStats.total > 0) {
+  if (queueStatus && queueStatus.total > 0) {
     return (
       <Card>
         <CardHeader className="pb-3">
@@ -88,43 +88,24 @@ export function CampaignValidationPanel({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Progress value={queueStats.progressPercentage} className="h-2" />
+          <Progress value={progressPercentage} className="h-2" />
           <div className="grid grid-cols-4 gap-2 text-center text-sm">
             <div>
               <p className="text-muted-foreground">Enviados</p>
-              <p className="font-semibold text-green-600">{queueStats.sent}</p>
+              <p className="font-semibold">{queueStatus.sent}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Pendentes</p>
-              <p className="font-semibold">{queueStats.pending}</p>
+              <p className="font-semibold">{queueStatus.pending}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Falhados</p>
-              <p className="font-semibold text-red-600">{queueStats.failed}</p>
+              <p className="font-semibold">{queueStatus.failed}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Total</p>
-              <p className="font-semibold">{queueStats.total}</p>
+              <p className="font-semibold">{queueStatus.total}</p>
             </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => pauseQueue.mutate()}
-              disabled={queueStats.pending === 0}
-            >
-              <Pause className="h-3 w-3 mr-1" />
-              Pausar
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => resumeQueue.mutate()}
-            >
-              <Play className="h-3 w-3 mr-1" />
-              Retomar
-            </Button>
           </div>
         </CardContent>
       </Card>

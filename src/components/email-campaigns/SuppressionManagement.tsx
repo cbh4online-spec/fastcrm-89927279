@@ -85,7 +85,8 @@ export function SuppressionManagement() {
     const emails = importText
       .split(/[\n,;]+/)
       .map((e) => e.trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .map((email) => ({ email, reason: 'manual' }));
     if (emails.length === 0) return;
     try {
       const count = await importSuppressions.mutateAsync(emails);
