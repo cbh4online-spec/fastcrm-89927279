@@ -118,6 +118,43 @@ const SOCIAL_ICONS: Record<string, string> = {
   whatsapp: '💬',
 };
 
+// Iframe component for rendering imported HTML with proper isolation
+function HtmlBlockIframe({ html }: { html: string }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [height, setHeight] = useState(200);
+
+  const updateHeight = useCallback(() => {
+    const doc = iframeRef.current?.contentDocument;
+    if (doc?.body) {
+      const h = doc.body.scrollHeight;
+      if (h > 0) setHeight(h);
+    }
+  }, []);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    const doc = iframe.contentDocument;
+    if (!doc) return;
+    doc.open();
+    doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;overflow:hidden;}</style></head><body>${html}</body></html>`);
+    doc.close();
+    setTimeout(updateHeight, 100);
+    setTimeout(updateHeight, 500);
+  }, [html, updateHeight]);
+
+  return (
+    <iframe
+      ref={iframeRef}
+      className="w-full border-0 pointer-events-none"
+      style={{ height: `${height}px`, minHeight: 100 }}
+      title="HTML Preview"
+      sandbox="allow-same-origin"
+    />
+  );
+}
+
 export function EmailCanvas({
   blocks,
   globalStyles,
