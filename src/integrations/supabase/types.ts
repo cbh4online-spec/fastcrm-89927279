@@ -6310,6 +6310,33 @@ export type Database = {
           },
         ]
       }
+      capture_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          key: string
+          label: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          key: string
+          label: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          key?: string
+          label?: string
+        }
+        Relationships: []
+      }
       challenge_participants: {
         Row: {
           challenge_id: string
