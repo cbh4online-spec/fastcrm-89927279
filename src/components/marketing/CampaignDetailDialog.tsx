@@ -83,8 +83,14 @@ export function CampaignDetailDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="stats" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-7">
+        <Tabs defaultValue={campaign.status === 'draft' ? 'send' : 'stats'} className="space-y-4">
+          <TabsList className="flex w-max min-w-full">
+            {campaign.status === 'draft' && (
+              <TabsTrigger value="send">Envio</TabsTrigger>
+            )}
+            {campaign.status === 'sending' && (
+              <TabsTrigger value="queue">Progresso</TabsTrigger>
+            )}
             <TabsTrigger value="stats">Estatísticas</TabsTrigger>
             <TabsTrigger value="deliverability">Entregabilidade</TabsTrigger>
             <TabsTrigger value="clicks">Cliques</TabsTrigger>
@@ -93,6 +99,46 @@ export function CampaignDetailDialog({
             <TabsTrigger value="automation">Automação</TabsTrigger>
             <TabsTrigger value="content">Conteúdo</TabsTrigger>
           </TabsList>
+
+          {/* Send Flow Tab (draft only) */}
+          {campaign.status === 'draft' && (
+            <TabsContent value="send" className="space-y-4">
+              <CampaignValidationPanel
+                campaignId={campaign.id}
+                recipientCount={campaign.totalRecipients}
+                onValidated={() => setReadyToSend(true)}
+                onSend={() => sendCampaign.mutateAsync(campaign.id)}
+                isSending={sendCampaign.isPending}
+              />
+              {readyToSend && (
+                <CampaignSendModeSelector
+                  campaignId={campaign.id}
+                  value={(campaign as any).sendMode || 'immediate'}
+                  recipientCount={campaign.totalRecipients}
+                  onChange={(mode, config) => {
+                    updateCampaign.mutate({
+                      id: campaign.id,
+                      sendMode: mode,
+                      batchSize: config.batch_size,
+                      batchIntervalMinutes: config.batch_interval_minutes,
+                    });
+                  }}
+                />
+              )}
+            </TabsContent>
+          )}
+
+          {/* Queue Progress Tab (sending + throttled) */}
+          {campaign.status === 'sending' && (
+            <TabsContent value="queue" className="space-y-4">
+              <CampaignQueueStatus
+                campaignId={campaign.id}
+                isPaused={(campaign as any).sendPaused}
+                onPause={() => updateCampaign.mutate({ id: campaign.id, status: 'paused' })}
+                onResume={() => updateCampaign.mutate({ id: campaign.id, status: 'sending' })}
+              />
+            </TabsContent>
+          )}
 
           <TabsContent value="stats" className="space-y-4">
             {/* Main Stats */}
