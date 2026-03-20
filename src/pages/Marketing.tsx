@@ -17,6 +17,9 @@ import {
   GitBranch,
   TrendingUp,
   Library,
+  Globe,
+  Zap,
+  Bell,
 } from 'lucide-react';
 import { MarketingCampaignsList } from '@/components/marketing/MarketingCampaignsList';
 import { MarketingSegmentsList } from '@/components/marketing/MarketingSegmentsList';
@@ -32,6 +35,10 @@ import { CampaignCreationFlow } from '@/components/marketing/CampaignCreationFlo
 import { AdvancedAnalyticsPanel } from '@/components/marketing/AdvancedAnalyticsPanel';
 import { PipelineTriggersPanel } from '@/components/marketing/PipelineTriggersPanel';
 import { TemplateLibraryDialog } from '@/components/marketing/TemplateLibraryDialog';
+import { WebhookEventsPanel } from '@/components/marketing/WebhookEventsPanel';
+import { CampaignLandingPages } from '@/components/marketing/CampaignLandingPages';
+import { CampaignReportExport } from '@/components/marketing/CampaignReportExport';
+import { MultichannelSequenceBuilder } from '@/components/marketing/MultichannelSequenceBuilder';
 import { toast } from 'sonner';
 
 export default function Marketing() {
@@ -47,7 +54,6 @@ export default function Marketing() {
 
   const handleSelectLibraryTemplate = (html: string, name: string) => {
     toast.success(`Template "${name || 'selecionado'}" carregado`);
-    // Could open the email builder with this HTML pre-loaded
     setShowEmailBuilder(true);
   };
 
@@ -130,36 +136,50 @@ export default function Marketing() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-flex">
-            <TabsTrigger value="dashboard" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Dashboard</span>
-            </TabsTrigger>
-            <TabsTrigger value="campaigns" className="gap-2">
-              <Send className="h-4 w-4" />
-              <span className="hidden sm:inline">Campanhas</span>
-            </TabsTrigger>
-            <TabsTrigger value="segments" className="gap-2">
-              <Target className="h-4 w-4" />
-              <span className="hidden sm:inline">Segmentos</span>
-            </TabsTrigger>
-            <TabsTrigger value="templates" className="gap-2">
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Templates</span>
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="gap-2">
-              <TrendingUp className="h-4 w-4" />
-              <span className="hidden sm:inline">Analytics</span>
-            </TabsTrigger>
-            <TabsTrigger value="pipeline" className="gap-2">
-              <GitBranch className="h-4 w-4" />
-              <span className="hidden sm:inline">Pipeline</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="gap-2">
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Definições</span>
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-1 px-1">
+            <TabsList className="flex w-max min-w-full lg:w-auto lg:inline-flex">
+              <TabsTrigger value="dashboard" className="gap-1.5">
+                <BarChart3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Dashboard</span>
+              </TabsTrigger>
+              <TabsTrigger value="campaigns" className="gap-1.5">
+                <Send className="h-4 w-4" />
+                <span className="hidden sm:inline">Campanhas</span>
+              </TabsTrigger>
+              <TabsTrigger value="segments" className="gap-1.5">
+                <Target className="h-4 w-4" />
+                <span className="hidden sm:inline">Segmentos</span>
+              </TabsTrigger>
+              <TabsTrigger value="templates" className="gap-1.5">
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">Templates</span>
+              </TabsTrigger>
+              <TabsTrigger value="landing" className="gap-1.5">
+                <Globe className="h-4 w-4" />
+                <span className="hidden sm:inline">Landing Pages</span>
+              </TabsTrigger>
+              <TabsTrigger value="multicanal" className="gap-1.5">
+                <Zap className="h-4 w-4" />
+                <span className="hidden sm:inline">Multi-Canal</span>
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="gap-1.5">
+                <TrendingUp className="h-4 w-4" />
+                <span className="hidden sm:inline">Analytics</span>
+              </TabsTrigger>
+              <TabsTrigger value="events" className="gap-1.5">
+                <Bell className="h-4 w-4" />
+                <span className="hidden sm:inline">Eventos</span>
+              </TabsTrigger>
+              <TabsTrigger value="pipeline" className="gap-1.5">
+                <GitBranch className="h-4 w-4" />
+                <span className="hidden sm:inline">Pipeline</span>
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="gap-1.5">
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">Definições</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="dashboard" className="space-y-6">
             <MarketingDashboard onCreateCampaign={() => setShowCampaignCreation(true)} />
@@ -177,8 +197,27 @@ export default function Marketing() {
             <MarketingTemplatesList onCreateNew={() => setShowTemplateDialog(true)} />
           </TabsContent>
 
+          <TabsContent value="landing" className="space-y-6">
+            <CampaignLandingPages />
+          </TabsContent>
+
+          <TabsContent value="multicanal" className="space-y-6">
+            <MultichannelSequenceBuilder />
+          </TabsContent>
+
           <TabsContent value="analytics" className="space-y-6">
-            <AdvancedAnalyticsPanel />
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="lg:col-span-2">
+                <AdvancedAnalyticsPanel />
+              </div>
+              <div>
+                <CampaignReportExport />
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="events" className="space-y-6">
+            <WebhookEventsPanel />
           </TabsContent>
 
           <TabsContent value="pipeline" className="space-y-6">
