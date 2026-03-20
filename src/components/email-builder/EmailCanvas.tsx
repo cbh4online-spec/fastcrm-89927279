@@ -336,10 +336,7 @@ export function EmailCanvas({
       case 'html': {
         const htmlContent = (block.content as any)?.html || '';
         return htmlContent ? (
-          <div 
-            className="w-full [&_*]:max-w-full [&_img]:h-auto"
-            dangerouslySetInnerHTML={{ __html: htmlContent }} 
-          />
+          <HtmlBlockIframe html={htmlContent} />
         ) : (
           <div className="p-8 text-center text-muted-foreground">
             <Code className="w-8 h-8 mx-auto mb-2 opacity-50" />
