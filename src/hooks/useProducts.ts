@@ -412,7 +412,7 @@ export function useCreateProductsBatch() {
         const batch = toInsert.slice(i, i + 500);
         const { error } = await supabase
           .from("products")
-          .insert(batch);
+          .insert(batch as any);
         if (error) throw error;
         created += batch.length;
       }
