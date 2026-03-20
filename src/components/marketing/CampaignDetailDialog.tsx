@@ -106,6 +106,10 @@ export function CampaignDetailDialog({
               <CampaignValidationPanel
                 campaignId={campaign.id}
                 recipientCount={campaign.totalRecipients}
+                validationRunAt={campaign.validationRunAt}
+                validatedCount={campaign.validatedCount}
+                invalidCount={campaign.invalidCount}
+                suppressedCount={campaign.suppressedCount}
                 onValidated={() => setReadyToSend(true)}
                 onSend={() => sendCampaign.mutateAsync(campaign.id)}
                 isSending={sendCampaign.isPending}
