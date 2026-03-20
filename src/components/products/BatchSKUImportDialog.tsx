@@ -113,9 +113,12 @@ const SYSTEM_FIELDS = [
 // Auto-mapping patterns: regex → system field key
 const AUTO_MAP_PATTERNS: [RegExp, string][] = [
   [/^(sku|ref|reference|referencia|referência|código|codigo|code|part.?number|codart)$/i, "sku"],
-  [/^(name|nome|product.?name|título|titulo|designação|designacao|description_short|nom)$/i, "name"],
+  [/^(name|nome|product.?name|título|titulo|designação|designacao|nom)$/i, "name"],
+  [/^(description_short|desc.?curta|short.?desc|resumo)$/i, "short_description"],
   [/^(desc|description|descrição|descricao|description_long|descripcion)$/i, "description"],
-  [/^(price|preço|preco|precio|pvp|cost|prix|tarifa)$/i, "price"],
+  [/^(pvp|recommended.?price|preço.?recomendado|msrp|rrp|pvp.?recomendado)$/i, "recommended_price"],
+  [/^(cost|custo|cost.?price|preço.?custo|precio.?coste|prix.?achat)$/i, "cost_price"],
+  [/^(price|preço|preco|precio|prix|tarifa|sell.?price)$/i, "price"],
   [/^(category|categoria|cat|famille|familia)$/i, "category"],
   [/^(subcategory|subcategoria|sub.?cat|sous.?famille)$/i, "subcategory"],
   [/^(brand|marca|fabricante|manufacturer|marque)$/i, "brand"],
@@ -124,6 +127,12 @@ const AUTO_MAP_PATTERNS: [RegExp, string][] = [
   [/^(weight|peso|poids|kg)$/i, "weight"],
   [/^(image|img|imagem|image_url|foto|photo|url_image|url_img)$/i, "image_url"],
   [/^(model|modelo|modèle)$/i, "model"],
+  [/^(spec|specs|specifications|características|caracteristicas|features)$/i, "specifications"],
+  [/^(related|relacionados|accessories|acessórios|complementos)$/i, "related_products"],
+  [/^(dimensions|dimensões|dimensoes|medidas|size|tamanho)$/i, "dimensions"],
+  [/^(color|colour|cor|couleur)$/i, "color"],
+  [/^(material|materia|materiau)$/i, "material"],
+  [/^(warranty|garantia|garantie)$/i, "warranty"],
 ];
 
 const BATCH_SIZE = 2;
