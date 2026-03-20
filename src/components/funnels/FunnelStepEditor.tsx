@@ -566,6 +566,132 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
           </TabsContent>
         )}
 
+        {/* Testimonials Tab */}
+        {isTestimonials && (
+          <TabsContent value="testemunhos">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm flex items-center gap-2"><Star className="h-4 w-4" /> Testemunhos</CardTitle>
+                  <Button size="sm" variant="outline" onClick={addTestimonial}>
+                    <Plus className="h-3 w-3 mr-1" /> Adicionar
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {testimonials.map((t, index) => (
+                  <div key={t.id} className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                    <div className="flex items-start justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground">Testemunho #{index + 1}</span>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeTestimonial(index)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Nome</Label>
+                        <Input value={t.name} onChange={(e) => updateTestimonial(index, { name: e.target.value })} placeholder="Maria Silva" className="h-8 text-sm" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Cargo / Empresa</Label>
+                        <Input value={t.role} onChange={(e) => updateTestimonial(index, { role: e.target.value })} placeholder="CEO, Empresa X" className="h-8 text-sm" />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Testemunho</Label>
+                      <Textarea value={t.quote} onChange={(e) => updateTestimonial(index, { quote: e.target.value })} placeholder="O que esta pessoa disse..." rows={3} className="text-sm" />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Avatar URL (opcional)</Label>
+                        <Input value={t.avatar_url || ""} onChange={(e) => updateTestimonial(index, { avatar_url: e.target.value })} placeholder="https://..." className="h-8 text-sm" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Avaliação</Label>
+                        <div className="flex gap-1 mt-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button key={star} onClick={() => updateTestimonial(index, { rating: star })} className="focus:outline-none">
+                              <Star className={`h-5 w-5 ${star <= t.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`} />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {testimonials.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground text-sm border-2 border-dashed rounded-lg">
+                    <Star className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>Nenhum testemunho ainda</p>
+                    <p className="text-xs mt-1">Adiciona testemunhos de clientes para aumentar a credibilidade</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        {/* Video Tab */}
+        {isVideo && (
+          <TabsContent value="video">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center gap-2"><Play className="h-4 w-4" /> Configuração de Vídeo</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>URL do Vídeo</Label>
+                  <Input value={videoConfig.url} onChange={(e) => setVideoConfig(prev => ({ ...prev, url: e.target.value }))} placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..." />
+                  <p className="text-xs text-muted-foreground mt-1">Suporta YouTube, Vimeo ou URL direta de vídeo (.mp4)</p>
+                </div>
+                <div>
+                  <Label>Imagem de capa (opcional)</Label>
+                  <Input value={videoConfig.poster_url || ""} onChange={(e) => setVideoConfig(prev => ({ ...prev, poster_url: e.target.value }))} placeholder="https://..." />
+                </div>
+                <div>
+                  <Label>Legenda / Descrição</Label>
+                  <Input value={videoConfig.caption || ""} onChange={(e) => setVideoConfig(prev => ({ ...prev, caption: e.target.value }))} placeholder="Assista ao vídeo de apresentação" />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="flex items-center gap-2">
+                    <Switch checked={videoConfig.autoplay} onCheckedChange={(v) => setVideoConfig(prev => ({ ...prev, autoplay: v }))} />
+                    <Label className="text-sm">Autoplay</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch checked={videoConfig.loop} onCheckedChange={(v) => setVideoConfig(prev => ({ ...prev, loop: v }))} />
+                    <Label className="text-sm">Loop</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch checked={videoConfig.muted} onCheckedChange={(v) => setVideoConfig(prev => ({ ...prev, muted: v }))} />
+                    <Label className="text-sm">Mudo</Label>
+                  </div>
+                </div>
+                {videoConfig.url && (
+                  <div className="border rounded-lg overflow-hidden">
+                    <p className="text-xs font-medium text-muted-foreground p-2">Pré-visualização:</p>
+                    {videoConfig.url.includes("youtube.com") || videoConfig.url.includes("youtu.be") ? (
+                      <iframe
+                        src={`https://www.youtube.com/embed/${videoConfig.url.match(/(?:v=|youtu\.be\/)([^&?]+)/)?.[1] || ""}`}
+                        className="w-full aspect-video"
+                        allowFullScreen
+                        allow="autoplay; encrypted-media"
+                      />
+                    ) : videoConfig.url.includes("vimeo.com") ? (
+                      <iframe
+                        src={`https://player.vimeo.com/video/${videoConfig.url.match(/vimeo\.com\/(\d+)/)?.[1] || ""}`}
+                        className="w-full aspect-video"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <video src={videoConfig.url} controls className="w-full aspect-video" poster={videoConfig.poster_url} />
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
         <TabsContent value="design">
           <AppearanceEditor values={appearance} onChange={setAppearance} />
         </TabsContent>
