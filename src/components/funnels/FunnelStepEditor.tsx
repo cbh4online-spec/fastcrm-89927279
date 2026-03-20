@@ -22,6 +22,24 @@ interface FormFieldConfig {
   options?: string[];
 }
 
+interface TestimonialItem {
+  id: string;
+  name: string;
+  role: string;
+  quote: string;
+  avatar_url?: string;
+  rating: number;
+}
+
+interface VideoConfig {
+  url: string;
+  autoplay: boolean;
+  loop: boolean;
+  muted: boolean;
+  poster_url?: string;
+  caption?: string;
+}
+
 interface FunnelStepEditorProps {
   step: FunnelStep;
   funnelName?: string;
