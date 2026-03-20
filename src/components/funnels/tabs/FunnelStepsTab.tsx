@@ -349,6 +349,8 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
                   <SelectItem value="checkout">💳 Checkout</SelectItem>
                   <SelectItem value="thankyou">✅ Thank You</SelectItem>
                   <SelectItem value="upsell">🚀 Upsell</SelectItem>
+                  <SelectItem value="testimonials">⭐ Testemunhos</SelectItem>
+                  <SelectItem value="video">🎬 Vídeo</SelectItem>
                 </SelectContent>
               </Select>
             </div>
