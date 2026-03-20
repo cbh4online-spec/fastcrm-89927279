@@ -186,6 +186,7 @@ import EventRsvpResponse from "./pages/EventRsvpResponse";
 import AISalesCoachPage from "./pages/AISalesCoachPage";
 import AIDocumentOCRPage from "./pages/AIDocumentOCRPage";
 import EmailCampaignsPage from "./pages/EmailCampaignsPage";
+import SuppressionsPage from "./pages/SuppressionsPage";
 import IMOAIPage from "./pages/IMOAIPage";
 import ZapierPage from "./pages/ZapierPage";
 import CEOCopilotPage from "./pages/CEOCopilotPage";
