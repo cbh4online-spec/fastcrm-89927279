@@ -22764,11 +22764,15 @@ export type Database = {
           name: string
           opened_count: number | null
           preview_text: string | null
+          queue_failed: number
+          queue_sent: number
+          queue_total: number
           reply_to: string | null
           scheduled_at: string | null
           segment_id: string | null
           send_hour: number | null
           send_mode: string | null
+          send_paused: boolean
           sent_count: number | null
           started_at: string | null
           status: string
@@ -22805,11 +22809,15 @@ export type Database = {
           name: string
           opened_count?: number | null
           preview_text?: string | null
+          queue_failed?: number
+          queue_sent?: number
+          queue_total?: number
           reply_to?: string | null
           scheduled_at?: string | null
           segment_id?: string | null
           send_hour?: number | null
           send_mode?: string | null
+          send_paused?: boolean
           sent_count?: number | null
           started_at?: string | null
           status?: string
@@ -22846,11 +22854,15 @@ export type Database = {
           name?: string
           opened_count?: number | null
           preview_text?: string | null
+          queue_failed?: number
+          queue_sent?: number
+          queue_total?: number
           reply_to?: string | null
           scheduled_at?: string | null
           segment_id?: string | null
           send_hour?: number | null
           send_mode?: string | null
+          send_paused?: boolean
           sent_count?: number | null
           started_at?: string | null
           status?: string
@@ -23023,6 +23035,9 @@ export type Database = {
           sent_at: string | null
           status: string
           updated_at: string
+          validated_at: string | null
+          validation_reason: string | null
+          validation_status: string | null
           workspace_id: string
         }
         Insert: {
@@ -23047,6 +23062,9 @@ export type Database = {
           sent_at?: string | null
           status?: string
           updated_at?: string
+          validated_at?: string | null
+          validation_reason?: string | null
+          validation_status?: string | null
           workspace_id: string
         }
         Update: {
@@ -23071,6 +23089,9 @@ export type Database = {
           sent_at?: string | null
           status?: string
           updated_at?: string
+          validated_at?: string | null
+          validation_reason?: string | null
+          validation_status?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -42709,6 +42730,14 @@ export type Database = {
           p_messages_out?: number
           p_workspace_id: string
         }
+        Returns: undefined
+      }
+      increment_campaign_queue_failed: {
+        Args: { p_campaign_id: string }
+        Returns: undefined
+      }
+      increment_campaign_queue_sent: {
+        Args: { p_campaign_id: string }
         Returns: undefined
       }
       increment_campaign_stat: {
