@@ -13,10 +13,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { KnowledgeBaseHelpModal } from "@/components/knowledge-base/KnowledgeBaseHelpModal";
+import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts/KeyboardShortcutsModal";
 
 export function HelpSupportDropdown() {
   const { t } = useTranslation("nav");
   const [kbOpen, setKbOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   return (
     <>
@@ -46,7 +48,7 @@ export function HelpSupportDropdown() {
             <ExternalLink className="ml-auto h-3 w-3 text-muted-foreground" />
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => toast.info(t("shortcutsInfo"), { duration: 5000 })}>
+          <DropdownMenuItem onClick={() => setShortcutsOpen(true)}>
             <Keyboard className="mr-2 h-4 w-4" />
             {t("keyboardShortcuts")}
           </DropdownMenuItem>
@@ -67,6 +69,7 @@ export function HelpSupportDropdown() {
       </DropdownMenu>
 
       <KnowledgeBaseHelpModal open={kbOpen} onOpenChange={setKbOpen} />
+      <KeyboardShortcutsModal open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
     </>
   );
 }
