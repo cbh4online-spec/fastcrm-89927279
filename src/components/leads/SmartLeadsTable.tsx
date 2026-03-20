@@ -155,7 +155,14 @@ export function SmartLeadsTable() {
   const [activeTab, setActiveTab] = useState("leads");
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   const [activeFilterId, setActiveFilterId] = useState<string | undefined>();
-  const [searchValue, setSearchValue] = useState("");
+  const [searchValue, setSearchValue] = useState(sourceFromUrl);
+
+  useEffect(() => {
+    if (sourceFromUrl) {
+      setSearchValue(sourceFromUrl);
+      setFilters(prev => ({ ...prev, search: sourceFromUrl }));
+    }
+  }, [sourceFromUrl]);
   const [sortValue, setSortValue] = useState("created_desc");
   const [importFile, setImportFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
