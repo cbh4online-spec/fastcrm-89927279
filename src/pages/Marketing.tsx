@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Mail, 
-  Users, 
   BarChart3, 
   Settings, 
   Plus,
@@ -15,6 +14,9 @@ import {
   Paintbrush,
   Code,
   ShieldBan,
+  GitBranch,
+  TrendingUp,
+  Library,
 } from 'lucide-react';
 import { MarketingCampaignsList } from '@/components/marketing/MarketingCampaignsList';
 import { MarketingSegmentsList } from '@/components/marketing/MarketingSegmentsList';
@@ -27,6 +29,10 @@ import { TemplateFormDialog } from '@/components/marketing/TemplateFormDialog';
 import { EmailBuilderDialog } from '@/components/marketing/EmailBuilderDialog';
 import { HtmlEmailEditorDialog } from '@/components/marketing/HtmlEmailEditorDialog';
 import { CampaignCreationFlow } from '@/components/marketing/CampaignCreationFlow';
+import { AdvancedAnalyticsPanel } from '@/components/marketing/AdvancedAnalyticsPanel';
+import { PipelineTriggersPanel } from '@/components/marketing/PipelineTriggersPanel';
+import { TemplateLibraryDialog } from '@/components/marketing/TemplateLibraryDialog';
+import { toast } from 'sonner';
 
 export default function Marketing() {
   const navigate = useNavigate();
@@ -37,6 +43,13 @@ export default function Marketing() {
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showEmailBuilder, setShowEmailBuilder] = useState(false);
   const [showHtmlEditor, setShowHtmlEditor] = useState(false);
+  const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
+
+  const handleSelectLibraryTemplate = (html: string, name: string) => {
+    toast.success(`Template "${name || 'selecionado'}" carregado`);
+    // Could open the email builder with this HTML pre-loaded
+    setShowEmailBuilder(true);
+  };
 
   const getAddButton = () => {
     switch (activeTab) {
@@ -57,6 +70,10 @@ export default function Marketing() {
       case 'templates':
         return (
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowTemplateLibrary(true)}>
+              <Library className="h-4 w-4 mr-2" />
+              Biblioteca
+            </Button>
             <Button variant="outline" onClick={() => setShowHtmlEditor(true)}>
               <Code className="h-4 w-4 mr-2" />
               Editor HTML
@@ -90,7 +107,7 @@ export default function Marketing() {
               Crie e envie campanhas de email para os seus contactos
             </p>
           </div>
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center flex-wrap">
             <Button
               variant="outline"
               size="sm"
@@ -99,13 +116,21 @@ export default function Marketing() {
               <ShieldBan className="h-4 w-4 mr-2" />
               Supressões
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/dashboard/sequences')}
+            >
+              <Send className="h-4 w-4 mr-2" />
+              Sequências
+            </Button>
             {getAddButton()}
           </div>
         </div>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-flex">
             <TabsTrigger value="dashboard" className="gap-2">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Dashboard</span>
@@ -121,6 +146,14 @@ export default function Marketing() {
             <TabsTrigger value="templates" className="gap-2">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Templates</span>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="gap-2">
+              <TrendingUp className="h-4 w-4" />
+              <span className="hidden sm:inline">Analytics</span>
+            </TabsTrigger>
+            <TabsTrigger value="pipeline" className="gap-2">
+              <GitBranch className="h-4 w-4" />
+              <span className="hidden sm:inline">Pipeline</span>
             </TabsTrigger>
             <TabsTrigger value="settings" className="gap-2">
               <Settings className="h-4 w-4" />
@@ -142,6 +175,14 @@ export default function Marketing() {
 
           <TabsContent value="templates" className="space-y-6">
             <MarketingTemplatesList onCreateNew={() => setShowTemplateDialog(true)} />
+          </TabsContent>
+
+          <TabsContent value="analytics" className="space-y-6">
+            <AdvancedAnalyticsPanel />
+          </TabsContent>
+
+          <TabsContent value="pipeline" className="space-y-6">
+            <PipelineTriggersPanel />
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
@@ -183,6 +224,12 @@ export default function Marketing() {
       <HtmlEmailEditorDialog
         open={showHtmlEditor}
         onOpenChange={setShowHtmlEditor}
+      />
+
+      <TemplateLibraryDialog
+        open={showTemplateLibrary}
+        onOpenChange={setShowTemplateLibrary}
+        onSelectTemplate={handleSelectLibraryTemplate}
       />
     </DashboardLayout>
   );
