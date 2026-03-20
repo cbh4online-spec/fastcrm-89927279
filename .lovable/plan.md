@@ -1,107 +1,70 @@
 
 
-# Feed CSV — Ver Todas as Colunas + IA para Categorias
+# Importação de Produtos via URL com Confirmação Coluna a Coluna
 
-## Problema Atual
+## Problema
 
-1. O preview do feed CSV mostra apenas as **6 primeiras colunas** (`previewHeaders.slice(0, 6)`) — o utilizador não vê todas as colunas disponíveis no CSV da Visiotech
-2. Não há mecanismo para **selecionar quais colunas importar** (todas as mapeadas são importadas)
-3. O campo `category` do CSV é usado tal como vem do fornecedor — sem sugestão inteligente de categorias/subcategorias do sistema
+O utilizador quer colar o URL da Visiotech diretamente no diálogo de importação de produtos, descarregar o CSV, ver **todas as colunas** numa tabela tipo Excel, e selecionar manualmente quais colunas mapear para campos do sistema antes de criar os produtos.
 
-## Alterações Propostas
+## Alterações
 
-### 1. Preview com Todas as Colunas (UI)
+### 1. Nova tab "Importar por URL" no BatchSKUImportDialog
 
-**Ficheiro**: `src/components/procurement/SupplierFeedConfigDialog.tsx`
+**Ficheiro**: `src/components/products/BatchSKUImportDialog.tsx`
 
-- Remover o `.slice(0, 6)` no header e body da tabela de preview para mostrar **todas as colunas**
-- Adicionar scroll horizontal com indicador visual
-- Mostrar contagem total de colunas: "X colunas encontradas"
-- Adicionar checkboxes em cada coluna do preview para o utilizador marcar quais quer importar
-- As colunas selecionadas são guardadas no `column_mapping`; as não selecionadas são ignoradas
+Adicionar uma terceira tab no `phase === "input"`:
+- **"Importar por URL"** com ícone Link
+- Campo de URL (pré-preenchido com o URL Visiotech como placeholder)
+- Botão "Descarregar e Analisar"
+- Ao clicar: usa uma edge function para descarregar o CSV (evitar CORS), parse as colunas, e mostra na tabela
 
-### 2. Mapeamento Expandido com Seleção
+### 2. Edge Function: `csv-url-fetch`
 
-**Ficheiro**: `src/components/procurement/SupplierFeedConfigDialog.tsx`
+**Criar**: `supabase/functions/csv-url-fetch/index.ts`
 
-Reestruturar a secção de mapeamento:
-- Em vez de listar os campos do sistema e pedir para mapear uma coluna CSV a cada um, inverter a lógica: **listar todas as colunas CSV** com um dropdown para cada uma indicando para que campo do sistema mapeia (ou "Ignorar")
-- Adicionar campos extra ao `PRODUCT_FIELDS`: `subcategory`, `weight`, `dimensions`, `model`, `line`/`family`
-- Mostrar uma checkbox "Incluir" por coluna para ativar/desativar rapidamente
+Função simples que:
+- Recebe `{ url: string, delimiter?: string, encoding?: string, max_rows?: number }`
+- Descarrega o CSV do URL (timeout 60s)
+- Detecta delimitador automaticamente se não especificado
+- Devolve `{ headers: string[], rows: string[][], total_rows: number }` (máximo 500 rows no preview)
+- Necessário porque o browser não pode fazer fetch direto ao URL da Visiotech (CORS)
 
-### 3. Sugestão de Categorias com IA (Edge Function)
+### 3. Step de Mapeamento de Colunas (novo phase)
 
-**Criar**: `supabase/functions/ai-category-suggest/index.ts`
+**Ficheiro**: `src/components/products/BatchSKUImportDialog.tsx`
 
-Nova edge function que:
-- Recebe `{ product_names: string[], existing_categories: string[], workspace_id }` (batch de até 50 nomes)
-- Usa Lovable AI (Gemini 3 Flash) para:
-  - Analisar os nomes dos produtos
-  - Sugerir a **melhor categoria** e **subcategoria** existentes no workspace
-  - Se nenhuma existente encaixa, sugerir **nova categoria + subcategoria** com nome em português
-- Retorna `{ suggestions: [{ product_name, category, subcategory, is_new_category, confidence }] }`
+Adicionar um novo phase `"mapping"` entre o download e o processamento:
+- Mostra **todas as colunas** do CSV numa lista
+- Cada coluna tem:
+  - Checkbox "Incluir" (on/off)
+  - Dropdown para mapear a um campo do sistema: SKU, Nome, Descrição, Preço, Categoria, Marca, Código de barras, Stock, Peso, Imagem URL, ou "Dados extra"
+- Auto-detecção inteligente: tenta mapear automaticamente colunas com nomes comuns (sku, name, price, etc.)
+- Preview: mostra os primeiros 3 valores de cada coluna para ajudar na decisão
+- Botão "Confirmar Mapeamento → Importar"
 
-### 4. Suporte a Subcategorias (DB Migration)
+### 4. Integração com o fluxo existente
 
-Adicionar `parent_id` à tabela `product_categories` para suportar subcategorias:
-```text
-ALTER TABLE product_categories
-  ADD COLUMN IF NOT EXISTS parent_id UUID
-    REFERENCES product_categories(id) ON DELETE SET NULL;
-```
+Após confirmar o mapeamento:
+- As colunas mapeadas alimentam os campos do sistema (Nome, Preço, Categoria, etc.)
+- As colunas incluídas mas não mapeadas ficam em `rawRow` como dados extra visíveis na tabela
+- O fluxo segue para o phase `"processing"` existente (pesquisa IA opcional) ou directamente para `"results"`
+- O utilizador pode optar por saltar a pesquisa IA e criar directamente com os dados do CSV
 
-Adicionar `subcategory` ao `products`:
-```text
-ALTER TABLE products
-  ADD COLUMN IF NOT EXISTS subcategory TEXT;
-```
-
-### 5. IA no Fluxo de Sync (Edge Function Update)
-
-**Ficheiro**: `supabase/functions/supplier-feed-sync/index.ts`
-
-Após parsear o CSV e antes de fazer upsert:
-- Se o mapeamento inclui categoria mas o utilizador ativou "Sugestão IA de categorias":
-  - Agrupa os produtos em batches de 50 nomes
-  - Chama `ai-category-suggest` para cada batch
-  - Usa as sugestões para preencher `category` e `subcategory` em vez do valor bruto do CSV
-  - Cria automaticamente categorias novas em `product_categories` se sugeridas pela IA
-
-### 6. UI de Revisão de Categorias IA
-
-**Criar**: `src/components/procurement/SupplierFeedCategoryPreview.tsx`
-
-Componente mostrado no `SupplierFeedConfigDialog` antes de confirmar sync:
-- Tabela com: Produto | Categoria CSV Original | Categoria Sugerida (IA) | Subcategoria | Ação
-- O utilizador pode aceitar, editar ou ignorar cada sugestão
-- Toggle global: "Usar sugestões IA para categorias" (on/off)
-- Botão "Pré-visualizar categorias" que processa uma amostra de 20 produtos
-- Badge de confiança (alta/média/baixa) por sugestão
-
-### 7. Hook de Sugestão IA
-
-**Criar**: `src/hooks/useFeedCategorySuggestions.ts`
-
-- `suggestCategories(productNames: string[])` → chama `ai-category-suggest`
-- `suggestions[]`, `isLoading`, `applySuggestions()`
-
-## Fluxo do Utilizador
+### 5. Alteração ao phase flow
 
 ```text
-1. Configura feed URL → Testa URL
-2. Vê TODAS as colunas do CSV com preview completo
-3. Seleciona quais colunas importar (checkboxes)
-4. Mapeia colunas selecionadas → campos do sistema
-5. Ativa "Sugestão IA de categorias"
-6. Clica "Pré-visualizar categorias" → vê sugestões IA
-7. Aceita/edita sugestões → Guarda feed → Sincroniza
+input → [URL download] → mapping → processing/results → summary
+         (ou CSV/paste)
 ```
+
+No phase `"mapping"`:
+- Tabela com scroll horizontal mostrando TODAS as colunas
+- Header com checkboxes + dropdowns de mapeamento
+- 5 sample rows para preview dos dados
+- Botão "Criar directamente (sem IA)" — usa os dados CSV tal como estão
+- Botão "Enriquecer com IA" — processa SKUs pela IA como hoje
 
 ## Ficheiros Modificados
-- `src/components/procurement/SupplierFeedConfigDialog.tsx` — preview completo + mapeamento invertido
-- `supabase/functions/supplier-feed-sync/index.ts` — integração com IA categories
-- `supabase/functions/ai-category-suggest/index.ts` — nova edge function
-- `src/components/procurement/SupplierFeedCategoryPreview.tsx` — novo componente
-- `src/hooks/useFeedCategorySuggestions.ts` — novo hook
-- Migration: `parent_id` em `product_categories`, `subcategory` em `products`
+- `src/components/products/BatchSKUImportDialog.tsx` — nova tab URL + phase mapping
+- `supabase/functions/csv-url-fetch/index.ts` — nova edge function (proxy CORS)
 
