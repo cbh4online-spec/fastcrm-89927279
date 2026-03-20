@@ -196,6 +196,18 @@ function EmailBuilderContent({ initialDesign, onSave, onCancel }: EmailBuilderPr
             HTML
           </Button>
           
+          <Button variant="outline" size="sm" className="h-8" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="h-3.5 w-3.5 mr-1.5" />
+            Importar
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".html,.htm"
+            className="hidden"
+            onChange={handleImportHtml}
+          />
+          
           <Button variant="outline" size="sm" className="h-8" onClick={() => setShowPreview(true)}>
             <Eye className="h-3.5 w-3.5 mr-1.5" />
             Preview
