@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,11 +14,29 @@ import {
 import { toast } from "sonner";
 import { KnowledgeBaseHelpModal } from "@/components/knowledge-base/KnowledgeBaseHelpModal";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts/KeyboardShortcutsModal";
+import { ShortcutCombo } from "@/components/keyboard-shortcuts/KbdKey";
 
 export function HelpSupportDropdown() {
   const { t } = useTranslation("nav");
   const [kbOpen, setKbOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  // Global "?" shortcut
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      const isTyping =
+        ["input", "textarea", "select"].includes(tag) ||
+        (e.target as HTMLElement)?.isContentEditable;
+
+      if (e.key === "?" && !isTyping && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setShortcutsOpen((v) => !v);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
 
   return (
     <>
@@ -48,9 +66,12 @@ export function HelpSupportDropdown() {
             <ExternalLink className="ml-auto h-3 w-3 text-muted-foreground" />
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setShortcutsOpen(true)}>
+          <DropdownMenuItem onClick={() => setShortcutsOpen(true)} className="flex items-center">
             <Keyboard className="mr-2 h-4 w-4" />
             {t("keyboardShortcuts")}
+            <span className="ml-auto">
+              <ShortcutCombo keys={["?"]} size="sm" />
+            </span>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => toast.info(t("tipsEnabled"))}>
             <Lightbulb className="mr-2 h-4 w-4" />
