@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUpdateFunnelStep, FunnelStep } from "@/hooks/useFunnels";
-import { Save, Sparkles, Loader2, Wand2, Image, Plus, Trash2, GripVertical, X } from "lucide-react";
+import { Save, Sparkles, Loader2, Wand2, Image, Plus, Trash2, GripVertical, X, Star, Play } from "lucide-react";
 import { toast } from "sonner";
 import { AppearanceEditor, defaultAppearance, type AppearanceValues } from "@/components/funnels/AppearanceEditor";
 import { supabase } from "@/integrations/supabase/client";
