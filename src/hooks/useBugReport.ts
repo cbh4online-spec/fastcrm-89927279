@@ -66,12 +66,12 @@ export function useBugReport() {
     setIsCapturing(true);
     setCaptureError(null);
     const result = await captureScreenshot();
-    if (result.success) {
+    if (result.success === true) {
       setScreenshotDataUrl(result.dataUrl);
       setScreenshotBlob(result.blob);
-    } else if (!result.success) {
+    } else {
       setCaptureError(result.error);
-    }
+    }</	
     setIsCapturing(false);
   };
 
