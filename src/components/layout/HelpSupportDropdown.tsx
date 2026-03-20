@@ -84,7 +84,7 @@ export function HelpSupportDropdown() {
             <MessageCircle className="mr-2 h-4 w-4" />
             {t("supportChat")}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => toast.info(t("bugReportWip"))} className="text-amber-600">
+          <DropdownMenuItem onClick={() => setBugReportOpen(true)} className="text-destructive">
             <Bug className="mr-2 h-4 w-4" />
             {t("reportBug")}
           </DropdownMenuItem>
