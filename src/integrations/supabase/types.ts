@@ -6385,6 +6385,81 @@ export type Database = {
           },
         ]
       }
+      campaign_landing_pages: {
+        Row: {
+          campaign_id: string | null
+          conversion_rate: number | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          form_fields: Json | null
+          id: string
+          is_published: boolean | null
+          redirect_url: string | null
+          slug: string
+          submissions_count: number | null
+          template_html: string | null
+          thank_you_message: string | null
+          title: string
+          updated_at: string | null
+          visits_count: number | null
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          conversion_rate?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          form_fields?: Json | null
+          id?: string
+          is_published?: boolean | null
+          redirect_url?: string | null
+          slug: string
+          submissions_count?: number | null
+          template_html?: string | null
+          thank_you_message?: string | null
+          title: string
+          updated_at?: string | null
+          visits_count?: number | null
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string | null
+          conversion_rate?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          form_fields?: Json | null
+          id?: string
+          is_published?: boolean | null
+          redirect_url?: string | null
+          slug?: string
+          submissions_count?: number | null
+          template_html?: string | null
+          thank_you_message?: string | null
+          title?: string
+          updated_at?: string | null
+          visits_count?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_landing_pages_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_landing_pages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_link_clicks: {
         Row: {
           campaign_id: string
@@ -6435,6 +6510,48 @@ export type Database = {
           },
           {
             foreignKeyName: "campaign_link_clicks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_report_snapshots: {
+        Row: {
+          campaign_id: string
+          generated_at: string | null
+          generated_by: string | null
+          id: string
+          report_data: Json
+          workspace_id: string
+        }
+        Insert: {
+          campaign_id: string
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          report_data?: Json
+          workspace_id: string
+        }
+        Update: {
+          campaign_id?: string
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          report_data?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_report_snapshots_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_report_snapshots_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -21483,6 +21600,73 @@ export type Database = {
           },
         ]
       }
+      landing_page_submissions: {
+        Row: {
+          contact_id: string | null
+          created_at: string | null
+          email: string | null
+          form_data: Json
+          id: string
+          ip_hash: string | null
+          landing_page_id: string
+          name: string | null
+          phone: string | null
+          source_url: string | null
+          user_agent: string | null
+          workspace_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          form_data?: Json
+          id?: string
+          ip_hash?: string | null
+          landing_page_id: string
+          name?: string | null
+          phone?: string | null
+          source_url?: string | null
+          user_agent?: string | null
+          workspace_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          form_data?: Json
+          id?: string
+          ip_hash?: string | null
+          landing_page_id?: string
+          name?: string | null
+          phone?: string | null
+          source_url?: string | null
+          user_agent?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landing_page_submissions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "landing_page_submissions_landing_page_id_fkey"
+            columns: ["landing_page_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_landing_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "landing_page_submissions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       landing_pages: {
         Row: {
           created_at: string
@@ -25510,6 +25694,121 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "module_usage_alerts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      multichannel_sequence_steps: {
+        Row: {
+          action_type: string
+          body_html: string | null
+          channel: string
+          condition_type: string | null
+          condition_value: string | null
+          content: Json | null
+          created_at: string | null
+          delay_days: number | null
+          delay_hours: number | null
+          id: string
+          is_active: boolean | null
+          sequence_id: string
+          step_order: number
+          subject: string | null
+          template_id: string | null
+          whatsapp_template: string | null
+        }
+        Insert: {
+          action_type?: string
+          body_html?: string | null
+          channel: string
+          condition_type?: string | null
+          condition_value?: string | null
+          content?: Json | null
+          created_at?: string | null
+          delay_days?: number | null
+          delay_hours?: number | null
+          id?: string
+          is_active?: boolean | null
+          sequence_id: string
+          step_order?: number
+          subject?: string | null
+          template_id?: string | null
+          whatsapp_template?: string | null
+        }
+        Update: {
+          action_type?: string
+          body_html?: string | null
+          channel?: string
+          condition_type?: string | null
+          condition_value?: string | null
+          content?: Json | null
+          created_at?: string | null
+          delay_days?: number | null
+          delay_hours?: number | null
+          id?: string
+          is_active?: boolean | null
+          sequence_id?: string
+          step_order?: number
+          subject?: string | null
+          template_id?: string | null
+          whatsapp_template?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "multichannel_sequence_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "multichannel_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      multichannel_sequences: {
+        Row: {
+          channels: string[] | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          status: string | null
+          total_completed: number | null
+          total_enrolled: number | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          channels?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          status?: string | null
+          total_completed?: number | null
+          total_enrolled?: number | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          channels?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string | null
+          total_completed?: number | null
+          total_enrolled?: number | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "multichannel_sequences_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
