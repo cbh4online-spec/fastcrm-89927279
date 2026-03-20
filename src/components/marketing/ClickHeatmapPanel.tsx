@@ -44,12 +44,13 @@ export function ClickHeatmapPanel({ campaignId, workspaceId, htmlContent }: Prop
   const { data: campaignData } = useQuery({
     queryKey: ['campaign-html', campaignId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('email_campaigns')
+      const { data, error } = await supabase
+        .from('email_campaigns' as any)
         .select('body_html')
         .eq('id', campaignId)
         .single();
-      return data?.body_html || '';
+      if (error) return '';
+      return (data as any)?.body_html || '';
     },
     enabled: !!campaignId && !htmlContent,
   });
