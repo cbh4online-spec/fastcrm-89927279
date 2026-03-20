@@ -5,8 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, TestTube, ArrowRight } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Loader2, TestTube, ArrowRight, Columns } from "lucide-react";
 import { useSupplierFeeds, SupplierFeed } from "@/hooks/useSupplierFeeds";
+import { useFeedCategorySuggestions } from "@/hooks/useFeedCategorySuggestions";
+import { SupplierFeedCategoryPreview } from "./SupplierFeedCategoryPreview";
 import { toast } from "sonner";
 
 const PRODUCT_FIELDS = [
@@ -15,11 +19,15 @@ const PRODUCT_FIELDS = [
   { value: "description", label: "Descrição" },
   { value: "price", label: "Preço" },
   { value: "category", label: "Categoria" },
+  { value: "subcategory", label: "Subcategoria" },
   { value: "brand", label: "Marca" },
   { value: "barcode", label: "Código de barras" },
   { value: "image_url", label: "URL da imagem" },
   { value: "stock", label: "Stock" },
-  { value: "", label: "— Ignorar —" },
+  { value: "weight", label: "Peso" },
+  { value: "dimensions", label: "Dimensões" },
+  { value: "model", label: "Modelo" },
+  { value: "family", label: "Linha / Família" },
 ];
 
 interface Props {
@@ -31,6 +39,7 @@ interface Props {
 
 export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed }: Props) {
   const { createFeed, updateFeed, previewFeed } = useSupplierFeeds();
+  const categorySuggestions = useFeedCategorySuggestions();
 
   const [feedName, setFeedName] = useState("");
   const [feedUrl, setFeedUrl] = useState("");
@@ -38,14 +47,18 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
   const [encoding, setEncoding] = useState("utf-8");
   const [autoSync, setAutoSync] = useState(false);
   const [syncInterval, setSyncInterval] = useState(24);
-  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
+  // Inverted mapping: csvColumn → systemField
+  const [invertedMapping, setInvertedMapping] = useState<Record<string, string>>({});
+  // Selected columns (checkboxes)
+  const [selectedColumns, setSelectedColumns] = useState<Set<string>>(new Set());
+  // AI categories
+  const [aiCategoriesEnabled, setAiCategoriesEnabled] = useState(false);
 
   // Preview state
   const [previewHeaders, setPreviewHeaders] = useState<string[]>([]);
   const [previewRows, setPreviewRows] = useState<Record<string, string>[]>([]);
   const [previewTotal, setPreviewTotal] = useState(0);
   const [isPreviewing, setIsPreviewing] = useState(false);
-  const [tempFeedId, setTempFeedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (feed) {
@@ -55,7 +68,15 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
       setEncoding(feed.csv_encoding);
       setAutoSync(feed.auto_sync_enabled);
       setSyncInterval(feed.sync_interval_hours);
-      setColumnMapping(feed.column_mapping || {});
+      // Convert system→csv mapping to csv→system mapping
+      const inverted: Record<string, string> = {};
+      const cols = new Set<string>();
+      for (const [sysField, csvCol] of Object.entries(feed.column_mapping || {})) {
+        inverted[csvCol] = sysField;
+        cols.add(csvCol);
+      }
+      setInvertedMapping(inverted);
+      setSelectedColumns(cols);
     } else {
       setFeedName("");
       setFeedUrl("");
@@ -63,11 +84,25 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
       setEncoding("utf-8");
       setAutoSync(false);
       setSyncInterval(24);
-      setColumnMapping({});
+      setInvertedMapping({});
+      setSelectedColumns(new Set());
       setPreviewHeaders([]);
       setPreviewRows([]);
+      categorySuggestions.clearSuggestions();
+      setAiCategoriesEnabled(false);
     }
   }, [feed, open]);
+
+  // Convert inverted mapping back to system→csv for storage
+  const getColumnMapping = (): Record<string, string> => {
+    const mapping: Record<string, string> = {};
+    for (const [csvCol, sysField] of Object.entries(invertedMapping)) {
+      if (sysField && selectedColumns.has(csvCol)) {
+        mapping[sysField] = csvCol;
+      }
+    }
+    return mapping;
+  };
 
   const handleTestUrl = async () => {
     if (!feedUrl.trim()) {
@@ -77,8 +112,7 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
 
     setIsPreviewing(true);
     try {
-      // Need to save a temporary feed to test — or if editing, use existing
-      let fId = feed?.id || tempFeedId;
+      let fId = feed?.id;
       if (!fId) {
         // Create temp feed to test
         await createFeed.mutateAsync({
@@ -89,7 +123,6 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
           supplier_id: supplierId || null,
           auto_sync_enabled: false,
         } as any);
-        // We need the ID — re-query or use a workaround
         toast.info("Feed criado. Clica novamente em Testar URL.");
         setIsPreviewing(false);
         return;
@@ -100,20 +133,35 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
       setPreviewRows(result.sample_rows);
       setPreviewTotal(result.total_rows);
 
-      // Auto-suggest mapping for known Visiotech columns
-      const autoMapping: Record<string, string> = {};
+      // Auto-suggest inverted mapping
+      const autoInverted: Record<string, string> = {};
+      const autoCols = new Set<string>();
       for (const h of result.headers) {
         const lower = h.toLowerCase();
-        if (lower.includes('sku') || lower.includes('referenc') || lower.includes('ref')) autoMapping.sku = h;
-        else if (lower.includes('nombre') || lower.includes('name') || lower.includes('descri') || lower.includes('produto')) autoMapping.name = h;
-        else if (lower.includes('precio') || lower.includes('price') || lower.includes('pvp') || lower.includes('preço')) autoMapping.price = h;
-        else if (lower.includes('categ') || lower.includes('familia')) autoMapping.category = h;
-        else if (lower.includes('marca') || lower.includes('brand')) autoMapping.brand = h;
-        else if (lower.includes('ean') || lower.includes('barcode') || lower.includes('código')) autoMapping.barcode = h;
-        else if (lower.includes('image') || lower.includes('foto') || lower.includes('img')) autoMapping.image_url = h;
-        else if (lower.includes('stock') || lower.includes('cantidad')) autoMapping.stock = h;
+        let mapped = "";
+        if (lower.includes('sku') || lower.includes('referenc') || lower.includes('ref')) mapped = 'sku';
+        else if (lower.includes('nombre') || lower.includes('name') || lower.includes('descri') || lower.includes('produto')) mapped = 'name';
+        else if (lower.includes('precio') || lower.includes('price') || lower.includes('pvp') || lower.includes('preço')) mapped = 'price';
+        else if (lower.includes('categ') || lower.includes('familia')) mapped = 'category';
+        else if (lower.includes('marca') || lower.includes('brand')) mapped = 'brand';
+        else if (lower.includes('ean') || lower.includes('barcode') || lower.includes('código')) mapped = 'barcode';
+        else if (lower.includes('image') || lower.includes('foto') || lower.includes('img')) mapped = 'image_url';
+        else if (lower.includes('stock') || lower.includes('cantidad')) mapped = 'stock';
+        else if (lower.includes('peso') || lower.includes('weight')) mapped = 'weight';
+        else if (lower.includes('dimen')) mapped = 'dimensions';
+        else if (lower.includes('model')) mapped = 'model';
+
+        if (mapped) {
+          autoInverted[h] = mapped;
+          autoCols.add(h);
+        }
       }
-      setColumnMapping(prev => ({ ...autoMapping, ...prev }));
+      setInvertedMapping(prev => ({ ...autoInverted, ...prev }));
+      setSelectedColumns(prev => {
+        const next = new Set(prev);
+        autoCols.forEach(c => next.add(c));
+        return next;
+      });
     } catch (e: any) {
       toast.error("Erro ao testar URL: " + e.message);
     } finally {
@@ -134,7 +182,7 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
       csv_encoding: encoding,
       auto_sync_enabled: autoSync,
       sync_interval_hours: syncInterval,
-      column_mapping: columnMapping,
+      column_mapping: getColumnMapping(),
       supplier_id: supplierId || null,
     };
 
@@ -146,21 +194,51 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
     onOpenChange(false);
   };
 
-  const updateMapping = (field: string, csvColumn: string) => {
-    setColumnMapping(prev => {
-      const next = { ...prev };
-      if (csvColumn) {
-        next[field] = csvColumn;
+  const toggleColumn = (header: string) => {
+    setSelectedColumns(prev => {
+      const next = new Set(prev);
+      if (next.has(header)) {
+        next.delete(header);
       } else {
-        delete next[field];
+        next.add(header);
       }
       return next;
     });
   };
 
+  const updateColumnMapping = (csvColumn: string, systemField: string) => {
+    setInvertedMapping(prev => {
+      const next = { ...prev };
+      if (systemField) {
+        next[csvColumn] = systemField;
+      } else {
+        delete next[csvColumn];
+      }
+      return next;
+    });
+  };
+
+  const handlePreviewCategories = () => {
+    // Get product names from preview rows using the mapped "name" column
+    const nameCol = Object.entries(invertedMapping).find(([_, sys]) => sys === 'name')?.[0];
+    if (!nameCol) {
+      toast.error("Mapeia uma coluna para 'Nome do produto' primeiro");
+      return;
+    }
+    const names = previewRows.map(r => r[nameCol]).filter(Boolean).slice(0, 20);
+    if (names.length === 0) {
+      toast.error("Sem nomes de produtos no preview");
+      return;
+    }
+    categorySuggestions.suggestCategories.mutate(names);
+  };
+
+  const selectedCount = selectedColumns.size;
+  const totalColumns = previewHeaders.length;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{feed ? "Editar Feed" : "Novo Feed de Fornecedor"}</DialogTitle>
         </DialogHeader>
@@ -227,64 +305,121 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
             </div>
           </div>
 
-          {/* Column mapping */}
+          {/* Preview table — ALL columns */}
+          {previewHeaders.length > 0 && previewRows.length > 0 && (
+            <div className="space-y-2 border rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Columns className="h-4 w-4 text-muted-foreground" />
+                  <h5 className="text-xs font-medium text-muted-foreground">
+                    Pré-visualização — {totalColumns} colunas · {previewTotal} linhas
+                  </h5>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {selectedCount} selecionadas
+                </span>
+              </div>
+              <ScrollArea className="w-full">
+                <div className="overflow-x-auto border rounded max-h-[200px]">
+                  <table className="text-xs w-max min-w-full">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        {previewHeaders.map(h => (
+                          <th key={h} className="px-2 py-1.5 text-left font-medium whitespace-nowrap">
+                            <div className="flex items-center gap-1.5">
+                              <Checkbox
+                                checked={selectedColumns.has(h)}
+                                onCheckedChange={() => toggleColumn(h)}
+                                className="h-3.5 w-3.5"
+                              />
+                              <span className={selectedColumns.has(h) ? "" : "text-muted-foreground"}>{h}</span>
+                            </div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewRows.map((row, i) => (
+                        <tr key={i} className="border-t">
+                          {previewHeaders.map(h => (
+                            <td
+                              key={h}
+                              className={`px-2 py-1 truncate max-w-[180px] whitespace-nowrap ${
+                                selectedColumns.has(h) ? "" : "text-muted-foreground/50"
+                              }`}
+                            >
+                              {row[h] || "—"}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </ScrollArea>
+            </div>
+          )}
+
+          {/* Inverted column mapping: CSV column → system field */}
           {previewHeaders.length > 0 && (
             <div className="space-y-3 border rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <h4 className="font-semibold text-sm">Mapeamento de colunas</h4>
-                <span className="text-xs text-muted-foreground">{previewTotal} linhas encontradas</span>
+                <span className="text-xs text-muted-foreground">
+                  Coluna CSV → Campo do sistema
+                </span>
               </div>
 
-              <div className="space-y-2">
-                {PRODUCT_FIELDS.filter(f => f.value).map(field => (
-                  <div key={field.value} className="flex items-center gap-3">
-                    <span className="text-sm w-36 shrink-0">{field.label}</span>
-                    <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
-                    <Select
-                      value={columnMapping[field.value] || ""}
-                      onValueChange={v => updateMapping(field.value, v)}
+              <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1">
+                {previewHeaders.map(csvCol => {
+                  const isSelected = selectedColumns.has(csvCol);
+                  return (
+                    <div
+                      key={csvCol}
+                      className={`flex items-center gap-3 py-1 ${!isSelected ? "opacity-40" : ""}`}
                     >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Selecionar coluna..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">— Ignorar —</SelectItem>
-                        {previewHeaders.map(h => (
-                          <SelectItem key={h} value={h}>{h}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ))}
-              </div>
-
-              {/* Preview table */}
-              {previewRows.length > 0 && (
-                <div className="mt-3">
-                  <h5 className="text-xs font-medium text-muted-foreground mb-2">Pré-visualização (5 primeiras linhas)</h5>
-                  <div className="overflow-x-auto border rounded">
-                    <table className="text-xs w-full">
-                      <thead>
-                        <tr className="bg-muted/50">
-                          {previewHeaders.slice(0, 6).map(h => (
-                            <th key={h} className="px-2 py-1 text-left font-medium">{h}</th>
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleColumn(csvCol)}
+                        className="h-3.5 w-3.5 shrink-0"
+                      />
+                      <span className="text-sm w-40 shrink-0 truncate font-mono text-xs">
+                        {csvCol}
+                      </span>
+                      <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <Select
+                        value={invertedMapping[csvCol] || ""}
+                        onValueChange={v => updateColumnMapping(csvCol, v)}
+                        disabled={!isSelected}
+                      >
+                        <SelectTrigger className="flex-1 h-8 text-xs">
+                          <SelectValue placeholder="— Ignorar —" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">— Ignorar —</SelectItem>
+                          {PRODUCT_FIELDS.map(f => (
+                            <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
                           ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {previewRows.map((row, i) => (
-                          <tr key={i} className="border-t">
-                            {previewHeaders.slice(0, 6).map(h => (
-                              <td key={h} className="px-2 py-1 truncate max-w-[150px]">{row[h]}</td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
+          )}
+
+          {/* AI Category suggestions */}
+          {previewHeaders.length > 0 && (
+            <SupplierFeedCategoryPreview
+              suggestions={categorySuggestions.suggestions}
+              isLoading={categorySuggestions.isLoading}
+              onPreview={handlePreviewCategories}
+              onToggle={categorySuggestions.toggleSuggestion}
+              onUpdate={categorySuggestions.updateSuggestion}
+              enabled={aiCategoriesEnabled}
+              onEnabledChange={setAiCategoriesEnabled}
+            />
           )}
 
           {/* Auto-sync */}
