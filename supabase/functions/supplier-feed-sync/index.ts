@@ -228,7 +228,18 @@ Responde APENAS JSON: [{"product_name":"...","category":"...","subcategory":"...
 
             const name = getMappedValue(row, mapping, 'name') || sku
             const price = parseFloat(getMappedValue(row, mapping, 'price') || '0')
-            const category = getMappedValue(row, mapping, 'category') || null
+            let category = getMappedValue(row, mapping, 'category') || null
+            let subcategory = getMappedValue(row, mapping, 'subcategory') || null
+            
+            // Override with AI suggestions if available
+            if (aiCategoryMap && name) {
+              const aiSug = aiCategoryMap.get(name)
+              if (aiSug) {
+                category = aiSug.category
+                subcategory = aiSug.subcategory
+              }
+            }
+            
             const brand = getMappedValue(row, mapping, 'brand') || null
             const description = getMappedValue(row, mapping, 'description') || null
             const barcode = getMappedValue(row, mapping, 'barcode') || null
