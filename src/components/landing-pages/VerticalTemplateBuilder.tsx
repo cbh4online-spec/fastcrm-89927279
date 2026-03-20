@@ -562,7 +562,7 @@ export function VerticalTemplateBuilder({ templateId, onBack }: Props) {
                 <Label>URL do Vídeo</Label>
                 <Input
                   value={form.video_section?.url || ""}
-                  onChange={(e) => updateField("video_section", { ...(form.video_section || {}), url: e.target.value })}
+                  onChange={(e) => updateField("video_section", { url: "", ...(form.video_section || {}), url: e.target.value } as any)}
                   placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..."
                 />
                 <p className="text-xs text-muted-foreground mt-1">Suporta YouTube, Vimeo ou URL direta (.mp4)</p>
