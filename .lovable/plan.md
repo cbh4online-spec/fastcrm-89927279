@@ -1,21 +1,18 @@
 
 
-## Importar Ficheiro HTML no Editor de Email
+## Corrigir Renderização do Bloco HTML no Canvas
 
-### O que será feito
-Adicionar um botão "Importar HTML" no header do Email Builder que permite ao utilizador carregar um ficheiro `.html` do computador. O conteúdo HTML será inserido como um bloco HTML personalizado no canvas.
+### Problema
+O `EmailCanvas.tsx` não tem `case 'html'` no switch de `renderBlock`, fazendo com que blocos HTML importados mostrem "Bloco não suportado". O BlockEditor já suporta edição de HTML — falta apenas a pré-visualização no canvas.
 
-### Alterações
+### Alteração
 
-#### `src/components/email-builder/EmailBuilder.tsx`
-- Adicionar botão "Importar" no header (junto ao botão "HTML"), com ícone `Upload`
-- Criar `<input type="file" accept=".html,.htm" />` hidden, triggered pelo botão
-- No `onChange` do input:
-  - Ler o ficheiro com `FileReader.readAsText()`
-  - Chamar `addBlock('html')` para criar um bloco HTML
-  - Imediatamente fazer `updateBlock(newBlockId, { content: { html: conteúdo } })` com o HTML importado
-- Mostrar toast de sucesso/erro
+#### `src/components/email-builder/EmailCanvas.tsx`
+- Adicionar `case 'html'` ao switch de `renderBlock` (antes do `default`, ~linha 336)
+- Importar `HtmlBlockContent` do types
+- Renderizar o HTML com `dangerouslySetInnerHTML` dentro de um container com estilos adequados
+- Mostrar placeholder "Adicionar HTML" quando o conteúdo está vazio
 
 ### Ficheiros a alterar
-- `src/components/email-builder/EmailBuilder.tsx`
+- `src/components/email-builder/EmailCanvas.tsx`
 
