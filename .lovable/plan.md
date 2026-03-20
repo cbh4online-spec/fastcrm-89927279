@@ -1,50 +1,51 @@
 
 
-## Adicionar Redes Sociais e Links de Publicações aos Templates/Funis
+## Corrigir Estatísticas de Visitas nos Funis Verticais
 
-### O que será feito
-Adicionar uma secção de redes sociais (Facebook, Instagram, LinkedIn, WhatsApp, YouTube, TikTok, Twitter/X) e links de publicações/artigos ao template AIDA, visíveis no footer e opcionalmente numa secção dedicada da landing page pública.
+### Problema raiz
+Os eventos de tracking são inseridos com `workspace_id: null` porque `VerticalLandingPage.tsx` passa `workspaceId={undefined}` ao tracker. A política RLS de SELECT exige que `workspace_id` pertença ao workspace do utilizador autenticado, logo eventos com `workspace_id: null` nunca são lidos — daí "0 visitantes" mesmo com visitas reais.
 
 ### Alterações
 
-#### 1. Migração DB — Coluna `social_links` na tabela `vertical_templates`
-- Adicionar coluna `social_links jsonb` para guardar URLs das redes e publicações
+#### 1. `src/pages/VerticalLandingPage.tsx`
+- Extrair `workspace_id` e `id` do row retornado por `fetchPublishedTemplateBySlug`
+- Passar esses valores ao `VerticalLandingTemplate`:
+  - `templateId={row.id}`
+  - `workspaceId={row.workspace_id}`
+- Isto garante que novos eventos são inseridos com `workspace_id` correcto
 
-#### 2. Interface `VerticalConfig` — `src/config/verticalConfigs.ts`
-- Adicionar campo `social_links` com estrutura:
-```typescript
-social_links?: {
-  facebook?: string;
-  instagram?: string;
-  linkedin?: string;
-  whatsapp?: string;
-  youtube?: string;
-  tiktok?: string;
-  twitter?: string;
-  website?: string;
-  publications?: { title: string; url: string }[];
-}
+#### 2. Migração DB — Corrigir eventos existentes com `workspace_id` null
+- UPDATE `vertical_landing_events` para preencher `workspace_id` a partir do `template_slug`, cruzando com `vertical_templates`:
+```sql
+UPDATE public.vertical_landing_events e
+SET workspace_id = t.workspace_id
+FROM public.vertical_templates t
+WHERE e.template_slug = t.slug
+  AND e.workspace_id IS NULL
+  AND t.workspace_id IS NOT NULL;
 ```
 
-#### 3. Editor — `VerticalTemplateBuilder.tsx`
-- Novo tab "Redes Sociais" com inputs para cada rede social e lista dinâmica de publicações (título + URL, adicionar/remover)
-- Incluir `social_links` no `previewConfig` e no `defaultForm`
+#### 3. Migração DB — Política RLS alternativa para leitura por slug
+- Adicionar política de SELECT que também permita leitura quando o `template_slug` corresponde a um template do workspace do utilizador (para cobrir eventos antigos que possam não ter workspace_id):
+```sql
+CREATE POLICY "Members read events by template ownership"
+  ON public.vertical_landing_events FOR SELECT TO authenticated
+  USING (
+    template_slug IN (
+      SELECT slug FROM public.vertical_templates
+      WHERE workspace_id IN (
+        SELECT workspace_id FROM public.workspace_members WHERE user_id = auth.uid()
+      )
+    )
+  );
+```
 
-#### 4. Footer — `VerticalFooter.tsx`
-- Renderizar ícones das redes sociais configuradas com links
-- Listar publicações/artigos se existirem
+### Resultado
+- Eventos passados são corrigidos via UPDATE
+- Novos eventos têm `workspace_id` preenchido
+- As stats passam a aparecer correctamente no dashboard
 
-#### 5. Mapeamento — `VerticalLandingPage.tsx`
-- Mapear `row.social_links` no `rowToConfig`
-
-#### 6. Hook — `useVerticalTemplates.ts`
-- Incluir `social_links` na tipagem e no provisionamento
-
-### Ficheiros a criar/alterar
-- `supabase/migrations/` — nova coluna `social_links`
-- `src/config/verticalConfigs.ts`
-- `src/components/landing-pages/VerticalTemplateBuilder.tsx`
-- `src/components/vertical-landing/VerticalFooter.tsx`
+### Ficheiros a alterar
 - `src/pages/VerticalLandingPage.tsx`
-- `src/hooks/useVerticalTemplates.ts`
+- Nova migração SQL (update dados + política RLS)
 
