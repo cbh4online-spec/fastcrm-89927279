@@ -28615,6 +28615,7 @@ export type Database = {
           image_url: string | null
           is_active: boolean | null
           name: string
+          parent_id: string | null
           position: number | null
           updated_at: string
           workspace_id: string
@@ -28628,6 +28629,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           name: string
+          parent_id?: string | null
           position?: number | null
           updated_at?: string
           workspace_id: string
@@ -28641,11 +28643,19 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           name?: string
+          parent_id?: string | null
           position?: number | null
           updated_at?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "product_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "product_categories_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -29902,6 +29912,7 @@ export type Database = {
           store_published: boolean | null
           store_sort_order: number | null
           store_visibility: string
+          subcategory: string | null
           tags: string[]
           target_margin_pct: number | null
           tax_included: boolean
@@ -29988,6 +29999,7 @@ export type Database = {
           store_published?: boolean | null
           store_sort_order?: number | null
           store_visibility?: string
+          subcategory?: string | null
           tags?: string[]
           target_margin_pct?: number | null
           tax_included?: boolean
@@ -30074,6 +30086,7 @@ export type Database = {
           store_published?: boolean | null
           store_sort_order?: number | null
           store_visibility?: string
+          subcategory?: string | null
           tags?: string[]
           target_margin_pct?: number | null
           tax_included?: boolean
