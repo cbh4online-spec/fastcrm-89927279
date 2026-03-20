@@ -341,13 +341,11 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
     if (lines.length === 0) { toast.error("Nenhum SKU válido encontrado"); return; }
 
     const delimiter = detectDelimiter(lines[0]);
-    const firstCols = lines[0].split(delimiter);
+    const firstCols = parseCSVLine(lines[0], delimiter);
 
     if (firstCols.length > 1) {
-      const headers = firstCols.map(h => h.trim().replace(/^["']|["']$/g, ""));
-      const rows = lines.slice(1).map(line =>
-        line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ""))
-      );
+      const headers = firstCols.map(h => h.replace(/^["']|["']$/g, ""));
+      const rows = lines.slice(1).map(line => parseCSVLine(line, delimiter));
       if (rows.length > 0) {
         toast.success(`${rows.length} linhas · ${headers.length} colunas`);
         goToMapping(headers, rows, rows.length);
