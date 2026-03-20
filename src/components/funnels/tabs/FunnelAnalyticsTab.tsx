@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { format, subDays } from "date-fns";
-import { BarChart3, TrendingUp, Eye, Target, Users, CalendarIcon } from "lucide-react";
+import { BarChart3, TrendingUp, Eye, Target, Users, CalendarIcon, Brain, Loader2, Lightbulb, AlertTriangle, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useFunnelSteps, useFunnelStepStats } from "@/hooks/useFunnels";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
   ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell
@@ -11,6 +15,13 @@ import {
 
 interface Props {
   funnelId: string;
+}
+
+interface AIInsight {
+  score: number;
+  bottleneck: string;
+  suggestions: string[];
+  revenue_forecast: string;
 }
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];

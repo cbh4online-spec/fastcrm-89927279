@@ -173,6 +173,18 @@ export default function PublicFunnelPage() {
 
       if (error) throw error;
 
+      // Track optin event
+      if (funnel.workspace_id) {
+        const today = new Date().toISOString().split("T")[0];
+        supabase.from("funnel_step_stats").insert({
+          step_id: step.id,
+          workspace_id: funnel.workspace_id,
+          event_type: "optin",
+          event_date: today,
+          count: 1,
+        }).then(() => {});
+      }
+
       setFormSubmitted(true);
 
       const isLast = currentStepIndex >= steps.length - 1;
