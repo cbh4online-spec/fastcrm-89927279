@@ -1,33 +1,46 @@
 
+Objetivo: corrigir de forma definitiva o problema “os testemunhos não aparecem no funil/template”, cobrindo editor, preview e página pública.
 
-## Melhorar formulario de Novo Email com pesquisa de contactos
+1) Diagnóstico confirmado
+- A tabela já tem dados (`vertical_templates.testimonials`) e o template `empresas` está publicado com 1 testemunho.
+- O problema é de renderização/mapeamento no frontend, não de gravação.
+- Causas principais:
+  - `VerticalLandingPage.tsx` prioriza `staticConfig` e, para slugs estáticos (ex: `empresas`), ignora o template publicado da base de dados.
+  - `rowToConfig` não mapeia `testimonials` e `video_section`.
+  - `VerticalTemplateBuilder.tsx` (preview interno) também não inclui `testimonials`/`video_section` em `previewConfig`.
 
-### Problema
-O formulario `QuickComposeDialog` no `ComposeButton.tsx` e muito basico: campos de texto simples sem pesquisa de contactos existentes. O utilizador tem de saber o email de cor.
+2) Implementação proposta (sem migração DB)
+- Ficheiro: `src/pages/VerticalLandingPage.tsx`
+  - Atualizar `rowToConfig` para incluir:
+    - `testimonials`
+    - `video_section`
+  - Alterar estratégia de carregamento:
+    - Sempre tentar buscar template publicado por `slug`.
+    - Se existir na base de dados, usar esse (prioridade).
+    - Se não existir, fallback para `staticConfig`.
+    - Só mostrar `NotFound` quando não houver nem template publicado nem config estático.
+- Ficheiro: `src/components/landing-pages/VerticalTemplateBuilder.tsx`
+  - Incluir no `previewConfig`:
+    - `testimonials: form.testimonials || []`
+    - `video_section: form.video_section`
+  - Resultado: o botão “Preview” passa a mostrar testemunhos/vídeo imediatamente.
+- Ficheiro: `src/hooks/useVerticalTemplates.ts`
+  - Em `useEnsureVerticalTemplate`, ao criar row a partir de `verticalConfigs`, incluir também:
+    - `testimonials`
+    - `video_section`
+  - Evita novos workspaces nascerem sem estas secções nos templates pré-definidos.
 
-### Solucao
-Substituir o campo "Email do destinatario" por um campo com pesquisa/autocomplete que consulta contactos e leads do workspace, preenchendo automaticamente o email e nome ao selecionar.
+3) Validação funcional (E2E)
+- No editor de template AIDA:
+  - Adicionar 1+ testemunhos, guardar/publicar.
+  - Abrir “Preview” interno e validar secção visível.
+- Na URL pública do template (`/{slug}`):
+  - Confirmar que renderiza o conteúdo vindo da base de dados (não apenas estático).
+- Repetir para “Vídeo” para garantir paridade.
 
-### Alteracoes
-
-**Ficheiro: `src/components/inbox/ComposeButton.tsx`**
-
-1. **Importar `useContacts`** e `useLeads` para obter os contactos/leads do workspace
-2. **Adicionar estado de pesquisa** (`searchTerm`) e logica de filtragem por nome/email
-3. **Substituir o campo email** por um input com dropdown de sugestoes (Popover/Command pattern):
-   - Ao digitar, filtra contactos e leads que contenham o termo no nome ou email
-   - Ao selecionar, preenche `recipientEmail` e `recipientName` automaticamente
-   - Ainda permite escrever um email manualmente (para novos contactos)
-4. **Adicionar campos CC e BCC** (toggle para mostrar/ocultar) para maior funcionalidade
-5. **Mostrar badge** com o tipo de entidade (Contacto/Lead) ao lado da sugestao
-6. **Indicador de assinatura** — mostrar badge a confirmar que a assinatura sera incluida (ja existe o hook `useEmailSignature`)
-
-### Detalhes tecnicos
-- Usar `useContacts()` e `useLeads()` que ja existem nos hooks
-- Componente de autocomplete usa Popover + lista filtrada (sem dependencia extra)
-- A selecao define `entityType` e `entityId` directamente, evitando a busca posterior no `handleSend`
-- Manter compatibilidade com email manual (fallback para criar lead)
-
-### Ficheiros a alterar
-- `src/components/inbox/ComposeButton.tsx` (unico ficheiro)
-
+4) Resultado esperado
+- Testemunhos passam a aparecer:
+  - no preview do editor,
+  - no link público do template,
+  - e em templates auto-provisionados novos.
+- Correção focada, sem alterar schema, sem impacto em outras áreas.
