@@ -309,10 +309,12 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
       </Card>
 
       <Tabs defaultValue="conteudo">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="conteudo">Conteúdo</TabsTrigger>
           <TabsTrigger value="imagem">Imagens</TabsTrigger>
           {isOptin && <TabsTrigger value="formulario">Formulário</TabsTrigger>}
+          {isTestimonials && <TabsTrigger value="testemunhos">Testemunhos</TabsTrigger>}
+          {isVideo && <TabsTrigger value="video">Vídeo</TabsTrigger>}
           <TabsTrigger value="design">Design</TabsTrigger>
         </TabsList>
 
