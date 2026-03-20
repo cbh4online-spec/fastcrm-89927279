@@ -113,7 +113,7 @@ export function CampaignDetailDialog({
               {readyToSend && (
                 <CampaignSendModeSelector
                   campaignId={campaign.id}
-                  value={(campaign as any).sendMode || 'immediate'}
+                  value={campaign.sendMode || 'immediate'}
                   recipientCount={campaign.totalRecipients}
                   onChange={(mode, config) => {
                     updateCampaign.mutate({
