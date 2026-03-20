@@ -18,7 +18,7 @@ import {
 } from "@/hooks/useVerticalTemplates";
 import { VerticalLandingTemplate } from "@/components/vertical-landing/VerticalLandingTemplate";
 import { AppearanceEditor, defaultAppearance, type AppearanceValues } from "@/components/funnels/AppearanceEditor";
-import type { VerticalConfig, VerticalTestimonial, VerticalVideoSection } from "@/config/verticalConfigs";
+import type { VerticalConfig, VerticalTestimonial, VerticalVideoSection, SocialLinks } from "@/config/verticalConfigs";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 
