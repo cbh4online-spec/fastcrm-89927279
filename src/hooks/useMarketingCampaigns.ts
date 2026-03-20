@@ -39,6 +39,18 @@ function mapCampaign(row: any): MarketingCampaign {
     aiInsightsGeneratedAt: row.ai_insights_generated_at,
     sendHour: row.send_hour,
     linkCount: row.link_count,
+    // Deliverability fields
+    sendMode: row.send_mode || 'immediate',
+    batchSize: row.batch_size || 100,
+    batchIntervalMinutes: row.batch_interval_minutes || 60,
+    sendPaused: row.send_paused || false,
+    validationRunAt: row.validation_run_at,
+    validatedCount: row.validated_count || 0,
+    invalidCount: row.invalid_count || 0,
+    suppressedCount: row.suppressed_count || 0,
+    queueTotal: row.queue_total || 0,
+    queueSent: row.queue_sent || 0,
+    queueFailed: row.queue_failed || 0,
   };
 }
 
@@ -181,6 +193,9 @@ export function useUpdateCampaign() {
       segmentId?: string;
       status?: CampaignStatus;
       scheduledAt?: string;
+      sendMode?: string;
+      batchSize?: number;
+      batchIntervalMinutes?: number;
     }) => {
       const updateData: any = {};
       
@@ -195,6 +210,9 @@ export function useUpdateCampaign() {
       if (data.segmentId !== undefined) updateData.segment_id = data.segmentId;
       if (data.status !== undefined) updateData.status = data.status;
       if (data.scheduledAt !== undefined) updateData.scheduled_at = data.scheduledAt;
+      if (data.sendMode !== undefined) updateData.send_mode = data.sendMode;
+      if (data.batchSize !== undefined) updateData.batch_size = data.batchSize;
+      if (data.batchIntervalMinutes !== undefined) updateData.batch_interval_minutes = data.batchIntervalMinutes;
 
       const { data: result, error } = await supabase
         .from('marketing_campaigns')

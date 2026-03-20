@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -24,7 +25,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { useCampaignRecipients, useCampaignEvents } from '@/hooks/useMarketingCampaigns';
+import { useCampaignRecipients, useCampaignEvents, useUpdateCampaign, useSendCampaign } from '@/hooks/useMarketingCampaigns';
 import { 
   calculateCampaignStats, 
   CAMPAIGN_STATUS_LABELS, 
@@ -37,6 +38,9 @@ import { DeliverabilityPanel } from './DeliverabilityPanel';
 import { ActivityFeed } from './ActivityFeed';
 import { ClickHeatmapPanel } from './ClickHeatmapPanel';
 import { TriggerBuilder } from './TriggerBuilder';
+import { CampaignValidationPanel } from '@/components/email-campaigns/CampaignValidationPanel';
+import { CampaignSendModeSelector } from '@/components/email-campaigns/CampaignSendModeSelector';
+import { CampaignQueueStatus } from '@/components/email-campaigns/CampaignQueueStatus';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
 interface CampaignDetailDialogProps {
@@ -50,9 +54,12 @@ export function CampaignDetailDialog({
   onOpenChange,
   campaign,
 }: CampaignDetailDialogProps) {
+  const [readyToSend, setReadyToSend] = useState(false);
   const { data: recipients = [] } = useCampaignRecipients(campaign?.id);
   const { data: events = [] } = useCampaignEvents(campaign?.id);
   const { currentWorkspace } = useWorkspace();
+  const updateCampaign = useUpdateCampaign();
+  const sendCampaign = useSendCampaign();
 
   if (!campaign) return null;
 
@@ -76,8 +83,14 @@ export function CampaignDetailDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="stats" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-7">
+        <Tabs defaultValue={campaign.status === 'draft' ? 'send' : 'stats'} className="space-y-4">
+          <TabsList className="flex w-max min-w-full">
+            {campaign.status === 'draft' && (
+              <TabsTrigger value="send">Envio</TabsTrigger>
+            )}
+            {campaign.status === 'sending' && (
+              <TabsTrigger value="queue">Progresso</TabsTrigger>
+            )}
             <TabsTrigger value="stats">Estatísticas</TabsTrigger>
             <TabsTrigger value="deliverability">Entregabilidade</TabsTrigger>
             <TabsTrigger value="clicks">Cliques</TabsTrigger>
@@ -86,6 +99,50 @@ export function CampaignDetailDialog({
             <TabsTrigger value="automation">Automação</TabsTrigger>
             <TabsTrigger value="content">Conteúdo</TabsTrigger>
           </TabsList>
+
+          {/* Send Flow Tab (draft only) */}
+          {campaign.status === 'draft' && (
+            <TabsContent value="send" className="space-y-4">
+              <CampaignValidationPanel
+                campaignId={campaign.id}
+                recipientCount={campaign.totalRecipients}
+                validationRunAt={campaign.validationRunAt}
+                validatedCount={campaign.validatedCount}
+                invalidCount={campaign.invalidCount}
+                suppressedCount={campaign.suppressedCount}
+                onValidated={() => setReadyToSend(true)}
+                onSend={() => sendCampaign.mutateAsync(campaign.id)}
+                isSending={sendCampaign.isPending}
+              />
+              {readyToSend && (
+                <CampaignSendModeSelector
+                  campaignId={campaign.id}
+                  value={campaign.sendMode || 'immediate'}
+                  recipientCount={campaign.totalRecipients}
+                  onChange={(mode, config) => {
+                    updateCampaign.mutate({
+                      id: campaign.id,
+                      sendMode: mode,
+                      batchSize: config.batch_size,
+                      batchIntervalMinutes: config.batch_interval_minutes,
+                    });
+                  }}
+                />
+              )}
+            </TabsContent>
+          )}
+
+          {/* Queue Progress Tab (sending + throttled) */}
+          {campaign.status === 'sending' && (
+            <TabsContent value="queue" className="space-y-4">
+              <CampaignQueueStatus
+                campaignId={campaign.id}
+                isPaused={campaign.sendPaused}
+                onPause={() => updateCampaign.mutate({ id: campaign.id, status: 'paused' })}
+                onResume={() => updateCampaign.mutate({ id: campaign.id, status: 'sending' })}
+              />
+            </TabsContent>
+          )}
 
           <TabsContent value="stats" className="space-y-4">
             {/* Main Stats */}

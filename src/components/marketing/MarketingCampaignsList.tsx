@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -188,6 +189,26 @@ export function MarketingCampaignsList({ onCreateNew }: MarketingCampaignsListPr
                         )}
                       </p>
                     </div>
+
+                    {campaign.status === 'sending' && campaign.sendMode === 'throttled' && (
+                      <div className="hidden md:flex items-center gap-3 mx-4 min-w-[120px]">
+                        <div className="flex-1 space-y-1">
+                          <Progress
+                            value={
+                              (campaign.queueTotal || 0) > 0
+                                ? Math.round(((campaign.queueSent || 0) / (campaign.queueTotal || 1)) * 100)
+                                : 0
+                            }
+                            className="h-1.5"
+                          />
+                          <p className="text-[10px] text-muted-foreground text-center">
+                            Em curso · {(campaign.queueTotal || 0) > 0
+                              ? Math.round(((campaign.queueSent || 0) / (campaign.queueTotal || 1)) * 100)
+                              : 0}%
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
                     {campaign.status === 'sent' && (
                       <div className="hidden md:flex items-center gap-6 mx-4 text-sm">
