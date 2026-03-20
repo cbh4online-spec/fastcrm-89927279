@@ -37,7 +37,7 @@ function KPICard({ title, value, subtitle, icon: Icon, tooltip, trend, belowBenc
   const TrendIcon = trend.direction === "up" ? ArrowUpRight : trend.direction === "down" ? ArrowDownRight : Minus;
 
   return (
-    <Card className="border-white/[0.08] rounded-xl relative group">
+    <Card className={`border-white/[0.08] rounded-xl relative group ${onClick ? "cursor-pointer hover:border-amber-500/30 hover:shadow-md transition-all" : ""}`} onClick={onClick}>
       {belowBenchmark && (
         <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Abaixo do benchmark" />
       )}
