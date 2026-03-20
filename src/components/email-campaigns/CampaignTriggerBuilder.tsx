@@ -60,8 +60,10 @@ const ACTION_LABELS: Record<string, string> = {
 export function CampaignTriggerBuilder({ campaignId }: Props) {
   const { triggers, isLoading, createTrigger, updateTrigger, deleteTrigger } =
     useCampaignTriggers(campaignId);
-  const { sequences } = useEmailSequences();
-  const { campaigns } = useMarketingCampaigns({ status: 'draft' });
+  const sequencesQuery = useEmailSequences();
+  const campaignsQuery = useMarketingCampaigns({ status: 'draft' });
+  const sequences = sequencesQuery.data || [];
+  const draftCampaigns = campaignsQuery.data || [];
 
   const [showForm, setShowForm] = useState(false);
   const [event, setEvent] = useState<string>('opened');
