@@ -14,6 +14,7 @@ import {
   Target,
   Paintbrush,
   Code,
+  ShieldBan,
 } from 'lucide-react';
 import { MarketingCampaignsList } from '@/components/marketing/MarketingCampaignsList';
 import { MarketingSegmentsList } from '@/components/marketing/MarketingSegmentsList';
@@ -89,7 +90,17 @@ export default function Marketing() {
               Crie e envie campanhas de email para os seus contactos
             </p>
           </div>
-          {getAddButton()}
+          <div className="flex gap-2 items-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/dashboard/email-campaigns/suppressions')}
+            >
+              <ShieldBan className="h-4 w-4 mr-2" />
+              Supressões
+            </Button>
+            {getAddButton()}
+          </div>
         </div>
 
         {/* Tabs */}
