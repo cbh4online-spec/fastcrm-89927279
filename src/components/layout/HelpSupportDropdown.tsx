@@ -93,6 +93,7 @@ export function HelpSupportDropdown() {
 
       <KnowledgeBaseHelpModal open={kbOpen} onOpenChange={setKbOpen} />
       <KeyboardShortcutsModal open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <BugReportModal open={bugReportOpen} onClose={() => setBugReportOpen(false)} />
     </>
   );
 }
