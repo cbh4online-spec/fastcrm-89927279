@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { MousePointer, Type, Heading, Image, Link2, Minus, Square, PaintBucket, Copy, ClipboardPaste, RotateCcw } from 'lucide-react';
+import { MousePointer, Type, Heading, Image, Link2, Minus, Square, PaintBucket, Copy, ClipboardPaste, RotateCcw, Upload } from 'lucide-react';
+import { AIRewritePanel } from './AIRewritePanel';
+import { MergeTagsBar } from './MergeTagsBar';
+import { ImageUploadDialog } from './ImageUploadDialog';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -397,12 +400,21 @@ function TextEditor({ element, onUpdate }: { element: EditableElement; onUpdate:
     setFontWeight(element.styles.fontWeight || '400');
   }, [element.id]);
 
+  const handleInsertTag = (tag: string) => {
+    const newText = text + tag;
+    setText(newText);
+    onUpdate({ id: element.id, property: 'textContent', value: newText });
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
         <Label className="text-xs font-medium">Conteúdo</Label>
         <Textarea value={text} onChange={(e) => { setText(e.target.value); onUpdate({ id: element.id, property: 'textContent', value: e.target.value }); }} rows={4} className="text-sm resize-none" />
       </div>
+
+      <MergeTagsBar onInsert={handleInsertTag} />
+
       <Separator />
       <div className="flex gap-1">
         {['bold', 'normal'].map((w) => (
@@ -439,6 +451,16 @@ function TextEditor({ element, onUpdate }: { element: EditableElement; onUpdate:
           </div>
         </div>
       </div>
+
+      <Separator />
+
+      <AIRewritePanel
+        currentText={text}
+        onApply={(newText) => {
+          setText(newText);
+          onUpdate({ id: element.id, property: 'textContent', value: newText });
+        }}
+      />
     </div>
   );
 }
@@ -448,12 +470,18 @@ function ImageEditor({ element, onUpdate }: { element: EditableElement; onUpdate
   const [src, setSrc] = useState(element.attributes.src || '');
   const [alt, setAlt] = useState(element.attributes.alt || '');
   const [width, setWidth] = useState(element.attributes.width || element.styles.width || 'auto');
+  const [showUpload, setShowUpload] = useState(false);
 
   useEffect(() => {
     setSrc(element.attributes.src || '');
     setAlt(element.attributes.alt || '');
     setWidth(element.attributes.width || element.styles.width || 'auto');
   }, [element.id]);
+
+  const handleImageSelect = (url: string) => {
+    setSrc(url);
+    onUpdate({ id: element.id, property: 'src', value: url });
+  };
 
   return (
     <div className="space-y-4">
@@ -462,6 +490,23 @@ function ImageEditor({ element, onUpdate }: { element: EditableElement; onUpdate
           <img src={src} alt={alt} className="w-full h-auto max-h-40 object-contain" />
         </div>
       )}
+
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full h-9 text-xs gap-1.5"
+        onClick={() => setShowUpload(true)}
+      >
+        <Upload className="h-3 w-3" />
+        Substituir imagem
+      </Button>
+
+      <ImageUploadDialog
+        open={showUpload}
+        onClose={() => setShowUpload(false)}
+        onSelect={handleImageSelect}
+      />
+
       <div className="space-y-2">
         <Label className="text-xs font-medium">URL da imagem</Label>
         <Input value={src} onChange={(e) => { setSrc(e.target.value); onUpdate({ id: element.id, property: 'src', value: e.target.value }); }} placeholder="https://..." className="h-9 text-xs" />

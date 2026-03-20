@@ -7,6 +7,8 @@ import {
   X,
   Download,
   Loader2,
+  Undo2,
+  Redo2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -29,6 +31,62 @@ export function HtmlEmailEditor({ htmlContent, campaignName, onSave, onCancel }:
   const [isPreviewOnly, setIsPreviewOnly] = useState(false);
   const [saving, setSaving] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // ── Undo / Redo ───────────────────────────
+  const historyRef = useRef<string[]>([htmlContent]);
+  const historyIndexRef = useRef(0);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  const pushHistory = useCallback((html: string) => {
+    const h = historyRef.current;
+    const idx = historyIndexRef.current;
+    // Trim future states
+    historyRef.current = h.slice(0, idx + 1);
+    historyRef.current.push(html);
+    // Cap at 50 entries
+    if (historyRef.current.length > 50) historyRef.current.shift();
+    historyIndexRef.current = historyRef.current.length - 1;
+    setCanUndo(historyIndexRef.current > 0);
+    setCanRedo(false);
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    if (historyIndexRef.current <= 0) return;
+    historyIndexRef.current--;
+    const html = historyRef.current[historyIndexRef.current];
+    setCurrentHtml(html);
+    setSelectedElement(null);
+    setCanUndo(historyIndexRef.current > 0);
+    setCanRedo(true);
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    if (historyIndexRef.current >= historyRef.current.length - 1) return;
+    historyIndexRef.current++;
+    const html = historyRef.current[historyIndexRef.current];
+    setCurrentHtml(html);
+    setSelectedElement(null);
+    setCanUndo(true);
+    setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) handleRedo();
+        else handleUndo();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'y') {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [handleUndo, handleRedo]);
 
   // Auto-save timer
   const autoSaveRef = useRef<ReturnType<typeof setInterval>>();
@@ -63,7 +121,8 @@ export function HtmlEmailEditor({ htmlContent, campaignName, onSave, onCancel }:
 
   const handleHtmlUpdated = useCallback((html: string) => {
     setCurrentHtml(html);
-  }, []);
+    pushHistory(html);
+  }, [pushHistory]);
 
   const handleExportHtml = useCallback((callback?: (html: string) => void) => {
     if (!iframeRef.current?.contentWindow) return;
@@ -119,6 +178,32 @@ export function HtmlEmailEditor({ htmlContent, campaignName, onSave, onCancel }:
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Undo / Redo */}
+          <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleUndo}
+              disabled={!canUndo}
+              title="Desfazer (Ctrl+Z)"
+            >
+              <Undo2 className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleRedo}
+              disabled={!canRedo}
+              title="Refazer (Ctrl+Shift+Z)"
+            >
+              <Redo2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+
+          <div className="w-px h-6 bg-border" />
+
           {/* Device toggle */}
           <div className="flex items-center gap-0.5 border rounded-lg p-0.5 bg-muted/50">
             <Button
