@@ -162,34 +162,52 @@ export function KnowledgeBaseHelpModal({ open, onOpenChange }: KnowledgeBaseHelp
                       />
                     ))}
 
-                    {showAiOption && (
+                    {showAiOption && !aiAnswer && !isAiLoading && (
                       <div className="text-center py-8 space-y-3">
                         <p className="text-sm text-muted-foreground">
                           Não encontrámos artigos para "{searchQuery}"
                         </p>
                         <Button
                           onClick={() => askAI(searchQuery)}
-                          disabled={isAiLoading}
                           className="gap-2"
                         >
-                          {isAiLoading ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Sparkles className="h-4 w-4" />
-                          )}
+                          <Sparkles className="h-4 w-4" />
                           Perguntar à IA
                         </Button>
                       </div>
                     )}
 
-                    {aiAnswer && (
-                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-2">
-                        <div className="flex items-center gap-2 text-xs font-medium text-primary">
-                          <Sparkles className="h-3.5 w-3.5" />
-                          Resposta da IA
+                    {isAiLoading && (
+                      <div className="flex flex-col items-center justify-center py-12 gap-3">
+                        <div className="relative">
+                          <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
+                          <div className="relative h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                          </div>
                         </div>
-                        <div className="prose prose-sm dark:prose-invert max-w-none text-sm">
+                        <p className="text-sm text-muted-foreground animate-pulse">
+                          A consultar o assistente...
+                        </p>
+                      </div>
+                    )}
+
+                    {aiAnswer && !isAiLoading && (
+                      <div className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-primary/3 to-transparent p-5 space-y-3 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="h-6 w-6 rounded-md bg-primary/15 flex items-center justify-center">
+                            <Sparkles className="h-3.5 w-3.5 text-primary" />
+                          </div>
+                          <span className="text-xs font-semibold text-primary tracking-wide uppercase">
+                            Resposta do Assistente IA
+                          </span>
+                        </div>
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
                           <ReactMarkdown>{aiAnswer}</ReactMarkdown>
+                        </div>
+                        <div className="pt-2 border-t border-primary/10">
+                          <p className="text-[10px] text-muted-foreground">
+                            Resposta gerada por IA — pode conter imprecisões. Contacta o suporte para dúvidas específicas.
+                          </p>
                         </div>
                       </div>
                     )}
