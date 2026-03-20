@@ -171,14 +171,3 @@ export default function SuppliersPage() {
       </div>
     </DashboardLayout>
   );
-}
-        <SupplierImportModal
-          open={showImport}
-          onOpenChange={setShowImport}
-          workspaceId={currentWorkspace?.id}
-          onComplete={() => {}}
-        />
-      </div>
-    </DashboardLayout>
-  );
-}
