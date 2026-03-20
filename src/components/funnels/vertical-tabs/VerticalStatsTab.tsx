@@ -16,6 +16,8 @@ import {
   Lightbulb, AlertTriangle, DollarSign, TrendingUp
 } from "lucide-react";
 
+import { OptimizationDrawer } from "../stats/OptimizationDrawer";
+
 import { StatsOverviewTab } from "../stats/StatsOverviewTab";
 import { StatsTrendsTab } from "../stats/StatsTrendsTab";
 import { StatsSourcesTab } from "../stats/StatsSourcesTab";
@@ -172,6 +174,15 @@ export function VerticalStatsTab({ templateSlug }: Props) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <OptimizationDrawer
+            templateSlug={templateSlug}
+            conversionRate={conversionRate}
+            bounceRate={bounceRate}
+            sources={sources}
+            devices={devices}
+            sections={sections}
+            events={events as StatsEvent[]}
+          />
         </div>
       </div>
 
