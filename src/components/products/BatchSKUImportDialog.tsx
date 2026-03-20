@@ -415,28 +415,39 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
     const selected = skuList.filter(s => s.selected && (s.status === "success" || s.data));
     if (selected.length === 0) { toast.error("Nenhum produto seleccionado"); return; }
     setIsCreating(true);
-    let successCount = 0, errorCount = 0;
-    const failedSkus: { sku: string; error: string }[] = [];
-    let lastProductId: string | undefined, lastProductName: string | undefined;
-    for (const item of selected) {
+
+    const items = selected.map(item => {
       const finalName = item.editedName || item.data?.commercialName || item.data?.name || item.sku;
       const finalPrice = item.editedPrice ? parseFloat(item.editedPrice) : (item.data?.suggestedPrice || 0);
-      try {
-        const result = await createProduct.mutateAsync({
-          name: finalName, sku: item.sku,
-          short_description: item.data?.commercialDescription || item.data?.description,
-          category: item.data?.category, base_price: finalPrice,
-          product_type: "physical" as const, status: "active" as const,
-        });
-        successCount++;
-        if (result?.id) { lastProductId = result.id; lastProductName = finalName; }
-      } catch (err) {
-        errorCount++;
-        failedSkus.push({ sku: item.sku, error: err instanceof Error ? err.message : "Erro desconhecido" });
-      }
+      return {
+        name: finalName,
+        sku: item.sku,
+        short_description: item.data?.commercialDescription || item.data?.description,
+        category: item.data?.category,
+        base_price: finalPrice,
+        product_type: "physical" as const,
+        status: "active" as const,
+      };
+    });
+
+    try {
+      const result = await createProductsBatch.mutateAsync(items);
+      setSummary({
+        successCount: result.created,
+        errorCount: result.skipped.length,
+        failedSkus: result.skipped.map(s => ({ sku: s.sku, error: s.reason })),
+        lastCreatedProductId: undefined,
+        lastCreatedProductName: undefined,
+      });
+    } catch (err) {
+      setSummary({
+        successCount: 0,
+        errorCount: selected.length,
+        failedSkus: [{ sku: "batch", error: err instanceof Error ? err.message : "Erro desconhecido" }],
+      });
     }
+
     setIsCreating(false);
-    setSummary({ successCount, errorCount, failedSkus, lastCreatedProductId: lastProductId, lastCreatedProductName: lastProductName });
     setPhase("summary");
   };
 
