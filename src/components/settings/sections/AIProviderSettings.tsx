@@ -227,8 +227,8 @@ export function AIProviderSettings() {
           <CardContent className="pt-6 space-y-4">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-amber-500/10">
-                  <Bot className="h-5 w-5 text-amber-500" />
+                <div className="p-2 rounded-lg bg-warning/10">
+                  <Bot className="h-5 w-5 text-warning" />
                 </div>
                 <div>
                   <h4 className="font-semibold text-sm">Claude (Anthropic)</h4>
