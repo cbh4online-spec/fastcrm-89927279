@@ -430,8 +430,11 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
       };
     });
 
+    console.log("[BATCH_CREATE] Items to create:", items.length, JSON.stringify(items.slice(0, 2)));
+
     try {
       const result = await createProductsBatch.mutateAsync(items);
+      console.log("[BATCH_CREATE] Result:", JSON.stringify(result));
       setSummary({
         successCount: result.created,
         errorCount: result.skipped.length,
@@ -440,6 +443,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
         lastCreatedProductName: undefined,
       });
     } catch (err) {
+      console.error("[BATCH_CREATE] Error:", err);
       setSummary({
         successCount: 0,
         errorCount: selected.length,
