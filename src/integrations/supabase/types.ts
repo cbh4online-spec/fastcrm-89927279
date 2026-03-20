@@ -38724,8 +38724,10 @@ export type Database = {
           roi_exemplo: Json
           seo: Json
           slug: string
+          testimonials: Json | null
           updated_at: string
           vertical_id: string | null
+          video_section: Json | null
           workspace_id: string
         }
         Insert: {
@@ -38746,8 +38748,10 @@ export type Database = {
           roi_exemplo?: Json
           seo?: Json
           slug: string
+          testimonials?: Json | null
           updated_at?: string
           vertical_id?: string | null
+          video_section?: Json | null
           workspace_id: string
         }
         Update: {
@@ -38768,8 +38772,10 @@ export type Database = {
           roi_exemplo?: Json
           seo?: Json
           slug?: string
+          testimonials?: Json | null
           updated_at?: string
           vertical_id?: string | null
+          video_section?: Json | null
           workspace_id?: string
         }
         Relationships: [
