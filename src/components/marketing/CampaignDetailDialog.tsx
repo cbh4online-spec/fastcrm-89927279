@@ -288,6 +288,7 @@ export function CampaignDetailDialog({
             <ClickHeatmapPanel
               campaignId={campaign.id}
               workspaceId={currentWorkspace?.id || ''}
+              htmlContent={campaign.bodyHtml}
             />
           </TabsContent>
 
