@@ -188,6 +188,54 @@ Deno.serve(async (req) => {
       );
     }
 
+    // THROTTLED MODE: enqueue instead of sending immediately
+    if (sendMode === "throttled") {
+      await supabase
+        .from("marketing_campaigns")
+        .update({
+          status: "sending",
+          started_at: new Date().toISOString(),
+          total_recipients: uniqueRecipients.length,
+        })
+        .eq("id", campaignId);
+
+      const now = new Date();
+      const queueItems = uniqueRecipients.map((r, i) => {
+        const batchNum = Math.floor(i / batchSize) + 1;
+        const scheduledFor = new Date(now.getTime() + (batchNum - 1) * batchIntervalMinutes * 60 * 1000);
+        return {
+          campaign_id: campaignId,
+          workspace_id: workspaceId,
+          recipient_email: r.email,
+          recipient_name: r.name,
+          contact_id: r.type === "contact" ? r.id : null,
+          status: "pending",
+          batch_number: batchNum,
+          scheduled_for: scheduledFor.toISOString(),
+        };
+      });
+
+      // Insert in chunks of 100
+      for (let i = 0; i < queueItems.length; i += 100) {
+        await supabase.from("campaign_send_queue").insert(queueItems.slice(i, i + 100));
+      }
+
+      const totalBatches = Math.ceil(uniqueRecipients.length / batchSize);
+      const estimatedMinutes = (totalBatches - 1) * batchIntervalMinutes;
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          mode: "throttled",
+          total: uniqueRecipients.length,
+          batches: totalBatches,
+          estimated_minutes: estimatedMinutes,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // IMMEDIATE MODE (existing behaviour)
     // Update campaign status to sending
     await supabase
       .from("marketing_campaigns")
