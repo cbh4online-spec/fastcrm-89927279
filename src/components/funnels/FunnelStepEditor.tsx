@@ -260,6 +260,17 @@ export function FunnelStepEditor({ step, funnelName, funnelType }: FunnelStepEdi
     setFormFields(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Testimonials management
+  const addTestimonial = () => {
+    setTestimonials(prev => [...prev, { id: `t_${Date.now()}`, name: "", role: "", quote: "", rating: 5 }]);
+  };
+  const updateTestimonial = (index: number, updates: Partial<TestimonialItem>) => {
+    setTestimonials(prev => prev.map((t, i) => (i === index ? { ...t, ...updates } : t)));
+  };
+  const removeTestimonial = (index: number) => {
+    setTestimonials(prev => prev.filter((_, i) => i !== index));
+  };
+
   const suggestions = AI_SUGGESTIONS[step.step_type] || AI_SUGGESTIONS.page;
   const isOptin = step.step_type === "optin";
 
