@@ -27,21 +27,32 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const prompt = `Analisa os dados desta landing page/vertical e dá insights estratégicos.
+    const prompt = `Analisa os dados desta landing page/vertical e dá insights estratégicos detalhados.
 
 Template: ${template_slug}
 Visitantes totais: ${stats?.totalViews || 0}
 Visitantes únicos: ${stats?.totalUnique || 0}
 Submissões: ${stats?.totalSubmissions || 0}
 Taxa de conversão: ${stats?.conversionRate || 0}%
-Secções: ${JSON.stringify(stats?.sections || [])}
+Secções (dados gerais): ${JSON.stringify(stats?.sections || [])}
+Heatmap de secções (scroll depth): ${JSON.stringify(stats?.sectionHeatmap || [])}
+Fontes de tráfego (UTM): ${JSON.stringify(stats?.utmBreakdown || [])}
+Dispositivos: ${JSON.stringify(stats?.deviceBreakdown || [])}
+Tendência diária (últimos 14 dias): ${JSON.stringify(stats?.trendData || [])}
+
+Analisa:
+1. Onde os visitantes abandonam a página (scroll depth)
+2. Quais fontes convertem melhor
+3. Se o copy/CTA precisa de ajustes
+4. Comparação com benchmarks do sector (SaaS: 2.5%, E-commerce: 3.2%, Serviços: 4.1%)
+5. Sugestões concretas e accionáveis
 
 Responde APENAS com um JSON válido neste formato:
 {
   "score": <número 0-100>,
-  "bottleneck": "<descrição do principal problema ou gargalo>",
-  "suggestions": ["<sugestão 1>", "<sugestão 2>", "<sugestão 3>"],
-  "revenue_forecast": "<previsão ou recomendação baseada nos dados>"
+  "bottleneck": "<descrição detalhada do principal problema ou gargalo identificado>",
+  "suggestions": ["<sugestão concreta 1>", "<sugestão concreta 2>", "<sugestão concreta 3>", "<sugestão concreta 4>", "<sugestão concreta 5>"],
+  "revenue_forecast": "<previsão ou recomendação baseada nos dados e tendências>"
 }`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
