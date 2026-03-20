@@ -57,6 +57,8 @@ const STEP_TYPE_ICONS: Record<string, string> = {
   checkout: "💳",
   thankyou: "✅",
   upsell: "🚀",
+  testimonials: "⭐",
+  video: "🎬",
 };
 
 function ImageGallery({ images }: { images: string[] }) {
