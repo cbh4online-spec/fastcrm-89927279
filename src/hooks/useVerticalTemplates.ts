@@ -19,6 +19,8 @@ export interface VerticalTemplateRow {
   cta_secundario: string;
   ai_persona_nome: string;
   seo: { title: string; description: string; canonical: string };
+  testimonials?: { name: string; role: string; quote: string; avatar_url?: string; rating: number }[];
+  video_section?: { url: string; caption?: string; autoplay?: boolean; muted?: boolean; loop?: boolean };
   is_published: boolean;
   created_at: string;
   updated_at: string;
