@@ -26,6 +26,8 @@ const STEP_TYPE_ICONS: Record<string, string> = {
   checkout: "💳",
   thankyou: "✅",
   upsell: "🚀",
+  testimonials: "⭐",
+  video: "🎬",
 };
 
 const STEP_TYPE_COLORS: Record<string, string> = {
@@ -33,6 +35,8 @@ const STEP_TYPE_COLORS: Record<string, string> = {
   optin: "border-l-blue-500",
   checkout: "border-l-amber-500",
   thankyou: "border-l-violet-500",
+  testimonials: "border-l-yellow-500",
+  video: "border-l-rose-500",
   upsell: "border-l-rose-500",
 };
 
@@ -345,6 +349,8 @@ export function FunnelStepsTab({ funnelId }: FunnelStepsTabProps) {
                   <SelectItem value="checkout">💳 Checkout</SelectItem>
                   <SelectItem value="thankyou">✅ Thank You</SelectItem>
                   <SelectItem value="upsell">🚀 Upsell</SelectItem>
+                  <SelectItem value="testimonials">⭐ Testemunhos</SelectItem>
+                  <SelectItem value="video">🎬 Vídeo</SelectItem>
                 </SelectContent>
               </Select>
             </div>
