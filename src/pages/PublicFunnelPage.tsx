@@ -273,7 +273,74 @@ export default function PublicFunnelPage() {
             </div>
           )}
 
-          {hasForm && !formSubmitted && (
+          {/* Testimonials Section */}
+          {step.step_type === "testimonials" && content.testimonials && content.testimonials.length > 0 && (
+            <div className="space-y-4">
+              {content.testimonials.map((t) => (
+                <div key={t.id} className="border rounded-xl p-5 bg-muted/20 space-y-3">
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star key={s} className={`h-4 w-4 ${s <= t.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/20"}`} />
+                    ))}
+                  </div>
+                  <p className="text-sm italic text-foreground/80">"{t.quote}"</p>
+                  <div className="flex items-center gap-3">
+                    {t.avatar_url ? (
+                      <img src={t.avatar_url} alt={t.name} className="h-10 w-10 rounded-full object-cover" />
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <span className="text-xs font-bold text-primary">
+                          {t.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-semibold">{t.name}</p>
+                      {t.role && <p className="text-xs text-muted-foreground">{t.role}</p>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Video Section */}
+          {step.step_type === "video" && content.video?.url && (
+            <div className="space-y-3">
+              {content.video.caption && (
+                <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Play className="h-4 w-4" /> {content.video.caption}
+                </p>
+              )}
+              <div className="rounded-xl overflow-hidden border">
+                {content.video.url.includes("youtube.com") || content.video.url.includes("youtu.be") ? (
+                  <iframe
+                    src={`https://www.youtube.com/embed/${content.video.url.match(/(?:v=|youtu\.be\/)([^&?]+)/)?.[1] || ""}${content.video.autoplay ? "?autoplay=1" : ""}${content.video.muted ? "&mute=1" : ""}${content.video.loop ? "&loop=1" : ""}`}
+                    className="w-full aspect-video"
+                    allowFullScreen
+                    allow="autoplay; encrypted-media"
+                  />
+                ) : content.video.url.includes("vimeo.com") ? (
+                  <iframe
+                    src={`https://player.vimeo.com/video/${content.video.url.match(/vimeo\.com\/(\d+)/)?.[1] || ""}${content.video.autoplay ? "?autoplay=1" : ""}${content.video.muted ? "&muted=1" : ""}`}
+                    className="w-full aspect-video"
+                    allowFullScreen
+                  />
+                ) : (
+                  <video
+                    src={content.video.url}
+                    controls
+                    autoPlay={content.video.autoplay}
+                    loop={content.video.loop}
+                    muted={content.video.muted}
+                    poster={content.video.poster_url}
+                    className="w-full aspect-video"
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
             <form onSubmit={handleFormSubmit} className="space-y-4 bg-muted/30 border rounded-xl p-6">
               {content.form_fields!.map((field) => (
                 <div key={field.id} className="space-y-1.5">
