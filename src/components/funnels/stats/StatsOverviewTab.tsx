@@ -231,7 +231,8 @@ function BenchmarkComparison({ userRate }: { userRate: number }) {
 }
 
 export function StatsOverviewTab(props: Props) {
-  const { totalViews, totalUnique, totalSubmissions, conversionRate, bounceRate, events, sources, onAnalyzeAI, aiLoading } = props;
+  const { totalViews, totalUnique, totalSubmissions, conversionRate, bounceRate, events, sources, onAnalyzeAI, aiLoading, templateSlug } = props;
+  const navigate = useNavigate();
 
   const viewTrend = computeTrend(events, "view");
   const convTrend = computeTrend(events, "form_submit");
