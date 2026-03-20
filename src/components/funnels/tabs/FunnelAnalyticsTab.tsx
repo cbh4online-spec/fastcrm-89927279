@@ -100,8 +100,12 @@ export function FunnelAnalyticsTab({ funnelId }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Date range */}
-      <div className="flex items-center justify-end gap-2">
+      {/* Date range + AI button */}
+      <div className="flex items-center justify-between gap-2">
+        <Button onClick={analyzeWithAI} disabled={aiLoading} variant="outline" className="gap-2">
+          {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
+          {aiInsights ? "Reanalisar com IA" : "Analisar com IA"}
+        </Button>
         <div className="flex items-center gap-2 border rounded-lg px-3 py-1.5 bg-background">
           <Input
             type="date"
