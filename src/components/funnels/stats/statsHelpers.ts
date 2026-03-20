@@ -409,3 +409,232 @@ export function formatDuration(minutes: number): string {
   if (minutes < 60) return `${Math.round(minutes)} min`;
   return `${Math.floor(minutes / 60)}h ${Math.round(minutes % 60)}m`;
 }
+
+// ── Optimization Drawer Types & Logic ──
+
+export interface FunnelHealthScore {
+  score: number;
+  criticals: number;
+  improvements: number;
+  good: number;
+  breakdown: { label: string; score: number; weight: number }[];
+}
+
+export interface ImprovementCard {
+  id: string;
+  priority: "critical" | "important" | "suggested";
+  title: string;
+  explanation: string;
+  impactFrom: number;
+  impactTo: number;
+  effort: "low" | "medium" | "high";
+  actions: string[];
+}
+
+export interface ABTestSuggestion {
+  id: string;
+  hypothesis: string;
+  variantA: string;
+  variantB: string;
+  metric: string;
+  estimatedImpact: string;
+}
+
+export function computeFunnelHealthScore(
+  convRate: number, bounceRate: number, sources: SourceData[], devices: DeviceData[]
+): FunnelHealthScore {
+  // Conversion vs benchmark (40%)
+  const convScore = Math.min(100, (convRate / DEFAULT_BENCHMARK) * 100);
+  // Bounce rate (30%) — lower is better
+  const bounceScore = Math.max(0, 100 - bounceRate);
+  // Traffic diversity (15%)
+  const totalViews = sources.reduce((s, src) => s + src.views, 0);
+  const maxSourcePct = totalViews > 0 ? Math.max(...sources.map(s => s.views / totalViews * 100)) : 100;
+  const diversityScore = maxSourcePct < 50 ? 100 : maxSourcePct < 70 ? 60 : maxSourcePct < 90 ? 30 : 10;
+  // Mobile compat (15%)
+  const mobile = devices.find(d => d.name.toLowerCase() === "mobile");
+  const desktop = devices.find(d => d.name.toLowerCase() === "desktop");
+  const mobileCompat = (!mobile || !desktop || mobile.value === 0)
+    ? 70
+    : mobile.rate >= desktop.rate * 0.8 ? 100 : mobile.rate >= desktop.rate * 0.5 ? 50 : 20;
+
+  const score = Math.round(convScore * 0.4 + bounceScore * 0.3 + diversityScore * 0.15 + mobileCompat * 0.15);
+
+  const breakdown = [
+    { label: "Conversão", score: Math.round(convScore), weight: 40 },
+    { label: "Bounce Rate", score: Math.round(bounceScore), weight: 30 },
+    { label: "Diversidade Tráfego", score: Math.round(diversityScore), weight: 15 },
+    { label: "Compat. Mobile", score: Math.round(mobileCompat), weight: 15 },
+  ];
+
+  let criticals = 0, improvements = 0, good = 0;
+  for (const b of breakdown) {
+    if (b.score < 30) criticals++;
+    else if (b.score < 70) improvements++;
+    else good++;
+  }
+
+  return { score: Math.max(0, Math.min(100, score)), criticals, improvements, good, breakdown };
+}
+
+export function generateImprovementCards(
+  convRate: number, bounceRate: number, sources: SourceData[],
+  devices: DeviceData[], sections: SectionData[], events: StatsEvent[]
+): ImprovementCard[] {
+  const cards: ImprovementCard[] = [];
+  const totalViews = sources.reduce((s, src) => s + src.views, 0);
+
+  if (bounceRate > 80) {
+    cards.push({
+      id: "high-bounce",
+      priority: "critical",
+      title: "Landing page não está a reter visitantes",
+      explanation: `${bounceRate.toFixed(0)}% dos visitantes saem sem interagir. O conteúdo acima do fold pode não estar alinhado com a audiência ou a página carrega lentamente.`,
+      impactFrom: convRate,
+      impactTo: convRate + 1.5,
+      effort: "medium",
+      actions: [
+        "Testar novo headline na secção hero",
+        "Adicionar social proof (logos, testemunhos) acima do fold",
+        "Verificar velocidade de carregamento (PageSpeed)",
+        "Garantir CTA visível sem scroll em mobile",
+      ],
+    });
+  }
+
+  if (convRate < DEFAULT_BENCHMARK * 0.5 && totalViews > 20) {
+    cards.push({
+      id: "low-conversion",
+      priority: "critical",
+      title: "Taxa de conversão muito abaixo do benchmark",
+      explanation: `A tua taxa (${convRate.toFixed(1)}%) é ${Math.round((1 - convRate / DEFAULT_BENCHMARK) * 100)}% inferior à média do setor (${DEFAULT_BENCHMARK}%). O formulário pode ter demasiados campos ou o CTA não é claro.`,
+      impactFrom: convRate,
+      impactTo: DEFAULT_BENCHMARK,
+      effort: "low",
+      actions: [
+        "Reduzir formulário para máximo 3 campos",
+        "Testar CTA com verbo de ação (\"Quero saber mais\" vs \"Submeter\")",
+        "Adicionar garantia ou prova de segurança junto ao botão",
+        "Testar popup com exit-intent",
+      ],
+    });
+  }
+
+  const deadSource = sources.find(s => s.views >= 30 && s.submissions === 0);
+  if (deadSource) {
+    cards.push({
+      id: `dead-source-${deadSource.name}`,
+      priority: "important",
+      title: `Tráfego de ${deadSource.name} sem conversões`,
+      explanation: `${deadSource.views} visitas de ${deadSource.name} com 0 conversões é anormal. O pixel pode estar a disparar na página errada ou o link UTM está quebrado.`,
+      impactFrom: 0,
+      impactTo: 2,
+      effort: "low",
+      actions: [
+        "Verificar se o pixel dispara no evento de conversão",
+        "Testar o link da campanha em modo incógnito",
+        "Confirmar que a landing page corresponde ao criativo do anúncio",
+        "Ativar Meta Pixel Helper para diagnóstico",
+      ],
+    });
+  }
+
+  const mobile = devices.find(d => d.name.toLowerCase() === "mobile");
+  const desktop = devices.find(d => d.name.toLowerCase() === "desktop");
+  if (mobile && desktop && mobile.value > desktop.value && mobile.rate < desktop.rate * 0.5) {
+    cards.push({
+      id: "mobile-ux",
+      priority: "important",
+      title: "Experiência mobile está a prejudicar conversões",
+      explanation: `Mobile tem ${mobile.value} visitas mas converte a apenas ${mobile.rate.toFixed(1)}%, vs ${desktop.rate.toFixed(1)}% no desktop. A experiência mobile precisa de atenção.`,
+      impactFrom: mobile.rate,
+      impactTo: desktop.rate * 0.8,
+      effort: "medium",
+      actions: [
+        "Testar formulário em iPhone e Android",
+        "Garantir CTA visível sem scroll em mobile",
+        "Verificar tamanho de texto e espaçamento (min 44px tap target)",
+        "Simplificar layout mobile",
+      ],
+    });
+  }
+
+  if (totalViews > 0) {
+    const maxPct = Math.max(...sources.map(s => s.views / totalViews * 100));
+    if (maxPct > 70) {
+      const topSource = sources.find(s => s.views / totalViews * 100 === maxPct);
+      cards.push({
+        id: "traffic-diversity",
+        priority: "suggested",
+        title: "Dependência excessiva de uma única fonte",
+        explanation: `${maxPct.toFixed(0)}% do tráfego vem de ${topSource?.name || "uma fonte"}. Uma mudança no algoritmo pode eliminar quase todo o tráfego.`,
+        impactFrom: 0,
+        impactTo: 0,
+        effort: "high",
+        actions: [
+          "Lançar campanha de email para base existente",
+          "Testar Google Ads com as mesmas keywords",
+          "Criar conteúdo orgânico (SEO) para tráfego de longo prazo",
+          "Ativar retargeting para visitantes que não converteram",
+        ],
+      });
+    }
+  }
+
+  const hasSectionData = events.some(e => e.event_type === "section_view");
+  if (!hasSectionData && totalViews > 10) {
+    cards.push({
+      id: "no-section-tracking",
+      priority: "suggested",
+      title: "Tracking de secções inativo — dados cegos",
+      explanation: "Sem scroll tracking, não sabes onde os visitantes abandonam a página. Podes estar a perder conversões numa secção específica.",
+      impactFrom: 0,
+      impactTo: 0,
+      effort: "low",
+      actions: [
+        "Adicionar atributo data-section a cada secção da landing page",
+        "Confirmar que o script de tracking está na versão publicada",
+        "Fazer uma visita de teste e verificar na Timeline",
+      ],
+    });
+  }
+
+  return cards;
+}
+
+export function generateABTests(convRate: number, bounceRate: number, sources: SourceData[]): ABTestSuggestion[] {
+  const tests: ABTestSuggestion[] = [];
+
+  if (convRate < 5) {
+    tests.push({
+      id: "cta-test",
+      hypothesis: "Um CTA mais orientado à ação aumenta a taxa de conversão",
+      variantA: "CTA atual (ex: \"Submeter\")",
+      variantB: "\"Quero saber mais\" ou \"Agendar Demo\"",
+      metric: "Taxa de clique no botão CTA",
+      estimatedImpact: "+0.5% a +2% conversão",
+    });
+  }
+
+  if (bounceRate > 70) {
+    tests.push({
+      id: "hero-test",
+      hypothesis: "Um hero com vídeo retém mais visitantes do que apenas texto",
+      variantA: "Hero atual (texto + imagem)",
+      variantB: "Hero com vídeo explicativo de 60s",
+      metric: "Tempo na página + taxa de conversão",
+      estimatedImpact: "-15% bounce rate",
+    });
+  }
+
+  tests.push({
+    id: "form-test",
+    hypothesis: "Formulários mais curtos aumentam a taxa de submissão",
+    variantA: "Formulário atual (todos os campos)",
+    variantB: "Apenas Nome + Email (2 campos)",
+    metric: "Taxa de submissão do formulário",
+    estimatedImpact: "+1% a +3% conversão",
+  });
+
+  return tests.slice(0, 3);
+}
