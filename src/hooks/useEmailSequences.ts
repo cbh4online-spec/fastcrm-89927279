@@ -67,7 +67,21 @@ export function useEmailSequences() {
 
       if (error) throw error;
 
-      return (data || []).map(s => ({
+      // Fetch enrollment counts per sequence
+      const sequenceIds = (data || []).map((s: any) => s.id);
+      let enrollmentCounts: Record<string, number> = {};
+      if (sequenceIds.length > 0) {
+        const { data: enrollments } = await supabase
+          .from('email_sequence_enrollments')
+          .select('sequence_id')
+          .in('sequence_id', sequenceIds);
+        
+        for (const e of enrollments || []) {
+          enrollmentCounts[e.sequence_id] = (enrollmentCounts[e.sequence_id] || 0) + 1;
+        }
+      }
+
+      return (data || []).map((s: any) => ({
         id: s.id,
         workspaceId: s.workspace_id,
         name: s.name,
@@ -78,6 +92,7 @@ export function useEmailSequences() {
         createdBy: s.created_by,
         createdAt: s.created_at,
         updatedAt: s.updated_at,
+        enrollmentsCount: enrollmentCounts[s.id] || 0,
       })) as EmailSequence[];
     },
     enabled: !!currentWorkspace?.id,
