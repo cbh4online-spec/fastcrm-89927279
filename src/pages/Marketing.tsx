@@ -195,7 +195,7 @@ export default function Marketing() {
           </TabsContent>
 
           <TabsContent value="templates" className="space-y-6">
-            <MarketingTemplatesList onCreateNew={() => setShowTemplateDialog(true)} />
+            <TemplateLibraryPage />
           </TabsContent>
 
           <TabsContent value="landing" className="space-y-6">

@@ -242,7 +242,7 @@ export function SequencesListPage() {
                   </DropdownMenu>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
+                <CardContent className="space-y-3">
                 {seq.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {seq.tags.slice(0, 3).map((tag) => (
@@ -260,6 +260,10 @@ export function SequencesListPage() {
                         {seq.exitConditions.length} condições
                       </span>
                     )}
+                    <span className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      {seq.enrollmentsCount ?? 0} inscritos
+                    </span>
                   </div>
                   <Switch
                     checked={seq.isActive}
