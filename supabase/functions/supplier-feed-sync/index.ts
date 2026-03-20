@@ -117,6 +117,7 @@ Deno.serve(async (req) => {
 
       // Full sync: process all rows
       const mapping: Record<string, string> = feed.column_mapping || {}
+      const useAiCategories = body.use_ai_categories === true
       let created = 0, updated = 0, skipped = 0, errors = 0
 
       const dataRows = lines.slice(1).map((line: string) => {
@@ -125,6 +126,96 @@ Deno.serve(async (req) => {
         headers.forEach((h: string, i: number) => { row[h] = values[i] || '' })
         return row
       })
+
+      // AI category suggestions (if enabled)
+      let aiCategoryMap: Map<string, { category: string; subcategory: string }> | null = null
+      if (useAiCategories && mapping.name) {
+        aiCategoryMap = new Map()
+        const allNames = dataRows.map(r => getMappedValue(r, mapping, 'name')).filter(Boolean)
+        const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
+        
+        if (LOVABLE_API_KEY) {
+          // Process in batches of 50
+          for (let b = 0; b < allNames.length; b += 50) {
+            const batch = allNames.slice(b, b + 50)
+            try {
+              const { data: cats } = await supabase
+                .from('product_categories')
+                .select('id, name, parent_id')
+                .eq('workspace_id', feed.workspace_id)
+
+              const categoryList = (cats || []).map((c: any) => {
+                const parent = cats?.find((p: any) => p.id === c.parent_id)
+                return parent ? `${parent.name} > ${c.name}` : c.name
+              })
+
+              const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: 'google/gemini-2.5-flash-lite',
+                  messages: [
+                    {
+                      role: 'system',
+                      content: `Classifica produtos em categorias. Categorias existentes: ${categoryList.join(', ') || 'nenhuma'}.
+Responde APENAS JSON: [{"product_name":"...","category":"...","subcategory":"..."}]`
+                    },
+                    { role: 'user', content: batch.join('\n') }
+                  ],
+                  tools: [{
+                    type: 'function',
+                    function: {
+                      name: 'classify',
+                      description: 'Classify products',
+                      parameters: {
+                        type: 'object',
+                        properties: {
+                          items: {
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                product_name: { type: 'string' },
+                                category: { type: 'string' },
+                                subcategory: { type: 'string' }
+                              },
+                              required: ['product_name', 'category', 'subcategory'],
+                              additionalProperties: false
+                            }
+                          }
+                        },
+                        required: ['items'],
+                        additionalProperties: false
+                      }
+                    }
+                  }],
+                  tool_choice: { type: 'function', function: { name: 'classify' } },
+                }),
+              })
+
+              if (aiRes.ok) {
+                const aiData = await aiRes.json()
+                const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0]
+                if (toolCall?.function?.arguments) {
+                  const parsed = JSON.parse(toolCall.function.arguments)
+                  for (const item of parsed.items || []) {
+                    aiCategoryMap!.set(item.product_name, {
+                      category: item.category,
+                      subcategory: item.subcategory,
+                    })
+                  }
+                }
+              }
+            } catch {
+              // AI failure: continue without AI categories
+              console.error('AI category suggestion failed for batch, continuing without AI')
+            }
+          }
+        }
+      }
 
       // Process in batches of 100
       for (let i = 0; i < dataRows.length; i += 100) {
