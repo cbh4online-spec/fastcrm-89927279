@@ -5,6 +5,8 @@ import { VerticalSolution } from "./VerticalSolution";
 import { VerticalTransformation } from "./VerticalTransformation";
 import { VerticalAuthority } from "./VerticalAuthority";
 import { VerticalROI } from "./VerticalROI";
+import { VerticalTestimonials } from "./VerticalTestimonials";
+import { VerticalVideo } from "./VerticalVideo";
 import { VerticalCTAForm } from "./VerticalCTAForm";
 import { VerticalFooter } from "./VerticalFooter";
 import { VerticalLandingTracker } from "./VerticalLandingTracker";
@@ -27,6 +29,8 @@ export function VerticalLandingTemplate({ config, templateId, workspaceId }: Pro
         <VerticalProblems config={config} />
         <VerticalSolution config={config} />
         <VerticalTransformation config={config} />
+        <VerticalTestimonials config={config} />
+        <VerticalVideo config={config} />
         <VerticalAuthority />
         <VerticalROI config={config} />
         <VerticalCTAForm config={config} />
