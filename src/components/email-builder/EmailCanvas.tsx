@@ -333,6 +333,20 @@ export function EmailCanvas({
         return <CountdownBlockPreview content={block.content as CountdownBlockContent} />;
       case 'menu':
         return <MenuBlockPreview content={block.content as MenuBlockContent} isEditing />;
+      case 'html': {
+        const htmlContent = (block.content as any)?.html || '';
+        return htmlContent ? (
+          <div 
+            className="w-full [&_*]:max-w-full [&_img]:h-auto"
+            dangerouslySetInnerHTML={{ __html: htmlContent }} 
+          />
+        ) : (
+          <div className="p-8 text-center text-muted-foreground">
+            <Code className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">Adicionar HTML</p>
+          </div>
+        );
+      }
       default:
         return <p className="text-muted-foreground text-sm italic">Bloco não suportado</p>;
     }
