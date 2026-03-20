@@ -39,6 +39,18 @@ function mapCampaign(row: any): MarketingCampaign {
     aiInsightsGeneratedAt: row.ai_insights_generated_at,
     sendHour: row.send_hour,
     linkCount: row.link_count,
+    // Deliverability fields
+    sendMode: row.send_mode || 'immediate',
+    batchSize: row.batch_size || 100,
+    batchIntervalMinutes: row.batch_interval_minutes || 60,
+    sendPaused: row.send_paused || false,
+    validationRunAt: row.validation_run_at,
+    validatedCount: row.validated_count || 0,
+    invalidCount: row.invalid_count || 0,
+    suppressedCount: row.suppressed_count || 0,
+    queueTotal: row.queue_total || 0,
+    queueSent: row.queue_sent || 0,
+    queueFailed: row.queue_failed || 0,
   };
 }
 
