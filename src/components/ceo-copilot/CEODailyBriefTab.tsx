@@ -30,9 +30,9 @@ export function CEODailyBriefTab() {
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12 gap-4">
           <p className="text-muted-foreground">Nenhum brief disponível</p>
-          <Button onClick={generateDailyBrief} disabled={isGenerating}>
+          <Button onClick={generateDailyBrief} disabled={isGenerating || !canAffordBrief}>
             <RefreshCw className="h-4 w-4 mr-2" />
-            Gerar Daily Brief
+            Gerar Daily Brief ({briefCost} créd.)
           </Button>
         </CardContent>
       </Card>
