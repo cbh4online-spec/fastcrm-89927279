@@ -143,6 +143,16 @@ export function FunnelsList() {
   // Funnels without vertical
   const unassignedFunnels = funnels?.filter((f) => !f.vertical_id) || [];
 
+  // Published items (funnels + templates + instances)
+  const publishedFunnelsList = funnels?.filter((f) => f.is_published) || [];
+  const publishedInstances = funnelInstances.filter((fi) => fi.status === "published");
+  const publishedTemplates = customTemplates?.filter((t: any) => t.is_published) || [];
+  const allPublished = [
+    ...publishedFunnelsList.map((f) => ({ id: f.id, type: "funnel" as const, name: f.name, slug: f.slug, updatedAt: f.updated_at })),
+    ...publishedInstances.map((fi) => ({ id: fi.id, type: "instance" as const, name: fi.name, slug: fi.slug || fi.path || "", updatedAt: fi.created_at })),
+    ...publishedTemplates.map((t: any) => ({ id: t.id, type: "template" as const, name: t.name, slug: t.slug, updatedAt: t.updated_at || t.created_at })),
+  ];
+
   // Show AI Builder
   if (showAIBuilder) {
     return (
