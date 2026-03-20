@@ -56,6 +56,10 @@ export default function Marketing() {
       case 'templates':
         return (
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowHtmlEditor(true)}>
+              <Code className="h-4 w-4 mr-2" />
+              Editor HTML
+            </Button>
             <Button variant="outline" onClick={() => setShowEmailBuilder(true)}>
               <Paintbrush className="h-4 w-4 mr-2" />
               Editor Visual

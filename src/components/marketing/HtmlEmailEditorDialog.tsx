@@ -38,7 +38,7 @@ export function HtmlEmailEditorDialog({
       await createTemplate.mutateAsync({
         name: campaignName || `Template HTML ${new Date().toLocaleDateString('pt-PT')}`,
         subject: '',
-        html_content: savedHtml,
+        bodyHtml: savedHtml,
         category: 'custom',
       });
       toast.success('Template HTML guardado');
