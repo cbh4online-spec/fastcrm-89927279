@@ -220,6 +220,9 @@ export function AutomationAISettings({ searchQuery = "", matchedSections }: Auto
         />
       </SettingsSection>
 
+      {/* AI Provider Configuration */}
+      <AIProviderSettings />
+
       {/* PLG Lead Routing */}
       <LeadRoutingConfig />
     </div>
