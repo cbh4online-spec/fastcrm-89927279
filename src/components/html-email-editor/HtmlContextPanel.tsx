@@ -397,12 +397,21 @@ function TextEditor({ element, onUpdate }: { element: EditableElement; onUpdate:
     setFontWeight(element.styles.fontWeight || '400');
   }, [element.id]);
 
+  const handleInsertTag = (tag: string) => {
+    const newText = text + tag;
+    setText(newText);
+    onUpdate({ id: element.id, property: 'textContent', value: newText });
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
         <Label className="text-xs font-medium">Conteúdo</Label>
         <Textarea value={text} onChange={(e) => { setText(e.target.value); onUpdate({ id: element.id, property: 'textContent', value: e.target.value }); }} rows={4} className="text-sm resize-none" />
       </div>
+
+      <MergeTagsBar onInsert={handleInsertTag} />
+
       <Separator />
       <div className="flex gap-1">
         {['bold', 'normal'].map((w) => (
@@ -439,6 +448,16 @@ function TextEditor({ element, onUpdate }: { element: EditableElement; onUpdate:
           </div>
         </div>
       </div>
+
+      <Separator />
+
+      <AIRewritePanel
+        currentText={text}
+        onApply={(newText) => {
+          setText(newText);
+          onUpdate({ id: element.id, property: 'textContent', value: newText });
+        }}
+      />
     </div>
   );
 }
