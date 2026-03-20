@@ -179,6 +179,7 @@ export function MarketingCampaignsList({ onCreateNew }: MarketingCampaignsListPr
                         <Badge className={CAMPAIGN_STATUS_COLORS[campaign.status]}>
                           {CAMPAIGN_STATUS_LABELS[campaign.status]}
                         </Badge>
+                        <CampaignCardBadges campaign={campaign} />
                       </div>
                       <p className="text-sm text-muted-foreground truncate">
                         {campaign.subject}
