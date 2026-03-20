@@ -296,6 +296,79 @@ export function FunnelAnalyticsTab({ funnelId }: Props) {
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Insights */}
+      {aiLoading && (
+        <Card className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+          <p className="text-muted-foreground">A analisar dados com IA...</p>
+        </Card>
+      )}
+
+      {aiInsights && !aiLoading && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Brain className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold">Análise IA do Funil</h3>
+            <Badge variant="secondary" className="text-xs">Gemini</Badge>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Score de Performance
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <span className={`text-4xl font-bold ${getScoreColor(aiInsights.score)}`}>
+                  {aiInsights.score}/100
+                </span>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Previsão de Receita
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-lg font-medium">{aiInsights.revenue_forecast}</p>
+              </CardContent>
+            </Card>
+            <Card className="md:col-span-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  Gargalo Identificado
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">{aiInsights.bottleneck}</p>
+              </CardContent>
+            </Card>
+            <Card className="md:col-span-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4 text-primary" />
+                  Sugestões de Melhoria
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {aiInsights.suggestions.map((s, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <span className="text-primary font-bold mt-0.5">{i + 1}.</span>
+                      <span className="text-muted-foreground">{s}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
