@@ -179,6 +179,7 @@ export function HtmlEmailEditor({ htmlContent, campaignName, onSave, onCancel }:
             previewMode={previewMode}
             isPreviewOnly={isPreviewOnly}
             iframeRef={iframeRef}
+            selectedElementId={selectedElement?.id ?? null}
             onElementSelect={handleElementSelect}
             onElementDeselect={handleElementDeselect}
             onHtmlUpdated={handleHtmlUpdated}
