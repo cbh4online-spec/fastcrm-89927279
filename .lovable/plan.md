@@ -1,70 +1,52 @@
 
 
-# Importação de Produtos via URL com Confirmação Coluna a Coluna
+# Diagnóstico e Correção da Lentidão na Criação de Produtos
 
-## Problema
+## Problemas Identificados
 
-O utilizador quer colar o URL da Visiotech diretamente no diálogo de importação de produtos, descarregar o CSV, ver **todas as colunas** numa tabela tipo Excel, e selecionar manualmente quais colunas mapear para campos do sistema antes de criar os produtos.
+### 1. Criação sequencial produto-a-produto (principal bottleneck)
+`createSelectedProducts` (linha 413-440) cria cada produto **um a um** num loop `for...of`. Cada chamada a `createProduct.mutateAsync()` executa **4 queries DB sequenciais**:
+- Query 1: Verificar SKU duplicado
+- Query 2: Verificar nome duplicado
+- Query 3: `ensureCategoryExists` (verificar + possível insert)
+- Query 4: Insert do produto
 
-## Alterações
+Para 100 produtos = **400 queries sequenciais**.
 
-### 1. Nova tab "Importar por URL" no BatchSKUImportDialog
+### 2. Invalidação de cache + toast em cada produto
+O `onSuccess` do `useCreateProduct` chama `queryClient.invalidateQueries(["products"])` e `toast.success()` **em cada produto criado** — causando re-renders massivos e spam de toasts.
 
-**Ficheiro**: `src/components/products/BatchSKUImportDialog.tsx`
+### 3. Batch de IA com BATCH_SIZE = 2
+O `processSkus` processa apenas **2 SKUs por vez** com 1s de delay entre batches. Para 100 SKUs = ~50 segundos só de delays.
 
-Adicionar uma terceira tab no `phase === "input"`:
-- **"Importar por URL"** com ícone Link
-- Campo de URL (pré-preenchido com o URL Visiotech como placeholder)
-- Botão "Descarregar e Analisar"
-- Ao clicar: usa uma edge function para descarregar o CSV (evitar CORS), parse as colunas, e mostra na tabela
+## Correções Propostas
 
-### 2. Edge Function: `csv-url-fetch`
+### Ficheiro: `src/components/products/BatchSKUImportDialog.tsx`
 
-**Criar**: `supabase/functions/csv-url-fetch/index.ts`
+**A. Criação em batch direto (bypass do hook individual)**
+- Substituir o loop sequencial `createProduct.mutateAsync()` por uma chamada direta ao Supabase com **batch insert** de até 500 produtos de uma vez
+- Fazer verificação de SKUs duplicados com uma única query `IN(...)` antes do insert
+- Chamar `ensureCategoryExists` apenas para categorias únicas (não para cada produto)
+- Invalidar queries **uma única vez** no final
+- Mostrar **um único toast** com resumo
 
-Função simples que:
-- Recebe `{ url: string, delimiter?: string, encoding?: string, max_rows?: number }`
-- Descarrega o CSV do URL (timeout 60s)
-- Detecta delimitador automaticamente se não especificado
-- Devolve `{ headers: string[], rows: string[][], total_rows: number }` (máximo 500 rows no preview)
-- Necessário porque o browser não pode fazer fetch direto ao URL da Visiotech (CORS)
+**B. Aumentar BATCH_SIZE de IA para 5**
+- `BATCH_SIZE = 5` e `BATCH_DELAY_MS = 500` — processamento IA 5x mais rápido
 
-### 3. Step de Mapeamento de Colunas (novo phase)
+### Ficheiro: `src/hooks/useProducts.ts`
 
-**Ficheiro**: `src/components/products/BatchSKUImportDialog.tsx`
+**C. Adicionar `useCreateProductsBatch` mutation**
+- Nova mutation que aceita array de produtos
+- Faz dedup de categorias e cria-as em batch
+- Faz um único `supabase.from("products").insert(items)` com array
+- Um único `invalidateQueries` e `emitKernelEvent` no final
 
-Adicionar um novo phase `"mapping"` entre o download e o processamento:
-- Mostra **todas as colunas** do CSV numa lista
-- Cada coluna tem:
-  - Checkbox "Incluir" (on/off)
-  - Dropdown para mapear a um campo do sistema: SKU, Nome, Descrição, Preço, Categoria, Marca, Código de barras, Stock, Peso, Imagem URL, ou "Dados extra"
-- Auto-detecção inteligente: tenta mapear automaticamente colunas com nomes comuns (sku, name, price, etc.)
-- Preview: mostra os primeiros 3 valores de cada coluna para ajudar na decisão
-- Botão "Confirmar Mapeamento → Importar"
+## Impacto Estimado
 
-### 4. Integração com o fluxo existente
-
-Após confirmar o mapeamento:
-- As colunas mapeadas alimentam os campos do sistema (Nome, Preço, Categoria, etc.)
-- As colunas incluídas mas não mapeadas ficam em `rawRow` como dados extra visíveis na tabela
-- O fluxo segue para o phase `"processing"` existente (pesquisa IA opcional) ou directamente para `"results"`
-- O utilizador pode optar por saltar a pesquisa IA e criar directamente com os dados do CSV
-
-### 5. Alteração ao phase flow
-
-```text
-input → [URL download] → mapping → processing/results → summary
-         (ou CSV/paste)
-```
-
-No phase `"mapping"`:
-- Tabela com scroll horizontal mostrando TODAS as colunas
-- Header com checkboxes + dropdowns de mapeamento
-- 5 sample rows para preview dos dados
-- Botão "Criar directamente (sem IA)" — usa os dados CSV tal como estão
-- Botão "Enriquecer com IA" — processa SKUs pela IA como hoje
-
-## Ficheiros Modificados
-- `src/components/products/BatchSKUImportDialog.tsx` — nova tab URL + phase mapping
-- `supabase/functions/csv-url-fetch/index.ts` — nova edge function (proxy CORS)
+| Cenário (100 produtos) | Antes | Depois |
+|---|---|---|
+| Queries DB | ~400 | ~5 |
+| Toasts | 100 | 1 |
+| Re-renders | ~200 | ~2 |
+| Tempo total | ~60-120s | ~3-5s |
 
