@@ -48,7 +48,7 @@ export interface BugReport {
   resolved_by: string | null;
   created_at: string;
   updated_at: string;
-}
+    }
 
 export function useBugReport() {
   const { user } = useAuth();
