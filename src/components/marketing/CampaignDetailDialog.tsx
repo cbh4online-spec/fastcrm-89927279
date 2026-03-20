@@ -133,7 +133,7 @@ export function CampaignDetailDialog({
             <TabsContent value="queue" className="space-y-4">
               <CampaignQueueStatus
                 campaignId={campaign.id}
-                isPaused={(campaign as any).sendPaused}
+                isPaused={campaign.sendPaused}
                 onPause={() => updateCampaign.mutate({ id: campaign.id, status: 'paused' })}
                 onResume={() => updateCampaign.mutate({ id: campaign.id, status: 'sending' })}
               />
