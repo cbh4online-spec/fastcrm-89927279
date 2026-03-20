@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { KnowledgeBaseHelpModal } from "@/components/knowledge-base/KnowledgeBaseHelpModal";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts/KeyboardShortcutsModal";
 import { ShortcutCombo } from "@/components/keyboard-shortcuts/KbdKey";
+import { BugReportModal } from "@/components/bug-report/BugReportModal";
 
 export function HelpSupportDropdown() {
   const { t } = useTranslation("nav");
