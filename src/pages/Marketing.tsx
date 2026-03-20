@@ -24,6 +24,7 @@ import {
 import { MarketingCampaignsList } from '@/components/marketing/MarketingCampaignsList';
 import { MarketingSegmentsList } from '@/components/marketing/MarketingSegmentsList';
 import { MarketingTemplatesList } from '@/components/marketing/MarketingTemplatesList';
+import { TemplateLibraryPage } from '@/components/marketing/TemplateLibraryPage';
 import { MarketingDashboard } from '@/components/marketing/MarketingDashboard';
 import { MarketingSettingsPanel } from '@/components/marketing/MarketingSettingsPanel';
 import { CampaignFormDialog } from '@/components/marketing/CampaignFormDialog';
@@ -194,7 +195,7 @@ export default function Marketing() {
           </TabsContent>
 
           <TabsContent value="templates" className="space-y-6">
-            <MarketingTemplatesList onCreateNew={() => setShowTemplateDialog(true)} />
+            <TemplateLibraryPage />
           </TabsContent>
 
           <TabsContent value="landing" className="space-y-6">
