@@ -13,7 +13,7 @@ import { useDailyBrief } from "@/hooks/useDailyBrief";
 import { formatDate, formatRelativeTime, formatCurrency } from "@/lib/formatters";
 
 export default function DailyBriefPage() {
-  const { briefs, todaysBrief, isLoading, isGenerating, generateDailyBrief } = useDailyBrief();
+  const { briefs, todaysBrief, isLoading, isGenerating, generateDailyBrief, briefCost, canAffordBrief } = useDailyBrief();
   const metrics = todaysBrief?.key_metrics;
 
   const kpis = [
