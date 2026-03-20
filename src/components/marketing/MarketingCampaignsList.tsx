@@ -40,6 +40,7 @@ import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { CampaignFormDialog } from './CampaignFormDialog';
 import { CampaignDetailDialog } from './CampaignDetailDialog';
+import { CampaignCardBadges } from './CampaignCardBadges';
 import type { MarketingCampaign } from '@/types/marketing';
 
 interface MarketingCampaignsListProps {
@@ -178,6 +179,7 @@ export function MarketingCampaignsList({ onCreateNew }: MarketingCampaignsListPr
                         <Badge className={CAMPAIGN_STATUS_COLORS[campaign.status]}>
                           {CAMPAIGN_STATUS_LABELS[campaign.status]}
                         </Badge>
+                        <CampaignCardBadges campaign={campaign} />
                       </div>
                       <p className="text-sm text-muted-foreground truncate">
                         {campaign.subject}
