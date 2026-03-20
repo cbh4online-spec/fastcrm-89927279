@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { MousePointer, Type, Heading, Image, Link2, Minus, Square, PaintBucket, Copy, ClipboardPaste, RotateCcw } from 'lucide-react';
+import { MousePointer, Type, Heading, Image, Link2, Minus, Square, PaintBucket, Copy, ClipboardPaste, RotateCcw, Upload } from 'lucide-react';
+import { AIRewritePanel } from './AIRewritePanel';
+import { MergeTagsBar } from './MergeTagsBar';
+import { ImageUploadDialog } from './ImageUploadDialog';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
