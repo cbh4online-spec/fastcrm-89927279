@@ -61,7 +61,7 @@ export function ClickHeatmapPanel({ campaignId, workspaceId, htmlContent }: Prop
   const linkStats = (clicks || []).reduce((acc, c) => {
     const key = c.link_url;
     if (!acc[key]) {
-      acc[key] = { url: key, count: 0, uniqueEmails: new Set<string>(), label: c.link_label, linkIndex: c.link_index };
+      acc[key] = { url: key, count: 0, uniqueEmails: new Set<string>(), label: c.link_label, linkIndex: (c as any).link_index ?? null };
     }
     acc[key].count++;
     if (c.recipient_email) acc[key].uniqueEmails.add(c.recipient_email);
