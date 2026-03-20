@@ -38530,36 +38530,66 @@ export type Database = {
       }
       vertical_landing_events: {
         Row: {
+          city: string | null
+          country: string | null
           created_at: string
           device_type: string | null
           event_type: string
           id: string
+          ip_hash: string | null
+          page_section: string | null
           referrer: string | null
           session_id: string
           template_id: string | null
           template_slug: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
           workspace_id: string | null
         }
         Insert: {
+          city?: string | null
+          country?: string | null
           created_at?: string
           device_type?: string | null
           event_type: string
           id?: string
+          ip_hash?: string | null
+          page_section?: string | null
           referrer?: string | null
           session_id: string
           template_id?: string | null
           template_slug: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           workspace_id?: string | null
         }
         Update: {
+          city?: string | null
+          country?: string | null
           created_at?: string
           device_type?: string | null
           event_type?: string
           id?: string
+          ip_hash?: string | null
+          page_section?: string | null
           referrer?: string | null
           session_id?: string
           template_id?: string | null
           template_slug?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           workspace_id?: string | null
         }
         Relationships: [
