@@ -23,7 +23,7 @@ export function AbTestPanel({ campaignId, currentSubject, recipientCount }: Prop
   const [variantB, setVariantB] = useState(abTest?.variant_b_subject || '');
   const [testPercentage, setTestPercentage] = useState(abTest?.test_percentage || 20);
   const [waitHours, setWaitHours] = useState(abTest?.wait_hours || 4);
-  const [winnerMetric, setWinnerMetric] = useState(abTest?.winner_metric || 'open_rate');
+  const [winnerMetric, setWinnerMetric] = useState<string>(abTest?.winner_metric || 'open_rate');
 
   const minRecipients = 100;
   const canEnable = recipientCount >= minRecipients;

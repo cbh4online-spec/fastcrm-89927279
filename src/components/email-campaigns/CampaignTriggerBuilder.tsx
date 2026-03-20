@@ -293,7 +293,7 @@ export function CampaignTriggerBuilder({ campaignId }: Props) {
                   <SelectValue placeholder="Selecionar campanha..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {(campaigns || []).filter((c: any) => c.id !== campaignId).map((c: any) => (
+                  {(draftCampaigns || []).filter((c: any) => c.id !== campaignId).map((c: any) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.name}
                     </SelectItem>
