@@ -1833,11 +1833,25 @@ Responda com um array JSON: [entry1, entry2, ...]`;
 
   } catch (error) {
     console.error('AI Product Assistant error:', error);
+    const errMsg = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Surface 402/429 properly instead of generic 500
+    let status = 500;
+    let userMessage = errMsg;
+    if (errMsg.includes('402')) {
+      status = 200; // Return 200 with error payload to prevent blank screens
+      userMessage = 'Créditos de IA esgotados. Adicione créditos em Definições → Workspace → Utilização.';
+    } else if (errMsg.includes('429')) {
+      status = 200;
+      userMessage = 'Limite de pedidos atingido. Tente novamente em alguns segundos.';
+    }
+    
     return new Response(JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: userMessage,
+      errorCode: errMsg.includes('402') ? 'CREDITS_EXHAUSTED' : errMsg.includes('429') ? 'RATE_LIMITED' : 'UNKNOWN'
     }), {
-      status: 500,
+      status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
