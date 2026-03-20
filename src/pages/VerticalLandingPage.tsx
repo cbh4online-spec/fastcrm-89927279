@@ -36,6 +36,7 @@ export default function VerticalLandingPage() {
   const staticConfig = getVerticalBySlug(slug);
 
   const [dynamicConfig, setDynamicConfig] = useState<VerticalConfig | null>(null);
+  const [dbRow, setDbRow] = useState<{ id: string; workspace_id: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -45,6 +46,7 @@ export default function VerticalLandingPage() {
     fetchPublishedTemplateBySlug(slug).then((row) => {
       if (row) {
         setDynamicConfig(rowToConfig(row));
+        setDbRow({ id: row.id, workspace_id: row.workspace_id });
       } else if (!staticConfig) {
         setNotFound(true);
       }
