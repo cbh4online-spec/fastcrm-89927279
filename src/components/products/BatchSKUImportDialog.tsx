@@ -135,8 +135,8 @@ const AUTO_MAP_PATTERNS: [RegExp, string][] = [
   [/^(warranty|garantia|garantie)$/i, "warranty"],
 ];
 
-const BATCH_SIZE = 2;
-const BATCH_DELAY_MS = 1000;
+const BATCH_SIZE = 5;
+const BATCH_DELAY_MS = 500;
 
 const SYSTEM_COLUMNS = [
   { key: "__status", label: "Estado" },
