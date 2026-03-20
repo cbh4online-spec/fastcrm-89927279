@@ -44,7 +44,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useCreateProduct } from "@/hooks/useProducts";
+import { useCreateProduct, useCreateProductsBatch } from "@/hooks/useProducts";
 import { PostCreationSuggestionsCard } from "./PostCreationSuggestionsCard";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
