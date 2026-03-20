@@ -105,6 +105,8 @@ export default function SuperAdmin() {
         return <WorkspacesSection />; // Filter for suspended
       case "moderation":
         return <ModerationSection />;
+      case "bug-reports":
+        return <BugReportsAdminPage />;
       case "activity-logs":
         return <ActivityLogsSection />;
       case "logs":
