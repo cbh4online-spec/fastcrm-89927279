@@ -55,7 +55,7 @@ export function KnowledgeBaseHelpModal({ open, onOpenChange }: KnowledgeBaseHelp
     closeArticle,
     submitFeedback,
     askAI,
-  } = useKnowledgeBase();
+  } = useKBHelp();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -209,8 +209,8 @@ function ArticleCard({
   category,
   onClick,
 }: {
-  article: KBArticle;
-  category?: KBCategory;
+  article: KBHelpArticle;
+  category?: KBHelpCategory;
   onClick: () => void;
 }) {
   const typeInfo = TYPE_LABELS[article.article_type] || TYPE_LABELS.guide;
@@ -262,11 +262,11 @@ function ArticleView({
   onOpenArticle,
   onSubmitFeedback,
 }: {
-  article: KBArticle;
-  relatedArticles: KBArticle[];
+  article: KBHelpArticle;
+  relatedArticles: KBHelpArticle[];
   userFeedback: { is_helpful: boolean } | null | undefined;
   onBack: () => void;
-  onOpenArticle: (a: KBArticle) => void;
+  onOpenArticle: (a: KBHelpArticle) => void;
   onSubmitFeedback: (isHelpful: boolean) => void;
 }) {
   const typeInfo = TYPE_LABELS[article.article_type] || TYPE_LABELS.guide;
