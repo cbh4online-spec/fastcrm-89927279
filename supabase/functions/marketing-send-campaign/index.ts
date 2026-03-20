@@ -86,6 +86,9 @@ Deno.serve(async (req) => {
     }
 
     const workspaceId = campaign.workspace_id;
+    const sendMode = campaign.send_mode || "immediate";
+    const batchSize = campaign.batch_size || 100;
+    const batchIntervalMinutes = campaign.batch_interval_minutes || 60;
 
     // Get segment contacts if segment is defined
     let recipients: Recipient[] = [];
