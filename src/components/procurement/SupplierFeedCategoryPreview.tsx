@@ -18,8 +18,8 @@ interface Props {
 }
 
 const confidenceBadge = (c: string) => {
-  if (c === "high") return <Badge variant="default" className="bg-emerald-600 text-xs">Alta</Badge>;
-  if (c === "medium") return <Badge variant="secondary" className="text-xs bg-amber-500/20 text-amber-700">Média</Badge>;
+  if (c === "high") return <Badge variant="default" className="text-xs">Alta</Badge>;
+  if (c === "medium") return <Badge variant="secondary" className="text-xs">Média</Badge>;
   return <Badge variant="destructive" className="text-xs">Baixa</Badge>;
 };
 
