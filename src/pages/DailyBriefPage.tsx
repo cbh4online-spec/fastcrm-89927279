@@ -31,10 +31,10 @@ export default function DailyBriefPage() {
           description={`Resumo executivo das últimas 24h — ${formatDate(new Date(), "dd MMMM yyyy")}`}
           actions={[
             {
-              label: isGenerating ? "A gerar..." : "Gerar Brief",
+              label: isGenerating ? "A gerar..." : `Gerar Brief (${briefCost} créd.)`,
               icon: <RefreshCw className={`h-4 w-4 ${isGenerating ? "animate-spin" : ""}`} />,
               onClick: generateDailyBrief,
-              disabled: isGenerating,
+              disabled: isGenerating || !canAffordBrief,
             },
           ]}
         />
