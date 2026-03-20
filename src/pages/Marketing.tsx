@@ -24,6 +24,7 @@ import {
 import { MarketingCampaignsList } from '@/components/marketing/MarketingCampaignsList';
 import { MarketingSegmentsList } from '@/components/marketing/MarketingSegmentsList';
 import { MarketingTemplatesList } from '@/components/marketing/MarketingTemplatesList';
+import { TemplateLibraryPage } from '@/components/marketing/TemplateLibraryPage';
 import { MarketingDashboard } from '@/components/marketing/MarketingDashboard';
 import { MarketingSettingsPanel } from '@/components/marketing/MarketingSettingsPanel';
 import { CampaignFormDialog } from '@/components/marketing/CampaignFormDialog';
