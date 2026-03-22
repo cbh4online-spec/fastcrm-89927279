@@ -925,7 +925,7 @@ export function ProductsList() {
                         .map((colId) => {
                           const col = PRODUCT_COLUMNS.find((c) => c.id === colId);
                           if (!col) return null;
-                          const w = colWidths.widths[col.id] || 150;
+                          const w = colWidths.widths[col.id] || INITIAL_COL_WIDTHS[col.id] || 100;
                           return (
                             <TableHead
                               key={col.id}
