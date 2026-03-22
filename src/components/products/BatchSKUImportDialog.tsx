@@ -73,6 +73,7 @@ interface SKUResult {
     barcode?: string;
     weight?: string;
     imageUrl?: string;
+    imageUrls?: string[];
     stock?: number;
     model?: string;
     specifications?: Record<string, string>;
@@ -427,7 +428,14 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
             case "barcode": itemData.barcode = val; break;
             case "stock": itemData.stock = parseInt(val) || undefined; break;
             case "weight": itemData.weight = val; break;
-            case "image_url": itemData.imageUrl = val; break;
+            case "image_url": {
+              if (val.trim()) {
+                if (!itemData.imageUrls) itemData.imageUrls = [];
+                itemData.imageUrls.push(val.trim());
+                if (!itemData.imageUrl) itemData.imageUrl = val.trim();
+              }
+              break;
+            }
             case "model": itemData.model = val; break;
             case "specifications": itemData.specifications = { specs: val }; break;
             case "related_products": itemData.relatedProducts = val; break;
@@ -591,6 +599,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
         product_type: "physical" as const,
         status: "active" as const,
         image_url: d?.imageUrl || undefined,
+        image_urls: d?.imageUrls?.filter(Boolean) || undefined,
       };
     });
 
