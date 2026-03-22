@@ -445,7 +445,7 @@ export function ProductsList() {
     return { total: products.length, noPrice, noCost, negativeMargin, lowMargin, noImage };
   }, [products]);
 
-
+  const filtersActive = statusFilter !== "active" || typeFilter !== "all" || categoryFilter !== "all" || !!activeFilterId;
 
   const formatCurrency = (value: number, currency = "EUR") => {
     return new Intl.NumberFormat("pt-PT", {
