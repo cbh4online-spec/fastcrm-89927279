@@ -783,6 +783,44 @@ export function ProductsList() {
               }
             />
 
+            {/* Product Health Indicators */}
+            {products && products.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
+                {[
+                  { label: "Total", value: productIndicators.total, icon: <Package className="h-3.5 w-3.5" />, filter: undefined, variant: "default" as const },
+                  { label: "Sem preço", value: productIndicators.noPrice, icon: <DollarSign className="h-3.5 w-3.5" />, filter: "smart_no_price", variant: "destructive" as const },
+                  { label: "Sem custo", value: productIndicators.noCost, icon: <AlertTriangle className="h-3.5 w-3.5" />, filter: "smart_no_cost", variant: "warning" as const },
+                  { label: "Margem negativa", value: productIndicators.negativeMargin, icon: <TrendingDown className="h-3.5 w-3.5" />, filter: "smart_negative_margin", variant: "destructive" as const },
+                  { label: "Margem baixa", value: productIndicators.lowMargin, icon: <AlertTriangle className="h-3.5 w-3.5" />, filter: "smart_low_margin", variant: "warning" as const },
+                  { label: "Sem imagem", value: productIndicators.noImage, icon: <ImageOff className="h-3.5 w-3.5" />, filter: "smart_no_image", variant: "default" as const },
+                ].map((ind) => (
+                  <button
+                    key={ind.label}
+                    onClick={() => ind.filter && handleFilterSelect(ind.filter)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-left transition-colors ${
+                      activeFilterId === ind.filter
+                        ? "border-primary bg-primary/5"
+                        : "border-border bg-card hover:bg-muted/50"
+                    } ${ind.filter ? "cursor-pointer" : "cursor-default"}`}
+                  >
+                    <span className={
+                      ind.variant === "destructive" && ind.value > 0
+                        ? "text-destructive"
+                        : ind.variant === "warning" && ind.value > 0
+                          ? "text-warning"
+                          : "text-muted-foreground"
+                    }>
+                      {ind.icon}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-lg font-bold leading-none">{ind.value}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{ind.label}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Bulk Actions */}
             {selectedIds.length > 0 && (
               <div className="flex items-center gap-2 py-2 px-4 bg-muted/50 rounded-lg mb-4">
