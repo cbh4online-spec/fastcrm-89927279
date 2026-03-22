@@ -590,6 +590,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
         specifications: Object.keys(specs).length > 0 ? specs : undefined,
         product_type: "physical" as const,
         status: "active" as const,
+        image_url: d?.imageUrl || undefined,
       };
     });
 

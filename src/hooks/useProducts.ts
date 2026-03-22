@@ -400,6 +400,8 @@ export function useCreateProductsBatch() {
       const toInsert: Record<string, any>[] = [];
       const skipped: { sku: string; reason: string }[] = [];
       const seenSkus = new Set<string>();
+      // Track image_url per SKU for post-insert processing
+      const imageUrlBySku = new Map<string, string>();
 
       for (const item of items) {
         const sku = item.sku?.trim();
@@ -416,8 +418,15 @@ export function useCreateProductsBatch() {
           seenSkus.add(lower);
         }
 
+        // Extract image_url before inserting (not a column in products table)
+        const imageUrl = item.image_url;
+        if (imageUrl && sku) {
+          imageUrlBySku.set(sku.toLowerCase(), imageUrl);
+        }
+
+        const { image_url: _imgUrl, ...itemWithoutImage } = item;
         toInsert.push({
-          ...item,
+          ...itemWithoutImage,
           sku,
           workspace_id: workspaceId,
           created_by: user.id,
@@ -425,9 +434,8 @@ export function useCreateProductsBatch() {
       }
 
       // 4. Insert in batches of 500
-      // If one batch has duplicates missed by pre-check (e.g. case-insensitive SKU index),
-      // fallback to row-by-row insert for that batch and skip only duplicate rows.
       let created = 0;
+      const createdSkus: string[] = [];
       for (let i = 0; i < toInsert.length; i += 500) {
         const batch = toInsert.slice(i, i + 500);
         const { error } = await supabase
@@ -436,6 +444,9 @@ export function useCreateProductsBatch() {
 
         if (!error) {
           created += batch.length;
+          for (const row of batch) {
+            if (row.sku) createdSkus.push(row.sku);
+          }
           continue;
         }
 
@@ -450,6 +461,7 @@ export function useCreateProductsBatch() {
 
           if (!rowError) {
             created += 1;
+            if (row.sku) createdSkus.push(row.sku);
             continue;
           }
 
@@ -465,6 +477,42 @@ export function useCreateProductsBatch() {
           }
 
           throw rowError;
+        }
+      }
+
+      // 5. Create product_images for items that had image_url
+      const skusWithImages = createdSkus.filter(s => imageUrlBySku.has(s.toLowerCase()));
+      if (skusWithImages.length > 0) {
+        try {
+          // Query product IDs by SKU in batches
+          const productImageInserts: { workspace_id: string; product_id: string; url: string; position: number }[] = [];
+          for (let i = 0; i < skusWithImages.length; i += 200) {
+            const batch = skusWithImages.slice(i, i + 200);
+            const { data: products } = await supabase
+              .from("products")
+              .select("id, sku")
+              .eq("workspace_id", workspaceId)
+              .in("sku", batch);
+            if (products) {
+              for (const p of products) {
+                const imgUrl = p.sku ? imageUrlBySku.get(p.sku.toLowerCase()) : null;
+                if (imgUrl) {
+                  productImageInserts.push({
+                    workspace_id: workspaceId,
+                    product_id: p.id,
+                    url: imgUrl,
+                    position: 0,
+                  });
+                }
+              }
+            }
+          }
+          if (productImageInserts.length > 0) {
+            await supabase.from("product_images").insert(productImageInserts);
+            console.log(`[PRODUCTS] Created ${productImageInserts.length} product images from CSV`);
+          }
+        } catch (imgErr) {
+          console.warn("[PRODUCTS] Failed to create product images, products were still created:", imgErr);
         }
       }
 
