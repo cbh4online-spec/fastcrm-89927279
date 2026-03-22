@@ -12,7 +12,7 @@ export interface ColumnWidthsState {
   autoFitAll: (visibleColIds: string[], tableRef: React.RefObject<HTMLTableElement | null>) => void;
 }
 
-const DEFAULT_WIDTH = 150;
+const DEFAULT_WIDTH = 100;
 const MIN_WIDTH = 60;
 const MAX_WIDTH = 600;
 
