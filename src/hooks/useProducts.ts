@@ -518,3 +518,31 @@ export function useProductCategories() {
     enabled: !!currentWorkspace?.id,
   });
 }
+
+// Hook to delete products in batch
+export function useDeleteProductsBatch() {
+  const queryClient = useQueryClient();
+  const { currentWorkspace } = useWorkspace();
+
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (!currentWorkspace?.id || ids.length === 0) return { deleted: 0 };
+
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .in("id", ids)
+        .eq("workspace_id", currentWorkspace.id);
+
+      if (error) throw error;
+      return { deleted: ids.length };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success(`${data.deleted} produto${data.deleted !== 1 ? "s" : ""} apagado${data.deleted !== 1 ? "s" : ""}`);
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao apagar produtos: " + error.message);
+    },
+  });
+}

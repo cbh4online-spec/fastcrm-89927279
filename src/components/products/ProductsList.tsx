@@ -67,7 +67,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { useProducts, useProductCategories, useArchiveProduct, useDeleteProduct } from "@/hooks/useProducts";
+import { useProducts, useProductCategories, useArchiveProduct, useDeleteProduct, useDeleteProductsBatch } from "@/hooks/useProducts";
 import { useProductTypes, useBillingTypes } from "@/hooks/useProductSettings";
 import { CreateProductDialog } from "./CreateProductDialog";
 import { ProductDetailDialog } from "./ProductDetailDialog";
