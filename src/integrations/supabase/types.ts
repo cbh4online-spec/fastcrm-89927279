@@ -38191,6 +38191,7 @@ export type Database = {
           created_at: string
           csv_delimiter: string
           csv_encoding: string
+          default_markup_pct: number | null
           feed_name: string
           feed_type: string
           feed_url: string
@@ -38211,6 +38212,7 @@ export type Database = {
           created_at?: string
           csv_delimiter?: string
           csv_encoding?: string
+          default_markup_pct?: number | null
           feed_name: string
           feed_type?: string
           feed_url: string
@@ -38231,6 +38233,7 @@ export type Database = {
           created_at?: string
           csv_delimiter?: string
           csv_encoding?: string
+          default_markup_pct?: number | null
           feed_name?: string
           feed_type?: string
           feed_url?: string
