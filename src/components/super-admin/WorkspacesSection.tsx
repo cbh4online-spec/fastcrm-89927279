@@ -92,6 +92,8 @@ interface WorkspaceDetails {
     status: string;
     current_period_end: string;
     stripe_customer_id: string;
+    trial_ends_at: string | null;
+    trial_started_at: string | null;
   };
   usage?: {
     leads_count: number;
