@@ -710,6 +710,34 @@ export function ProductsList() {
                   <Archive className="h-4 w-4" />
                   Arquivar
                 </Button>
+                <Button variant="outline" size="sm" onClick={() => setBulkDeleteOpen(true)} className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10">
+                  <Trash2 className="h-4 w-4" />
+                  Apagar
+                </Button>
+
+                <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Apagar {selectedIds.length} produto{selectedIds.length !== 1 ? "s" : ""}?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação é permanente e não pode ser revertida. Os produtos selecionados serão apagados definitivamente.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={async () => {
+                          await deleteProductsBatch.mutateAsync(selectedIds);
+                          setSelectedIds([]);
+                          setBulkDeleteOpen(false);
+                        }}
+                      >
+                        Apagar permanentemente
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             )}
 
