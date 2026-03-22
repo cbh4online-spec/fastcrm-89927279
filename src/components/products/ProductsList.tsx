@@ -430,7 +430,22 @@ export function ProductsList() {
     return filteredProducts.slice(start, start + pageSize);
   }, [filteredProducts, currentPage, pageSize]);
 
-  const filtersActive = statusFilter !== "active" || typeFilter !== "all" || categoryFilter !== "all" || !!activeFilterId;
+  // Product health indicators
+  const productIndicators = useMemo(() => {
+    if (!products) return { total: 0, noPrice: 0, noCost: 0, negativeMargin: 0, lowMargin: 0, noImage: 0 };
+    const noPrice = products.filter(p => !p.base_price || p.base_price === 0).length;
+    const noCost = products.filter(p => !p.direct_cost || p.direct_cost === 0).length;
+    const negativeMargin = products.filter(p => p.direct_cost && p.direct_cost > p.base_price).length;
+    const lowMargin = products.filter(p => {
+      if (!p.base_price || !p.direct_cost || p.base_price === 0) return false;
+      const m = ((p.base_price - p.direct_cost) / p.base_price) * 100;
+      return m > 0 && m < 15;
+    }).length;
+    const noImage = products.filter(p => !p.images || p.images.length === 0).length;
+    return { total: products.length, noPrice, noCost, negativeMargin, lowMargin, noImage };
+  }, [products]);
+
+
 
   const formatCurrency = (value: number, currency = "EUR") => {
     return new Intl.NumberFormat("pt-PT", {
