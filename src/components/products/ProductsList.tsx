@@ -988,7 +988,7 @@ export function ProductsList() {
                         {columnOrder
                           .filter((colId) => visibleColumns.has(colId))
                           .map((colId) => {
-                            const w = colWidths.widths[colId] || INITIAL_COL_WIDTHS[colId] || 100;
+                            const w = colWidths.getWidth(colId);
                             return (
                               <TableCell
                                 key={colId}
