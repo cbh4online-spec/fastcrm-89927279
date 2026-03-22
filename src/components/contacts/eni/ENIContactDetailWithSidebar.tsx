@@ -227,6 +227,14 @@ export function ENIContactDetailWithSidebar() {
               onGenerateInsights={handleGenerateInsights}
               isGenerating={analyzeContact.isPending}
             />
+            <RecommendationPanel
+              contactId={id}
+              context="contact_view"
+              mode="panel"
+              onAddToProposal={(productId) => {
+                navigate(`/dashboard/proposals/new?contact=${id}&product=${productId}`);
+              }}
+            />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <IdentificationSection 
                 contact={contact} 

@@ -231,6 +231,14 @@ export function CompanyDetailWithSidebar() {
               />
             </div>
             <InsightsSidebar entityType="company" entityId={id || ''} />
+            <RecommendationPanel
+              companyId={id}
+              context="company_view"
+              mode="panel"
+              onAddToProposal={(productId) => {
+                navigate(`/dashboard/proposals/new?company=${id}&product=${productId}`);
+              }}
+            />
             <IdentificationSection 
               company={company} 
               onFieldChange={handleFieldChange}
