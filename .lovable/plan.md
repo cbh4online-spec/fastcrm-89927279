@@ -1,76 +1,47 @@
 
 
-# Indicadores Inteligentes na Lista de Produtos
+# Corrigir Larguras Iniciais das Colunas
 
-## Objetivo
+## Problema
 
-Adicionar indicadores visuais (summary cards + filtros inteligentes + ícones inline) que identifiquem rapidamente problemas e oportunidades no catálogo de produtos.
+Todas as colunas usam `DEFAULT_WIDTH = 150px` como fallback quando não há largura guardada. Com 7-8 colunas visíveis por defeito, isso resulta em colunas demasiado largas que excedem o ecrã.
 
-## Alterações
+## Solução
 
-### 1. Summary Cards — barra de indicadores acima da tabela
-
-**Ficheiro**: `src/components/products/ProductsList.tsx`
-
-Adicionar uma barra de 6 cards compactos entre o Toolbar e a tabela, calculados com `useMemo` sobre `products`:
-
-| Card | Lógica | Cor |
-|------|--------|-----|
-| **Total** | `products.length` | neutro |
-| **Sem preço** | `base_price === 0` | vermelho |
-| **Sem custo** | `direct_cost === null \|\| direct_cost === 0` | amarelo |
-| **Margem negativa** | `direct_cost > base_price` | vermelho |
-| **Margem baixa (<15%)** | `margin > 0 && margin < 15` | amarelo |
-| **Sem imagem** | `!images \|\| images.length === 0` | cinza |
-
-Cada card é clicável — ao clicar, activa o filtro inteligente correspondente no sidebar.
-
-### 2. Expandir filtros inteligentes no sidebar
+### 1. Definir larguras iniciais por coluna
 
 **Ficheiro**: `src/components/products/ProductsList.tsx`
 
-Adicionar ao grupo "Filtros Inteligentes" existente (linhas 313-321):
+Criar mapa de larguras iniciais adequadas ao conteúdo de cada coluna:
 
-- `smart_no_price` — "Sem preço definido" (base_price === 0)
-- `smart_no_cost` — "Sem custo definido" (direct_cost null/0)
-- `smart_negative_margin` — "Margem negativa" (custo > preço)
-- `smart_low_margin` — "Margem baixa (<15%)"
-- `smart_no_image` — "Sem imagem"
-- `smart_no_sku` — "Sem SKU"
-- `smart_no_category` — "Sem categoria"
-- `smart_no_description` — "Sem descrição"
+| Coluna | Largura |
+|--------|---------|
+| name | 220px |
+| sku | 120px |
+| product_type | 100px |
+| category | 130px |
+| base_price | 90px |
+| direct_cost | 100px |
+| margin | 80px |
+| billing_type | 100px |
+| status | 90px |
+| b2b_published | 80px |
+| updated_at | 110px |
+| (restantes) | 100px |
 
-Manter os existentes (`smart_recent`, `smart_high_price`, `smart_low_price`, `smart_invalid_sku`).
+Usar este mapa no fallback: `colWidths.widths[col.id] || INITIAL_COL_WIDTHS[col.id] || 100`
 
-### 3. Ícones de alerta inline na coluna "Nome"
+### 2. Reduzir DEFAULT_WIDTH no hook
 
-**Ficheiro**: `src/components/products/ProductsList.tsx` — dentro de `renderProductCell`, case `"name"`
+**Ficheiro**: `src/hooks/useColumnWidths.ts`
 
-Após o nome do produto, mostrar pequenos ícones de aviso:
+Alterar `DEFAULT_WIDTH` de `150` para `100` como fallback global mais compacto.
 
-- 🔴 dot se `base_price === 0` (sem preço)
-- 🟡 dot se margem < 15% e > 0
-- 📷 riscado se sem imagem
-- Tooltip com a explicação ao hover
+### 3. Coluna "name" mais larga, restantes compactas
 
-Implementar como spans com `title` attribute para tooltip nativo, sem dependência adicional.
+A coluna Nome fica com 220px para acomodar os indicadores inline. As restantes ficam entre 80-130px para caber todas no ecrã sem scroll horizontal desnecessário.
 
-### 4. Lógica de filtragem dos novos smart filters
-
-**Ficheiro**: `src/components/products/ProductsList.tsx` — no `switch` de `activeFilterId` (linhas 349-377)
-
-Adicionar cases para cada novo filtro:
-```text
-smart_no_price → p.base_price === 0
-smart_no_cost → !p.direct_cost || p.direct_cost === 0
-smart_negative_margin → p.direct_cost && p.direct_cost > p.base_price
-smart_low_margin → margin > 0 && margin < 15
-smart_no_image → !p.images || p.images.length === 0
-smart_no_sku → !p.sku || p.sku.trim() === ''
-smart_no_category → !p.category || p.category.trim() === ''
-smart_no_description → !p.short_description && !p.commercial_description
-```
-
-## Ficheiros Modificados
-- `src/components/products/ProductsList.tsx` — summary cards, filtros expandidos, ícones inline
+## Ficheiros
+- `src/hooks/useColumnWidths.ts` — DEFAULT_WIDTH → 100
+- `src/components/products/ProductsList.tsx` — mapa INITIAL_COL_WIDTHS + usar como fallback
 
