@@ -125,6 +125,29 @@ const PRODUCT_COLUMNS: ColumnConfig[] = [
   { id: "updated_at", label: "Atualizado", category: "basic", defaultVisible: true },
 ];
 
+const INITIAL_COL_WIDTHS: Record<string, number> = {
+  name: 220,
+  sku: 120,
+  product_type: 100,
+  category: 130,
+  base_price: 90,
+  direct_cost: 100,
+  operational_cost: 100,
+  margin: 80,
+  billing_type: 100,
+  billing_frequency: 100,
+  status: 90,
+  b2b_published: 80,
+  total_units: 80,
+  unit_duration: 90,
+  validity_days: 90,
+  tax_rate_estimate_pct: 80,
+  commission_default: 90,
+  delivery_mode: 100,
+  created_at: 110,
+  updated_at: 110,
+};
+
 const pageTabs = [
   { id: "products", label: "Produtos" },
   { id: "categories", label: "Categorias" },
@@ -925,7 +948,7 @@ export function ProductsList() {
                         .map((colId) => {
                           const col = PRODUCT_COLUMNS.find((c) => c.id === colId);
                           if (!col) return null;
-                          const w = colWidths.widths[col.id] || 150;
+                          const w = colWidths.widths[col.id] || INITIAL_COL_WIDTHS[col.id] || 100;
                           return (
                             <TableHead
                               key={col.id}
@@ -965,7 +988,7 @@ export function ProductsList() {
                         {columnOrder
                           .filter((colId) => visibleColumns.has(colId))
                           .map((colId) => {
-                            const w = colWidths.widths[colId] || 150;
+                            const w = colWidths.widths[colId] || INITIAL_COL_WIDTHS[colId] || 100;
                             return (
                               <TableCell
                                 key={colId}
