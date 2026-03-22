@@ -179,6 +179,7 @@ export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDia
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="free">Free</SelectItem>
+                <SelectItem value="trial">Trial Pro (14 dias)</SelectItem>
                 <SelectItem value="basic">Basic</SelectItem>
                 <SelectItem value="pro">Pro</SelectItem>
                 <SelectItem value="agency">Agency</SelectItem>
