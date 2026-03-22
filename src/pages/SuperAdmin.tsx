@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
+import { AdminNotificationsBell } from "@/components/super-admin/AdminNotificationsBell";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldCheck, Loader2 } from "lucide-react";
 import {
@@ -153,6 +154,9 @@ export default function SuperAdmin() {
       
       <main className="flex-1 overflow-auto">
         <div className="p-8">
+          <div className="flex justify-end mb-4">
+            <AdminNotificationsBell />
+          </div>
           {renderContent()}
         </div>
       </main>

@@ -92,6 +92,8 @@ interface WorkspaceDetails {
     status: string;
     current_period_end: string;
     stripe_customer_id: string;
+    trial_ends_at: string | null;
+    trial_started_at: string | null;
   };
   usage?: {
     leads_count: number;
@@ -126,6 +128,9 @@ export function WorkspacesSection() {
   const [editName, setEditName] = useState("");
   const [editSlug, setEditSlug] = useState("");
   const [newPlan, setNewPlan] = useState<string>("");
+  const [newSubStatus, setNewSubStatus] = useState<string>("");
+  const [newTrialEnd, setNewTrialEnd] = useState<string>("");
+  const [newPeriodEnd, setNewPeriodEnd] = useState<string>("");
   const [selectedAgencyId, setSelectedAgencyId] = useState<string>("");
   const [creditsAmount, setCreditsAmount] = useState<string>("");
   const [creditsDescription, setCreditsDescription] = useState("");
@@ -165,7 +170,9 @@ export function WorkspacesSection() {
             plan,
             status,
             current_period_end,
-            stripe_customer_id
+            stripe_customer_id,
+            trial_ends_at,
+            trial_started_at
           )
         `)
         .order("created_at", { ascending: false });
@@ -337,40 +344,63 @@ export function WorkspacesSection() {
   });
 
   const changePlan = useMutation({
-    mutationFn: async ({ workspaceId, plan }: { workspaceId: string; plan: "free" | "basic" | "pro" | "agency" }) => {
-      // Update workspace_subscriptions table
+    mutationFn: async ({ workspaceId, plan, subStatus, trialEnd, periodEnd }: {
+      workspaceId: string;
+      plan: "free" | "basic" | "pro" | "agency" | "starter";
+      subStatus?: string;
+      trialEnd?: string;
+      periodEnd?: string;
+    }) => {
       const { data: existingSub } = await supabase
         .from("workspace_subscriptions")
         .select("id")
         .eq("workspace_id", workspaceId)
         .maybeSingle();
 
+      const updateData: Record<string, any> = {
+        plan,
+        updated_at: new Date().toISOString(),
+      };
+      if (subStatus) updateData.status = subStatus;
+      if (subStatus === "trialing") {
+        updateData.trial_started_at = new Date().toISOString();
+        updateData.trial_ends_at = trialEnd || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+        updateData.current_period_end = updateData.trial_ends_at;
+      } else {
+        if (trialEnd === "") {
+          updateData.trial_ends_at = null;
+          updateData.trial_started_at = null;
+        }
+        if (periodEnd) updateData.current_period_end = periodEnd;
+      }
+
       if (existingSub) {
         const { error } = await supabase
           .from("workspace_subscriptions")
-          .update({ plan, updated_at: new Date().toISOString() })
+          .update(updateData)
           .eq("workspace_id", workspaceId);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("workspace_subscriptions")
-          .insert([{ 
-            workspace_id: workspaceId, 
-            plan, 
-            status: "active",
+          .insert([{
+            workspace_id: workspaceId,
+            plan,
+            status: subStatus || "active",
             current_period_start: new Date().toISOString(),
-            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+            current_period_end: periodEnd || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            trial_started_at: subStatus === "trialing" ? new Date().toISOString() : null,
+            trial_ends_at: subStatus === "trialing" ? (trialEnd || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()) : null,
           }]);
         if (error) throw error;
       }
 
-      // Log the action
       await supabase.rpc("log_admin_action", {
         p_action_type: "plan_changed",
         p_target_type: "workspace",
         p_target_id: workspaceId,
         p_workspace_id: workspaceId,
-        p_details: { new_plan: plan },
+        p_details: { new_plan: plan, new_status: subStatus, trial_end: trialEnd, period_end: periodEnd },
       });
     },
     onSuccess: () => {
@@ -378,6 +408,9 @@ export function WorkspacesSection() {
       toast.success("Plano alterado com sucesso");
       setActionDialog({ type: null, workspace: null });
       setNewPlan("");
+      setNewSubStatus("");
+      setNewTrialEnd("");
+      setNewPeriodEnd("");
     },
     onError: (error) => {
       toast.error("Erro ao alterar plano: " + error.message);
@@ -540,6 +573,39 @@ export function WorkspacesSection() {
     }
   };
 
+  const getTrialBadge = (ws: WorkspaceDetails) => {
+    const sub = ws.subscription;
+    if (!sub) return null;
+
+    if (sub.status === "trialing" && sub.trial_ends_at) {
+      const daysLeft = Math.ceil(
+        (new Date(sub.trial_ends_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000)
+      );
+      if (daysLeft <= 0) {
+        return <Badge variant="destructive" className="text-[10px]">Trial expirado</Badge>;
+      }
+      if (daysLeft <= 3) {
+        return <Badge variant="destructive" className="text-[10px]">Trial: {daysLeft}d</Badge>;
+      }
+      return <Badge className="bg-warning/20 text-warning border-warning/30 text-[10px]">Trial: {daysLeft}d</Badge>;
+    }
+
+    if (sub.status === "active" && sub.plan !== "free" && sub.plan !== "starter" && sub.current_period_end) {
+      const daysLeft = Math.ceil(
+        (new Date(sub.current_period_end).getTime() - Date.now()) / (24 * 60 * 60 * 1000)
+      );
+      if (daysLeft <= 0) {
+        return <Badge variant="destructive" className="text-[10px]">Expirado</Badge>;
+      }
+      if (daysLeft <= 7) {
+        return <Badge className="bg-warning/20 text-warning border-warning/30 text-[10px]">Renova: {daysLeft}d</Badge>;
+      }
+      return <Badge variant="outline" className="text-[10px]">Renova: {daysLeft}d</Badge>;
+    }
+
+    return null;
+  };
+
   const filteredWorkspaces = workspaces?.filter((ws) => {
     const matchesSearch = ws.name.toLowerCase().includes(search.toLowerCase()) ||
       ws.slug.toLowerCase().includes(search.toLowerCase());
@@ -630,6 +696,7 @@ export function WorkspacesSection() {
                 <TableHead>Faturação</TableHead>
                 <TableHead>Agência</TableHead>
                 <TableHead>Plano</TableHead>
+                <TableHead>Trial / Renovação</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Utilizadores</TableHead>
                 <TableHead>Uso</TableHead>
@@ -674,6 +741,7 @@ export function WorkspacesSection() {
                     )}
                   </TableCell>
                   <TableCell>{getPlanBadge(ws.subscription?.plan)}</TableCell>
+                  <TableCell>{getTrialBadge(ws)}</TableCell>
                   <TableCell>
                     <div className="space-y-1">
                       {getStatusBadge(ws.subscription?.status || ws.status)}
@@ -1073,35 +1141,89 @@ export function WorkspacesSection() {
         onOpenChange={() => {
           setActionDialog({ type: null, workspace: null });
           setNewPlan("");
+          setNewSubStatus("");
+          setNewTrialEnd("");
+          setNewPeriodEnd("");
         }}
       >
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ArrowUpCircle className="h-5 w-5 text-primary" />
-              Alterar Plano
+              Alterar Plano & Subscrição
             </DialogTitle>
             <DialogDescription>
               Alterar o plano de "{actionDialog.workspace?.name}"
-              <br /><br />
+              <br />
               Plano atual: <strong className="capitalize">{actionDialog.workspace?.subscription?.plan || "Free"}</strong>
+              {" · "}Estado: <strong className="capitalize">{actionDialog.workspace?.subscription?.status || "active"}</strong>
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Select 
-              value={newPlan} 
-              onValueChange={setNewPlan}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Seleciona o novo plano" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="free">Free</SelectItem>
-                <SelectItem value="basic">Basic</SelectItem>
-                <SelectItem value="pro">Pro</SelectItem>
-                <SelectItem value="agency">Agency</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Plano</Label>
+                <Select value={newPlan} onValueChange={setNewPlan}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleciona o plano" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="starter">Starter (Free)</SelectItem>
+                    <SelectItem value="basic">Basic</SelectItem>
+                    <SelectItem value="pro">Pro</SelectItem>
+                    <SelectItem value="agency">Agency</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Estado da subscrição</Label>
+                <Select value={newSubStatus} onValueChange={(val) => {
+                  setNewSubStatus(val);
+                  if (val === "trialing") {
+                    setNewTrialEnd(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]);
+                  }
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Manter actual" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Ativo</SelectItem>
+                    <SelectItem value="trialing">Trial (14 dias)</SelectItem>
+                    <SelectItem value="past_due">Past Due</SelectItem>
+                    <SelectItem value="canceled">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {newSubStatus === "trialing" && (
+              <div className="space-y-2">
+                <Label>Data fim do trial</Label>
+                <Input
+                  type="date"
+                  value={newTrialEnd}
+                  onChange={(e) => setNewTrialEnd(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Por defeito: 14 dias a partir de hoje
+                </p>
+              </div>
+            )}
+
+            {newSubStatus !== "trialing" && (
+              <div className="space-y-2">
+                <Label>Data fim do período (renovação)</Label>
+                <Input
+                  type="date"
+                  value={newPeriodEnd}
+                  onChange={(e) => setNewPeriodEnd(e.target.value)}
+                  placeholder="Opcional"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Deixar vazio para manter a data actual
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button 
@@ -1109,17 +1231,23 @@ export function WorkspacesSection() {
               onClick={() => {
                 setActionDialog({ type: null, workspace: null });
                 setNewPlan("");
+                setNewSubStatus("");
+                setNewTrialEnd("");
+                setNewPeriodEnd("");
               }}
             >
               Cancelar
             </Button>
             <Button 
-              disabled={!newPlan || newPlan === actionDialog.workspace?.subscription?.plan}
+              disabled={!newPlan && !newSubStatus}
               onClick={() => {
-                if (actionDialog.workspace && newPlan) {
+                if (actionDialog.workspace) {
                   changePlan.mutate({
                     workspaceId: actionDialog.workspace.id,
-                    plan: newPlan as "free" | "basic" | "pro" | "agency",
+                    plan: (newPlan || actionDialog.workspace.subscription?.plan || "starter") as any,
+                    subStatus: newSubStatus || undefined,
+                    trialEnd: newTrialEnd ? new Date(newTrialEnd).toISOString() : undefined,
+                    periodEnd: newPeriodEnd ? new Date(newPeriodEnd).toISOString() : undefined,
                   });
                 }
               }}

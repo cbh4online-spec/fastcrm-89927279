@@ -77,15 +77,31 @@ export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDia
     mutationFn: async () => {
       if (!selectedOwner) throw new Error("Selecione um owner");
       
+      const actualPlan = plan === "trial" ? "pro" : plan;
       const { data, error } = await supabase.rpc("create_workspace_for_user", {
         p_name: name,
         p_slug: slug,
         p_owner_user_id: selectedOwner.id,
-        p_plan: plan,
+        p_plan: actualPlan,
       });
       
       if (error) throw error;
-      return data;
+      const workspaceId = data as unknown as string;
+      
+      if (plan === "trial" && workspaceId) {
+        const trialEnd = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+        await supabase
+          .from("workspace_subscriptions")
+          .update({
+            status: "trialing",
+            trial_started_at: new Date().toISOString(),
+            trial_ends_at: trialEnd,
+            current_period_end: trialEnd,
+          } as any)
+          .eq("workspace_id", workspaceId);
+      }
+      
+      return workspaceId;
     },
     onSuccess: (data) => {
       const workspaceId = data as string;
@@ -179,6 +195,7 @@ export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDia
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="free">Free</SelectItem>
+                <SelectItem value="trial">Trial Pro (14 dias)</SelectItem>
                 <SelectItem value="basic">Basic</SelectItem>
                 <SelectItem value="pro">Pro</SelectItem>
                 <SelectItem value="agency">Agency</SelectItem>

@@ -42745,6 +42745,7 @@ export type Database = {
         }
         Returns: Json
       }
+      check_and_downgrade_expired_trials: { Args: never; Returns: Json }
       check_custom_field_unique_value: {
         Args: { p_custom_field_id: string; p_entity_id: string; p_value: Json }
         Returns: boolean
