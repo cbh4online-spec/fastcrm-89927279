@@ -192,6 +192,13 @@ function parseCSVLine(line: string, delimiter: string): string[] {
   return result;
 }
 
+/** Strip HTML tags and return clean text */
+function stripHtmlToText(html: string): string {
+  if (!html || !html.includes('<')) return html;
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
 /** Clean price string: remove currency symbols, spaces; convert comma decimal */
 function sanitizePrice(val: string): number | undefined {
   if (!val) return undefined;
