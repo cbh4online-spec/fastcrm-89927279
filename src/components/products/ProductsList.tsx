@@ -173,6 +173,22 @@ export function ProductsList() {
     PRODUCT_COLUMNS
   );
 
+  // Column widths with resize support
+  const colWidths = useColumnWidths("products-table-columns");
+  const tableRef = useRef<HTMLTableElement | null>(null);
+
+  // Global mouse move/up for resize dragging
+  useEffect(() => {
+    const handleMove = (e: MouseEvent) => colWidths.onMouseMove(e);
+    const handleUp = () => colWidths.onMouseUp();
+    document.addEventListener("mousemove", handleMove);
+    document.addEventListener("mouseup", handleUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMove);
+      document.removeEventListener("mouseup", handleUp);
+    };
+  }, [colWidths.onMouseMove, colWidths.onMouseUp]);
+
   // Debounce search for API calls
   const [debouncedSearch, setDebouncedSearch] = useState("");
   
