@@ -698,6 +698,25 @@ export function ProductsList() {
               }
               rightActions={
                 <div className="flex items-center gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="gap-2">
+                        <Columns className="h-4 w-4" />
+                        Largura
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => {
+                        const visibleColIds = columnOrder.filter(c => visibleColumns.has(c));
+                        colWidths.autoFitAll(visibleColIds, tableRef);
+                      }}>
+                        Ajustar automaticamente
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={colWidths.resetWidths}>
+                        Repor larguras padrão
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <ColumnSelector
                     columns={PRODUCT_COLUMNS}
                     visibleColumns={visibleColumns}
