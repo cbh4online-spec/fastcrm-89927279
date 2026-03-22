@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from "react";
 
 export interface ColumnWidthsState {
   widths: Record<string, number>;
+  getWidth: (colId: string) => number;
   setWidth: (colId: string, width: number) => void;
   startResize: (colId: string, startX: number) => void;
   onMouseMove: (e: MouseEvent) => void;
@@ -13,10 +14,10 @@ export interface ColumnWidthsState {
 }
 
 const DEFAULT_WIDTH = 100;
-const MIN_WIDTH = 60;
+const MIN_WIDTH = 50;
 const MAX_WIDTH = 600;
 
-export function useColumnWidths(storageKey: string): ColumnWidthsState {
+export function useColumnWidths(storageKey: string, initialWidths?: Record<string, number>): ColumnWidthsState {
   const [widths, setWidths] = useState<Record<string, number>>(() => {
     try {
       const saved = localStorage.getItem(`${storageKey}-widths`);
@@ -26,7 +27,14 @@ export function useColumnWidths(storageKey: string): ColumnWidthsState {
     }
   });
 
+  const initialWidthsRef = useRef(initialWidths);
+  initialWidthsRef.current = initialWidths;
+
   const resizeRef = useRef<{ colId: string; startX: number; startWidth: number } | null>(null);
+
+  const getWidth = useCallback((colId: string): number => {
+    return widths[colId] || initialWidthsRef.current?.[colId] || DEFAULT_WIDTH;
+  }, [widths]);
 
   const persist = useCallback((newWidths: Record<string, number>) => {
     try {
@@ -44,7 +52,7 @@ export function useColumnWidths(storageKey: string): ColumnWidthsState {
   }, [persist]);
 
   const startResize = useCallback((colId: string, startX: number) => {
-    const currentWidth = widths[colId] || DEFAULT_WIDTH;
+    const currentWidth = widths[colId] || initialWidthsRef.current?.[colId] || DEFAULT_WIDTH;
     resizeRef.current = { colId, startX, startWidth: currentWidth };
   }, [widths]);
 
@@ -74,11 +82,10 @@ export function useColumnWidths(storageKey: string): ColumnWidthsState {
     let maxWidth = MIN_WIDTH;
     cells.forEach(cell => {
       const el = cell as HTMLElement;
-      // Temporarily remove width constraints to measure natural width
       const prev = el.style.width;
       el.style.width = 'auto';
       el.style.whiteSpace = 'nowrap';
-      const natural = el.scrollWidth + 16; // padding
+      const natural = el.scrollWidth + 16;
       el.style.width = prev;
       el.style.whiteSpace = '';
       maxWidth = Math.max(maxWidth, Math.min(MAX_WIDTH, natural));
@@ -92,6 +99,7 @@ export function useColumnWidths(storageKey: string): ColumnWidthsState {
 
   return {
     widths,
+    getWidth,
     setWidth,
     startResize,
     onMouseMove,
