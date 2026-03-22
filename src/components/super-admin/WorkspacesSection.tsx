@@ -1141,35 +1141,89 @@ export function WorkspacesSection() {
         onOpenChange={() => {
           setActionDialog({ type: null, workspace: null });
           setNewPlan("");
+          setNewSubStatus("");
+          setNewTrialEnd("");
+          setNewPeriodEnd("");
         }}
       >
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ArrowUpCircle className="h-5 w-5 text-primary" />
-              Alterar Plano
+              Alterar Plano & Subscrição
             </DialogTitle>
             <DialogDescription>
               Alterar o plano de "{actionDialog.workspace?.name}"
-              <br /><br />
+              <br />
               Plano atual: <strong className="capitalize">{actionDialog.workspace?.subscription?.plan || "Free"}</strong>
+              {" · "}Estado: <strong className="capitalize">{actionDialog.workspace?.subscription?.status || "active"}</strong>
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Select 
-              value={newPlan} 
-              onValueChange={setNewPlan}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Seleciona o novo plano" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="free">Free</SelectItem>
-                <SelectItem value="basic">Basic</SelectItem>
-                <SelectItem value="pro">Pro</SelectItem>
-                <SelectItem value="agency">Agency</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Plano</Label>
+                <Select value={newPlan} onValueChange={setNewPlan}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleciona o plano" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="starter">Starter (Free)</SelectItem>
+                    <SelectItem value="basic">Basic</SelectItem>
+                    <SelectItem value="pro">Pro</SelectItem>
+                    <SelectItem value="agency">Agency</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Estado da subscrição</Label>
+                <Select value={newSubStatus} onValueChange={(val) => {
+                  setNewSubStatus(val);
+                  if (val === "trialing") {
+                    setNewTrialEnd(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]);
+                  }
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Manter actual" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Ativo</SelectItem>
+                    <SelectItem value="trialing">Trial (14 dias)</SelectItem>
+                    <SelectItem value="past_due">Past Due</SelectItem>
+                    <SelectItem value="canceled">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {newSubStatus === "trialing" && (
+              <div className="space-y-2">
+                <Label>Data fim do trial</Label>
+                <Input
+                  type="date"
+                  value={newTrialEnd}
+                  onChange={(e) => setNewTrialEnd(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Por defeito: 14 dias a partir de hoje
+                </p>
+              </div>
+            )}
+
+            {newSubStatus !== "trialing" && (
+              <div className="space-y-2">
+                <Label>Data fim do período (renovação)</Label>
+                <Input
+                  type="date"
+                  value={newPeriodEnd}
+                  onChange={(e) => setNewPeriodEnd(e.target.value)}
+                  placeholder="Opcional"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Deixar vazio para manter a data actual
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button 
@@ -1177,17 +1231,23 @@ export function WorkspacesSection() {
               onClick={() => {
                 setActionDialog({ type: null, workspace: null });
                 setNewPlan("");
+                setNewSubStatus("");
+                setNewTrialEnd("");
+                setNewPeriodEnd("");
               }}
             >
               Cancelar
             </Button>
             <Button 
-              disabled={!newPlan || newPlan === actionDialog.workspace?.subscription?.plan}
+              disabled={!newPlan && !newSubStatus}
               onClick={() => {
-                if (actionDialog.workspace && newPlan) {
+                if (actionDialog.workspace) {
                   changePlan.mutate({
                     workspaceId: actionDialog.workspace.id,
-                    plan: newPlan as "free" | "basic" | "pro" | "agency",
+                    plan: (newPlan || actionDialog.workspace.subscription?.plan || "starter") as any,
+                    subStatus: newSubStatus || undefined,
+                    trialEnd: newTrialEnd ? new Date(newTrialEnd).toISOString() : undefined,
+                    periodEnd: newPeriodEnd ? new Date(newPeriodEnd).toISOString() : undefined,
                   });
                 }
               }}
