@@ -201,7 +201,7 @@ export function ProductsList() {
   );
 
   // Column widths with resize support
-  const colWidths = useColumnWidths("products-table-columns");
+  const colWidths = useColumnWidths("products-table-columns", INITIAL_COL_WIDTHS);
   const tableRef = useRef<HTMLTableElement | null>(null);
 
   // Global mouse move/up for resize dragging
@@ -948,7 +948,7 @@ export function ProductsList() {
                         .map((colId) => {
                           const col = PRODUCT_COLUMNS.find((c) => c.id === colId);
                           if (!col) return null;
-                          const w = colWidths.widths[col.id] || INITIAL_COL_WIDTHS[col.id] || 100;
+                          const w = colWidths.getWidth(col.id);
                           return (
                             <TableHead
                               key={col.id}
@@ -988,7 +988,7 @@ export function ProductsList() {
                         {columnOrder
                           .filter((colId) => visibleColumns.has(colId))
                           .map((colId) => {
-                            const w = colWidths.widths[colId] || INITIAL_COL_WIDTHS[colId] || 100;
+                            const w = colWidths.getWidth(colId);
                             return (
                               <TableCell
                                 key={colId}
