@@ -58,6 +58,8 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
   const [selectedColumns, setSelectedColumns] = useState<Set<string>>(new Set());
   // AI categories
   const [aiCategoriesEnabled, setAiCategoriesEnabled] = useState(false);
+  // Default markup
+  const [defaultMarkup, setDefaultMarkup] = useState(30);
 
   // Preview state
   const [previewHeaders, setPreviewHeaders] = useState<string[]>([]);
