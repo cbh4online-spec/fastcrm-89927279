@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +64,7 @@ import {
   Trash2,
   Settings,
   ScanLine,
+  Columns,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -83,6 +84,7 @@ import { useBarcodeLookup } from "@/hooks/useBarcodeLookup";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
 import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
+import { useColumnWidths } from "@/hooks/useColumnWidths";
 import {
   productTypeLabels,
   productStatusLabels,
@@ -170,6 +172,22 @@ export function ProductsList() {
     "products-table-columns",
     PRODUCT_COLUMNS
   );
+
+  // Column widths with resize support
+  const colWidths = useColumnWidths("products-table-columns");
+  const tableRef = useRef<HTMLTableElement | null>(null);
+
+  // Global mouse move/up for resize dragging
+  useEffect(() => {
+    const handleMove = (e: MouseEvent) => colWidths.onMouseMove(e);
+    const handleUp = () => colWidths.onMouseUp();
+    document.addEventListener("mousemove", handleMove);
+    document.addEventListener("mouseup", handleUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMove);
+      document.removeEventListener("mouseup", handleUp);
+    };
+  }, [colWidths.onMouseMove, colWidths.onMouseUp]);
 
   // Debounce search for API calls
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -680,6 +698,25 @@ export function ProductsList() {
               }
               rightActions={
                 <div className="flex items-center gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="gap-2">
+                        <Columns className="h-4 w-4" />
+                        Largura
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => {
+                        const visibleColIds = columnOrder.filter(c => visibleColumns.has(c));
+                        colWidths.autoFitAll(visibleColIds, tableRef);
+                      }}>
+                        Ajustar automaticamente
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={colWidths.resetWidths}>
+                        Repor larguras padrão
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <ColumnSelector
                     columns={PRODUCT_COLUMNS}
                     visibleColumns={visibleColumns}
@@ -760,10 +797,11 @@ export function ProductsList() {
                   </Button>
                 </div>
               ) : (
-                <Table>
+                <div className="overflow-x-auto">
+                <Table ref={tableRef} style={{ tableLayout: "fixed" }}>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[50px]">
+                      <TableHead className="w-[50px]" style={{ width: 50 }}>
                         <Checkbox
                           checked={
                             paginatedProducts.length > 0 &&
@@ -777,15 +815,36 @@ export function ProductsList() {
                         .map((colId) => {
                           const col = PRODUCT_COLUMNS.find((c) => c.id === colId);
                           if (!col) return null;
-                          return <TableHead key={col.id}>{col.label}</TableHead>;
+                          const w = colWidths.widths[col.id] || 150;
+                          return (
+                            <TableHead
+                              key={col.id}
+                              data-col-id={col.id}
+                              className="relative select-none"
+                              style={{ width: w, minWidth: 60, maxWidth: 600 }}
+                            >
+                              <span className="truncate block pr-2">{col.label}</span>
+                              {/* Resize handle */}
+                              <div
+                                className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize group hover:bg-primary/20 z-10"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  colWidths.startResize(col.id, e.clientX);
+                                }}
+                                onDoubleClick={() => colWidths.autoFitColumn(col.id, tableRef)}
+                              >
+                                <div className="absolute right-0 top-1/4 bottom-1/4 w-px bg-border group-hover:bg-primary transition-colors" />
+                              </div>
+                            </TableHead>
+                          );
                         })}
-                      <TableHead className="w-[50px]"></TableHead>
+                      <TableHead className="w-[50px]" style={{ width: 50 }}></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedProducts.map((product) => (
                       <TableRow key={product.id}>
-                        <TableCell>
+                        <TableCell style={{ width: 50 }}>
                           <Checkbox
                             checked={selectedIds.includes(product.id)}
                             onCheckedChange={(checked) =>
@@ -795,11 +854,18 @@ export function ProductsList() {
                         </TableCell>
                         {columnOrder
                           .filter((colId) => visibleColumns.has(colId))
-                          .map((colId) => (
-                            <TableCell key={colId}>
-                              {renderProductCell(product, colId, setDetailProduct)}
-                            </TableCell>
-                          ))}
+                          .map((colId) => {
+                            const w = colWidths.widths[colId] || 150;
+                            return (
+                              <TableCell
+                                key={colId}
+                                data-col-id={colId}
+                                style={{ width: w, maxWidth: w, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                              >
+                                {renderProductCell(product, colId, setDetailProduct)}
+                              </TableCell>
+                            );
+                          })}
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -844,6 +910,7 @@ export function ProductsList() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </Card>
 
