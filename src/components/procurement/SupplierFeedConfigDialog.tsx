@@ -97,6 +97,7 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
       setPreviewRows([]);
       categorySuggestions.clearSuggestions();
       setAiCategoriesEnabled(false);
+      setDefaultMarkup(30);
     }
   }, [feed, open]);
 
