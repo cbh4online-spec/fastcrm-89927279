@@ -418,13 +418,19 @@ export function useCreateProductsBatch() {
           seenSkus.add(lower);
         }
 
-        // Extract image_url before inserting (not a column in products table)
+        // Extract image URLs before inserting (not columns in products table)
         const imageUrl = item.image_url;
-        if (imageUrl && sku) {
-          imageUrlBySku.set(sku.toLowerCase(), imageUrl);
+        const imageUrls = item.image_urls;
+        // Collect all unique image URLs for this SKU
+        const allImages = new Set<string>();
+        if (imageUrls) imageUrls.forEach(u => { if (u?.trim()) allImages.add(u.trim()); });
+        if (imageUrl?.trim() && !allImages.has(imageUrl.trim())) allImages.add(imageUrl.trim());
+        
+        if (allImages.size > 0 && sku) {
+          imageUrlsBySku.set(sku.toLowerCase(), [...allImages]);
         }
 
-        const { image_url: _imgUrl, ...itemWithoutImage } = item;
+        const { image_url: _imgUrl, image_urls: _imgUrls, ...itemWithoutImage } = item;
         toInsert.push({
           ...itemWithoutImage,
           sku,
