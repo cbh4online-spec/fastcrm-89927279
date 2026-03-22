@@ -194,7 +194,9 @@ export function ProductsList() {
   const { data: billingTypesConfig } = useBillingTypes();
   const archiveProduct = useArchiveProduct();
   const deleteProduct = useDeleteProduct();
+  const deleteProductsBatch = useDeleteProductsBatch();
   const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<Product | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   // Helper para obter label do tipo de produto
   const getProductTypeLabel = (typeCode: string) => {
