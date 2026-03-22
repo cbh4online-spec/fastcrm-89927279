@@ -20,6 +20,7 @@ export interface SupplierFeed {
   csv_delimiter: string;
   csv_encoding: string;
   is_active: boolean;
+  default_markup_pct: number;
   created_at: string;
   updated_at: string;
 }

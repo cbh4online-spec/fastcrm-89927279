@@ -117,6 +117,7 @@ Deno.serve(async (req) => {
 
       // Full sync: process all rows
       const mapping: Record<string, string> = feed.column_mapping || {}
+      const defaultMarkupPct = feed.default_markup_pct ?? 30
       const useAiCategories = body.use_ai_categories === true
       let created = 0, updated = 0, skipped = 0, errors = 0
 
@@ -135,7 +136,6 @@ Deno.serve(async (req) => {
         const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
         
         if (LOVABLE_API_KEY) {
-          // Process in batches of 50
           for (let b = 0; b < allNames.length; b += 50) {
             const batch = allNames.slice(b, b + 50)
             try {
@@ -210,7 +210,6 @@ Responde APENAS JSON: [{"product_name":"...","category":"...","subcategory":"...
                 }
               }
             } catch {
-              // AI failure: continue without AI categories
               console.error('AI category suggestion failed for batch, continuing without AI')
             }
           }
@@ -223,28 +222,46 @@ Responde APENAS JSON: [{"product_name":"...","category":"...","subcategory":"...
 
         for (const row of batch) {
           try {
-            const sku = getMappedValue(row, mapping, 'sku')
+            const sku = stripHtml(getMappedValue(row, mapping, 'sku'))
             if (!sku) { skipped++; continue }
 
-            const name = getMappedValue(row, mapping, 'name') || sku
-            const price = parseFloat(getMappedValue(row, mapping, 'price') || '0')
-            let category = getMappedValue(row, mapping, 'category') || null
-            let subcategory = getMappedValue(row, mapping, 'subcategory') || null
+            // Validate SKU - skip HTML/descriptive values
+            if (isInvalidSKU(sku)) { skipped++; continue }
+
+            const rawName = getMappedValue(row, mapping, 'name') || sku
+            const name = stripHtml(rawName)
+            const costPrice = parsePrice(getMappedValue(row, mapping, 'cost_price'))
+            const salePrice = parsePrice(getMappedValue(row, mapping, 'sale_price'))
+            // Legacy: if only "price" mapped (old feeds), treat as sale price
+            const legacyPrice = parsePrice(getMappedValue(row, mapping, 'price'))
+            
+            // Compute final sale price: PVP > legacy price > cost + markup
+            const finalSalePrice = salePrice || legacyPrice || (costPrice && defaultMarkupPct > 0
+              ? costPrice * (1 + defaultMarkupPct / 100)
+              : null)
+            const finalCost = costPrice || null
+
+            let category = stripHtml(getMappedValue(row, mapping, 'category')) || null
+            let subcategory = stripHtml(getMappedValue(row, mapping, 'subcategory')) || null
             
             // Override with AI suggestions if available
             if (aiCategoryMap && name) {
-              const aiSug = aiCategoryMap.get(name)
+              const aiSug = aiCategoryMap.get(rawName) || aiCategoryMap.get(name)
               if (aiSug) {
                 category = aiSug.category
                 subcategory = aiSug.subcategory
               }
             }
             
-            const brand = getMappedValue(row, mapping, 'brand') || null
-            const description = getMappedValue(row, mapping, 'description') || null
-            const barcode = getMappedValue(row, mapping, 'barcode') || null
-            const imageUrl = getMappedValue(row, mapping, 'image_url') || null
+            const brand = stripHtml(getMappedValue(row, mapping, 'brand')) || null
+            const description = stripHtml(getMappedValue(row, mapping, 'description')) || null
+            const longDescription = stripHtml(getMappedValue(row, mapping, 'long_description')) || null
+            const barcode = getMappedValue(row, mapping, 'barcode') || getMappedValue(row, mapping, 'ean') || null
+            const imageUrl = getMappedValue(row, mapping, 'image_url')?.trim() || null
             const stock = parseInt(getMappedValue(row, mapping, 'stock') || '0') || 0
+            const weight = getMappedValue(row, mapping, 'weight') || null
+            const warranty = getMappedValue(row, mapping, 'warranty') || null
+            const datasheetUrl = getMappedValue(row, mapping, 'datasheet_url')?.trim() || null
 
             // Check if product exists by SKU
             const { data: existingProduct } = await supabase
@@ -255,14 +272,18 @@ Responde APENAS JSON: [{"product_name":"...","category":"...","subcategory":"...
               .maybeSingle()
 
             if (existingProduct) {
-              // Update existing product price/stock
+              // Update existing product
+              const updatePayload: Record<string, any> = {
+                updated_at: new Date().toISOString(),
+              }
+              if (finalSalePrice) updatePayload.base_price = finalSalePrice
+              if (finalCost) updatePayload.direct_cost = finalCost
+              if (stock) updatePayload.stock_quantity = stock
+              if (brand) updatePayload.brand = brand
+              
               await supabase
                 .from('products')
-                .update({
-                  base_price: price || undefined,
-                  stock_quantity: stock || undefined,
-                  updated_at: new Date().toISOString(),
-                })
+                .update(updatePayload)
                 .eq('id', existingProduct.id)
 
               // Upsert supplier_products link
@@ -274,12 +295,25 @@ Responde APENAS JSON: [{"product_name":"...","category":"...","subcategory":"...
                     supplier_id: feed.supplier_id,
                     product_id: existingProduct.id,
                     supplier_sku: sku,
-                    unit_price: price,
+                    unit_price: finalCost || finalSalePrice,
                     barcode,
                     category,
                     last_price_date: new Date().toISOString(),
                     price_source: 'feed',
                   }, { onConflict: 'supplier_id,product_id' })
+              }
+
+              // Upsert image if provided
+              if (imageUrl) {
+                await supabase
+                  .from('product_images')
+                  .upsert({
+                    product_id: existingProduct.id,
+                    workspace_id: feed.workspace_id,
+                    url: imageUrl,
+                    position: 0,
+                    source: feed.feed_name || 'feed',
+                  }, { onConflict: 'product_id,url' })
               }
 
               updated++
@@ -291,10 +325,13 @@ Responde APENAS JSON: [{"product_name":"...","category":"...","subcategory":"...
                   workspace_id: feed.workspace_id,
                   name,
                   sku,
-                  base_price: price,
+                  base_price: finalSalePrice || 0,
+                  direct_cost: finalCost,
                   category,
                   subcategory,
+                  brand,
                   short_description: description,
+                  commercial_description: longDescription,
                   status: 'draft',
                   stock_quantity: stock,
                   images: imageUrl ? [imageUrl] : [],
@@ -302,21 +339,36 @@ Responde APENAS JSON: [{"product_name":"...","category":"...","subcategory":"...
                 .select('id')
                 .single()
 
-              // Create supplier_products link
-              if (newProduct && feed.supplier_id) {
-                await supabase
-                  .from('supplier_products')
-                  .insert({
-                    workspace_id: feed.workspace_id,
-                    supplier_id: feed.supplier_id,
-                    product_id: newProduct.id,
-                    supplier_sku: sku,
-                    unit_price: price,
-                    barcode,
-                    category,
-                    last_price_date: new Date().toISOString(),
-                    price_source: 'feed',
-                  })
+              if (newProduct) {
+                // Create supplier_products link
+                if (feed.supplier_id) {
+                  await supabase
+                    .from('supplier_products')
+                    .insert({
+                      workspace_id: feed.workspace_id,
+                      supplier_id: feed.supplier_id,
+                      product_id: newProduct.id,
+                      supplier_sku: sku,
+                      unit_price: finalCost || finalSalePrice,
+                      barcode,
+                      category,
+                      last_price_date: new Date().toISOString(),
+                      price_source: 'feed',
+                    })
+                }
+
+                // Create product_images record
+                if (imageUrl) {
+                  await supabase
+                    .from('product_images')
+                    .insert({
+                      product_id: newProduct.id,
+                      workspace_id: feed.workspace_id,
+                      url: imageUrl,
+                      position: 0,
+                      source: feed.feed_name || 'feed',
+                    })
+                }
               }
 
               created++
@@ -390,6 +442,8 @@ Responde APENAS JSON: [{"product_name":"...","category":"...","subcategory":"...
   }
 })
 
+// ─── Helpers ────────────────────────────────────────────────────────
+
 function parseCSVLine(line: string, delimiter: string): string[] {
   const result: string[] = []
   let current = ''
@@ -423,4 +477,40 @@ function getMappedValue(
   const csvColumn = mapping[field]
   if (!csvColumn) return ''
   return row[csvColumn] || ''
+}
+
+function parsePrice(value?: string): number | null {
+  if (!value) return null
+  const cleaned = value.replace(/[^\d,.]/g, '').replace(',', '.')
+  const num = parseFloat(cleaned)
+  return isNaN(num) || num <= 0 ? null : num
+}
+
+/** Strip HTML tags from a string, returning plain text */
+function stripHtml(value: string): string {
+  if (!value || !value.includes('<')) return value
+  // Remove HTML tags, decode entities, normalize whitespace
+  return value
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<\/?(p|div|li|tr|td|th|ul|ol|table|thead|tbody|h[1-6])[^>]*>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/** Check if a SKU value looks like HTML/descriptive text rather than a valid SKU */
+function isInvalidSKU(sku: string): boolean {
+  // Contains HTML tags
+  if (/<[^>]+>/.test(sku)) return true
+  // Too long for a SKU (likely descriptive text)
+  if (sku.length > 80) return true
+  // Contains too many spaces (likely descriptive)
+  if ((sku.match(/\s/g) || []).length > 3) return true
+  return false
 }

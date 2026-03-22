@@ -15,19 +15,24 @@ import { toast } from "sonner";
 
 const PRODUCT_FIELDS = [
   { value: "sku", label: "SKU / Referência" },
+  { value: "ean", label: "EAN / Código de barras" },
   { value: "name", label: "Nome do produto" },
-  { value: "description", label: "Descrição" },
-  { value: "price", label: "Preço" },
+  { value: "description", label: "Descrição curta" },
+  { value: "long_description", label: "Descrição longa" },
+  { value: "cost_price", label: "Preço de custo" },
+  { value: "sale_price", label: "PVP / Preço de venda" },
   { value: "category", label: "Categoria" },
   { value: "subcategory", label: "Subcategoria" },
   { value: "brand", label: "Marca" },
-  { value: "barcode", label: "Código de barras" },
+  { value: "barcode", label: "Código de barras (legacy)" },
   { value: "image_url", label: "URL da imagem" },
   { value: "stock", label: "Stock" },
-  { value: "weight", label: "Peso" },
+  { value: "weight", label: "Peso (kg)" },
   { value: "dimensions", label: "Dimensões" },
   { value: "model", label: "Modelo" },
   { value: "family", label: "Linha / Família" },
+  { value: "warranty", label: "Garantia" },
+  { value: "datasheet_url", label: "Ficha técnica (URL)" },
 ];
 
 interface Props {
@@ -53,6 +58,8 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
   const [selectedColumns, setSelectedColumns] = useState<Set<string>>(new Set());
   // AI categories
   const [aiCategoriesEnabled, setAiCategoriesEnabled] = useState(false);
+  // Default markup
+  const [defaultMarkup, setDefaultMarkup] = useState(30);
 
   // Preview state
   const [previewHeaders, setPreviewHeaders] = useState<string[]>([]);
@@ -68,6 +75,7 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
       setEncoding(feed.csv_encoding);
       setAutoSync(feed.auto_sync_enabled);
       setSyncInterval(feed.sync_interval_hours);
+      setDefaultMarkup(feed.default_markup_pct ?? 30);
       // Convert system→csv mapping to csv→system mapping
       const inverted: Record<string, string> = {};
       const cols = new Set<string>();
@@ -90,6 +98,7 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
       setPreviewRows([]);
       categorySuggestions.clearSuggestions();
       setAiCategoriesEnabled(false);
+      setDefaultMarkup(30);
     }
   }, [feed, open]);
 
@@ -136,22 +145,30 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
       // Auto-suggest inverted mapping
       const autoInverted: Record<string, string> = {};
       const autoCols = new Set<string>();
+      const usedFields = new Set<string>();
       for (const h of result.headers) {
         const lower = h.toLowerCase();
         let mapped = "";
-        if (lower.includes('sku') || lower.includes('referenc') || lower.includes('ref')) mapped = 'sku';
-        else if (lower.includes('nombre') || lower.includes('name') || lower.includes('descri') || lower.includes('produto')) mapped = 'name';
-        else if (lower.includes('precio') || lower.includes('price') || lower.includes('pvp') || lower.includes('preço')) mapped = 'price';
-        else if (lower.includes('categ') || lower.includes('familia')) mapped = 'category';
-        else if (lower.includes('marca') || lower.includes('brand')) mapped = 'brand';
-        else if (lower.includes('ean') || lower.includes('barcode') || lower.includes('código')) mapped = 'barcode';
-        else if (lower.includes('image') || lower.includes('foto') || lower.includes('img')) mapped = 'image_url';
-        else if (lower.includes('stock') || lower.includes('cantidad')) mapped = 'stock';
-        else if (lower.includes('peso') || lower.includes('weight')) mapped = 'weight';
-        else if (lower.includes('dimen')) mapped = 'dimensions';
-        else if (lower.includes('model')) mapped = 'model';
+        if (/^(ref(erencia)?|sku|codigo|code|part.?num)/i.test(lower)) mapped = 'sku';
+        else if (/^(ean|gtin|barcode|codigo.?barr)/i.test(lower)) mapped = 'ean';
+        else if (/^(nombre|name|titulo|produto|product$)/i.test(lower)) mapped = 'name';
+        else if (/^(desc(ripcion)?_?(larga|long)|long.?desc)/i.test(lower)) mapped = 'long_description';
+        else if (/^(desc(ripcion|ription)?|resumen|short.?desc)/i.test(lower)) mapped = 'description';
+        else if (/^(precio.?coste?|cost|compra|purchase|wholesale)/i.test(lower)) mapped = 'cost_price';
+        else if (/^(pvp|venta|sale|retail|price|prec[io]o?$)/i.test(lower)) mapped = 'sale_price';
+        else if (/subcateg/i.test(lower)) mapped = 'subcategory';
+        else if (/^(categ|familia|group|tipo$|type$)/i.test(lower)) mapped = 'category';
+        else if (/^(marca|brand|fabricante|manufacturer)/i.test(lower)) mapped = 'brand';
+        else if (/^(image|foto|photo|picture|img)/i.test(lower)) mapped = 'image_url';
+        else if (/^(stock|qty|quantity|disponible|available)/i.test(lower)) mapped = 'stock';
+        else if (/^(peso|weight|kg)/i.test(lower)) mapped = 'weight';
+        else if (/^(dimen)/i.test(lower)) mapped = 'dimensions';
+        else if (/^(model)/i.test(lower)) mapped = 'model';
+        else if (/^(garant|warranty)/i.test(lower)) mapped = 'warranty';
+        else if (/^(ficha|datasheet|spec|technical)/i.test(lower)) mapped = 'datasheet_url';
 
-        if (mapped) {
+        if (mapped && !usedFields.has(mapped)) {
+          usedFields.add(mapped);
           autoInverted[h] = mapped;
           autoCols.add(h);
         }
@@ -184,6 +201,7 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
       sync_interval_hours: syncInterval,
       column_mapping: getColumnMapping(),
       supplier_id: supplierId || null,
+      default_markup_pct: defaultMarkup,
     };
 
     if (feed) {
@@ -421,6 +439,22 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
               onEnabledChange={setAiCategoriesEnabled}
             />
           )}
+
+          {/* Markup default */}
+          <div className="border rounded-lg p-4 space-y-2">
+            <Label className="text-sm font-medium">Margem default sobre custo (%)</Label>
+            <p className="text-xs text-muted-foreground">
+              Quando o CSV só tem preço de custo, aplica esta margem para calcular o PVP automaticamente.
+            </p>
+            <Input
+              type="number"
+              min={0}
+              max={500}
+              value={defaultMarkup}
+              onChange={e => setDefaultMarkup(Number(e.target.value))}
+              className="w-32"
+            />
+          </div>
 
           {/* Auto-sync */}
           <div className="flex items-center justify-between border rounded-lg p-4">
