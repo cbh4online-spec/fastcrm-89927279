@@ -344,40 +344,63 @@ export function WorkspacesSection() {
   });
 
   const changePlan = useMutation({
-    mutationFn: async ({ workspaceId, plan }: { workspaceId: string; plan: "free" | "basic" | "pro" | "agency" }) => {
-      // Update workspace_subscriptions table
+    mutationFn: async ({ workspaceId, plan, subStatus, trialEnd, periodEnd }: {
+      workspaceId: string;
+      plan: "free" | "basic" | "pro" | "agency" | "starter";
+      subStatus?: string;
+      trialEnd?: string;
+      periodEnd?: string;
+    }) => {
       const { data: existingSub } = await supabase
         .from("workspace_subscriptions")
         .select("id")
         .eq("workspace_id", workspaceId)
         .maybeSingle();
 
+      const updateData: Record<string, any> = {
+        plan,
+        updated_at: new Date().toISOString(),
+      };
+      if (subStatus) updateData.status = subStatus;
+      if (subStatus === "trialing") {
+        updateData.trial_started_at = new Date().toISOString();
+        updateData.trial_ends_at = trialEnd || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+        updateData.current_period_end = updateData.trial_ends_at;
+      } else {
+        if (trialEnd === "") {
+          updateData.trial_ends_at = null;
+          updateData.trial_started_at = null;
+        }
+        if (periodEnd) updateData.current_period_end = periodEnd;
+      }
+
       if (existingSub) {
         const { error } = await supabase
           .from("workspace_subscriptions")
-          .update({ plan, updated_at: new Date().toISOString() })
+          .update(updateData)
           .eq("workspace_id", workspaceId);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("workspace_subscriptions")
-          .insert([{ 
-            workspace_id: workspaceId, 
-            plan, 
-            status: "active",
+          .insert([{
+            workspace_id: workspaceId,
+            plan,
+            status: subStatus || "active",
             current_period_start: new Date().toISOString(),
-            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+            current_period_end: periodEnd || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            trial_started_at: subStatus === "trialing" ? new Date().toISOString() : null,
+            trial_ends_at: subStatus === "trialing" ? (trialEnd || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()) : null,
           }]);
         if (error) throw error;
       }
 
-      // Log the action
       await supabase.rpc("log_admin_action", {
         p_action_type: "plan_changed",
         p_target_type: "workspace",
         p_target_id: workspaceId,
         p_workspace_id: workspaceId,
-        p_details: { new_plan: plan },
+        p_details: { new_plan: plan, new_status: subStatus, trial_end: trialEnd, period_end: periodEnd },
       });
     },
     onSuccess: () => {
@@ -385,6 +408,9 @@ export function WorkspacesSection() {
       toast.success("Plano alterado com sucesso");
       setActionDialog({ type: null, workspace: null });
       setNewPlan("");
+      setNewSubStatus("");
+      setNewTrialEnd("");
+      setNewPeriodEnd("");
     },
     onError: (error) => {
       toast.error("Erro ao alterar plano: " + error.message);
