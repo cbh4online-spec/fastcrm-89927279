@@ -457,23 +457,42 @@ export function ProductsList() {
   // Render cell content based on column id
   const renderProductCell = (product: Product, columnId: string, onOpenDetail: (product: Product) => void) => {
     switch (columnId) {
-      case "name":
+      case "name": {
+        const hasNoPrice = !product.base_price || product.base_price === 0;
+        const hasNegativeMargin = product.direct_cost && product.direct_cost > product.base_price;
+        const hasLowMargin = product.base_price && product.direct_cost && product.base_price > 0 &&
+          (() => { const m = ((product.base_price - product.direct_cost!) / product.base_price) * 100; return m > 0 && m < 15; })();
+        const hasNoImage = !product.images || product.images.length === 0;
         return (
           <button
             type="button"
             onClick={() => onOpenDetail(product)}
             className="flex items-center gap-2 font-medium text-left hover:text-primary hover:underline transition-colors"
           >
-            {product.images?.[0] && (
+            {product.images?.[0] ? (
               <img
                 src={product.images[0]}
                 alt={product.name}
-                className="w-8 h-8 rounded object-cover"
+                className="w-8 h-8 rounded object-cover flex-shrink-0"
               />
+            ) : (
+              <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                <ImageOff className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
             )}
-            {product.name}
+            <span className="truncate">{product.name}</span>
+            {hasNoPrice && (
+              <span className="flex-shrink-0 w-2 h-2 rounded-full bg-destructive" title="Sem preço definido" />
+            )}
+            {hasNegativeMargin && (
+              <TrendingDown className="h-3 w-3 text-destructive flex-shrink-0" title="Margem negativa" />
+            )}
+            {hasLowMargin && !hasNegativeMargin && (
+              <span className="flex-shrink-0 w-2 h-2 rounded-full bg-warning" title="Margem baixa (<15%)" />
+            )}
           </button>
         );
+      }
       case "sku":
         return product.sku ? (
           <button
