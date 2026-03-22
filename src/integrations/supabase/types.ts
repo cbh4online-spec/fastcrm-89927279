@@ -43171,10 +43171,17 @@ export type Database = {
           test_mode: boolean
         }[]
       }
-      get_workspace_usage_counts: {
-        Args: { p_workspace_id: string }
-        Returns: Json
-      }
+      get_workspace_usage_counts:
+        | {
+            Args: never
+            Returns: {
+              companies_count: number
+              contacts_count: number
+              leads_count: number
+              workspace_id: string
+            }[]
+          }
+        | { Args: { p_workspace_id: string }; Returns: Json }
       has_client_role: {
         Args: {
           _auth_user_id: string
