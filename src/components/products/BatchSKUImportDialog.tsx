@@ -117,6 +117,10 @@ const SYSTEM_FIELDS = [
   { key: "stock", label: "Stock" },
   { key: "weight", label: "Peso" },
   { key: "image_url", label: "URL da Imagem" },
+  { key: "image_url_2", label: "URL Imagem 2" },
+  { key: "image_url_3", label: "URL Imagem 3" },
+  { key: "image_url_4", label: "URL Imagem 4" },
+  { key: "image_url_5", label: "URL Imagem 5" },
   { key: "model", label: "Modelo" },
   { key: "specifications", label: "Características / Specs" },
   { key: "related_products", label: "Produtos relacionados" },
@@ -143,6 +147,10 @@ const AUTO_MAP_PATTERNS: [RegExp, string][] = [
   [/^(stock|qty|quantity|quantidade|existencias|inventario)$/i, "stock"],
   [/^(weight|peso|poids|kg)$/i, "weight"],
   [/^(image|img|imagem|image_url|foto|photo|url_image|url_img)$/i, "image_url"],
+  [/^(image.?2|img.?2|imagem.?2|foto.?2|photo.?2|url.?image.?2|image.?url.?2)$/i, "image_url_2"],
+  [/^(image.?3|img.?3|imagem.?3|foto.?3|photo.?3|url.?image.?3|image.?url.?3)$/i, "image_url_3"],
+  [/^(image.?4|img.?4|imagem.?4|foto.?4|photo.?4|url.?image.?4|image.?url.?4)$/i, "image_url_4"],
+  [/^(image.?5|img.?5|imagem.?5|foto.?5|photo.?5|url.?image.?5|image.?url.?5)$/i, "image_url_5"],
   [/^(model|modelo|modèle)$/i, "model"],
   [/^(spec|specs|specifications|características|caracteristicas|features)$/i, "specifications"],
   [/^(related|relacionados|accessories|acessórios|complementos)$/i, "related_products"],
@@ -433,6 +441,16 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
                 if (!itemData.imageUrls) itemData.imageUrls = [];
                 itemData.imageUrls.push(val.trim());
                 if (!itemData.imageUrl) itemData.imageUrl = val.trim();
+              }
+              break;
+            }
+            case "image_url_2":
+            case "image_url_3":
+            case "image_url_4":
+            case "image_url_5": {
+              if (val.trim()) {
+                if (!itemData.imageUrls) itemData.imageUrls = [];
+                itemData.imageUrls.push(val.trim());
               }
               break;
             }
