@@ -65,6 +65,10 @@ import {
   Settings,
   ScanLine,
   Columns,
+  AlertTriangle,
+  ImageOff,
+  DollarSign,
+  TrendingDown,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -317,6 +321,14 @@ export function ProductsList() {
           { id: "smart_high_price", label: "Preço alto (>100€)" },
           { id: "smart_low_price", label: "Preço baixo (<50€)" },
           { id: "smart_invalid_sku", label: "⚠️ SKUs inválidos" },
+          { id: "smart_no_price", label: "🔴 Sem preço definido" },
+          { id: "smart_no_cost", label: "🟡 Sem custo definido" },
+          { id: "smart_negative_margin", label: "🔴 Margem negativa" },
+          { id: "smart_low_margin", label: "🟡 Margem baixa (<15%)" },
+          { id: "smart_no_image", label: "📷 Sem imagem" },
+          { id: "smart_no_sku", label: "Sem SKU" },
+          { id: "smart_no_category", label: "Sem categoria" },
+          { id: "smart_no_description", label: "Sem descrição" },
         ],
       }
     );
@@ -363,16 +375,40 @@ export function ProductsList() {
           result = result.filter((p) => {
             if (!p.sku) return false;
             const sku = p.sku;
-            // Contains HTML tags
             if (/<[^>]+>/.test(sku)) return true;
-            // Looks like descriptive text (units like "265 g", "12 V")
             if (/^\d+[\s.,]*[a-zA-Zµ°]{1,5}$/.test(sku.trim())) return true;
-            // Too many spaces (descriptive)
             if (sku.split(/\s+/).length > 3) return true;
-            // Contains common descriptive words
             if (/^(Impermeável|Ethernet|Iluminação|Compatible|Resolução|BaseT)/i.test(sku.trim())) return true;
             return false;
           });
+          break;
+        case "smart_no_price":
+          result = result.filter((p) => !p.base_price || p.base_price === 0);
+          break;
+        case "smart_no_cost":
+          result = result.filter((p) => !p.direct_cost || p.direct_cost === 0);
+          break;
+        case "smart_negative_margin":
+          result = result.filter((p) => p.direct_cost && p.direct_cost > p.base_price);
+          break;
+        case "smart_low_margin":
+          result = result.filter((p) => {
+            if (!p.base_price || !p.direct_cost || p.base_price === 0) return false;
+            const margin = ((p.base_price - p.direct_cost) / p.base_price) * 100;
+            return margin > 0 && margin < 15;
+          });
+          break;
+        case "smart_no_image":
+          result = result.filter((p) => !p.images || p.images.length === 0);
+          break;
+        case "smart_no_sku":
+          result = result.filter((p) => !p.sku || p.sku.trim() === "");
+          break;
+        case "smart_no_category":
+          result = result.filter((p) => !p.category || p.category.trim() === "");
+          break;
+        case "smart_no_description":
+          result = result.filter((p) => !p.short_description && !p.commercial_description);
           break;
       }
     }
@@ -394,6 +430,21 @@ export function ProductsList() {
     return filteredProducts.slice(start, start + pageSize);
   }, [filteredProducts, currentPage, pageSize]);
 
+  // Product health indicators
+  const productIndicators = useMemo(() => {
+    if (!products) return { total: 0, noPrice: 0, noCost: 0, negativeMargin: 0, lowMargin: 0, noImage: 0 };
+    const noPrice = products.filter(p => !p.base_price || p.base_price === 0).length;
+    const noCost = products.filter(p => !p.direct_cost || p.direct_cost === 0).length;
+    const negativeMargin = products.filter(p => p.direct_cost && p.direct_cost > p.base_price).length;
+    const lowMargin = products.filter(p => {
+      if (!p.base_price || !p.direct_cost || p.base_price === 0) return false;
+      const m = ((p.base_price - p.direct_cost) / p.base_price) * 100;
+      return m > 0 && m < 15;
+    }).length;
+    const noImage = products.filter(p => !p.images || p.images.length === 0).length;
+    return { total: products.length, noPrice, noCost, negativeMargin, lowMargin, noImage };
+  }, [products]);
+
   const filtersActive = statusFilter !== "active" || typeFilter !== "all" || categoryFilter !== "all" || !!activeFilterId;
 
   const formatCurrency = (value: number, currency = "EUR") => {
@@ -406,23 +457,44 @@ export function ProductsList() {
   // Render cell content based on column id
   const renderProductCell = (product: Product, columnId: string, onOpenDetail: (product: Product) => void) => {
     switch (columnId) {
-      case "name":
+      case "name": {
+        const hasNoPrice = !product.base_price || product.base_price === 0;
+        const hasNegativeMargin = product.direct_cost && product.direct_cost > product.base_price;
+        const hasLowMargin = product.base_price && product.direct_cost && product.base_price > 0 &&
+          (() => { const m = ((product.base_price - product.direct_cost!) / product.base_price) * 100; return m > 0 && m < 15; })();
+        const hasNoImage = !product.images || product.images.length === 0;
         return (
           <button
             type="button"
             onClick={() => onOpenDetail(product)}
             className="flex items-center gap-2 font-medium text-left hover:text-primary hover:underline transition-colors"
           >
-            {product.images?.[0] && (
+            {product.images?.[0] ? (
               <img
                 src={product.images[0]}
                 alt={product.name}
-                className="w-8 h-8 rounded object-cover"
+                className="w-8 h-8 rounded object-cover flex-shrink-0"
               />
+            ) : (
+              <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                <ImageOff className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
             )}
-            {product.name}
+            <span className="truncate">{product.name}</span>
+            {hasNoPrice && (
+              <span className="flex-shrink-0 w-2 h-2 rounded-full bg-destructive" title="Sem preço definido" />
+            )}
+            {hasNegativeMargin && (
+              <span className="flex-shrink-0" title="Margem negativa">
+                <TrendingDown className="h-3 w-3 text-destructive" />
+              </span>
+            )}
+            {hasLowMargin && !hasNegativeMargin && (
+              <span className="flex-shrink-0 w-2 h-2 rounded-full bg-warning" title="Margem baixa (<15%)" />
+            )}
           </button>
         );
+      }
       case "sku":
         return product.sku ? (
           <button
@@ -731,6 +803,44 @@ export function ProductsList() {
                 </div>
               }
             />
+
+            {/* Product Health Indicators */}
+            {products && products.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
+                {[
+                  { label: "Total", value: productIndicators.total, icon: <Package className="h-3.5 w-3.5" />, filter: undefined, variant: "default" as const },
+                  { label: "Sem preço", value: productIndicators.noPrice, icon: <DollarSign className="h-3.5 w-3.5" />, filter: "smart_no_price", variant: "destructive" as const },
+                  { label: "Sem custo", value: productIndicators.noCost, icon: <AlertTriangle className="h-3.5 w-3.5" />, filter: "smart_no_cost", variant: "warning" as const },
+                  { label: "Margem negativa", value: productIndicators.negativeMargin, icon: <TrendingDown className="h-3.5 w-3.5" />, filter: "smart_negative_margin", variant: "destructive" as const },
+                  { label: "Margem baixa", value: productIndicators.lowMargin, icon: <AlertTriangle className="h-3.5 w-3.5" />, filter: "smart_low_margin", variant: "warning" as const },
+                  { label: "Sem imagem", value: productIndicators.noImage, icon: <ImageOff className="h-3.5 w-3.5" />, filter: "smart_no_image", variant: "default" as const },
+                ].map((ind) => (
+                  <button
+                    key={ind.label}
+                    onClick={() => ind.filter && handleFilterSelect(ind.filter)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-left transition-colors ${
+                      activeFilterId === ind.filter
+                        ? "border-primary bg-primary/5"
+                        : "border-border bg-card hover:bg-muted/50"
+                    } ${ind.filter ? "cursor-pointer" : "cursor-default"}`}
+                  >
+                    <span className={
+                      ind.variant === "destructive" && ind.value > 0
+                        ? "text-destructive"
+                        : ind.variant === "warning" && ind.value > 0
+                          ? "text-warning"
+                          : "text-muted-foreground"
+                    }>
+                      {ind.icon}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-lg font-bold leading-none">{ind.value}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{ind.label}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Bulk Actions */}
             {selectedIds.length > 0 && (
