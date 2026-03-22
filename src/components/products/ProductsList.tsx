@@ -375,16 +375,40 @@ export function ProductsList() {
           result = result.filter((p) => {
             if (!p.sku) return false;
             const sku = p.sku;
-            // Contains HTML tags
             if (/<[^>]+>/.test(sku)) return true;
-            // Looks like descriptive text (units like "265 g", "12 V")
             if (/^\d+[\s.,]*[a-zA-Zµ°]{1,5}$/.test(sku.trim())) return true;
-            // Too many spaces (descriptive)
             if (sku.split(/\s+/).length > 3) return true;
-            // Contains common descriptive words
             if (/^(Impermeável|Ethernet|Iluminação|Compatible|Resolução|BaseT)/i.test(sku.trim())) return true;
             return false;
           });
+          break;
+        case "smart_no_price":
+          result = result.filter((p) => !p.base_price || p.base_price === 0);
+          break;
+        case "smart_no_cost":
+          result = result.filter((p) => !p.direct_cost || p.direct_cost === 0);
+          break;
+        case "smart_negative_margin":
+          result = result.filter((p) => p.direct_cost && p.direct_cost > p.base_price);
+          break;
+        case "smart_low_margin":
+          result = result.filter((p) => {
+            if (!p.base_price || !p.direct_cost || p.base_price === 0) return false;
+            const margin = ((p.base_price - p.direct_cost) / p.base_price) * 100;
+            return margin > 0 && margin < 15;
+          });
+          break;
+        case "smart_no_image":
+          result = result.filter((p) => !p.images || p.images.length === 0);
+          break;
+        case "smart_no_sku":
+          result = result.filter((p) => !p.sku || p.sku.trim() === "");
+          break;
+        case "smart_no_category":
+          result = result.filter((p) => !p.category || p.category.trim() === "");
+          break;
+        case "smart_no_description":
+          result = result.filter((p) => !p.short_description && !p.commercial_description);
           break;
       }
     }
