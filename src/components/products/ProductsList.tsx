@@ -910,6 +910,7 @@ export function ProductsList() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </Card>
 
