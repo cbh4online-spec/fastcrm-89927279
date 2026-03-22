@@ -1,54 +1,76 @@
 
 
-# Importar Imagens dos Produtos durante Importação CSV
+# Indicadores Inteligentes na Lista de Produtos
 
-## Problema
+## Objetivo
 
-O campo `image_url` é mapeado e extraído do CSV correctamente (linha 430: `case "image_url": itemData.imageUrl = val`), mas:
+Adicionar indicadores visuais (summary cards + filtros inteligentes + ícones inline) que identifiquem rapidamente problemas e oportunidades no catálogo de produtos.
 
-1. **`createSelectedProducts`** (linha 580-593) constrói o payload do produto mas **ignora `imageUrl`** — nunca o passa ao batch hook
-2. **`useCreateProductsBatch`** insere apenas na tabela `products` — **nunca cria registos na tabela `product_images`**
-3. As imagens dos produtos vivem na tabela `product_images` (separada), com campos `product_id`, `workspace_id`, `url`, `position`
+## Alterações
 
-## Solução
+### 1. Summary Cards — barra de indicadores acima da tabela
 
-### 1. Passar `imageUrl` no payload de criação
+**Ficheiro**: `src/components/products/ProductsList.tsx`
 
-**Ficheiro**: `src/components/products/BatchSKUImportDialog.tsx` (linhas 580-593)
+Adicionar uma barra de 6 cards compactos entre o Toolbar e a tabela, calculados com `useMemo` sobre `products`:
 
-Adicionar `image_url` ao objecto retornado por `createSelectedProducts`:
-```ts
-return {
-  ...existingFields,
-  image_url: d?.imageUrl || undefined,  // ← adicionar
-};
-```
+| Card | Lógica | Cor |
+|------|--------|-----|
+| **Total** | `products.length` | neutro |
+| **Sem preço** | `base_price === 0` | vermelho |
+| **Sem custo** | `direct_cost === null \|\| direct_cost === 0` | amarelo |
+| **Margem negativa** | `direct_cost > base_price` | vermelho |
+| **Margem baixa (<15%)** | `margin > 0 && margin < 15` | amarelo |
+| **Sem imagem** | `!images \|\| images.length === 0` | cinza |
 
-### 2. Criar registos em `product_images` após inserção batch
+Cada card é clicável — ao clicar, activa o filtro inteligente correspondente no sidebar.
 
-**Ficheiro**: `src/hooks/useProducts.ts` — dentro de `useCreateProductsBatch`
+### 2. Expandir filtros inteligentes no sidebar
 
-Após cada batch insert bem-sucedido na tabela `products`:
-- Para os items que tinham `image_url`, buscar os `id`s dos produtos recém-criados (por SKU)
-- Fazer um batch insert na tabela `product_images` com:
-  - `workspace_id`, `product_id`, `url` (= image_url do CSV), `position: 0`
+**Ficheiro**: `src/components/products/ProductsList.tsx`
 
-Lógica:
+Adicionar ao grupo "Filtros Inteligentes" existente (linhas 313-321):
+
+- `smart_no_price` — "Sem preço definido" (base_price === 0)
+- `smart_no_cost` — "Sem custo definido" (direct_cost null/0)
+- `smart_negative_margin` — "Margem negativa" (custo > preço)
+- `smart_low_margin` — "Margem baixa (<15%)"
+- `smart_no_image` — "Sem imagem"
+- `smart_no_sku` — "Sem SKU"
+- `smart_no_category` — "Sem categoria"
+- `smart_no_description` — "Sem descrição"
+
+Manter os existentes (`smart_recent`, `smart_high_price`, `smart_low_price`, `smart_invalid_sku`).
+
+### 3. Ícones de alerta inline na coluna "Nome"
+
+**Ficheiro**: `src/components/products/ProductsList.tsx` — dentro de `renderProductCell`, case `"name"`
+
+Após o nome do produto, mostrar pequenos ícones de aviso:
+
+- 🔴 dot se `base_price === 0` (sem preço)
+- 🟡 dot se margem < 15% e > 0
+- 📷 riscado se sem imagem
+- Tooltip com a explicação ao hover
+
+Implementar como spans com `title` attribute para tooltip nativo, sem dependência adicional.
+
+### 4. Lógica de filtragem dos novos smart filters
+
+**Ficheiro**: `src/components/products/ProductsList.tsx` — no `switch` de `activeFilterId` (linhas 349-377)
+
+Adicionar cases para cada novo filtro:
 ```text
-1. Filtrar items com image_url do batch inserido
-2. Query products por SKU para obter os IDs
-3. Insert batch em product_images: { workspace_id, product_id, url, position: 0 }
+smart_no_price → p.base_price === 0
+smart_no_cost → !p.direct_cost || p.direct_cost === 0
+smart_negative_margin → p.direct_cost && p.direct_cost > p.base_price
+smart_low_margin → margin > 0 && margin < 15
+smart_no_image → !p.images || p.images.length === 0
+smart_no_sku → !p.sku || p.sku.trim() === ''
+smart_no_category → !p.category || p.category.trim() === ''
+smart_no_description → !p.short_description && !p.commercial_description
 ```
-
-### 3. Adicionar tipo `image_url` ao `CreateProductInput`
-
-**Ficheiro**: `src/hooks/useProducts.ts`
-
-Adicionar `image_url?: string` ao tipo `CreateProductInput` (campo transitório — não vai para a tabela products, é usado apenas para criar o registo em product_images).
-
-Remover `image_url` do payload antes do insert na tabela products (para evitar erro de coluna inexistente).
 
 ## Ficheiros Modificados
-- `src/components/products/BatchSKUImportDialog.tsx` — passar `image_url` no payload
-- `src/hooks/useProducts.ts` — extrair `image_url`, criar registos em `product_images` após insert
+- `src/components/products/ProductsList.tsx` — summary cards, filtros expandidos, ícones inline
 
