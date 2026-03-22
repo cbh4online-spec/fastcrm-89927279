@@ -439,6 +439,22 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
             />
           )}
 
+          {/* Markup default */}
+          <div className="border rounded-lg p-4 space-y-2">
+            <Label className="text-sm font-medium">Margem default sobre custo (%)</Label>
+            <p className="text-xs text-muted-foreground">
+              Quando o CSV só tem preço de custo, aplica esta margem para calcular o PVP automaticamente.
+            </p>
+            <Input
+              type="number"
+              min={0}
+              max={500}
+              value={defaultMarkup}
+              onChange={e => setDefaultMarkup(Number(e.target.value))}
+              className="w-32"
+            />
+          </div>
+
           {/* Auto-sync */}
           <div className="flex items-center justify-between border rounded-lg p-4">
             <div>
