@@ -68,6 +68,7 @@ import { ContactScoresCard } from "./sections/ContactScoresCard";
 import { ContactLifecycleSection } from "./sections/ContactLifecycleSection";
 import { ContactPreferencesSection } from "./sections/ContactPreferencesSection";
 import { ContactAuditSection } from "./sections/ContactAuditSection";
+import { RecommendationPanel } from "@/components/shared/RecommendationPanel";
 
 // Role labels are now translated via t()
 function getTimeAgo(date: Date, t: (key: string, opts?: any) => string): string {
