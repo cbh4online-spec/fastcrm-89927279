@@ -341,6 +341,21 @@ export function ProductsList() {
         case "smart_low_price":
           result = result.filter((p) => (p.base_price || 0) < 50);
           break;
+        case "smart_invalid_sku":
+          result = result.filter((p) => {
+            if (!p.sku) return false;
+            const sku = p.sku;
+            // Contains HTML tags
+            if (/<[^>]+>/.test(sku)) return true;
+            // Looks like descriptive text (units like "265 g", "12 V")
+            if (/^\d+[\s.,]*[a-zA-Zµ°]{1,5}$/.test(sku.trim())) return true;
+            // Too many spaces (descriptive)
+            if (sku.split(/\s+/).length > 3) return true;
+            // Contains common descriptive words
+            if (/^(Impermeável|Ethernet|Iluminação|Compatible|Resolução|BaseT)/i.test(sku.trim())) return true;
+            return false;
+          });
+          break;
       }
     }
     
