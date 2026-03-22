@@ -75,6 +75,7 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
       setEncoding(feed.csv_encoding);
       setAutoSync(feed.auto_sync_enabled);
       setSyncInterval(feed.sync_interval_hours);
+      setDefaultMarkup(feed.default_markup_pct ?? 30);
       // Convert system→csv mapping to csv→system mapping
       const inverted: Record<string, string> = {};
       const cols = new Set<string>();
