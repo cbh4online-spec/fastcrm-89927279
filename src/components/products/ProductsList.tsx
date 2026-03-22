@@ -485,7 +485,9 @@ export function ProductsList() {
               <span className="flex-shrink-0 w-2 h-2 rounded-full bg-destructive" title="Sem preço definido" />
             )}
             {hasNegativeMargin && (
-              <TrendingDown className="h-3 w-3 text-destructive flex-shrink-0" title="Margem negativa" />
+              <span className="flex-shrink-0" title="Margem negativa">
+                <TrendingDown className="h-3 w-3 text-destructive" />
+              </span>
             )}
             {hasLowMargin && !hasNegativeMargin && (
               <span className="flex-shrink-0 w-2 h-2 rounded-full bg-warning" title="Margem baixa (<15%)" />
