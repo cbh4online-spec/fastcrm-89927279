@@ -931,7 +931,7 @@ export function ProductsList() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                <Table ref={tableRef} style={{ tableLayout: "fixed" }}>
+                <Table ref={tableRef} style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[50px]" style={{ width: 50 }}>
