@@ -1,45 +1,54 @@
 
 
-# Corrigir Contagens de Uso nos Workspaces
+# Apagar Produtos em Massa + Deteção de SKUs Inválidos
 
 ## Problema
 
-As queries de contagem de leads, contactos e empresas (linhas 198-225 do `WorkspacesSection.tsx`) fazem `supabase.from("leads").select("workspace_id")` — que está limitado a **1000 rows** pelo Supabase. O workspace "Metodo PARE" tem 559+ leads mas a contagem está truncada.
+1. A barra de ações em massa (bulk actions) só tem "Exportar" e "Arquivar" — falta **"Apagar"**
+2. SKUs com HTML como `<td >265 g</td>` ou `<td ><strong>Iluminação mínima</strong></td>` foram importados incorretamente e devem ser identificados/limpos
 
-O mesmo problema afeta contactos (496) e empresas (58) — qualquer tabela com mais de 1000 registos totais entre todos os workspaces devolve contagens erradas.
+## Alterações
 
-## Solução
+### 1. Botão "Apagar" nas ações em massa
 
-### 1. Criar RPC `get_workspace_usage_counts` (Migration)
+**Ficheiro**: `src/components/products/ProductsList.tsx` (linhas 680-695)
 
-Função SQL que faz `COUNT(*)` agrupado por `workspace_id` para as 3 tabelas numa única chamada, sem limite de rows:
+- Adicionar botão **"Apagar"** (vermelho, com ícone Trash2) à barra de bulk actions
+- Ao clicar: mostra `AlertDialog` de confirmação com contagem ("Apagar X produtos permanentemente?")
+- Ao confirmar: chama `useDeleteProductsBatch` para apagar todos de uma vez
 
-```sql
-CREATE OR REPLACE FUNCTION get_workspace_usage_counts()
-RETURNS TABLE(workspace_id uuid, leads_count bigint, contacts_count bigint, companies_count bigint)
-LANGUAGE sql SECURITY DEFINER STABLE AS $$
-  SELECT 
-    w.id AS workspace_id,
-    COALESCE(l.cnt, 0) AS leads_count,
-    COALESCE(co.cnt, 0) AS contacts_count,
-    COALESCE(cm.cnt, 0) AS companies_count
-  FROM workspaces w
-  LEFT JOIN (SELECT workspace_id, COUNT(*) AS cnt FROM leads GROUP BY workspace_id) l ON l.workspace_id = w.id
-  LEFT JOIN (SELECT workspace_id, COUNT(*) AS cnt FROM contacts GROUP BY workspace_id) co ON co.workspace_id = w.id
-  LEFT JOIN (SELECT workspace_id, COUNT(*) AS cnt FROM companies GROUP BY workspace_id) cm ON cm.workspace_id = w.id;
-$$;
-```
+### 2. Hook `useDeleteProductsBatch`
 
-### 2. Atualizar `WorkspacesSection.tsx`
+**Ficheiro**: `src/hooks/useProducts.ts`
 
-Substituir as 3 queries separadas (leads, contacts, companies — linhas 197-225) por uma única chamada:
+Nova mutation que recebe um array de IDs e faz:
 ```ts
-const { data: usageCounts } = await supabase.rpc('get_workspace_usage_counts');
+await supabase.from("products").delete().in("id", ids)
 ```
+- Um único toast com resumo
+- Um único `invalidateQueries`
 
-Mapear o resultado para o objeto `usage` de cada workspace.
+### 3. Deteção e limpeza de SKUs inválidos
 
-## Ficheiros
-- **Migration SQL** — nova RPC `get_workspace_usage_counts`
-- **`src/components/super-admin/WorkspacesSection.tsx`** — substituir 3 queries por 1 RPC
+**Ficheiro**: `src/components/products/ProductsList.tsx`
+
+Adicionar filtro inteligente "SKUs inválidos" no sidebar de filtros que identifica produtos cujo SKU:
+- Contém tags HTML (`<td>`, `<strong>`, `</td>`, etc.)
+- Contém texto descritivo (mais de 3 espaços, ou contém palavras como "Impermeável", "Ethernet", etc.)
+- Regex: `/<[^>]+>|^\d+\s*[a-zA-Z]{1,3}$/` para apanhar coisas como "265 g"
+
+Ao selecionar este filtro, mostra os produtos com SKUs suspeitos para o utilizador poder apagar em massa ou corrigir.
+
+### 4. Limpeza automática de SKUs na importação
+
+**Ficheiro**: `src/components/products/BatchSKUImportDialog.tsx`
+
+No `confirmMapping`, ao mapear a coluna SKU:
+- Passar o valor por `stripHtmlTags()` para remover `<td>`, `<strong>`, etc.
+- Se o valor resultante parecer descritivo (contém espaços, palavras longas, unidades), não usar como SKU — deixar vazio
+
+## Ficheiros Modificados
+- `src/hooks/useProducts.ts` — adicionar `useDeleteProductsBatch`
+- `src/components/products/ProductsList.tsx` — botão apagar em massa + filtro SKUs inválidos
+- `src/components/products/BatchSKUImportDialog.tsx` — limpeza de SKUs na importação
 
