@@ -444,6 +444,16 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
               }
               break;
             }
+            case "image_url_2":
+            case "image_url_3":
+            case "image_url_4":
+            case "image_url_5": {
+              if (val.trim()) {
+                if (!itemData.imageUrls) itemData.imageUrls = [];
+                itemData.imageUrls.push(val.trim());
+              }
+              break;
+            }
             case "model": itemData.model = val; break;
             case "specifications": itemData.specifications = { specs: val }; break;
             case "related_products": itemData.relatedProducts = val; break;
