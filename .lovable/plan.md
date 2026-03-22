@@ -1,95 +1,93 @@
 
 
-# Correção da Importação CSV + Enriquecimento IA de Preços de Venda
+# Gestão de Workspaces: Trial, Auto-downgrade, Alertas e Notificações Admin
 
-## Problemas Identificados no CSV
+## Resumo
 
-O CSV da Visiotech usa `;` como delimitador **e** tem campos entre aspas que contêm `;` dentro (ex: Description). O parser atual usa `.split(delimiter)` simples, que **quebra os campos quoted**. Além disso:
-- Preços têm formato `"421,27 €"` — é preciso remover `€` e espaços
-- O `confirmMapping` só mapeia 4 campos (name/description/price/category) — falta brand, cost_price, etc.
-- O `createSelectedProducts` não passa brand, direct_cost, specifications ao batch hook
+Implementar 5 melhorias na gestão de workspaces do Super Admin:
+
+1. **Trial de 14 dias** — novos workspaces iniciam com status `trialing` e `trial_ends_at` preenchido
+2. **Auto-downgrade** — quando o trial ou período Pro expira sem renovação, o plano passa automaticamente para Free
+3. **Alteração manual de plano** — expandir o diálogo "Alterar Plano" para incluir `trialing` como status e datas de período
+4. **Uso atualizado** — corrigir contagens de uso (leads, contactos, empresas) que não estão a ser atualizadas
+5. **Notificações admin** — enviar email e alerta in-app ao jorge.cardoso@digita4ads.pt quando há novos utilizadores/workspaces
+
+---
 
 ## Alterações
 
-### 1. Parser CSV com suporte a campos quoted
+### 1. DB Migration: Trial e Auto-downgrade
 
-**Ficheiro**: `src/components/products/BatchSKUImportDialog.tsx`
+- Adicionar coluna `trial_ends_at` ao `workspace_subscriptions` (já existe na schema)
+- Criar função RPC `check_and_downgrade_expired_trials()` que:
+  - Busca subscriptions com `status = 'trialing'` e `trial_ends_at < now()`
+  - Muda `plan` para `free` e `status` para `active`
+  - Busca subscriptions com `status = 'active'`, `plan != 'free'`, `current_period_end < now()` e sem `stripe_subscription_id`
+  - Muda `plan` para `free`
+  - Retorna contagem de downgrades feitos
+- Criar tabela `admin_notifications` para alertas in-app:
+  ```
+  id, type, title, message, data (jsonb), is_read, created_at
+  ```
+- Criar trigger `notify_admin_new_workspace` que insere em `admin_notifications` quando um workspace é criado
+- Criar trigger `notify_admin_new_member` que insere quando um `workspace_member` é adicionado
 
-Adicionar função `parseCSVLine(line, delimiter)` que respeita aspas:
-- Se um campo começa com `"`, acumula até encontrar `"` de fecho
-- Suporta `""` como escape de aspas dentro de campos
-- Substitui o `.split(delimiter)` no `handleFileUpload` e `handleManualSubmit`
+### 2. Edge Function: `workspace-lifecycle-check`
 
-### 2. Expandir `confirmMapping` para todos os campos mapeados
+Cron job (ou chamada manual) que:
+- Chama `check_and_downgrade_expired_trials()`
+- Para cada downgrade, envia email ao jorge.cardoso@digita4ads.pt via `send-transactional-email`
+- Também verifica trials que expiram em 3/7 dias e gera alertas
 
-**Ficheiro**: `src/components/products/BatchSKUImportDialog.tsx`
+### 3. CreateWorkspaceDialog — Trial por defeito
 
-Atualmente o bloco `if (!useAi)` só extrai `name`, `description`, `price`, `category`. Expandir para:
-- `brand` → `itemData.brand`
-- `cost_price` → `itemData.costPrice` (preço do fornecedor)
-- `recommended_price` → `itemData.recommendedPrice` (PVP)
-- `specifications` → `itemData.specifications`
-- `short_description`, `barcode`, `stock`, `weight`, `image_url`, `model`, `color`, `material`, `warranty`
+**Ficheiro**: `src/components/super-admin/CreateWorkspaceDialog.tsx`
 
-Adicionar limpeza de preços: remover `€`, `$`, espaços, converter `,` → `.`
+- Adicionar opção de plano "Trial (14 dias)" que cria subscription com:
+  - `plan: 'pro'`, `status: 'trialing'`
+  - `trial_started_at: now()`
+  - `trial_ends_at: now() + 14 days`
+  - `current_period_end: now() + 14 days`
 
-### 3. Expandir `createSelectedProducts` para passar todos os campos
+### 4. WorkspacesSection — Melhorias na tabela e diálogos
 
-**Ficheiro**: `src/components/products/BatchSKUImportDialog.tsx`
+**Ficheiro**: `src/components/super-admin/WorkspacesSection.tsx`
 
-O payload enviado ao batch hook deve incluir:
-- `direct_cost` ← preço do CSV (custo do fornecedor)
-- `base_price` ← preço de venda (calculado pela IA ou editado manualmente)
-- `commercial_description` ← descrição do CSV
-- `specifications` ← specs do CSV
-- Campos do `rawRow` mapeados: brand (guardar em category ou novo campo)
+- **Coluna Trial/Renovação**: Mostrar badge com dias restantes do trial ou até renovação
+  - Trial: "Trial: 8 dias" (amarelo), "Trial: 2 dias" (vermelho)
+  - Pro/Basic: "Renova em 15 dias" ou "Expirado" (vermelho)
+- **Alterar Plano dialog**: Expandir para incluir:
+  - Select de status: `active`, `trialing`, `past_due`, `canceled`
+  - Campos de data: `trial_ends_at`, `current_period_end`
+  - Permitir ativar trial manualmente (set 14 dias a partir de hoje)
+- **Corrigir uso**: A query já busca leads/contacts/companies por workspace_id com contagem real. O problema é que `workspace_usage` pode estar desatualizado. Mudar para usar contagens diretas (já implementado nas linhas 190-218) e garantir que aparecem correctamente.
+- Incluir `trial_ends_at` e `current_period_end` no fetch de subscriptions
 
-### 4. IA para sugerir preços de venda
+### 5. Notificações Admin In-App
 
-**Ficheiro**: `src/components/products/BatchSKUImportDialog.tsx`
+**Criar**: `src/components/super-admin/AdminNotificationsBell.tsx`
 
-Adicionar botão "Enriquecer com IA" no phase `results` que:
-- Para cada produto com preço de custo mas sem preço de venda
-- Chama `ai-product-assistant` com mode `price-analysis` em batch
-- Sugere preço de venda com margem adequada ao tipo de produto
-- Preenche `suggestedPrice` e mostra na coluna "Preço (IA)"
-- O utilizador pode aceitar ou editar antes de criar
+- Ícone de sino no header do Super Admin com badge de count não lidas
+- Dropdown com lista de notificações recentes (novos workspaces, novos utilizadores, trials a expirar)
+- Marcar como lida ao clicar
 
-Nova opção no `confirmMapping`: **"Criar com dados CSV + Enriquecer preços com IA"**
-- Usa os dados do CSV directamente (nome, categoria, descrição)
-- Apenas chama a IA para sugerir preços de venda baseados no custo
+### 6. Email de notificação ao admin
 
-### 5. Expandir interface `SKUResult.data`
+**Criar**: Edge function trigger ou template para enviar email a `jorge.cardoso@digita4ads.pt` quando:
+- Novo workspace é criado
+- Novo utilizador se regista
+- Trial está prestes a expirar (3 dias)
 
-Adicionar campos em falta à interface:
-```text
-brand?: string
-costPrice?: number
-recommendedPrice?: number
-barcode?: string
-weight?: string
-imageUrl?: string
-specifications?: Record<string, string>
-shortDescription?: string
-```
+Usar `send-transactional-email` com template dedicado `admin-new-signup`.
 
-### 6. Adaptar o batch hook
+---
 
-**Ficheiro**: `src/hooks/useProducts.ts`
+## Ficheiros Modificados/Criados
 
-Garantir que `CreateProductInput` já suporta todos os campos (já suporta — `direct_cost`, `specifications`, `commercial_description`, `short_description` já existem no tipo).
-
-## Fluxo do Utilizador com o CSV da Visiotech
-
-```text
-1. Upload CSV → parser detecta ";" e campos quoted
-2. Mapping: Reference→SKU, Brand→Marca, Category→Categoria, Description→Descrição, Price→Preço de custo
-3. Opções: "Criar directamente" | "Enriquecer preços com IA" | "Enriquecer tudo com IA"
-4. Se "Enriquecer preços": IA sugere preço de venda com margem (~30-50%)
-5. Preview: utilizador vê custo + preço sugerido, pode editar
-6. Criar → batch insert com custo, preço, categoria, marca, descrição
-```
-
-## Ficheiros Modificados
-- `src/components/products/BatchSKUImportDialog.tsx` — parser quoted CSV, expandir mapping + criação, botão IA preços
+- **Migration SQL** — tabela `admin_notifications`, triggers, RPC `check_and_downgrade_expired_trials`
+- `src/components/super-admin/WorkspacesSection.tsx` — trial badges, dialog expandido, fix uso
+- `src/components/super-admin/CreateWorkspaceDialog.tsx` — opção trial
+- `src/components/super-admin/AdminNotificationsBell.tsx` — novo componente
+- `supabase/functions/workspace-lifecycle-check/index.ts` — nova edge function
+- Template de email `admin-new-signup`
 
