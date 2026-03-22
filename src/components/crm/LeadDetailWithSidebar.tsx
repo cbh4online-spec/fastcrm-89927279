@@ -193,14 +193,14 @@ export function LeadDetailWithSidebar() {
               />
             </div>
             <InsightsSidebar entityType="lead" entityId={id || ''} />
-            {entityContext && (
-              <ProductSuggestionsCard 
-                context={entityContext}
-                onAddToOpportunity={(productId) => {
-                  toast.info("Funcionalidade em desenvolvimento: criar oportunidade com este produto");
-                }}
-              />
-            )}
+            <RecommendationPanel
+              leadId={id}
+              context="lead_view"
+              mode="panel"
+              onAddToProposal={(productId) => {
+                navigate(`/dashboard/proposals/new?lead=${id}&product=${productId}`);
+              }}
+            />
           </div>
         );
       case 'insights':
