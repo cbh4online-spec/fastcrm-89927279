@@ -200,6 +200,7 @@ export function SupplierFeedConfigDialog({ open, onOpenChange, supplierId, feed 
       sync_interval_hours: syncInterval,
       column_mapping: getColumnMapping(),
       supplier_id: supplierId || null,
+      default_markup_pct: defaultMarkup,
     };
 
     if (feed) {
