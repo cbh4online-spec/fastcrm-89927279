@@ -667,6 +667,7 @@ export function WorkspacesSection() {
                 <TableHead>Faturação</TableHead>
                 <TableHead>Agência</TableHead>
                 <TableHead>Plano</TableHead>
+                <TableHead>Trial / Renovação</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Utilizadores</TableHead>
                 <TableHead>Uso</TableHead>
