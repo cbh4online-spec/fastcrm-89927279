@@ -428,7 +428,14 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
             case "barcode": itemData.barcode = val; break;
             case "stock": itemData.stock = parseInt(val) || undefined; break;
             case "weight": itemData.weight = val; break;
-            case "image_url": itemData.imageUrl = val; break;
+            case "image_url": {
+              if (val.trim()) {
+                if (!itemData.imageUrls) itemData.imageUrls = [];
+                itemData.imageUrls.push(val.trim());
+                if (!itemData.imageUrl) itemData.imageUrl = val.trim();
+              }
+              break;
+            }
             case "model": itemData.model = val; break;
             case "specifications": itemData.specifications = { specs: val }; break;
             case "related_products": itemData.relatedProducts = val; break;
