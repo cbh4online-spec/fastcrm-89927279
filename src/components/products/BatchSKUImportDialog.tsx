@@ -192,6 +192,13 @@ function parseCSVLine(line: string, delimiter: string): string[] {
   return result;
 }
 
+/** Strip HTML tags and return clean text */
+function stripHtmlToText(html: string): string {
+  if (!html || !html.includes('<')) return html;
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
 /** Clean price string: remove currency symbols, spaces; convert comma decimal */
 function sanitizePrice(val: string): number | undefined {
   if (!val) return undefined;
@@ -420,22 +427,21 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
           const val = cells[idx] || "";
           if (!val) continue;
           switch (field) {
-            case "name": itemData.name = val; break;
-            case "description": itemData.description = val; break;
-            case "short_description": itemData.shortDescription = val; break;
+            case "name": itemData.name = stripHtmlToText(val); break;
+            case "description": itemData.description = stripHtmlToText(val); break;
+            case "short_description": itemData.shortDescription = stripHtmlToText(val); break;
             case "price": itemData.suggestedPrice = sanitizePrice(val); break;
             case "cost_price": itemData.costPrice = sanitizePrice(val); break;
             case "recommended_price": itemData.recommendedPrice = sanitizePrice(val); break;
-            case "category": itemData.category = val; break;
-            case "subcategory": itemData.subcategory = val; break;
-            case "brand": itemData.brand = val; break;
+            case "category": itemData.category = stripHtmlToText(val); break;
+            case "subcategory": itemData.subcategory = stripHtmlToText(val); break;
+            case "brand": itemData.brand = stripHtmlToText(val); break;
             case "barcode": itemData.barcode = val; break;
             case "stock": itemData.stock = parseInt(val) || undefined; break;
-            case "weight": itemData.weight = val; break;
+            case "weight": itemData.weight = stripHtmlToText(val); break;
             case "image_url": {
               if (val.trim()) {
                 if (!itemData.imageUrls) itemData.imageUrls = [];
-                // Support multiple URLs separated by comma or semicolon in a single column
                 const urls = val.split(/[;,]/).map(u => u.trim()).filter(u => u.length > 0);
                 for (const url of urls) {
                   itemData.imageUrls.push(url);
@@ -444,8 +450,8 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
               }
               break;
             }
-            case "model": itemData.model = val; break;
-            case "specifications": itemData.specifications = { specs: val }; break;
+            case "model": itemData.model = stripHtmlToText(val); break;
+            case "specifications": itemData.specifications = { specs: stripHtmlToText(val) }; break;
             case "related_products": itemData.relatedProducts = val; break;
             case "dimensions": itemData.dimensions = val; break;
             case "color": itemData.color = val; break;
