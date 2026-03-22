@@ -194,35 +194,17 @@ export function WorkspacesSection() {
         return acc;
       }, {}) || {};
 
-      // Get leads counts per workspace
-      const { data: leadsData } = await supabase
-        .from("leads")
-        .select("workspace_id");
+      // Get accurate usage counts via RPC (no 1000-row limit)
+      const { data: usageCounts } = await supabase.rpc('get_workspace_usage_counts');
 
-      const leadsCounts = leadsData?.reduce((acc: Record<string, number>, l: any) => {
-        acc[l.workspace_id] = (acc[l.workspace_id] || 0) + 1;
-        return acc;
-      }, {}) || {};
-
-      // Get contacts counts per workspace
-      const { data: contactsData } = await supabase
-        .from("contacts")
-        .select("workspace_id");
-
-      const contactsCounts = contactsData?.reduce((acc: Record<string, number>, c: any) => {
-        acc[c.workspace_id] = (acc[c.workspace_id] || 0) + 1;
-        return acc;
-      }, {}) || {};
-
-      // Get companies counts per workspace
-      const { data: companiesData } = await supabase
-        .from("companies")
-        .select("workspace_id");
-
-      const companiesCounts = companiesData?.reduce((acc: Record<string, number>, c: any) => {
-        acc[c.workspace_id] = (acc[c.workspace_id] || 0) + 1;
-        return acc;
-      }, {}) || {};
+      const leadsCounts: Record<string, number> = {};
+      const contactsCounts: Record<string, number> = {};
+      const companiesCounts: Record<string, number> = {};
+      (usageCounts || []).forEach((row: any) => {
+        leadsCounts[row.workspace_id] = Number(row.leads_count) || 0;
+        contactsCounts[row.workspace_id] = Number(row.contacts_count) || 0;
+        companiesCounts[row.workspace_id] = Number(row.companies_count) || 0;
+      });
 
       // Get onboarding data per workspace
       const { data: onboardingData } = await supabase
