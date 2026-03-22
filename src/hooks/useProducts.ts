@@ -486,11 +486,10 @@ export function useCreateProductsBatch() {
         }
       }
 
-      // 5. Create product_images for items that had image_url
-      const skusWithImages = createdSkus.filter(s => imageUrlBySku.has(s.toLowerCase()));
+      // 5. Create product_images for items that had image URLs
+      const skusWithImages = createdSkus.filter(s => imageUrlsBySku.has(s.toLowerCase()));
       if (skusWithImages.length > 0) {
         try {
-          // Query product IDs by SKU in batches
           const productImageInserts: { workspace_id: string; product_id: string; url: string; position: number }[] = [];
           for (let i = 0; i < skusWithImages.length; i += 200) {
             const batch = skusWithImages.slice(i, i + 200);
@@ -501,13 +500,15 @@ export function useCreateProductsBatch() {
               .in("sku", batch);
             if (products) {
               for (const p of products) {
-                const imgUrl = p.sku ? imageUrlBySku.get(p.sku.toLowerCase()) : null;
-                if (imgUrl) {
-                  productImageInserts.push({
-                    workspace_id: workspaceId,
-                    product_id: p.id,
-                    url: imgUrl,
-                    position: 0,
+                const imgUrls = p.sku ? imageUrlsBySku.get(p.sku.toLowerCase()) : null;
+                if (imgUrls) {
+                  imgUrls.forEach((url, idx) => {
+                    productImageInserts.push({
+                      workspace_id: workspaceId,
+                      product_id: p.id,
+                      url,
+                      position: idx,
+                    });
                   });
                 }
               }

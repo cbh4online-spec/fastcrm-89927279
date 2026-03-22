@@ -599,6 +599,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
         product_type: "physical" as const,
         status: "active" as const,
         image_url: d?.imageUrl || undefined,
+        image_urls: d?.imageUrls?.filter(Boolean) || undefined,
       };
     });
 

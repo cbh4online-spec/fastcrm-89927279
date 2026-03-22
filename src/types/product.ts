@@ -174,6 +174,8 @@ export interface CreateProductInput {
   b2b_published?: boolean;
   // Transient field — used only during batch import to create product_images
   image_url?: string;
+  // Multiple image URLs from CSV import
+  image_urls?: string[];
 }
 
 export interface UpdateProductInput extends Partial<CreateProductInput> {
