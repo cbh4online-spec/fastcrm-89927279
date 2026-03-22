@@ -439,8 +439,12 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
             case "image_url": {
               if (val.trim()) {
                 if (!itemData.imageUrls) itemData.imageUrls = [];
-                itemData.imageUrls.push(val.trim());
-                if (!itemData.imageUrl) itemData.imageUrl = val.trim();
+                // Support multiple URLs separated by comma or semicolon in a single column
+                const urls = val.split(/[;,]/).map(u => u.trim()).filter(u => u.length > 0);
+                for (const url of urls) {
+                  itemData.imageUrls.push(url);
+                }
+                if (!itemData.imageUrl) itemData.imageUrl = urls[0];
               }
               break;
             }
