@@ -64,6 +64,7 @@ import {
   Trash2,
   Settings,
   ScanLine,
+  Columns,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
