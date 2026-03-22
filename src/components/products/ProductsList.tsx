@@ -298,6 +298,7 @@ export function ProductsList() {
           { id: "smart_recent", label: "Atualizados recentemente" },
           { id: "smart_high_price", label: "Preço alto (>100€)" },
           { id: "smart_low_price", label: "Preço baixo (<50€)" },
+          { id: "smart_invalid_sku", label: "⚠️ SKUs inválidos" },
         ],
       }
     );
