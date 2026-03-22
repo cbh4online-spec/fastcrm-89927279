@@ -167,7 +167,9 @@ export function WorkspacesSection() {
             plan,
             status,
             current_period_end,
-            stripe_customer_id
+            stripe_customer_id,
+            trial_ends_at,
+            trial_started_at
           )
         `)
         .order("created_at", { ascending: false });
