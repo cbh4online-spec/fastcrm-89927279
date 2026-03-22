@@ -65,6 +65,10 @@ import {
   Settings,
   ScanLine,
   Columns,
+  AlertTriangle,
+  ImageOff,
+  DollarSign,
+  TrendingDown,
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
