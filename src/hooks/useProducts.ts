@@ -400,8 +400,8 @@ export function useCreateProductsBatch() {
       const toInsert: Record<string, any>[] = [];
       const skipped: { sku: string; reason: string }[] = [];
       const seenSkus = new Set<string>();
-      // Track image_url per SKU for post-insert processing
-      const imageUrlBySku = new Map<string, string>();
+      // Track image URLs per SKU for post-insert processing (supports multiple)
+      const imageUrlsBySku = new Map<string, string[]>();
 
       for (const item of items) {
         const sku = item.sku?.trim();
