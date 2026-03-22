@@ -1,4 +1,4 @@
-import { useCallback, useState, useMemo } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLead, useUpdateLead, useDeleteLead, Lead } from "@/hooks/useLeads";
 import { Button } from "@/components/ui/button";
@@ -53,8 +53,7 @@ import { EntityTasksSection } from "@/components/tasks";
 import { EntityAutomationSection } from "@/components/automations/EntityAutomationSection";
 import { EntityAvatarUpload } from "@/components/shared/EntityAvatarUpload";
 import { ContactMessagesSection } from "@/components/messages/ContactMessagesSection";
-import { ProductSuggestionsCard } from "@/components/ai-suggestions/ProductSuggestionsCard";
-import { EntityContext } from "@/hooks/useEntityProductSuggestions";
+import { RecommendationPanel } from "@/components/shared/RecommendationPanel";
 import { CustomFieldsSection } from "@/components/leads/sections/CustomFieldsSection";
 import { InstagramDataSection } from "@/components/leads/sections/InstagramDataSection";
 import { AIAnalysisSection } from "@/components/leads/sections/AIAnalysisSection";
@@ -112,24 +111,6 @@ export function LeadDetailWithSidebar() {
   const [activeSection, setActiveSection] = useState<MenuSection>('overview');
   const generateSuggestions = useGenerateFieldSuggestions();
 
-  // Build entity context for AI product suggestions - MUST be before any returns
-  const entityContext: EntityContext | null = useMemo(() => {
-    if (!lead || !id) return null;
-    const leadAny = lead as any;
-    return {
-      entityType: "lead" as const,
-      entityId: id,
-      name: lead.name,
-      email: lead.email || undefined,
-      phone: lead.phone || undefined,
-      source: lead.source || undefined,
-      notes: leadAny.notes || undefined,
-      tags: lead.tags || undefined,
-      inferredProfession: leadAny.business_category || undefined,
-      inferredLocation: leadAny.city || undefined,
-      leadScore: leadAny.lead_score || undefined,
-    };
-  }, [lead, id]);
 
   const handleFieldChange = useCallback(async (field: keyof Lead, value: unknown) => {
     if (!lead) return;
@@ -194,14 +175,14 @@ export function LeadDetailWithSidebar() {
               />
             </div>
             <InsightsSidebar entityType="lead" entityId={id || ''} />
-            {entityContext && (
-              <ProductSuggestionsCard 
-                context={entityContext}
-                onAddToOpportunity={(productId) => {
-                  toast.info("Funcionalidade em desenvolvimento: criar oportunidade com este produto");
-                }}
-              />
-            )}
+            <RecommendationPanel
+              leadId={id}
+              context="lead_view"
+              mode="panel"
+              onAddToProposal={(productId) => {
+                navigate(`/dashboard/proposals/new?lead=${id}&product=${productId}`);
+              }}
+            />
           </div>
         );
       case 'insights':

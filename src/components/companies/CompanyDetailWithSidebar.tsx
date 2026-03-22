@@ -86,6 +86,7 @@ import { CompanyScoresCard } from "./sections/CompanyScoresCard";
 import { CompanyLifecycleSection } from "./sections/CompanyLifecycleSection";
 import { CompanyFirmographicsSection } from "./sections/CompanyFirmographicsSection";
 import { CompanyAuditSection } from "./sections/CompanyAuditSection";
+import { RecommendationPanel } from "@/components/shared/RecommendationPanel";
 import { EntityTeamSection } from "@/components/entity/EntityTeamSection";
 import { EntityDocumentsSection } from "@/components/entity/EntityDocumentsSection";
 function getTimeAgo(date: Date): string {
@@ -231,6 +232,14 @@ export function CompanyDetailWithSidebar() {
               />
             </div>
             <InsightsSidebar entityType="company" entityId={id || ''} />
+            <RecommendationPanel
+              companyId={id}
+              context="company_view"
+              mode="panel"
+              onAddToProposal={(productId) => {
+                navigate(`/dashboard/proposals/new?company=${id}&product=${productId}`);
+              }}
+            />
             <IdentificationSection 
               company={company} 
               onFieldChange={handleFieldChange}

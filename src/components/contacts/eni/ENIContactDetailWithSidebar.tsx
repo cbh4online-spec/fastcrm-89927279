@@ -68,6 +68,7 @@ import { ContactScoresCard } from "./sections/ContactScoresCard";
 import { ContactLifecycleSection } from "./sections/ContactLifecycleSection";
 import { ContactPreferencesSection } from "./sections/ContactPreferencesSection";
 import { ContactAuditSection } from "./sections/ContactAuditSection";
+import { RecommendationPanel } from "@/components/shared/RecommendationPanel";
 
 // Role labels are now translated via t()
 function getTimeAgo(date: Date, t: (key: string, opts?: any) => string): string {
@@ -226,6 +227,14 @@ export function ENIContactDetailWithSidebar() {
               contact={contact} 
               onGenerateInsights={handleGenerateInsights}
               isGenerating={analyzeContact.isPending}
+            />
+            <RecommendationPanel
+              contactId={id}
+              context="contact_view"
+              mode="panel"
+              onAddToProposal={(productId) => {
+                navigate(`/dashboard/proposals/new?contact=${id}&product=${productId}`);
+              }}
             />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <IdentificationSection 
