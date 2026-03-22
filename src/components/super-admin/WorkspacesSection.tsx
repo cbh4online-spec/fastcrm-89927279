@@ -712,6 +712,7 @@ export function WorkspacesSection() {
                     )}
                   </TableCell>
                   <TableCell>{getPlanBadge(ws.subscription?.plan)}</TableCell>
+                  <TableCell>{getTrialBadge(ws)}</TableCell>
                   <TableCell>
                     <div className="space-y-1">
                       {getStatusBadge(ws.subscription?.status || ws.status)}
