@@ -544,6 +544,39 @@ export function WorkspacesSection() {
     }
   };
 
+  const getTrialBadge = (ws: WorkspaceDetails) => {
+    const sub = ws.subscription;
+    if (!sub) return null;
+
+    if (sub.status === "trialing" && sub.trial_ends_at) {
+      const daysLeft = Math.ceil(
+        (new Date(sub.trial_ends_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000)
+      );
+      if (daysLeft <= 0) {
+        return <Badge variant="destructive" className="text-[10px]">Trial expirado</Badge>;
+      }
+      if (daysLeft <= 3) {
+        return <Badge variant="destructive" className="text-[10px]">Trial: {daysLeft}d</Badge>;
+      }
+      return <Badge className="bg-warning/20 text-warning border-warning/30 text-[10px]">Trial: {daysLeft}d</Badge>;
+    }
+
+    if (sub.status === "active" && sub.plan !== "free" && sub.plan !== "starter" && sub.current_period_end) {
+      const daysLeft = Math.ceil(
+        (new Date(sub.current_period_end).getTime() - Date.now()) / (24 * 60 * 60 * 1000)
+      );
+      if (daysLeft <= 0) {
+        return <Badge variant="destructive" className="text-[10px]">Expirado</Badge>;
+      }
+      if (daysLeft <= 7) {
+        return <Badge className="bg-warning/20 text-warning border-warning/30 text-[10px]">Renova: {daysLeft}d</Badge>;
+      }
+      return <Badge variant="outline" className="text-[10px]">Renova: {daysLeft}d</Badge>;
+    }
+
+    return null;
+  };
+
   const filteredWorkspaces = workspaces?.filter((ws) => {
     const matchesSearch = ws.name.toLowerCase().includes(search.toLowerCase()) ||
       ws.slug.toLowerCase().includes(search.toLowerCase());
