@@ -88,8 +88,7 @@ export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDia
       if (error) throw error;
       const workspaceId = data as unknown as string;
       
-      // If trial, update subscription to trialing status
-      if (plan === "trial" && data) {
+      if (plan === "trial" && workspaceId) {
         const trialEnd = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
         await supabase
           .from("workspace_subscriptions")
@@ -99,10 +98,10 @@ export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDia
             trial_ends_at: trialEnd,
             current_period_end: trialEnd,
           } as any)
-          .eq("workspace_id", data);
+          .eq("workspace_id", workspaceId);
       }
       
-      return data;
+      return workspaceId;
     },
     onSuccess: (data) => {
       const workspaceId = data as string;

@@ -154,6 +154,9 @@ export default function SuperAdmin() {
       
       <main className="flex-1 overflow-auto">
         <div className="p-8">
+          <div className="flex justify-end mb-4">
+            <AdminNotificationsBell />
+          </div>
           {renderContent()}
         </div>
       </main>
