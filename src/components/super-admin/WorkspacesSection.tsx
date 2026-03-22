@@ -128,6 +128,9 @@ export function WorkspacesSection() {
   const [editName, setEditName] = useState("");
   const [editSlug, setEditSlug] = useState("");
   const [newPlan, setNewPlan] = useState<string>("");
+  const [newSubStatus, setNewSubStatus] = useState<string>("");
+  const [newTrialEnd, setNewTrialEnd] = useState<string>("");
+  const [newPeriodEnd, setNewPeriodEnd] = useState<string>("");
   const [selectedAgencyId, setSelectedAgencyId] = useState<string>("");
   const [creditsAmount, setCreditsAmount] = useState<string>("");
   const [creditsDescription, setCreditsDescription] = useState("");
