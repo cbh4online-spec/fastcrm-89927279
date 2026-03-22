@@ -86,6 +86,7 @@ export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDia
       });
       
       if (error) throw error;
+      const workspaceId = data as unknown as string;
       
       // If trial, update subscription to trialing status
       if (plan === "trial" && data) {
