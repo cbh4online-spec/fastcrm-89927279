@@ -201,7 +201,7 @@ export function ProductsList() {
   );
 
   // Column widths with resize support
-  const colWidths = useColumnWidths("products-table-columns");
+  const colWidths = useColumnWidths("products-table-columns", INITIAL_COL_WIDTHS);
   const tableRef = useRef<HTMLTableElement | null>(null);
 
   // Global mouse move/up for resize dragging
