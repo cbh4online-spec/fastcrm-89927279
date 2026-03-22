@@ -73,6 +73,7 @@ interface SKUResult {
     barcode?: string;
     weight?: string;
     imageUrl?: string;
+    imageUrls?: string[];
     stock?: number;
     model?: string;
     specifications?: Record<string, string>;
