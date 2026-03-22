@@ -15,19 +15,24 @@ import { toast } from "sonner";
 
 const PRODUCT_FIELDS = [
   { value: "sku", label: "SKU / Referência" },
+  { value: "ean", label: "EAN / Código de barras" },
   { value: "name", label: "Nome do produto" },
-  { value: "description", label: "Descrição" },
-  { value: "price", label: "Preço" },
+  { value: "description", label: "Descrição curta" },
+  { value: "long_description", label: "Descrição longa" },
+  { value: "cost_price", label: "Preço de custo" },
+  { value: "sale_price", label: "PVP / Preço de venda" },
   { value: "category", label: "Categoria" },
   { value: "subcategory", label: "Subcategoria" },
   { value: "brand", label: "Marca" },
-  { value: "barcode", label: "Código de barras" },
+  { value: "barcode", label: "Código de barras (legacy)" },
   { value: "image_url", label: "URL da imagem" },
   { value: "stock", label: "Stock" },
-  { value: "weight", label: "Peso" },
+  { value: "weight", label: "Peso (kg)" },
   { value: "dimensions", label: "Dimensões" },
   { value: "model", label: "Modelo" },
   { value: "family", label: "Linha / Família" },
+  { value: "warranty", label: "Garantia" },
+  { value: "datasheet_url", label: "Ficha técnica (URL)" },
 ];
 
 interface Props {
