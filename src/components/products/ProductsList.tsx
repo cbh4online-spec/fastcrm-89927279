@@ -67,7 +67,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { useProducts, useProductCategories, useArchiveProduct, useDeleteProduct } from "@/hooks/useProducts";
+import { useProducts, useProductCategories, useArchiveProduct, useDeleteProduct, useDeleteProductsBatch } from "@/hooks/useProducts";
 import { useProductTypes, useBillingTypes } from "@/hooks/useProductSettings";
 import { CreateProductDialog } from "./CreateProductDialog";
 import { ProductDetailDialog } from "./ProductDetailDialog";
@@ -194,7 +194,9 @@ export function ProductsList() {
   const { data: billingTypesConfig } = useBillingTypes();
   const archiveProduct = useArchiveProduct();
   const deleteProduct = useDeleteProduct();
+  const deleteProductsBatch = useDeleteProductsBatch();
   const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<Product | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   // Helper para obter label do tipo de produto
   const getProductTypeLabel = (typeCode: string) => {
@@ -296,6 +298,7 @@ export function ProductsList() {
           { id: "smart_recent", label: "Atualizados recentemente" },
           { id: "smart_high_price", label: "Preço alto (>100€)" },
           { id: "smart_low_price", label: "Preço baixo (<50€)" },
+          { id: "smart_invalid_sku", label: "⚠️ SKUs inválidos" },
         ],
       }
     );
@@ -337,6 +340,21 @@ export function ProductsList() {
           break;
         case "smart_low_price":
           result = result.filter((p) => (p.base_price || 0) < 50);
+          break;
+        case "smart_invalid_sku":
+          result = result.filter((p) => {
+            if (!p.sku) return false;
+            const sku = p.sku;
+            // Contains HTML tags
+            if (/<[^>]+>/.test(sku)) return true;
+            // Looks like descriptive text (units like "265 g", "12 V")
+            if (/^\d+[\s.,]*[a-zA-Zµ°]{1,5}$/.test(sku.trim())) return true;
+            // Too many spaces (descriptive)
+            if (sku.split(/\s+/).length > 3) return true;
+            // Contains common descriptive words
+            if (/^(Impermeável|Ethernet|Iluminação|Compatible|Resolução|BaseT)/i.test(sku.trim())) return true;
+            return false;
+          });
           break;
       }
     }
@@ -692,6 +710,34 @@ export function ProductsList() {
                   <Archive className="h-4 w-4" />
                   Arquivar
                 </Button>
+                <Button variant="outline" size="sm" onClick={() => setBulkDeleteOpen(true)} className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10">
+                  <Trash2 className="h-4 w-4" />
+                  Apagar
+                </Button>
+
+                <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Apagar {selectedIds.length} produto{selectedIds.length !== 1 ? "s" : ""}?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação é permanente e não pode ser revertida. Os produtos selecionados serão apagados definitivamente.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={async () => {
+                          await deleteProductsBatch.mutateAsync(selectedIds);
+                          setSelectedIds([]);
+                          setBulkDeleteOpen(false);
+                        }}
+                      >
+                        Apagar permanentemente
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             )}
 

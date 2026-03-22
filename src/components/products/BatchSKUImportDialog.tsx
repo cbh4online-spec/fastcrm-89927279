@@ -389,7 +389,14 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
     const seenSkus = new Set<string>();
 
     for (const cells of allRows) {
-      const sku = cells[skuIdx]?.trim();
+      let sku = cells[skuIdx]?.trim() || "";
+      // Strip HTML tags from SKU
+      sku = sku.replace(/<[^>]*>/g, "").trim();
+      // Skip if SKU looks like descriptive text (contains units, long words, etc.)
+      const looksDescriptive = /^[\d.,]+\s*[a-zA-Zµ°]{1,5}$/.test(sku) || // "265 g", "12 V"
+        sku.split(/\s+/).length > 3 || // too many words
+        /^(Impermeável|Ethernet|Iluminação|Compatible|Resolução)/i.test(sku);
+      if (looksDescriptive) sku = "";
       const normalizedSku = sku?.toLowerCase();
       if (!sku || sku.length < 2 || !normalizedSku || seenSkus.has(normalizedSku)) continue;
       seenSkus.add(normalizedSku);
