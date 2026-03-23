@@ -458,6 +458,11 @@ export function ProductsList() {
       const billingCode = activeFilterId.replace("billing_", "");
       result = result.filter((p) => p.billing_type === billingCode);
     }
+
+    // Apply tag filter
+    if (activeFilterId?.startsWith("tag_") && tagProductIds) {
+      result = result.filter((p) => tagProductIds.includes(p.id));
+    }
     
     return result;
   }, [products, searchValue, activeFilterId]);
