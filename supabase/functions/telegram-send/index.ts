@@ -156,10 +156,10 @@ Deno.serve(async (req) => {
       case 'sendProduct': {
         const { chat_id, product_id, group_id, text: fallbackClientText } = params
 
-        // Fetch product details (resilient: don't throw on missing product)
+        // Fetch product details using correct schema columns
         const { data: product, error: productError } = await supabase
           .from('products')
-          .select('name, description, price, sku, product_images(url)')
+          .select('name, short_description, base_price, sku, images, primary_image_index, currency, workspace_id')
           .eq('id', product_id)
           .maybeSingle()
 
@@ -167,9 +167,30 @@ Deno.serve(async (req) => {
           console.warn('Product query warning:', productError)
         }
 
-        const imageUrl = (product as any)?.product_images?.[0]?.url ?? null
+        // Extract image from images array using primary_image_index
+        const pImgIdx = product?.primary_image_index ?? 0
+        const imageUrl = product?.images?.length > 0 ? (product.images[pImgIdx] || product.images[0]) : null
+
+        // Build buy link
+        let buyUrl = ''
+        if (product?.workspace_id) {
+          const { data: storeSettings } = await supabase
+            .from('store_settings')
+            .select('store_slug')
+            .eq('workspace_id', product.workspace_id)
+            .maybeSingle()
+          const slug = storeSettings?.store_slug || product.workspace_id
+          buyUrl = `https://fastcrm.metodopare.ai/store/${slug}/product/${product_id}`
+        }
+
+        // Format price with correct currency
+        const pCurrency = product?.currency || 'EUR'
+        const pPrice = product?.base_price != null
+          ? new Intl.NumberFormat('pt-PT', { style: 'currency', currency: pCurrency }).format(product.base_price)
+          : '—'
+
         const productText = product
-          ? `🏷️ <b>${product.name}</b>\n${product.description ? product.description + '\n' : ''}💰 ${product.price}€\n📦 SKU: ${product.sku || 'N/A'}`
+          ? `🏷️ <b>${product.name}</b>\n${product.short_description ? product.short_description + '\n' : ''}💰 ${pPrice}\n📦 SKU: ${product.sku || 'N/A'}${buyUrl ? '\n\n🛒 <a href="' + buyUrl + '">Comprar</a>' : ''}`
           : (typeof fallbackClientText === 'string' && fallbackClientText.trim().length > 0
               ? fallbackClientText.trim()
               : null)
@@ -306,21 +327,49 @@ Deno.serve(async (req) => {
         for (const chatId of (chat_ids || [])) {
           try {
             if (bProductId) {
-              // Reuse sendProduct logic
+              // Reuse sendProduct logic with correct columns
               const { data: prod } = await supabase
                 .from('products')
-                .select('name, description, price, sku, product_images(url)')
+                .select('name, short_description, base_price, sku, images, primary_image_index, currency, workspace_id')
                 .eq('id', bProductId)
-                .single()
+                .maybeSingle()
 
               if (prod) {
-                const pText = `🏷️ <b>${prod.name}</b>\n${prod.description ? prod.description + '\n' : ''}💰 ${prod.price}€\n📦 SKU: ${prod.sku || 'N/A'}`
-                const r = await fetch(`${GATEWAY_URL}/sendMessage`, {
-                  method: 'POST',
-                  headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'X-Connection-Api-Key': TELEGRAM_API_KEY, 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ chat_id: chatId, text: pText, parse_mode: 'HTML' }),
-                })
-                results.push(await r.json())
+                const bImgIdx = prod.primary_image_index ?? 0
+                const bImgUrl = prod.images?.length > 0 ? (prod.images[bImgIdx] || prod.images[0]) : null
+                const bCurr = prod.currency || 'EUR'
+                const bPriceStr = prod.base_price != null
+                  ? new Intl.NumberFormat('pt-PT', { style: 'currency', currency: bCurr }).format(prod.base_price)
+                  : '—'
+
+                let bBuyUrl = ''
+                if (prod.workspace_id) {
+                  const { data: bStore } = await supabase
+                    .from('store_settings')
+                    .select('store_slug')
+                    .eq('workspace_id', prod.workspace_id)
+                    .maybeSingle()
+                  const bSlug = bStore?.store_slug || prod.workspace_id
+                  bBuyUrl = `https://fastcrm.metodopare.ai/store/${bSlug}/product/${bProductId}`
+                }
+
+                const pText = `🏷️ <b>${prod.name}</b>\n${prod.short_description ? prod.short_description + '\n' : ''}💰 ${bPriceStr}\n📦 SKU: ${prod.sku || 'N/A'}${bBuyUrl ? '\n\n🛒 <a href="' + bBuyUrl + '">Comprar</a>' : ''}`
+
+                if (bImgUrl) {
+                  const r = await fetch(`${GATEWAY_URL}/sendPhoto`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'X-Connection-Api-Key': TELEGRAM_API_KEY, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: chatId, photo: bImgUrl, caption: pText, parse_mode: 'HTML' }),
+                  })
+                  results.push(await r.json())
+                } else {
+                  const r = await fetch(`${GATEWAY_URL}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'X-Connection-Api-Key': TELEGRAM_API_KEY, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: chatId, text: pText, parse_mode: 'HTML' }),
+                  })
+                  results.push(await r.json())
+                }
               }
             } else {
               const r = await fetch(`${GATEWAY_URL}/sendMessage`, {
