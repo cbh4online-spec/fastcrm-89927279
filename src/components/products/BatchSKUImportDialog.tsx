@@ -1232,6 +1232,17 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
               )}
               {(phase === "results" || (phase === "processing" && progress === 100)) && (
                 <>
+                   <Button
+                    variant="outline"
+                    onClick={enrichWithEAN}
+                    disabled={isCreating || isEnrichingEAN || selectedCount === 0}
+                    className="gap-1.5"
+                  >
+                    {isEnrichingEAN
+                      ? <><Loader2 className="h-4 w-4 animate-spin" />EAN...</>
+                      : <><ScanLine className="h-4 w-4" />Pesquisar EAN</>
+                    }
+                  </Button>
                   <Button
                     variant="outline"
                     onClick={enrichPricesWithAI}
