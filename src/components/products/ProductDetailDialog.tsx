@@ -73,6 +73,7 @@ import { ProductDocumentsTab } from "./ProductDocumentsTab";
 import { ProductSpecsTab } from "./ProductSpecsTab";
 import { ProductStockTab } from "./ProductStockTab";
 import { ProductAnalyticsTab } from "./ProductAnalyticsTab";
+import { ProductLifecycleTab } from "./ProductLifecycleTab";
 
 
 interface ProductDetailDialogProps {
@@ -157,7 +158,12 @@ export function ProductDetailDialog({
                       {productTypeLabels[product.product_type]}
                     </Badge>
                     <Badge
-                      variant={product.status === "active" ? "default" : "secondary"}
+                      className={`border-0 ${
+                        product.status === "active" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                        : product.status === "review" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                        : product.status === "discontinued" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                        : "bg-muted text-muted-foreground"
+                      }`}
                     >
                       {productStatusLabels[product.status]}
                     </Badge>
@@ -280,6 +286,10 @@ export function ProductDetailDialog({
                 <TabsTrigger value="analytics">
                   <BarChart3 className="h-4 w-4 mr-1" />
                   Analytics
+                </TabsTrigger>
+                <TabsTrigger value="lifecycle">
+                  <Clock className="h-4 w-4 mr-1" />
+                  Ciclo de Vida
                 </TabsTrigger>
                 <TabsTrigger value="deliverables">
                   <Package className="h-4 w-4 mr-1" />
@@ -525,6 +535,10 @@ export function ProductDetailDialog({
 
               <TabsContent value="analytics" className="mt-4">
                 <ProductAnalyticsTab />
+              </TabsContent>
+
+              <TabsContent value="lifecycle" className="mt-4">
+                <ProductLifecycleTab product={product as any} />
               </TabsContent>
 
               <TabsContent value="deliverables" className="mt-4">

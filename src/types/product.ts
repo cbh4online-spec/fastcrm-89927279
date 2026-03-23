@@ -1,5 +1,5 @@
 export type ProductType = 'simple' | 'recurring' | 'sessions' | 'composite' | 'formacao' | 'programa' | 'physical';
-export type ProductStatus = 'active' | 'archived';
+export type ProductStatus = 'draft' | 'review' | 'active' | 'discontinued' | 'archived';
 export type BillingType = 'one-off' | 'recurring';
 export type BundlePriceMode = 'auto' | 'manual';
 export type BillingFrequency = 'monthly' | 'quarterly' | 'yearly';
@@ -210,8 +210,19 @@ export const recommendedFrequencyLabels: Record<RecommendedFrequency, string> = 
 };
 
 export const productStatusLabels: Record<ProductStatus, string> = {
+  draft: 'Rascunho',
+  review: 'Em Revisão',
   active: 'Ativo',
+  discontinued: 'Descontinuado',
   archived: 'Arquivado',
+};
+
+export const productStatusColors: Record<ProductStatus, string> = {
+  draft: 'bg-muted text-muted-foreground',
+  review: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  discontinued: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  archived: 'bg-muted text-muted-foreground',
 };
 
 export const billingTypeLabels: Record<BillingType, string> = {
