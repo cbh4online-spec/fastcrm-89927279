@@ -29883,29 +29883,44 @@ export type Database = {
       }
       product_price_history: {
         Row: {
+          change_type: string | null
+          changed_by: string | null
           compare_at_price: number | null
           currency: string | null
           id: string
+          new_price: number | null
+          old_price: number | null
           price: number
           product_id: string
+          reason: string | null
           recorded_at: string
           workspace_id: string
         }
         Insert: {
+          change_type?: string | null
+          changed_by?: string | null
           compare_at_price?: number | null
           currency?: string | null
           id?: string
+          new_price?: number | null
+          old_price?: number | null
           price: number
           product_id: string
+          reason?: string | null
           recorded_at?: string
           workspace_id: string
         }
         Update: {
+          change_type?: string | null
+          changed_by?: string | null
           compare_at_price?: number | null
           currency?: string | null
           id?: string
+          new_price?: number | null
+          old_price?: number | null
           price?: number
           product_id?: string
+          reason?: string | null
           recorded_at?: string
           workspace_id?: string
         }

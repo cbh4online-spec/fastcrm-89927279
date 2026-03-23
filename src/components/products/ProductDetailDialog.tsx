@@ -42,6 +42,7 @@ import {
   Video,
   Link2,
   FileText,
+  TrendingUp,
 } from "lucide-react";
 import { LocationMapEmbed } from "./LocationMapEmbed";
 import { format } from "date-fns";
@@ -76,6 +77,7 @@ import { ProductAnalyticsTab } from "./ProductAnalyticsTab";
 import { ProductLifecycleTab } from "./ProductLifecycleTab";
 import { ProductBarcodeQRSection } from "./ProductBarcodeQRSection";
 import { ProductTagsEditor } from "./ProductTagsEditor";
+import { ProductPriceHistoryTab } from "./ProductPriceHistoryTab";
 
 interface ProductDetailDialogProps {
   open: boolean;
@@ -295,6 +297,10 @@ export function ProductDetailDialog({
                 <TabsTrigger value="deliverables">
                   <Package className="h-4 w-4 mr-1" />
                   Entregáveis
+                </TabsTrigger>
+                <TabsTrigger value="price-history">
+                  <TrendingUp className="h-4 w-4 mr-1" />
+                  Preços
                 </TabsTrigger>
               </TabsList>
 
@@ -556,6 +562,15 @@ export function ProductDetailDialog({
 
               <TabsContent value="deliverables" className="mt-4">
                 <ProductDeliverablesManager productId={product.id} />
+              </TabsContent>
+
+              <TabsContent value="price-history" className="mt-4">
+                <ProductPriceHistoryTab
+                  productId={product.id}
+                  currentPrice={product.base_price}
+                  costPrice={product.direct_cost}
+                  currency={product.currency}
+                />
               </TabsContent>
             </Tabs>
           </ScrollArea>
