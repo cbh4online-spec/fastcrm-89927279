@@ -1,27 +1,39 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useWorkspace } from "@/hooks/useWorkspace";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { formatCurrency } from "@/lib/formatters";
+
+interface RecOpportunity {
+  id: string;
+  score: number;
+  reason: string | null;
+  confidence: string;
+  contact_id: string | null;
+  company_id: string | null;
+  lead_id: string | null;
+  product_id: string;
+  entityName: string;
+  entityType: string;
+  entityId: string;
+  productName: string;
+}
 
 export function RecommendationOpportunitiesWidget() {
   const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
   const workspaceId = currentWorkspace?.id;
 
-  const { data: opportunities, isLoading } = useQuery({
+  const { data: opportunities, isLoading } = useQuery<RecOpportunity[]>({
     queryKey: ["dashboard-rec-opportunities", workspaceId],
     queryFn: async () => {
-      const { data } = await supabase
+      // Use raw rpc since product_recommendations may not be in generated types yet
+      const { data, error } = await (supabase as any)
         .from("product_recommendations")
-        .select(`
-          id, score, reason, confidence, strategy,
-          contact_id, company_id, lead_id, product_id
-        `)
+        .select("id, score, reason, confidence, strategy, contact_id, company_id, lead_id, product_id")
         .eq("workspace_id", workspaceId!)
         .eq("status", "pending")
         .eq("confidence", "high")
@@ -30,49 +42,54 @@ export function RecommendationOpportunitiesWidget() {
         .order("score", { ascending: false })
         .limit(5);
 
-      if (!data?.length) return [];
+      if (error || !data?.length) return [];
 
-      // Fetch entity and product names
-      const contactIds = data.filter(d => d.contact_id).map(d => d.contact_id!);
-      const companyIds = data.filter(d => d.company_id).map(d => d.company_id!);
-      const leadIds = data.filter(d => d.lead_id).map(d => d.lead_id!);
-      const productIds = data.map(d => d.product_id);
+      const recs = data as any[];
+      const contactIds = recs.filter(d => d.contact_id).map(d => d.contact_id);
+      const companyIds = recs.filter(d => d.company_id).map(d => d.company_id);
+      const leadIds = recs.filter(d => d.lead_id).map(d => d.lead_id);
+      const productIds = recs.map(d => d.product_id);
 
       const [contacts, companies, leads, products] = await Promise.all([
         contactIds.length
           ? supabase.from("contacts").select("id, first_name, last_name").in("id", contactIds).then(r => r.data ?? [])
-          : Promise.resolve([]),
+          : Promise.resolve([] as any[]),
         companyIds.length
           ? supabase.from("companies").select("id, name").in("id", companyIds).then(r => r.data ?? [])
-          : Promise.resolve([]),
+          : Promise.resolve([] as any[]),
         leadIds.length
           ? supabase.from("leads").select("id, name").in("id", leadIds).then(r => r.data ?? [])
-          : Promise.resolve([]),
+          : Promise.resolve([] as any[]),
         supabase.from("products").select("id, name, base_price").in("id", productIds).then(r => r.data ?? []),
       ]);
 
-      const contactMap = new Map(contacts.map((c: any) => [c.id, `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim()]));
-      const companyMap = new Map(companies.map((c: any) => [c.id, c.name]));
-      const leadMap = new Map(leads.map((l: any) => [l.id, l.name]));
-      const productMap = new Map(products.map((p: any) => [p.id, { name: p.name, price: p.base_price }]));
+      const contactMap = new Map(contacts.map(c => [c.id, `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim()]));
+      const companyMap = new Map(companies.map(c => [c.id, c.name]));
+      const leadMap = new Map(leads.map(l => [l.id, l.name]));
+      const productMap = new Map(products.map(p => [p.id, p.name]));
 
-      return data.map(rec => {
+      return recs.map(rec => {
         const entityName = rec.contact_id
           ? contactMap.get(rec.contact_id) ?? "Contacto"
           : rec.company_id
           ? companyMap.get(rec.company_id) ?? "Empresa"
-          : leadMap.get(rec.lead_id!) ?? "Lead";
+          : leadMap.get(rec.lead_id) ?? "Lead";
         const entityType = rec.contact_id ? "contact" : rec.company_id ? "company" : "lead";
-        const entityId = rec.contact_id ?? rec.company_id ?? rec.lead_id!;
-        const product = productMap.get(rec.product_id);
+        const entityId = rec.contact_id ?? rec.company_id ?? rec.lead_id;
 
         return {
-          ...rec,
-          entityName,
+          id: rec.id,
+          score: rec.score,
+          reason: rec.reason,
+          confidence: rec.confidence,
+          contact_id: rec.contact_id,
+          company_id: rec.company_id,
+          lead_id: rec.lead_id,
+          product_id: rec.product_id,
+          entityName: entityName as string,
           entityType,
           entityId,
-          productName: product?.name ?? "Produto",
-          productPrice: product?.price ?? 0,
+          productName: (productMap.get(rec.product_id) ?? "Produto") as string,
         };
       });
     },
