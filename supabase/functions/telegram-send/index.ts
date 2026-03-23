@@ -7,6 +7,25 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const telegramErrorResponse = (status: number, data: any) => {
+  const description = data?.description || 'Telegram API error'
+  const isBotToBot = typeof description === 'string' && description.toLowerCase().includes("bots can't send messages to bots")
+
+  return new Response(JSON.stringify({
+    success: false,
+    error: description,
+    error_code: isBotToBot ? 'bot_to_bot_not_allowed' : 'telegram_api_error',
+    hint: isBotToBot
+      ? 'Use a group/user chat_id (not a bot ID). Add your bot to the group and use that group chat ID.'
+      : undefined,
+    telegram_status: status,
+    telegram_error: data,
+  }), {
+    status: 200,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  })
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -115,9 +134,7 @@ Deno.serve(async (req) => {
         const data = await response.json()
         if (!response.ok) {
           console.warn(`Telegram sendMessage failed [${response.status}]:`, data)
-          return new Response(JSON.stringify({ success: false, error: data?.description || 'Telegram API error', telegram_error: data }), {
-            status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          })
+          return telegramErrorResponse(response.status, data)
         }
         
         // Save to group_messages if group_id provided
@@ -165,9 +182,7 @@ Deno.serve(async (req) => {
           const data = await response.json()
           if (!response.ok) {
             console.warn(`Telegram sendPhoto failed [${response.status}]:`, data)
-            return new Response(JSON.stringify({ success: false, error: data?.description || 'Telegram API error' }), {
-              status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            })
+            return telegramErrorResponse(response.status, data)
           }
           result = data.result
         } else {
@@ -183,9 +198,7 @@ Deno.serve(async (req) => {
           const data = await response.json()
           if (!response.ok) {
             console.warn(`Telegram sendMessage failed [${response.status}]:`, data)
-            return new Response(JSON.stringify({ success: false, error: data?.description || 'Telegram API error' }), {
-              status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            })
+            return telegramErrorResponse(response.status, data)
           }
           result = data.result
         }

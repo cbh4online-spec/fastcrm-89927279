@@ -272,8 +272,8 @@ export function useSendGroupMessage() {
       if (group?.telegram_chat_id && (group.group_type === "telegram" || group.group_type === "hybrid")) {
         const { data: { session } } = await supabase.auth.getSession();
         const action = productId ? "sendProduct" : "sendMessage";
-        
-        await fetch(
+
+        const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/telegram-send`,
           {
             method: "POST",
@@ -291,6 +291,17 @@ export function useSendGroupMessage() {
             }),
           }
         );
+
+        let payload: any = null;
+        try {
+          payload = await response.json();
+        } catch {
+          payload = null;
+        }
+
+        if (!response.ok || payload?.success === false) {
+          throw new Error(payload?.hint || payload?.error || `Falha ao enviar para Telegram (${response.status})`);
+        }
       }
 
       return msg;
