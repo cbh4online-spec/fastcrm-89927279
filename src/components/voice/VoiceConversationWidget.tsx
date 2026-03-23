@@ -3,6 +3,7 @@ import { useConversation } from "@elevenlabs/react";
 import { Mic, MicOff, X, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import { useVoiceSettings } from "@/hooks/useVoice";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
