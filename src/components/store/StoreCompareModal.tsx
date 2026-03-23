@@ -6,6 +6,8 @@ import { Star, Check, X, Package, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStoreCart } from "@/contexts/StoreCartContext";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface StoreCompareModalProps {
   workspaceSlug: string;
@@ -17,9 +19,26 @@ export function StoreCompareModal({ workspaceSlug, tierPricing, reviewStats }: S
   const { items, removeItem, isOpen, setIsOpen } = useStoreCompare();
   const { addItem: addToCart } = useStoreCart();
 
+  // Fetch spec attributes for all compared products
+  const productIds = items.map(p => p.id);
+  const { data: specAttrs } = useQuery({
+    queryKey: ["compare-specs", productIds],
+    queryFn: async () => {
+      if (productIds.length === 0) return [];
+      const { data } = await supabase
+        .from("product_spec_attributes" as any)
+        .select("product_id, spec_key, spec_value, unit, spec_group")
+        .in("product_id", productIds)
+        .order("spec_group")
+        .order("display_order");
+      return (data || []) as any[];
+    },
+    enabled: isOpen && productIds.length >= 2,
+  });
+
   if (items.length < 2) return null;
 
-  // Build comparison rows from specs
+  // Build comparison rows from legacy specs JSON
   const allSpecKeys = new Set<string>();
   items.forEach((p) => {
     if (p.specifications) {
@@ -27,7 +46,19 @@ export function StoreCompareModal({ workspaceSlug, tierPricing, reviewStats }: S
     }
   });
 
-  const comparisonRows: { label: string; values: (string | null)[] }[] = [
+  // Build rows from product_spec_attributes
+  const specAttrKeys = new Set<string>();
+  const specAttrGroups = new Map<string, Set<string>>();
+  (specAttrs || []).forEach((s: any) => {
+    specAttrKeys.add(s.spec_key);
+    if (!specAttrGroups.has(s.spec_group || "Geral")) {
+      specAttrGroups.set(s.spec_group || "Geral", new Set());
+    }
+    specAttrGroups.get(s.spec_group || "Geral")!.add(s.spec_key);
+  });
+
+  // Merge: base rows + legacy specs + structured specs
+  const comparisonRows: { label: string; values: (string | null)[]; group?: string }[] = [
     {
       label: "Preço",
       values: items.map((p) => `€${p.base_price.toFixed(2)}`),
@@ -50,11 +81,36 @@ export function StoreCompareModal({ workspaceSlug, tierPricing, reviewStats }: S
           : "Disponível"
       ),
     },
-    ...Array.from(allSpecKeys).map((key) => ({
-      label: key,
-      values: items.map((p) => p.specifications?.[key] || "—"),
-    })),
   ];
+
+  // Add legacy spec rows (from JSON field)
+  Array.from(allSpecKeys).forEach((key) => {
+    if (!specAttrKeys.has(key)) {
+      comparisonRows.push({
+        label: key,
+        values: items.map((p) => p.specifications?.[key] || "—"),
+      });
+    }
+  });
+
+  // Add structured spec rows grouped
+  const sortedGroups = Array.from(specAttrGroups.keys()).sort();
+  sortedGroups.forEach((group) => {
+    const keys = Array.from(specAttrGroups.get(group)!);
+    keys.forEach((key) => {
+      comparisonRows.push({
+        label: key,
+        group,
+        values: items.map((p) => {
+          const attr = (specAttrs || []).find(
+            (s: any) => s.product_id === p.id && s.spec_key === key
+          );
+          if (!attr) return "—";
+          return attr.unit ? `${attr.spec_value} ${attr.unit}` : attr.spec_value;
+        }),
+      });
+    });
+  });
 
   // Review data
   const reviewRow = {
@@ -66,6 +122,9 @@ export function StoreCompareModal({ workspaceSlug, tierPricing, reviewStats }: S
       return `${avg.toFixed(1)}★ (${data.count})`;
     }),
   };
+
+  // Track current group for section headers
+  let currentGroup = "";
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -161,6 +220,22 @@ export function StoreCompareModal({ workspaceSlug, tierPricing, reviewStats }: S
               </tr>
 
               {comparisonRows.map((row, rowIndex) => {
+                // Show group header
+                let groupHeader = null;
+                if (row.group && row.group !== currentGroup) {
+                  currentGroup = row.group;
+                  groupHeader = (
+                    <tr key={`group-${row.group}`} className="border-t">
+                      <td
+                        colSpan={items.length + 1}
+                        className="px-3 py-2 text-xs font-semibold text-primary uppercase tracking-wider bg-primary/5"
+                      >
+                        {row.group}
+                      </td>
+                    </tr>
+                  );
+                }
+
                 // Highlight best price
                 const isPriceRow = row.label === "Preço";
                 let bestIndex = -1;
@@ -169,31 +244,38 @@ export function StoreCompareModal({ workspaceSlug, tierPricing, reviewStats }: S
                   bestIndex = prices.indexOf(Math.min(...prices));
                 }
 
+                // Highlight differences
+                const allSame = row.values.every(v => v === row.values[0]);
+
                 return (
-                  <tr
-                    key={row.label}
-                    className={cn("border-t", rowIndex % 2 === 0 ? "bg-muted/30" : "")}
-                  >
-                    <td className="p-3 text-sm font-medium text-muted-foreground">
-                      {row.label}
-                    </td>
-                    {row.values.map((val, i) => (
-                      <td
-                        key={i}
-                        className={cn(
-                          "p-3 text-center text-sm",
-                          isPriceRow && i === bestIndex && "font-bold text-primary"
-                        )}
-                      >
-                        {val}
-                        {isPriceRow && i === bestIndex && items.length > 1 && (
-                          <Badge variant="outline" className="ml-2 text-[10px] text-primary border-primary/30">
-                            Melhor preço
-                          </Badge>
-                        )}
+                  <>
+                    {groupHeader}
+                    <tr
+                      key={row.label + rowIndex}
+                      className={cn("border-t", rowIndex % 2 === 0 ? "bg-muted/30" : "")}
+                    >
+                      <td className="p-3 text-sm font-medium text-muted-foreground">
+                        {row.label}
                       </td>
-                    ))}
-                  </tr>
+                      {row.values.map((val, i) => (
+                        <td
+                          key={i}
+                          className={cn(
+                            "p-3 text-center text-sm",
+                            isPriceRow && i === bestIndex && "font-bold text-primary",
+                            !allSame && !isPriceRow && "font-medium"
+                          )}
+                        >
+                          {val}
+                          {isPriceRow && i === bestIndex && items.length > 1 && (
+                            <Badge variant="outline" className="ml-2 text-[10px] text-primary border-primary/30">
+                              Melhor preço
+                            </Badge>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  </>
                 );
               })}
 
