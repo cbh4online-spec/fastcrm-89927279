@@ -277,6 +277,10 @@ export function ProductDetailDialog({
                   <Package className="h-4 w-4 mr-1" />
                   Stock
                 </TabsTrigger>
+                <TabsTrigger value="analytics">
+                  <BarChart3 className="h-4 w-4 mr-1" />
+                  Analytics
+                </TabsTrigger>
                 <TabsTrigger value="deliverables">
                   <Package className="h-4 w-4 mr-1" />
                   Entregáveis
