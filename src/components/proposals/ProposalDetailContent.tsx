@@ -840,7 +840,8 @@ export function ProposalDetailContent({
                         <FileSearch className="h-4 w-4 mr-1" />
                         Pré-visualizar
                       </Button>
-                    )}
+                      )}
+                    <ProposalNarrationButton proposalId={proposalId} compact />
                     {(proposal.status === "draft" || proposal.status === "published") && (
                       <Button 
                         variant="outline" 
