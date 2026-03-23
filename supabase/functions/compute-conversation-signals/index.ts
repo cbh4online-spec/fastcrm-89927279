@@ -111,6 +111,7 @@ ${recentMessages}
 Número de mensagens analisadas: ${messages.length}
 Canais: ${[...new Set(conversations.map((c: any) => c.channel))].join(", ")}`;
 
+    const _startTime = Date.now();
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -248,7 +249,21 @@ Canais: ${[...new Set(conversations.map((c: any) => c.channel))].join(", ")}`;
       throw new Error(`AI gateway error: ${status}`);
     }
 
-    const aiData = await aiResponse.json();
+    const aiData = await aiResponse.json()
+
+    // AI Usage Instrumentation
+    try {
+      const _usage = aiData?.usage;
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: 'compute-conversation-signals',
+        model: aiData?.model || 'google/gemini-3-flash-preview',
+        tokens_input: _usage?.prompt_tokens ?? 0,
+        tokens_output: _usage?.completion_tokens ?? 0,
+        request_type: 'completion',
+        latency_ms: Date.now() - (_startTime ?? Date.now()),
+      });
+    } catch (_e) { /* instrumentation error - non-blocking */ };
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
       throw new Error("No tool call in AI response");

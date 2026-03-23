@@ -472,6 +472,7 @@ Core fields by entity:
 
 Return your suggestions using the suggest_automations function. Only include high-confidence suggestions based on clear patterns. Remember to use valid operators for each field type!`;
 
+    const _startTime = Date.now();
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -599,7 +600,21 @@ Return your suggestions using the suggest_automations function. Only include hig
       throw new Error("AI API error");
     }
 
-    const aiData = await aiResponse.json();
+    const aiData = await aiResponse.json()
+
+    // AI Usage Instrumentation
+    try {
+      const _usage = aiData?.usage;
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: 'ai-automation-suggestions',
+        model: aiData?.model || 'google/gemini-3-flash-preview',
+        tokens_input: _usage?.prompt_tokens ?? 0,
+        tokens_output: _usage?.completion_tokens ?? 0,
+        request_type: 'completion',
+        latency_ms: Date.now() - (_startTime ?? Date.now()),
+      });
+    } catch (_e) { /* instrumentation error - non-blocking */ };
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     
     if (!toolCall?.function?.arguments) {
