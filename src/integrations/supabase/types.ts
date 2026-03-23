@@ -30357,6 +30357,140 @@ export type Database = {
           },
         ]
       }
+      product_stock_locations: {
+        Row: {
+          address: string | null
+          code: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          address?: string | null
+          code?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          address?: string | null
+          code?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_stock_locations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_stock_movements: {
+        Row: {
+          balance_after: number | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          location_id: string | null
+          movement_type: string
+          notes: string | null
+          product_id: string
+          quantity: number
+          reason: string | null
+          reference_id: string | null
+          reference_type: string | null
+          unit_cost: number | null
+          variant_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          balance_after?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          location_id?: string | null
+          movement_type: string
+          notes?: string | null
+          product_id: string
+          quantity: number
+          reason?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          unit_cost?: number | null
+          variant_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          balance_after?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          location_id?: string | null
+          movement_type?: string
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+          reason?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          unit_cost?: number | null
+          variant_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_stock_movements_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "product_stock_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_stock_movements_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_stock_movements_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_tier_prices: {
         Row: {
           created_at: string
@@ -30750,8 +30884,10 @@ export type Database = {
           sku: string | null
           specifications: Json | null
           status: string
+          stock_location_id: string | null
           stock_notes: string | null
           stock_quantity: number | null
+          stock_reserved: number | null
           stock_status: Database["public"]["Enums"]["stock_status"] | null
           store_category_id: string | null
           store_featured: boolean | null
@@ -30837,8 +30973,10 @@ export type Database = {
           sku?: string | null
           specifications?: Json | null
           status?: string
+          stock_location_id?: string | null
           stock_notes?: string | null
           stock_quantity?: number | null
+          stock_reserved?: number | null
           stock_status?: Database["public"]["Enums"]["stock_status"] | null
           store_category_id?: string | null
           store_featured?: boolean | null
@@ -30924,8 +31062,10 @@ export type Database = {
           sku?: string | null
           specifications?: Json | null
           status?: string
+          stock_location_id?: string | null
           stock_notes?: string | null
           stock_quantity?: number | null
+          stock_reserved?: number | null
           stock_status?: Database["public"]["Enums"]["stock_status"] | null
           store_category_id?: string | null
           store_featured?: boolean | null
@@ -30953,6 +31093,13 @@ export type Database = {
             columns: ["default_supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_stock_location_id_fkey"
+            columns: ["stock_location_id"]
+            isOneToOne: false
+            referencedRelation: "product_stock_locations"
             referencedColumns: ["id"]
           },
           {

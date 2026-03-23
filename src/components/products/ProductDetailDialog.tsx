@@ -71,6 +71,7 @@ import { ProductRelationsTab } from "./ProductRelationsTab";
 import { ProductDeliverablesManager } from "./ProductDeliverablesManager";
 import { ProductDocumentsTab } from "./ProductDocumentsTab";
 import { ProductSpecsTab } from "./ProductSpecsTab";
+import { ProductStockTab } from "./ProductStockTab";
 
 interface ProductDetailDialogProps {
   open: boolean;
@@ -269,6 +270,10 @@ export function ProductDetailDialog({
                 <TabsTrigger value="specs">
                   <ClipboardList className="h-4 w-4 mr-1" />
                   Specs
+                </TabsTrigger>
+                <TabsTrigger value="stock">
+                  <Package className="h-4 w-4 mr-1" />
+                  Stock
                 </TabsTrigger>
                 <TabsTrigger value="deliverables">
                   <Package className="h-4 w-4 mr-1" />
@@ -506,6 +511,10 @@ export function ProductDetailDialog({
 
               <TabsContent value="specs" className="mt-4">
                 <ProductSpecsTab product={product} />
+              </TabsContent>
+
+              <TabsContent value="stock" className="mt-4">
+                <ProductStockTab product={product as any} />
               </TabsContent>
 
               <TabsContent value="deliverables" className="mt-4">
