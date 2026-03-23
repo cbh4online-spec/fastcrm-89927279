@@ -175,6 +175,9 @@ export function AutomationAISettings({ searchQuery = "", matchedSections }: Auto
         />
       </SettingsSection>
 
+      {/* Recommendation Config */}
+      {shouldShow("recommendation-config") && <RecommendationConfigPanel />}
+
       {/* AI Agent Schedules */}
       <SettingsSection
         title="Agendamentos de Análise IA"
