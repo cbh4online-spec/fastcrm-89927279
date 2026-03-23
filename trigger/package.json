@@ -1,0 +1,17 @@
+{
+  "name": "fastcrm-trigger",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npx trigger.dev@latest dev",
+    "deploy": "npx trigger.dev@latest deploy"
+  },
+  "dependencies": {
+    "@trigger.dev/sdk": "^4.3.3",
+    "@supabase/supabase-js": "^2.90.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}
