@@ -18,10 +18,10 @@ export function StoreRelatedProducts({ productId, categoryId, workspaceId, works
     queryFn: async () => {
       // First try: get "related" relations from product_relations
       const { data: relations } = await supabase
-        .from("product_relations" as any)
+        .from("product_relations")
         .select("target_product_id")
         .eq("source_product_id", productId)
-        .eq("relation_type", "related")
+        .in("relation_type", ["related", "alternative", "upgrade"])
         .eq("is_active", true)
         .order("sort_order")
         .limit(8);
