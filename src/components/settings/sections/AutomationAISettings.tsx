@@ -20,6 +20,7 @@ import {
   Database,
   Cpu,
   BarChart3,
+  Timer,
 } from "lucide-react";
 import { AgentSchedulesManager } from "@/components/ai-agents/AgentSchedulesManager";
 import { CacheMetricsDashboard } from "@/components/ai-agents/CacheMetricsDashboard";
@@ -84,7 +85,7 @@ export function AutomationAISettings({ searchQuery = "", matchedSections }: Auto
       </Card>
 
       {/* AI Settings & Usage Quick Links */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate("/dashboard/ai-settings")}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
@@ -107,6 +108,19 @@ export function AutomationAISettings({ searchQuery = "", matchedSections }: Auto
               <div>
                 <p className="font-semibold">Utilização de IA</p>
                 <p className="text-sm text-muted-foreground">Tokens, custos, chamadas e performance</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate("/dashboard/background-jobs")}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Timer className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold">Background Jobs</p>
+                <p className="text-sm text-muted-foreground">Jobs agendados, execuções e monitorização</p>
               </div>
             </div>
           </CardContent>
