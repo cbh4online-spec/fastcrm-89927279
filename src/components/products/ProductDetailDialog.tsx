@@ -73,6 +73,7 @@ import { ProductDocumentsTab } from "./ProductDocumentsTab";
 import { ProductSpecsTab } from "./ProductSpecsTab";
 import { ProductStockTab } from "./ProductStockTab";
 import { ProductAnalyticsTab } from "./ProductAnalyticsTab";
+import { ProductLifecycleTab } from "./ProductLifecycleTab";
 
 
 interface ProductDetailDialogProps {
