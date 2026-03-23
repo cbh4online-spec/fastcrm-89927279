@@ -186,6 +186,9 @@ import StoreAnalyticsPage from "./pages/StoreAnalyticsPage";
 import MobileQuickProductCreate from "./pages/MobileQuickProductCreate";
 import EventRsvpResponse from "./pages/EventRsvpResponse";
 import AISalesCoachPage from "./pages/AISalesCoachPage";
+import AIAgentsPage from "./pages/AIAgentsPage";
+import AIAgentJobDetailPage from "./pages/AIAgentJobDetailPage";
+import AIAgentExecutionsPage from "./pages/AIAgentExecutionsPage";
 import AIDocumentOCRPage from "./pages/AIDocumentOCRPage";
 import EmailCampaignsPage from "./pages/EmailCampaignsPage";
 import SuppressionsPage from "./pages/SuppressionsPage";
@@ -622,6 +625,9 @@ function CRMRoutes() {
                 <Route path="/dashboard/events/:eventId" element={<EventDetailPage />} />
                 <Route path="/dashboard/lead-enricher" element={<LeadEnricher />} />
                 <Route path="/dashboard/ai-sales-coach" element={<AISalesCoachPage />} />
+                <Route path="/dashboard/ai-agents" element={<AIAgentsPage />} />
+                <Route path="/dashboard/ai-agents/executions" element={<AIAgentExecutionsPage />} />
+                <Route path="/dashboard/ai-agents/:id" element={<AIAgentJobDetailPage />} />
                 <Route path="/dashboard/ai-document-ocr" element={<AIDocumentOCRPage />} />
                 <Route path="/dashboard/email-campaigns" element={<EmailCampaignsPage />} />
                 <Route path="/dashboard/email-campaigns/suppressions" element={<SuppressionsPage />} />
