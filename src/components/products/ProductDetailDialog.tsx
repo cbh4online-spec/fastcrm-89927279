@@ -266,7 +266,14 @@ export function ProductDetailDialog({
                   <FileText className="h-4 w-4 mr-1" />
                   Documentos
                 </TabsTrigger>
+                <TabsTrigger value="specs">
+                  <ClipboardList className="h-4 w-4 mr-1" />
+                  Specs
+                </TabsTrigger>
                 <TabsTrigger value="deliverables">
+                  <Package className="h-4 w-4 mr-1" />
+                  Entregáveis
+                </TabsTrigger>
                   <Package className="h-4 w-4 mr-1" />
                   Entregáveis
                 </TabsTrigger>
