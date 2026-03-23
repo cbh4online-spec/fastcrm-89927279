@@ -113,7 +113,12 @@ Deno.serve(async (req) => {
           body: JSON.stringify({ chat_id, text, parse_mode: parse_mode || 'HTML' }),
         })
         const data = await response.json()
-        if (!response.ok) throw new Error(`Telegram sendMessage failed [${response.status}]: ${JSON.stringify(data)}`)
+        if (!response.ok) {
+          console.warn(`Telegram sendMessage failed [${response.status}]:`, data)
+          return new Response(JSON.stringify({ success: false, error: data?.description || 'Telegram API error', telegram_error: data }), {
+            status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        }
         
         // Save to group_messages if group_id provided
         if (group_id) {
@@ -158,7 +163,12 @@ Deno.serve(async (req) => {
             body: JSON.stringify({ chat_id, photo: imageUrl, caption: text, parse_mode: 'HTML' }),
           })
           const data = await response.json()
-          if (!response.ok) throw new Error(`Telegram sendPhoto failed [${response.status}]: ${JSON.stringify(data)}`)
+          if (!response.ok) {
+            console.warn(`Telegram sendPhoto failed [${response.status}]:`, data)
+            return new Response(JSON.stringify({ success: false, error: data?.description || 'Telegram API error' }), {
+              status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+          }
           result = data.result
         } else {
           const response = await fetch(`${GATEWAY_URL}/sendMessage`, {
@@ -171,7 +181,12 @@ Deno.serve(async (req) => {
             body: JSON.stringify({ chat_id, text, parse_mode: 'HTML' }),
           })
           const data = await response.json()
-          if (!response.ok) throw new Error(`Telegram sendMessage failed [${response.status}]: ${JSON.stringify(data)}`)
+          if (!response.ok) {
+            console.warn(`Telegram sendMessage failed [${response.status}]:`, data)
+            return new Response(JSON.stringify({ success: false, error: data?.description || 'Telegram API error' }), {
+              status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+          }
           result = data.result
         }
 
