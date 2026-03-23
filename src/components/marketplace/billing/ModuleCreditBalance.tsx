@@ -5,16 +5,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { ModuleCreditBalance as CreditBalanceType } from "@/hooks/useModuleBilling";
+
+/** @deprecated Credit balances are deprecated. Use subscription model instead. */
+interface ModuleCreditBalanceData {
+  credits_total: number;
+  credits_used: number;
+  credits_remaining: number;
+  period_start: string;
+  period_end: string;
+}
 
 interface ModuleCreditBalanceProps {
-  balance: CreditBalanceType | null;
+  balance: ModuleCreditBalanceData | null;
   isLoading?: boolean;
   onPurchaseCredits?: () => void;
   compact?: boolean;
   className?: string;
 }
 
+/** @deprecated This component is kept for backward compatibility. */
 export function ModuleCreditBalance({
   balance,
   isLoading,
@@ -41,29 +50,22 @@ export function ModuleCreditBalance({
       <Card className={className}>
         <CardContent className="py-6 text-center text-muted-foreground">
           <Coins className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">Sem dados de créditos</p>
+          <p className="text-sm">Módulo com subscrição activa — sem créditos necessários</p>
         </CardContent>
       </Card>
     );
   }
 
-  const usagePercentage = Math.round(
-    (balance.credits_used / balance.credits_total) * 100
-  );
+  const usagePercentage = balance.credits_total > 0
+    ? Math.round((balance.credits_used / balance.credits_total) * 100)
+    : 0;
   const isNearLimit = usagePercentage >= 80;
   const isAtLimit = balance.credits_remaining <= 0;
-  const isCritical = usagePercentage >= 95;
 
   const getStatusColor = () => {
-    if (isAtLimit || isCritical) return "text-destructive";
+    if (isAtLimit) return "text-destructive";
     if (isNearLimit) return "text-warning";
     return "text-primary";
-  };
-
-  const getProgressColor = () => {
-    if (isAtLimit || isCritical) return "bg-destructive";
-    if (isNearLimit) return "bg-warning";
-    return "bg-primary";
   };
 
   if (compact) {
@@ -81,102 +83,16 @@ export function ModuleCreditBalance({
           </div>
           <Progress value={usagePercentage} className="h-1.5" />
         </div>
-        {isAtLimit && onPurchaseCredits && (
-          <Button size="sm" variant="outline" onClick={onPurchaseCredits}>
-            <Zap className="h-3 w-3 mr-1" />
-            Comprar
-          </Button>
-        )}
       </div>
     );
   }
 
   return (
     <Card className={className}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-medium flex items-center gap-2">
-            <Coins className="h-5 w-5 text-primary" />
-            Balanço de Créditos
-          </CardTitle>
-          {isNearLimit && !isAtLimit && (
-            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
-              <AlertTriangle className="h-3 w-3 mr-1" />
-              Perto do limite
-            </Badge>
-          )}
-          {isAtLimit && (
-            <Badge variant="destructive">
-              <AlertTriangle className="h-3 w-3 mr-1" />
-              Limite atingido
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Main balance display */}
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-3xl font-bold tracking-tight">
-              {balance.credits_remaining.toLocaleString()}
-            </p>
-            <p className="text-sm text-muted-foreground">créditos disponíveis</p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-muted-foreground">Incluídos no plano</p>
-            <p className="text-lg font-semibold">
-              {balance.credits_total.toLocaleString()}
-            </p>
-          </div>
-        </div>
-
-        {/* Usage progress */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Utilização este período</span>
-            <span className={cn("font-medium", getStatusColor())}>
-              {usagePercentage}%
-            </span>
-          </div>
-          <div className="relative">
-            <Progress 
-              value={Math.min(usagePercentage, 100)} 
-              className="h-2"
-            />
-            <div 
-              className={cn(
-                "absolute top-0 h-full rounded-full transition-all",
-                getProgressColor()
-              )} 
-              style={{ width: `${Math.min(usagePercentage, 100)}%` }}
-            />
-          </div>
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{balance.credits_used.toLocaleString()} usados</span>
-            <span>de {balance.credits_total.toLocaleString()}</span>
-          </div>
-        </div>
-
-        {/* Period info */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground pt-2 border-t">
-          <TrendingUp className="h-4 w-4" />
-          <span>
-            Período: {new Date(balance.period_start).toLocaleDateString("pt-PT")} -{" "}
-            {new Date(balance.period_end).toLocaleDateString("pt-PT")}
-          </span>
-        </div>
-
-        {/* Purchase button */}
-        {onPurchaseCredits && (
-          <Button 
-            onClick={onPurchaseCredits} 
-            className="w-full"
-            variant={isAtLimit ? "default" : "outline"}
-          >
-            <Zap className="h-4 w-4 mr-2" />
-            {isAtLimit ? "Comprar Créditos Agora" : "Comprar Mais Créditos"}
-          </Button>
-        )}
+      <CardContent className="py-6 text-center text-muted-foreground">
+        <Coins className="h-8 w-8 mx-auto mb-2 opacity-50" />
+        <p className="text-sm">Sistema de créditos descontinuado</p>
+        <p className="text-xs mt-1">Utilize o modelo de subscrição</p>
       </CardContent>
     </Card>
   );

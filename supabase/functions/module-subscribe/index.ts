@@ -1,14 +1,13 @@
-import Stripe from "stripe";
-import { createClient } from "@supabase/supabase-js";
+import Stripe from "https://esm.sh/stripe@18.5.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 
 const logStep = (step: string, details?: unknown) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[MODULE-SUBSCRIBE] ${step}${detailsStr}`);
+  console.log(`[MODULE-SUBSCRIBE] ${step}${details ? ` - ${JSON.stringify(details)}` : ''}`);
 };
 
 Deno.serve(async (req) => {
@@ -17,224 +16,108 @@ Deno.serve(async (req) => {
   }
 
   try {
-    logStep("Function started");
+    logStep("Webhook received");
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY not set");
 
-    if (!stripeKey) {
-      throw new Error("STRIPE_SECRET_KEY is not configured");
-    }
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } }
+    );
 
-    // Get auth token
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header");
+    const body = await req.text();
+    let event: Stripe.Event;
+
+    if (webhookSecret) {
+      const sig = req.headers.get("stripe-signature");
+      if (!sig) throw new Error("Missing stripe-signature header");
+      event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
+    } else {
+      // Fallback: parse body directly (dev mode)
+      event = JSON.parse(body) as Stripe.Event;
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      throw new Error("Unauthorized");
-    }
+    logStep("Event type", { type: event.type });
 
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const meta = session.metadata;
 
-    const body = await req.json();
-    // Support both camelCase and snake_case for compatibility
-    const workspaceId = body.workspaceId || body.workspace_id;
-    const moduleId = body.moduleId || body.module_id;
-    const billingCycle = body.billingCycle || body.billing_cycle || 'monthly';
+      if (meta?.type !== "module_subscription") {
+        logStep("Not a module subscription checkout, skipping");
+        return new Response(JSON.stringify({ received: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-    if (!workspaceId || !moduleId) {
-      throw new Error("Missing required parameters: workspaceId, moduleId");
-    }
+      const { workspace_id, module_id, module_slug, user_id } = meta;
+      const stripeSubId = session.subscription as string;
 
-    logStep("Request params", { workspaceId, moduleId, billingCycle });
+      logStep("Activating module", { workspace_id, module_id, module_slug });
 
-    // Check if already subscribed
-    const { data: existingSub } = await supabase
-      .from('workspace_module_subscriptions')
-      .select('id, status')
-      .eq('workspace_id', workspaceId)
-      .eq('module_id', moduleId)
-      .single();
-
-    if (existingSub && existingSub.status === 'active') {
-      throw new Error("Already subscribed to this module");
-    }
-
-    // Get module pricing
-    const { data: pricing, error: pricingError } = await supabase
-      .from('module_pricing')
-      .select('*')
-      .eq('module_id', moduleId)
-      .eq('is_active', true)
-      .single();
-
-    if (pricingError || !pricing) {
-      throw new Error("Module pricing not found");
-    }
-
-    logStep("Pricing found", { moduleId, model: pricing.pricing_model, price: pricing.base_price_monthly });
-
-    // If free module, activate directly
-    if (pricing.base_price_monthly === 0 && pricing.pricing_model === 'fixed') {
       const now = new Date();
       const periodEnd = new Date(now);
       periodEnd.setMonth(periodEnd.getMonth() + 1);
 
-      // Create or update subscription in workspace_module_subscriptions
-      const { error: subError } = await supabase
-        .from('workspace_module_subscriptions')
-        .upsert({
-          workspace_id: workspaceId,
-          module_id: moduleId,
-          status: 'active',
-          billing_cycle: billingCycle,
-          current_period_start: now.toISOString(),
-          current_period_end: periodEnd.toISOString(),
-          activated_at: now.toISOString()
-        }, {
-          onConflict: 'workspace_id,module_id'
+      // Activate installation
+      await supabase.from("workspace_modules").upsert({
+        workspace_id,
+        module_id,
+        status: "active",
+        pricing_model: "monthly",
+        stripe_sub_id: stripeSubId,
+        subscribed_by: user_id,
+        subscribed_at: now.toISOString(),
+        current_period_start: now.toISOString(),
+        current_period_end: periodEnd.toISOString(),
+        billing_cycle_start: now.toISOString(),
+        billing_cycle_end: periodEnd.toISOString(),
+      }, { onConflict: "workspace_id,module_id" });
+
+      logStep("Module activated via webhook", { module_slug, stripeSubId });
+    }
+
+    if (event.type === "customer.subscription.deleted" || event.type === "customer.subscription.updated") {
+      const subscription = event.data.object as Stripe.Subscription;
+      const meta = subscription.metadata;
+
+      if (meta?.type !== "module_subscription") {
+        return new Response(JSON.stringify({ received: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
-
-      if (subError) throw subError;
-
-      // Also insert into workspace_modules for the new hook to find
-      const { error: moduleError } = await supabase
-        .from('workspace_modules')
-        .upsert({
-          workspace_id: workspaceId,
-          module_id: moduleId,
-          status: 'active',
-          subscribed_at: now.toISOString(),
-          subscribed_by: user.id,
-          current_period_start: now.toISOString(),
-          current_period_end: periodEnd.toISOString()
-        }, {
-          onConflict: 'workspace_id,module_id'
-        });
-
-      if (moduleError) {
-        logStep("Warning: Could not insert into workspace_modules", { error: moduleError.message });
       }
 
-      // Initialize credit balance
-      if (pricing.credits_included > 0) {
-        await supabase
-          .from('workspace_credit_balances')
-          .upsert({
-            workspace_id: workspaceId,
-            module_id: moduleId,
-            credits_total: pricing.credits_included,
-            credits_used: 0,
-            period_start: now.toISOString(),
-            period_end: periodEnd.toISOString()
-          }, {
-            onConflict: 'workspace_id,module_id,period_start'
-          });
+      const { workspace_id, module_id } = meta;
+
+      if (event.type === "customer.subscription.deleted") {
+        logStep("Cancelling module", { workspace_id, module_id });
+        await supabase.from("workspace_modules")
+          .update({ status: "canceled", cancelled_at: new Date().toISOString() })
+          .eq("workspace_id", workspace_id)
+          .eq("module_id", module_id);
       }
 
-      logStep("Free module activated", { moduleId, workspaceId });
-
-      return new Response(JSON.stringify({ 
-        success: true,
-        message: 'Módulo ativado com sucesso!',
-        subscription: {
-          status: 'active',
-          creditsIncluded: pricing.credits_included
-        }
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
-
-    // For paid modules, create Stripe checkout
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId: string;
-
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-    } else {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: {
-          supabase_user_id: user.id,
-          workspace_id: workspaceId
-        }
-      });
-      customerId = customer.id;
-    }
-
-    const price = billingCycle === 'yearly' ? pricing.base_price_yearly : pricing.base_price_monthly;
-    const origin = req.headers.get("origin") || "https://fastcrm.lovable.app";
-
-    const sessionParams: Stripe.Checkout.SessionCreateParams = {
-      customer: customerId,
-      mode: "subscription",
-      line_items: [{
-        price_data: {
-          currency: pricing.currency.toLowerCase(),
-          product_data: {
-            name: `Módulo: ${moduleId}`,
-            description: `Subscrição ${billingCycle === 'yearly' ? 'anual' : 'mensal'} com ${pricing.credits_included} créditos incluídos`
-          },
-          unit_amount: Math.round(price * 100),
-          recurring: {
-            interval: billingCycle === 'yearly' ? 'year' : 'month'
-          }
-        },
-        quantity: 1
-      }],
-      success_url: `${origin}/dashboard/marketplace?module=${moduleId}&subscription=success`,
-      cancel_url: `${origin}/dashboard/marketplace?module=${moduleId}&subscription=cancelled`,
-      subscription_data: {
-        metadata: {
-          type: 'module_subscription',
-          workspace_id: workspaceId,
-          module_id: moduleId,
-          credits_included: pricing.credits_included.toString(),
-          user_id: user.id
-        }
-      },
-      metadata: {
-        type: 'module_subscription',
-        workspace_id: workspaceId,
-        module_id: moduleId
+      if (event.type === "customer.subscription.updated" && subscription.cancel_at_period_end) {
+        logStep("Module set to cancel at period end", { workspace_id, module_id });
+        await supabase.from("workspace_modules")
+          .update({ cancel_at_period_end: true })
+          .eq("workspace_id", workspace_id)
+          .eq("module_id", module_id);
       }
-    };
-
-    // Add trial if configured
-    if (pricing.trial_days > 0) {
-      sessionParams.subscription_data!.trial_period_days = pricing.trial_days;
     }
 
-    const session = await stripe.checkout.sessions.create(sessionParams);
-
-    logStep("Checkout session created", { sessionId: session.id });
-
-    return new Response(JSON.stringify({ 
-      url: session.url,
-      sessionId: session.id 
-    }), {
+    return new Response(JSON.stringify({ received: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
     });
-
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
+    const msg = error instanceof Error ? error.message : String(error);
+    logStep("ERROR", { message: msg });
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
