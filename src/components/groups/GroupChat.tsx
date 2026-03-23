@@ -7,14 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, Send, Users, Package, UserPlus, MoreVertical, UserMinus } from "lucide-react";
+import { ArrowLeft, Send, Users, Package, UserPlus, MoreVertical, UserMinus, AlertTriangle, Link2 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { AddMemberDialog } from "./AddMemberDialog";
 import { ProductPickerButton } from "./ProductPickerButton";
 import { ProductMessageCard } from "./ProductMessageCard";
+import { TelegramChatPicker } from "./TelegramChatPicker";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -32,8 +34,28 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
   const sendMessage = useSendGroupMessage();
   const [text, setText] = useState("");
   const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [linkTelegramOpen, setLinkTelegramOpen] = useState(false);
+  const [telegramChatId, setTelegramChatId] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
+
+  const needsTelegramLink = (group.group_type === "telegram" || group.group_type === "hybrid") && !group.telegram_chat_id;
+
+  const linkTelegram = useMutation({
+    mutationFn: async () => {
+      if (!telegramChatId.trim()) throw new Error("Chat ID é obrigatório");
+      const { error } = await sb.from("groups").update({ telegram_chat_id: parseInt(telegramChatId) }).eq("id", group.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Telegram ligado com sucesso!");
+      setLinkTelegramOpen(false);
+      // Update the group object in parent
+      group.telegram_chat_id = parseInt(telegramChatId);
+      qc.invalidateQueries({ queryKey: ["groups"] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -49,12 +71,14 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "group_messages", filter: `group_id=eq.${group.id}` },
-        () => {}
+        () => {
+          qc.invalidateQueries({ queryKey: ["group-messages", group.id] });
+        }
       )
       .subscribe();
 
     return () => { (supabase as any).removeChannel(channel); };
-  }, [group.id]);
+  }, [group.id, qc]);
 
   const removeMember = useMutation({
     mutationFn: async (memberId: string) => {
@@ -169,6 +193,38 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
           </SheetContent>
         </Sheet>
       </div>
+
+      {/* Telegram not linked warning */}
+      {needsTelegramLink && (
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/20">
+          <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
+          <p className="text-sm text-amber-600 dark:text-amber-400 flex-1">
+            Este grupo não está ligado ao Telegram. As mensagens não serão enviadas.
+          </p>
+          <Button size="sm" variant="outline" className="shrink-0" onClick={() => setLinkTelegramOpen(true)}>
+            <Link2 className="h-3.5 w-3.5 mr-1.5" /> Ligar Telegram
+          </Button>
+        </div>
+      )}
+
+      {/* Link Telegram Dialog */}
+      <Dialog open={linkTelegramOpen} onOpenChange={setLinkTelegramOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ligar Grupo ao Telegram</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <TelegramChatPicker value={telegramChatId} onChange={setTelegramChatId} />
+            <Button
+              onClick={() => linkTelegram.mutate()}
+              disabled={!telegramChatId.trim() || linkTelegram.isPending}
+              className="w-full"
+            >
+              {linkTelegram.isPending ? "A ligar..." : "Ligar ao Telegram"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Messages */}
       <ScrollArea className="flex-1 p-4" ref={scrollRef as any}>
