@@ -1,3 +1,4 @@
+import { aiGate } from '../ai-gate/index.ts';
 
 
 const corsHeaders = {
@@ -10,6 +11,19 @@ Deno.serve(async (req) => {
 
   try {
     const { content } = await req.json();
+
+    // AI Gate check
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    if (_gateWsId) {
+      const gate = await aiGate(_gateWsId, 'micro', 'community-ai-suggest-title');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     if (!content || content.trim().length < 10) {
       return new Response(JSON.stringify({ suggestions: [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

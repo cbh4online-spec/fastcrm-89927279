@@ -1,3 +1,4 @@
+import { aiGate } from '../ai-gate/index.ts';
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
@@ -54,6 +55,19 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
     const body: RecommendationRequest = await req.json();
+
+    // AI Gate check
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    if (_gateWsId) {
+      const gate = await aiGate(_gateWsId, 'heavy', 'sj-course-recommendations');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const { workspaceId, action, profileId, courseId, profileIds, messageType } = body;
 
     // Fetch all active courses with new fields

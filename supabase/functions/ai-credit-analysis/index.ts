@@ -1,3 +1,4 @@
+import { aiGate } from '../ai-gate/index.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -27,6 +28,19 @@ Deno.serve(async (req) => {
     }
 
     const request: AnalysisRequest = await req.json();
+
+    // AI Gate check
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    if (_gateWsId) {
+      const gate = await aiGate(_gateWsId, 'heavy', 'ai-credit-analysis');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const { mode, proposal, financialProfile, bankPartners, question, action } = request;
 
     console.log(`[VERTICAL-CREDIT] ai-credit-analysis invoked mode=${mode}`);

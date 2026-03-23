@@ -1,3 +1,4 @@
+import { aiGate } from '../ai-gate/index.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { createClient } from '@supabase/supabase-js';
 import { withCache } from '../_shared/cache-manager.ts';
@@ -89,6 +90,19 @@ Deno.serve(async (req) => {
 
     const userId = claimsData.user.id;
     const body: ClientAgentRequest = await req.json();
+
+    // AI Gate check
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    if (_gateWsId) {
+      const gate = await aiGate(_gateWsId, 'agent', 'ai-agent-client');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const { entityId, entityType, workspaceId, triggerType } = body;
 
     if (!entityId || !entityType || !workspaceId) {

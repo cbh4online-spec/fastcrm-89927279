@@ -1,3 +1,4 @@
+import { aiGate } from '../ai-gate/index.ts';
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
@@ -351,7 +352,20 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     let body: { workspace_id?: string } = {};
-    try { body = await req.json(); } catch { /* no body */ }
+    try { body = await req.json();
+
+    // AI Gate check
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    if (_gateWsId) {
+      const gate = await aiGate(_gateWsId, 'heavy', 'compute-revenue-forecast');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+ } catch { /* no body */ }
 
     // Cron mode: iterate all workspaces that have deal_scores
     if (!body.workspace_id) {

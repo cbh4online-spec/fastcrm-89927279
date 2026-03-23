@@ -1,3 +1,4 @@
+import { aiGate } from '../ai-gate/index.ts';
 
 
 const corsHeaders = {
@@ -140,6 +141,19 @@ interface SKUSearchResult {
 
   try {
     const { mode, productName, sku, category, productType, context, theme, categoryName, description, existingCategories, productId: reqProductId, workspaceId: reqWorkspaceId, imageBase64, storeName, settingsType, existingEntries, industryContext } = await req.json() as AssistantRequest & { storeName?: string };
+
+    // AI Gate check
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    if (_gateWsId) {
+      const gate = await aiGate(_gateWsId, 'light', 'ai-product-assistant');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');

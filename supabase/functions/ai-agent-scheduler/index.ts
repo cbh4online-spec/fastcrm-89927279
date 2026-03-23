@@ -1,3 +1,4 @@
+import { aiGate } from '../ai-gate/index.ts';
 /**
  * AI Agent Scheduler
  * 
@@ -38,6 +39,19 @@ Deno.serve(async (req) => {
   };
 
   try {
+
+    // AI Gate check
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    if (_gateWsId) {
+      const gate = await aiGate(_gateWsId, 'agent', 'ai-agent-scheduler');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // Fetch active schedules that are due
     const { data: schedules, error: scheduleError } = await supabase
       .from("ai_agent_schedules")

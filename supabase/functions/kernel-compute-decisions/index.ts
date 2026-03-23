@@ -1,3 +1,4 @@
+import { aiGate } from '../ai-gate/index.ts';
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
@@ -22,6 +23,19 @@ Deno.serve(async (req) => {
 
   try {
     const { workspace_id, events, correlation_id } = await req.json();
+
+    // AI Gate check
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    if (_gateWsId) {
+      const gate = await aiGate(_gateWsId, 'heavy', 'kernel-compute-decisions');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     if (!workspace_id) throw new Error("workspace_id required");
 
     const supabase = createClient(

@@ -1,3 +1,4 @@
+import { aiGate } from '../ai-gate/index.ts';
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -65,6 +66,19 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
     const body: CopilotRequest = await req.json();
+
+    // AI Gate check
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    if (_gateWsId) {
+      const gate = await aiGate(_gateWsId, 'heavy', 'sj-copilot');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const { workspaceId, action, studentId, cohortId, enrollmentId, userMessage, interests, messageContext, automationDescription, courseId, recommendationId, matchScore, matchReasons } = body;
 
     // Fetch context data based on action

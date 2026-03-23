@@ -1,3 +1,4 @@
+import { aiGate } from '../ai-gate/index.ts';
 /**
  * AI Agent Job Processor
  * 
@@ -60,6 +61,19 @@ Deno.serve(async (req) => {
     let workspaceFilter: string | null = null;
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
+
+    // AI Gate check
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    if (_gateWsId) {
+      const gate = await aiGate(_gateWsId, 'agent', 'ai-agent-processor');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
       workspaceFilter = body.workspaceId || null;
     }
 
