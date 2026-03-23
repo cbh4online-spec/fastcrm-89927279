@@ -1,34 +1,38 @@
 
 
-## Editar e Apagar Grupos
+## Corrigir envio de produto no Telegram + botão Comprar no card do chat
 
-### O que falta
-Não existe UI nem hooks para editar ou apagar grupos. Só é possível criar e visualizar.
+### Problema 1 — Edge function `telegram-send` usa colunas erradas
+A função consulta `price` e `description` que **não existem** na tabela `products`. Os campos corretos são `base_price`, `short_description`, `currency`, `images` e `primary_image_index`. Também tenta join com `product_images` mas os produtos usam o array `images` directamente.
+
+### Problema 2 — Sem link de compra no Telegram
+Quando envia produto para o Telegram, não inclui link para a loja.
+
+### Problema 3 — Card do chat sem botão "Comprar"
+O `ProductMessageCard` mostra imagem e preço mas não tem link/botão para a página do produto na loja.
+
+---
 
 ### Alterações
 
-#### 1. Hook `useGroups.ts` — adicionar `useUpdateGroup` e `useDeleteGroup`
+#### 1. `supabase/functions/telegram-send/index.ts` — corrigir query de produto
 
-- **`useUpdateGroup`**: mutation que faz `sb.from("groups").update({...}).eq("id", groupId)` — permite alterar nome, descrição, tipo, objectivo, telegram_chat_id
-- **`useDeleteGroup`**: mutation que faz `sb.from("groups").delete().eq("id", groupId)` — apaga o grupo e membros/mensagens em cascata (se FK configurada) ou soft-delete via `is_archived = true`
+No case `sendProduct` e `broadcast`:
+- Mudar `.select('name, description, price, sku, product_images(url)')` para `.select('name, short_description, base_price, sku, images, primary_image_index, currency, workspace_id')`
+- Extrair imagem do array `images` usando `primary_image_index` (mesmo padrão do frontend)
+- Buscar `store_slug` do `store_settings` usando o `workspace_id` do produto
+- Construir URL de compra: `https://fastcrm.metodopare.ai/store/{slug}/product/{id}`
+- Formatar preço com currency correcto
+- Adicionar link "🛒 Comprar" no texto da mensagem (inline link HTML)
+- Usar `sendPhoto` com a imagem do array `images` se disponível
 
-#### 2. `GroupsView.tsx` — menu de contexto nos cards
+#### 2. `src/components/groups/ProductMessageCard.tsx` — adicionar botão Comprar
 
-Adicionar `DropdownMenu` com ícone `MoreVertical` no canto superior direito de cada card de grupo:
-- **Editar** → abre dialog pré-preenchido (reutiliza o formulário de criação com os valores actuais)
-- **Apagar** → abre `AlertDialog` de confirmação antes de executar
-
-O dialog de edição será o mesmo formulário de criação, mas com:
-- Título "Editar Grupo"
-- Campos pré-preenchidos com `group.name`, `group.description`, etc.
-- Botão "Guardar alterações"
-
-#### 3. `GroupChat.tsx` — botão de editar/apagar no header
-
-Adicionar `DropdownMenu` no header do chat (junto ao botão de membros) com opções "Editar grupo" e "Apagar grupo", usando os mesmos dialogs.
+- Buscar `store_slug` do workspace via query ao `store_settings` (ou passar como prop)
+- Adicionar botão/link "Comprar" com ícone `ExternalLink` que abre `/store/{slug}/product/{id}` em nova tab
+- Usar `getPublicBaseUrl()` para construir o URL correcto
 
 ### Ficheiros alterados
-- `src/hooks/useGroups.ts` — 2 novos hooks
-- `src/components/groups/GroupsView.tsx` — dropdown nos cards + dialog de edição + dialog de confirmação de apagar
-- `src/components/groups/GroupChat.tsx` — dropdown no header com editar/apagar
+- `supabase/functions/telegram-send/index.ts`
+- `src/components/groups/ProductMessageCard.tsx`
 
