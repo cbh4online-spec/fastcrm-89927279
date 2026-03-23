@@ -20319,6 +20319,148 @@ export type Database = {
           },
         ]
       }
+      imo_growth_insights: {
+        Row: {
+          channel_analysis: Json | null
+          created_at: string
+          expires_at: string
+          generated_at: string
+          growth_score: number | null
+          growth_score_delta: number | null
+          growth_summary: string | null
+          id: string
+          is_stale: boolean
+          opportunities: Json | null
+          quick_wins: Json | null
+          reactivation_targets: Json | null
+          roadmap_90d: Json | null
+          segment_analysis: Json | null
+          tokens_used: number | null
+          top_priority: string | null
+          workspace_id: string
+        }
+        Insert: {
+          channel_analysis?: Json | null
+          created_at?: string
+          expires_at?: string
+          generated_at?: string
+          growth_score?: number | null
+          growth_score_delta?: number | null
+          growth_summary?: string | null
+          id?: string
+          is_stale?: boolean
+          opportunities?: Json | null
+          quick_wins?: Json | null
+          reactivation_targets?: Json | null
+          roadmap_90d?: Json | null
+          segment_analysis?: Json | null
+          tokens_used?: number | null
+          top_priority?: string | null
+          workspace_id: string
+        }
+        Update: {
+          channel_analysis?: Json | null
+          created_at?: string
+          expires_at?: string
+          generated_at?: string
+          growth_score?: number | null
+          growth_score_delta?: number | null
+          growth_summary?: string | null
+          id?: string
+          is_stale?: boolean
+          opportunities?: Json | null
+          quick_wins?: Json | null
+          reactivation_targets?: Json | null
+          roadmap_90d?: Json | null
+          segment_analysis?: Json | null
+          tokens_used?: number | null
+          top_priority?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imo_growth_insights_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      imo_market_insights: {
+        Row: {
+          competitive_signals: Json | null
+          created_at: string
+          demand_calendar: Json | null
+          dominant_sectors: string[] | null
+          expires_at: string
+          generated_at: string
+          id: string
+          is_stale: boolean
+          key_findings: string[] | null
+          low_months: string[] | null
+          market_signals: Json | null
+          market_summary: string | null
+          peak_months: string[] | null
+          period_end: string
+          period_start: string
+          sector_distribution: Json | null
+          tokens_used: number | null
+          untapped_segments: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          competitive_signals?: Json | null
+          created_at?: string
+          demand_calendar?: Json | null
+          dominant_sectors?: string[] | null
+          expires_at?: string
+          generated_at?: string
+          id?: string
+          is_stale?: boolean
+          key_findings?: string[] | null
+          low_months?: string[] | null
+          market_signals?: Json | null
+          market_summary?: string | null
+          peak_months?: string[] | null
+          period_end: string
+          period_start: string
+          sector_distribution?: Json | null
+          tokens_used?: number | null
+          untapped_segments?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          competitive_signals?: Json | null
+          created_at?: string
+          demand_calendar?: Json | null
+          dominant_sectors?: string[] | null
+          expires_at?: string
+          generated_at?: string
+          id?: string
+          is_stale?: boolean
+          key_findings?: string[] | null
+          low_months?: string[] | null
+          market_signals?: Json | null
+          market_summary?: string | null
+          peak_months?: string[] | null
+          period_end?: string
+          period_start?: string
+          sector_distribution?: Json | null
+          tokens_used?: number | null
+          untapped_segments?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imo_market_insights_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       impact_map: {
         Row: {
           affected_id: string
