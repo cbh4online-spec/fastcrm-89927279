@@ -80,8 +80,8 @@ export const EDGE_FUNCTION_CATEGORIES: Record<string, string[]> = {
     "create-store-checkout", "create-sponsor-checkout"
   ],
   "Módulos & Marketplace": [
-    "module-check-credits", "module-checkout", "module-consume-credits",
-    "module-context-bridge", "module-purchase-credits", "module-sso-generate-token",
+    "extension-check", "module-checkout", "extension-provisioner",
+    "module-context-bridge", "module-sso-generate-token",
     "module-sso-validate-token", "module-subscribe", "module-usage-stats"
   ],
   "Knowledge Base & RAG": [
