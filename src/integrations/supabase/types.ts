@@ -29698,6 +29698,133 @@ export type Database = {
           },
         ]
       }
+      product_recommendations: {
+        Row: {
+          acted_on_at: string | null
+          calc_collaborative_score: number | null
+          calc_history_score: number | null
+          calc_profile_score: number | null
+          calc_semantic_score: number | null
+          company_id: string | null
+          confidence: string | null
+          contact_id: string | null
+          converted_value: number | null
+          created_at: string | null
+          dismissed_reason: string | null
+          expires_at: string | null
+          generated_at: string | null
+          generated_by: string | null
+          id: string
+          lead_id: string | null
+          product_id: string
+          reason: string | null
+          reason_tags: string[] | null
+          score: number
+          shown_at: string | null
+          status: string | null
+          strategy: string
+          trigger_module: string | null
+          workspace_id: string
+        }
+        Insert: {
+          acted_on_at?: string | null
+          calc_collaborative_score?: number | null
+          calc_history_score?: number | null
+          calc_profile_score?: number | null
+          calc_semantic_score?: number | null
+          company_id?: string | null
+          confidence?: string | null
+          contact_id?: string | null
+          converted_value?: number | null
+          created_at?: string | null
+          dismissed_reason?: string | null
+          expires_at?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          lead_id?: string | null
+          product_id: string
+          reason?: string | null
+          reason_tags?: string[] | null
+          score?: number
+          shown_at?: string | null
+          status?: string | null
+          strategy: string
+          trigger_module?: string | null
+          workspace_id: string
+        }
+        Update: {
+          acted_on_at?: string | null
+          calc_collaborative_score?: number | null
+          calc_history_score?: number | null
+          calc_profile_score?: number | null
+          calc_semantic_score?: number | null
+          company_id?: string | null
+          confidence?: string | null
+          contact_id?: string | null
+          converted_value?: number | null
+          created_at?: string | null
+          dismissed_reason?: string | null
+          expires_at?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          lead_id?: string | null
+          product_id?: string
+          reason?: string | null
+          reason_tags?: string[] | null
+          score?: number
+          shown_at?: string | null
+          status?: string | null
+          strategy?: string
+          trigger_module?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_recommendations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_recommendations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_recommendations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_recommendations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_recommendations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_recommendations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_relations: {
         Row: {
           created_at: string
@@ -31928,6 +32055,104 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "rag_retrieval_metrics_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recommendation_config: {
+        Row: {
+          created_at: string | null
+          enabled: boolean | null
+          id: string
+          max_recommendations: number | null
+          min_score_threshold: number | null
+          updated_at: string | null
+          weight_collaborative: number | null
+          weight_history: number | null
+          weight_profile: number | null
+          weight_semantic: number | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          max_recommendations?: number | null
+          min_score_threshold?: number | null
+          updated_at?: string | null
+          weight_collaborative?: number | null
+          weight_history?: number | null
+          weight_profile?: number | null
+          weight_semantic?: number | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          max_recommendations?: number | null
+          min_score_threshold?: number | null
+          updated_at?: string | null
+          weight_collaborative?: number | null
+          weight_history?: number | null
+          weight_profile?: number | null
+          weight_semantic?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendation_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recommendation_feedback: {
+        Row: {
+          context_module: string | null
+          created_at: string | null
+          created_by: string | null
+          feedback: string
+          id: string
+          notes: string | null
+          recommendation_id: string
+          workspace_id: string
+        }
+        Insert: {
+          context_module?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          feedback: string
+          id?: string
+          notes?: string | null
+          recommendation_id: string
+          workspace_id: string
+        }
+        Update: {
+          context_module?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          feedback?: string
+          id?: string
+          notes?: string | null
+          recommendation_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendation_feedback_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "product_recommendations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendation_feedback_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
