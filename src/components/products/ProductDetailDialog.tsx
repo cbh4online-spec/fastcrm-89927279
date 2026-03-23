@@ -41,6 +41,7 @@ import {
   ClipboardList,
   Video,
   Link2,
+  FileText,
 } from "lucide-react";
 import { LocationMapEmbed } from "./LocationMapEmbed";
 import { format } from "date-fns";
