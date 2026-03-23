@@ -47,8 +47,8 @@ export function useProductTags(productId?: string) {
 
   const removeTag = useMutation({
     mutationFn: async (tagId: string) => {
-      const { error } = await supabase
-        .from("product_tags" as any)
+      const { error } = await (supabase as any)
+        .from("product_tags")
         .delete()
         .eq("id", tagId);
       if (error) throw error;
