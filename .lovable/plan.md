@@ -1,38 +1,43 @@
 
 
-## Corrigir envio de produto no Telegram + botão Comprar no card do chat
+## Análise: IA Operacional Transversal no FastCRM
 
-### Problema 1 — Edge function `telegram-send` usa colunas erradas
-A função consulta `price` e `description` que **não existem** na tabela `products`. Os campos corretos são `base_price`, `short_description`, `currency`, `images` e `primary_image_index`. Também tenta join com `product_images` mas os produtos usam o array `images` directamente.
+### O que JÁ EXISTE (implementado)
 
-### Problema 2 — Sem link de compra no Telegram
-Quando envia produto para o Telegram, não inclui link para a loja.
+Após análise extensiva do código, **a grande maioria do que pedes já está construída**:
 
-### Problema 3 — Card do chat sem botão "Comprar"
-O `ProductMessageCard` mostra imagem e preço mas não tem link/botão para a página do produto na loja.
+| Camada | Estado | Componentes existentes |
+|--------|--------|----------------------|
+| **1. Context OS** | ✅ Completo | 8 blocos (Estratégia, ICP, Ofertas, Equipa, Metas, Processos, Scripts), Context Score, Drift Score, Impact Map, Wizard onboarding |
+| **2. Event System** | ✅ Completo | `eventBus` (mitt), `kernelEmitter`, `context_event_log`, triggers em ~30 tabelas, automações com triggers (lead_created, message_received, etc.) |
+| **3. Decision Layer** | ✅ Completo | Kernel Decision Engine, regras estratégicas (Churn Risk, Funnel Leak, Hot Lead), next best actions, KPI impact |
+| **4. AI Sales Copilot** | ✅ Completo | `OpportunityAIInsightsSection`, `DealIntelligence` (health score, risk drivers, NBA), `AgentQueueStatus`, `EntityMemoryPanel` no detalhe de oportunidade |
+| **5. AI Communications Intelligence** | ✅ Completo | `ConversationIntelligencePanel` na inbox (buying intent, objections, urgency, drop-off risk, suggested next step, tags, alerts) |
+| **6. Daily Brief** | ✅ Completo | `DailyBriefWidget`, `ExecutiveBriefWidget`, Weekly War Room, Revenue Radar, CEO Copilot |
+| **7. Score Layer** | ✅ Completo | Lead Score (com fatores explicáveis), Deal Health Score (com risk drivers), Churn Risk, Conversation Signals (trust_score, churn_risk, close_probability) |
+| **8. UX Dark SaaS** | ✅ Completo | Tema dark premium, DashboardLayout com sidebar dinâmica |
+
+### O que FALTA ou pode ser melhorado
+
+Existem apenas **lacunas menores de integração**, não de funcionalidade:
+
+1. **Secção "Como levar para produção"** — Não existe em nenhuma página. É uma camada de documentação/guia in-app que mostra dados necessários, automações sugeridas e KPIs relevantes para cada módulo.
+
+2. **Consumo unificado do Context OS pela IA** — Embora o Context OS exista e as edge functions de IA existam, nem todas as funções de IA injectam automaticamente o contexto do workspace (ICP, ofertas, tom de voz) no prompt. Algumas usam, outras não.
+
+3. **Response Quality Score** — Mencionado no pedido mas não existe como score isolado. A `ConversationIntelligencePanel` analisa qualidade mas não gera um score numérico persistido.
 
 ---
 
-### Alterações
+### Recomendação
 
-#### 1. `supabase/functions/telegram-send/index.ts` — corrigir query de produto
+Dado que **~95% já está implementado**, sugiro focar nas lacunas reais:
 
-No case `sendProduct` e `broadcast`:
-- Mudar `.select('name, description, price, sku, product_images(url)')` para `.select('name, short_description, base_price, sku, images, primary_image_index, currency, workspace_id')`
-- Extrair imagem do array `images` usando `primary_image_index` (mesmo padrão do frontend)
-- Buscar `store_slug` do `store_settings` usando o `workspace_id` do produto
-- Construir URL de compra: `https://fastcrm.metodopare.ai/store/{slug}/product/{id}`
-- Formatar preço com currency correcto
-- Adicionar link "🛒 Comprar" no texto da mensagem (inline link HTML)
-- Usar `sendPhoto` com a imagem do array `images` se disponível
+**Opção A — Secção "Como levar para produção"**: Adicionar um componente reutilizável `ProductionGuideSection` que aparece no fundo de cada página principal, mostrando checklist de dados necessários, automações activas/sugeridas e KPIs do módulo.
 
-#### 2. `src/components/groups/ProductMessageCard.tsx` — adicionar botão Comprar
+**Opção B — Context Injection padronizado**: Criar um helper partilhado nas edge functions que carrega automaticamente o Context OS (ICP, ofertas, tom de voz, metas) e o injecta como system prompt em todas as chamadas de IA.
 
-- Buscar `store_slug` do workspace via query ao `store_settings` (ou passar como prop)
-- Adicionar botão/link "Comprar" com ícone `ExternalLink` que abre `/store/{slug}/product/{id}` em nova tab
-- Usar `getPublicBaseUrl()` para construir o URL correcto
+**Opção C — Response Quality Score**: Adicionar score numérico (0-100) às respostas enviadas, baseado em tom de voz, personalização e alinhamento com o ICP.
 
-### Ficheiros alterados
-- `supabase/functions/telegram-send/index.ts`
-- `src/components/groups/ProductMessageCard.tsx`
+Queres que avance com alguma destas opções, ou preferes uma visão unificada (landing page/hub) que mostre todas estas camadas já existentes num só lugar?
 
