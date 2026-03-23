@@ -1,5 +1,5 @@
-import Stripe from "stripe";
-import { createClient } from "@supabase/supabase-js";
+import Stripe from "https://esm.sh/stripe@18.5.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,8 +7,7 @@ const corsHeaders = {
 };
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[MODULE-CHECKOUT] ${step}${detailsStr}`);
+  console.log(`[MODULE-CHECKOUT] ${step}${details ? ` - ${JSON.stringify(details)}` : ''}`);
 };
 
 Deno.serve(async (req) => {
@@ -22,140 +21,141 @@ Deno.serve(async (req) => {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false },
-    });
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } }
+    );
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header");
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError) throw new Error(`Auth error: ${userError.message}`);
-    
-    const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !user?.email) throw new Error("User not authenticated");
+    logStep("User authenticated", { userId: user.id });
 
-    const { moduleId, moduleName, workspaceId } = await req.json();
-    logStep("Request data", { moduleId, moduleName, workspaceId });
+    const { moduleId, workspaceId } = await req.json();
+    if (!moduleId || !workspaceId) throw new Error("moduleId and workspaceId are required");
 
-    // Get module pricing from marketplace_modules
-    const { data: module, error: moduleError } = await supabase
+    // Verify membership
+    const { data: member } = await supabase
+      .from("workspace_members")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!member) throw new Error("Not a workspace member");
+
+    // Get module
+    const { data: mod, error: modErr } = await supabase
       .from("marketplace_modules")
-      .select("id, name, slug, pricing")
+      .select("id, name, slug, pricing_model, price_eur, stripe_price_id")
       .eq("id", moduleId)
-      .single();
+      .maybeSingle();
 
-    if (moduleError || !module) {
-      throw new Error("Module not found");
+    if (modErr || !mod) throw new Error("Module not found");
+    logStep("Module found", { slug: mod.slug, pricing_model: mod.pricing_model });
+
+    // FREE / INCLUDED / TEMPLATE → install directly via provisioner
+    if (mod.pricing_model === "free" || mod.pricing_model === "included" || mod.pricing_model === "template") {
+      // Upsert workspace_modules
+      const now = new Date().toISOString();
+      await supabase.from("workspace_modules").upsert({
+        workspace_id: workspaceId,
+        module_id: mod.id,
+        status: "active",
+        pricing_model: mod.pricing_model,
+        price_eur: 0,
+        subscribed_by: user.id,
+        subscribed_at: now,
+        current_period_start: now,
+      }, { onConflict: "workspace_id,module_id" });
+
+      logStep("Module installed directly", { slug: mod.slug });
+
+      return new Response(JSON.stringify({
+        success: true,
+        action: "installed",
+        message: `Módulo ${mod.name} instalado com sucesso!`,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-    logStep("Module found", { moduleId: module.id, name: module.name });
 
-    // Get or create Stripe price for this module
-    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
-    
-    // Find existing customer
+    // MONTHLY → Create Stripe Checkout Session
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+
+    // Find or create customer
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId: string | undefined;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
-      logStep("Existing customer found", { customerId });
     }
 
-    // Get module price from pricing JSON
-    const pricing = module.pricing as { base_price?: number; type?: string } | null;
-    const basePrice = pricing?.base_price || 9.99;
-    const priceInCents = Math.round(basePrice * 100);
-
-    // Search for existing price or create new one
-    let priceId: string;
-    
-    // Try to find existing product
-    const products = await stripe.products.search({
-      query: `metadata['module_id']:'${moduleId}'`,
-    });
-
-    if (products.data.length > 0) {
-      // Use existing product, get its price
-      const existingProduct = products.data[0];
-      const prices = await stripe.prices.list({ product: existingProduct.id, active: true });
-      
-      if (prices.data.length > 0) {
-        priceId = prices.data[0].id;
-        logStep("Using existing price", { priceId, productId: existingProduct.id });
-      } else {
-        // Create price for existing product
-        const newPrice = await stripe.prices.create({
-          product: existingProduct.id,
-          unit_amount: priceInCents,
-          currency: "eur",
-          recurring: { interval: "month" },
-        });
-        priceId = newPrice.id;
-        logStep("Created new price for existing product", { priceId });
-      }
-    } else {
-      // Create new product and price
-      const newProduct = await stripe.products.create({
-        name: `FastCRM Module: ${module.name}`,
-        description: `Módulo ${module.name} para FastCRM`,
-        metadata: {
-          module_id: moduleId,
-          module_slug: module.slug,
-        },
-      });
-
-      const newPrice = await stripe.prices.create({
-        product: newProduct.id,
-        unit_amount: priceInCents,
-        currency: "eur",
-        recurring: { interval: "month" },
-      });
-      priceId = newPrice.id;
-      logStep("Created new product and price", { productId: newProduct.id, priceId });
-    }
-
-    // Create checkout session
     const origin = req.headers.get("origin") || "https://fastcrm.lovable.app";
-    
+
+    // Use stripe_price_id if available, otherwise create price_data
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = mod.stripe_price_id
+      ? [{ price: mod.stripe_price_id, quantity: 1 }]
+      : [{
+          price_data: {
+            currency: "eur",
+            product_data: {
+              name: `FastCRM Module: ${mod.name}`,
+              description: `Subscrição mensal do módulo ${mod.name}`,
+            },
+            unit_amount: Math.round(mod.price_eur * 100),
+            recurring: { interval: "month" },
+          },
+          quantity: 1,
+        }];
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: lineItems,
       mode: "subscription",
-      success_url: `${origin}/dashboard/marketplace?success=true&module=${module.slug}`,
-      cancel_url: `${origin}/dashboard/marketplace?canceled=true&module=${module.slug}`,
+      success_url: `${origin}/dashboard/marketplace?success=true&module=${mod.slug}`,
+      cancel_url: `${origin}/dashboard/marketplace?canceled=true&module=${mod.slug}`,
       metadata: {
+        type: "module_subscription",
         user_id: user.id,
         module_id: moduleId,
-        module_slug: module.slug,
-        workspace_id: workspaceId || "",
+        module_slug: mod.slug,
+        workspace_id: workspaceId,
       },
       subscription_data: {
         metadata: {
+          type: "module_subscription",
           user_id: user.id,
           module_id: moduleId,
-          module_slug: module.slug,
-          workspace_id: workspaceId || "",
+          module_slug: mod.slug,
+          workspace_id: workspaceId,
         },
       },
     });
 
-    logStep("Checkout session created", { sessionId: session.id, url: session.url });
+    // Create pending installation
+    await supabase.from("workspace_modules").upsert({
+      workspace_id: workspaceId,
+      module_id: mod.id,
+      status: "pending",
+      pricing_model: "monthly",
+      price_eur: mod.price_eur,
+      subscribed_by: user.id,
+    }, { onConflict: "workspace_id,module_id" });
 
-    return new Response(JSON.stringify({ url: session.url }), {
+    logStep("Checkout session created", { sessionId: session.id });
+
+    return new Response(JSON.stringify({ url: session.url, sessionId: session.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
+    const msg = error instanceof Error ? error.message : String(error);
+    logStep("ERROR", { message: msg });
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
