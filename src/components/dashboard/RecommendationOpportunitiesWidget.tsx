@@ -63,10 +63,10 @@ export function RecommendationOpportunitiesWidget() {
         supabase.from("products").select("id, name, base_price").in("id", productIds).then(r => r.data ?? []),
       ]);
 
-      const contactMap = new Map(contacts.map(c => [c.id, `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim()]));
-      const companyMap = new Map(companies.map(c => [c.id, c.name]));
-      const leadMap = new Map(leads.map(l => [l.id, l.name]));
-      const productMap = new Map(products.map(p => [p.id, p.name]));
+      const contactMap = new Map<string, string>(contacts.map(c => [c.id, `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim()]));
+      const companyMap = new Map<string, string>(companies.map(c => [c.id, c.name]));
+      const leadMap = new Map<string, string>(leads.map(l => [l.id, l.name]));
+      const productMap = new Map<string, string>(products.map(p => [p.id, p.name]));
 
       return recs.map(rec => {
         const entityName = rec.contact_id
