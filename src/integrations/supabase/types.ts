@@ -30046,6 +30046,67 @@ export type Database = {
           },
         ]
       }
+      product_spec_attributes: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          id: string
+          product_id: string
+          spec_group: string | null
+          spec_key: string
+          spec_value: string
+          unit: string | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          product_id: string
+          spec_group?: string | null
+          spec_key: string
+          spec_value: string
+          unit?: string | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          product_id?: string
+          spec_group?: string | null
+          spec_key?: string
+          spec_value?: string
+          unit?: string | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_spec_attributes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_spec_attributes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_spec_attributes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_tier_prices: {
         Row: {
           created_at: string
@@ -35948,6 +36009,44 @@ export type Database = {
           },
           {
             foreignKeyName: "sj_touchpoints_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spec_attribute_templates: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          id: string
+          spec_keys: Json
+          template_name: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          spec_keys?: Json
+          template_name: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          spec_keys?: Json
+          template_name?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spec_attribute_templates_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
