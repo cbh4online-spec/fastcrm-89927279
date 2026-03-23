@@ -111,6 +111,12 @@ export function EntityOverviewSection({
           isLoading={isGeneratingSuggestions}
         />
 
+        {/* AI Tag/Field Suggestions */}
+        <EntitySuggestionsPanel
+          entityType={entityType as SuggestionEntityType}
+          entityId={entity.id}
+        />
+
         {/* Recent Activity */}
         <Card>
           <CardHeader className="pb-3">

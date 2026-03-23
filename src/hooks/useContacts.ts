@@ -185,6 +185,10 @@ export function useContacts() {
           },
         });
       }
+      // Fire-and-forget: generate AI tag suggestions
+      supabase.functions.invoke('ai-entity-tags', {
+        body: { entity_type: 'contact', entity_id: data.id, workspace_id: currentWorkspace?.id },
+      }).catch(() => {});
       toast.success("Contacto criado com sucesso");
     },
     onError: (error) => {

@@ -290,6 +290,10 @@ export function useCreateLead() {
           correlation_id: generateRequestId(),
         });
       }
+      // Fire-and-forget: generate AI tag suggestions
+      supabase.functions.invoke('ai-entity-tags', {
+        body: { entity_type: 'lead', entity_id: data.id, workspace_id: currentWorkspace?.id },
+      }).catch(() => {});
     },
     onError: (error) => {
       console.error("Error creating lead:", error);

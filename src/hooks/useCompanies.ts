@@ -240,7 +240,10 @@ export function useCompanies() {
           },
         });
       }
-    },
+      // Fire-and-forget: generate AI tag suggestions
+      supabase.functions.invoke('ai-entity-tags', {
+        body: { entity_type: 'company', entity_id: company.id, workspace_id: currentWorkspace?.id },
+      }).catch(() => {});
     onError: (error) => {
       console.warn('[COMPANIES] CREATE_FAILED', error.message);
       if (error.message === "DUPLICATE_EMAIL") {
