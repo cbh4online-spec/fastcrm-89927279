@@ -222,6 +222,7 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
             </div>
           </SheetContent>
         </Sheet>
+        </div>
       </div>
 
       {/* Telegram not linked warning */}
