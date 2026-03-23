@@ -21,19 +21,6 @@ import {
   Cpu,
   BarChart3,
 } from "lucide-react";
-  Zap,
-  SlidersHorizontal,
-  TrendingUp,
-  Sparkles,
-  Brain,
-  History,
-  Lightbulb,
-  Bot,
-  Target,
-  FileText,
-  Calendar,
-  Database,
-} from "lucide-react";
 import { AgentSchedulesManager } from "@/components/ai-agents/AgentSchedulesManager";
 import { CacheMetricsDashboard } from "@/components/ai-agents/CacheMetricsDashboard";
 import { LeadRoutingConfig } from "@/components/plg/LeadRoutingConfig";
