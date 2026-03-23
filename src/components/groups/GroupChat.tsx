@@ -36,10 +36,19 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
   const { data: messages, isLoading } = useGroupMessages(group.id);
   const { data: members } = useGroupMembers(group.id);
   const sendMessage = useSendGroupMessage();
+  const updateGroupMut = useUpdateGroup();
+  const deleteGroupMut = useDeleteGroup();
   const [text, setText] = useState("");
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [linkTelegramOpen, setLinkTelegramOpen] = useState(false);
   const [telegramChatId, setTelegramChatId] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editName, setEditName] = useState(group.name);
+  const [editDescription, setEditDescription] = useState(group.description || "");
+  const [editType, setEditType] = useState(group.group_type);
+  const [editPurpose, setEditPurpose] = useState(group.purpose);
+  const [editTelegramChatId, setEditTelegramChatId] = useState(group.telegram_chat_id ? String(group.telegram_chat_id) : "");
   const scrollRef = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
 
