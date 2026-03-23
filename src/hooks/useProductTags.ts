@@ -70,8 +70,8 @@ export function useWorkspaceTags() {
   return useQuery({
     queryKey: ["workspace-tags", currentWorkspace?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("product_tags" as any)
+      const { data, error } = await (supabase as any)
+        .from("product_tags")
         .select("tag")
         .eq("workspace_id", currentWorkspace!.id);
       if (error) throw error;
