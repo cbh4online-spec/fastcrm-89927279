@@ -562,6 +562,15 @@ export function ProductDetailDialog({
               <TabsContent value="deliverables" className="mt-4">
                 <ProductDeliverablesManager productId={product.id} />
               </TabsContent>
+
+              <TabsContent value="price-history" className="mt-4">
+                <ProductPriceHistoryTab
+                  productId={product.id}
+                  currentPrice={product.base_price}
+                  costPrice={product.direct_cost}
+                  currency={product.currency}
+                />
+              </TabsContent>
             </Tabs>
           </ScrollArea>
         </DialogContent>
