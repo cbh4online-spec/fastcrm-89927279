@@ -236,6 +236,8 @@ export function useUpdateProduct() {
       if (input.labor_notes !== undefined) updateData.labor_notes = input.labor_notes;
       // B2B Portal visibility
       if (input.b2b_published !== undefined) updateData.b2b_published = input.b2b_published;
+      // Barcode
+      if (input.barcode !== undefined) updateData.barcode = input.barcode;
 
       const { data, error } = await supabase
         .from("products")
