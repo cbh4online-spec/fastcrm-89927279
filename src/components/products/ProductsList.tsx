@@ -374,7 +374,7 @@ export function ProductsList() {
     );
 
     return groups;
-  }, [productTypesConfig, billingTypesConfig, categories]);
+  }, [productTypesConfig, billingTypesConfig, categories, workspaceTags]);
 
   // Filter and search - apply all filters including smart filters and billing
   const filteredProducts = useMemo(() => {
