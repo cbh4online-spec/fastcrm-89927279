@@ -35,7 +35,7 @@ export function ProductionGuideSection({ config }: { config: ProductionGuideConf
           </span>
           <span className={cn(
             "text-xs px-2 py-0.5 rounded-full font-medium",
-            pct === 100 ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+            pct === 100 ? "bg-primary/20 text-primary" : "bg-accent text-accent-foreground"
           )}>
             {pct}% pronto
           </span>
@@ -54,7 +54,7 @@ export function ProductionGuideSection({ config }: { config: ProductionGuideConf
               {config.dataChecklist.map((item, i) => (
                 <li key={i} className="flex items-start gap-2 text-xs">
                   {item.done ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" />
+                    <CheckCircle2 className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
                   ) : (
                     <Circle className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
                   )}
@@ -78,7 +78,7 @@ export function ProductionGuideSection({ config }: { config: ProductionGuideConf
                   <div className="flex items-center gap-1.5">
                     <span className={cn(
                       "h-1.5 w-1.5 rounded-full shrink-0",
-                      auto.active ? "bg-emerald-500" : "bg-muted-foreground"
+                      auto.active ? "bg-primary" : "bg-muted-foreground"
                     )} />
                     <span className="font-medium text-foreground">{auto.name}</span>
                   </div>
