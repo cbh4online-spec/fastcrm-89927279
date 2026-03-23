@@ -40,6 +40,8 @@ Deno.serve(async (req) => {
   try {
     const { kpiData, industryType } = await req.json() as {
       kpiData: CoreKPIs;
+      industryType: string;
+    };
 
     // AI Gate check
     const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
@@ -52,9 +54,6 @@ Deno.serve(async (req) => {
         });
       }
     }
-
-      industryType: string;
-    };
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
