@@ -387,6 +387,9 @@ export function ProductDetailDialog({
                   </>
                 )}
 
+                {/* Tags */}
+                <ProductTagsEditor productId={product.id} />
+
                 {/* Location Map */}
                 {(product as any).location && (
                   <>
