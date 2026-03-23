@@ -246,6 +246,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
   const [feedUrl, setFeedUrl] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
   const [isEnrichingPrices, setIsEnrichingPrices] = useState(false);
+  const [isEnrichingEAN, setIsEnrichingEAN] = useState(false);
 
   // Mapping phase state
   const [allCsvHeaders, setAllCsvHeaders] = useState<string[]>([]);
