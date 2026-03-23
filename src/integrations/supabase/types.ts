@@ -15129,6 +15129,199 @@ export type Database = {
           },
         ]
       }
+      document_extraction_templates: {
+        Row: {
+          avg_confidence: number | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          document_type: string
+          extraction_schema: Json
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          prompt_template: string | null
+          required_fields: string[] | null
+          slug: string
+          success_rate: number | null
+          updated_at: string | null
+          usage_count: number | null
+          validation_rules: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          avg_confidence?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          document_type: string
+          extraction_schema?: Json
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          prompt_template?: string | null
+          required_fields?: string[] | null
+          slug: string
+          success_rate?: number | null
+          updated_at?: string | null
+          usage_count?: number | null
+          validation_rules?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          avg_confidence?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          document_type?: string
+          extraction_schema?: Json
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          prompt_template?: string | null
+          required_fields?: string[] | null
+          slug?: string
+          success_rate?: number | null
+          updated_at?: string | null
+          usage_count?: number | null
+          validation_rules?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_extraction_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_processing_jobs: {
+        Row: {
+          classification_confidence: number | null
+          classification_reasoning: string | null
+          completed_at: string | null
+          created_at: string | null
+          created_by: string
+          custom_fields: Json | null
+          document_subtype: string | null
+          document_type: string | null
+          error_message: string | null
+          extracted_data: Json | null
+          extracted_entities: Json | null
+          extraction_confidence: number | null
+          extraction_schema: string | null
+          file_hash: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id: string
+          indexed_at: string | null
+          knowledge_document_id: string | null
+          ocr_confidence: number | null
+          ocr_duration_ms: number | null
+          ocr_engine: string | null
+          ocr_pages: number | null
+          ocr_text: string | null
+          progress: number | null
+          retry_count: number | null
+          source: string | null
+          source_reference: string | null
+          started_at: string | null
+          status: string
+          tags: string[] | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          classification_confidence?: number | null
+          classification_reasoning?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by: string
+          custom_fields?: Json | null
+          document_subtype?: string | null
+          document_type?: string | null
+          error_message?: string | null
+          extracted_data?: Json | null
+          extracted_entities?: Json | null
+          extraction_confidence?: number | null
+          extraction_schema?: string | null
+          file_hash?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          indexed_at?: string | null
+          knowledge_document_id?: string | null
+          ocr_confidence?: number | null
+          ocr_duration_ms?: number | null
+          ocr_engine?: string | null
+          ocr_pages?: number | null
+          ocr_text?: string | null
+          progress?: number | null
+          retry_count?: number | null
+          source?: string | null
+          source_reference?: string | null
+          started_at?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          classification_confidence?: number | null
+          classification_reasoning?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string
+          custom_fields?: Json | null
+          document_subtype?: string | null
+          document_type?: string | null
+          error_message?: string | null
+          extracted_data?: Json | null
+          extracted_entities?: Json | null
+          extraction_confidence?: number | null
+          extraction_schema?: string | null
+          file_hash?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          indexed_at?: string | null
+          knowledge_document_id?: string | null
+          ocr_confidence?: number | null
+          ocr_duration_ms?: number | null
+          ocr_engine?: string | null
+          ocr_pages?: number | null
+          ocr_text?: string | null
+          progress?: number | null
+          retry_count?: number | null
+          source?: string | null
+          source_reference?: string | null
+          started_at?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_processing_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_series: {
         Row: {
           created_at: string
