@@ -172,6 +172,8 @@ export interface CreateProductInput {
   labor_notes?: string;
   // B2B Portal visibility
   b2b_published?: boolean;
+  // Barcode / EAN
+  barcode?: string | null;
   // Transient field — used only during batch import to create product_images
   image_url?: string;
   // Multiple image URLs from CSV import
