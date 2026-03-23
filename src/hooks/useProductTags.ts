@@ -23,8 +23,8 @@ export function useProductTags(productId?: string) {
 
   const addTag = useMutation({
     mutationFn: async (tag: string) => {
-      const { error } = await supabase
-        .from("product_tags" as any)
+      const { error } = await (supabase as any)
+        .from("product_tags")
         .insert({
           workspace_id: currentWorkspace!.id,
           product_id: productId!,
