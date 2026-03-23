@@ -311,6 +311,7 @@ export type Database = {
         Row: {
           agent_type: string
           confidence_level: string | null
+          content: string | null
           created_at: string | null
           duration_ms: number | null
           entity_id: string
@@ -318,21 +319,33 @@ export type Database = {
           error_message: string | null
           executive_summary: string
           id: string
+          input_data: Json | null
           input_summary: Json
+          job_id: string | null
           key_signals: string[] | null
           output: Json
+          output_data: Json | null
           reasoning_trace: Json
           recommended_action: string | null
           recommended_action_type: string | null
           risk_indicators: string[] | null
           status_assessment: string | null
+          step_number: number | null
+          step_type: string | null
+          tokens_input: number | null
+          tokens_output: number | null
           tokens_used: number | null
+          tool_error: string | null
+          tool_input: Json | null
+          tool_name: string | null
+          tool_output: Json | null
           trigger_type: string
           workspace_id: string
         }
         Insert: {
           agent_type: string
           confidence_level?: string | null
+          content?: string | null
           created_at?: string | null
           duration_ms?: number | null
           entity_id: string
@@ -340,21 +353,33 @@ export type Database = {
           error_message?: string | null
           executive_summary: string
           id?: string
+          input_data?: Json | null
           input_summary?: Json
+          job_id?: string | null
           key_signals?: string[] | null
           output?: Json
+          output_data?: Json | null
           reasoning_trace?: Json
           recommended_action?: string | null
           recommended_action_type?: string | null
           risk_indicators?: string[] | null
           status_assessment?: string | null
+          step_number?: number | null
+          step_type?: string | null
+          tokens_input?: number | null
+          tokens_output?: number | null
           tokens_used?: number | null
+          tool_error?: string | null
+          tool_input?: Json | null
+          tool_name?: string | null
+          tool_output?: Json | null
           trigger_type: string
           workspace_id: string
         }
         Update: {
           agent_type?: string
           confidence_level?: string | null
+          content?: string | null
           created_at?: string | null
           duration_ms?: number | null
           entity_id?: string
@@ -362,19 +387,37 @@ export type Database = {
           error_message?: string | null
           executive_summary?: string
           id?: string
+          input_data?: Json | null
           input_summary?: Json
+          job_id?: string | null
           key_signals?: string[] | null
           output?: Json
+          output_data?: Json | null
           reasoning_trace?: Json
           recommended_action?: string | null
           recommended_action_type?: string | null
           risk_indicators?: string[] | null
           status_assessment?: string | null
+          step_number?: number | null
+          step_type?: string | null
+          tokens_input?: number | null
+          tokens_output?: number | null
           tokens_used?: number | null
+          tool_error?: string | null
+          tool_input?: Json | null
+          tool_name?: string | null
+          tool_output?: Json | null
           trigger_type?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ai_agent_executions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agent_jobs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ai_agent_executions_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -440,16 +483,34 @@ export type Database = {
           context: Json | null
           created_at: string | null
           created_by: string | null
+          description: string | null
           entity_id: string
           entity_type: string
+          error_code: string | null
           error_message: string | null
           execution_id: string | null
           id: string
+          input_context: Json | null
+          last_heartbeat: string | null
           max_attempts: number | null
+          max_retries: number
+          max_steps: number
+          max_tokens_per_step: number
+          name: string | null
           priority: number | null
+          result_data: Json | null
+          result_summary: string | null
+          retry_after: string | null
+          retry_count: number
+          schedule_id: string | null
           scheduled_for: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["job_status"]
+          target_entity_id: string | null
+          target_entity_type: string | null
+          target_filters: Json | null
+          task: string | null
+          timeout_ms: number
           trigger_type: Database["public"]["Enums"]["agent_trigger"]
           workspace_id: string
         }
@@ -460,16 +521,34 @@ export type Database = {
           context?: Json | null
           created_at?: string | null
           created_by?: string | null
+          description?: string | null
           entity_id: string
           entity_type: string
+          error_code?: string | null
           error_message?: string | null
           execution_id?: string | null
           id?: string
+          input_context?: Json | null
+          last_heartbeat?: string | null
           max_attempts?: number | null
+          max_retries?: number
+          max_steps?: number
+          max_tokens_per_step?: number
+          name?: string | null
           priority?: number | null
+          result_data?: Json | null
+          result_summary?: string | null
+          retry_after?: string | null
+          retry_count?: number
+          schedule_id?: string | null
           scheduled_for?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["job_status"]
+          target_entity_id?: string | null
+          target_entity_type?: string | null
+          target_filters?: Json | null
+          task?: string | null
+          timeout_ms?: number
           trigger_type: Database["public"]["Enums"]["agent_trigger"]
           workspace_id: string
         }
@@ -480,16 +559,34 @@ export type Database = {
           context?: Json | null
           created_at?: string | null
           created_by?: string | null
+          description?: string | null
           entity_id?: string
           entity_type?: string
+          error_code?: string | null
           error_message?: string | null
           execution_id?: string | null
           id?: string
+          input_context?: Json | null
+          last_heartbeat?: string | null
           max_attempts?: number | null
+          max_retries?: number
+          max_steps?: number
+          max_tokens_per_step?: number
+          name?: string | null
           priority?: number | null
+          result_data?: Json | null
+          result_summary?: string | null
+          retry_after?: string | null
+          retry_count?: number
+          schedule_id?: string | null
           scheduled_for?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["job_status"]
+          target_entity_id?: string | null
+          target_entity_type?: string | null
+          target_filters?: Json | null
+          task?: string | null
+          timeout_ms?: number
           trigger_type?: Database["public"]["Enums"]["agent_trigger"]
           workspace_id?: string
         }
@@ -515,8 +612,11 @@ export type Database = {
           agent_type: string
           entity_id: string
           expires_at: string
+          holder_function: string | null
           id: string
           job_id: string | null
+          lock_key: string | null
+          lock_type: string
           locked_at: string | null
           locked_by: string | null
           workspace_id: string
@@ -525,8 +625,11 @@ export type Database = {
           agent_type: string
           entity_id: string
           expires_at: string
+          holder_function?: string | null
           id?: string
           job_id?: string | null
+          lock_key?: string | null
+          lock_type?: string
           locked_at?: string | null
           locked_by?: string | null
           workspace_id: string
@@ -535,8 +638,11 @@ export type Database = {
           agent_type?: string
           entity_id?: string
           expires_at?: string
+          holder_function?: string | null
           id?: string
           job_id?: string | null
+          lock_key?: string | null
+          lock_type?: string
           locked_at?: string | null
           locked_by?: string | null
           workspace_id?: string
@@ -561,6 +667,7 @@ export type Database = {
       ai_agent_memory: {
         Row: {
           access_count: number | null
+          agent_type: string | null
           content: string
           created_at: string | null
           created_by: string | null
@@ -569,11 +676,16 @@ export type Database = {
           entity_type: string
           expires_at: string | null
           id: string
+          importance: number
           is_validated: boolean | null
           last_accessed_at: string | null
           memory_category: string | null
+          memory_key: string | null
           memory_type: string
+          memory_value: Json | null
           relevance_score: number | null
+          scope: string
+          scope_id: string | null
           source_execution_id: string | null
           source_type: string | null
           superseded_by: string | null
@@ -584,6 +696,7 @@ export type Database = {
         }
         Insert: {
           access_count?: number | null
+          agent_type?: string | null
           content: string
           created_at?: string | null
           created_by?: string | null
@@ -592,11 +705,16 @@ export type Database = {
           entity_type: string
           expires_at?: string | null
           id?: string
+          importance?: number
           is_validated?: boolean | null
           last_accessed_at?: string | null
           memory_category?: string | null
+          memory_key?: string | null
           memory_type: string
+          memory_value?: Json | null
           relevance_score?: number | null
+          scope?: string
+          scope_id?: string | null
           source_execution_id?: string | null
           source_type?: string | null
           superseded_by?: string | null
@@ -607,6 +725,7 @@ export type Database = {
         }
         Update: {
           access_count?: number | null
+          agent_type?: string | null
           content?: string
           created_at?: string | null
           created_by?: string | null
@@ -615,11 +734,16 @@ export type Database = {
           entity_type?: string
           expires_at?: string | null
           id?: string
+          importance?: number
           is_validated?: boolean | null
           last_accessed_at?: string | null
           memory_category?: string | null
+          memory_key?: string | null
           memory_type?: string
+          memory_value?: Json | null
           relevance_score?: number | null
+          scope?: string
+          scope_id?: string | null
           source_execution_id?: string | null
           source_type?: string | null
           superseded_by?: string | null
@@ -655,59 +779,94 @@ export type Database = {
       ai_agent_registry: {
         Row: {
           agent_type: string
+          capabilities: string[]
           cooldown_ms: number | null
           created_at: string | null
+          default_max_steps: number
+          default_max_tokens: number
+          default_temperature: number
           description: string | null
           display_name: string
           enabled_triggers: Database["public"]["Enums"]["agent_trigger"][]
           entity_types: string[]
+          handler_function: string
           id: string
           is_enabled: boolean | null
+          is_system: boolean
           max_executions_per_hour_entity: number | null
           max_executions_per_hour_workspace: number | null
           max_reasoning_iterations: number | null
           max_tool_calls: number | null
           priority: number | null
+          system_prompt: string | null
           timeout_ms: number | null
           updated_at: string | null
+          version: string
+          workspace_id: string | null
         }
         Insert: {
           agent_type: string
+          capabilities?: string[]
           cooldown_ms?: number | null
           created_at?: string | null
+          default_max_steps?: number
+          default_max_tokens?: number
+          default_temperature?: number
           description?: string | null
           display_name: string
           enabled_triggers: Database["public"]["Enums"]["agent_trigger"][]
           entity_types: string[]
+          handler_function?: string
           id?: string
           is_enabled?: boolean | null
+          is_system?: boolean
           max_executions_per_hour_entity?: number | null
           max_executions_per_hour_workspace?: number | null
           max_reasoning_iterations?: number | null
           max_tool_calls?: number | null
           priority?: number | null
+          system_prompt?: string | null
           timeout_ms?: number | null
           updated_at?: string | null
+          version?: string
+          workspace_id?: string | null
         }
         Update: {
           agent_type?: string
+          capabilities?: string[]
           cooldown_ms?: number | null
           created_at?: string | null
+          default_max_steps?: number
+          default_max_tokens?: number
+          default_temperature?: number
           description?: string | null
           display_name?: string
           enabled_triggers?: Database["public"]["Enums"]["agent_trigger"][]
           entity_types?: string[]
+          handler_function?: string
           id?: string
           is_enabled?: boolean | null
+          is_system?: boolean
           max_executions_per_hour_entity?: number | null
           max_executions_per_hour_workspace?: number | null
           max_reasoning_iterations?: number | null
           max_tool_calls?: number | null
           priority?: number | null
+          system_prompt?: string | null
           timeout_ms?: number | null
           updated_at?: string | null
+          version?: string
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_registry_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_agent_response_cache: {
         Row: {
@@ -798,13 +957,21 @@ export type Database = {
           description: string | null
           entity_filter: Json | null
           id: string
+          input_context: Json | null
+          is_active: boolean
           is_enabled: boolean | null
+          last_job_id: string | null
           last_run_at: string | null
           max_entities_per_run: number | null
+          max_steps: number
           name: string
           next_run_at: string | null
           priority: number | null
+          skip_if_running: boolean
+          successful_runs: number
+          task: string | null
           timezone: string | null
+          total_runs: number
           workspace_id: string
         }
         Insert: {
@@ -815,13 +982,21 @@ export type Database = {
           description?: string | null
           entity_filter?: Json | null
           id?: string
+          input_context?: Json | null
+          is_active?: boolean
           is_enabled?: boolean | null
+          last_job_id?: string | null
           last_run_at?: string | null
           max_entities_per_run?: number | null
+          max_steps?: number
           name: string
           next_run_at?: string | null
           priority?: number | null
+          skip_if_running?: boolean
+          successful_runs?: number
+          task?: string | null
           timezone?: string | null
+          total_runs?: number
           workspace_id: string
         }
         Update: {
@@ -832,13 +1007,21 @@ export type Database = {
           description?: string | null
           entity_filter?: Json | null
           id?: string
+          input_context?: Json | null
+          is_active?: boolean
           is_enabled?: boolean | null
+          last_job_id?: string | null
           last_run_at?: string | null
           max_entities_per_run?: number | null
+          max_steps?: number
           name?: string
           next_run_at?: string | null
           priority?: number | null
+          skip_if_running?: boolean
+          successful_runs?: number
+          task?: string | null
           timezone?: string | null
+          total_runs?: number
           workspace_id?: string
         }
         Relationships: [
@@ -45000,16 +45183,27 @@ export type Database = {
       }
     }
     Functions: {
-      acquire_agent_lock: {
-        Args: {
-          p_agent_type: string
-          p_entity_id: string
-          p_job_id?: string
-          p_ttl_seconds?: number
-          p_workspace_id: string
-        }
-        Returns: Json
-      }
+      acquire_agent_lock:
+        | {
+            Args: {
+              p_agent_type: string
+              p_entity_id: string
+              p_job_id?: string
+              p_ttl_seconds?: number
+              p_workspace_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_holder: string
+              p_job_id: string
+              p_lock_key: string
+              p_ttl_seconds?: number
+              p_workspace_id: string
+            }
+            Returns: boolean
+          }
       add_module_credits: {
         Args: {
           p_credits: number
@@ -45792,17 +45986,35 @@ export type Database = {
           total_paid: number
         }[]
       }
-      release_agent_lock: {
-        Args: {
-          p_agent_type: string
-          p_entity_id: string
-          p_workspace_id: string
-        }
-        Returns: boolean
-      }
+      release_agent_lock:
+        | {
+            Args: {
+              p_agent_type: string
+              p_entity_id: string
+              p_workspace_id: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              p_job_id: string
+              p_lock_key: string
+              p_workspace_id: string
+            }
+            Returns: undefined
+          }
       remove_workspace_member_admin: {
         Args: { p_user_id: string; p_workspace_id: string }
         Returns: Json
+      }
+      renew_agent_lock: {
+        Args: {
+          p_job_id: string
+          p_lock_key: string
+          p_ttl_seconds?: number
+          p_workspace_id: string
+        }
+        Returns: boolean
       }
       reset_fastmatch_quotas: { Args: never; Returns: undefined }
       retrieve_entity_memories: {
@@ -46116,7 +46328,15 @@ export type Database = {
         | "semiannual"
       goal_status: "not_started" | "in_progress" | "completed" | "failed"
       integration_mode: "embed" | "redirect" | "headless"
-      job_status: "pending" | "running" | "completed" | "failed" | "cancelled"
+      job_status:
+        | "pending"
+        | "running"
+        | "completed"
+        | "failed"
+        | "cancelled"
+        | "queued"
+        | "paused"
+        | "timeout"
       kit_level: "basic" | "advanced" | "custom"
       opportunity_subscription_status:
         | "draft"
@@ -46553,7 +46773,16 @@ export const Constants = {
       ],
       goal_status: ["not_started", "in_progress", "completed", "failed"],
       integration_mode: ["embed", "redirect", "headless"],
-      job_status: ["pending", "running", "completed", "failed", "cancelled"],
+      job_status: [
+        "pending",
+        "running",
+        "completed",
+        "failed",
+        "cancelled",
+        "queued",
+        "paused",
+        "timeout",
+      ],
       kit_level: ["basic", "advanced", "custom"],
       opportunity_subscription_status: [
         "draft",

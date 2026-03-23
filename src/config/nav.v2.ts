@@ -63,6 +63,7 @@ import {
   AlertTriangle,
   RefreshCw,
   Eye,
+  Cpu,
 } from "lucide-react";
 
 // --- Types ---
@@ -326,6 +327,7 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
         { nameKey: "automations", name: t("automations"), href: "/dashboard/automations", icon: Zap, iconColor: "text-slate-500" },
         { nameKey: "aiAssistants", name: t("aiAssistants"), href: "/dashboard/ai-assistants", icon: Brain, iconColor: "text-slate-500" },
         { nameKey: "aiEmployees", name: t("aiEmployees"), href: "/dashboard/ai-employees", icon: Bot, iconColor: "text-slate-500" },
+        { nameKey: "aiAgents", name: "AI Agents", href: "/dashboard/ai-agents", icon: Cpu, iconColor: "text-slate-500" },
         { nameKey: "knowledgeBaseNav", name: t("knowledgeBaseNav"), href: "/dashboard/knowledge", icon: BookOpen, iconColor: "text-slate-500" },
         { nameKey: "integrations", name: t("integrations"), href: "/settings/integrations", icon: Plug, iconColor: "text-slate-500" },
         { nameKey: "conversationalEngine", name: t("conversationalEngine"), href: "/dashboard/conversational-engine", icon: MessageSquare, moduleSlug: "conversational-engine", iconColor: "text-slate-500" },
