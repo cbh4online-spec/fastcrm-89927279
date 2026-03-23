@@ -80,7 +80,7 @@ export function usePriceLists() {
         .eq("workspace_id", currentWorkspace!.id)
         .order("priority", { ascending: false });
       if (error) throw error;
-      return (data || []) as PriceList[];
+      return (data || []) as unknown as PriceList[];
     },
     enabled: !!currentWorkspace?.id,
   });
