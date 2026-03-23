@@ -72,6 +72,8 @@ import { ProductDeliverablesManager } from "./ProductDeliverablesManager";
 import { ProductDocumentsTab } from "./ProductDocumentsTab";
 import { ProductSpecsTab } from "./ProductSpecsTab";
 import { ProductStockTab } from "./ProductStockTab";
+import { ProductAnalyticsTab } from "./ProductAnalyticsTab";
+
 
 interface ProductDetailDialogProps {
   open: boolean;
