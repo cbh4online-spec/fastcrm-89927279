@@ -21,10 +21,10 @@ export function StoreCompatibleProducts({ productId, workspaceId, workspaceSlug 
     queryFn: async () => {
       // Get compatible relations
       const { data: relations } = await supabase
-        .from("product_relations" as any)
+        .from("product_relations")
         .select("target_product_id, reason")
         .eq("source_product_id", productId)
-        .eq("relation_type", "compatible")
+        .in("relation_type", ["compatible", "accessory", "required"])
         .eq("is_active", true)
         .order("sort_order");
 

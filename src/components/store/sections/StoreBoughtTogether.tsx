@@ -24,10 +24,10 @@ export function StoreBoughtTogether({ productId, categoryId, workspaceId, curren
     queryFn: async () => {
       // First try: get "bundle" relations from product_relations
       const { data: relations } = await supabase
-        .from("product_relations" as any)
+        .from("product_relations")
         .select("target_product_id")
         .eq("source_product_id", productId)
-        .eq("relation_type", "bundle")
+        .in("relation_type", ["bundle", "accessory"])
         .eq("is_active", true)
         .order("sort_order")
         .limit(3);
