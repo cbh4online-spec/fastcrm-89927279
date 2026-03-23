@@ -668,6 +668,9 @@ export default function StoreProductPage() {
             </div>
           </div>
 
+          {/* Product Documents */}
+          <StoreProductDocuments productId={product.id} />
+
           {/* Reviews */}
           <StoreReviewsSection productId={product.id} workspaceId={(product as any).workspace_id} />
 
