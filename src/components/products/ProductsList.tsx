@@ -1,4 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -89,6 +91,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
 import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
 import { useColumnWidths } from "@/hooks/useColumnWidths";
+import { useWorkspaceTags } from "@/hooks/useProductTags";
 import {
   productTypeLabels,
   productStatusLabels,
@@ -235,6 +238,7 @@ export function ProductsList() {
   });
 
   const { data: categories } = useProductCategories();
+  const { data: workspaceTags } = useWorkspaceTags();
   const { data: productTypesConfig } = useProductTypes();
   const { data: billingTypesConfig } = useBillingTypes();
   const archiveProduct = useArchiveProduct();
@@ -242,6 +246,21 @@ export function ProductsList() {
   const deleteProductsBatch = useDeleteProductsBatch();
   const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<Product | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
+  // Tag filter: get product IDs for selected tag
+  const activeTagName = activeFilterId?.startsWith("tag_") ? activeFilterId.replace("tag_", "") : null;
+  const { data: tagProductIds } = useQuery({
+    queryKey: ["tag-product-ids", currentWorkspace?.id, activeTagName],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("product_tags")
+        .select("product_id")
+        .eq("workspace_id", currentWorkspace!.id)
+        .eq("tag", activeTagName!);
+      return (data || []).map((d: any) => d.product_id as string);
+    },
+    enabled: !!activeTagName && !!currentWorkspace?.id,
+  });
 
   // Helper para obter label do tipo de produto
   const getProductTypeLabel = (typeCode: string) => {
@@ -325,6 +344,21 @@ export function ProductsList() {
       });
     }
 
+    // Add tags if they exist
+    const tagItems = ((workspaceTags || []) as string[]).map((t: string) => ({
+      id: `tag_${t}`,
+      label: t,
+    }));
+    if (tagItems.length > 0) {
+      groups.push({
+        id: "tags",
+        label: "Tags",
+        icon: <Tag className="h-4 w-4" />,
+        defaultOpen: false,
+        items: tagItems,
+      });
+    }
+
     // Add remaining groups
     groups.push(
       {
@@ -357,7 +391,7 @@ export function ProductsList() {
     );
 
     return groups;
-  }, [productTypesConfig, billingTypesConfig, categories]);
+  }, [productTypesConfig, billingTypesConfig, categories, workspaceTags]);
 
   // Filter and search - apply all filters including smart filters and billing
   const filteredProducts = useMemo(() => {
@@ -441,9 +475,14 @@ export function ProductsList() {
       const billingCode = activeFilterId.replace("billing_", "");
       result = result.filter((p) => p.billing_type === billingCode);
     }
+
+    // Apply tag filter
+    if (activeFilterId?.startsWith("tag_") && tagProductIds) {
+      result = result.filter((p) => tagProductIds.includes(p.id));
+    }
     
     return result;
-  }, [products, searchValue, activeFilterId]);
+  }, [products, searchValue, activeFilterId, tagProductIds]);
 
   // Pagination
   const totalProducts = filteredProducts.length;
