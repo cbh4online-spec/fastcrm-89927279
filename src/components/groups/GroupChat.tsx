@@ -108,16 +108,25 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
     if (!text.trim()) return;
     const content = text.trim();
     setText("");
-    await sendMessage.mutateAsync({ groupId: group.id, content });
+    try {
+      await sendMessage.mutateAsync({ groupId: group.id, content });
+    } catch (err: any) {
+      setText(content);
+      toast.error(err?.message || "Falha ao enviar mensagem");
+    }
   };
 
   const handleSendProduct = async (product: { id: string; name: string; price: number }) => {
-    await sendMessage.mutateAsync({
-      groupId: group.id,
-      content: `🏷️ ${product.name} — €${product.price.toFixed(2)}`,
-      contentType: "product",
-      productId: product.id,
-    });
+    try {
+      await sendMessage.mutateAsync({
+        groupId: group.id,
+        content: `🏷️ ${product.name} — €${product.price.toFixed(2)}`,
+        contentType: "product",
+        productId: product.id,
+      });
+    } catch (err: any) {
+      toast.error(err?.message || "Falha ao enviar produto");
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
