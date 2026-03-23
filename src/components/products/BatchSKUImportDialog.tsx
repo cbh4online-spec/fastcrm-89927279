@@ -579,6 +579,55 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
     toast.success("Preços sugeridos pela IA aplicados");
   };
 
+  // EAN external lookup enrichment
+  const [isEnrichingEAN, setIsEnrichingEAN] = useState(false);
+  const enrichWithEAN = async () => {
+    const itemsToEnrich = skuList.filter(
+      s => s.selected && s.data?.barcode && (!s.data.name || s.data.name === s.sku)
+    );
+    if (itemsToEnrich.length === 0) {
+      toast.info("Nenhum produto selecionado com EAN sem nome");
+      return;
+    }
+    setIsEnrichingEAN(true);
+    toast.info(`A pesquisar ${itemsToEnrich.length} códigos EAN...`);
+
+    for (let i = 0; i < itemsToEnrich.length; i += 5) {
+      const batch = itemsToEnrich.slice(i, i + 5);
+      const results = await Promise.allSettled(
+        batch.map(async (item) => {
+          const { data, error } = await supabase.functions.invoke("barcode-external-lookup", {
+            body: { barcode: item.data!.barcode!.trim() },
+          });
+          if (error) throw error;
+          return { sku: item.sku, result: data };
+        })
+      );
+
+      setSkuList(prev => prev.map(s => {
+        const match = results.find((r, ri) => r.status === "fulfilled" && batch[ri]?.sku === s.sku);
+        if (!match || match.status !== "fulfilled") return s;
+        const ext = (match as PromiseFulfilledResult<any>).value.result;
+        if (!ext?.found) return s;
+        return {
+          ...s,
+          data: {
+            ...s.data,
+            name: ext.name || s.data?.name,
+            brand: ext.brand || s.data?.brand,
+            category: ext.category || s.data?.category,
+            imageUrl: ext.image_url || s.data?.imageUrl,
+          },
+        };
+      }));
+
+      if (i + 5 < itemsToEnrich.length) await new Promise(r => setTimeout(r, 500));
+    }
+
+    setIsEnrichingEAN(false);
+    toast.success("Enriquecimento EAN concluído");
+  };
+
   const createSelectedProducts = async () => {
     const selected = skuList.filter(s => s.selected && (s.status === "success" || s.data));
     if (selected.length === 0) { toast.error("Nenhum produto seleccionado"); return; }
