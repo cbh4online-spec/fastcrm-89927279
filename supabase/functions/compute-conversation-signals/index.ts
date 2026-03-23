@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { aiGate } from "../ai-gate/index.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
