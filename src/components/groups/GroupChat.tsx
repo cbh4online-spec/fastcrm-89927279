@@ -7,14 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, Send, Users, Package, UserPlus, MoreVertical, UserMinus } from "lucide-react";
+import { ArrowLeft, Send, Users, Package, UserPlus, MoreVertical, UserMinus, AlertTriangle, Link2 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { AddMemberDialog } from "./AddMemberDialog";
 import { ProductPickerButton } from "./ProductPickerButton";
 import { ProductMessageCard } from "./ProductMessageCard";
+import { TelegramChatPicker } from "./TelegramChatPicker";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -32,8 +34,28 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
   const sendMessage = useSendGroupMessage();
   const [text, setText] = useState("");
   const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [linkTelegramOpen, setLinkTelegramOpen] = useState(false);
+  const [telegramChatId, setTelegramChatId] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
+
+  const needsTelegramLink = (group.group_type === "telegram" || group.group_type === "hybrid") && !group.telegram_chat_id;
+
+  const linkTelegram = useMutation({
+    mutationFn: async () => {
+      if (!telegramChatId.trim()) throw new Error("Chat ID é obrigatório");
+      const { error } = await sb.from("groups").update({ telegram_chat_id: parseInt(telegramChatId) }).eq("id", group.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Telegram ligado com sucesso!");
+      setLinkTelegramOpen(false);
+      // Update the group object in parent
+      group.telegram_chat_id = parseInt(telegramChatId);
+      qc.invalidateQueries({ queryKey: ["groups"] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
