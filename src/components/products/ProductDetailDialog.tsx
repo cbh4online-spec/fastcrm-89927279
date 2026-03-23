@@ -287,6 +287,10 @@ export function ProductDetailDialog({
                   <BarChart3 className="h-4 w-4 mr-1" />
                   Analytics
                 </TabsTrigger>
+                <TabsTrigger value="lifecycle">
+                  <Clock className="h-4 w-4 mr-1" />
+                  Ciclo de Vida
+                </TabsTrigger>
                 <TabsTrigger value="deliverables">
                   <Package className="h-4 w-4 mr-1" />
                   Entregáveis
