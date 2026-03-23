@@ -30,8 +30,8 @@ export function ProductTagsEditor({ productId }: ProductTagsEditorProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const existingTagNames = tags.map((t) => t.tag);
-  const suggestions = (workspaceTags || []).filter(
-    (t) =>
+  const suggestions = ((workspaceTags || []) as string[]).filter(
+    (t: string) =>
       !existingTagNames.includes(t) &&
       t.includes(inputValue.toLowerCase()) &&
       inputValue.length > 0
