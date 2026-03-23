@@ -193,6 +193,8 @@ import AIDocumentOCRPage from "./pages/AIDocumentOCRPage";
 import EmailCampaignsPage from "./pages/EmailCampaignsPage";
 import SuppressionsPage from "./pages/SuppressionsPage";
 import IMOAIPage from "./pages/IMOAIPage";
+import AISettingsPage from "./pages/AISettingsPage";
+import AIUsagePage from "./pages/AIUsagePage";
 import ZapierPage from "./pages/ZapierPage";
 import CEOCopilotPage from "./pages/CEOCopilotPage";
 import CommandCenterV2Page from "./pages/CommandCenterV2Page";
@@ -632,6 +634,8 @@ function CRMRoutes() {
                 <Route path="/dashboard/email-campaigns" element={<EmailCampaignsPage />} />
                 <Route path="/dashboard/email-campaigns/suppressions" element={<SuppressionsPage />} />
                 <Route path="/dashboard/imo-ai" element={<IMOAIPage />} />
+                <Route path="/dashboard/ai-settings" element={<AISettingsPage />} />
+                <Route path="/dashboard/ai-usage" element={<AIUsagePage />} />
                 <Route path="/dashboard/zapier" element={<ZapierPage />} />
                 
                 {/* Método Vision */}
