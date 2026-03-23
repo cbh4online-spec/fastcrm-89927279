@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { trackLeadCreated } from "@/modules/growth-seo/lib/gtmEvents";
 import { toast } from "sonner";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
+import { supabase } from "@/integrations/supabase/client";
 import { generateRequestId } from "@/lib/requestId";
 
 export type LeadType = "person" | "company";
