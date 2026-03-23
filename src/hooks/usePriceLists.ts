@@ -230,7 +230,7 @@ export function usePriceRules() {
         .eq("workspace_id", currentWorkspace!.id)
         .order("priority", { ascending: false });
       if (error) throw error;
-      return (data || []) as PriceRule[];
+      return (data || []) as unknown as PriceRule[];
     },
     enabled: !!currentWorkspace?.id,
   });
