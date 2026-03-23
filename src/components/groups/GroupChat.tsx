@@ -152,12 +152,29 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
           </div>
         </div>
 
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <Users className="h-4 w-4" />
-            </Button>
-          </SheetTrigger>
+        <div className="flex items-center gap-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                <Pencil className="h-4 w-4 mr-2" /> Editar grupo
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="text-destructive">
+                <Trash2 className="h-4 w-4 mr-2" /> Apagar grupo
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Users className="h-4 w-4" />
+              </Button>
+            </SheetTrigger>
           <SheetContent>
             <SheetHeader>
               <SheetTitle className="flex items-center justify-between">
