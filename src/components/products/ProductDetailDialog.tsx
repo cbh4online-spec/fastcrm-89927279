@@ -274,9 +274,6 @@ export function ProductDetailDialog({
                   <Package className="h-4 w-4 mr-1" />
                   Entregáveis
                 </TabsTrigger>
-                  <Package className="h-4 w-4 mr-1" />
-                  Entregáveis
-                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="details" className="mt-4 space-y-4">
