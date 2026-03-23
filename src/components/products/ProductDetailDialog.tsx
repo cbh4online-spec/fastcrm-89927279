@@ -537,6 +537,10 @@ export function ProductDetailDialog({
                 <ProductAnalyticsTab />
               </TabsContent>
 
+              <TabsContent value="lifecycle" className="mt-4">
+                <ProductLifecycleTab product={product as any} />
+              </TabsContent>
+
               <TabsContent value="deliverables" className="mt-4">
                 <ProductDeliverablesManager productId={product.id} />
               </TabsContent>
