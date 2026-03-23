@@ -42923,6 +42923,133 @@ export type Database = {
           },
         ]
       }
+      voice_audio_cache: {
+        Row: {
+          cache_key: string
+          created_at: string
+          duration_seconds: number | null
+          expires_at: string
+          file_size_bytes: number | null
+          id: string
+          last_played_at: string | null
+          play_count: number
+          public_url: string | null
+          source_id: string | null
+          source_type: string
+          storage_path: string
+          text_length: number | null
+          voice_id: string
+          voice_name: string | null
+          workspace_id: string
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string
+          duration_seconds?: number | null
+          expires_at?: string
+          file_size_bytes?: number | null
+          id?: string
+          last_played_at?: string | null
+          play_count?: number
+          public_url?: string | null
+          source_id?: string | null
+          source_type?: string
+          storage_path: string
+          text_length?: number | null
+          voice_id: string
+          voice_name?: string | null
+          workspace_id: string
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string
+          duration_seconds?: number | null
+          expires_at?: string
+          file_size_bytes?: number | null
+          id?: string
+          last_played_at?: string | null
+          play_count?: number
+          public_url?: string | null
+          source_id?: string | null
+          source_type?: string
+          storage_path?: string
+          text_length?: number | null
+          voice_id?: string
+          voice_name?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_audio_cache_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_settings: {
+        Row: {
+          agent_id: string | null
+          copilot_voice_enabled: boolean
+          created_at: string
+          default_voice_id: string
+          default_voice_name: string
+          proposal_narration_enabled: boolean
+          total_conversation_minutes: number
+          total_tts_characters: number
+          updated_at: string
+          voice_similarity_boost: number
+          voice_stability: number
+          voice_style: number
+          voice_use_speaker_boost: boolean
+          voice_widget_enabled: boolean
+          workspace_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          copilot_voice_enabled?: boolean
+          created_at?: string
+          default_voice_id?: string
+          default_voice_name?: string
+          proposal_narration_enabled?: boolean
+          total_conversation_minutes?: number
+          total_tts_characters?: number
+          updated_at?: string
+          voice_similarity_boost?: number
+          voice_stability?: number
+          voice_style?: number
+          voice_use_speaker_boost?: boolean
+          voice_widget_enabled?: boolean
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          copilot_voice_enabled?: boolean
+          created_at?: string
+          default_voice_id?: string
+          default_voice_name?: string
+          proposal_narration_enabled?: boolean
+          total_conversation_minutes?: number
+          total_tts_characters?: number
+          updated_at?: string
+          voice_similarity_boost?: number
+          voice_stability?: number
+          voice_style?: number
+          voice_use_speaker_boost?: boolean
+          voice_widget_enabled?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       weekly_briefs: {
         Row: {
           created_at: string | null
