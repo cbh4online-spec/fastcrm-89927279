@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTelegramConfig, useSaveTelegramConfig } from "@/hooks/useGroups";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 export function TelegramSettingsView() {
+  const { currentWorkspace } = useWorkspace();
   const { data: config, isLoading } = useTelegramConfig();
   const saveConfig = useSaveTelegramConfig();
   const [testLoading, setTestLoading] = useState(false);
@@ -50,7 +52,7 @@ export function TelegramSettingsView() {
           },
           body: JSON.stringify({
             action: "getMe",
-            workspace_id: config?.workspace_id || "",
+            workspace_id: currentWorkspace?.id || "",
           }),
         }
       );
