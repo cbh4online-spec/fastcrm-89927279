@@ -1,5 +1,5 @@
 export type ProductType = 'simple' | 'recurring' | 'sessions' | 'composite' | 'formacao' | 'programa' | 'physical';
-export type ProductStatus = 'active' | 'archived';
+export type ProductStatus = 'draft' | 'review' | 'active' | 'discontinued' | 'archived';
 export type BillingType = 'one-off' | 'recurring';
 export type BundlePriceMode = 'auto' | 'manual';
 export type BillingFrequency = 'monthly' | 'quarterly' | 'yearly';
