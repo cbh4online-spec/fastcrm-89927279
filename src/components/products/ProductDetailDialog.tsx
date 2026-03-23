@@ -42,6 +42,7 @@ import {
   Video,
   Link2,
   FileText,
+  TrendingUp,
 } from "lucide-react";
 import { LocationMapEmbed } from "./LocationMapEmbed";
 import { format } from "date-fns";
