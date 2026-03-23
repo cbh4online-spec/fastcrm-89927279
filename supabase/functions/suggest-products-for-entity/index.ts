@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     let limit = 8;
     let refresh = false;
 
-    if (body.context) {
+    if (body.context && typeof body.context === "object") {
       // Old format from useEntityProductSuggestions
       workspace_id = body.context.workspaceId;
       if (body.context.entityType === "contact") contact_id = body.context.entityId;
