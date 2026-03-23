@@ -482,7 +482,7 @@ export function ProductsList() {
     }
     
     return result;
-  }, [products, searchValue, activeFilterId]);
+  }, [products, searchValue, activeFilterId, tagProductIds]);
 
   // Pagination
   const totalProducts = filteredProducts.length;
