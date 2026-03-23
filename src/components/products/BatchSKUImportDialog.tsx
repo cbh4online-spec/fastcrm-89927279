@@ -582,7 +582,6 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
   };
 
   // EAN external lookup enrichment
-  const [isEnrichingEAN, setIsEnrichingEAN] = useState(false);
   const enrichWithEAN = async () => {
     const itemsToEnrich = skuList.filter(
       s => s.selected && s.data?.barcode && (!s.data.name || s.data.name === s.sku)
