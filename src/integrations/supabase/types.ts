@@ -18634,6 +18634,229 @@ export type Database = {
           },
         ]
       }
+      group_members: {
+        Row: {
+          contact_id: string | null
+          group_id: string
+          id: string
+          is_muted: boolean | null
+          joined_at: string | null
+          lead_id: string | null
+          role: string | null
+          telegram_user_id: number | null
+          telegram_username: string | null
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          group_id: string
+          id?: string
+          is_muted?: boolean | null
+          joined_at?: string | null
+          lead_id?: string | null
+          role?: string | null
+          telegram_user_id?: number | null
+          telegram_username?: string | null
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          group_id?: string
+          id?: string
+          is_muted?: boolean | null
+          joined_at?: string | null
+          lead_id?: string | null
+          role?: string | null
+          telegram_user_id?: number | null
+          telegram_username?: string | null
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_members_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_messages: {
+        Row: {
+          attachments: Json | null
+          content: string | null
+          content_type: string | null
+          created_at: string | null
+          edited_at: string | null
+          group_id: string
+          id: string
+          is_deleted: boolean | null
+          is_pinned: boolean | null
+          product_id: string | null
+          sender_contact_id: string | null
+          sender_name: string | null
+          sender_user_id: string | null
+          telegram_message_id: number | null
+          workspace_id: string
+        }
+        Insert: {
+          attachments?: Json | null
+          content?: string | null
+          content_type?: string | null
+          created_at?: string | null
+          edited_at?: string | null
+          group_id: string
+          id?: string
+          is_deleted?: boolean | null
+          is_pinned?: boolean | null
+          product_id?: string | null
+          sender_contact_id?: string | null
+          sender_name?: string | null
+          sender_user_id?: string | null
+          telegram_message_id?: number | null
+          workspace_id: string
+        }
+        Update: {
+          attachments?: Json | null
+          content?: string | null
+          content_type?: string | null
+          created_at?: string | null
+          edited_at?: string | null
+          group_id?: string
+          id?: string
+          is_deleted?: boolean | null
+          is_pinned?: boolean | null
+          product_id?: string | null
+          sender_contact_id?: string | null
+          sender_name?: string | null
+          sender_user_id?: string | null
+          telegram_message_id?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_messages_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_messages_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "group_messages_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_messages_sender_contact_id_fkey"
+            columns: ["sender_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_messages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          group_type: string
+          id: string
+          is_active: boolean | null
+          is_archived: boolean | null
+          name: string
+          purpose: string
+          settings: Json | null
+          telegram_chat_id: number | null
+          telegram_invite_link: string | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          group_type?: string
+          id?: string
+          is_active?: boolean | null
+          is_archived?: boolean | null
+          name: string
+          purpose?: string
+          settings?: Json | null
+          telegram_chat_id?: number | null
+          telegram_invite_link?: string | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          group_type?: string
+          id?: string
+          is_active?: boolean | null
+          is_archived?: boolean | null
+          name?: string
+          purpose?: string
+          settings?: Json | null
+          telegram_chat_id?: number | null
+          telegram_invite_link?: string | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groups_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       growth_settings: {
         Row: {
           base_url: string | null
@@ -40004,6 +40227,132 @@ export type Database = {
           },
           {
             foreignKeyName: "team_feed_posts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telegram_bot_state: {
+        Row: {
+          id: number
+          update_offset: number
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          id: number
+          update_offset?: number
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          id?: number
+          update_offset?: number
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_bot_state_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telegram_config: {
+        Row: {
+          alert_group_chat_id: number | null
+          bot_name: string | null
+          bot_username: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          notify_invoices: boolean | null
+          notify_new_deals: boolean | null
+          notify_new_leads: boolean | null
+          notify_proposals: boolean | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          alert_group_chat_id?: number | null
+          bot_name?: string | null
+          bot_username?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          notify_invoices?: boolean | null
+          notify_new_deals?: boolean | null
+          notify_new_leads?: boolean | null
+          notify_proposals?: boolean | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          alert_group_chat_id?: number | null
+          bot_name?: string | null
+          bot_username?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          notify_invoices?: boolean | null
+          notify_new_deals?: boolean | null
+          notify_new_leads?: boolean | null
+          notify_proposals?: boolean | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_config_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telegram_messages: {
+        Row: {
+          chat_id: number
+          created_at: string
+          from_user_id: number | null
+          from_username: string | null
+          processed: boolean | null
+          raw_update: Json
+          text: string | null
+          update_id: number
+          workspace_id: string | null
+        }
+        Insert: {
+          chat_id: number
+          created_at?: string
+          from_user_id?: number | null
+          from_username?: string | null
+          processed?: boolean | null
+          raw_update: Json
+          text?: string | null
+          update_id: number
+          workspace_id?: string | null
+        }
+        Update: {
+          chat_id?: number
+          created_at?: string
+          from_user_id?: number | null
+          from_username?: string | null
+          processed?: boolean | null
+          raw_update?: Json
+          text?: string | null
+          update_id?: number
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_messages_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
