@@ -1396,54 +1396,96 @@ export type Database = {
       }
       ai_field_suggestions: {
         Row: {
+          applied_at: string | null
+          automation_actions: Json | null
+          automation_description: string | null
+          automation_example: string | null
+          automation_title: string | null
+          automation_trigger: Json | null
           confidence: number
           created_at: string
+          created_by_ai: boolean
           custom_field_id: string | null
-          entity_id: string
-          entity_type: string
-          explanation: string
-          field_name: string
-          field_type: string
+          dismissed_at: string | null
+          dismissed_reason: string | null
+          entity_id: string | null
+          entity_type: string | null
+          explanation: string | null
+          field_name: string | null
+          field_type: string | null
           id: string
+          reasoning: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           source_context: Json | null
           status: string
-          suggested_value: Json
+          suggested_value: Json | null
+          suggestion_type: string
+          tag_color: string | null
+          tag_value: string | null
+          updated_at: string
           workspace_id: string
         }
         Insert: {
+          applied_at?: string | null
+          automation_actions?: Json | null
+          automation_description?: string | null
+          automation_example?: string | null
+          automation_title?: string | null
+          automation_trigger?: Json | null
           confidence: number
           created_at?: string
+          created_by_ai?: boolean
           custom_field_id?: string | null
-          entity_id: string
-          entity_type: string
-          explanation: string
-          field_name: string
-          field_type: string
+          dismissed_at?: string | null
+          dismissed_reason?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          explanation?: string | null
+          field_name?: string | null
+          field_type?: string | null
           id?: string
+          reasoning?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           source_context?: Json | null
           status?: string
-          suggested_value: Json
+          suggested_value?: Json | null
+          suggestion_type?: string
+          tag_color?: string | null
+          tag_value?: string | null
+          updated_at?: string
           workspace_id: string
         }
         Update: {
+          applied_at?: string | null
+          automation_actions?: Json | null
+          automation_description?: string | null
+          automation_example?: string | null
+          automation_title?: string | null
+          automation_trigger?: Json | null
           confidence?: number
           created_at?: string
+          created_by_ai?: boolean
           custom_field_id?: string | null
-          entity_id?: string
-          entity_type?: string
-          explanation?: string
-          field_name?: string
-          field_type?: string
+          dismissed_at?: string | null
+          dismissed_reason?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          explanation?: string | null
+          field_name?: string | null
+          field_type?: string | null
           id?: string
+          reasoning?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           source_context?: Json | null
           status?: string
-          suggested_value?: Json
+          suggested_value?: Json | null
+          suggestion_type?: string
+          tag_color?: string | null
+          tag_value?: string | null
+          updated_at?: string
           workspace_id?: string
         }
         Relationships: [
@@ -1829,6 +1871,47 @@ export type Database = {
             foreignKeyName: "ai_response_audits_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_suggestion_settings: {
+        Row: {
+          auto_tag_entities: string[]
+          auto_tags_enabled: boolean
+          automation_suggestions_enabled: boolean
+          field_suggestions_enabled: boolean
+          max_pending_per_entity: number
+          min_confidence: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          auto_tag_entities?: string[]
+          auto_tags_enabled?: boolean
+          automation_suggestions_enabled?: boolean
+          field_suggestions_enabled?: boolean
+          max_pending_per_entity?: number
+          min_confidence?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          auto_tag_entities?: string[]
+          auto_tags_enabled?: boolean
+          automation_suggestions_enabled?: boolean
+          field_suggestions_enabled?: boolean
+          max_pending_per_entity?: number
+          min_confidence?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_suggestion_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
