@@ -29244,6 +29244,67 @@ export type Database = {
           },
         ]
       }
+      product_changelog: {
+        Row: {
+          action: string
+          changed_by: string | null
+          created_at: string | null
+          field_name: string | null
+          id: string
+          new_value: string | null
+          notes: string | null
+          old_value: string | null
+          product_id: string
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          changed_by?: string | null
+          created_at?: string | null
+          field_name?: string | null
+          id?: string
+          new_value?: string | null
+          notes?: string | null
+          old_value?: string | null
+          product_id: string
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          changed_by?: string | null
+          created_at?: string | null
+          field_name?: string | null
+          id?: string
+          new_value?: string | null
+          notes?: string | null
+          old_value?: string | null
+          product_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_changelog_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_changelog_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_changelog_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_components: {
         Row: {
           component_product_id: string
@@ -30848,6 +30909,8 @@ export type Database = {
           delivery_notes: string | null
           demo_video_url: string | null
           direct_cost: number | null
+          discontinued_at: string | null
+          discontinued_reason: string | null
           embedding: string | null
           id: string
           images: string[] | null
@@ -30872,10 +30935,13 @@ export type Database = {
           primary_image_index: number | null
           product_condition: string | null
           product_type: string
+          published_at: string | null
           recommended_frequency: string | null
           recurring_fee: number | null
           reorder_point: number | null
           reorder_qty: number | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           search_keywords: string | null
           setup_fee: number | null
           sheet_published: boolean | null
@@ -30937,6 +31003,8 @@ export type Database = {
           delivery_notes?: string | null
           demo_video_url?: string | null
           direct_cost?: number | null
+          discontinued_at?: string | null
+          discontinued_reason?: string | null
           embedding?: string | null
           id?: string
           images?: string[] | null
@@ -30961,10 +31029,13 @@ export type Database = {
           primary_image_index?: number | null
           product_condition?: string | null
           product_type?: string
+          published_at?: string | null
           recommended_frequency?: string | null
           recurring_fee?: number | null
           reorder_point?: number | null
           reorder_qty?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           search_keywords?: string | null
           setup_fee?: number | null
           sheet_published?: boolean | null
@@ -31026,6 +31097,8 @@ export type Database = {
           delivery_notes?: string | null
           demo_video_url?: string | null
           direct_cost?: number | null
+          discontinued_at?: string | null
+          discontinued_reason?: string | null
           embedding?: string | null
           id?: string
           images?: string[] | null
@@ -31050,10 +31123,13 @@ export type Database = {
           primary_image_index?: number | null
           product_condition?: string | null
           product_type?: string
+          published_at?: string | null
           recommended_frequency?: string | null
           recurring_fee?: number | null
           reorder_point?: number | null
           reorder_qty?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           search_keywords?: string | null
           setup_fee?: number | null
           sheet_published?: boolean | null
