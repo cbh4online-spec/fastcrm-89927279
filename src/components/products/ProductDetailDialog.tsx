@@ -494,6 +494,10 @@ export function ProductDetailDialog({
                 <ProductRelationsTab product={product} />
               </TabsContent>
 
+              <TabsContent value="documents" className="mt-4">
+                <ProductDocumentsTab product={product} />
+              </TabsContent>
+
               <TabsContent value="deliverables" className="mt-4">
                 <ProductDeliverablesManager productId={product.id} />
               </TabsContent>
