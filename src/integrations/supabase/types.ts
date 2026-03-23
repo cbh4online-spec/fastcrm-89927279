@@ -24270,15 +24270,19 @@ export type Database = {
           is_featured: boolean | null
           is_new: boolean | null
           manifest_json: Json | null
+          min_plan: string
           name: string
           permissions: Json
+          price_eur: number
           pricing: Json
+          pricing_model: string
           published_at: string | null
           publisher: string
           rating: number | null
           reviews_count: number | null
           slug: string
           status: string
+          stripe_price_id: string | null
           tagline: string
           target_audience: string | null
           trial_start_event: string | null
@@ -24302,15 +24306,19 @@ export type Database = {
           is_featured?: boolean | null
           is_new?: boolean | null
           manifest_json?: Json | null
+          min_plan?: string
           name: string
           permissions?: Json
+          price_eur?: number
           pricing?: Json
+          pricing_model?: string
           published_at?: string | null
           publisher?: string
           rating?: number | null
           reviews_count?: number | null
           slug: string
           status?: string
+          stripe_price_id?: string | null
           tagline: string
           target_audience?: string | null
           trial_start_event?: string | null
@@ -24334,15 +24342,19 @@ export type Database = {
           is_featured?: boolean | null
           is_new?: boolean | null
           manifest_json?: Json | null
+          min_plan?: string
           name?: string
           permissions?: Json
+          price_eur?: number
           pricing?: Json
+          pricing_model?: string
           published_at?: string | null
           publisher?: string
           rating?: number | null
           reviews_count?: number | null
           slug?: string
           status?: string
+          stripe_price_id?: string | null
           tagline?: string
           target_audience?: string | null
           trial_start_event?: string | null
@@ -43303,7 +43315,10 @@ export type Database = {
       }
       workspace_modules: {
         Row: {
+          billing_cycle_end: string | null
+          billing_cycle_start: string | null
           cancel_at_period_end: boolean | null
+          cancelled_at: string | null
           created_at: string
           current_period_end: string | null
           current_period_start: string
@@ -43312,8 +43327,11 @@ export type Database = {
           last_alert_at: string | null
           last_alert_shown: string | null
           module_id: string
+          price_eur: number | null
+          pricing_model: string | null
           settings: Json | null
           status: string
+          stripe_sub_id: string | null
           subscribed_at: string
           subscribed_by: string
           trial_ends_at: string | null
@@ -43324,7 +43342,10 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          billing_cycle_end?: string | null
+          billing_cycle_start?: string | null
           cancel_at_period_end?: boolean | null
+          cancelled_at?: string | null
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string
@@ -43333,8 +43354,11 @@ export type Database = {
           last_alert_at?: string | null
           last_alert_shown?: string | null
           module_id: string
+          price_eur?: number | null
+          pricing_model?: string | null
           settings?: Json | null
           status?: string
+          stripe_sub_id?: string | null
           subscribed_at?: string
           subscribed_by: string
           trial_ends_at?: string | null
@@ -43345,7 +43369,10 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          billing_cycle_end?: string | null
+          billing_cycle_start?: string | null
           cancel_at_period_end?: boolean | null
+          cancelled_at?: string | null
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string
@@ -43354,8 +43381,11 @@ export type Database = {
           last_alert_at?: string | null
           last_alert_shown?: string | null
           module_id?: string
+          price_eur?: number | null
+          pricing_model?: string | null
           settings?: Json | null
           status?: string
+          stripe_sub_id?: string | null
           subscribed_at?: string
           subscribed_by?: string
           trial_ends_at?: string | null
