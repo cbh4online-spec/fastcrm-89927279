@@ -22,6 +22,7 @@ import {
 import { AgentSchedulesManager } from "@/components/ai-agents/AgentSchedulesManager";
 import { CacheMetricsDashboard } from "@/components/ai-agents/CacheMetricsDashboard";
 import { LeadRoutingConfig } from "@/components/plg/LeadRoutingConfig";
+import { RecommendationConfigPanel } from "./RecommendationConfigPanel";
 
 interface AutomationAISettingsProps {
   searchQuery?: string;
@@ -173,6 +174,9 @@ export function AutomationAISettings({ searchQuery = "", matchedSections }: Auto
           }
         />
       </SettingsSection>
+
+      {/* Recommendation Config */}
+      {shouldShow("recommendation-config") && <RecommendationConfigPanel />}
 
       {/* AI Agent Schedules */}
       <SettingsSection
