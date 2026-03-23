@@ -130,11 +130,11 @@ export function TelegramSettingsView() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Username do Bot</Label>
-              <Input value={botUsername} onChange={(e) => setBotUsername(e.target.value)} placeholder="@meubot" readOnly />
+              <Input value={botUsername} onChange={(e) => setBotUsername(e.target.value)} placeholder="@meubot" />
             </div>
             <div>
               <Label>Nome do Bot</Label>
-              <Input value={botName} onChange={(e) => setBotName(e.target.value)} placeholder="FastCRM Bot" readOnly />
+              <Input value={botName} onChange={(e) => setBotName(e.target.value)} placeholder="FastCRM Bot" />
             </div>
           </div>
         </CardContent>
