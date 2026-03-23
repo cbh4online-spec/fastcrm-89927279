@@ -89,6 +89,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { FilterSidebar, FilterGroup } from "@/components/common/FilterSidebar";
 import { ColumnSelector, ColumnConfig, useColumnPreferences } from "@/components/common/ColumnSelector";
 import { useColumnWidths } from "@/hooks/useColumnWidths";
+import { useWorkspaceTags } from "@/hooks/useProductTags";
 import {
   productTypeLabels,
   productStatusLabels,
