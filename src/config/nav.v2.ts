@@ -63,6 +63,7 @@ import {
   AlertTriangle,
   RefreshCw,
   Eye,
+  Cpu,
 } from "lucide-react";
 
 // --- Types ---
