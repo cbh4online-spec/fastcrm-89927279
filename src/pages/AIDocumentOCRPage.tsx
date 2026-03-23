@@ -116,7 +116,7 @@ function ConfidenceMeter({ value, label }: { value: number | null; label?: strin
         <div
           className={cn(
             "h-full rounded-full transition-all",
-            pct >= 80 ? "bg-primary" : pct >= 50 ? "bg-yellow-500" : "bg-destructive"
+            pct >= 80 ? "bg-primary" : pct >= 50 ? "bg-accent" : "bg-destructive"
           )}
           style={{ width: `${pct}%` }}
         />
