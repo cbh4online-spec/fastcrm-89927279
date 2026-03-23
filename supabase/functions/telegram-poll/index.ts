@@ -99,12 +99,39 @@ Deno.serve(async () => {
 
         if (group) {
           // Find member by telegram_user_id
-          const { data: member } = await supabase
-            .from('group_members')
-            .select('user_id, contact_id')
-            .eq('group_id', group.id)
-            .eq('telegram_user_id', row.from_user_id)
-            .single()
+          let member: any = null
+          if (row.from_user_id) {
+            const { data: existingMember } = await supabase
+              .from('group_members')
+              .select('id, user_id, contact_id')
+              .eq('group_id', group.id)
+              .eq('telegram_user_id', row.from_user_id)
+              .maybeSingle()
+
+            if (existingMember) {
+              member = existingMember
+            } else {
+              // Auto-register new Telegram member
+              const firstName = row.raw_update?.message?.from?.first_name ?? ''
+              const lastName = row.raw_update?.message?.from?.last_name ?? ''
+              const displayName = `${firstName} ${lastName}`.trim() || row.from_username || `User ${row.from_user_id}`
+
+              const { data: newMember } = await supabase
+                .from('group_members')
+                .insert({
+                  group_id: group.id,
+                  workspace_id: group.workspace_id,
+                  telegram_user_id: row.from_user_id,
+                  telegram_username: row.from_username,
+                  role: 'member',
+                })
+                .select('id, user_id, contact_id')
+                .single()
+
+              member = newMember
+              console.log(`Auto-registered Telegram member: ${displayName} (${row.from_user_id}) in group ${group.id}`)
+            }
+          }
 
           await supabase.from('group_messages').insert({
             group_id: group.id,

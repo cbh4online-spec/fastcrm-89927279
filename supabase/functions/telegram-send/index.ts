@@ -24,7 +24,50 @@ Deno.serve(async (req) => {
   )
 
   try {
-    // Auth guard
+    const body = await req.json()
+    const { action, workspace_id, ...params } = body
+
+    // Internal actions called by SQL triggers (via pg_net with anon key) skip user auth
+    if (action === 'sendAlertInternal') {
+      if (!workspace_id) {
+        return new Response(JSON.stringify({ error: 'workspace_id is required' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      const { data: config } = await supabase
+        .from('telegram_config')
+        .select('alert_group_chat_id')
+        .eq('workspace_id', workspace_id)
+        .single()
+
+      if (!config?.alert_group_chat_id) {
+        return new Response(JSON.stringify({ success: true, skipped: 'No alert group configured' }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      const { text: alertText, alert_type } = params
+      const emoji = alert_type === 'new_lead' ? '🎯' : alert_type === 'new_deal' ? '💰' : alert_type === 'proposal' ? '📄' : 'ℹ️'
+      const message = `${emoji} <b>${alert_type?.toUpperCase() || 'ALERTA'}</b>\n\n${alertText}`
+
+      const response = await fetch(`${GATEWAY_URL}/sendMessage`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'X-Connection-Api-Key': TELEGRAM_API_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ chat_id: config.alert_group_chat_id, text: message, parse_mode: 'HTML' }),
+      })
+      const data = await response.json()
+
+      return new Response(JSON.stringify({ success: response.ok, result: data.result }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Auth guard for user-facing actions
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing authorization' }), {
@@ -40,9 +83,6 @@ Deno.serve(async (req) => {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
-
-    const body = await req.json()
-    const { action, workspace_id, ...params } = body
 
     // Verify workspace membership
     const { data: membership } = await supabase
@@ -211,6 +251,45 @@ Deno.serve(async (req) => {
         const data = await response.json()
         if (!response.ok) throw new Error(`Telegram sendAlert failed [${response.status}]: ${JSON.stringify(data)}`)
         result = data.result
+        break
+      }
+
+      case 'broadcast': {
+        const { chat_ids, text: bText, product_id: bProductId } = params
+        const results: any[] = []
+        
+        for (const chatId of (chat_ids || [])) {
+          try {
+            if (bProductId) {
+              // Reuse sendProduct logic
+              const { data: prod } = await supabase
+                .from('products')
+                .select('name, description, price, sku, product_images(url)')
+                .eq('id', bProductId)
+                .single()
+
+              if (prod) {
+                const pText = `🏷️ <b>${prod.name}</b>\n${prod.description ? prod.description + '\n' : ''}💰 ${prod.price}€\n📦 SKU: ${prod.sku || 'N/A'}`
+                const r = await fetch(`${GATEWAY_URL}/sendMessage`, {
+                  method: 'POST',
+                  headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'X-Connection-Api-Key': TELEGRAM_API_KEY, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ chat_id: chatId, text: pText, parse_mode: 'HTML' }),
+                })
+                results.push(await r.json())
+              }
+            } else {
+              const r = await fetch(`${GATEWAY_URL}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'X-Connection-Api-Key': TELEGRAM_API_KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: bText, parse_mode: 'HTML' }),
+              })
+              results.push(await r.json())
+            }
+          } catch (err) {
+            console.error(`Broadcast to ${chatId} failed:`, err)
+          }
+        }
+        result = { sent: results.length }
         break
       }
 
