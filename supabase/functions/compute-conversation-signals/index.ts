@@ -28,6 +28,15 @@ Deno.serve(async (req) => {
       );
     }
 
+    // AI Gate check
+    const gate = await aiGate(workspace_id, 'medium', 'compute-conversation-signals');
+    if (!gate.allowed) {
+      return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!contact_id && !lead_id) {
       return new Response(
         JSON.stringify({ error: "Missing contact_id or lead_id" }),
