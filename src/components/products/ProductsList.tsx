@@ -327,6 +327,21 @@ export function ProductsList() {
       });
     }
 
+    // Add tags if they exist
+    const tagItems = ((workspaceTags || []) as string[]).map((t: string) => ({
+      id: `tag_${t}`,
+      label: t,
+    }));
+    if (tagItems.length > 0) {
+      groups.push({
+        id: "tags",
+        label: "Tags",
+        icon: <Tag className="h-4 w-4" />,
+        defaultOpen: false,
+        items: tagItems,
+      });
+    }
+
     // Add remaining groups
     groups.push(
       {
