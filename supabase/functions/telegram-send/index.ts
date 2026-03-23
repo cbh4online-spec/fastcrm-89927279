@@ -157,13 +157,47 @@ Deno.serve(async (req) => {
         const { chat_id, product_id, group_id } = params
 
         // Fetch product details
-        const { data: product } = await supabase
+        const { data: product, error: productError } = await supabase
           .from('products')
           .select('name, description, price, sku, product_images(url)')
           .eq('id', product_id)
-          .single()
+          .maybeSingle()
 
-        if (!product) throw new Error('Product not found')
+        if (productError) {
+          console.error('Product query error:', productError)
+          // Fallback: try without the relation join
+          const { data: productBasic } = await supabase
+            .from('products')
+            .select('name, description, price, sku')
+            .eq('id', product_id)
+            .maybeSingle()
+          if (!productBasic) {
+            return new Response(JSON.stringify({ success: false, error: 'Product not found', hint: 'Check if the product_id exists in the products table' }), {
+              status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+          }
+          // Use basic product without images
+          const fallbackText = `🏷️ <b>${productBasic.name}</b>\n${productBasic.description ? productBasic.description + '\n' : ''}💰 ${productBasic.price}€\n📦 SKU: ${productBasic.sku || 'N/A'}`
+          const fbResp = await fetch(`${GATEWAY_URL}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'X-Connection-Api-Key': TELEGRAM_API_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id, text: fallbackText, parse_mode: 'HTML' }),
+          })
+          const fbData = await fbResp.json()
+          if (!fbResp.ok) return telegramErrorResponse(fbResp.status, fbData)
+          result = fbData.result
+          // Save telegram_message_id
+          if (group_id && result?.message_id) {
+            await supabase.from('group_messages').insert({ group_id, workspace_id: params.workspace_id, content: fallbackText, content_type: 'product', product_id, telegram_message_id: result.message_id })
+          }
+          break
+        }
+
+        if (!product) {
+          return new Response(JSON.stringify({ success: false, error: 'Product not found', hint: 'Check if the product_id exists in the products table' }), {
+            status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        }
 
         const imageUrl = (product as any).product_images?.[0]?.url
         const text = `🏷️ <b>${product.name}</b>\n${product.description ? product.description + '\n' : ''}💰 ${product.price}€\n📦 SKU: ${product.sku || 'N/A'}`
