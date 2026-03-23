@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Group, useGroupMessages, useGroupMembers, useSendGroupMessage } from "@/hooks/useGroups";
+import { Group, useGroupMessages, useGroupMembers, useSendGroupMessage, useUpdateGroup, useDeleteGroup } from "@/hooks/useGroups";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, Send, Users, Package, UserPlus, MoreVertical, UserMinus, AlertTriangle, Link2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Send, Users, Package, UserPlus, MoreVertical, UserMinus, AlertTriangle, Link2, Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,10 +36,19 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
   const { data: messages, isLoading } = useGroupMessages(group.id);
   const { data: members } = useGroupMembers(group.id);
   const sendMessage = useSendGroupMessage();
+  const updateGroupMut = useUpdateGroup();
+  const deleteGroupMut = useDeleteGroup();
   const [text, setText] = useState("");
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [linkTelegramOpen, setLinkTelegramOpen] = useState(false);
   const [telegramChatId, setTelegramChatId] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editName, setEditName] = useState(group.name);
+  const [editDescription, setEditDescription] = useState(group.description || "");
+  const [editType, setEditType] = useState(group.group_type);
+  const [editPurpose, setEditPurpose] = useState(group.purpose);
+  const [editTelegramChatId, setEditTelegramChatId] = useState(group.telegram_chat_id ? String(group.telegram_chat_id) : "");
   const scrollRef = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
 
@@ -139,12 +152,29 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
           </div>
         </div>
 
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <Users className="h-4 w-4" />
-            </Button>
-          </SheetTrigger>
+        <div className="flex items-center gap-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                <Pencil className="h-4 w-4 mr-2" /> Editar grupo
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="text-destructive">
+                <Trash2 className="h-4 w-4 mr-2" /> Apagar grupo
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Users className="h-4 w-4" />
+              </Button>
+            </SheetTrigger>
           <SheetContent>
             <SheetHeader>
               <SheetTitle className="flex items-center justify-between">
@@ -192,6 +222,7 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
             </div>
           </SheetContent>
         </Sheet>
+        </div>
       </div>
 
       {/* Telegram not linked warning */}
@@ -288,6 +319,101 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
         groupId={group.id}
         existingMemberIds={existingMemberIds}
       />
+
+      {/* Edit Group Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar Grupo</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nome</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div>
+              <Label>Descrição</Label>
+              <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Tipo</Label>
+                <Select value={editType} onValueChange={(v) => setEditType(v as any)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="internal">Interno</SelectItem>
+                    <SelectItem value="telegram">Telegram</SelectItem>
+                    <SelectItem value="hybrid">Híbrido</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Objectivo</Label>
+                <Select value={editPurpose} onValueChange={(v) => setEditPurpose(v as any)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">Geral</SelectItem>
+                    <SelectItem value="support">Suporte</SelectItem>
+                    <SelectItem value="sales">Vendas</SelectItem>
+                    <SelectItem value="community">Comunidade</SelectItem>
+                    <SelectItem value="team">Equipa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {(editType === "telegram" || editType === "hybrid") && (
+              <TelegramChatPicker value={editTelegramChatId} onChange={setEditTelegramChatId} />
+            )}
+            <Button
+              onClick={async () => {
+                try {
+                  await updateGroupMut.mutateAsync({
+                    id: group.id,
+                    name: editName,
+                    description: editDescription || null,
+                    group_type: editType as any,
+                    purpose: editPurpose as any,
+                    telegram_chat_id: editTelegramChatId ? parseInt(editTelegramChatId) : null,
+                  });
+                  toast.success("Grupo atualizado");
+                  setEditOpen(false);
+                } catch (err: any) {
+                  toast.error(err.message);
+                }
+              }}
+              disabled={!editName.trim() || updateGroupMut.isPending}
+              className="w-full"
+            >
+              {updateGroupMut.isPending ? "A guardar..." : "Guardar alterações"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Group Confirmation */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar grupo "{group.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita. O grupo, membros e mensagens serão apagados permanentemente.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                try {
+                  await deleteGroupMut.mutateAsync(group.id);
+                  toast.success("Grupo apagado");
+                  onBack();
+                } catch (err: any) {
+                  toast.error(err.message);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Apagar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
