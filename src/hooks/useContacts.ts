@@ -4,6 +4,7 @@ import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface Contact {
   id: string;
@@ -184,6 +185,10 @@ export function useContacts() {
           },
         });
       }
+      // Fire-and-forget: generate AI tag suggestions
+      supabase.functions.invoke('ai-entity-tags', {
+        body: { entity_type: 'contact', entity_id: data.id, workspace_id: currentWorkspace?.id },
+      }).catch(() => {});
       toast.success("Contacto criado com sucesso");
     },
     onError: (error) => {

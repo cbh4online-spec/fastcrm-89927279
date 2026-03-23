@@ -48,7 +48,7 @@ import Contacts from "./pages/Contacts";
 import ContactDetail from "./pages/ContactDetail";
 import Companies from "./pages/Companies";
 import CompanyDetail from "./pages/CompanyDetail";
-import AISuggestionsHistory from "./pages/AISuggestionsHistory";
+import AISuggestionsPage from "./pages/AISuggestionsPage";
 import Crm from "./pages/Crm";
 import FormStudioPage from "./pages/FormStudioPage";
 import NotFound from "./pages/NotFound";
@@ -559,7 +559,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/contacts/:id" element={<ContactDetail />} />
                 <Route path="/dashboard/companies" element={<Companies />} />
                 <Route path="/dashboard/companies/:id" element={<CompanyDetail />} />
-                <Route path="/dashboard/ai-suggestions" element={<AISuggestionsHistory />} />
+                <Route path="/dashboard/ai-suggestions" element={<AISuggestionsPage />} />
                 <Route path="/dashboard/crm" element={<Crm />} />
                 <Route path="/dashboard/form-studio" element={<FormStudioPage />} />
                 <Route path="/dashboard/proposals" element={<Proposals />} />

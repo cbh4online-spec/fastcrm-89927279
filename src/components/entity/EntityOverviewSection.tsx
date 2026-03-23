@@ -16,8 +16,10 @@ import {
 } from 'lucide-react';
 import { EntityType, Entity } from '@/types/entity';
 import { EntityAISuggestionsPanel } from './EntityAISuggestionsPanel';
+import { EntitySuggestionsPanel } from '@/components/ai/EntitySuggestionsPanel';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import type { SuggestionEntityType } from '@/types/ai-suggestions';
 
 interface EntityOverviewSectionProps {
   entityType: EntityType;
@@ -107,6 +109,12 @@ export function EntityOverviewSection({
           entity={entity}
           onRefresh={onGenerateSuggestions}
           isLoading={isGeneratingSuggestions}
+        />
+
+        {/* AI Tag/Field Suggestions */}
+        <EntitySuggestionsPanel
+          entityType={entityType as SuggestionEntityType}
+          entityId={entity.id}
         />
 
         {/* Recent Activity */}

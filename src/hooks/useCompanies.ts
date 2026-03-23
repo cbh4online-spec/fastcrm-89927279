@@ -4,6 +4,7 @@ import { useWorkspaceInstance } from "@/contexts/WorkspaceInstanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { emitKernelEvent } from "@/lib/kernelEmitter";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface CompanyContext {
   about_us?: string;
@@ -239,6 +240,10 @@ export function useCompanies() {
           },
         });
       }
+      // Fire-and-forget: generate AI tag suggestions
+      supabase.functions.invoke('ai-entity-tags', {
+        body: { entity_type: 'company', entity_id: company.id, workspace_id: currentWorkspace?.id },
+      }).catch(() => {});
     },
     onError: (error) => {
       console.warn('[COMPANIES] CREATE_FAILED', error.message);
