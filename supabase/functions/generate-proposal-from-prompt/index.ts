@@ -1,3 +1,4 @@
+import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 
 
 const corsHeaders = {

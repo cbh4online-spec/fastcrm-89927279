@@ -1,3 +1,4 @@
+import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { aiGate } from '../_shared/ai-gate.ts';
 import { createClient } from "@supabase/supabase-js";
 
@@ -106,6 +107,7 @@ ${messageContext}
 
 Retorne a análise usando a função analyze_lead.`;
 
+    const _startTime = Date.now();
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -200,7 +202,21 @@ Retorne a análise usando a função analyze_lead.`;
       throw new Error(`AI gateway error: ${response.status} - ${errorBody}`);
     }
 
-    const aiResponse = await response.json();
+    const aiResponse = await response.json()
+
+    // AI Usage Instrumentation
+    try {
+      const _usage = aiResponse?.usage;
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: 'ai-analyze-lead',
+        model: aiResponse?.model || 'google/gemini-3-flash-preview',
+        tokens_input: _usage?.prompt_tokens ?? 0,
+        tokens_output: _usage?.completion_tokens ?? 0,
+        request_type: 'completion',
+        latency_ms: Date.now() - (_startTime ?? Date.now()),
+      });
+    } catch (_e) { /* instrumentation error - non-blocking */ };
     const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
     
     if (!toolCall?.function?.arguments) {

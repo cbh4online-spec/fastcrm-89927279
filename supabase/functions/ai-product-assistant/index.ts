@@ -1,3 +1,4 @@
+import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { aiGate } from '../_shared/ai-gate.ts';
 
 
@@ -1812,7 +1813,21 @@ Responda com um array JSON: [entry1, entry2, ...]`;
         throw new Error(`AI gateway error: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data = await response.json()
+
+    // AI Usage Instrumentation
+    try {
+      const _usage = data?.usage;
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: 'ai-product-assistant',
+        model: data?.model || 'google/gemini-3-flash-preview',
+        tokens_input: _usage?.prompt_tokens ?? 0,
+        tokens_output: _usage?.completion_tokens ?? 0,
+        request_type: 'completion',
+        latency_ms: Date.now() - (_startTime ?? Date.now()),
+      });
+    } catch (_e) { /* instrumentation error - non-blocking */ };
       const content = data.choices?.[0]?.message?.content || '[]';
       
       let suggestions: any[];

@@ -1,3 +1,4 @@
+import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { aiGate } from '../_shared/ai-gate.ts';
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -343,7 +344,8 @@ async function extractPDFWithAI(blob: Blob): Promise<string> {
 
   const base64 = await blobToBase64(blob);
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const _startTime = Date.now();
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -416,7 +418,21 @@ async function processWithAI(content: string, fileName: string, apiKey: string) 
 
   if (!response.ok) throw new Error(`AI error: ${response.status}`);
 
-  const result = await response.json();
+  const result = await response.json()
+
+    // AI Usage Instrumentation
+    try {
+      const _usage = result?.usage;
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: 'knowledge-document-process',
+        model: result?.model || 'google/gemini-3-flash-preview',
+        tokens_input: _usage?.prompt_tokens ?? 0,
+        tokens_output: _usage?.completion_tokens ?? 0,
+        request_type: 'completion',
+        latency_ms: Date.now() - (_startTime ?? Date.now()),
+      });
+    } catch (_e) { /* instrumentation error - non-blocking */ };
   const text = result.choices?.[0]?.message?.content || "";
 
   try {

@@ -2101,6 +2101,98 @@ export type Database = {
           },
         ]
       }
+      ai_settings: {
+        Row: {
+          ai_agents_enabled: boolean
+          ai_copilot_enabled: boolean
+          ai_employees_enabled: boolean
+          ai_imo_enabled: boolean
+          ai_inbox_reply_enabled: boolean
+          ai_sales_coach_enabled: boolean
+          ai_suggestions_enabled: boolean
+          budget_alert_sent: boolean
+          budget_alert_threshold: number
+          budget_reset_date: string
+          created_at: string
+          current_month_cost_usd: number
+          current_month_tokens: number
+          default_model: string
+          max_tokens_agents: number
+          max_tokens_analysis: number
+          max_tokens_default: number
+          max_tokens_generation: number
+          monthly_token_budget: number
+          response_language: string
+          temperature_analytical: number
+          temperature_balanced: number
+          temperature_creative: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_agents_enabled?: boolean
+          ai_copilot_enabled?: boolean
+          ai_employees_enabled?: boolean
+          ai_imo_enabled?: boolean
+          ai_inbox_reply_enabled?: boolean
+          ai_sales_coach_enabled?: boolean
+          ai_suggestions_enabled?: boolean
+          budget_alert_sent?: boolean
+          budget_alert_threshold?: number
+          budget_reset_date?: string
+          created_at?: string
+          current_month_cost_usd?: number
+          current_month_tokens?: number
+          default_model?: string
+          max_tokens_agents?: number
+          max_tokens_analysis?: number
+          max_tokens_default?: number
+          max_tokens_generation?: number
+          monthly_token_budget?: number
+          response_language?: string
+          temperature_analytical?: number
+          temperature_balanced?: number
+          temperature_creative?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ai_agents_enabled?: boolean
+          ai_copilot_enabled?: boolean
+          ai_employees_enabled?: boolean
+          ai_imo_enabled?: boolean
+          ai_inbox_reply_enabled?: boolean
+          ai_sales_coach_enabled?: boolean
+          ai_suggestions_enabled?: boolean
+          budget_alert_sent?: boolean
+          budget_alert_threshold?: number
+          budget_reset_date?: string
+          created_at?: string
+          current_month_cost_usd?: number
+          current_month_tokens?: number
+          default_model?: string
+          max_tokens_agents?: number
+          max_tokens_analysis?: number
+          max_tokens_default?: number
+          max_tokens_generation?: number
+          monthly_token_budget?: number
+          response_language?: string
+          temperature_analytical?: number
+          temperature_balanced?: number
+          temperature_creative?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_suggestion_settings: {
         Row: {
           auto_tag_entities: string[]
@@ -2137,6 +2229,80 @@ export type Database = {
             foreignKeyName: "ai_suggestion_settings_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_usage_logs: {
+        Row: {
+          cost_usd: number
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          error_type: string | null
+          feature: string
+          id: string
+          job_id: string | null
+          latency_ms: number | null
+          model: string
+          provider: string
+          request_type: string | null
+          tokens_input: number
+          tokens_output: number
+          tokens_total: number
+          user_id: string | null
+          was_cached: boolean
+          was_error: boolean
+          workspace_id: string
+        }
+        Insert: {
+          cost_usd?: number
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          error_type?: string | null
+          feature: string
+          id?: string
+          job_id?: string | null
+          latency_ms?: number | null
+          model: string
+          provider?: string
+          request_type?: string | null
+          tokens_input?: number
+          tokens_output?: number
+          tokens_total?: number
+          user_id?: string | null
+          was_cached?: boolean
+          was_error?: boolean
+          workspace_id: string
+        }
+        Update: {
+          cost_usd?: number
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          error_type?: string | null
+          feature?: string
+          id?: string
+          job_id?: string | null
+          latency_ms?: number | null
+          model?: string
+          provider?: string
+          request_type?: string | null
+          tokens_input?: number
+          tokens_output?: number
+          tokens_total?: number
+          user_id?: string | null
+          was_cached?: boolean
+          was_error?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
@@ -45763,6 +45929,26 @@ export type Database = {
           viewed: number
         }[]
       }
+      get_ai_daily_trend: {
+        Args: { p_days?: number; p_workspace_id: string }
+        Returns: {
+          call_count: number
+          cost_usd: number
+          day: string
+          tokens_total: number
+        }[]
+      }
+      get_ai_usage_summary: {
+        Args: { p_from: string; p_to?: string; p_workspace_id: string }
+        Returns: {
+          avg_latency_ms: number
+          call_count: number
+          cost_usd_total: number
+          error_count: number
+          feature: string
+          tokens_total: number
+        }[]
+      }
       get_applicable_rules: {
         Args: {
           p_channel?: string
@@ -46022,6 +46208,10 @@ export type Database = {
       }
       increment_agent_completion: {
         Args: { p_agent_id: string }
+        Returns: undefined
+      }
+      increment_ai_usage: {
+        Args: { p_cost: number; p_tokens: number; p_workspace_id: string }
         Returns: undefined
       }
       increment_bot_analytics: {
@@ -46286,6 +46476,7 @@ export type Database = {
         Returns: boolean
       }
       reset_fastmatch_quotas: { Args: never; Returns: undefined }
+      reset_monthly_ai_budgets: { Args: never; Returns: undefined }
       retrieve_entity_memories: {
         Args: {
           p_entity_id: string

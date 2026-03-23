@@ -1,3 +1,4 @@
+import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
@@ -70,6 +71,7 @@ Deno.serve(async (req) => {
       })
       .join("\n");
 
+    const _startTime = Date.now();
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -215,7 +217,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    const data = await response.json();
+    const data = await response.json()
+
+    // AI Usage Instrumentation
+    try {
+      const _usage = data?.usage;
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: 'ai-transcript-analyze',
+        model: data?.model || 'google/gemini-3-flash-preview',
+        tokens_input: _usage?.prompt_tokens ?? 0,
+        tokens_output: _usage?.completion_tokens ?? 0,
+        request_type: 'completion',
+        latency_ms: Date.now() - (_startTime ?? Date.now()),
+      });
+    } catch (_e) { /* instrumentation error - non-blocking */ };
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
       return new Response(JSON.stringify({ error: "No tool call in AI response" }), {

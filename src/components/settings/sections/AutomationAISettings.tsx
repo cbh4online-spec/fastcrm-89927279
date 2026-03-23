@@ -18,6 +18,8 @@ import {
   FileText,
   Calendar,
   Database,
+  Cpu,
+  BarChart3,
 } from "lucide-react";
 import { AgentSchedulesManager } from "@/components/ai-agents/AgentSchedulesManager";
 import { CacheMetricsDashboard } from "@/components/ai-agents/CacheMetricsDashboard";
@@ -80,6 +82,36 @@ export function AutomationAISettings({ searchQuery = "", matchedSections }: Auto
           </div>
         </CardContent>
       </Card>
+
+      {/* AI Settings & Usage Quick Links */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate("/dashboard/ai-settings")}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Cpu className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold">IA & Modelos</p>
+                <p className="text-sm text-muted-foreground">Modelo padrão, temperaturas, limites e toggles</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate("/dashboard/ai-usage")}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <BarChart3 className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold">Utilização de IA</p>
+                <p className="text-sm text-muted-foreground">Tokens, custos, chamadas e performance</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Automation Rules */}
       <SettingsSection

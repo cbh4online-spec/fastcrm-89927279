@@ -1,3 +1,4 @@
+import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { aiGate } from '../_shared/ai-gate.ts';
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -100,7 +101,8 @@ ${ragContext}
 4. Mantém respostas claras e úteis
 5. Cita as fontes usando [1], [2], etc.`;
 
-        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        const _startTime = Date.now();
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -190,7 +192,21 @@ ${ragContext}
       throw new Error(`AI gateway error: ${response.status}`);
     }
 
-    const aiResponse = await response.json();
+    const aiResponse = await response.json()
+
+    // AI Usage Instrumentation
+    try {
+      const _usage = aiResponse?.usage;
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: 'knowledge-query',
+        model: aiResponse?.model || 'google/gemini-3-flash-preview',
+        tokens_input: _usage?.prompt_tokens ?? 0,
+        tokens_output: _usage?.completion_tokens ?? 0,
+        request_type: 'completion',
+        latency_ms: Date.now() - (_startTime ?? Date.now()),
+      });
+    } catch (_e) { /* instrumentation error - non-blocking */ };
     const contentText = aiResponse.choices?.[0]?.message?.content || "";
 
     let result;

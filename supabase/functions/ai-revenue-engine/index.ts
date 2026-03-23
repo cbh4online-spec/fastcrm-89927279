@@ -1,3 +1,4 @@
+import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
@@ -210,7 +211,21 @@ Com base nestes dados, avalia a empresa.`;
             return;
           }
 
-          const aiData = await aiResponse.json();
+          const aiData = await aiResponse.json()
+
+    // AI Usage Instrumentation
+    try {
+      const _usage = aiData?.usage;
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: 'ai-revenue-engine',
+        model: aiData?.model || 'google/gemini-3-flash-preview',
+        tokens_input: _usage?.prompt_tokens ?? 0,
+        tokens_output: _usage?.completion_tokens ?? 0,
+        request_type: 'completion',
+        latency_ms: Date.now() - (_startTime ?? Date.now()),
+      });
+    } catch (_e) { /* instrumentation error - non-blocking */ };
           const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
           if (!toolCall?.function?.arguments) {
             results[company.id] = { error: "invalid_response" };

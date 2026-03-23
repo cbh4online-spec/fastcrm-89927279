@@ -1,3 +1,4 @@
+import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { aiGate } from '../_shared/ai-gate.ts';
 import { createClient } from "@supabase/supabase-js";
 
@@ -185,6 +186,7 @@ TIPO DE PÚBLICO: ${campaign.segment_id ? 'Segmento específico' : 'Lista comple
 Gera insights em formato JSON conforme as instruções.`;
 
     // Call Lovable AI
+    const _startTime = Date.now();
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -249,7 +251,21 @@ Gera insights em formato JSON conforme as instruções.`;
       throw new Error(`AI request failed: ${aiResponse.status}`);
     }
 
-    const aiData = await aiResponse.json();
+    const aiData = await aiResponse.json()
+
+    // AI Usage Instrumentation
+    try {
+      const _usage = aiData?.usage;
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: 'marketing-campaign-insights',
+        model: aiData?.model || 'google/gemini-3-flash-preview',
+        tokens_input: _usage?.prompt_tokens ?? 0,
+        tokens_output: _usage?.completion_tokens ?? 0,
+        request_type: 'completion',
+        latency_ms: Date.now() - (_startTime ?? Date.now()),
+      });
+    } catch (_e) { /* instrumentation error - non-blocking */ };
     
     // Extract insights from tool call
     let insights;

@@ -1,3 +1,4 @@
+import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { aiGate } from '../_shared/ai-gate.ts';
 import { createClient } from "@supabase/supabase-js";
 
@@ -251,6 +252,7 @@ TAREFA:
 
 Sê específico - cruza o que a empresa faz/precisa com o que nós oferecemos.`;
 
+    const _startTime = Date.now();
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -333,7 +335,21 @@ Sê específico - cruza o que a empresa faz/precisa com o que nós oferecemos.`;
       throw new Error("Falha ao gerar insights");
     }
 
-    const aiData = await aiResponse.json();
+    const aiData = await aiResponse.json()
+
+    // AI Usage Instrumentation
+    try {
+      const _usage = aiData?.usage;
+      logAIUsage({
+        workspace_id: workspace_id,
+        feature: 'company-insights',
+        model: aiData?.model || 'google/gemini-3-flash-preview',
+        tokens_input: _usage?.prompt_tokens ?? 0,
+        tokens_output: _usage?.completion_tokens ?? 0,
+        request_type: 'completion',
+        latency_ms: Date.now() - (_startTime ?? Date.now()),
+      });
+    } catch (_e) { /* instrumentation error - non-blocking */ };
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
 
     if (!toolCall?.function?.arguments) {
