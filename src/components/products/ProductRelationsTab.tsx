@@ -5,10 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -23,7 +21,11 @@ import {
   Sparkles,
   Loader2,
   GripVertical,
-  X,
+  ArrowUpRight,
+  Wrench,
+  AlertTriangle,
+  RefreshCw,
+  Layers,
 } from "lucide-react";
 
 interface ProductRelationsTabProps {
@@ -34,20 +36,25 @@ interface ProductRelationsTabProps {
   };
 }
 
-type RelationType = "related" | "compatible" | "bundle";
+type RelationType = "accessory" | "alternative" | "required" | "upgrade" | "compatible" | "bundle" | "related";
 
 const relationLabels: Record<RelationType, { label: string; icon: typeof Link2; color: string }> = {
-  related: { label: "Relacionado", icon: Link2, color: "text-blue-600" },
+  accessory: { label: "Acessório", icon: Wrench, color: "text-orange-600" },
+  alternative: { label: "Alternativa", icon: RefreshCw, color: "text-yellow-600" },
+  required: { label: "Obrigatório", icon: AlertTriangle, color: "text-red-600" },
+  upgrade: { label: "Upgrade", icon: ArrowUpRight, color: "text-emerald-600" },
   compatible: { label: "Compatível", icon: Puzzle, color: "text-green-600" },
   bundle: { label: "Bundle", icon: ShoppingBag, color: "text-purple-600" },
+  related: { label: "Relacionado", icon: Link2, color: "text-blue-600" },
 };
+
+const allTypes: RelationType[] = ["accessory", "alternative", "required", "upgrade", "compatible", "bundle", "related"];
 
 export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedType, setSelectedType] = useState<RelationType>("compatible");
+  const [selectedType, setSelectedType] = useState<RelationType>("accessory");
   const [reason, setReason] = useState("");
-  const [isAdding, setIsAdding] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 300);
 
   // Fetch existing relations
@@ -55,7 +62,7 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
     queryKey: ["product-relations", product.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("product_relations" as any)
+        .from("product_relations")
         .select("*")
         .eq("source_product_id", product.id)
         .order("relation_type")
@@ -65,7 +72,7 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
     },
   });
 
-  // Fetch target product details for existing relations
+  // Fetch target product details
   const targetIds = relations.map((r: any) => r.target_product_id);
   const { data: targetProducts = [] } = useQuery({
     queryKey: ["product-relation-targets", targetIds],
@@ -80,7 +87,7 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
     enabled: targetIds.length > 0,
   });
 
-  // Search for products to add
+  // Search products
   const { data: searchResults = [] } = useQuery({
     queryKey: ["product-search-relations", debouncedSearch, product.workspace_id],
     queryFn: async () => {
@@ -98,11 +105,11 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
     enabled: !!debouncedSearch && debouncedSearch.length >= 2,
   });
 
-  // Add relation mutation
+  // Add relation
   const addRelation = useMutation({
     mutationFn: async (targetProductId: string) => {
       const { error } = await supabase
-        .from("product_relations" as any)
+        .from("product_relations")
         .insert({
           workspace_id: product.workspace_id,
           source_product_id: product.id,
@@ -132,7 +139,7 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
   const removeRelation = useMutation({
     mutationFn: async (relationId: string) => {
       const { error } = await supabase
-        .from("product_relations" as any)
+        .from("product_relations")
         .delete()
         .eq("id", relationId);
       if (error) throw error;
@@ -147,7 +154,7 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
   const toggleActive = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
       const { error } = await supabase
-        .from("product_relations" as any)
+        .from("product_relations")
         .update({ is_active } as any)
         .eq("id", id);
       if (error) throw error;
@@ -157,19 +164,19 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
     },
   });
 
-  // AI suggest relations
+  // AI suggest relations via dedicated edge function
   const suggestRelations = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("ai-product-assistant", {
+      const { data, error } = await supabase.functions.invoke("suggest-related-products", {
         body: {
-          mode: "suggest-relations",
-          productId: product.id,
-          workspaceId: product.workspace_id,
+          product_id: product.id,
+          workspace_id: product.workspace_id,
+          mode: "suggest-and-save",
         },
       });
       if (error) throw error;
-      if (!data.success) throw new Error(data.error);
-      return data.data;
+      if (data?.error) throw new Error(data.error);
+      return data;
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["product-relations", product.id] });
@@ -182,13 +189,11 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
 
   const getTargetProduct = (targetId: string) => targetProducts.find((p: any) => p.id === targetId);
 
-  const groupedRelations = {
-    compatible: relations.filter((r: any) => r.relation_type === "compatible"),
-    related: relations.filter((r: any) => r.relation_type === "related"),
-    bundle: relations.filter((r: any) => r.relation_type === "bundle"),
-  };
+  const groupedRelations = allTypes.reduce<Record<string, any[]>>((acc, type) => {
+    acc[type] = relations.filter((r: any) => r.relation_type === type);
+    return acc;
+  }, {});
 
-  // Filter search results that are already added for selected type
   const existingTargetIds = new Set(
     relations
       .filter((r: any) => r.relation_type === selectedType)
@@ -198,10 +203,10 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* AI Suggest button */}
+      {/* Header + AI */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Gerir produtos relacionados, compatíveis e bundles.
+          Gerir relações entre produtos: acessórios, alternativas, upgrades, bundles e mais.
         </p>
         <Button
           variant="outline"
@@ -228,18 +233,21 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
 
         <div className="flex gap-2">
           <Select value={selectedType} onValueChange={(v) => setSelectedType(v as RelationType)}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-[170px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(Object.entries(relationLabels) as [RelationType, typeof relationLabels.related][]).map(([key, { label, icon: Icon }]) => (
-                <SelectItem key={key} value={key}>
-                  <span className="flex items-center gap-2">
-                    <Icon className="h-3.5 w-3.5" />
-                    {label}
-                  </span>
-                </SelectItem>
-              ))}
+              {allTypes.map((key) => {
+                const { label, icon: Icon } = relationLabels[key];
+                return (
+                  <SelectItem key={key} value={key}>
+                    <span className="flex items-center gap-2">
+                      <Icon className="h-3.5 w-3.5" />
+                      {label}
+                    </span>
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
 
@@ -255,7 +263,7 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
         </div>
 
         <Input
-          placeholder="Motivo da relação (opcional) ex: Acessório recomendado"
+          placeholder="Motivo da relação (opcional) ex: Cabo compatível com este modelo"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         />
@@ -303,12 +311,13 @@ export function ProductRelationsTab({ product }: ProductRelationsTabProps) {
         <div className="text-center py-8 text-muted-foreground text-sm">A carregar...</div>
       ) : relations.length === 0 ? (
         <div className="text-center py-8">
-          <Link2 className="h-10 w-10 mx-auto text-muted-foreground/20 mb-2" />
+          <Layers className="h-10 w-10 mx-auto text-muted-foreground/20 mb-2" />
           <p className="text-sm text-muted-foreground">Nenhuma relação definida</p>
           <p className="text-xs text-muted-foreground mt-1">Use a pesquisa acima ou o botão "Sugerir com IA"</p>
         </div>
       ) : (
-        (Object.entries(groupedRelations) as [RelationType, any[]][]).map(([type, items]) => {
+        allTypes.map((type) => {
+          const items = groupedRelations[type] || [];
           if (items.length === 0) return null;
           const { label, icon: Icon, color } = relationLabels[type];
           return (
