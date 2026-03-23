@@ -367,6 +367,15 @@ export function ProductDetailDialog({
                   </p>
                 </div>
 
+                {/* Barcode & QR Code */}
+                <ProductBarcodeQRSection
+                  productId={product.id}
+                  barcode={(product as any).barcode}
+                  sku={product.sku}
+                  sheetSlug={product.sheet_slug}
+                  sheetPublished={product.sheet_published}
+                />
+
                 {product.short_description && (
                   <>
                     <Separator />
