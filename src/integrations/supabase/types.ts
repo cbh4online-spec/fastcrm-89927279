@@ -21924,9 +21924,11 @@ export type Database = {
       knowledge_bases: {
         Row: {
           allowed_channels: string[] | null
+          chunk_count: number
           created_at: string
           created_by: string
           description: string | null
+          document_count: number
           id: string
           is_active: boolean | null
           name: string
@@ -21936,9 +21938,11 @@ export type Database = {
         }
         Insert: {
           allowed_channels?: string[] | null
+          chunk_count?: number
           created_at?: string
           created_by: string
           description?: string | null
+          document_count?: number
           id?: string
           is_active?: boolean | null
           name: string
@@ -21948,9 +21952,11 @@ export type Database = {
         }
         Update: {
           allowed_channels?: string[] | null
+          chunk_count?: number
           created_at?: string
           created_by?: string
           description?: string | null
+          document_count?: number
           id?: string
           is_active?: boolean | null
           name?: string
@@ -21961,6 +21967,139 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "knowledge_bases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string
+          document_id: string
+          embedding: string | null
+          id: string
+          knowledge_base_id: string
+          metadata: Json | null
+          token_count: number | null
+          workspace_id: string
+        }
+        Insert: {
+          chunk_index?: number
+          content: string
+          created_at?: string
+          document_id: string
+          embedding?: string | null
+          id?: string
+          knowledge_base_id: string
+          metadata?: Json | null
+          token_count?: number | null
+          workspace_id: string
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          document_id?: string
+          embedding?: string | null
+          id?: string
+          knowledge_base_id?: string
+          metadata?: Json | null
+          token_count?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_chunks_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_bases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_chunks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_documents: {
+        Row: {
+          chunk_count: number
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          file_path: string | null
+          file_size: number | null
+          file_type: string | null
+          id: string
+          knowledge_base_id: string
+          metadata: Json | null
+          name: string
+          raw_text: string | null
+          source_url: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          chunk_count?: number
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          knowledge_base_id: string
+          metadata?: Json | null
+          name: string
+          raw_text?: string | null
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          chunk_count?: number
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          knowledge_base_id?: string
+          metadata?: Json | null
+          name?: string
+          raw_text?: string | null
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_documents_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_bases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_documents_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -44973,6 +45112,24 @@ export type Database = {
           source_entity_id: string
           source_entity_type: string
           success_factors: string[]
+        }[]
+      }
+      match_knowledge_chunks: {
+        Args: {
+          p_knowledge_base_id: string
+          p_match_count?: number
+          p_match_threshold?: number
+          p_query_embedding: string
+          p_workspace_id: string
+        }
+        Returns: {
+          chunk_index: number
+          content: string
+          document_id: string
+          id: string
+          metadata: Json
+          similarity: number
+          token_count: number
         }[]
       }
       match_knowledge_entries: {

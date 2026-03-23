@@ -1,5 +1,5 @@
 import { aiGate } from '../_shared/ai-gate.ts';
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,42 +7,33 @@ const corsHeaders = {
 };
 
 interface ProcessRequest {
-  sourceId: string;
-  filePath: string;
-  fileName: string;
-  mimeType: string;
-  knowledgeBaseId: string;
-  workspaceId: string;
+  // New vectorial format
+  document_id?: string;
+  // Legacy format
+  sourceId?: string;
+  filePath?: string;
+  fileName?: string;
+  mimeType?: string;
+  knowledgeBaseId?: string;
+  workspaceId?: string;
 }
 
-interface ChunkResult {
-  processedContent: string;
-  topics: string[];
-  faqs: { question: string; answer: string }[];
-  categories: string[];
-  summary: string;
-}
+const CHUNK_SIZE_TOKENS = 512;
+const CHUNK_OVERLAP = 50;
+const MAX_TOTAL_CHARS = 200000;
 
-const CHUNK_SIZE = 30000;
-const MAX_TOTAL_CHARS = 100000;
-const MAX_DOWNLOAD_SIZE = 20 * 1024 * 1024; // 20MB - safe limit for edge function memory
-const TRIGGER_THRESHOLD = 20 * 1024 * 1024; // Files larger than 20MB go to Trigger.dev
-
-// Main handler - returns immediately, processes in background
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  let sourceId: string | undefined;
-  
   try {
     const body: ProcessRequest = await req.json();
+    const workspaceId = body.workspaceId;
 
     // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
-    if (_gateWsId) {
-      const gate = await aiGate(_gateWsId, 'heavy', 'knowledge-document-process');
+    if (workspaceId) {
+      const gate = await aiGate(workspaceId, 'heavy', 'knowledge-document-process');
       if (!gate.allowed) {
         return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
           status: 200,
@@ -51,410 +42,358 @@ Deno.serve(async (req) => {
       }
     }
 
-    sourceId = body.sourceId;
-    const { filePath, fileName, mimeType, knowledgeBaseId, workspaceId } = body;
-
-    console.log(`[AI-DOCINT] DOC_RECEIVED file=${fileName}`);
-
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Update status to processing immediately
-    await supabase
-      .from('knowledge_sources')
-      .update({ 
-        processing_status: 'processing',
-        processing_error: 'A verificar tamanho do ficheiro...'
-      })
-      .eq('id', sourceId);
-
-    // Get signed URL to check file size
-    const { data: urlData, error: urlError } = await supabase.storage
-      .from('knowledge-documents')
-      .createSignedUrl(filePath, 300);
-
-    if (urlError || !urlData) {
-      throw new Error(`Failed to get file URL: ${urlError?.message}`);
+    // Route: new vectorial documents
+    if (body.document_id) {
+      return await processVectorialDocument(supabase, body);
     }
 
-    // Get file size via HEAD request
-    const headResponse = await fetch(urlData.signedUrl, { method: 'HEAD' });
-    const contentLength = parseInt(headResponse.headers.get('content-length') || '0');
-    const fileSizeMB = contentLength / (1024 * 1024);
-
-    console.log(`[AI-DOCINT] DOC_SIZE ${fileSizeMB.toFixed(2)}MB`);
-
-    // For files > 20MB, delegate to Trigger.dev for full processing
-    if (contentLength > TRIGGER_THRESHOLD) {
-      console.log(`[AI-DOCINT] LARGE_FILE delegating to Trigger.dev file=${fileName} size=${fileSizeMB.toFixed(2)}MB`);
-
-      // Emit DOCINT.DELEGATED kernel event
-      await supabase.from('kernel_events').insert({
-        workspace_id: workspaceId,
-        type: 'DOCINT.DELEGATED',
-        entity_kind: 'knowledge_source',
-        entity_id: sourceId,
-        source_module: 'ai-docint',
-        actor_type: 'system',
-        payload: { file_name: fileName, file_size_mb: parseFloat(fileSizeMB.toFixed(2)) },
-        occurred_at: new Date().toISOString(),
-        ingested_at: new Date().toISOString(),
-        schema_version: 1,
-      }).then(() => {});
-      
-      // Get source details including fileName from the database
-      const { data: sourceDetails, error: sourceError } = await supabase
-        .from('knowledge_sources')
-        .select('source_file_path, knowledge_base_id, workspace_id')
-        .eq('id', sourceId)
-        .single();
-      
-      if (sourceError) {
-        throw new Error(`Failed to get source details: ${sourceError.message}`);
-      }
-      
-      // Extract filename from file path if not provided
-      const actualFileName = fileName || (filePath ? filePath.split('/').pop() : 'document');
-      const actualMimeType = mimeType || 'application/octet-stream';
-      const actualKbId = knowledgeBaseId || sourceDetails?.knowledge_base_id;
-      const actualWorkspaceId = workspaceId || sourceDetails?.workspace_id;
-      
-      await supabase
-        .from('knowledge_sources')
-        .update({ 
-          processing_status: 'processing',
-          processing_error: `Ficheiro grande (${fileSizeMB.toFixed(1)}MB). A processar via sistema avançado...`
-        })
-        .eq('id', sourceId);
-
-      // Call the Trigger function directly with complete data
-      const { data: triggerResult, error: triggerError } = await supabase.functions.invoke('knowledge-document-trigger', {
-        body: {
-          workspaceId: actualWorkspaceId,
-          inputData: {
-            sourceId,
-            filePath,
-            fileName: actualFileName,
-            mimeType: actualMimeType,
-            knowledgeBaseId: actualKbId,
-            fileSize: contentLength
-          }
-        }
-      });
-
-      if (triggerError) {
-        console.error('[AI-DOCINT] TRIGGER_DISPATCH_FAILED', triggerError);
-        throw new Error(`Failed to dispatch to Trigger.dev: ${triggerError.message}`);
-      }
-
-      console.log(`[AI-DOCINT] TRIGGER_DISPATCHED file=${fileName}`);
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          sourceId,
-          message: 'Processing delegated to Trigger.dev for large file',
-          delegated: true
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Route: legacy knowledge_sources
+    if (body.sourceId) {
+      return await processLegacyDocument(supabase, body);
     }
 
-    // For smaller files, process directly with background processing
-    await supabase
-      .from('knowledge_sources')
-      .update({ processing_error: 'A iniciar processamento...' })
-      .eq('id', sourceId);
-
-    // Start background processing with EdgeRuntime.waitUntil
-    (globalThis as any).EdgeRuntime.waitUntil(
-      processDocumentInBackground(
-        sourceId,
-        filePath,
-        fileName,
-        mimeType,
-        knowledgeBaseId,
-        workspaceId
-      ).catch(async (error) => {
-        console.error("[AI-DOCINT] BACKGROUND_PROCESS_ERROR", error);
-        await supabase
-          .from('knowledge_sources')
-          .update({
-            processing_status: 'failed',
-            processing_error: error instanceof Error ? error.message : 'Erro no processamento'
-          })
-          .eq('id', sourceId);
-      })
-    );
-
-    // Return immediately
     return new Response(
-      JSON.stringify({
-        success: true,
-        sourceId,
-        message: 'Processing started in background'
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: "document_id or sourceId is required" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-
   } catch (error) {
-    console.error("[AI-DOCINT] DOC_ERROR", error);
-
-    // Emit DOCINT.OCR_FAILED kernel event
-    if (sourceId) {
-      try {
-        const sb = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        );
-        await sb.from('kernel_events').insert({
-          workspace_id: 'unknown',
-          type: 'DOCINT.OCR_FAILED',
-          entity_kind: 'knowledge_source',
-          entity_id: sourceId,
-          source_module: 'ai-docint',
-          actor_type: 'system',
-          payload: { file_name: sourceId, error: error instanceof Error ? error.message : 'Unknown error' },
-          occurred_at: new Date().toISOString(),
-          ingested_at: new Date().toISOString(),
-          schema_version: 1,
-        }).then(() => {});
-      } catch {}
-    }
-    
-    if (sourceId) {
-      try {
-        const supabase = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        );
-        
-        await supabase
-          .from('knowledge_sources')
-          .update({
-            processing_status: 'failed',
-            processing_error: error instanceof Error ? error.message : 'Erro desconhecido'
-          })
-          .eq('id', sourceId);
-      } catch {}
-    }
-    
+    console.error("[DOCPROCESS] Error:", error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error instanceof Error ? error.message : "Unknown error" 
-      }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
 
-// Background processing function for files <= 20MB
-async function processDocumentInBackground(
-  sourceId: string,
-  filePath: string,
-  fileName: string,
-  mimeType: string,
-  knowledgeBaseId: string,
-  workspaceId: string
-) {
-  console.log(`[AI-DOCINT] DOC_BACKGROUND_START file=${fileName}`);
-  
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
-    throw new Error("LOVABLE_API_KEY is not configured");
-  }
+// ─── NEW VECTORIAL PROCESSING ───────────────────────────────────────────────
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+async function processVectorialDocument(supabase: any, body: ProcessRequest) {
+  const { document_id, workspaceId, knowledgeBaseId, filePath, fileName, mimeType } = body;
+
+  console.log(`[DOCPROCESS] VECTORIAL_START doc=${document_id} file=${fileName}`);
+
+  // Update status
+  await supabase
+    .from("knowledge_documents")
+    .update({ status: "processing", error_message: "A processar documento..." })
+    .eq("id", document_id);
+
+  try {
+    // Get file from storage
+    let textContent = "";
+
+    if (filePath) {
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from("knowledge-documents")
+        .createSignedUrl(filePath, 300);
+
+      if (urlError || !urlData) throw new Error(`Failed to get file URL: ${urlError?.message}`);
+
+      const response = await fetch(urlData.signedUrl);
+      if (!response.ok) throw new Error(`Failed to download: ${response.status}`);
+
+      const blob = await response.blob();
+      const type = mimeType || "";
+
+      if (type === "text/plain" || type === "text/markdown" || fileName?.endsWith(".md") || fileName?.endsWith(".txt")) {
+        textContent = await blob.text();
+      } else if (type === "application/pdf") {
+        textContent = await extractPDFWithAI(blob);
+      } else if (type.includes("word") || type.includes("document") || fileName?.endsWith(".docx")) {
+        textContent = await extractDocxContent(new Uint8Array(await blob.arrayBuffer()));
+      } else {
+        textContent = await blob.text();
+      }
+    }
+
+    if (!textContent || textContent.length < 10) {
+      throw new Error("Não foi possível extrair texto do documento");
+    }
+
+    const totalContent = textContent.slice(0, MAX_TOTAL_CHARS);
+    console.log(`[DOCPROCESS] TEXT_EXTRACTED chars=${totalContent.length}`);
+
+    // Update raw_text
+    await supabase
+      .from("knowledge_documents")
+      .update({ raw_text: totalContent.slice(0, 100000), error_message: "A criar chunks..." })
+      .eq("id", document_id);
+
+    // Recursive chunking
+    const chunks = recursiveChunk(totalContent, CHUNK_SIZE_TOKENS, CHUNK_OVERLAP);
+    console.log(`[DOCPROCESS] CHUNKS_CREATED count=${chunks.length}`);
+
+    // Insert chunks
+    const chunkRows = chunks.map((content, index) => ({
+      workspace_id: workspaceId,
+      knowledge_base_id: knowledgeBaseId,
+      document_id,
+      content,
+      chunk_index: index,
+      token_count: estimateTokens(content),
+      metadata: { source_file: fileName },
+    }));
+
+    const { error: insertError } = await supabase
+      .from("knowledge_chunks")
+      .insert(chunkRows);
+
+    if (insertError) throw insertError;
+
+    // Update document status
+    await supabase
+      .from("knowledge_documents")
+      .update({ status: "processing", chunk_count: chunks.length, error_message: "A gerar embeddings..." })
+      .eq("id", document_id);
+
+    // Invoke embedding function asynchronously
+    supabase.functions.invoke("knowledge-embedding", {
+      body: { document_id, workspace_id: workspaceId },
+    }).catch((err: any) => console.error("[DOCPROCESS] Embedding invoke failed:", err));
+
+    return new Response(
+      JSON.stringify({ success: true, document_id, chunks: chunks.length }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("[DOCPROCESS] VECTORIAL_ERROR:", error);
+    await supabase
+      .from("knowledge_documents")
+      .update({ status: "error", error_message: error instanceof Error ? error.message : "Processing failed" })
+      .eq("id", document_id);
+
+    return new Response(
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+}
+
+// ─── LEGACY PROCESSING (knowledge_sources) ──────────────────────────────────
+
+async function processLegacyDocument(supabase: any, body: ProcessRequest) {
+  const { sourceId, filePath, fileName, mimeType, knowledgeBaseId, workspaceId } = body;
+
+  console.log(`[DOCPROCESS] LEGACY_START source=${sourceId} file=${fileName}`);
+
+  await supabase
+    .from("knowledge_sources")
+    .update({ processing_status: "processing", processing_error: "A processar..." })
+    .eq("id", sourceId);
+
+  // Start background processing
+  (globalThis as any).EdgeRuntime?.waitUntil?.(
+    processLegacyInBackground(supabase, sourceId!, filePath!, fileName!, mimeType!, knowledgeBaseId!, workspaceId!)
+      .catch(async (error) => {
+        console.error("[DOCPROCESS] LEGACY_BG_ERROR", error);
+        await supabase
+          .from("knowledge_sources")
+          .update({
+            processing_status: "failed",
+            processing_error: error instanceof Error ? error.message : "Erro no processamento",
+          })
+          .eq("id", sourceId);
+      })
   );
 
-  const updateProgress = async (message: string) => {
-    await supabase
-      .from('knowledge_sources')
-      .update({ processing_error: message })
-      .eq('id', sourceId);
-  };
+  return new Response(
+    JSON.stringify({ success: true, sourceId, message: "Processing started" }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
 
-  await updateProgress('A descarregar ficheiro...');
+async function processLegacyInBackground(
+  supabase: any, sourceId: string, filePath: string, fileName: string, 
+  mimeType: string, knowledgeBaseId: string, workspaceId: string
+) {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-  // Get signed URL for download
   const { data: urlData, error: urlError } = await supabase.storage
-    .from('knowledge-documents')
+    .from("knowledge-documents")
     .createSignedUrl(filePath, 300);
 
-  if (urlError || !urlData) {
-    throw new Error(`Failed to get file URL: ${urlError?.message}`);
-  }
+  if (urlError || !urlData) throw new Error(`Failed to get file URL: ${urlError?.message}`);
 
-  // Download file
   const response = await fetch(urlData.signedUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to download file: ${response.status}`);
-  }
+  if (!response.ok) throw new Error(`Failed to download: ${response.status}`);
 
-  const fileData = await response.blob();
-  console.log(`[AI-DOCINT] DOC_DOWNLOADED ${(fileData.size / 1024 / 1024).toFixed(2)}MB`);
-  
-  await updateProgress(`Ficheiro obtido. A extrair texto...`);
+  const blob = await response.blob();
+  let textContent = "";
 
-  let textContent = '';
-
-  // Extract text based on mime type
-  if (mimeType === 'text/plain') {
-    textContent = await fileData.text();
-  } else if (mimeType === 'application/pdf') {
-    textContent = await extractPDFContent(fileData, LOVABLE_API_KEY, updateProgress);
-  } else if (mimeType.includes('word') || mimeType.includes('document')) {
-    const arrayBuffer = await fileData.arrayBuffer();
-    textContent = await extractDocxContent(new Uint8Array(arrayBuffer));
+  if (mimeType === "text/plain") {
+    textContent = await blob.text();
+  } else if (mimeType === "application/pdf") {
+    textContent = await extractPDFWithAI(blob);
+  } else if (mimeType?.includes("word") || mimeType?.includes("document")) {
+    textContent = await extractDocxContent(new Uint8Array(await blob.arrayBuffer()));
   }
 
   if (!textContent || textContent.length < 10) {
-    throw new Error('Não foi possível extrair texto do documento');
+    throw new Error("Não foi possível extrair texto do documento");
   }
 
-  console.log(`[AI-DOCINT] DOC_TEXT_EXTRACTED chars=${textContent.length}`);
-  await updateProgress(`Texto extraído (${textContent.length} caracteres). A processar com IA...`);
+  const totalContent = textContent.slice(0, 100000);
 
-  // Get knowledge base type
-  const { data: kb } = await supabase
-    .from('knowledge_bases')
-    .select('type')
-    .eq('id', knowledgeBaseId)
-    .single();
+  // Process with AI for FAQ extraction (legacy)
+  const aiResult = await processWithAI(totalContent, fileName, LOVABLE_API_KEY);
 
-  // Process content in chunks
-  const totalContent = textContent.slice(0, MAX_TOTAL_CHARS);
-  const chunks = splitIntoChunks(totalContent, CHUNK_SIZE);
-  
-  console.log(`[AI-DOCINT] DOC_CHUNKS count=${chunks.length}`);
-
-  const allResults: ChunkResult[] = [];
-
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    console.log(`[AI-DOCINT] DOC_CHUNK ${i + 1}/${chunks.length} chars=${chunk.length}`);
-    
-    await updateProgress(`A processar bloco ${i + 1} de ${chunks.length}...`);
-
-    const result = await processChunkWithAI(
-      chunk, 
-      fileName, 
-      kb?.type || 'general', 
-      LOVABLE_API_KEY,
-      i + 1,
-      chunks.length
-    );
-
-    allResults.push(result);
-  }
-
-  const mergedResult = mergeChunkResults(allResults);
-
-  console.log(`[AI-DOCINT] DOC_COMPLETE faqs=${mergedResult.faqs.length} topics=${mergedResult.topics.length} chars=${totalContent.length}`);
-
-    // Emit DOCINT.EXTRACTED kernel event
-    await supabase.from('kernel_events').insert({
-      workspace_id: workspaceId,
-      type: 'DOCINT.EXTRACTED',
-      entity_kind: 'knowledge_source',
-      entity_id: sourceId,
-      source_module: 'ai-docint',
-      actor_type: 'system',
-      payload: {
-        file_name: fileName,
-        chars_extracted: totalContent.length,
-        faqs_count: mergedResult.faqs.length,
-        topics_count: mergedResult.topics.length,
-      },
-      occurred_at: new Date().toISOString(),
-      ingested_at: new Date().toISOString(),
-      schema_version: 1,
-    }).then(() => {});
-
-    await updateProgress('A guardar resultados...');
-
-  // Update source with processed content
   await supabase
-    .from('knowledge_sources')
+    .from("knowledge_sources")
     .update({
       original_content: totalContent.slice(0, 50000),
-      processed_content: mergedResult.processedContent,
-      extracted_topics: mergedResult.topics,
-      processing_status: 'completed',
+      processed_content: aiResult.processedContent,
+      extracted_topics: aiResult.topics,
+      processing_status: "completed",
       processing_error: null,
-      last_processed_at: new Date().toISOString()
+      last_processed_at: new Date().toISOString(),
     })
-    .eq('id', sourceId);
+    .eq("id", sourceId);
 
-  // Get user from source
-  const { data: sourceData } = await supabase
-    .from('knowledge_sources')
-    .select('created_by')
-    .eq('id', sourceId)
-    .single();
+  // Create FAQ entries
+  if (aiResult.faqs?.length > 0) {
+    const { data: sourceData } = await supabase
+      .from("knowledge_sources").select("created_by").eq("id", sourceId).single();
 
-  // Create entries from FAQs
-  if (mergedResult.faqs && mergedResult.faqs.length > 0) {
-    const entries = mergedResult.faqs.map((faq) => ({
+    const entries = aiResult.faqs.map((faq: any) => ({
       knowledge_base_id: knowledgeBaseId,
       source_id: sourceId,
       workspace_id: workspaceId,
-      entry_type: 'faq',
+      entry_type: "faq",
       title: faq.question,
       question: faq.question,
       content: faq.answer,
       summary: faq.answer.slice(0, 200),
-      keywords: mergedResult.topics,
-      category: mergedResult.categories?.[0],
-      status: 'draft',
-      created_by: sourceData?.created_by
+      keywords: aiResult.topics,
+      status: "draft",
+      created_by: sourceData?.created_by,
     }));
 
-    const { error: insertError } = await supabase.from('knowledge_entries').insert(entries);
-    if (insertError) {
-      console.error('[AI-DOCINT] DOC_ENTRIES_INSERT_FAILED', insertError);
-    }
+    await supabase.from("knowledge_entries").insert(entries);
   }
 
-  // Create main article entry
-  const { error: articleError } = await supabase.from('knowledge_entries').insert({
+  // Create article entry
+  await supabase.from("knowledge_entries").insert({
     knowledge_base_id: knowledgeBaseId,
     source_id: sourceId,
     workspace_id: workspaceId,
-    entry_type: 'article',
-    title: fileName.replace(/\.[^/.]+$/, ''),
-    content: mergedResult.processedContent,
-    summary: mergedResult.summary,
-    keywords: mergedResult.topics,
-    category: mergedResult.categories?.[0],
-    status: 'draft',
-    created_by: sourceData?.created_by
+    entry_type: "article",
+    title: fileName.replace(/\.[^/.]+$/, ""),
+    content: aiResult.processedContent,
+    summary: aiResult.summary,
+    keywords: aiResult.topics,
+    status: "draft",
+    created_by: (await supabase.from("knowledge_sources").select("created_by").eq("id", sourceId).single()).data?.created_by,
   });
 
-  if (articleError) {
-    console.error('[AI-DOCINT] DOC_ARTICLE_INSERT_FAILED', articleError);
-  }
-
-  console.log(`[AI-DOCINT] DOC_SUCCESS file=${fileName}`);
+  console.log(`[DOCPROCESS] LEGACY_SUCCESS file=${fileName}`);
 }
 
-// PDF extraction using AI vision
-async function extractPDFContent(
-  blob: Blob, 
-  apiKey: string,
-  updateProgress: (msg: string) => Promise<void>
-): Promise<string> {
-  await updateProgress('A converter PDF para análise...');
-  
-  const base64 = await blobToBase64(blob);
-  
-  await updateProgress('A extrair texto do PDF com IA...');
+// ─── HELPERS ────────────────────────────────────────────────────────────────
 
+function recursiveChunk(text: string, targetTokens: number, overlap: number): string[] {
+  const separators = ["\n\n", "\n", ". ", " "];
+  return splitRecursive(text, targetTokens * 4, overlap * 4, separators); // ~4 chars per token
+}
+
+function splitRecursive(text: string, chunkSize: number, overlap: number, separators: string[]): string[] {
+  if (text.length <= chunkSize) return [text.trim()].filter(Boolean);
+
+  const sep = separators.find((s) => text.includes(s)) || separators[separators.length - 1];
+  const parts = text.split(sep);
+  const chunks: string[] = [];
+  let current = "";
+
+  for (const part of parts) {
+    const candidate = current ? current + sep + part : part;
+    if (candidate.length > chunkSize && current) {
+      chunks.push(current.trim());
+      // Keep overlap
+      const overlapText = current.slice(-overlap);
+      current = overlapText + sep + part;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current.trim()) chunks.push(current.trim());
+
+  // If any chunk is still too large, recurse with next separator
+  const nextSeps = separators.slice(separators.indexOf(sep) + 1);
+  if (nextSeps.length > 0) {
+    return chunks.flatMap((c) =>
+      c.length > chunkSize ? splitRecursive(c, chunkSize, overlap, nextSeps) : [c]
+    );
+  }
+
+  return chunks;
+}
+
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+async function extractPDFWithAI(blob: Blob): Promise<string> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) return "PDF - text extraction unavailable";
+
+  const base64 = await blobToBase64(blob);
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Extract ALL text content from this PDF. Preserve structure with paragraphs. Return only the text." },
+            { type: "image_url", image_url: { url: `data:application/pdf;base64,${base64}` } },
+          ],
+        },
+      ],
+      max_tokens: 16000,
+    }),
+  });
+
+  if (!response.ok) return "PDF - extraction failed";
+  const result = await response.json();
+  return result.choices?.[0]?.message?.content || "Could not extract PDF content";
+}
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = "";
+  const chunkSize = 32768;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.slice(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+async function extractDocxContent(data: Uint8Array): Promise<string> {
+  try {
+    const text = new TextDecoder("utf-8").decode(data);
+    const xmlMatch = text.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
+    if (xmlMatch) {
+      const extracted = xmlMatch.map((m) => m.replace(/<[^>]+>/g, "")).join(" ");
+      if (extracted.length > 50) return extracted;
+    }
+    return text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 50000);
+  } catch {
+    return "Could not extract DOCX content";
+  }
+}
+
+async function processWithAI(content: string, fileName: string, apiKey: string) {
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -465,237 +404,25 @@ async function extractPDFContent(
       model: "google/gemini-2.5-flash",
       messages: [
         {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Extract ALL text content from this PDF document. Include all details, numbers, prices, dates. Return only the text, preserving structure with paragraphs."
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:application/pdf;base64,${base64}`
-              }
-            }
-          ]
-        }
-      ],
-      max_tokens: 16000
-    }),
-  });
-
-  if (!response.ok) {
-    console.warn(`[AI-DOCINT] PDF_EXTRACTION_FAILED status=${response.status}`);
-    return "PDF document - text extraction requires manual review";
-  }
-
-  const result = await response.json();
-  return result.choices?.[0]?.message?.content || "Could not extract PDF content";
-}
-
-async function blobToBase64(blob: Blob): Promise<string> {
-  const arrayBuffer = await blob.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuffer);
-  let binary = '';
-  const chunkSize = 32768;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.slice(i, i + chunkSize);
-    binary += String.fromCharCode(...chunk);
-  }
-  return btoa(binary);
-}
-
-function splitIntoChunks(text: string, chunkSize: number): string[] {
-  const chunks: string[] = [];
-  let start = 0;
-  
-  while (start < text.length) {
-    let end = start + chunkSize;
-    
-    if (end < text.length) {
-      const paragraphBreak = text.lastIndexOf('\n\n', end);
-      const sentenceBreak = text.lastIndexOf('. ', end);
-      
-      if (paragraphBreak > start + chunkSize * 0.7) {
-        end = paragraphBreak + 2;
-      } else if (sentenceBreak > start + chunkSize * 0.7) {
-        end = sentenceBreak + 2;
-      }
-    }
-    
-    chunks.push(text.slice(start, end).trim());
-    start = end;
-  }
-  
-  return chunks.filter(c => c.length > 0);
-}
-
-async function processChunkWithAI(
-  content: string, 
-  fileName: string, 
-  kbType: string, 
-  apiKey: string,
-  chunkNum: number,
-  totalChunks: number
-): Promise<ChunkResult> {
-  const isPartial = totalChunks > 1;
-  
-  const systemPrompt = `És um processador de conhecimento para CRM.
-Analisa o documento fornecido e extrai informação estruturada.
-
-Contexto: Base de conhecimento do tipo "${kbType}"
-Nome do ficheiro: ${fileName}
-${isPartial ? `NOTA: Esta é a parte ${chunkNum} de ${totalChunks} do documento. Extrai informação relevante desta secção.` : ''}
-
-IMPORTANTE: Extrai TODOS os detalhes relevantes, incluindo:
-- Preços, valores, custos
-- Datas, horários, durações
-- Localizações, moradas
-- Requisitos, pré-requisitos
-- Certificações, acreditações
-- Público-alvo
-- Metodologias, conteúdos programáticos
-- Formadores, instrutores
-- Materiais incluídos
-- Formas de pagamento
-- Contactos
-
-Tarefas:
-1. Resume o conteúdo principal preservando TODOS os dados específicos
-2. Identifica tópicos/conceitos-chave
-3. Gera FAQs relevantes (perguntas e respostas) baseadas no conteúdo
-4. Sugere categorias para organização
-
-Regras:
-- Nunca inventes informação
-- Mantém a precisão do conteúdo original
-- PRESERVA números, preços, datas exatamente como aparecem
-- Usa linguagem simples e acessível
-- Foca no que é útil para atendimento, vendas ou suporte
-
-Responde em JSON:
-{
-  "processedContent": "Conteúdo processado mantendo todos os detalhes...",
-  "topics": ["tópico1", "tópico2"],
-  "faqs": [
-    { "question": "Pergunta?", "answer": "Resposta completa." }
-  ],
-  "categories": ["categoria1"],
-  "summary": "Resumo em 2-3 frases com dados principais"
-}`;
-
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: `Processa este documento e extrai TODA a informação:\n\n${content}` }
+          role: "system",
+          content: `Analisa o documento "${fileName}" e extrai informação estruturada. Responde em JSON: {"processedContent":"...","topics":["..."],"faqs":[{"question":"...","answer":"..."}],"summary":"..."}`,
+        },
+        { role: "user", content: content.slice(0, 30000) },
       ],
       temperature: 0.2,
-      max_tokens: 6000
+      max_tokens: 6000,
     }),
   });
 
-  if (!response.ok) {
-    if (response.status === 429) {
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      return processChunkWithAI(content, fileName, kbType, apiKey, chunkNum, totalChunks);
-    }
-    throw new Error(`AI gateway error: ${response.status}`);
-  }
+  if (!response.ok) throw new Error(`AI error: ${response.status}`);
 
-  const aiResult = await response.json();
-  const contentText = aiResult.choices?.[0]?.message?.content || "";
+  const result = await response.json();
+  const text = result.choices?.[0]?.message?.content || "";
 
   try {
-    const jsonMatch = contentText.match(/```json\n?([\s\S]*?)\n?```/) || 
-                      contentText.match(/```\n?([\s\S]*?)\n?```/) ||
-                      [null, contentText];
-    return JSON.parse(jsonMatch[1] || contentText);
+    const jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/) || [null, text];
+    return JSON.parse(jsonMatch[1] || text);
   } catch {
-    return {
-      processedContent: contentText,
-      topics: [],
-      faqs: [],
-      categories: [],
-      summary: contentText.slice(0, 200)
-    };
-  }
-}
-
-function mergeChunkResults(results: ChunkResult[]): ChunkResult {
-  const allTopics = new Set<string>();
-  const allCategories = new Set<string>();
-  const allFaqs: { question: string; answer: string }[] = [];
-  const processedContents: string[] = [];
-  const summaries: string[] = [];
-
-  for (const result of results) {
-    if (result.processedContent) {
-      processedContents.push(result.processedContent);
-    }
-    if (result.summary) {
-      summaries.push(result.summary);
-    }
-    if (result.topics) {
-      result.topics.forEach(t => allTopics.add(t));
-    }
-    if (result.categories) {
-      result.categories.forEach(c => allCategories.add(c));
-    }
-    if (result.faqs) {
-      for (const faq of result.faqs) {
-        const exists = allFaqs.some(f => 
-          f.question.toLowerCase() === faq.question.toLowerCase()
-        );
-        if (!exists) {
-          allFaqs.push(faq);
-        }
-      }
-    }
-  }
-
-  return {
-    processedContent: processedContents.join('\n\n---\n\n'),
-    topics: Array.from(allTopics).slice(0, 20),
-    faqs: allFaqs.slice(0, 30),
-    categories: Array.from(allCategories).slice(0, 5),
-    summary: summaries.join(' ').slice(0, 500)
-  };
-}
-
-async function extractDocxContent(data: Uint8Array): Promise<string> {
-  try {
-    const decoder = new TextDecoder('utf-8');
-    const text = decoder.decode(data);
-    
-    const xmlContentMatch = text.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
-    if (xmlContentMatch) {
-      const extractedText = xmlContentMatch
-        .map(match => {
-          const content = match.replace(/<[^>]+>/g, '');
-          return content;
-        })
-        .join(' ');
-      
-      if (extractedText.length > 50) {
-        return extractedText;
-      }
-    }
-    
-    const cleanText = text
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    
-    return cleanText.slice(0, 50000);
-  } catch (error) {
-    console.error('[AI-DOCINT] DOCX_EXTRACTION_ERROR', error);
-    return 'Could not extract DOCX content';
+    return { processedContent: text, topics: [], faqs: [], summary: text.slice(0, 200) };
   }
 }
