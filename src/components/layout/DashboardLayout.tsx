@@ -11,6 +11,7 @@ import { MQPCFloatingButton } from "@/components/mqpc/MQPCFloatingButton";
 import { useFeatureFlag } from "@/hooks/useFeatureFlags";
 import { useSidebarCollapse } from "@/hooks/useSidebarCollapse";
 import { AIUsageBanner } from "@/components/saas/AIUsageBanner";
+import { VoiceConversationWidget } from "@/components/voice/VoiceConversationWidget";
 
 interface DashboardLayoutProps {
   children: ReactNode;
