@@ -1,4 +1,4 @@
-import { aiGate } from '../ai-gate/index.ts';
+import { aiGate } from '../_shared/ai-gate.ts';
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",

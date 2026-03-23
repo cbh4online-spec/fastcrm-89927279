@@ -1,4 +1,4 @@
-import { aiGate } from '../ai-gate/index.ts';
+import { aiGate } from '../_shared/ai-gate.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { createClient } from '@supabase/supabase-js';
 import { withCache } from '../_shared/cache-manager.ts';

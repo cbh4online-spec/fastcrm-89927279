@@ -1,4 +1,4 @@
-import { aiGate } from '../ai-gate/index.ts';
+import { aiGate } from '../_shared/ai-gate.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
 
