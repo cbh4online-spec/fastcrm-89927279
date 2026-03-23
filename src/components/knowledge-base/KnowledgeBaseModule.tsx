@@ -46,6 +46,7 @@ import type { AIChannelAgent, CreateAIAgentData } from '@/types/aiChannelAgents'
 import { toast } from 'sonner';
 import { FlowBuilderModule } from '@/components/flow-builder/FlowBuilderModule';
 import { WidgetConfigPanel } from '@/components/chat-widget/WidgetConfigPanel';
+import { KnowledgeDocumentsPanel } from '@/components/knowledge-base/KnowledgeDocumentsPanel';
 
 type ActiveTab = "bases" | "flows" | "widget" | "query";
 
@@ -103,7 +104,7 @@ export function KnowledgeBaseModule() {
   const [selectedPersona, setSelectedPersona] = useState<typeof personas[0] | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [kbDetailTab, setKbDetailTab] = useState<'add' | 'entries' | 'sources'>('entries');
+  const [kbDetailTab, setKbDetailTab] = useState<'add' | 'entries' | 'sources' | 'documents'>('entries');
 
   // AI Agents state
   const [showAgentDialog, setShowAgentDialog] = useState(false);
@@ -476,7 +477,11 @@ export function KnowledgeBaseModule() {
 
                 {/* Sub-tabs for KB details */}
                 <Tabs value={kbDetailTab} onValueChange={(v) => setKbDetailTab(v as any)}>
-                  <TabsList className="grid grid-cols-3 w-full">
+                  <TabsList className="grid grid-cols-4 w-full">
+                    <TabsTrigger value="documents" className="flex items-center gap-1 text-xs sm:text-sm px-2">
+                      <Brain className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="hidden xs:inline">Documentos</span>
+                    </TabsTrigger>
                     <TabsTrigger value="entries" className="flex items-center gap-1 text-xs sm:text-sm px-2">
                       <ListChecks className="h-3 w-3 sm:h-4 sm:w-4" />
                       <span className="hidden xs:inline">Entradas</span> ({entries.length})
@@ -490,6 +495,10 @@ export function KnowledgeBaseModule() {
                       <span className="hidden xs:inline">Adicionar</span>
                     </TabsTrigger>
                   </TabsList>
+
+                  <TabsContent value="documents" className="mt-4">
+                    <KnowledgeDocumentsPanel knowledgeBaseId={selectedKB} />
+                  </TabsContent>
 
                   <TabsContent value="entries" className="mt-4">
                     <KnowledgeEntriesPanel
