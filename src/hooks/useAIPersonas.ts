@@ -10,7 +10,7 @@ export function useAIPersonas(includeArchived = false) {
   return useQuery({
     queryKey: ['ai-personas', currentWorkspace?.id, includeArchived],
     queryFn: async (): Promise<AIPersona[]> => {
-      let query = supabase
+      let query = (supabase as any)
         .from('ai_personas')
         .select('*, vibe_profile:vibe_profiles(*)')
         .eq('workspace_id', currentWorkspace!.id)
@@ -21,7 +21,7 @@ export function useAIPersonas(includeArchived = false) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data ?? []) as unknown as AIPersona[];
+      return (data ?? []) as AIPersona[];
     },
     enabled: !!currentWorkspace?.id,
     staleTime: 60_000,
@@ -34,14 +34,14 @@ export function useDefaultPersona() {
   return useQuery({
     queryKey: ['ai-persona-default', currentWorkspace?.id],
     queryFn: async (): Promise<AIPersona | null> => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from('ai_personas')
         .select('*, vibe_profile:vibe_profiles(*)')
         .eq('workspace_id', currentWorkspace!.id)
         .eq('is_default', true)
         .eq('status', 'active')
         .maybeSingle();
-      return (data as unknown as AIPersona) ?? null;
+      return (data as AIPersona) ?? null;
     },
     enabled: !!currentWorkspace?.id,
     staleTime: 120_000,
@@ -54,20 +54,30 @@ export function useCreatePersona() {
 
   return useMutation({
     mutationFn: async (payload: Partial<AIPersona>) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('ai_personas')
         .insert({
-          ...payload,
           workspace_id: currentWorkspace!.id,
           name: payload.name ?? 'Nova Persona',
           persona_type: payload.persona_type ?? payload.role ?? 'assistant',
           tone_of_voice: payload.tone_of_voice ?? 'professional',
+          description: payload.description,
+          backstory: payload.backstory,
+          expertise_domain: payload.expertise_domain,
+          slug: payload.slug,
+          vibe_profile_id: payload.vibe_profile_id,
+          max_response_tokens: payload.max_response_tokens ?? 512,
+          temperature: payload.temperature ?? 0.7,
+          fallback_message: payload.fallback_message,
+          active_in_inbox: payload.active_in_inbox ?? false,
+          active_in_copilot: payload.active_in_copilot ?? false,
+          active_in_b2b_portal: payload.active_in_b2b_portal ?? false,
           created_by: (await supabase.auth.getUser()).data.user?.id,
-        } as any)
+        })
         .select('*, vibe_profile:vibe_profiles(*)')
         .single();
       if (error) throw error;
-      return data as unknown as AIPersona;
+      return data as AIPersona;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['ai-personas', currentWorkspace?.id] });
@@ -83,15 +93,15 @@ export function useUpdatePersona() {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<AIPersona> }) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('ai_personas')
-        .update(updates as any)
+        .update(updates)
         .eq('id', id)
         .eq('workspace_id', currentWorkspace!.id)
         .select('*, vibe_profile:vibe_profiles(*)')
         .single();
       if (error) throw error;
-      return data as unknown as AIPersona;
+      return data as AIPersona;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['ai-personas', currentWorkspace?.id] });
@@ -107,7 +117,7 @@ export function useDeletePersona() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('ai_personas')
         .update({ status: 'archived' })
         .eq('id', id)
@@ -127,15 +137,15 @@ export function useSetDefaultPersona() {
 
   return useMutation({
     mutationFn: async (personaId: string) => {
-      await supabase
+      await (supabase as any)
         .from('ai_personas')
-        .update({ is_default: false })
+        .update({ is_default: false } as any)
         .eq('workspace_id', currentWorkspace!.id)
         .eq('is_default', true);
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('ai_personas')
-        .update({ is_default: true })
+        .update({ is_default: true } as any)
         .eq('id', personaId);
       if (error) throw error;
     },

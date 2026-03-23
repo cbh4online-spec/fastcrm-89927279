@@ -13,7 +13,7 @@ export function useStartAgentSession() {
       lead_id?: string;
       conversation_id?: string;
     }): Promise<AIAgentSession> => {
-      const { data: session, error: sessionErr } = await supabase
+      const { data: session, error: sessionErr } = await (supabase as any)
         .from('ai_agent_sessions')
         .insert({
           workspace_id: currentWorkspace!.id,
@@ -32,7 +32,7 @@ export function useStartAgentSession() {
         body: { session_id: session.id, workspace_id: currentWorkspace!.id },
       });
 
-      return session as unknown as AIAgentSession;
+      return session as AIAgentSession;
     },
   });
 }
