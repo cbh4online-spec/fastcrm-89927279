@@ -45,6 +45,8 @@ Deno.serve(async (req) => {
   try {
     const { conversation, userRequest } = await req.json() as {
       conversation?: ConversationContext;
+      userRequest?: string;
+    };
 
     // AI Gate check
     const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
@@ -57,9 +59,6 @@ Deno.serve(async (req) => {
         });
       }
     }
-
-      userRequest?: string;
-    };
 
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableApiKey) {
