@@ -319,6 +319,101 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
         groupId={group.id}
         existingMemberIds={existingMemberIds}
       />
+
+      {/* Edit Group Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar Grupo</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nome</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div>
+              <Label>Descrição</Label>
+              <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Tipo</Label>
+                <Select value={editType} onValueChange={(v) => setEditType(v as any)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="internal">Interno</SelectItem>
+                    <SelectItem value="telegram">Telegram</SelectItem>
+                    <SelectItem value="hybrid">Híbrido</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Objectivo</Label>
+                <Select value={editPurpose} onValueChange={(v) => setEditPurpose(v as any)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">Geral</SelectItem>
+                    <SelectItem value="support">Suporte</SelectItem>
+                    <SelectItem value="sales">Vendas</SelectItem>
+                    <SelectItem value="community">Comunidade</SelectItem>
+                    <SelectItem value="team">Equipa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {(editType === "telegram" || editType === "hybrid") && (
+              <TelegramChatPicker value={editTelegramChatId} onChange={setEditTelegramChatId} />
+            )}
+            <Button
+              onClick={async () => {
+                try {
+                  await updateGroupMut.mutateAsync({
+                    id: group.id,
+                    name: editName,
+                    description: editDescription || null,
+                    group_type: editType as any,
+                    purpose: editPurpose as any,
+                    telegram_chat_id: editTelegramChatId ? parseInt(editTelegramChatId) : null,
+                  });
+                  toast.success("Grupo atualizado");
+                  setEditOpen(false);
+                } catch (err: any) {
+                  toast.error(err.message);
+                }
+              }}
+              disabled={!editName.trim() || updateGroupMut.isPending}
+              className="w-full"
+            >
+              {updateGroupMut.isPending ? "A guardar..." : "Guardar alterações"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Group Confirmation */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar grupo "{group.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita. O grupo, membros e mensagens serão apagados permanentemente.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                try {
+                  await deleteGroupMut.mutateAsync(group.id);
+                  toast.success("Grupo apagado");
+                  onBack();
+                } catch (err: any) {
+                  toast.error(err.message);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Apagar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
