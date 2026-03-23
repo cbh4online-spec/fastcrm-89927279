@@ -68,6 +68,7 @@ import { ProductSheetSettings } from "./ProductSheetSettings";
 import { ProductVideoPreview } from "./ProductVideoPreview";
 import { ProductRelationsTab } from "./ProductRelationsTab";
 import { ProductDeliverablesManager } from "./ProductDeliverablesManager";
+import { ProductDocumentsTab } from "./ProductDocumentsTab";
 
 interface ProductDetailDialogProps {
   open: boolean;
