@@ -75,6 +75,7 @@ import { ProductStockTab } from "./ProductStockTab";
 import { ProductAnalyticsTab } from "./ProductAnalyticsTab";
 import { ProductLifecycleTab } from "./ProductLifecycleTab";
 import { ProductBarcodeQRSection } from "./ProductBarcodeQRSection";
+import { ProductTagsEditor } from "./ProductTagsEditor";
 
 interface ProductDetailDialogProps {
   open: boolean;
