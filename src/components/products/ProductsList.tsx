@@ -245,6 +245,21 @@ export function ProductsList() {
   const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<Product | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
+  // Tag filter: get product IDs for selected tag
+  const activeTagName = activeFilterId?.startsWith("tag_") ? activeFilterId.replace("tag_", "") : null;
+  const { data: tagProductIds } = useQuery({
+    queryKey: ["tag-product-ids", currentWorkspace?.id, activeTagName],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("product_tags")
+        .select("product_id")
+        .eq("workspace_id", currentWorkspace!.id)
+        .eq("tag", activeTagName!);
+      return (data || []).map((d: any) => d.product_id as string);
+    },
+    enabled: !!activeTagName && !!currentWorkspace?.id,
+  });
+
   // Helper para obter label do tipo de produto
   const getProductTypeLabel = (typeCode: string) => {
     const dynamicType = productTypesConfig?.find(t => t.code === typeCode);
