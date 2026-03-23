@@ -41,6 +41,7 @@ import {
   ClipboardList,
   Video,
   Link2,
+  FileText,
 } from "lucide-react";
 import { LocationMapEmbed } from "./LocationMapEmbed";
 import { format } from "date-fns";
@@ -68,6 +69,7 @@ import { ProductSheetSettings } from "./ProductSheetSettings";
 import { ProductVideoPreview } from "./ProductVideoPreview";
 import { ProductRelationsTab } from "./ProductRelationsTab";
 import { ProductDeliverablesManager } from "./ProductDeliverablesManager";
+import { ProductDocumentsTab } from "./ProductDocumentsTab";
 
 interface ProductDetailDialogProps {
   open: boolean;
@@ -258,6 +260,10 @@ export function ProductDetailDialog({
                 <TabsTrigger value="relations">
                   <Link2 className="h-4 w-4 mr-1" />
                   Relações
+                </TabsTrigger>
+                <TabsTrigger value="documents">
+                  <FileText className="h-4 w-4 mr-1" />
+                  Documentos
                 </TabsTrigger>
                 <TabsTrigger value="deliverables">
                   <Package className="h-4 w-4 mr-1" />
@@ -487,6 +493,10 @@ export function ProductDetailDialog({
 
               <TabsContent value="relations" className="mt-4">
                 <ProductRelationsTab product={product} />
+              </TabsContent>
+
+              <TabsContent value="documents" className="mt-4">
+                <ProductDocumentsTab product={product} />
               </TabsContent>
 
               <TabsContent value="deliverables" className="mt-4">

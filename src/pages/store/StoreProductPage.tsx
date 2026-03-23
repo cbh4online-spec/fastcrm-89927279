@@ -28,6 +28,7 @@ import { StoreProductAlertWidget } from "@/components/store/StoreProductAlertWid
 import { StoreBoughtTogether } from "@/components/store/sections/StoreBoughtTogether";
 import { StoreRelatedProducts } from "@/components/store/sections/StoreRelatedProducts";
 import { StoreCompatibleProducts } from "@/components/store/sections/StoreCompatibleProducts";
+import { StoreProductDocuments } from "@/components/store/sections/StoreProductDocuments";
 import { StoreAIAdvisor } from "@/components/store/StoreAIAdvisor";
 import { StoreReviewsSection } from "@/components/store/StoreReviewsSection";
 import { useStoreReviewStats, useStoreWishlist, useToggleWishlist } from "@/hooks/useStoreReviewsWishlist";
@@ -666,6 +667,9 @@ export default function StoreProductPage() {
               />
             </div>
           </div>
+
+          {/* Product Documents */}
+          <StoreProductDocuments productId={product.id} />
 
           {/* Reviews */}
           <StoreReviewsSection productId={product.id} workspaceId={(product as any).workspace_id} />
