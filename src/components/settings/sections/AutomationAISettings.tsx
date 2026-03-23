@@ -22,6 +22,7 @@ import {
 import { AgentSchedulesManager } from "@/components/ai-agents/AgentSchedulesManager";
 import { CacheMetricsDashboard } from "@/components/ai-agents/CacheMetricsDashboard";
 import { LeadRoutingConfig } from "@/components/plg/LeadRoutingConfig";
+import { RecommendationConfigPanel } from "./RecommendationConfigPanel";
 
 interface AutomationAISettingsProps {
   searchQuery?: string;
