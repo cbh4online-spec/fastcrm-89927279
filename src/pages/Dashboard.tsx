@@ -25,6 +25,7 @@ import { UpcomingEventsWidget } from "@/components/dashboard/UpcomingEventsWidge
 import { ExecutiveBriefWidget } from "@/components/dashboard/ExecutiveBriefWidget";
 import { DailyBriefWidget } from "@/components/dashboard/DailyBriefWidget";
 import { PostOnboardingChecklist } from "@/components/dashboard/PostOnboardingChecklist";
+import { RecommendationOpportunitiesWidget } from "@/components/dashboard/RecommendationOpportunitiesWidget";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useBusinessContext } from "@/hooks/useBusinessContext";
 import { useIntelligencePanel } from "@/hooks/useIntelligencePanel";
