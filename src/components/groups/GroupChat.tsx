@@ -71,12 +71,14 @@ export function GroupChat({ group, onBack }: GroupChatProps) {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "group_messages", filter: `group_id=eq.${group.id}` },
-        () => {}
+        () => {
+          qc.invalidateQueries({ queryKey: ["group-messages", group.id] });
+        }
       )
       .subscribe();
 
     return () => { (supabase as any).removeChannel(channel); };
-  }, [group.id]);
+  }, [group.id, qc]);
 
   const removeMember = useMutation({
     mutationFn: async (memberId: string) => {
