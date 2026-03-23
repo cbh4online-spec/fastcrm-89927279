@@ -919,7 +919,9 @@ export type Database = {
       ai_agents: {
         Row: {
           autopilot_enabled: boolean | null
+          avg_completion_rate: number | null
           channel: string
+          completed_executions: number
           created_at: string | null
           description: string | null
           flow_id: string | null
@@ -939,6 +941,7 @@ export type Database = {
           settings: Json | null
           sleep_on_human_reply: boolean | null
           timezone: string | null
+          total_executions: number
           typing_indicator: boolean | null
           updated_at: string | null
           working_days: number[] | null
@@ -948,7 +951,9 @@ export type Database = {
         }
         Insert: {
           autopilot_enabled?: boolean | null
+          avg_completion_rate?: number | null
           channel: string
+          completed_executions?: number
           created_at?: string | null
           description?: string | null
           flow_id?: string | null
@@ -968,6 +973,7 @@ export type Database = {
           settings?: Json | null
           sleep_on_human_reply?: boolean | null
           timezone?: string | null
+          total_executions?: number
           typing_indicator?: boolean | null
           updated_at?: string | null
           working_days?: number[] | null
@@ -977,7 +983,9 @@ export type Database = {
         }
         Update: {
           autopilot_enabled?: boolean | null
+          avg_completion_rate?: number | null
           channel?: string
+          completed_executions?: number
           created_at?: string | null
           description?: string | null
           flow_id?: string | null
@@ -997,6 +1005,7 @@ export type Database = {
           settings?: Json | null
           sleep_on_human_reply?: boolean | null
           timezone?: string | null
+          total_executions?: number
           typing_indicator?: boolean | null
           updated_at?: string | null
           working_days?: number[] | null
@@ -1676,12 +1685,20 @@ export type Database = {
       }
       ai_personas: {
         Row: {
+          active_in_b2b_portal: boolean
+          active_in_copilot: boolean
+          active_in_inbox: boolean
           allowed_channels: string[] | null
+          avatar_url: string | null
+          backstory: string | null
+          compiled_system_prompt: string | null
           created_at: string
           created_by: string
           decision_framework: Json | null
           description: string | null
           escalation_rules: Json | null
+          expertise_domain: string | null
+          fallback_message: string | null
           id: string
           is_active: boolean | null
           knowledge_base_ids: string[] | null
@@ -1689,14 +1706,17 @@ export type Database = {
           language_style: string | null
           limitations: string[] | null
           max_questions_per_turn: number | null
+          max_response_tokens: number
           name: string
           persona_type: string
           primary_goal: string | null
           response_style: string | null
           secondary_goal: string | null
+          slug: string | null
           stop_conditions: Json | null
           system_prompt: string | null
           technical_depth: string
+          temperature: number
           tone_of_voice: string
           updated_at: string
           use_emojis: boolean | null
@@ -1704,12 +1724,20 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          active_in_b2b_portal?: boolean
+          active_in_copilot?: boolean
+          active_in_inbox?: boolean
           allowed_channels?: string[] | null
+          avatar_url?: string | null
+          backstory?: string | null
+          compiled_system_prompt?: string | null
           created_at?: string
           created_by: string
           decision_framework?: Json | null
           description?: string | null
           escalation_rules?: Json | null
+          expertise_domain?: string | null
+          fallback_message?: string | null
           id?: string
           is_active?: boolean | null
           knowledge_base_ids?: string[] | null
@@ -1717,14 +1745,17 @@ export type Database = {
           language_style?: string | null
           limitations?: string[] | null
           max_questions_per_turn?: number | null
+          max_response_tokens?: number
           name: string
           persona_type: string
           primary_goal?: string | null
           response_style?: string | null
           secondary_goal?: string | null
+          slug?: string | null
           stop_conditions?: Json | null
           system_prompt?: string | null
           technical_depth?: string
+          temperature?: number
           tone_of_voice?: string
           updated_at?: string
           use_emojis?: boolean | null
@@ -1732,12 +1763,20 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          active_in_b2b_portal?: boolean
+          active_in_copilot?: boolean
+          active_in_inbox?: boolean
           allowed_channels?: string[] | null
+          avatar_url?: string | null
+          backstory?: string | null
+          compiled_system_prompt?: string | null
           created_at?: string
           created_by?: string
           decision_framework?: Json | null
           description?: string | null
           escalation_rules?: Json | null
+          expertise_domain?: string | null
+          fallback_message?: string | null
           id?: string
           is_active?: boolean | null
           knowledge_base_ids?: string[] | null
@@ -1745,14 +1784,17 @@ export type Database = {
           language_style?: string | null
           limitations?: string[] | null
           max_questions_per_turn?: number | null
+          max_response_tokens?: number
           name?: string
           persona_type?: string
           primary_goal?: string | null
           response_style?: string | null
           secondary_goal?: string | null
+          slug?: string | null
           stop_conditions?: Json | null
           system_prompt?: string | null
           technical_depth?: string
+          temperature?: number
           tone_of_voice?: string
           updated_at?: string
           use_emojis?: boolean | null
@@ -45276,6 +45318,10 @@ export type Database = {
           _workspace_id: string
         }
         Returns: boolean
+      }
+      increment_agent_completion: {
+        Args: { p_agent_id: string }
+        Returns: undefined
       }
       increment_bot_analytics: {
         Args: {
