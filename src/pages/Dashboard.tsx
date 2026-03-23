@@ -165,6 +165,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <AIActionSuggestions />
             <DealsAtRiskList />
+            <RecommendationOpportunitiesWidget />
           </div>
 
           {/* ── Operational Grid (3 cols) ── */}
