@@ -27,7 +27,7 @@ export function ProposalNarrationButton({
     if (hasAudio) {
       setShowPlayer(true);
     } else {
-      const result = await generateNarration.mutateAsync(false);
+      const result = await generateNarration.mutateAsync({ forceRegenerate: false });
       if (result.audio_url) setShowPlayer(true);
     }
   };
@@ -46,7 +46,7 @@ export function ProposalNarrationButton({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => generateNarration.mutate(true)}
+            onClick={() => generateNarration.mutate({ forceRegenerate: true })}
             disabled={isGenerating}
           >
             <RefreshCw

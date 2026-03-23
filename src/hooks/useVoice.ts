@@ -182,7 +182,7 @@ export function useProposalNarration(proposalId: string | undefined) {
   });
 
   const generateNarration = useMutation({
-    mutationFn: async (forceRegenerate = false) => {
+    mutationFn: async ({ forceRegenerate = false }: { forceRegenerate?: boolean } = {}) => {
       const { data, error } = await supabase.functions.invoke(
         "elevenlabs-proposal-token",
         {

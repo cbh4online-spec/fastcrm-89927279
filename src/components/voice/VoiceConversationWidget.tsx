@@ -32,11 +32,22 @@ export function VoiceConversationWidget() {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
+      // Use the ElevenLabs conversation token endpoint for auth
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke(
+        "elevenlabs-proposal-token",
+        { body: { agentId: settings.agent_id } }
+      );
+      
+      if (tokenError || !tokenData?.token) {
+        // Fallback: try direct agentId connection (for public agents)
+        await conversation.startSession({
+          agentId: settings.agent_id,
+        } as any);
+        return;
+      }
+      
       await conversation.startSession({
-        agentId: settings.agent_id,
-        dynamicVariables: {
-          workspace_id: currentWorkspace?.id ?? "",
-        },
+        conversationToken: tokenData.token,
       });
     } catch (error) {
       console.error("Failed to start voice conversation:", error);
