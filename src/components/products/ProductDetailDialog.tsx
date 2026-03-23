@@ -513,6 +513,10 @@ export function ProductDetailDialog({
                 <ProductSpecsTab product={product} />
               </TabsContent>
 
+              <TabsContent value="stock" className="mt-4">
+                <ProductStockTab product={product as any} />
+              </TabsContent>
+
               <TabsContent value="deliverables" className="mt-4">
                 <ProductDeliverablesManager productId={product.id} />
               </TabsContent>
