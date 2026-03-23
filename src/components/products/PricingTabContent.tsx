@@ -426,6 +426,10 @@ export function PricingTabContent() {
         open={aiCustomerOpen}
         onOpenChange={setAiCustomerOpen}
       />
+
+      {/* Price Lists Manager */}
+      <Separator className="my-8" />
+      <PriceListsManager />
     </div>
   );
 }
