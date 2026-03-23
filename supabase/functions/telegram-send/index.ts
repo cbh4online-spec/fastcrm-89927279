@@ -214,6 +214,45 @@ Deno.serve(async (req) => {
         break
       }
 
+      case 'broadcast': {
+        const { chat_ids, text: bText, product_id: bProductId } = params
+        const results: any[] = []
+        
+        for (const chatId of (chat_ids || [])) {
+          try {
+            if (bProductId) {
+              // Reuse sendProduct logic
+              const { data: prod } = await supabase
+                .from('products')
+                .select('name, description, price, sku, product_images(url)')
+                .eq('id', bProductId)
+                .single()
+
+              if (prod) {
+                const pText = `🏷️ <b>${prod.name}</b>\n${prod.description ? prod.description + '\n' : ''}💰 ${prod.price}€\n📦 SKU: ${prod.sku || 'N/A'}`
+                const r = await fetch(`${GATEWAY_URL}/sendMessage`, {
+                  method: 'POST',
+                  headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'X-Connection-Api-Key': TELEGRAM_API_KEY, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ chat_id: chatId, text: pText, parse_mode: 'HTML' }),
+                })
+                results.push(await r.json())
+              }
+            } else {
+              const r = await fetch(`${GATEWAY_URL}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'X-Connection-Api-Key': TELEGRAM_API_KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: bText, parse_mode: 'HTML' }),
+              })
+              results.push(await r.json())
+            }
+          } catch (err) {
+            console.error(`Broadcast to ${chatId} failed:`, err)
+          }
+        }
+        result = { sent: results.length }
+        break
+      }
+
       default:
         return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
