@@ -1,4 +1,5 @@
 
+import { logAIUsage } from '../_shared/ai-instrumentation.ts';
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
