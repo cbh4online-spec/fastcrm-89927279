@@ -236,6 +236,7 @@ export function ProductsList() {
   });
 
   const { data: categories } = useProductCategories();
+  const { data: workspaceTags } = useWorkspaceTags();
   const { data: productTypesConfig } = useProductTypes();
   const { data: billingTypesConfig } = useBillingTypes();
   const archiveProduct = useArchiveProduct();
