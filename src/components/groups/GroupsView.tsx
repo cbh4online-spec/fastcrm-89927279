@@ -9,8 +9,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Users, MessagesSquare, Send, Search, ShoppingBag, HeadphonesIcon, Globe, UserCog } from "lucide-react";
+import { Plus, Users, MessagesSquare, Send, Search, ShoppingBag, HeadphonesIcon, Globe, UserCog, Megaphone } from "lucide-react";
 import { GroupChat } from "./GroupChat";
+import { BroadcastPanel } from "./BroadcastPanel";
+import { TelegramChatPicker } from "./TelegramChatPicker";
 import { toast } from "sonner";
 
 const purposeIcons: Record<string, any> = {
@@ -43,6 +45,7 @@ export function GroupsView() {
   const [search, setSearch] = useState("");
   const [filterPurpose, setFilterPurpose] = useState<string>("all");
   const [createOpen, setCreateOpen] = useState(false);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
 
   // Create form state
   const [newName, setNewName] = useState("");
@@ -92,86 +95,77 @@ export function GroupsView() {
             Grupos internos e Telegram para suporte, vendas e comunidade
           </p>
         </div>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" /> Novo Grupo
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Criar Novo Grupo</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Nome</Label>
-                <Input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Ex: Suporte Clientes Premium"
-                />
-              </div>
-              <div>
-                <Label>Descrição</Label>
-                <Textarea
-                  value={newDescription}
-                  onChange={(e) => setNewDescription(e.target.value)}
-                  placeholder="Descreva o propósito do grupo..."
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Tipo</Label>
-                  <Select value={newType} onValueChange={setNewType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="internal">Interno</SelectItem>
-                      <SelectItem value="telegram">Telegram</SelectItem>
-                      <SelectItem value="hybrid">Híbrido</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Objectivo</Label>
-                  <Select value={newPurpose} onValueChange={setNewPurpose}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="general">Geral</SelectItem>
-                      <SelectItem value="support">Suporte</SelectItem>
-                      <SelectItem value="sales">Vendas</SelectItem>
-                      <SelectItem value="community">Comunidade</SelectItem>
-                      <SelectItem value="team">Equipa</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              {(newType === "telegram" || newType === "hybrid") && (
-                <div>
-                  <Label>Telegram Chat ID</Label>
-                  <Input
-                    value={newTelegramChatId}
-                    onChange={(e) => setNewTelegramChatId(e.target.value)}
-                    placeholder="Ex: -1001234567890"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    ID do grupo Telegram. Adicione o bot ao grupo primeiro.
-                  </p>
-                </div>
-              )}
-              <Button
-                onClick={handleCreate}
-                disabled={!newName.trim() || createGroup.isPending}
-                className="w-full"
-              >
-                {createGroup.isPending ? "A criar..." : "Criar Grupo"}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setBroadcastOpen(true)}>
+            <Megaphone className="h-4 w-4 mr-2" /> Broadcast
+          </Button>
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" /> Novo Grupo
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Criar Novo Grupo</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>Nome</Label>
+                  <Input
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="Ex: Suporte Clientes Premium"
+                  />
+                </div>
+                <div>
+                  <Label>Descrição</Label>
+                  <Textarea
+                    value={newDescription}
+                    onChange={(e) => setNewDescription(e.target.value)}
+                    placeholder="Descreva o propósito do grupo..."
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Tipo</Label>
+                    <Select value={newType} onValueChange={setNewType}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="internal">Interno</SelectItem>
+                        <SelectItem value="telegram">Telegram</SelectItem>
+                        <SelectItem value="hybrid">Híbrido</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Objectivo</Label>
+                    <Select value={newPurpose} onValueChange={setNewPurpose}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="general">Geral</SelectItem>
+                        <SelectItem value="support">Suporte</SelectItem>
+                        <SelectItem value="sales">Vendas</SelectItem>
+                        <SelectItem value="community">Comunidade</SelectItem>
+                        <SelectItem value="team">Equipa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {(newType === "telegram" || newType === "hybrid") && (
+                  <TelegramChatPicker value={newTelegramChatId} onChange={setNewTelegramChatId} />
+                )}
+                <Button
+                  onClick={handleCreate}
+                  disabled={!newName.trim() || createGroup.isPending}
+                  className="w-full"
+                >
+                  {createGroup.isPending ? "A criar..." : "Criar Grupo"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Filters */}
@@ -262,6 +256,8 @@ export function GroupsView() {
           })}
         </div>
       )}
+
+      <BroadcastPanel open={broadcastOpen} onClose={() => setBroadcastOpen(false)} />
     </div>
   );
 }
