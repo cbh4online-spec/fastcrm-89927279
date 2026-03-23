@@ -9908,6 +9908,7 @@ export type Database = {
           preferred_currency: string | null
           preferred_payment_method: string | null
           price_level: string | null
+          price_list_id: string | null
           primary_use_case: string | null
           priority_level: string | null
           region: string | null
@@ -10023,6 +10024,7 @@ export type Database = {
           preferred_currency?: string | null
           preferred_payment_method?: string | null
           price_level?: string | null
+          price_list_id?: string | null
           primary_use_case?: string | null
           priority_level?: string | null
           region?: string | null
@@ -10138,6 +10140,7 @@ export type Database = {
           preferred_currency?: string | null
           preferred_payment_method?: string | null
           price_level?: string | null
+          price_list_id?: string | null
           primary_use_case?: string | null
           priority_level?: string | null
           region?: string | null
@@ -10166,6 +10169,13 @@ export type Database = {
             columns: ["activity_profile_id"]
             isOneToOne: false
             referencedRelation: "activity_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_price_list_id_fkey"
+            columns: ["price_list_id"]
+            isOneToOne: false
+            referencedRelation: "price_lists"
             referencedColumns: ["id"]
           },
           {
@@ -11240,6 +11250,7 @@ export type Database = {
           postal_code: string | null
           preferred_currency: string | null
           preferred_payment_method: string | null
+          price_list_id: string | null
           price_tier_id: string | null
           sales_2023: number | null
           sales_2024: number | null
@@ -11345,6 +11356,7 @@ export type Database = {
           postal_code?: string | null
           preferred_currency?: string | null
           preferred_payment_method?: string | null
+          price_list_id?: string | null
           price_tier_id?: string | null
           sales_2023?: number | null
           sales_2024?: number | null
@@ -11450,6 +11462,7 @@ export type Database = {
           postal_code?: string | null
           preferred_currency?: string | null
           preferred_payment_method?: string | null
+          price_list_id?: string | null
           price_tier_id?: string | null
           sales_2023?: number | null
           sales_2024?: number | null
@@ -11483,6 +11496,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_price_list_id_fkey"
+            columns: ["price_list_id"]
+            isOneToOne: false
+            referencedRelation: "price_lists"
             referencedColumns: ["id"]
           },
           {
@@ -28313,6 +28333,127 @@ export type Database = {
           },
         ]
       }
+      price_list_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          margin_percent: number | null
+          min_quantity: number | null
+          notes: string | null
+          price: number
+          price_list_id: string
+          product_id: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          margin_percent?: number | null
+          min_quantity?: number | null
+          notes?: string | null
+          price: number
+          price_list_id: string
+          product_id: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          margin_percent?: number | null
+          min_quantity?: number | null
+          notes?: string | null
+          price?: number
+          price_list_id?: string
+          product_id?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_list_items_price_list_id_fkey"
+            columns: ["price_list_id"]
+            isOneToOne: false
+            referencedRelation: "price_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_list_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "price_list_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_list_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_lists: {
+        Row: {
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          priority: number | null
+          updated_at: string | null
+          valid_from: string | null
+          valid_until: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          priority?: number | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          priority?: number | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_lists_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_optimization_logs: {
         Row: {
           applied: boolean | null
@@ -28383,6 +28524,115 @@ export type Database = {
           },
           {
             foreignKeyName: "price_optimization_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_rules: {
+        Row: {
+          category: string | null
+          company_id: string | null
+          contact_id: string | null
+          created_at: string | null
+          discount_type: string | null
+          discount_value: number
+          id: string
+          is_active: boolean | null
+          max_quantity: number | null
+          min_quantity: number | null
+          name: string
+          price_list_id: string | null
+          priority: number | null
+          product_id: string | null
+          rule_type: string
+          updated_at: string | null
+          valid_from: string | null
+          valid_until: string | null
+          workspace_id: string
+        }
+        Insert: {
+          category?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          discount_type?: string | null
+          discount_value?: number
+          id?: string
+          is_active?: boolean | null
+          max_quantity?: number | null
+          min_quantity?: number | null
+          name: string
+          price_list_id?: string | null
+          priority?: number | null
+          product_id?: string | null
+          rule_type: string
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id: string
+        }
+        Update: {
+          category?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          discount_type?: string | null
+          discount_value?: number
+          id?: string
+          is_active?: boolean | null
+          max_quantity?: number | null
+          min_quantity?: number | null
+          name?: string
+          price_list_id?: string | null
+          priority?: number | null
+          product_id?: string | null
+          rule_type?: string
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_rules_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_rules_price_list_id_fkey"
+            columns: ["price_list_id"]
+            isOneToOne: false
+            referencedRelation: "price_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_rules_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_usage_stats"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "price_rules_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_rules_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

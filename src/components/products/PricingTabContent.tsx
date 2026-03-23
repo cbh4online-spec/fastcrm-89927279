@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Plus, Edit2, Trash2, MoreHorizontal, DollarSign, Users, Calendar, Tag, Percent, Eye, Sparkles, TrendingUp, BarChart3 } from "lucide-react";
+import { PriceListsManager } from "./PriceListsManager";
+import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -425,6 +427,10 @@ export function PricingTabContent() {
         open={aiCustomerOpen}
         onOpenChange={setAiCustomerOpen}
       />
+
+      {/* Price Lists Manager */}
+      <Separator className="my-8" />
+      <PriceListsManager />
     </div>
   );
 }
