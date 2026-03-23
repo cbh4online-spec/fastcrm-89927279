@@ -150,7 +150,7 @@ export function usePriceListItems(priceListId?: string) {
         .eq("price_list_id", priceListId!)
         .order("min_quantity");
       if (error) throw error;
-      return (data || []) as PriceListItem[];
+      return (data || []) as unknown as PriceListItem[];
     },
     enabled: !!priceListId && !!currentWorkspace?.id,
   });
