@@ -158,7 +158,7 @@ export function ProductDetailDialog({
                       {productTypeLabels[product.product_type]}
                     </Badge>
                     <Badge
-                      variant={product.status === "active" ? "default" : "secondary"}
+                      className={`border-0 ${(await import("@/types/product")).productStatusColors[product.status] ?? ""}`}
                     >
                       {productStatusLabels[product.status]}
                     </Badge>
