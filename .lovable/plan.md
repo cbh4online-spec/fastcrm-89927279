@@ -1,87 +1,83 @@
 
 
-## Funcionalidades Essenciais do Módulo Grupos & Telegram
+## Implementação do Modelo de Precificação IA — FastCRM
 
-### O que existe hoje
-- Criar grupos (interno/telegram/híbrido) com propósito
-- Chat básico com mensagens de texto
-- Sincronização bidireccional CRM ↔ Telegram (polling)
-- Configuração do bot e alertas da equipa
-- Partilha de produto via edge function (sendProduct)
+### Resumo
 
-### O que falta para funcionar a sério
+Implementar o sistema completo de gate/metering para chamadas IA conforme o documento enviado: 3 tabelas, edge function `ai-gate` como middleware, `ai-usage-stats`, hooks React, UI de alertas, e instrumentação das ~61 edge functions existentes.
 
 ---
 
-### Fase 1 — Gestão de Membros (crítico)
+### Fase 1 — Base de dados (migration SQL)
 
-**Problema**: Não existe UI para adicionar/remover membros a um grupo.
+Criar migration com:
+- **`workspace_plans`** — plano activo, quotas, ciclo, Stripe sub ID
+- **`ai_call_log`** — registo de cada chamada IA com tier/modelo/custos
+- **`overage_charges`** — cobranças acumuladas para facturação
+- RLS nas 3 tabelas (policy por workspace_members)
+- `ALTER workspace_settings` para adicionar `plan_id` e `ai_calls_alert_threshold`
+- Função `get_plan_calls_included(plan_name)`
+- RPC `upsert_overage_charge` (necessária pelo ai-gate)
 
-- **Adicionar membros ao grupo**: Botão no painel lateral de membros para adicionar utilizadores do workspace, contactos do CRM, ou membros Telegram (por username/user_id)
-- **Remover membros**: Opção por membro na lista
-- **Auto-registar membros Telegram**: Quando o polling detecta uma mensagem de alguém novo num grupo ligado, criar automaticamente o `group_member` com `telegram_user_id` e `telegram_username`
-- **Roles**: admin, member, readonly — com permissões no chat
-
----
-
-### Fase 2 — Partilha de Produtos no Chat
-
-**Problema**: O botão de partilhar produto não existe na UI do chat.
-
-- **Selector de produtos inline**: Botão no composer do chat que abre um picker de produtos do catálogo
-- **Card de produto renderizado**: Mensagens do tipo `product` mostram card visual com imagem, nome, preço e SKU
-- **Envio para Telegram**: Já funciona no backend (sendProduct), falta ligar no frontend
+**Segunda migration** para seed dos workspaces existentes (migrar planos actuais para `workspace_plans`).
 
 ---
 
-### Fase 3 — Broadcast / Mensagens em Massa
+### Fase 2 — Edge Function `ai-gate`
 
-**Problema**: Não há forma de enviar uma mensagem para múltiplos grupos ou contactos.
-
-- **Painel de broadcast**: Seleccionar grupos por propósito (ex: todos os de "vendas"), escrever mensagem ou seleccionar produto, enviar para todos
-- **Agendamento**: Opção de enviar agora ou agendar via pg_cron
-- **Histórico de broadcasts**: Tabela `group_broadcasts` com registo de envios
-
----
-
-### Fase 4 — Notificações Automáticas (Triggers)
-
-**Problema**: Os toggles de alertas (leads, deals, propostas) na página Telegram estão configurados mas não disparam.
-
-- **Trigger SQL** na tabela `leads` (AFTER INSERT): se `notify_new_leads = true` na `telegram_config`, chamar `telegram-send` com action `sendAlert`
-- **Trigger SQL** na tabela `opportunities` (AFTER INSERT/UPDATE): notificar deals
-- **Trigger SQL** na tabela `proposals` (AFTER INSERT): notificar propostas
-- Usar `pg_net` para chamar a edge function directamente dos triggers
+Criar `supabase/functions/ai-gate/index.ts`:
+- Exporta `aiGate(workspaceId, tier, edgeFnName, userId)` 
+- Lógica: Free bloqueia tudo; Growth inclui micro/light/medium; Pro inclui até heavy; Agent sempre overage (€0,25); Heavy em Growth = overage (€0,05)
+- Regista em `ai_call_log` e acumula em `overage_charges`
+- Handler HTTP para chamadas directas
 
 ---
 
-### Fase 5 — Obter Chat ID Automaticamente
+### Fase 3 — Edge Function `ai-usage-stats`
 
-**Problema**: O utilizador tem de copiar manualmente o Chat ID do Telegram.
+Criar `supabase/functions/ai-usage-stats/index.ts`:
+- Retorna plano, uso, percentagem, breakdown por tier, overage pendente, datas do ciclo
 
-- **Listar chats recentes**: Usar as mensagens recebidas pelo polling para mostrar os grupos Telegram onde o bot está presente
-- **Picker de grupos Telegram**: No formulário de criar grupo, mostrar dropdown com os chats activos do bot em vez de pedir o ID manualmente
+---
+
+### Fase 4 — Instrumentar ~61 edge functions IA
+
+Adicionar 4 linhas no topo de cada handler (import + gate check + early return 402):
+- **Micro** (8 funções): `ai-dashboard-insights`, `ai-field-suggestions`, `ai-auto-tags`, `compute-deal-score`, etc.
+- **Light** (14 funções): `ai-inbox-reply`, `ai-copilot`, `ai-template-copilot`, etc.
+- **Medium** (15 funções): `ai-analyze-lead`, `company-enrich`, `knowledge-query`, etc.
+- **Heavy** (21 funções): `compute-revenue-forecast`, `ask-fastcrm`, `vision-ai-copilot`, etc.
+- **Agent** (6 funções): `ai-agent-orchestrator`, `ai-agent-processor`, etc.
+
+Padrão idêntico em todas — só muda o tier string.
+
+---
+
+### Fase 5 — Hooks React
+
+- **`src/hooks/useAIUsage.ts`** — query à edge function `ai-usage-stats`, refetch a cada 60s
+- **`src/hooks/useAIGate.ts`** — lógica client-side para determinar `canRun`, `isOverage`, `showUpgrade`
+- Actualizar `useWorkspaceSettings` com `planId` e `aiCallsAlertThreshold`
+
+---
+
+### Fase 6 — UI
+
+- **`AIUsageBanner`** — banner no `DashboardLayout` (amarelo a 80%, vermelho a 100%, overage indicator)
+- **`AIActionButton`** — botão wrapper que mostra custo de overage ou lock de upgrade
+
+---
+
+### Fase 7 — Migração de dados
+
+Seed SQL para migrar workspaces existentes (basic→growth, pro→pro, agency→pro) e preencher `plan_id`.
 
 ---
 
 ### Detalhes técnicos
 
-**Novas tabelas (migration)**:
-- `group_broadcasts` — {id, workspace_id, message, product_id, target_groups[], sent_count, status, scheduled_at, sent_at, created_by}
-
-**Alterações em edge functions**:
-- `telegram-poll`: Auto-criar `group_member` quando detecta novo utilizador
-- `telegram-send`: Novo action `broadcast` que envia para múltiplos chat_ids
-
-**Triggers SQL (via pg_net)**:
-- `trg_notify_telegram_new_lead` ON leads AFTER INSERT
-- `trg_notify_telegram_new_deal` ON opportunities AFTER INSERT  
-- `trg_notify_telegram_proposal` ON proposals AFTER INSERT
-
-**Novos componentes UI**:
-- `AddMemberDialog` — picker de utilizadores/contactos para adicionar ao grupo
-- `ProductPickerDialog` — selector de produtos do catálogo para partilhar no chat
-- `ProductMessageCard` — card visual para mensagens do tipo "product"
-- `BroadcastPanel` — painel de envio em massa
-- `TelegramChatPicker` — dropdown de chats activos do bot
+- A migration usa validation triggers em vez de CHECK com `now()` para `cycle_end`
+- RLS policies usam subquery em `workspace_members` (padrão existente)
+- `ai-gate` usa import relativo (`../ai-gate/index.ts`) disponível no Deno deploy
+- Não se remove `module-check-credits`/`module-consume-credits` agora (coexistência) — são para módulos marketplace, não IA
 
