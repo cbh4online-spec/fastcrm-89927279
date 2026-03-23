@@ -47,6 +47,7 @@ import { ProposalClientDocument } from "./ProposalClientDocument";
 import { ProposalDocumentPreviewDialog } from "./ProposalDocumentPreviewDialog";
 import { ProposalToRenewalCTA } from "./ProposalToRenewalCTA";
 import { VoiceProposalAssistant, type VoiceScopeResult, type VoiceTimelineResult, type VoiceConditionsResult, type VoiceReferencesResult } from "./VoiceProposalAssistant";
+import { ProposalNarrationButton } from "@/components/voice/ProposalNarrationButton";
 import { PAYMENT_CONDITIONS, type ClientType } from "./proposalConstants";
 import {
   useProposal,
@@ -839,7 +840,8 @@ export function ProposalDetailContent({
                         <FileSearch className="h-4 w-4 mr-1" />
                         Pré-visualizar
                       </Button>
-                    )}
+                      )}
+                    <ProposalNarrationButton proposalId={proposalId} compact />
                     {(proposal.status === "draft" || proposal.status === "published") && (
                       <Button 
                         variant="outline" 
