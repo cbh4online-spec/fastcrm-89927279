@@ -81,6 +81,8 @@ import DependenciesPage from "./pages/dashboard/system/DependenciesPage";
 import EventMapPage from "./pages/EventMapPage";
 import EventMatrixPage from "./pages/EventMatrixPage";
 import EventTestsPage from "./pages/EventTestsPage";
+import Groups from "./pages/Groups";
+import TelegramPage from "./pages/TelegramPage";
 
 // Client Portal
 import { CartProvider } from "@/contexts/CartContext";
@@ -547,6 +549,8 @@ function CRMRoutes() {
                 <Route path="/dashboard/opportunities" element={<OpportunitiesPage />} />
                 <Route path="/dashboard/opportunities/:id" element={<OpportunityDetail />} />
                 <Route path="/dashboard/inbox" element={<Inbox />} />
+                <Route path="/dashboard/groups" element={<Groups />} />
+                <Route path="/dashboard/telegram" element={<TelegramPage />} />
                 <Route path="/dashboard/automations" element={<Automations />} />
                 <Route path="/dashboard/funnels" element={<Funnels />} />
                 <Route path="/dashboard/bio" element={<BioOS />} />

@@ -168,5 +168,7 @@
   "securityMaintenance": "Manutenção",
   "securityOccurrences": "Ocorrências",
   "securityRenewals": "Renovações",
-  "securityManagement": "Direção"
+  "securityManagement": "Direção",
+  "groups": "Grupos",
+  "telegram": "Telegram"
 }
