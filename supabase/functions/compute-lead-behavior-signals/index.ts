@@ -1,3 +1,4 @@
+import { aiGate } from '../ai-gate/index.ts';
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -18,6 +19,19 @@ Deno.serve(async (req) => {
     );
 
     const body = await req.json();
+
+    // AI Gate check
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    if (_gateWsId) {
+      const gate = await aiGate(_gateWsId, 'micro', 'compute-lead-behavior-signals');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const { workspace_id, contact_id, lead_id } = body;
     const entityId = contact_id || lead_id;
     const entityType = contact_id ? 'contact' : 'lead';

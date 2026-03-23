@@ -1,3 +1,4 @@
+import { aiGate } from '../ai-gate/index.ts';
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -606,6 +607,19 @@ Deno.serve(async (req) => {
       goalConfig,
       detectedIntent: passedDetectedIntent
     }: InboxReplyRequest = await req.json();
+
+    // AI Gate check
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    if (_gateWsId) {
+      const gate = await aiGate(_gateWsId, 'light', 'ai-inbox-reply');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
 
     // Check for active conversational flows first
     if (useConversationalFlows && workspaceId && conversationId && messages?.length) {

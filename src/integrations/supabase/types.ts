@@ -1341,6 +1341,59 @@ export type Database = {
           },
         ]
       }
+      ai_call_log: {
+        Row: {
+          cost_eur: number | null
+          created_at: string
+          edge_function: string
+          id: string
+          is_overage: boolean
+          model: string
+          overage_charge: number | null
+          tier: string
+          tokens_input: number | null
+          tokens_output: number | null
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          cost_eur?: number | null
+          created_at?: string
+          edge_function: string
+          id?: string
+          is_overage?: boolean
+          model?: string
+          overage_charge?: number | null
+          tier: string
+          tokens_input?: number | null
+          tokens_output?: number | null
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          cost_eur?: number | null
+          created_at?: string
+          edge_function?: string
+          id?: string
+          is_overage?: boolean
+          model?: string
+          overage_charge?: number | null
+          tier?: string
+          tokens_input?: number | null
+          tokens_output?: number | null
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_call_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_field_suggestions: {
         Row: {
           confidence: number
@@ -27313,6 +27366,60 @@ export type Database = {
           },
         ]
       }
+      overage_charges: {
+        Row: {
+          amount_eur: number
+          billed: boolean
+          billed_at: string | null
+          calls_count: number
+          created_at: string
+          id: string
+          plan_cycle_id: string
+          stripe_meter_id: string | null
+          tier: string
+          workspace_id: string
+        }
+        Insert: {
+          amount_eur?: number
+          billed?: boolean
+          billed_at?: string | null
+          calls_count?: number
+          created_at?: string
+          id?: string
+          plan_cycle_id: string
+          stripe_meter_id?: string | null
+          tier: string
+          workspace_id: string
+        }
+        Update: {
+          amount_eur?: number
+          billed?: boolean
+          billed_at?: string | null
+          calls_count?: number
+          created_at?: string
+          id?: string
+          plan_cycle_id?: string
+          stripe_meter_id?: string | null
+          tier?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overage_charges_plan_cycle_id_fkey"
+            columns: ["plan_cycle_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "overage_charges_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pathologies: {
         Row: {
           created_at: string | null
@@ -43396,32 +43503,95 @@ export type Database = {
           },
         ]
       }
-      workspace_settings: {
+      workspace_plans: {
         Row: {
+          calls_included: number
+          calls_used: number
           created_at: string
-          email_signature_html: string | null
+          cycle_end: string
+          cycle_start: string
           id: string
-          ip_restrictions_enabled: boolean
+          plan: string
+          status: string
+          stripe_sub_id: string | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          calls_included?: number
+          calls_used?: number
           created_at?: string
-          email_signature_html?: string | null
+          cycle_end?: string
+          cycle_start?: string
           id?: string
-          ip_restrictions_enabled?: boolean
+          plan: string
+          status?: string
+          stripe_sub_id?: string | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          calls_included?: number
+          calls_used?: number
           created_at?: string
-          email_signature_html?: string | null
+          cycle_end?: string
+          cycle_start?: string
           id?: string
-          ip_restrictions_enabled?: boolean
+          plan?: string
+          status?: string
+          stripe_sub_id?: string | null
           updated_at?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workspace_plans_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_settings: {
+        Row: {
+          ai_calls_alert_threshold: number | null
+          created_at: string
+          email_signature_html: string | null
+          id: string
+          ip_restrictions_enabled: boolean
+          plan_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_calls_alert_threshold?: number | null
+          created_at?: string
+          email_signature_html?: string | null
+          id?: string
+          ip_restrictions_enabled?: boolean
+          plan_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ai_calls_alert_threshold?: number | null
+          created_at?: string
+          email_signature_html?: string | null
+          id?: string
+          ip_restrictions_enabled?: boolean
+          plan_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_settings_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_plans"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workspace_settings_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -44570,6 +44740,7 @@ export type Database = {
         Args: { p_persona_id: string }
         Returns: Json
       }
+      get_plan_calls_included: { Args: { plan_name: string }; Returns: number }
       get_plan_limits: {
         Args: { p_plan: Database["public"]["Enums"]["subscription_plan"] }
         Returns: Json
@@ -44983,6 +45154,15 @@ export type Database = {
           p_cache_hit: boolean
           p_latency_ms?: number
           p_tokens_saved?: number
+          p_workspace_id: string
+        }
+        Returns: undefined
+      }
+      upsert_overage_charge: {
+        Args: {
+          p_amount: number
+          p_plan_cycle_id: string
+          p_tier: string
           p_workspace_id: string
         }
         Returns: undefined

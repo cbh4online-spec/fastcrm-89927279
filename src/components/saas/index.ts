@@ -4,3 +4,5 @@ export { QuotaLimitDialog } from "./QuotaLimitDialog";
 export { FeatureLockedState, withFeatureLock } from "./FeatureLockedState";
 export { CurrentPlanOverview } from "./CurrentPlanOverview";
 export { UsageDashboard } from "./UsageDashboard";
+export { AIUsageBanner } from "./AIUsageBanner";
+export { AIActionButton } from "./AIActionButton";

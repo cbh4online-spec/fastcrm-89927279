@@ -1,3 +1,4 @@
+import { aiGate } from '../ai-gate/index.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
 
@@ -25,6 +26,19 @@ serve(async (req) => {
     }
 
     const { workspace_id } = await req.json();
+
+    // AI Gate check
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    if (_gateWsId) {
+      const gate = await aiGate(_gateWsId, 'medium', 'ai-pipeline-risk');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     if (!workspace_id) throw new Error("workspace_id is required");
 
     // Verify workspace membership

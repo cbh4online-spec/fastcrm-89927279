@@ -1,3 +1,4 @@
+import { aiGate } from '../ai-gate/index.ts';
 
 
 const corsHeaders = {
@@ -21,6 +22,19 @@ Deno.serve(async (req) => {
 
   try {
     const { seed_keyword, country, language } = await req.json();
+
+    // AI Gate check
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    if (_gateWsId) {
+      const gate = await aiGate(_gateWsId, 'medium', 'generate-keyword-ideas');
+      if (!gate.allowed) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
 
     if (!seed_keyword || seed_keyword.trim().length < 2) {
       return new Response(
