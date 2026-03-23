@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { aiGate } from "../ai-gate/index.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,6 +26,15 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: "Missing workspace_id" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // AI Gate check
+    const gate = await aiGate(workspace_id, 'medium', 'compute-conversation-signals');
+    if (!gate.allowed) {
+      return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     if (!contact_id && !lead_id) {
