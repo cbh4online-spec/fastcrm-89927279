@@ -10,8 +10,8 @@ export function useProductTags(productId?: string) {
   const query = useQuery({
     queryKey: ["product-tags", productId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("product_tags" as any)
+      const { data, error } = await (supabase as any)
+        .from("product_tags")
         .select("id, tag, created_at")
         .eq("product_id", productId!)
         .order("tag");
