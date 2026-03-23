@@ -198,6 +198,36 @@ export function useCreateGroup() {
   });
 }
 
+export function useUpdateGroup() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Group> & { id: string }) => {
+      const { data, error } = await sb
+        .from("groups")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["groups"] }),
+  });
+}
+
+export function useDeleteGroup() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (groupId: string) => {
+      const { error } = await sb.from("groups").delete().eq("id", groupId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["groups"] }),
+  });
+}
+
 export function useSendGroupMessage() {
   const qc = useQueryClient();
 
