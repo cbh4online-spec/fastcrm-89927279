@@ -5,10 +5,11 @@ export type CallTier = "micro" | "light" | "medium" | "heavy" | "agent";
 export function useAIGate(tier: CallTier) {
   const { plan, isAtLimit } = useAIUsage();
 
+  const tierStr: string = tier;
   const isOverage =
-    tier === "agent" ||
-    (tier === "heavy" && plan === "growth") ||
-    (isAtLimit && tier !== "agent");
+    tierStr === "agent" ||
+    (tierStr === "heavy" && plan === "growth") ||
+    (isAtLimit && tierStr !== "agent");
 
   const overagePrice =
     tier === "agent" ? 0.25 :
