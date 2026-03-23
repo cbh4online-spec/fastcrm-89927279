@@ -14862,6 +14862,102 @@ export type Database = {
         }
         Relationships: []
       }
+      deal_intelligence_reports: {
+        Row: {
+          coaching_summary: string | null
+          competitive_intel: string | null
+          confidence_level: string
+          created_at: string
+          days_since_activity: number | null
+          expires_at: string
+          generated_at: string
+          health_score: number
+          health_trend: string | null
+          id: string
+          is_stale: boolean
+          key_strengths: string[] | null
+          key_weaknesses: string[] | null
+          next_actions: Json | null
+          opportunity_id: string
+          risk_signals: Json | null
+          sentiment: string | null
+          sentiment_reasoning: string | null
+          stakeholder_analysis: string | null
+          stall_risk: boolean
+          tokens_used: number | null
+          win_probability: number
+          win_probability_delta: number | null
+          workspace_id: string
+        }
+        Insert: {
+          coaching_summary?: string | null
+          competitive_intel?: string | null
+          confidence_level?: string
+          created_at?: string
+          days_since_activity?: number | null
+          expires_at?: string
+          generated_at?: string
+          health_score?: number
+          health_trend?: string | null
+          id?: string
+          is_stale?: boolean
+          key_strengths?: string[] | null
+          key_weaknesses?: string[] | null
+          next_actions?: Json | null
+          opportunity_id: string
+          risk_signals?: Json | null
+          sentiment?: string | null
+          sentiment_reasoning?: string | null
+          stakeholder_analysis?: string | null
+          stall_risk?: boolean
+          tokens_used?: number | null
+          win_probability?: number
+          win_probability_delta?: number | null
+          workspace_id: string
+        }
+        Update: {
+          coaching_summary?: string | null
+          competitive_intel?: string | null
+          confidence_level?: string
+          created_at?: string
+          days_since_activity?: number | null
+          expires_at?: string
+          generated_at?: string
+          health_score?: number
+          health_trend?: string | null
+          id?: string
+          is_stale?: boolean
+          key_strengths?: string[] | null
+          key_weaknesses?: string[] | null
+          next_actions?: Json | null
+          opportunity_id?: string
+          risk_signals?: Json | null
+          sentiment?: string | null
+          sentiment_reasoning?: string | null
+          stakeholder_analysis?: string | null
+          stall_risk?: boolean
+          tokens_used?: number | null
+          win_probability?: number
+          win_probability_delta?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_intelligence_reports_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_intelligence_reports_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_probability_scores: {
         Row: {
           computed_at: string
@@ -26883,6 +26979,74 @@ export type Database = {
           },
         ]
       }
+      multi_pipeline_intel_reports: {
+        Row: {
+          best_source: string | null
+          best_stage_velocity: Json | null
+          bottleneck_stages: Json | null
+          created_at: string
+          expires_at: string
+          forecast_accuracy: number | null
+          generated_at: string
+          growth_opportunities: string[] | null
+          id: string
+          is_stale: boolean
+          losing_patterns: string[] | null
+          pipeline_comparison: Json | null
+          rep_performance: Json | null
+          strategic_insights: string[] | null
+          tokens_used: number | null
+          winning_patterns: string[] | null
+          workspace_id: string
+        }
+        Insert: {
+          best_source?: string | null
+          best_stage_velocity?: Json | null
+          bottleneck_stages?: Json | null
+          created_at?: string
+          expires_at?: string
+          forecast_accuracy?: number | null
+          generated_at?: string
+          growth_opportunities?: string[] | null
+          id?: string
+          is_stale?: boolean
+          losing_patterns?: string[] | null
+          pipeline_comparison?: Json | null
+          rep_performance?: Json | null
+          strategic_insights?: string[] | null
+          tokens_used?: number | null
+          winning_patterns?: string[] | null
+          workspace_id: string
+        }
+        Update: {
+          best_source?: string | null
+          best_stage_velocity?: Json | null
+          bottleneck_stages?: Json | null
+          created_at?: string
+          expires_at?: string
+          forecast_accuracy?: number | null
+          generated_at?: string
+          growth_opportunities?: string[] | null
+          id?: string
+          is_stale?: boolean
+          losing_patterns?: string[] | null
+          pipeline_comparison?: Json | null
+          rep_performance?: Json | null
+          strategic_insights?: string[] | null
+          tokens_used?: number | null
+          winning_patterns?: string[] | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "multi_pipeline_intel_reports_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       multichannel_sequence_steps: {
         Row: {
           action_type: string
@@ -28812,6 +28976,80 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pipeline_email_triggers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_risk_reports: {
+        Row: {
+          at_risk_count: number
+          at_risk_value: number
+          avg_days_per_stage: Json | null
+          avg_deal_age_days: number | null
+          conversion_rates: Json | null
+          created_at: string
+          critical_count: number
+          deal_risks: Json | null
+          executive_summary: string | null
+          expires_at: string
+          generated_at: string
+          id: string
+          is_stale: boolean
+          pipeline_health_score: number
+          pipeline_id: string | null
+          risk_breakdown: Json | null
+          tokens_used: number | null
+          top_3_priorities: string[] | null
+          workspace_id: string
+        }
+        Insert: {
+          at_risk_count?: number
+          at_risk_value?: number
+          avg_days_per_stage?: Json | null
+          avg_deal_age_days?: number | null
+          conversion_rates?: Json | null
+          created_at?: string
+          critical_count?: number
+          deal_risks?: Json | null
+          executive_summary?: string | null
+          expires_at?: string
+          generated_at?: string
+          id?: string
+          is_stale?: boolean
+          pipeline_health_score?: number
+          pipeline_id?: string | null
+          risk_breakdown?: Json | null
+          tokens_used?: number | null
+          top_3_priorities?: string[] | null
+          workspace_id: string
+        }
+        Update: {
+          at_risk_count?: number
+          at_risk_value?: number
+          avg_days_per_stage?: Json | null
+          avg_deal_age_days?: number | null
+          conversion_rates?: Json | null
+          created_at?: string
+          critical_count?: number
+          deal_risks?: Json | null
+          executive_summary?: string | null
+          expires_at?: string
+          generated_at?: string
+          id?: string
+          is_stale?: boolean
+          pipeline_health_score?: number
+          pipeline_id?: string | null
+          risk_breakdown?: Json | null
+          tokens_used?: number | null
+          top_3_priorities?: string[] | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_risk_reports_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
