@@ -260,6 +260,10 @@ export function ProductDetailDialog({
                   <Link2 className="h-4 w-4 mr-1" />
                   Relações
                 </TabsTrigger>
+                <TabsTrigger value="documents">
+                  <FileText className="h-4 w-4 mr-1" />
+                  Documentos
+                </TabsTrigger>
                 <TabsTrigger value="deliverables">
                   <Package className="h-4 w-4 mr-1" />
                   Entregáveis
