@@ -299,7 +299,7 @@ export default function BackgroundJobsPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">
-                          {run.triggered_by || "schedule"}
+                          {(run.input_data as any)?.triggered_by || "schedule"}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -332,7 +332,7 @@ export default function BackgroundJobsPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Trigger</span>
-                  <Badge variant="outline">{selectedRun.triggered_by || "schedule"}</Badge>
+                  <Badge variant="outline">{(selectedRun.input_data as any)?.triggered_by || "schedule"}</Badge>
                 </div>
                 {selectedRun.trigger_run_id && (
                   <div className="flex items-center justify-between">
@@ -368,20 +368,20 @@ export default function BackgroundJobsPage() {
                 )}
               </div>
 
-              {selectedRun.error_message && (
+              {selectedRun.error_data && (
                 <div className="space-y-1">
-                  <span className="text-sm font-medium text-red-400">Erro</span>
-                  <pre className="text-xs bg-red-500/10 border border-red-500/20 rounded p-3 whitespace-pre-wrap">
-                    {selectedRun.error_message}
+                  <span className="text-sm font-medium text-destructive">Erro</span>
+                  <pre className="text-xs bg-destructive/10 border border-destructive/20 rounded p-3 whitespace-pre-wrap">
+                    {JSON.stringify(selectedRun.error_data, null, 2)}
                   </pre>
                 </div>
               )}
 
-              {selectedRun.output && (
+              {selectedRun.output_data && (
                 <div className="space-y-1">
                   <span className="text-sm font-medium">Output</span>
                   <pre className="text-xs bg-muted rounded p-3 max-h-[300px] overflow-auto whitespace-pre-wrap">
-                    {JSON.stringify(selectedRun.output, null, 2)}
+                    {JSON.stringify(selectedRun.output_data, null, 2)}
                   </pre>
                 </div>
               )}
