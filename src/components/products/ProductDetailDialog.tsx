@@ -74,7 +74,7 @@ import { ProductSpecsTab } from "./ProductSpecsTab";
 import { ProductStockTab } from "./ProductStockTab";
 import { ProductAnalyticsTab } from "./ProductAnalyticsTab";
 import { ProductLifecycleTab } from "./ProductLifecycleTab";
-
+import { ProductBarcodeQRSection } from "./ProductBarcodeQRSection";
 
 interface ProductDetailDialogProps {
   open: boolean;
@@ -366,6 +366,15 @@ export function ProductDetailDialog({
                     })}
                   </p>
                 </div>
+
+                {/* Barcode & QR Code */}
+                <ProductBarcodeQRSection
+                  productId={product.id}
+                  barcode={(product as any).barcode}
+                  sku={product.sku}
+                  sheetSlug={product.sheet_slug}
+                  sheetPublished={product.sheet_published}
+                />
 
                 {product.short_description && (
                   <>

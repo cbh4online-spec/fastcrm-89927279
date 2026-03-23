@@ -41,6 +41,7 @@ import {
   Link,
   ArrowRight,
   Globe,
+  ScanLine,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -245,6 +246,7 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
   const [feedUrl, setFeedUrl] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
   const [isEnrichingPrices, setIsEnrichingPrices] = useState(false);
+  const [isEnrichingEAN, setIsEnrichingEAN] = useState(false);
 
   // Mapping phase state
   const [allCsvHeaders, setAllCsvHeaders] = useState<string[]>([]);
@@ -577,6 +579,54 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
 
     setIsEnrichingPrices(false);
     toast.success("Preços sugeridos pela IA aplicados");
+  };
+
+  // EAN external lookup enrichment
+  const enrichWithEAN = async () => {
+    const itemsToEnrich = skuList.filter(
+      s => s.selected && s.data?.barcode && (!s.data.name || s.data.name === s.sku)
+    );
+    if (itemsToEnrich.length === 0) {
+      toast.info("Nenhum produto selecionado com EAN sem nome");
+      return;
+    }
+    setIsEnrichingEAN(true);
+    toast.info(`A pesquisar ${itemsToEnrich.length} códigos EAN...`);
+
+    for (let i = 0; i < itemsToEnrich.length; i += 5) {
+      const batch = itemsToEnrich.slice(i, i + 5);
+      const results = await Promise.allSettled(
+        batch.map(async (item) => {
+          const { data, error } = await supabase.functions.invoke("barcode-external-lookup", {
+            body: { barcode: item.data!.barcode!.trim() },
+          });
+          if (error) throw error;
+          return { sku: item.sku, result: data };
+        })
+      );
+
+      setSkuList(prev => prev.map(s => {
+        const match = results.find((r, ri) => r.status === "fulfilled" && batch[ri]?.sku === s.sku);
+        if (!match || match.status !== "fulfilled") return s;
+        const ext = (match as PromiseFulfilledResult<any>).value.result;
+        if (!ext?.found) return s;
+        return {
+          ...s,
+          data: {
+            ...s.data,
+            name: ext.name || s.data?.name,
+            brand: ext.brand || s.data?.brand,
+            category: ext.category || s.data?.category,
+            imageUrl: ext.image_url || s.data?.imageUrl,
+          },
+        };
+      }));
+
+      if (i + 5 < itemsToEnrich.length) await new Promise(r => setTimeout(r, 500));
+    }
+
+    setIsEnrichingEAN(false);
+    toast.success("Enriquecimento EAN concluído");
   };
 
   const createSelectedProducts = async () => {
@@ -1183,6 +1233,17 @@ export function BatchSKUImportDialog({ open, onOpenChange }: BatchSKUImportDialo
               )}
               {(phase === "results" || (phase === "processing" && progress === 100)) && (
                 <>
+                   <Button
+                    variant="outline"
+                    onClick={enrichWithEAN}
+                    disabled={isCreating || isEnrichingEAN || selectedCount === 0}
+                    className="gap-1.5"
+                  >
+                    {isEnrichingEAN
+                      ? <><Loader2 className="h-4 w-4 animate-spin" />EAN...</>
+                      : <><ScanLine className="h-4 w-4" />Pesquisar EAN</>
+                    }
+                  </Button>
                   <Button
                     variant="outline"
                     onClick={enrichPricesWithAI}
