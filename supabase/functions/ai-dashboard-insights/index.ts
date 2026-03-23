@@ -56,9 +56,13 @@ Deno.serve(async (req) => {
 
     const { dashboardData, userName, workspaceName, workspaceId } = await req.json() as {
       dashboardData: DashboardData;
+      userName?: string;
+      workspaceName?: string;
+      workspaceId?: string;
+    };
 
     // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : null;
     if (_gateWsId) {
       const gate = await aiGate(_gateWsId, 'micro', 'ai-dashboard-insights');
       if (!gate.allowed) {
@@ -68,11 +72,6 @@ Deno.serve(async (req) => {
         });
       }
     }
-
-      userName?: string;
-      workspaceName?: string;
-      workspaceId?: string;
-    };
 
     // === Workspace membership verification ===
     if (workspaceId) {
