@@ -197,6 +197,7 @@ import AISettingsPage from "./pages/AISettingsPage";
 import AIUsagePage from "./pages/AIUsagePage";
 import ZapierPage from "./pages/ZapierPage";
 import BackgroundJobsPage from "./pages/BackgroundJobsPage";
+import AIOperationsCenterPage from "./pages/AIOperationsCenterPage";
 import CEOCopilotPage from "./pages/CEOCopilotPage";
 import CommandCenterV2Page from "./pages/CommandCenterV2Page";
 import BundlesPage from "./pages/BundlesPage";
@@ -639,6 +640,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/ai-usage" element={<AIUsagePage />} />
                 <Route path="/dashboard/zapier" element={<ZapierPage />} />
                 <Route path="/dashboard/background-jobs" element={<BackgroundJobsPage />} />
+                <Route path="/dashboard/ai-operations" element={<AIOperationsCenterPage />} />
                 
                 {/* Método Vision */}
                 <Route path="/dashboard/vision" element={<VisionPage />} />
