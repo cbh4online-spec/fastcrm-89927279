@@ -33,6 +33,9 @@ export default function AccountBriefDashboardPage() {
   const { activeCount: watchlistCount } = useAccountBriefWatchlist();
   const { unreadCount: alertsCount } = useAccountBriefChangeAlerts();
   const { segments } = useAccountBriefSegments();
+  const { allMetrics, currentPeriod } = useAccountBriefUsage();
+  const { unreadCount: notifCount } = useAccountBriefNotifications();
+  const { pendingCount: dupeCount } = useAccountBriefDedupe();
 
   if (onboardingLoading) {
     return <DashboardLayout><div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></DashboardLayout>;
