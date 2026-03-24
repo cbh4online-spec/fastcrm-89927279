@@ -443,7 +443,7 @@ export default function AccountBriefAccountDetailPage() {
                           <SelectContent>
                             {leads.map((l) => (
                               <SelectItem key={l.id} value={l.id}>
-                                {l.name} {l.company ? `(${l.company})` : ''}
+                                {l.name} {l.email ? `(${l.email})` : ''}
                               </SelectItem>
                             ))}
                           </SelectContent>
