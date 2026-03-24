@@ -51,7 +51,7 @@ export function useAccountBriefBatchOps() {
           total_items: accountIds.length,
           status: "queued",
           payload_json: payload || {},
-        })
+        } as any)
         .select()
         .single();
       if (runErr) throw runErr;
