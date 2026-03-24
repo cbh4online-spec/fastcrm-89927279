@@ -423,6 +423,8 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
         { nameKey: "abCompare", name: "Comparar", href: "/dashboard/account-brief/compare", icon: BarChart3, iconColor: "text-indigo-500" },
         { nameKey: "abNotifications", name: "Notificações", href: "/dashboard/account-brief/notifications", icon: Bell, iconColor: "text-indigo-500" },
         { nameKey: "abBatch", name: "Batch Ops", href: "/dashboard/account-brief/batch", icon: LayoutGrid, iconColor: "text-indigo-500" },
+        { nameKey: "abKpis", name: "KPIs", href: "/dashboard/account-brief/kpis", icon: BarChart3, iconColor: "text-indigo-500" },
+        { nameKey: "abScoreAdmin", name: "Score & Retenção", href: "/dashboard/account-brief/score-admin", icon: Settings, iconColor: "text-indigo-500" },
         { nameKey: "abSettings", name: "Definições", href: "/dashboard/account-brief/settings", icon: Settings, iconColor: "text-indigo-500" },
       ],
     },
