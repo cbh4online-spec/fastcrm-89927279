@@ -228,6 +228,7 @@ import AccountBriefNotificationsPage from "./pages/AccountBriefNotificationsPage
 import AccountBriefBatchOpsPage from "./pages/AccountBriefBatchOpsPage";
 import AccountBriefKPIsPage from "./pages/AccountBriefKPIsPage";
 import AccountBriefScoreAdminPage from "./pages/AccountBriefScoreAdminPage";
+import AccountBriefTrialDemoPage from "./pages/AccountBriefTrialDemoPage";
 
 // Performance Engine
 import PerformanceDashboardPage from "./pages/performance/PerformanceDashboardPage";
@@ -676,6 +677,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/account-brief/batch" element={<AccountBriefBatchOpsPage />} />
                 <Route path="/dashboard/account-brief/kpis" element={<AccountBriefKPIsPage />} />
                 <Route path="/dashboard/account-brief/score-admin" element={<AccountBriefScoreAdminPage />} />
+                <Route path="/dashboard/account-brief/trial-demo" element={<AccountBriefTrialDemoPage />} />
                 <Route path="/dashboard/admin/account-brief" element={<AccountBriefAdminPage />} />
                 
                 {/* Método Vision */}
