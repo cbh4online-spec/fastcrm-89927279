@@ -25,6 +25,8 @@ export default function AccountBriefDashboardPage() {
   const navigate = useNavigate();
   const { isOnboardingComplete, isLoading: onboardingLoading } = useAccountBriefOnboarding();
   const { data: dashboard, isLoading } = useAccountBriefDashboard();
+  const { activeCount: watchlistCount } = useAccountBriefWatchlist();
+  const { unreadCount: alertsCount } = useAccountBriefChangeAlerts();
 
   if (onboardingLoading) {
     return <DashboardLayout><div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></DashboardLayout>;
