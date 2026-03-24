@@ -98,7 +98,8 @@ export default function AccountBriefAccountDetailPage() {
   const { runs, triggerAnalysis } = useAccountBriefAnalysisRuns(id);
   const { data: brief, isLoading: briefLoading } = useAccountBriefBrief(id);
   const { score, factors, isLoading: scoreLoading } = useAccountBriefScore(id);
-  const { companies, leads, linkCompany, linkLead, unlinkLead, diffs } = useAccountBriefCRMLink(id);
+  const [leadSearchTerm, setLeadSearchTerm] = useState("");
+  const { companies, leads, isSearchingLeads, linkCompany, linkLead, unlinkLead, diffs } = useAccountBriefCRMLink(id, leadSearchTerm);
   const { isWatched, addToWatchlist } = useAccountBriefWatchlist();
   const { alerts: changeAlerts } = useAccountBriefChangeAlerts(id);
   const [newNote, setNewNote] = useState("");
@@ -436,18 +437,34 @@ export default function AccountBriefAccountDetailPage() {
                     ) : (
                       <div className="space-y-2">
                         <p className="text-xs text-muted-foreground">Sem lead associada.</p>
-                        <Select onValueChange={(leadId) => linkLead.mutate({ leadId })}>
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="Associar lead existente..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {leads.map((l) => (
-                              <SelectItem key={l.id} value={l.id}>
-                                {l.name} {l.email ? `(${l.email})` : ''}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <input
+                          value={leadSearchTerm}
+                          onChange={(e) => setLeadSearchTerm(e.target.value)}
+                          placeholder="Pesquisar lead por nome ou email..."
+                          className="h-8 w-full rounded-md border border-input bg-background px-3 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        />
+                        <div className="max-h-40 overflow-y-auto rounded-md border border-border bg-background">
+                          {isSearchingLeads ? (
+                            <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin" /> A pesquisar leads...
+                            </div>
+                          ) : leads.length === 0 ? (
+                            <p className="px-3 py-2 text-xs text-muted-foreground">Sem resultados para a pesquisa.</p>
+                          ) : (
+                            leads.map((l) => (
+                              <button
+                                key={l.id}
+                                type="button"
+                                className="flex w-full items-center justify-between px-3 py-2 text-left text-xs hover:bg-muted/50"
+                                onClick={() => linkLead.mutate({ leadId: l.id })}
+                                disabled={linkLead.isPending}
+                              >
+                                <span className="truncate">{l.name}</span>
+                                {l.email ? <span className="ml-2 truncate text-muted-foreground">{l.email}</span> : null}
+                              </button>
+                            ))
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
