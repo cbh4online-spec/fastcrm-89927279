@@ -216,6 +216,7 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
         { nameKey: "googleLocal", name: t("googleLocal"), href: "/dashboard/prospecting/google-local", icon: MapPin, moduleSlug: "google-local-services", iconColor: "text-indigo-500" },
         { nameKey: "professionalProspecting", name: t("professionalProspecting"), href: "/dashboard/prospecting/professionals", icon: UserSearch, moduleSlug: "prospecting-pro", iconColor: "text-indigo-500" },
         { nameKey: "igGlobalSearch", name: t("igGlobalSearch"), href: "/dashboard/instagram-looter", icon: Instagram, moduleSlug: "instagram-looter", iconColor: "text-indigo-500" },
+        { nameKey: "competitorTracker", name: "Monitor Concorrentes", href: "/dashboard/competitors", icon: Eye, iconColor: "text-indigo-500" },
         { nameKey: "igHashtags", name: t("igHashtags"), href: "/dashboard/instagram-looter/hashtags", icon: Hash, moduleSlug: "instagram-looter", iconColor: "text-indigo-500" },
         { nameKey: "igLocation", name: t("igLocation"), href: "/dashboard/instagram-looter/location", icon: MapPin, moduleSlug: "instagram-looter", iconColor: "text-indigo-500" },
         { nameKey: "igExplore", name: t("igExplore"), href: "/dashboard/instagram-looter/explore", icon: Compass, moduleSlug: "instagram-looter", iconColor: "text-indigo-500" },

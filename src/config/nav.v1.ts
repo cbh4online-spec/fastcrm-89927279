@@ -141,6 +141,7 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Bio OS", href: "/dashboard/bio", icon: Globe, group: "Marketing", moduleSlug: "bio-os" },
   { name: "Prospecção", href: "/dashboard/prospecting", icon: Search, group: "Marketing" },
   { name: "Funis", href: "/dashboard/funnels", icon: GitBranch, group: "Marketing" },
+  { name: "Monitor Concorrentes", href: "/dashboard/competitors", icon: Eye, group: "Marketing" },
 
   // ── COMPRAS ──
   { name: "Dashboard Compras", href: "/dashboard/procurement", icon: BarChart3, group: "Compras", separator: true, moduleSlug: "procurement" },

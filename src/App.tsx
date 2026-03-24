@@ -199,6 +199,7 @@ import ZapierPage from "./pages/ZapierPage";
 import BackgroundJobsPage from "./pages/BackgroundJobsPage";
 import AIOperationsCenterPage from "./pages/AIOperationsCenterPage";
 import CEOCopilotPage from "./pages/CEOCopilotPage";
+import CompetitorTrackerPage from "./pages/CompetitorTrackerPage";
 import CommandCenterV2Page from "./pages/CommandCenterV2Page";
 import BundlesPage from "./pages/BundlesPage";
 import RevenueFlightControlPage from "./pages/RevenueFlightControlPage";
@@ -553,6 +554,7 @@ function CRMRoutes() {
                 <Route path="/dashboard/prospecting/google-local" element={<GoogleLocalProspecting />} />
                 <Route path="/dashboard/prospecting/web-search" element={<WebSearchProspecting />} />
                 <Route path="/dashboard/prospecting/professionals" element={<ProfessionalProspecting />} />
+                <Route path="/dashboard/competitors" element={<CompetitorTrackerPage />} />
                 <Route path="/dashboard/opportunities" element={<OpportunitiesPage />} />
                 <Route path="/dashboard/opportunities/:id" element={<OpportunityDetail />} />
                 <Route path="/dashboard/inbox" element={<Inbox />} />
