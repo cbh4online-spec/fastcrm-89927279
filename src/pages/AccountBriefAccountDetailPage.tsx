@@ -369,48 +369,88 @@ export default function AccountBriefAccountDetailPage() {
                     <Building2 className="w-4 h-4 text-indigo-500" /> CRM
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  {account.company_id ? (
-                    <div className="space-y-2">
-                      <Badge variant="outline" className="gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Associada ao CRM
-                      </Badge>
-                      <Button variant="outline" size="sm" className="w-full gap-2" onClick={() => navigate(`/objects/companies/${account.company_id}`)}>
-                        <ExternalLink className="w-3 h-3" /> Abrir Empresa no CRM
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">Esta conta não está ligada ao CRM.</p>
-                      {!showCRMLink ? (
-                        <Button variant="outline" size="sm" className="w-full gap-2" onClick={() => setShowCRMLink(true)}>
-                          <Link className="w-3 h-3" /> Associar ao CRM
+                <CardContent className="space-y-4">
+                  {/* Company link */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Empresa</p>
+                    {account.company_id ? (
+                      <div className="space-y-2">
+                        <Badge variant="outline" className="gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Associada ao CRM
+                        </Badge>
+                        <Button variant="outline" size="sm" className="w-full gap-2" onClick={() => navigate(`/objects/companies/${account.company_id}`)}>
+                          <ExternalLink className="w-3 h-3" /> Abrir Empresa no CRM
                         </Button>
-                      ) : (
-                        <div className="space-y-2">
-                          <Button
-                            variant="default" size="sm" className="w-full gap-2"
-                            onClick={() => linkCompany.mutate({ createNew: true })}
-                            disabled={linkCompany.isPending}
-                          >
-                            {linkCompany.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
-                            Criar Empresa no CRM
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">Sem empresa associada.</p>
+                        {!showCRMLink ? (
+                          <Button variant="outline" size="sm" className="w-full gap-2" onClick={() => setShowCRMLink(true)}>
+                            <Link className="w-3 h-3" /> Associar Empresa
                           </Button>
-                          <Select onValueChange={(companyId) => linkCompany.mutate({ companyId })}>
-                            <SelectTrigger className="h-8 text-xs">
-                              <SelectValue placeholder="Ou associar existente..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {companies.map((c) => (
-                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setShowCRMLink(false)}>Cancelar</Button>
+                        ) : (
+                          <div className="space-y-2">
+                            <Button
+                              variant="default" size="sm" className="w-full gap-2"
+                              onClick={() => linkCompany.mutate({ createNew: true })}
+                              disabled={linkCompany.isPending}
+                            >
+                              {linkCompany.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                              Criar Empresa no CRM
+                            </Button>
+                            <Select onValueChange={(companyId) => linkCompany.mutate({ companyId })}>
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Ou associar existente..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {companies.map((c) => (
+                                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setShowCRMLink(false)}>Cancelar</Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Lead link */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Lead</p>
+                    {(account as any).lead_id ? (
+                      <div className="space-y-2">
+                        <Badge variant="outline" className="gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Lead associada
+                        </Badge>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" className="flex-1 gap-2" onClick={() => navigate(`/dashboard/leads/${(account as any).lead_id}`)}>
+                            <ExternalLink className="w-3 h-3" /> Abrir Lead
+                          </Button>
+                          <Button variant="ghost" size="sm" className="gap-1" onClick={() => unlinkLead.mutate()} disabled={unlinkLead.isPending}>
+                            <Trash2 className="w-3 h-3" /> Desvincular
+                          </Button>
                         </div>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">Sem lead associada.</p>
+                        <Select onValueChange={(leadId) => linkLead.mutate({ leadId })}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Associar lead existente..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {leads.map((l) => (
+                              <SelectItem key={l.id} value={l.id}>
+                                {l.name} {l.company ? `(${l.company})` : ''}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
