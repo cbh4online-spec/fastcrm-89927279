@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAccountBriefDashboard } from "@/hooks/useAccountBriefDashboard";
 import { useAccountBriefOnboarding } from "@/hooks/useAccountBriefOnboarding";
-import { Briefcase, Plus, Star, TrendingUp, BarChart3, Loader2, ArrowRight } from "lucide-react";
+import { useAccountBriefWatchlist } from "@/hooks/useAccountBriefWatchlist";
+import { useAccountBriefChangeAlerts } from "@/hooks/useAccountBriefChangeAlerts";
+import { Briefcase, Plus, Star, TrendingUp, BarChart3, Loader2, ArrowRight, Eye, Bell } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
 const scoreColor = (label: string) => {
