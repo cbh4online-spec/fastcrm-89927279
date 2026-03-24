@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { toast } from "sonner";
 
-export function useAccountBriefCRMLink(accountId?: string) {
+export function useAccountBriefCRMLink(accountId?: string, leadSearchTerm?: string) {
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
   const queryClient = useQueryClient();
+  const normalizedLeadSearch = leadSearchTerm?.trim() || "";
 
   // Search companies for linking
   const searchCompanies = useQuery({
@@ -27,15 +28,27 @@ export function useAccountBriefCRMLink(accountId?: string) {
 
   // Search leads for linking
   const searchLeads = useQuery({
-    queryKey: ["crm-leads-search", workspaceId],
+    queryKey: ["crm-leads-search", workspaceId, normalizedLeadSearch],
     queryFn: async () => {
       if (!workspaceId) return [];
-      const { data, error } = await supabase
+
+      const safeSearch = normalizedLeadSearch
+        .replace(/[,%()]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      let query = supabase
         .from("leads")
         .select("id, name, email, status")
         .eq("workspace_id", workspaceId)
         .order("name")
-        .limit(100);
+        .limit(50);
+
+      if (safeSearch.length > 0) {
+        query = query.or(`name.ilike.%${safeSearch}%,email.ilike.%${safeSearch}%`);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
@@ -116,6 +129,7 @@ export function useAccountBriefCRMLink(accountId?: string) {
   return {
     companies: searchCompanies.data || [],
     leads: searchLeads.data || [],
+    isSearchingLeads: searchLeads.isFetching || searchLeads.isLoading,
     linkCompany,
     linkLead,
     unlinkLead,

@@ -98,7 +98,8 @@ export default function AccountBriefAccountDetailPage() {
   const { runs, triggerAnalysis } = useAccountBriefAnalysisRuns(id);
   const { data: brief, isLoading: briefLoading } = useAccountBriefBrief(id);
   const { score, factors, isLoading: scoreLoading } = useAccountBriefScore(id);
-  const { companies, leads, linkCompany, linkLead, unlinkLead, diffs } = useAccountBriefCRMLink(id);
+  const [leadSearchTerm, setLeadSearchTerm] = useState("");
+  const { companies, leads, isSearchingLeads, linkCompany, linkLead, unlinkLead, diffs } = useAccountBriefCRMLink(id, leadSearchTerm);
   const { isWatched, addToWatchlist } = useAccountBriefWatchlist();
   const { alerts: changeAlerts } = useAccountBriefChangeAlerts(id);
   const [newNote, setNewNote] = useState("");
