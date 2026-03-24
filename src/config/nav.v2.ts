@@ -64,6 +64,7 @@ import {
   RefreshCw,
   Eye,
   Cpu,
+  Briefcase,
 } from "lucide-react";
 
 // --- Types ---
@@ -402,6 +403,20 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
         { nameKey: "checkoutDiscounts", name: "Descontos", href: "/dashboard/checkout/discounts", icon: Ticket, iconColor: "text-cyan-500" },
         { nameKey: "checkoutAbTests", name: "A/B Tests", href: "/dashboard/checkout/ab-tests", icon: BarChart3, iconColor: "text-cyan-500" },
         { nameKey: "checkoutAnalytics", name: "Analytics", href: "/dashboard/checkout/analytics", icon: LineChart, iconColor: "text-cyan-500" },
+      ],
+    },
+    {
+      type: "group",
+      nameKey: "groupAccountBrief",
+      name: t("groupAccountBrief"),
+      icon: Briefcase,
+      moduleSlug: "account-brief",
+      iconColor: "text-indigo-500",
+      children: [
+        { nameKey: "abDashboard", name: "Dashboard", href: "/dashboard/account-brief", icon: LayoutDashboard, iconColor: "text-indigo-500" },
+        { nameKey: "abAccounts", name: "Contas", href: "/dashboard/account-brief/accounts", icon: Building2, iconColor: "text-indigo-500" },
+        { nameKey: "abAnalysis", name: "Análises", href: "/dashboard/account-brief/analysis", icon: BarChart3, iconColor: "text-indigo-500" },
+        { nameKey: "abSettings", name: "Definições", href: "/dashboard/account-brief/settings", icon: Settings, iconColor: "text-indigo-500" },
       ],
     },
   ];
