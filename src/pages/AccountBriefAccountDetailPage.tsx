@@ -15,6 +15,8 @@ import { useAccountBriefAnalysisRuns } from "@/hooks/useAccountBriefAnalysisRuns
 import { useAccountBriefBrief } from "@/hooks/useAccountBriefBrief";
 import { useAccountBriefScore } from "@/hooks/useAccountBriefScore";
 import { useAccountBriefCRMLink } from "@/hooks/useAccountBriefCRMLink";
+import { useAccountBriefWatchlist } from "@/hooks/useAccountBriefWatchlist";
+import { useAccountBriefChangeAlerts } from "@/hooks/useAccountBriefChangeAlerts";
 import {
   ArrowLeft, Star, StarOff, RefreshCw, Copy, Globe, Loader2, StickyNote,
   Plus, Trash2, Clock, AlertCircle, CheckCircle2, FileText, Target,
