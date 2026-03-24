@@ -49,7 +49,7 @@ export default function AccountBriefDashboardPage() {
           />
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-card/95">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
