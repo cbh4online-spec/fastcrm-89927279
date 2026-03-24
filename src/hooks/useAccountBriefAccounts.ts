@@ -52,7 +52,7 @@ export function useAccountBriefAccounts(filters?: AccountFilters) {
         .is("archived_at", null)
         .order("updated_at", { ascending: false });
 
-      if (filters?.status) query = query.eq("commercial_status", filters.status);
+      if (filters?.status) query = query.eq("commercial_status", filters.status as any);
       if (filters?.favorite) query = query.eq("favorite", true);
       if (filters?.minScore) query = query.gte("total_score", filters.minScore);
       if (filters?.search) {
@@ -93,9 +93,12 @@ export function useAccountBriefAccounts(filters?: AccountFilters) {
 
   const updateAccount = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<AccountBriefAccount> & { id: string }) => {
+      const { commercial_status, ...rest } = updates;
+      const payload: Record<string, unknown> = { ...rest, updated_at: new Date().toISOString() };
+      if (commercial_status) payload.commercial_status = commercial_status;
       const { error } = await supabase
         .from("account_brief_accounts")
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(payload as any)
         .eq("id", id);
       if (error) throw error;
     },
