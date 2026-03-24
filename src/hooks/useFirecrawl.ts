@@ -108,7 +108,7 @@ export function useCompetitors() {
         .eq('workspace_id', workspaceId!)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
-      return (data ?? []) as Array<{
+      return (data ?? []) as unknown as Array<{
         id: string
         workspace_id: string
         name: string
@@ -193,7 +193,7 @@ export function useCompetitorSnapshots(competitorId: string) {
         .eq('workspace_id', currentWorkspace?.id!)
         .order('created_at', { ascending: false })
         .limit(50)
-      return (data ?? []) as Array<{
+      return (data ?? []) as unknown as Array<{
         id: string
         competitor_id: string
         page_path: string
