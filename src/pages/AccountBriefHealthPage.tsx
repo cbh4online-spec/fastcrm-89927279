@@ -143,7 +143,7 @@ export default function AccountBriefHealthPage() {
   };
 
   return (
-    <ModuleGuard moduleSlug="account-brief">
+    <ModuleGuard moduleSlug="account-brief" moduleName="Account Brief">
       <DashboardLayout>
         <div className="space-y-6 p-6">
           <PageHeader
