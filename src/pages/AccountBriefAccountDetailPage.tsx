@@ -513,9 +513,19 @@ export default function AccountBriefAccountDetailPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Adicionar nota..." rows={2} className="text-sm" />
-                  <Button size="sm" onClick={handleAddNote} disabled={!newNote.trim() || addNote.isPending} className="gap-1 w-full">
-                    <Plus className="w-3 h-3" /> Adicionar
-                  </Button>
+                  <div className="flex gap-2">
+                    <Select defaultValue="team" onValueChange={() => {}}>
+                      <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="team">Equipa</SelectItem>
+                        <SelectItem value="private">Privada</SelectItem>
+                        <SelectItem value="admin_only">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button size="sm" onClick={handleAddNote} disabled={!newNote.trim() || addNote.isPending} className="gap-1 flex-1">
+                      <Plus className="w-3 h-3" /> Adicionar
+                    </Button>
+                  </div>
                   <div className="space-y-2 mt-2">
                     {notes.map((note: any) => (
                       <div key={note.id} className="p-3 rounded-lg bg-muted/30 text-sm">
