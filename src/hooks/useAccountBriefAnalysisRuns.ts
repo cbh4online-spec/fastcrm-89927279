@@ -34,12 +34,25 @@ export function useAccountBriefAnalysisRuns(accountId?: string) {
         body: { accountId, workspaceId },
       });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["account-brief-runs"] });
       queryClient.invalidateQueries({ queryKey: ["account-brief-accounts"] });
       queryClient.invalidateQueries({ queryKey: ["account-brief-account"] });
+      queryClient.invalidateQueries({ queryKey: ["account-brief-brief"] });
+      queryClient.invalidateQueries({ queryKey: ["account-brief-score"] });
+      if (data?.status === "completed") {
+        toast.success(`Análise concluída! Score: ${data.score || 0} — ${data.processed || 0} páginas processadas`);
+      } else if (data?.status === "partial") {
+        toast.warning(`Análise parcial: ${data.processed || 0} páginas processadas. Algumas etapas falharam (verifique o saldo de IA).`);
+      } else {
+        toast.info("Análise terminada.");
+      }
+    },
+    onError: (err: Error) => {
+      toast.error(`Erro na análise: ${err.message}`);
     },
   });
 
