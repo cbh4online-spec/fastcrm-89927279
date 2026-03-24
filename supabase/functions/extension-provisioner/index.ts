@@ -86,7 +86,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { action, module_slug } = await req.json();
+    const { action, module_slug: rawModuleSlug } = await req.json();
+    const module_slug = typeof rawModuleSlug === "string" ? rawModuleSlug.trim().toLowerCase() : "";
 
     if (!action || !module_slug) {
       return new Response(JSON.stringify({ error: "Missing action or module_slug" }), {
@@ -95,17 +96,25 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch module with manifest
-    const { data: module, error: moduleError } = await supabase
+    // Fetch module with manifest (service client avoids false negatives from RLS)
+    const { data: module, error: moduleError } = await serviceClient
       .from("marketplace_modules")
       .select("id, slug, name, manifest_json")
       .eq("slug", module_slug)
       .in("status", ["active", "published"])
-      .single();
+      .maybeSingle();
 
-    if (moduleError || !module) {
-      return new Response(JSON.stringify({ error: "Module not found" }), {
-        status: 404,
+    if (moduleError) {
+      console.error("[provisioner] marketplace_modules lookup failed:", moduleError);
+      return new Response(JSON.stringify({ error: "Marketplace lookup failed" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!module) {
+      return new Response(JSON.stringify({ error: "Module not found", code: "module_not_found", module_slug }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
