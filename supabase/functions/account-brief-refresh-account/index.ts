@@ -31,6 +31,7 @@ Deno.serve(async (req) => {
     }
 
     const correlationId = crypto.randomUUID();
+    const startTime = Date.now();
 
     // Create analysis run
     const { data: run, error: runError } = await supabase
@@ -49,7 +50,7 @@ Deno.serve(async (req) => {
     if (runError) throw runError;
     const runId = run.id;
 
-    console.log(`[refresh] Starting analysis for ${account.domain} (run: ${runId})`);
+    console.log(`[refresh] Starting full pipeline for ${account.domain} (run: ${runId})`);
 
     // Step 1: Discover pages
     const discoverRes = await invokeFunction(supabaseUrl, serviceRoleKey, "account-brief-discover-pages", {
@@ -57,11 +58,7 @@ Deno.serve(async (req) => {
     });
 
     if (!discoverRes.success) {
-      await supabase.from("account_brief_analysis_runs").update({
-        status: "failed", error_summary: `Discovery failed: ${discoverRes.error}`,
-        finished_at: new Date().toISOString(),
-      }).eq("id", runId);
-
+      await failRun(supabase, runId, `Discovery failed: ${discoverRes.error}`, startTime);
       return new Response(JSON.stringify({ success: false, error: discoverRes.error, runId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -72,18 +69,52 @@ Deno.serve(async (req) => {
       accountId, workspaceId, runId,
     });
 
-    // Update run status based on crawl results
-    const finalStatus = crawlRes.success && crawlRes.processed > 0
-      ? (crawlRes.failed > 0 ? "partial" : "completed")
-      : "failed";
+    if (!crawlRes.success || !crawlRes.processed) {
+      await failRun(supabase, runId, "Crawl failed or no pages processed", startTime);
+      return new Response(JSON.stringify({ success: false, error: "Crawl failed", runId }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
+    // Step 3: Extract structured data
+    const extractRes = await invokeFunction(supabaseUrl, serviceRoleKey, "account-brief-extract-structured", {
+      accountId, workspaceId, runId,
+    });
+
+    let extractedData = null;
+    if (extractRes.success && extractRes.extracted) {
+      extractedData = extractRes.extracted;
+    } else {
+      console.warn("[refresh] Extraction failed, continuing with scoring without AI data");
+    }
+
+    // Step 4: Generate brief
+    const briefRes = await invokeFunction(supabaseUrl, serviceRoleKey, "account-brief-generate-brief", {
+      accountId, workspaceId, extractedData, runId,
+    });
+
+    if (!briefRes.success) {
+      console.warn("[refresh] Brief generation failed:", briefRes.error);
+    }
+
+    // Step 5: Compute score
+    const scoreRes = await invokeFunction(supabaseUrl, serviceRoleKey, "account-brief-compute-score", {
+      accountId, workspaceId, extractedData, runId,
+    });
+
+    const durationMs = Date.now() - startTime;
+    const hasFailures = (crawlRes.failed || 0) > 0 || !extractRes.success || !briefRes.success;
+    const finalStatus = hasFailures ? "partial" : "completed";
+
+    // Update run
     await supabase.from("account_brief_analysis_runs").update({
       status: finalStatus,
+      pages_discovered: discoverRes.discovered || 0,
       pages_processed: crawlRes.processed || 0,
       pages_failed: crawlRes.failed || 0,
-      duration_ms: crawlRes.durationMs || null,
+      duration_ms: durationMs,
       finished_at: new Date().toISOString(),
-      error_summary: finalStatus === "failed" ? "Crawl failed or no pages processed" : null,
+      error_summary: hasFailures ? "Some steps completed with warnings" : null,
     }).eq("id", runId);
 
     // Update account
@@ -93,7 +124,7 @@ Deno.serve(async (req) => {
       updated_at: new Date().toISOString(),
     }).eq("id", accountId);
 
-    console.log(`[refresh] Completed: ${finalStatus}`);
+    console.log(`[refresh] Pipeline completed: ${finalStatus} in ${durationMs}ms`);
 
     return new Response(JSON.stringify({
       success: true,
@@ -102,6 +133,9 @@ Deno.serve(async (req) => {
       discovered: discoverRes.discovered || 0,
       processed: crawlRes.processed || 0,
       failed: crawlRes.failed || 0,
+      score: scoreRes.score || 0,
+      scoreLabel: scoreRes.label || "Baixo",
+      durationMs,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -113,11 +147,17 @@ Deno.serve(async (req) => {
   }
 });
 
+async function failRun(supabase: any, runId: string, error: string, startTime: number) {
+  await supabase.from("account_brief_analysis_runs").update({
+    status: "failed",
+    error_summary: error,
+    duration_ms: Date.now() - startTime,
+    finished_at: new Date().toISOString(),
+  }).eq("id", runId);
+}
+
 async function invokeFunction(
-  supabaseUrl: string,
-  serviceRoleKey: string,
-  functionName: string,
-  body: Record<string, unknown>
+  supabaseUrl: string, serviceRoleKey: string, functionName: string, body: Record<string, unknown>
 ): Promise<any> {
   try {
     const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
