@@ -13,7 +13,7 @@ const DEMO_ACCOUNTS = [
     probable_sector: "SaaS / Tecnologia",
     probable_geography: "Portugal",
     executive_summary: "Empresa de automação de processos com crescimento acelerado. Sinais fortes de contratação e expansão internacional. Pricing público e presença digital madura.",
-    commercial_status: "prospect" as const,
+    commercial_status: "researching" as const,
     favorite: true,
   },
   {
@@ -25,7 +25,7 @@ const DEMO_ACCOUNTS = [
     probable_sector: "Construção / Engenharia",
     probable_geography: "Lisboa, Portugal",
     executive_summary: "Construtora sustentável com projetos em expansão. Site com informação limitada sobre serviços. Oportunidade de personalização alta.",
-    commercial_status: "prospect" as const,
+    commercial_status: "new" as const,
     favorite: false,
   },
   {
@@ -37,7 +37,7 @@ const DEMO_ACCOUNTS = [
     probable_sector: "Saúde / HealthTech",
     probable_geography: "Porto, Portugal",
     executive_summary: "Plataforma de telemedicina em crescimento rápido. Vagas abertas em vendas e produto. Site com CTA clara e pricing transparente. Boa maturidade digital.",
-    commercial_status: "qualified" as const,
+    commercial_status: "outreach_ready" as const,
     favorite: false,
   },
 ];
