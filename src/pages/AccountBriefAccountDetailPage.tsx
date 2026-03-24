@@ -471,6 +471,21 @@ export default function AccountBriefAccountDetailPage() {
                 </CardContent>
               </Card>
 
+              {/* Governance */}
+              <Card className="border-0 shadow-lg">
+                <CardHeader><CardTitle className="text-base flex items-center gap-2"><Users className="w-4 h-4 text-indigo-500" /> Equipa</CardTitle></CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Owner</p>
+                    <p className="text-sm">{(account as any).owner_user_id ? "Atribuído" : "Sem owner"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Atribuído a</p>
+                    <p className="text-sm">{(account as any).assigned_user_id ? "Atribuído" : "Não atribuído"}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Info */}
               <Card className="border-0 shadow-lg">
                 <CardHeader><CardTitle className="text-base">Informações</CardTitle></CardHeader>
