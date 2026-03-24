@@ -52,6 +52,9 @@ Deno.serve(async (req) => {
 
     console.log(`[refresh] Starting full pipeline for ${account.domain} (run: ${runId})`);
 
+    // Emit Kernel event: analysis_started
+    await emitKernelEvent(supabase, workspaceId, "account_brief.analysis_started", accountId, correlationId);
+
     // Step 1: Discover pages
     const discoverRes = await invokeFunction(supabaseUrl, serviceRoleKey, "account-brief-discover-pages", {
       accountId, workspaceId, domain: account.normalized_domain || account.domain, runId,
@@ -59,6 +62,7 @@ Deno.serve(async (req) => {
 
     if (!discoverRes.success) {
       await failRun(supabase, runId, `Discovery failed: ${discoverRes.error}`, startTime);
+      await emitKernelEvent(supabase, workspaceId, "account_brief.analysis_failed", accountId, correlationId, { step: "discover", error: discoverRes.error });
       return new Response(JSON.stringify({ success: false, error: discoverRes.error, runId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -71,6 +75,7 @@ Deno.serve(async (req) => {
 
     if (!crawlRes.success || !crawlRes.processed) {
       await failRun(supabase, runId, "Crawl failed or no pages processed", startTime);
+      await emitKernelEvent(supabase, workspaceId, "account_brief.analysis_failed", accountId, correlationId, { step: "crawl" });
       return new Response(JSON.stringify({ success: false, error: "Crawl failed", runId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -124,6 +129,36 @@ Deno.serve(async (req) => {
       updated_at: new Date().toISOString(),
     }).eq("id", accountId);
 
+    // Step 6: Compute diffs (fire-and-forget)
+    invokeFunction(supabaseUrl, serviceRoleKey, "account-brief-diff-runs", {
+      accountId, workspaceId, currentRunId: runId,
+    }).catch((e) => console.warn("[refresh] Diff computation failed:", e));
+
+    // Emit Kernel event: analysis_completed
+    await emitKernelEvent(supabase, workspaceId, "account_brief.analysis_completed", accountId, correlationId, {
+      runId, status: finalStatus, score: scoreRes.score || 0, durationMs,
+      discovered: discoverRes.discovered || 0, processed: crawlRes.processed || 0,
+    });
+
+    // Emit score_updated if score changed
+    if (scoreRes.score) {
+      await emitKernelEvent(supabase, workspaceId, "account_brief.score_updated", accountId, correlationId, {
+        score: scoreRes.score, label: scoreRes.label,
+      });
+    }
+
+    // Register in system_function_runs for System Health
+    await supabase.from("system_function_runs").insert({
+      workspace_id: workspaceId,
+      module_id: "account-brief",
+      function_name: "account-brief-refresh-account",
+      status: finalStatus === "completed" ? "success" : "partial",
+      duration_ms: durationMs,
+      metadata: { accountId, runId, score: scoreRes.score },
+    }).then(({ error }) => {
+      if (error) console.warn("[refresh] Failed to log system_function_run:", error.message);
+    });
+
     console.log(`[refresh] Pipeline completed: ${finalStatus} in ${durationMs}ms`);
 
     return new Response(JSON.stringify({
@@ -154,6 +189,27 @@ async function failRun(supabase: any, runId: string, error: string, startTime: n
     duration_ms: Date.now() - startTime,
     finished_at: new Date().toISOString(),
   }).eq("id", runId);
+}
+
+async function emitKernelEvent(
+  supabase: any, workspaceId: string, type: string, entityId: string,
+  correlationId: string, payload: Record<string, unknown> = {}
+) {
+  try {
+    await supabase.from("kernel_events").insert({
+      workspace_id: workspaceId,
+      type,
+      entity_kind: "account_brief_account",
+      entity_id: entityId,
+      actor_type: "system",
+      source_module: "account-brief",
+      correlation_id: correlationId,
+      payload,
+      schema_version: 1,
+    });
+  } catch (err) {
+    console.warn(`[kernel] Failed to emit ${type}:`, err);
+  }
 }
 
 async function invokeFunction(
