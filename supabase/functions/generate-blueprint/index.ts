@@ -124,8 +124,7 @@ ${customizationPrompt
   ? 'Customize this template according to the user requests. Generate the complete modified blueprint.'
   : 'The user wants to use this template with minimal changes. Ask 3-5 clarifying questions to ensure the template fits their specific needs, or confirm it works as-is.'}`;
     }
-    // Mode: import { logAIUsage } from '../_shared/ai-instrumentation.ts';
-import form and recommend template
+    // Mode: import form and recommend template
     else if (mode === 'import' && formSchema) {
       userPrompt = `Analyze this form schema and recommend the best matching industry template:
 
