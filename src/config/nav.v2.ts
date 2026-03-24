@@ -65,6 +65,7 @@ import {
   Eye,
   Cpu,
   Briefcase,
+  Bell,
 } from "lucide-react";
 
 // --- Types ---
@@ -416,6 +417,8 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
         { nameKey: "abDashboard", name: "Dashboard", href: "/dashboard/account-brief", icon: LayoutDashboard, iconColor: "text-indigo-500" },
         { nameKey: "abAccounts", name: "Contas", href: "/dashboard/account-brief/accounts", icon: Building2, iconColor: "text-indigo-500" },
         { nameKey: "abAnalysis", name: "Análises", href: "/dashboard/account-brief/analysis", icon: BarChart3, iconColor: "text-indigo-500" },
+        { nameKey: "abWatchlist", name: "Watchlist", href: "/dashboard/account-brief/watchlist", icon: Eye, iconColor: "text-indigo-500" },
+        { nameKey: "abAlerts", name: "Alertas", href: "/dashboard/account-brief/alerts", icon: Bell, iconColor: "text-indigo-500" },
         { nameKey: "abSettings", name: "Definições", href: "/dashboard/account-brief/settings", icon: Settings, iconColor: "text-indigo-500" },
       ],
     },

@@ -15,11 +15,13 @@ import { useAccountBriefAnalysisRuns } from "@/hooks/useAccountBriefAnalysisRuns
 import { useAccountBriefBrief } from "@/hooks/useAccountBriefBrief";
 import { useAccountBriefScore } from "@/hooks/useAccountBriefScore";
 import { useAccountBriefCRMLink } from "@/hooks/useAccountBriefCRMLink";
+import { useAccountBriefWatchlist } from "@/hooks/useAccountBriefWatchlist";
+import { useAccountBriefChangeAlerts } from "@/hooks/useAccountBriefChangeAlerts";
 import {
   ArrowLeft, Star, StarOff, RefreshCw, Copy, Globe, Loader2, StickyNote,
   Plus, Trash2, Clock, AlertCircle, CheckCircle2, FileText, Target,
   TrendingUp, Briefcase, MessageSquare, Users, Zap, ShieldCheck, BarChart3,
-  Building2, Link, ExternalLink, GitCompareArrows,
+  Building2, Link, ExternalLink, GitCompareArrows, Eye, EyeOff, Bell,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -97,6 +99,8 @@ export default function AccountBriefAccountDetailPage() {
   const { data: brief, isLoading: briefLoading } = useAccountBriefBrief(id);
   const { score, factors, isLoading: scoreLoading } = useAccountBriefScore(id);
   const { companies, linkCompany, diffs } = useAccountBriefCRMLink(id);
+  const { isWatched, addToWatchlist } = useAccountBriefWatchlist();
+  const { alerts: changeAlerts } = useAccountBriefChangeAlerts(id);
   const [newNote, setNewNote] = useState("");
   const [showCRMLink, setShowCRMLink] = useState(false);
 
@@ -191,6 +195,15 @@ export default function AccountBriefAccountDetailPage() {
                   <Button variant="outline" size="sm" onClick={handleAnalyze} disabled={triggerAnalysis.isPending} className="gap-2">
                     <RefreshCw className={cn("w-4 h-4", triggerAnalysis.isPending && "animate-spin")} /> Analisar
                   </Button>
+                  {!isWatched(account.id) ? (
+                    <Button variant="outline" size="sm" className="gap-2" onClick={() => addToWatchlist.mutate({ accountId: account.id, reason: "strategic", frequency: "weekly" })}>
+                      <Eye className="w-4 h-4" /> Watchlist
+                    </Button>
+                  ) : (
+                    <Badge variant="secondary" className="gap-1 h-9 px-3">
+                      <Eye className="w-3 h-3" /> Na Watchlist
+                    </Badge>
+                  )}
                   {briefText && (
                     <Button variant="outline" size="sm" onClick={() => copyToClipboard(briefText, "Briefing completo")} className="gap-2">
                       <Copy className="w-4 h-4" /> Copiar Briefing

@@ -350,6 +350,83 @@ export type Database = {
           },
         ]
       }
+      account_brief_change_alerts: {
+        Row: {
+          account_id: string
+          alert_type: string
+          commercial_relevance: string
+          created_at: string
+          current_run_id: string | null
+          id: string
+          is_read: boolean
+          payload_json: Json | null
+          previous_run_id: string | null
+          severity: string
+          summary: string | null
+          title: string
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          alert_type: string
+          commercial_relevance?: string
+          created_at?: string
+          current_run_id?: string | null
+          id?: string
+          is_read?: boolean
+          payload_json?: Json | null
+          previous_run_id?: string | null
+          severity?: string
+          summary?: string | null
+          title: string
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          alert_type?: string
+          commercial_relevance?: string
+          created_at?: string
+          current_run_id?: string | null
+          id?: string
+          is_read?: boolean
+          payload_json?: Json | null
+          previous_run_id?: string | null
+          severity?: string
+          summary?: string | null
+          title?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_change_alerts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_change_alerts_current_run_id_fkey"
+            columns: ["current_run_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_analysis_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_change_alerts_previous_run_id_fkey"
+            columns: ["previous_run_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_analysis_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_change_alerts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       account_brief_diff_events: {
         Row: {
           account_id: string
@@ -908,6 +985,63 @@ export type Database = {
           },
           {
             foreignKeyName: "account_brief_urls_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_watchlists: {
+        Row: {
+          account_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          last_run_at: string | null
+          next_run_at: string | null
+          refresh_frequency: string
+          updated_at: string
+          watch_reason: string
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          next_run_at?: string | null
+          refresh_frequency?: string
+          updated_at?: string
+          watch_reason?: string
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          next_run_at?: string | null
+          refresh_frequency?: string
+          updated_at?: string
+          watch_reason?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_watchlists_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_watchlists_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

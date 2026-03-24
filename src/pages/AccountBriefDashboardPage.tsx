@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAccountBriefDashboard } from "@/hooks/useAccountBriefDashboard";
 import { useAccountBriefOnboarding } from "@/hooks/useAccountBriefOnboarding";
-import { Briefcase, Plus, Star, TrendingUp, BarChart3, Loader2, ArrowRight } from "lucide-react";
+import { useAccountBriefWatchlist } from "@/hooks/useAccountBriefWatchlist";
+import { useAccountBriefChangeAlerts } from "@/hooks/useAccountBriefChangeAlerts";
+import { Briefcase, Plus, Star, TrendingUp, BarChart3, Loader2, ArrowRight, Eye, Bell } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
 const scoreColor = (label: string) => {
@@ -23,6 +25,8 @@ export default function AccountBriefDashboardPage() {
   const navigate = useNavigate();
   const { isOnboardingComplete, isLoading: onboardingLoading } = useAccountBriefOnboarding();
   const { data: dashboard, isLoading } = useAccountBriefDashboard();
+  const { activeCount: watchlistCount } = useAccountBriefWatchlist();
+  const { unreadCount: alertsCount } = useAccountBriefChangeAlerts();
 
   if (onboardingLoading) {
     return <DashboardLayout><div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></DashboardLayout>;
@@ -45,7 +49,7 @@ export default function AccountBriefDashboardPage() {
           />
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-card/95">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -97,6 +101,34 @@ export default function AccountBriefDashboardPage() {
                   </div>
                   <div className="p-3 rounded-xl bg-blue-500/20 text-blue-500">
                     <BarChart3 className="w-6 h-6" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-card/95 cursor-pointer hover:shadow-xl transition-shadow" onClick={() => navigate("/dashboard/account-brief/watchlist")}>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Watchlist</p>
+                    <p className="text-3xl font-bold">{watchlistCount}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-purple-500/20 text-purple-500">
+                    <Eye className="w-6 h-6" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-card/95 cursor-pointer hover:shadow-xl transition-shadow" onClick={() => navigate("/dashboard/account-brief/alerts")}>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Alertas</p>
+                    <p className="text-3xl font-bold">{alertsCount}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-rose-500/20 text-rose-500">
+                    <Bell className="w-6 h-6" />
                   </div>
                 </div>
               </CardContent>
