@@ -1,0 +1,1 @@
+ALTER TYPE automation_trigger ADD VALUE 'lead_inactive';
