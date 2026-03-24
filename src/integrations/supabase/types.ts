@@ -62,6 +62,7 @@ export type Database = {
       account_brief_accounts: {
         Row: {
           archived_at: string | null
+          assigned_user_id: string | null
           commercial_status:
             | Database["public"]["Enums"]["account_brief_commercial_status"]
             | null
@@ -78,6 +79,7 @@ export type Database = {
           lead_id: string | null
           name: string
           normalized_domain: string
+          owner_user_id: string | null
           probable_geography: string | null
           probable_sector: string | null
           score_label: string | null
@@ -88,6 +90,7 @@ export type Database = {
         }
         Insert: {
           archived_at?: string | null
+          assigned_user_id?: string | null
           commercial_status?:
             | Database["public"]["Enums"]["account_brief_commercial_status"]
             | null
@@ -104,6 +107,7 @@ export type Database = {
           lead_id?: string | null
           name: string
           normalized_domain: string
+          owner_user_id?: string | null
           probable_geography?: string | null
           probable_sector?: string | null
           score_label?: string | null
@@ -114,6 +118,7 @@ export type Database = {
         }
         Update: {
           archived_at?: string | null
+          assigned_user_id?: string | null
           commercial_status?:
             | Database["public"]["Enums"]["account_brief_commercial_status"]
             | null
@@ -130,6 +135,7 @@ export type Database = {
           lead_id?: string | null
           name?: string
           normalized_domain?: string
+          owner_user_id?: string | null
           probable_geography?: string | null
           probable_sector?: string | null
           score_label?: string | null
@@ -282,6 +288,101 @@ export type Database = {
           },
           {
             foreignKeyName: "account_brief_analysis_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_batch_run_items: {
+        Row: {
+          account_id: string
+          batch_run_id: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          status: string
+        }
+        Insert: {
+          account_id: string
+          batch_run_id: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          status?: string
+        }
+        Update: {
+          account_id?: string
+          batch_run_id?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_batch_run_items_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_batch_run_items_batch_run_id_fkey"
+            columns: ["batch_run_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_batch_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_batch_runs: {
+        Row: {
+          batch_type: string
+          created_at: string | null
+          failed_items: number
+          finished_at: string | null
+          id: string
+          initiated_by: string
+          payload_json: Json | null
+          processed_items: number
+          started_at: string | null
+          status: string
+          total_items: number
+          workspace_id: string
+        }
+        Insert: {
+          batch_type: string
+          created_at?: string | null
+          failed_items?: number
+          finished_at?: string | null
+          id?: string
+          initiated_by: string
+          payload_json?: Json | null
+          processed_items?: number
+          started_at?: string | null
+          status?: string
+          total_items?: number
+          workspace_id: string
+        }
+        Update: {
+          batch_type?: string
+          created_at?: string | null
+          failed_items?: number
+          finished_at?: string | null
+          id?: string
+          initiated_by?: string
+          payload_json?: Json | null
+          processed_items?: number
+          started_at?: string | null
+          status?: string
+          total_items?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_batch_runs_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -530,6 +631,263 @@ export type Database = {
           },
         ]
       }
+      account_brief_domain_aliases: {
+        Row: {
+          account_id: string
+          alias_type: string
+          created_at: string | null
+          domain: string
+          id: string
+          normalized_domain: string
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          alias_type?: string
+          created_at?: string | null
+          domain: string
+          id?: string
+          normalized_domain: string
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          alias_type?: string
+          created_at?: string | null
+          domain?: string
+          id?: string
+          normalized_domain?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_domain_aliases_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_domain_aliases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_duplicate_candidates: {
+        Row: {
+          account_id_a: string
+          account_id_b: string
+          confidence_score: number | null
+          created_at: string | null
+          duplicate_reason: string
+          id: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          account_id_a: string
+          account_id_b: string
+          confidence_score?: number | null
+          created_at?: string | null
+          duplicate_reason: string
+          id?: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          account_id_a?: string
+          account_id_b?: string
+          confidence_score?: number | null
+          created_at?: string | null
+          duplicate_reason?: string
+          id?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_duplicate_candidates_account_id_a_fkey"
+            columns: ["account_id_a"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_duplicate_candidates_account_id_b_fkey"
+            columns: ["account_id_b"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_duplicate_candidates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_error_catalog: {
+        Row: {
+          admin_message: string | null
+          created_at: string | null
+          error_code: string
+          error_type: string
+          id: string
+          severity: string
+          suggested_action: string | null
+          user_message: string
+        }
+        Insert: {
+          admin_message?: string | null
+          created_at?: string | null
+          error_code: string
+          error_type: string
+          id?: string
+          severity?: string
+          suggested_action?: string | null
+          user_message: string
+        }
+        Update: {
+          admin_message?: string | null
+          created_at?: string | null
+          error_code?: string
+          error_type?: string
+          id?: string
+          severity?: string
+          suggested_action?: string | null
+          user_message?: string
+        }
+        Relationships: []
+      }
+      account_brief_field_lineage: {
+        Row: {
+          account_id: string
+          confidence_score: number | null
+          created_at: string | null
+          field_key: string
+          field_value_json: Json | null
+          id: string
+          observed_at: string | null
+          provenance_type: string
+          source_label: string | null
+          source_run_id: string | null
+          source_type: string
+          source_url: string | null
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          confidence_score?: number | null
+          created_at?: string | null
+          field_key: string
+          field_value_json?: Json | null
+          id?: string
+          observed_at?: string | null
+          provenance_type?: string
+          source_label?: string | null
+          source_run_id?: string | null
+          source_type: string
+          source_url?: string | null
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          confidence_score?: number | null
+          created_at?: string | null
+          field_key?: string
+          field_value_json?: Json | null
+          id?: string
+          observed_at?: string | null
+          provenance_type?: string
+          source_label?: string | null
+          source_run_id?: string | null
+          source_type?: string
+          source_url?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_field_lineage_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_field_lineage_source_run_id_fkey"
+            columns: ["source_run_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_analysis_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_field_lineage_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_field_values: {
+        Row: {
+          account_id: string
+          canonical_value_text: string | null
+          current_confidence_score: number | null
+          current_provenance_type: string | null
+          current_source_type: string | null
+          field_key: string
+          field_value_json: Json | null
+          id: string
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          canonical_value_text?: string | null
+          current_confidence_score?: number | null
+          current_provenance_type?: string | null
+          current_source_type?: string | null
+          field_key: string
+          field_value_json?: Json | null
+          id?: string
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          canonical_value_text?: string | null
+          current_confidence_score?: number | null
+          current_provenance_type?: string | null
+          current_source_type?: string | null
+          field_key?: string
+          field_value_json?: Json | null
+          id?: string
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_field_values_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_field_values_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       account_brief_icp_profiles: {
         Row: {
           company_type: string | null
@@ -577,6 +935,160 @@ export type Database = {
           },
         ]
       }
+      account_brief_job_queue: {
+        Row: {
+          account_id: string | null
+          attempts: number
+          correlation_id: string | null
+          created_at: string | null
+          error_summary: string | null
+          finished_at: string | null
+          id: string
+          job_type: string
+          max_attempts: number
+          payload_json: Json | null
+          priority: number
+          scheduled_at: string | null
+          started_at: string | null
+          status: string
+          timeout_ms: number
+          workspace_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          attempts?: number
+          correlation_id?: string | null
+          created_at?: string | null
+          error_summary?: string | null
+          finished_at?: string | null
+          id?: string
+          job_type: string
+          max_attempts?: number
+          payload_json?: Json | null
+          priority?: number
+          scheduled_at?: string | null
+          started_at?: string | null
+          status?: string
+          timeout_ms?: number
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string | null
+          attempts?: number
+          correlation_id?: string | null
+          created_at?: string | null
+          error_summary?: string | null
+          finished_at?: string | null
+          id?: string
+          job_type?: string
+          max_attempts?: number
+          payload_json?: Json | null
+          priority?: number
+          scheduled_at?: string | null
+          started_at?: string | null
+          status?: string
+          timeout_ms?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_job_queue_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_job_queue_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_job_steps: {
+        Row: {
+          attempts: number
+          created_at: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          job_id: string
+          metadata_json: Json | null
+          started_at: string | null
+          status: string
+          step_name: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          job_id: string
+          metadata_json?: Json | null
+          started_at?: string | null
+          status?: string
+          step_name: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          job_id?: string
+          metadata_json?: Json | null
+          started_at?: string | null
+          status?: string
+          step_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_job_steps_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_job_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_kpi_snapshots: {
+        Row: {
+          created_at: string | null
+          id: string
+          metric_key: string
+          metric_value: number
+          snapshot_date: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metric_key: string
+          metric_value?: number
+          snapshot_date: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metric_key?: string
+          metric_value?: number
+          snapshot_date?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_kpi_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       account_brief_notes: {
         Row: {
           account_id: string
@@ -585,6 +1097,7 @@ export type Database = {
           id: string
           note_text: string
           updated_at: string
+          visibility_type: string
           workspace_id: string
         }
         Insert: {
@@ -594,6 +1107,7 @@ export type Database = {
           id?: string
           note_text: string
           updated_at?: string
+          visibility_type?: string
           workspace_id: string
         }
         Update: {
@@ -603,6 +1117,7 @@ export type Database = {
           id?: string
           note_text?: string
           updated_at?: string
+          visibility_type?: string
           workspace_id?: string
         }
         Relationships: [
@@ -617,6 +1132,161 @@ export type Database = {
             foreignKeyName: "account_brief_notes_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_notification_prefs: {
+        Row: {
+          channel: string
+          created_at: string | null
+          id: string
+          is_enabled: boolean
+          min_priority: string
+          notification_type: string
+          updated_at: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean
+          min_priority?: string
+          notification_type: string
+          updated_at?: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean
+          min_priority?: string
+          notification_type?: string
+          updated_at?: string | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_notification_prefs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_notifications: {
+        Row: {
+          account_id: string | null
+          body: string | null
+          channel: string
+          created_at: string | null
+          id: string
+          is_muted: boolean
+          is_read: boolean
+          notification_type: string
+          priority: string
+          related_run_id: string | null
+          snoozed_until: string | null
+          title: string
+          workspace_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          body?: string | null
+          channel?: string
+          created_at?: string | null
+          id?: string
+          is_muted?: boolean
+          is_read?: boolean
+          notification_type: string
+          priority?: string
+          related_run_id?: string | null
+          snoozed_until?: string | null
+          title: string
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string | null
+          body?: string | null
+          channel?: string
+          created_at?: string | null
+          id?: string
+          is_muted?: boolean
+          is_read?: boolean
+          notification_type?: string
+          priority?: string
+          related_run_id?: string | null
+          snoozed_until?: string | null
+          title?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_notifications_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_notifications_related_run_id_fkey"
+            columns: ["related_run_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_analysis_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_notifications_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_outreach_policies: {
+        Row: {
+          auto_send_enabled: boolean
+          human_review_required: boolean
+          id: string
+          min_confidence_to_generate: number | null
+          min_score_to_generate: number | null
+          policy_json: Json | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          auto_send_enabled?: boolean
+          human_review_required?: boolean
+          id?: string
+          min_confidence_to_generate?: number | null
+          min_score_to_generate?: number | null
+          policy_json?: Json | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          auto_send_enabled?: boolean
+          human_review_required?: boolean
+          id?: string
+          min_confidence_to_generate?: number | null
+          min_score_to_generate?: number | null
+          policy_json?: Json | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_outreach_policies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
@@ -750,6 +1420,36 @@ export type Database = {
           },
         ]
       }
+      account_brief_plan_limits: {
+        Row: {
+          billing_mode: string
+          created_at: string | null
+          id: string
+          limit_value: number
+          metric_key: string
+          plan_code: string
+          updated_at: string | null
+        }
+        Insert: {
+          billing_mode?: string
+          created_at?: string | null
+          id?: string
+          limit_value?: number
+          metric_key: string
+          plan_code: string
+          updated_at?: string | null
+        }
+        Update: {
+          billing_mode?: string
+          created_at?: string | null
+          id?: string
+          limit_value?: number
+          metric_key?: string
+          plan_code?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       account_brief_profiles: {
         Row: {
           company_name: string | null
@@ -842,6 +1542,44 @@ export type Database = {
           },
         ]
       }
+      account_brief_retention_policies: {
+        Row: {
+          archive_after_days: number | null
+          id: string
+          policy_key: string
+          purge_after_days: number | null
+          retention_days: number
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          archive_after_days?: number | null
+          id?: string
+          policy_key: string
+          purge_after_days?: number | null
+          retention_days?: number
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          archive_after_days?: number | null
+          id?: string
+          policy_key?: string
+          purge_after_days?: number | null
+          retention_days?: number
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_retention_policies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       account_brief_score_factors: {
         Row: {
           account_id: string
@@ -906,10 +1644,52 @@ export type Database = {
           },
         ]
       }
+      account_brief_score_model_versions: {
+        Row: {
+          activated_at: string | null
+          config_json: Json
+          created_at: string | null
+          id: string
+          is_active: boolean
+          model_name: string
+          version_code: string
+          workspace_id: string
+        }
+        Insert: {
+          activated_at?: string | null
+          config_json?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean
+          model_name?: string
+          version_code: string
+          workspace_id: string
+        }
+        Update: {
+          activated_at?: string | null
+          config_json?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean
+          model_name?: string
+          version_code?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_score_model_versions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       account_brief_scores: {
         Row: {
           account_id: string
           analysis_run_id: string | null
+          confidence_score: number | null
           created_at: string
           growth_score: number | null
           icp_fit_score: number | null
@@ -918,12 +1698,15 @@ export type Database = {
           personalization_score: number | null
           reasoning_short: string | null
           score_label: string | null
+          score_model_version_id: string | null
+          score_validity_status: string | null
           total_score: number | null
           workspace_id: string
         }
         Insert: {
           account_id: string
           analysis_run_id?: string | null
+          confidence_score?: number | null
           created_at?: string
           growth_score?: number | null
           icp_fit_score?: number | null
@@ -932,12 +1715,15 @@ export type Database = {
           personalization_score?: number | null
           reasoning_short?: string | null
           score_label?: string | null
+          score_model_version_id?: string | null
+          score_validity_status?: string | null
           total_score?: number | null
           workspace_id: string
         }
         Update: {
           account_id?: string
           analysis_run_id?: string | null
+          confidence_score?: number | null
           created_at?: string
           growth_score?: number | null
           icp_fit_score?: number | null
@@ -946,6 +1732,8 @@ export type Database = {
           personalization_score?: number | null
           reasoning_short?: string | null
           score_label?: string | null
+          score_model_version_id?: string | null
+          score_validity_status?: string | null
           total_score?: number | null
           workspace_id?: string
         }
@@ -962,6 +1750,13 @@ export type Database = {
             columns: ["analysis_run_id"]
             isOneToOne: false
             referencedRelation: "account_brief_analysis_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_scores_score_model_version_id_fkey"
+            columns: ["score_model_version_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_score_model_versions"
             referencedColumns: ["id"]
           },
           {
@@ -1116,6 +1911,105 @@ export type Database = {
           },
           {
             foreignKeyName: "account_brief_urls_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_usage_counters: {
+        Row: {
+          id: string
+          metric_key: string
+          period_key: string
+          reset_at: string | null
+          units_limit: number
+          units_used: number
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          id?: string
+          metric_key: string
+          period_key: string
+          reset_at?: string | null
+          units_limit?: number
+          units_used?: number
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          id?: string
+          metric_key?: string
+          period_key?: string
+          reset_at?: string | null
+          units_limit?: number
+          units_used?: number
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_usage_counters_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_usage_events: {
+        Row: {
+          account_id: string | null
+          analysis_run_id: string | null
+          created_at: string | null
+          event_type: string
+          id: string
+          metric_key: string
+          source_action: string | null
+          units_consumed: number
+          workspace_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          analysis_run_id?: string | null
+          created_at?: string | null
+          event_type: string
+          id?: string
+          metric_key: string
+          source_action?: string | null
+          units_consumed?: number
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string | null
+          analysis_run_id?: string | null
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          metric_key?: string
+          source_action?: string | null
+          units_consumed?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_usage_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_usage_events_analysis_run_id_fkey"
+            columns: ["analysis_run_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_analysis_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_usage_events_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
