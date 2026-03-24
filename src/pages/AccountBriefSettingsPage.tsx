@@ -81,8 +81,35 @@ export default function AccountBriefSettingsPage() {
               </Button>
             </CardContent>
           </Card>
+          {/* Usage / Consumo */}
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="flex-row items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2"><Gauge className="w-4 h-4 text-indigo-500" /> Consumo do Plano</CardTitle>
+              <Badge variant="outline" className="text-xs">{currentPeriod}</Badge>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {allMetrics.map((m) => (
+                  <div key={m.metric_key} className="space-y-1.5">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{m.label}</span>
+                      <span className={m.status === "blocked" ? "text-destructive font-medium" : m.status === "danger" ? "text-orange-500" : "font-medium"}>
+                        {m.units_limit >= 99999 ? `${m.units_used} / Ilimitado` : `${m.units_used} / ${m.units_limit}`}
+                      </span>
+                    </div>
+                    <Progress value={m.units_limit >= 99999 ? 0 : m.percentage} className="h-2" />
+                    {m.status === "warning" && <p className="text-xs text-amber-500 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> A aproximar-se do limite ({m.percentage}%)</p>}
+                    {m.status === "danger" && <p className="text-xs text-orange-500 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Quase no limite ({m.percentage}%)</p>}
+                    {m.status === "blocked" && <p className="text-xs text-destructive flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Limite atingido — considere fazer upgrade</p>}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </DashboardLayout>
     </ModuleGuard>
+  );
+}
   );
 }
