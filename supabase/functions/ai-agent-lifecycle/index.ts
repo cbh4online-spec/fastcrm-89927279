@@ -97,6 +97,17 @@ async function handleDispatch(req: Request, supabase: any) {
     scheduledFor,
   } = body;
 
+  // AI Gate check
+  if (workspaceId) {
+    const gate = await aiGate(workspaceId, 'agent', 'ai-agent-lifecycle');
+    if (!gate.allowed) {
+      return new Response(JSON.stringify({ error: 'quota_exceeded', upgrade_required: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
   // Validate required fields
   if (!workspaceId || !agentType || !entityId || !entityType || !triggerType) {
     return jsonResponse({ error: "Missing required fields" }, 400);
