@@ -21,7 +21,7 @@ import {
   ArrowLeft, Star, StarOff, RefreshCw, Copy, Globe, Loader2, StickyNote,
   Plus, Trash2, Clock, AlertCircle, CheckCircle2, FileText, Target,
   TrendingUp, Briefcase, MessageSquare, Users, Zap, ShieldCheck, BarChart3,
-  Building2, Link, ExternalLink, GitCompareArrows,
+  Building2, Link, ExternalLink, GitCompareArrows, Eye, EyeOff, Bell,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -99,6 +99,8 @@ export default function AccountBriefAccountDetailPage() {
   const { data: brief, isLoading: briefLoading } = useAccountBriefBrief(id);
   const { score, factors, isLoading: scoreLoading } = useAccountBriefScore(id);
   const { companies, linkCompany, diffs } = useAccountBriefCRMLink(id);
+  const { isWatched, addToWatchlist } = useAccountBriefWatchlist();
+  const { alerts: changeAlerts } = useAccountBriefChangeAlerts(id);
   const [newNote, setNewNote] = useState("");
   const [showCRMLink, setShowCRMLink] = useState(false);
 
