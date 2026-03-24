@@ -65,6 +65,7 @@ import {
   Eye,
   Cpu,
   Briefcase,
+  Bell,
 } from "lucide-react";
 
 // --- Types ---

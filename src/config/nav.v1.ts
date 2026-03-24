@@ -55,6 +55,7 @@ import {
   Star,
   BookOpen,
   Briefcase,
+  Bell,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
