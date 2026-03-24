@@ -37,14 +37,14 @@ export function useAccountBriefScoreVersioning() {
       }
       const { data, error } = await supabase
         .from("account_brief_score_model_versions")
-        .insert({
+        .insert([{
           workspace_id: workspaceId,
           version_code: input.version_code,
           model_name: input.model_name,
-          config_json: input.config_json,
+          config_json: input.config_json as unknown as import("@/integrations/supabase/types").Json,
           is_active: true,
           activated_at: new Date().toISOString(),
-        })
+        }])
         .select()
         .single();
       if (error) throw error;
