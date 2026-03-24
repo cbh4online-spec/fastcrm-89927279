@@ -237,6 +237,7 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "KPIs", href: "/dashboard/account-brief/kpis", icon: BarChart3, group: "Account Brief", moduleSlug: "account-brief" },
   { name: "Score & Retenção", href: "/dashboard/account-brief/score-admin", icon: Settings, group: "Account Brief", moduleSlug: "account-brief" },
   { name: "Demo", href: "/dashboard/account-brief/trial-demo", icon: Briefcase, group: "Account Brief", moduleSlug: "account-brief" },
+  { name: "Saúde", href: "/dashboard/account-brief/health", icon: Gauge, group: "Account Brief", moduleSlug: "account-brief" },
   { name: "Definições", href: "/dashboard/account-brief/settings", icon: Settings, group: "Account Brief", moduleSlug: "account-brief" },
 ];
 
