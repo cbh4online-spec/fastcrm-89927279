@@ -49277,6 +49277,7 @@ export type Database = {
         | "invoice_status_changed"
         | "due_date_approaching"
         | "contact_no_activity"
+        | "lead_inactive"
       billing_cycle:
         | "weekly"
         | "monthly"
@@ -49726,6 +49727,7 @@ export const Constants = {
         "invoice_status_changed",
         "due_date_approaching",
         "contact_no_activity",
+        "lead_inactive",
       ],
       billing_cycle: [
         "weekly",
