@@ -12,7 +12,7 @@ import {
   TrendingUp, TrendingDown, RefreshCw, Target, Zap,
   BarChart3, Users, Calendar, ArrowUpRight, ArrowDownRight,
   Clock, CheckCircle2, AlertTriangle, Lightbulb, Compass,
-  ChevronRight, ExternalLink, Star,
+  ChevronRight, ExternalLink, Star, Globe,
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
