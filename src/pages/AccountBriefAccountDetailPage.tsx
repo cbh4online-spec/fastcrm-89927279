@@ -471,6 +471,21 @@ export default function AccountBriefAccountDetailPage() {
                 </CardContent>
               </Card>
 
+              {/* Governance */}
+              <Card className="border-0 shadow-lg">
+                <CardHeader><CardTitle className="text-base flex items-center gap-2"><Users className="w-4 h-4 text-indigo-500" /> Equipa</CardTitle></CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Owner</p>
+                    <p className="text-sm">{(account as any).owner_user_id ? "Atribuído" : "Sem owner"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Atribuído a</p>
+                    <p className="text-sm">{(account as any).assigned_user_id ? "Atribuído" : "Não atribuído"}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Info */}
               <Card className="border-0 shadow-lg">
                 <CardHeader><CardTitle className="text-base">Informações</CardTitle></CardHeader>
@@ -498,19 +513,38 @@ export default function AccountBriefAccountDetailPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Adicionar nota..." rows={2} className="text-sm" />
-                  <Button size="sm" onClick={handleAddNote} disabled={!newNote.trim() || addNote.isPending} className="gap-1 w-full">
-                    <Plus className="w-3 h-3" /> Adicionar
-                  </Button>
+                  <div className="flex gap-2">
+                    <Select defaultValue="team" onValueChange={() => {}}>
+                      <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="team">Equipa</SelectItem>
+                        <SelectItem value="private">Privada</SelectItem>
+                        <SelectItem value="admin_only">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button size="sm" onClick={handleAddNote} disabled={!newNote.trim() || addNote.isPending} className="gap-1 flex-1">
+                      <Plus className="w-3 h-3" /> Adicionar
+                    </Button>
+                  </div>
                   <div className="space-y-2 mt-2">
                     {notes.map((note: any) => (
                       <div key={note.id} className="p-3 rounded-lg bg-muted/30 text-sm">
-                        <div className="flex justify-between items-start">
-                          <p className="leading-relaxed">{note.note_text}</p>
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1">
+                            <p className="leading-relaxed">{note.note_text}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <p className="text-xs text-muted-foreground">{format(new Date(note.created_at), "dd/MM HH:mm")}</p>
+                              {(note as any).visibility_type && (note as any).visibility_type !== "team" && (
+                                <Badge variant="outline" className="text-[10px]">
+                                  {(note as any).visibility_type === "private" ? "Privada" : "Admin"}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
                           <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => deleteNote.mutate(note.id)}>
                             <Trash2 className="w-3 h-3" />
                           </Button>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">{format(new Date(note.created_at), "dd/MM HH:mm")}</p>
                       </div>
                     ))}
                   </div>
