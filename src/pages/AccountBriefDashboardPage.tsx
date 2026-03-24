@@ -9,7 +9,8 @@ import { useAccountBriefDashboard } from "@/hooks/useAccountBriefDashboard";
 import { useAccountBriefOnboarding } from "@/hooks/useAccountBriefOnboarding";
 import { useAccountBriefWatchlist } from "@/hooks/useAccountBriefWatchlist";
 import { useAccountBriefChangeAlerts } from "@/hooks/useAccountBriefChangeAlerts";
-import { Briefcase, Plus, Star, TrendingUp, BarChart3, Loader2, ArrowRight, Eye, Bell } from "lucide-react";
+import { useAccountBriefSegments } from "@/hooks/useAccountBriefSegments";
+import { Briefcase, Plus, Star, TrendingUp, BarChart3, Loader2, ArrowRight, Eye, Bell, Layers, GitCompareArrows, AlertCircle, Clock } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
 const scoreColor = (label: string) => {
@@ -27,6 +28,7 @@ export default function AccountBriefDashboardPage() {
   const { data: dashboard, isLoading } = useAccountBriefDashboard();
   const { activeCount: watchlistCount } = useAccountBriefWatchlist();
   const { unreadCount: alertsCount } = useAccountBriefChangeAlerts();
+  const { segments } = useAccountBriefSegments();
 
   if (onboardingLoading) {
     return <DashboardLayout><div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></DashboardLayout>;
@@ -35,6 +37,8 @@ export default function AccountBriefDashboardPage() {
   if (!isOnboardingComplete) {
     return <Navigate to="/dashboard/account-brief/onboarding" replace />;
   }
+
+  const unanalyzedCount = dashboard?.accounts?.filter(a => !a.last_analysis_at).length || 0;
 
   return (
     <ModuleGuard moduleSlug="account-brief" moduleName="Account Brief">
@@ -49,90 +53,25 @@ export default function AccountBriefDashboardPage() {
           />
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-card/95">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Contas</p>
-                    <p className="text-3xl font-bold">{dashboard?.totalAccounts || 0}</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-indigo-500/20 text-indigo-500">
-                    <Briefcase className="w-6 h-6" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
+            <KpiCard label="Total Contas" value={dashboard?.totalAccounts || 0} icon={Briefcase} color="indigo" onClick={() => navigate("/dashboard/account-brief/accounts")} />
+            <KpiCard label="Score Alto+" value={dashboard?.highScoreCount || 0} icon={TrendingUp} color="emerald" />
+            <KpiCard label="Favoritas" value={dashboard?.favorites?.length || 0} icon={Star} color="amber" />
+            <KpiCard label="Analisadas" value={dashboard?.recent?.filter(a => a.last_analysis_at).length || 0} icon={BarChart3} color="blue" />
+            <KpiCard label="Watchlist" value={watchlistCount} icon={Eye} color="purple" onClick={() => navigate("/dashboard/account-brief/watchlist")} />
+            <KpiCard label="Alertas" value={alertsCount} icon={Bell} color="rose" onClick={() => navigate("/dashboard/account-brief/alerts")} />
+            <KpiCard label="Segmentos" value={segments.length} icon={Layers} color="teal" onClick={() => navigate("/dashboard/account-brief/segments")} />
+            <KpiCard label="Sem Análise" value={unanalyzedCount} icon={AlertCircle} color="orange" />
+          </div>
 
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-card/95">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Score Alto+</p>
-                    <p className="text-3xl font-bold">{dashboard?.highScoreCount || 0}</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-emerald-500/20 text-emerald-500">
-                    <TrendingUp className="w-6 h-6" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-card/95">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Favoritas</p>
-                    <p className="text-3xl font-bold">{dashboard?.favorites?.length || 0}</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-amber-500/20 text-amber-500">
-                    <Star className="w-6 h-6" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-card/95">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Analisadas</p>
-                    <p className="text-3xl font-bold">{dashboard?.recent?.filter(a => a.last_analysis_at).length || 0}</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-blue-500/20 text-blue-500">
-                    <BarChart3 className="w-6 h-6" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-card/95 cursor-pointer hover:shadow-xl transition-shadow" onClick={() => navigate("/dashboard/account-brief/watchlist")}>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Watchlist</p>
-                    <p className="text-3xl font-bold">{watchlistCount}</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-purple-500/20 text-purple-500">
-                    <Eye className="w-6 h-6" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-card/95 cursor-pointer hover:shadow-xl transition-shadow" onClick={() => navigate("/dashboard/account-brief/alerts")}>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Alertas</p>
-                    <p className="text-3xl font-bold">{alertsCount}</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-rose-500/20 text-rose-500">
-                    <Bell className="w-6 h-6" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Quick actions */}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/account-brief/compare")} className="gap-1.5">
+              <GitCompareArrows className="w-3.5 h-3.5" /> Comparar Contas
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/account-brief/segments")} className="gap-1.5">
+              <Layers className="w-3.5 h-3.5" /> Ver Segmentos
+            </Button>
           </div>
 
           {/* Top Scored */}
@@ -155,7 +94,7 @@ export default function AccountBriefDashboardPage() {
                       onClick={() => navigate(`/dashboard/account-brief/accounts/${account.id}`)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 font-bold text-sm">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
                           {account.name?.substring(0, 2).toUpperCase()}
                         </div>
                         <div>
@@ -183,5 +122,33 @@ export default function AccountBriefDashboardPage() {
         </div>
       </DashboardLayout>
     </ModuleGuard>
+  );
+}
+
+function KpiCard({ label, value, icon: Icon, color, onClick }: { label: string; value: number; icon: any; color: string; onClick?: () => void }) {
+  const colorMap: Record<string, string> = {
+    indigo: "bg-indigo-500/20 text-indigo-500",
+    emerald: "bg-emerald-500/20 text-emerald-500",
+    amber: "bg-amber-500/20 text-amber-500",
+    blue: "bg-blue-500/20 text-blue-500",
+    purple: "bg-purple-500/20 text-purple-500",
+    rose: "bg-rose-500/20 text-rose-500",
+    teal: "bg-teal-500/20 text-teal-500",
+    orange: "bg-orange-500/20 text-orange-500",
+  };
+  return (
+    <Card className={`border-0 shadow-lg bg-gradient-to-br from-card to-card/95 ${onClick ? "cursor-pointer hover:shadow-xl transition-shadow" : ""}`} onClick={onClick}>
+      <CardContent className="pt-5 pb-4 px-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <p className="text-2xl font-bold mt-1">{value}</p>
+          </div>
+          <div className={`p-2 rounded-lg ${colorMap[color] || colorMap.indigo}`}>
+            <Icon className="w-4 h-4" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

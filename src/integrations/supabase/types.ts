@@ -427,6 +427,41 @@ export type Database = {
           },
         ]
       }
+      account_brief_comparison_runs: {
+        Row: {
+          account_ids: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          summary_json: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          account_ids?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          summary_json?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          account_ids?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          summary_json?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_comparison_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       account_brief_diff_events: {
         Row: {
           account_id: string
@@ -928,6 +963,99 @@ export type Database = {
           },
           {
             foreignKeyName: "account_brief_scores_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_segment_members: {
+        Row: {
+          account_id: string
+          created_at: string
+          id: string
+          segment_id: string
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          id?: string
+          segment_id: string
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          id?: string
+          segment_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_segment_members_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_segment_members_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_segments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_segment_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_segments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          filter_json: Json
+          id: string
+          is_dynamic: boolean
+          member_count: number
+          name: string
+          segment_type: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          filter_json?: Json
+          id?: string
+          is_dynamic?: boolean
+          member_count?: number
+          name: string
+          segment_type?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          filter_json?: Json
+          id?: string
+          is_dynamic?: boolean
+          member_count?: number
+          name?: string
+          segment_type?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_segments_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
