@@ -14,10 +14,12 @@ import { useAccountBriefAccounts } from "@/hooks/useAccountBriefAccounts";
 import { useAccountBriefAnalysisRuns } from "@/hooks/useAccountBriefAnalysisRuns";
 import { useAccountBriefBrief } from "@/hooks/useAccountBriefBrief";
 import { useAccountBriefScore } from "@/hooks/useAccountBriefScore";
+import { useAccountBriefCRMLink } from "@/hooks/useAccountBriefCRMLink";
 import {
   ArrowLeft, Star, StarOff, RefreshCw, Copy, Globe, Loader2, StickyNote,
   Plus, Trash2, Clock, AlertCircle, CheckCircle2, FileText, Target,
   TrendingUp, Briefcase, MessageSquare, Users, Zap, ShieldCheck, BarChart3,
+  Building2, Link, ExternalLink, GitCompareArrows,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -79,9 +81,7 @@ function ScoreBadge({ score, label }: { score: number; label: string }) {
   const color = score >= 80 ? "bg-emerald-500" : score >= 60 ? "bg-blue-500" : score >= 40 ? "bg-amber-500" : "bg-destructive";
   return (
     <div className="flex items-center gap-3">
-      <div className={cn("text-white font-bold text-lg px-3 py-1 rounded-lg", color)}>
-        {score}
-      </div>
+      <div className={cn("text-white font-bold text-lg px-3 py-1 rounded-lg", color)}>{score}</div>
       <span className="text-sm font-medium">{label}</span>
     </div>
   );
@@ -96,7 +96,9 @@ export default function AccountBriefAccountDetailPage() {
   const { runs, triggerAnalysis } = useAccountBriefAnalysisRuns(id);
   const { data: brief, isLoading: briefLoading } = useAccountBriefBrief(id);
   const { score, factors, isLoading: scoreLoading } = useAccountBriefScore(id);
+  const { companies, linkCompany, diffs } = useAccountBriefCRMLink(id);
   const [newNote, setNewNote] = useState("");
+  const [showCRMLink, setShowCRMLink] = useState(false);
 
   if (isLoading) {
     return <DashboardLayout><div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></DashboardLayout>;
@@ -125,7 +127,6 @@ export default function AccountBriefAccountDetailPage() {
   const allOutreachAngles = outreachJson?.outreach_angles || persJson?.outreach_angles || [];
   const allObjections = outreachJson?.objections_attention || persJson?.objections_attention || [];
 
-  // Build copy-friendly text
   const briefText = [
     brief?.executive_summary && `RESUMO: ${brief.executive_summary}`,
     identityJson?.what_they_do && `O QUE FAZEM: ${identityJson.what_they_do}`,
@@ -157,6 +158,11 @@ export default function AccountBriefAccountDetailPage() {
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Globe className="w-4 h-4" />
                       <a href={`https://${account.domain}`} target="_blank" rel="noopener noreferrer" className="hover:underline">{account.domain}</a>
+                      {account.company_id && (
+                        <Badge variant="outline" className="gap-1 text-xs ml-2">
+                          <Building2 className="w-3 h-3" /> CRM Linked
+                        </Badge>
+                      )}
                     </div>
                     {account.description_short && (
                       <p className="text-sm text-muted-foreground mt-1 max-w-lg">{account.description_short}</p>
@@ -215,7 +221,6 @@ export default function AccountBriefAccountDetailPage() {
                 </Card>
               )}
 
-              {/* What they do */}
               {identityJson?.what_they_do && (
                 <BriefSection icon={Briefcase} title="O que a empresa faz">
                   <p className="text-sm leading-relaxed">{identityJson.what_they_do}</p>
@@ -227,7 +232,6 @@ export default function AccountBriefAccountDetailPage() {
                 </BriefSection>
               )}
 
-              {/* Products & Offer */}
               {offerJson?.main_products?.length > 0 && (
                 <BriefSection icon={Target} title="Produtos & Serviços Principais">
                   <ListItems items={offerJson.main_products} />
@@ -237,39 +241,60 @@ export default function AccountBriefAccountDetailPage() {
                 </BriefSection>
               )}
 
-              {/* Growth Signals */}
               {signalsJson?.growth_signals?.length > 0 && (
                 <BriefSection icon={TrendingUp} title="Sinais de Crescimento" copyText={signalsJson.growth_signals.join("\n")}>
                   <ListItems items={signalsJson.growth_signals} />
                 </BriefSection>
               )}
 
-              {/* Markets & Geography */}
               {identityJson?.market_geography && (
                 <BriefSection icon={Globe} title="Mercados e Geografias">
                   <p className="text-sm leading-relaxed">{identityJson.market_geography}</p>
                 </BriefSection>
               )}
 
-              {/* Personalization */}
               {persJson?.personalization_insights?.length > 0 && (
                 <BriefSection icon={Zap} title="Insights de Personalização" copyText={persJson.personalization_insights.join("\n")}>
                   <ListItems items={persJson.personalization_insights} />
                 </BriefSection>
               )}
 
-              {/* Outreach Angles */}
               {allOutreachAngles.length > 0 && (
                 <BriefSection icon={MessageSquare} title="Ângulos de Outreach" copyText={allOutreachAngles.join("\n")}>
                   <ListItems items={allOutreachAngles} />
                 </BriefSection>
               )}
 
-              {/* Objections */}
               {allObjections.length > 0 && (
                 <BriefSection icon={ShieldCheck} title="Objeções & Pontos de Atenção">
                   <ListItems items={allObjections} />
                 </BriefSection>
+              )}
+
+              {/* Diffs Section */}
+              {diffs.length > 0 && (
+                <Card className="border-0 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <GitCompareArrows className="w-4 h-4 text-indigo-500" /> Alterações entre Análises
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {diffs.map((diff: any) => (
+                        <div key={diff.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
+                          <div className="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium">{diff.diff_label}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {diff.created_at ? format(new Date(diff.created_at), "dd/MM/yyyy HH:mm") : ""}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               )}
             </div>
 
@@ -285,8 +310,6 @@ export default function AccountBriefAccountDetailPage() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <ScoreBadge score={score.total_score ?? 0} label={score.score_label || ""} />
-
-                    {/* Sub-scores */}
                     <div className="space-y-3">
                       {[
                         { label: "ICP Fit", value: score.icp_fit_score, max: 25 },
@@ -303,12 +326,9 @@ export default function AccountBriefAccountDetailPage() {
                         </div>
                       ))}
                     </div>
-
                     {score.reasoning_short && (
                       <p className="text-xs text-muted-foreground leading-relaxed">{score.reasoning_short}</p>
                     )}
-
-                    {/* Factors */}
                     {positiveFactors.length > 0 && (
                       <div>
                         <p className="text-xs font-medium text-emerald-600 mb-1">Pontos Fortes</p>
@@ -328,6 +348,58 @@ export default function AccountBriefAccountDetailPage() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* CRM Link */}
+              <Card className="border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-indigo-500" /> CRM
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {account.company_id ? (
+                    <div className="space-y-2">
+                      <Badge variant="outline" className="gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Associada ao CRM
+                      </Badge>
+                      <Button variant="outline" size="sm" className="w-full gap-2" onClick={() => navigate(`/objects/companies/${account.company_id}`)}>
+                        <ExternalLink className="w-3 h-3" /> Abrir Empresa no CRM
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Esta conta não está ligada ao CRM.</p>
+                      {!showCRMLink ? (
+                        <Button variant="outline" size="sm" className="w-full gap-2" onClick={() => setShowCRMLink(true)}>
+                          <Link className="w-3 h-3" /> Associar ao CRM
+                        </Button>
+                      ) : (
+                        <div className="space-y-2">
+                          <Button
+                            variant="default" size="sm" className="w-full gap-2"
+                            onClick={() => linkCompany.mutate({ createNew: true })}
+                            disabled={linkCompany.isPending}
+                          >
+                            {linkCompany.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                            Criar Empresa no CRM
+                          </Button>
+                          <Select onValueChange={(companyId) => linkCompany.mutate({ companyId })}>
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Ou associar existente..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {companies.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setShowCRMLink(false)}>Cancelar</Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
               {/* Info */}
               <Card className="border-0 shadow-lg">
