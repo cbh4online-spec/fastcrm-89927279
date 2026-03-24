@@ -1,0 +1,1 @@
+ALTER TABLE account_brief_accounts ADD COLUMN lead_id UUID DEFAULT NULL;

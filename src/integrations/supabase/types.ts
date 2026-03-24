@@ -75,6 +75,7 @@ export type Database = {
           id: string
           last_analysis_at: string | null
           last_analysis_run_id: string | null
+          lead_id: string | null
           name: string
           normalized_domain: string
           probable_geography: string | null
@@ -100,6 +101,7 @@ export type Database = {
           id?: string
           last_analysis_at?: string | null
           last_analysis_run_id?: string | null
+          lead_id?: string | null
           name: string
           normalized_domain: string
           probable_geography?: string | null
@@ -125,6 +127,7 @@ export type Database = {
           id?: string
           last_analysis_at?: string | null
           last_analysis_run_id?: string | null
+          lead_id?: string | null
           name?: string
           normalized_domain?: string
           probable_geography?: string | null
