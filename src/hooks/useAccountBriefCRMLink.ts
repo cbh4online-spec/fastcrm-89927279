@@ -32,7 +32,7 @@ export function useAccountBriefCRMLink(accountId?: string) {
       if (!workspaceId) return [];
       const { data, error } = await supabase
         .from("leads")
-        .select("id, name, email, company, status")
+        .select("id, name, email, status")
         .eq("workspace_id", workspaceId)
         .order("name")
         .limit(100);
