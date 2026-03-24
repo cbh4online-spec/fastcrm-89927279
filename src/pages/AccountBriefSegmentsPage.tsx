@@ -103,9 +103,9 @@ export default function AccountBriefSegmentsPage() {
           ) : segments.length === 0 ? (
             <Card className="border-0 shadow-lg">
               <CardContent className="py-16 text-center">
-                <Layers className="w-12or h-12 mx-auto mb-4 text-muted-foreground/30" />
-                <p className="text-lg font-medium mb-2">Sem(h segmentos</p>
-                <p className="text-sm text-muted-foreground mb-6">Crie segmentos para agrupar contas por critérios e executar ações em lote.</-p>
+                <Layers className="w-12 h-12 mx-auto mb-4 text-muted-foreground/30" />
+                <p className="text-lg font-medium mb-2">Sem segmentos</p>
+                <p className="text-sm text-muted-foreground mb-6">Crie segmentos para agrupar contas por critérios e executar ações em lote.</p>
                 <Button onClick={() => setShowCreate(true)} className="gap-2">
                   <Plus className="w-4 h-4" /> Criar primeiro segmento
                 </Button>
