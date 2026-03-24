@@ -15,6 +15,7 @@ import { toast } from "sonner";
 
 export default function AccountBriefSettingsPage() {
   const { profile, icp, isLoading, updateProfile, updateICP } = useAccountBriefSettings();
+  const { allMetrics, currentPeriod } = useAccountBriefUsage();
 
   const [companyName, setCompanyName] = useState("");
   const [teamType, setTeamType] = useState("");
