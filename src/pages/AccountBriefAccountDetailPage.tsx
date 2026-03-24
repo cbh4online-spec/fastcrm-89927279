@@ -529,8 +529,18 @@ export default function AccountBriefAccountDetailPage() {
                   <div className="space-y-2 mt-2">
                     {notes.map((note: any) => (
                       <div key={note.id} className="p-3 rounded-lg bg-muted/30 text-sm">
-                        <div className="flex justify-between items-start">
-                          <p className="leading-relaxed">{note.note_text}</p>
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1">
+                            <p className="leading-relaxed">{note.note_text}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <p className="text-xs text-muted-foreground">{format(new Date(note.created_at), "dd/MM HH:mm")}</p>
+                              {(note as any).visibility_type && (note as any).visibility_type !== "team" && (
+                                <Badge variant="outline" className="text-[10px]">
+                                  {(note as any).visibility_type === "private" ? "Privada" : "Admin"}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
                           <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => deleteNote.mutate(note.id)}>
                             <Trash2 className="w-3 h-3" />
                           </Button>
