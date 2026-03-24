@@ -114,6 +114,7 @@ export function CompanyDetailWithSidebar() {
   const [linkContactDialogOpen, setLinkContactDialogOpen] = useState(false);
   const [prefillContactData, setPrefillContactData] = useState<SuggestedContact | null>(null);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+  const [firecrawlEnriching, setFirecrawlEnriching] = useState(false);
 
   const company = companies.find(c => c.id === id);
   const showEnrichButton = isModuleInstalled('google-local-services');
@@ -510,6 +511,42 @@ export function CompanyDetailWithSidebar() {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Enriquecer dados</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            {company.website && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        setFirecrawlEnriching(true);
+                        try {
+                          const { supabase } = await import("@/integrations/supabase/client");
+                          const { data, error } = await supabase.functions.invoke('firecrawl-company-enrich', {
+                            body: { company_id: company.id, website_url: company.website, workspace_id: currentWorkspace?.id },
+                          });
+                          if (error) throw error;
+                          if (data?.data) {
+                            toast.success("Empresa enriquecida com dados do website!");
+                          } else {
+                            toast.info("Dados extraídos parcialmente");
+                          }
+                        } catch (e: any) {
+                          toast.error(`Erro ao enriquecer: ${e.message}`);
+                        } finally {
+                          setFirecrawlEnriching(false);
+                        }
+                      }}
+                      disabled={firecrawlEnriching}
+                      className="gap-2"
+                    >
+                      <Globe className="w-4 h-4" />
+                      {firecrawlEnriching ? "A analisar..." : "Enriquecer Web"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Enriquecer com dados do website via Firecrawl</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             )}
