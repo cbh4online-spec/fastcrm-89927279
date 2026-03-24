@@ -270,6 +270,20 @@ export function AutomationAISettings({ searchQuery = "", matchedSections }: Auto
         />
       </SettingsSection>
 
+      {/* AI Operations Center */}
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/dashboard/ai-operations")}>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Cpu className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">AI Operations Center</CardTitle>
+            </div>
+            <Badge variant="secondary">Live</Badge>
+          </div>
+          <CardDescription>Monitorizar o estado dos 5 sistemas de IA num único painel</CardDescription>
+        </CardHeader>
+      </Card>
+
       {/* AI Provider Configuration */}
       <AIProviderSettings />
 
