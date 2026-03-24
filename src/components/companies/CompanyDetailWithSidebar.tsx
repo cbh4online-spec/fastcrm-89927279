@@ -520,11 +520,24 @@ export function CompanyDetailWithSidebar() {
                   <TooltipTrigger asChild>
                     <Button
                       variant="outline"
-                      onClick={() => {
-                        import("@/hooks/useFirecrawl").then(({ useFirecrawlEnrichCompany }) => {
-                          // This is handled via the inline enrichment below
-                        });
+                      onClick={async () => {
                         setFirecrawlEnriching(true);
+                        try {
+                          const { supabase } = await import("@/integrations/supabase/client");
+                          const { data, error } = await supabase.functions.invoke('firecrawl-company-enrich', {
+                            body: { company_id: company.id, website_url: company.website, workspace_id: currentWorkspace?.id },
+                          });
+                          if (error) throw error;
+                          if (data?.data) {
+                            toast.success("Empresa enriquecida com dados do website!");
+                          } else {
+                            toast.info("Dados extraídos parcialmente");
+                          }
+                        } catch (e: any) {
+                          toast.error(`Erro ao enriquecer: ${e.message}`);
+                        } finally {
+                          setFirecrawlEnriching(false);
+                        }
                       }}
                       disabled={firecrawlEnriching}
                       className="gap-2"
