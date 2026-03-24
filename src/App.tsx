@@ -220,6 +220,8 @@ import AccountBriefAccountDetailPage from "./pages/AccountBriefAccountDetailPage
 import AccountBriefAnalysisPage from "./pages/AccountBriefAnalysisPage";
 import AccountBriefSettingsPage from "./pages/AccountBriefSettingsPage";
 import AccountBriefAdminPage from "./pages/AccountBriefAdminPage";
+import AccountBriefWatchlistPage from "./pages/AccountBriefWatchlistPage";
+import AccountBriefAlertsPage from "./pages/AccountBriefAlertsPage";
 
 // Performance Engine
 import PerformanceDashboardPage from "./pages/performance/PerformanceDashboardPage";
@@ -660,6 +662,8 @@ function CRMRoutes() {
                 <Route path="/dashboard/account-brief/accounts/:id" element={<AccountBriefAccountDetailPage />} />
                 <Route path="/dashboard/account-brief/analysis" element={<AccountBriefAnalysisPage />} />
                 <Route path="/dashboard/account-brief/settings" element={<AccountBriefSettingsPage />} />
+                <Route path="/dashboard/account-brief/watchlist" element={<AccountBriefWatchlistPage />} />
+                <Route path="/dashboard/account-brief/alerts" element={<AccountBriefAlertsPage />} />
                 <Route path="/dashboard/admin/account-brief" element={<AccountBriefAdminPage />} />
                 
                 {/* Método Vision */}
