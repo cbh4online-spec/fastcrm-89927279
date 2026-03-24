@@ -195,6 +195,15 @@ export default function AccountBriefAccountDetailPage() {
                   <Button variant="outline" size="sm" onClick={handleAnalyze} disabled={triggerAnalysis.isPending} className="gap-2">
                     <RefreshCw className={cn("w-4 h-4", triggerAnalysis.isPending && "animate-spin")} /> Analisar
                   </Button>
+                  {!isWatched(account.id) ? (
+                    <Button variant="outline" size="sm" className="gap-2" onClick={() => addToWatchlist.mutate({ accountId: account.id, reason: "strategic", frequency: "weekly" })}>
+                      <Eye className="w-4 h-4" /> Watchlist
+                    </Button>
+                  ) : (
+                    <Badge variant="secondary" className="gap-1 h-9 px-3">
+                      <Eye className="w-3 h-3" /> Na Watchlist
+                    </Badge>
+                  )}
                   {briefText && (
                     <Button variant="outline" size="sm" onClick={() => copyToClipboard(briefText, "Briefing completo")} className="gap-2">
                       <Copy className="w-4 h-4" /> Copiar Briefing
