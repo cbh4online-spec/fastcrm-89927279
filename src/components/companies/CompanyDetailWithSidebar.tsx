@@ -513,6 +513,29 @@ export function CompanyDetailWithSidebar() {
                 </Tooltip>
               </TooltipProvider>
             )}
+            {company.website && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        import("@/hooks/useFirecrawl").then(({ useFirecrawlEnrichCompany }) => {
+                          // This is handled via the inline enrichment below
+                        });
+                        setFirecrawlEnriching(true);
+                      }}
+                      disabled={firecrawlEnriching}
+                      className="gap-2"
+                    >
+                      <Globe className="w-4 h-4" />
+                      {firecrawlEnriching ? "A analisar..." : "Enriquecer Web"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Enriquecer com dados do website via Firecrawl</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
             <Button variant="outline" onClick={() => setShowInvoiceDialog(true)} className="gap-2">
               <FileText className="w-4 h-4" />
               Nova Fatura
