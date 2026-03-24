@@ -425,6 +425,7 @@ export function getNavV2Groups(t: TNav): NavV2Group[] {
         { nameKey: "abBatch", name: "Batch Ops", href: "/dashboard/account-brief/batch", icon: LayoutGrid, iconColor: "text-indigo-500" },
         { nameKey: "abKpis", name: "KPIs", href: "/dashboard/account-brief/kpis", icon: BarChart3, iconColor: "text-indigo-500" },
         { nameKey: "abScoreAdmin", name: "Score & Retenção", href: "/dashboard/account-brief/score-admin", icon: Settings, iconColor: "text-indigo-500" },
+        { nameKey: "abTrialDemo", name: "Demo", href: "/dashboard/account-brief/trial-demo", icon: BarChart3, iconColor: "text-indigo-500" },
         { nameKey: "abSettings", name: "Definições", href: "/dashboard/account-brief/settings", icon: Settings, iconColor: "text-indigo-500" },
       ],
     },
