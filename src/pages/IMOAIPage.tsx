@@ -140,6 +140,23 @@ export default function IMOAIPage() {
               </Badge>
             )}
 
+            <Button size="sm" variant="outline" onClick={async () => {
+              try {
+                const { supabase } = await import("@/integrations/supabase/client");
+                const { useWorkspace } = await import("@/contexts/WorkspaceContext");
+                toast.info("A pesquisar dados de mercado reais...");
+                const { data, error } = await supabase.functions.invoke('firecrawl-market-search', {
+                  body: { sectors: marketInsight?.dominant_sectors ?? ['tecnologia', 'PME'], country: 'pt', analysis_depth: 'quick' },
+                });
+                if (error) throw error;
+                toast.success(`Dados de mercado actualizados com ${data?.sources_used ?? 0} fontes web`);
+                handleRefresh();
+              } catch (e: any) { toast.error(`Erro: ${e.message}`); }
+            }}>
+              <Globe className="h-4 w-4 mr-1" />
+              Dados Reais Web
+            </Button>
+
             <Button size="sm" onClick={handleRefresh} disabled={isGenerating}>
               <RefreshCw className={`h-4 w-4 mr-1 ${isGenerating ? "animate-spin" : ""}`} />
               {isGenerating ? "A analisar..." : "Actualizar"}
