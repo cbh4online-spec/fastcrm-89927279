@@ -10397,6 +10397,8 @@ export type Database = {
           domain: string | null
           email: string | null
           employee_count: number | null
+          enriched_at: string | null
+          enrichment_source: string | null
           entity_type: string | null
           estimated_arr: number | null
           estimated_ltv: number | null
@@ -10404,6 +10406,7 @@ export type Database = {
           expansion_probability: number | null
           facebook_url: string | null
           fax: string | null
+          firecrawl_data: Json | null
           founded_year: number | null
           founding_date: string | null
           funding_amount: number | null
@@ -10513,6 +10516,8 @@ export type Database = {
           domain?: string | null
           email?: string | null
           employee_count?: number | null
+          enriched_at?: string | null
+          enrichment_source?: string | null
           entity_type?: string | null
           estimated_arr?: number | null
           estimated_ltv?: number | null
@@ -10520,6 +10525,7 @@ export type Database = {
           expansion_probability?: number | null
           facebook_url?: string | null
           fax?: string | null
+          firecrawl_data?: Json | null
           founded_year?: number | null
           founding_date?: string | null
           funding_amount?: number | null
@@ -10629,6 +10635,8 @@ export type Database = {
           domain?: string | null
           email?: string | null
           employee_count?: number | null
+          enriched_at?: string | null
+          enrichment_source?: string | null
           entity_type?: string | null
           estimated_arr?: number | null
           estimated_ltv?: number | null
@@ -10636,6 +10644,7 @@ export type Database = {
           expansion_probability?: number | null
           facebook_url?: string | null
           fax?: string | null
+          firecrawl_data?: Json | null
           founded_year?: number | null
           founding_date?: string | null
           funding_amount?: number | null
@@ -11096,6 +11105,107 @@ export type Database = {
           },
           {
             foreignKeyName: "company_linkedin_data_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competitor_snapshots: {
+        Row: {
+          competitor_id: string
+          content_hash: string
+          content_preview: string | null
+          created_at: string
+          has_changed: boolean
+          id: string
+          page_path: string
+          page_url: string
+          workspace_id: string
+        }
+        Insert: {
+          competitor_id: string
+          content_hash: string
+          content_preview?: string | null
+          created_at?: string
+          has_changed?: boolean
+          id?: string
+          page_path: string
+          page_url: string
+          workspace_id: string
+        }
+        Update: {
+          competitor_id?: string
+          content_hash?: string
+          content_preview?: string | null
+          created_at?: string
+          has_changed?: boolean
+          id?: string
+          page_path?: string
+          page_url?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_snapshots_competitor_id_fkey"
+            columns: ["competitor_id"]
+            isOneToOne: false
+            referencedRelation: "competitors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitor_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competitors: {
+        Row: {
+          changes_count: number
+          created_at: string
+          id: string
+          is_active: boolean
+          last_change_detected_at: string | null
+          last_scraped_at: string | null
+          name: string
+          notes: string | null
+          tracked_pages: string[]
+          website_url: string
+          workspace_id: string
+        }
+        Insert: {
+          changes_count?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_change_detected_at?: string | null
+          last_scraped_at?: string | null
+          name: string
+          notes?: string | null
+          tracked_pages?: string[]
+          website_url: string
+          workspace_id: string
+        }
+        Update: {
+          changes_count?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_change_detected_at?: string | null
+          last_scraped_at?: string | null
+          name?: string
+          notes?: string | null
+          tracked_pages?: string[]
+          website_url?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitors_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
