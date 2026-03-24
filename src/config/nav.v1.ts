@@ -234,6 +234,8 @@ export const NAV_V1_ITEMS: NavV1Item[] = [
   { name: "Comparar", href: "/dashboard/account-brief/compare", icon: BarChart3, group: "Account Brief", moduleSlug: "account-brief" },
   { name: "Notificações", href: "/dashboard/account-brief/notifications", icon: Bell, group: "Account Brief", moduleSlug: "account-brief" },
   { name: "Batch Ops", href: "/dashboard/account-brief/batch", icon: Layers, group: "Account Brief", moduleSlug: "account-brief" },
+  { name: "KPIs", href: "/dashboard/account-brief/kpis", icon: BarChart3, group: "Account Brief", moduleSlug: "account-brief" },
+  { name: "Score & Retenção", href: "/dashboard/account-brief/score-admin", icon: Settings, group: "Account Brief", moduleSlug: "account-brief" },
   { name: "Definições", href: "/dashboard/account-brief/settings", icon: Settings, group: "Account Brief", moduleSlug: "account-brief" },
 ];
 
