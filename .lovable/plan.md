@@ -1,260 +1,150 @@
 
 
-## Account Brief — Módulo de Inteligência Comercial B2B
+## Account Brief — Fase Avançada (7 Fases de Implementação)
 
-Módulo nativo do FastCRM que transforma websites de empresas-alvo em briefings comerciais acionáveis para equipas de vendas. Implementação em 4 fases conforme especificado.
-
----
-
-### FASE 1 — Fundação (Instalação, Rotas, Onboarding, CRUD, Dashboard)
-
-#### 1.1 Base de Dados (Migration)
-
-Criar as seguintes tabelas com RLS por `workspace_id`:
-
-- `account_brief_workspaces` — config e estado do módulo por workspace
-- `account_brief_profiles` — perfil da empresa utilizadora
-- `account_brief_icp_profiles` — ICP definido pelo utilizador
-- `account_brief_accounts` — contas-alvo (entidade central)
-- `account_brief_notes` — notas manuais por conta
-- `account_brief_analysis_runs` — runs de análise (estado, duração, erros)
-
-RLS: todas as tabelas com policy `workspace_members` check, consistente com o padrão existente.
-
-#### 1.2 Marketplace Registration
-
-Inserir registo na tabela `marketplace_modules`:
-- slug: `account-brief`
-- name: `Account Brief`
-- category: `intelligence`
-- pricing_model: `included` (MVP sem cobrança)
-- manifest_json com objects, settings_pages, feature_flags
-
-#### 1.3 Rotas (App.tsx)
-
-Adicionar lazy imports para:
-- `/dashboard/account-brief` → Dashboard
-- `/dashboard/account-brief/onboarding` → Onboarding
-- `/dashboard/account-brief/accounts` → Lista
-- `/dashboard/account-brief/accounts/:id` → Detalhe
-- `/dashboard/account-brief/analysis` → Estado análises
-- `/dashboard/account-brief/settings` → Definições
-- `/dashboard/admin/account-brief` → Admin
-
-Todas protegidas com `ModuleGuard` (`moduleSlug: "account-brief"`).
-
-#### 1.4 Navegação (nav.v1.ts, nav.v2.ts)
-
-Novo grupo "Account Brief" com `moduleSlug: "account-brief"`, icon `Briefcase`, cor `text-indigo-500`:
-- Dashboard, Contas, Análises, Definições
-
-#### 1.5 Páginas (Fase 1)
-
-**AccountBriefOnboardingPage.tsx** — 3 steps wizard:
-1. Perfil da empresa (nome, tipo equipa, setor)
-2. ICP (tipo empresa, indústria, geografia, tamanho)
-3. Primeiras contas (domínio + nome)
-
-**AccountBriefDashboardPage.tsx** — KPI cards:
-- Total contas, melhor score, recentes, growth signals, careers, ICP fit
-- CTA "Adicionar Conta"
-- Tabela resumida das top contas
-
-**AccountBriefAccountsPage.tsx** — Tabela filtrável:
-- Colunas: nome, domínio, setor, geografia, score, estado, última análise, favorito
-- Filtros: score, geografia, setor, estado, favorito, growth, hiring
-- Ações: adicionar, editar, remover, favoritar, relançar
-
-**AccountBriefAccountDetailPage.tsx** (base):
-- Header com nome, domínio, score badge, estado, ações
-- Secções placeholder para briefing (Fase 3)
-- Notas internas com CRUD
-- Estado comercial (new → researching → outreach_ready → contacted → follow_up)
-
-#### 1.6 Hooks (Fase 1)
-
-- `useAccountBriefOnboarding` — save/load onboarding state
-- `useAccountBriefAccounts` — CRUD contas com filtros
-- `useAccountBriefAccount` — detalhe single account
-- `useAccountBriefDashboard` — aggregated metrics
-- `useAccountBriefNotes` — CRUD notas
-- `useAccountBriefSettings` — workspace settings
+Evolução do módulo existente com watchlist, alertas, colaboração, PDF, outreach, scoring avançado, comparação, enriquecimento e listas segmentadas.
 
 ---
 
-### FASE 2 — Firecrawl Discovery, Crawl, Runs
+### FASE A — Watchlist, Scheduler e Alertas de Mudança
 
-#### 2.1 Tabelas adicionais (Migration)
+**Migration**: Criar tabelas `account_brief_watchlists` e `account_brief_change_alerts` com RLS por workspace.
 
-- `account_brief_urls` — URLs descobertas/manuais
-- `account_brief_pages` — conteúdo processado
-- `account_brief_page_snapshots` — snapshots com hash
-- `account_brief_analysis_errors` — erros por URL/step
+**Edge Functions**:
+- `account-brief-watchlist-scheduler` — consulta watchlists activas com `next_run_at <= now()`, invoca `account-brief-refresh-account` para cada, actualiza `next_run_at` baseado na frequência
+- `account-brief-detect-site-changes` — chamado após refresh, compara runs actual e anterior via dados de `account_brief_briefs`/`account_brief_scores`/`account_brief_pages`, gera alertas classificados por severidade e relevância comercial em `account_brief_change_alerts`
 
-#### 2.2 Edge Functions
+**Hooks**: `useAccountBriefWatchlist`, `useAccountBriefAlerts`
 
-**`account-brief-discover-pages`**
-- Recebe `account_id` + `domain`
-- Usa `firecrawl.map(domain)` do shared client existente
-- Classifica URLs por page_type (about, products, pricing, careers, etc.)
-- Persiste em `account_brief_urls`
+**Páginas**:
+- `/dashboard/account-brief/watchlist` — tabela de contas vigiadas, próxima reanálise, motivo, ações (pausar, remover)
+- `/dashboard/account-brief/alerts` — feed de mudanças recentes com badges de tipo e severidade, filtro por is_read
 
-**`account-brief-crawl-site`**
-- Recebe `account_id` + lista de URLs
-- Usa `firecrawl.scrape()` para cada URL (max ~15 páginas)
-- Guarda em `account_brief_pages`
-- Cria snapshots com hash em `account_brief_page_snapshots`
-- Actualiza `account_brief_analysis_runs` com progresso
+**UI no detalhe da conta**: Botão "Adicionar à Watchlist" com modal (frequência + motivo). Secção "Alertas de mudança" com timeline.
 
-**`account-brief-analysis-status`**
-- Consolida estado operacional de todas as runs
-- Retorna métricas para a página de análises
+**Nav**: Adicionar "Watchlist" e "Alertas" ao grupo Account Brief em nav.v1.ts/nav.v2.ts.
 
-**`account-brief-reprocess-url`**
-- Reprocessa URL específica que falhou
+**Eventos Kernel**: `watchlist_added`, `watchlist_paused`, `watchlist_removed`, `scheduled_reanalysis_completed`, `site_change_detected`, `commercial_change_alert_created`
 
-#### 2.3 Páginas (Fase 2)
-
-**AccountBriefAnalysisPage.tsx**
-- Lista runs recentes com estado (queued/processing/completed/partial/failed)
-- Páginas descobertas/processadas/falhadas por run
-- Duração, erros, acção reprocessar
-- Filtro por estado
-
-#### 2.4 Hooks (Fase 2)
-
-- `useAccountBriefAnalysisRuns` — lista/detalhe runs
-- `useAccountBriefDiscover` — trigger discovery + crawl
+**Dashboard**: Novos cards "Contas em Watchlist" e "Alertas Recentes".
 
 ---
 
-### FASE 3 — Extração, Briefing, Score, Copy Actions
+### FASE B — Listas Segmentadas, Comparação e Dashboard Evoluído
 
-#### 3.1 Tabelas adicionais (Migration)
+**Migration**: Criar tabelas `account_brief_segments`, `account_brief_segment_members`, `account_brief_comparison_runs`.
 
-- `account_brief_briefs` — briefing estruturado (JSON blocks)
-- `account_brief_scores` — score total + sub-scores
-- `account_brief_score_factors` — fatores positivos/negativos explicáveis
-- `account_brief_public_contacts` — contactos públicos encontrados
+**Edge Functions**:
+- `account-brief-compute-segment-members` — avalia filtros JSON contra `account_brief_accounts` + scores + watchlist, popula membros
+- `account-brief-compare-accounts` — recebe 2-5 account_ids, agrega scores/briefs/sinais, gera summary comparativo via Gemini 2.5 Pro
 
-#### 3.2 Edge Functions
+**Hooks**: `useAccountBriefSegments`, `useAccountBriefCompare`
 
-**`account-brief-extract-structured`**
-- Recebe `account_id`
-- Lê páginas processadas de `account_brief_pages`
-- Usa Lovable AI (gemini-2.5-pro) para extrair:
-  - Identidade, Oferta, Sinais comerciais, Personalização, Contactos públicos
-- Persiste JSON estruturado
+**Páginas**:
+- `/dashboard/account-brief/segments` — lista segmentos, contador membros, preview, criar/editar com builder de filtros
+- `/dashboard/account-brief/compare` — seleccionar contas, tabela comparativa lado-a-lado, highlights ("melhor aposta", "mais madura", "maior urgência")
 
-**`account-brief-generate-brief`**
-- Recebe dados estruturados + ICP do workspace
-- Usa Lovable AI para gerar briefing comercial em PT-PT:
-  - Resumo executivo, O que faz, Para quem vende, Produtos, Sinais, Personalização, Ângulos outreach, Objeções
-- Regras de qualidade: linguagem de negócio, frases curtas, acionável
-- Distingue "facto observado" de "hipótese útil"
-
-**`account-brief-compute-score`**
-- Calcula score 0-100 baseado em:
-  - ICP fit, presença geográfica, growth signals, maturidade comercial, personalização
-- Gera sub-scores (ICP Fit, Growth, Maturity, Personalization)
-- Gera fatores positivos/negativos com explicação
-- Score labels: Muito Alto (80+), Alto (60-79), Médio (40-59), Baixo (<40)
-
-**`account-brief-refresh-account`**
-- Orquestra pipeline completo: discover → crawl → extract → brief → score
-- Actualiza `account_brief_analysis_runs`
-
-#### 3.3 UI Enhancements
-
-**AccountBriefAccountDetailPage.tsx** (completo):
-- Secções completas do briefing (A-L conforme spec)
-- Score badge com sub-scores e fatores
-- Botões "Copiar" para: resumo, insights, ângulos outreach
-- Favoritar, mudar estado comercial
-- Páginas importantes encontradas
-- Histórico de análises
-
-#### 3.4 Hooks (Fase 3)
-
-- `useAccountBriefScore` — score + fatores
-- `useAccountBriefBrief` — briefing completo
+**Dashboard evoluído**: Widgets adicionais — contas com maior aumento de score, sinais de hiring, segmentos mais valiosos, reanálises agendadas hoje, contas sem owner.
 
 ---
 
-### FASE 4 — CRM Link, Kernel Events, Diffs, Admin, QA
+### FASE C — Scoring Avançado
 
-#### 4.1 Tabelas adicionais (Migration)
+**Migration**: Adicionar colunas a `account_brief_scores` (`confidence_score`, `strategic_fit_score`, `outbound_readiness_score`, `urgency_score`). Criar `account_brief_score_models` para config de pesos por workspace.
 
-- `account_brief_account_sources` — fontes da conta
-- `account_brief_diff_events` — diferenças entre runs
+**Edge Functions**:
+- `account-brief-compute-advanced-score` — substitui `compute-score`, adiciona sub-scores de urgency, strategic fit, outbound readiness, confidence. Usa pesos configuráveis do workspace.
+- `account-brief-score-explainer` — gera explicação detalhada via IA dos factores
 
-#### 4.2 Edge Functions
+**Hook**: `useAccountBriefAdvancedScore`
 
-**`account-brief-link-company`**
-- Liga conta a `companies.id` do CRM
-- Opcionalmente cria empresa/contacto no CRM
-
-**`account-brief-diff-runs`**
-- Compara runs consecutivas
-- Detecta: novas páginas, headline mudou, CTA mudou, novas vagas, novas geografias, score mudou
-- Persiste em `account_brief_diff_events`
-
-#### 4.3 Kernel Events
-
-Emitir via `emitKernelEvent()` existente para todos os eventos especificados (account_created, analysis_completed, score_updated, etc.) com `source_module: "account-brief"`.
-
-#### 4.4 System Health
-
-Adicionar módulo ao sistema de health checks existente — registar runs das edge functions em `system_function_runs`, adicionar smoke test mínimo.
-
-#### 4.5 Admin Page
-
-**AccountBriefAdminPage.tsx**:
-- Relançar análise, ver status/erros, reprocessar URLs, contagem páginas por conta
-- Estrutura preparada para consumo por créditos (sem implementar billing)
-
-#### 4.6 CRM Integration UI
-
-No detalhe da conta:
-- "Associar a empresa existente" (search/select)
-- "Criar empresa no CRM"
-- "Criar contacto no CRM"
-- "Abrir empresa no CRM" (link direto)
-
-#### 4.7 Seed/Demo Data
-
-3 contas demo com scores diferentes, notas, análise com erro parcial.
+**UI**: Score breakdown visual com barras por sub-score, factores +/-, confiança da análise, comparação de scores entre contas na página de comparação. Painel simples de ajuste de pesos nas definições.
 
 ---
 
-### Ficheiros a criar (resumo)
+### FASE D — Geração de Emails de Outreach
 
-**Páginas** (~7):
-`src/pages/AccountBrief*.tsx` (Dashboard, Onboarding, Accounts, AccountDetail, Analysis, Settings, Admin)
+**Migration**: Criar `account_brief_outreach_generations` e `account_brief_outreach_templates`.
 
-**Hooks** (~10):
-`src/hooks/useAccountBrief*.ts`
+**Edge Functions**:
+- `account-brief-generate-outreach-email` — recebe account_id + tone + length + tipo (inicial/follow-up), usa briefing + ICP + sinais para gerar subject + body + CTA via Gemini 2.5 Pro. Gera 2-3 variações.
+- `account-brief-save-outreach-template` — persiste geração como template reutilizável
 
-**Edge Functions** (~9):
-`supabase/functions/account-brief-*/index.ts`
+**Hook**: `useAccountBriefOutreach`
 
-**Ficheiros a editar**:
-- `src/App.tsx` — rotas
-- `src/config/nav.v1.ts`, `nav.v2.ts` — navegação
-- Migrations (~4, uma por fase)
+**UI no detalhe da conta**: Botão "Gerar Email" → drawer/modal lateral com opções (tom: consultivo/direto/executivo/friendly, comprimento: curto/médio/longo). Preview das variações, botões copiar, guardar como template. Preparar link para Sequências (disabled com tooltip "Em breve").
+
+**Eventos Kernel**: `outreach_generated`, `outreach_template_saved`
+
+---
+
+### FASE E — Colaboração em Equipa
+
+**Migration**: Adicionar `owner_user_id` e `assigned_user_id` a `account_brief_accounts`. Criar `account_brief_comments` e `account_brief_activity_log`.
+
+**Hook**: `useAccountBriefCollaboration`
+
+**UI no detalhe**: Selector de owner/assigned_to, secção de comentários com menções (@user), feed de actividade (quem alterou status, score, notas, etc.).
+
+**Lista de contas**: Colunas/filtros por owner e assigned_to. Badge "Sem owner" no dashboard.
+
+**Eventos Kernel**: `account_assigned`, `comment_added`, `owner_changed`
+
+---
+
+### FASE F — Exportação PDF
+
+**Migration**: Criar `account_brief_exports` (log de exports).
+
+**Edge Function**: `account-brief-export-pdf` — gera PDF server-side via edge function, guarda em Supabase Storage, retorna URL. Templates: executivo (resumido), completo, comparativo.
+
+**Hook**: `useAccountBriefExports`
+
+**UI**: Botão "Exportar PDF" no detalhe da conta com dropdown (Executivo / Completo). Na comparação: "Exportar Comparação". Página `/dashboard/account-brief/exports` com histórico.
+
+---
+
+### FASE G — Enriquecimento Externo
+
+**Migration**: Criar `account_brief_enrichment_runs` e `account_brief_data_sources`.
+
+**Edge Functions**:
+- `account-brief-enrich-account` — cruza com CRM Empresas/Contactos existentes, pesquisa pública via Firecrawl, marca origem de cada dado
+- `account-brief-match-company-record` — sugere empresa CRM existente por domínio/nome
+- `account-brief-suggest-contacts` — sugere contactos públicos relevantes
+
+**Hook**: `useAccountBriefEnrichment`
+
+**UI no detalhe**: Secção "Fontes de dados" com badges (site / inferido / CRM / externo). Toggle de enriquecimento externo nas definições.
+
+**Eventos Kernel**: `external_enrichment_completed`, `company_match_suggested`
+
+---
+
+### Ficheiros (resumo)
+
+| Tipo | Criar | Editar |
+|------|-------|--------|
+| **Migrations** | ~4 (agrupadas por fase) | — |
+| **Edge Functions** | ~12 novas | `account-brief-refresh-account` (trigger alertas) |
+| **Hooks** | ~10 novos | — |
+| **Páginas** | 5 novas (watchlist, alerts, segments, compare, exports) | Dashboard, Detail, Accounts, Admin |
+| **Nav** | — | nav.v1.ts, nav.v2.ts (5 novos items) |
+| **Rotas** | — | App.tsx (5 novas rotas) |
 
 ### Decisões técnicas
 
 | Aspecto | Decisão |
 |---------|---------|
-| AI Model | Lovable AI `google/gemini-2.5-pro` (melhor para extração + raciocínio) |
-| Crawling | Firecrawl shared client existente (`_shared/firecrawl-client.ts`) |
-| Auth | Infraestrutura FastCRM existente, RLS por workspace |
-| Score | Determinístico com pesos + AI reasoning para explicação |
-| Pipeline | Sequencial via edge functions, correlation_id por run |
-| Estado comercial | Enum simples na tabela `account_brief_accounts` |
+| Scheduler watchlist | pg_cron a cada 15min invocando edge function |
+| Alertas | Classificação por IA (Gemini) com severidade + relevância comercial |
+| PDF | Server-side via edge function com HTML→PDF (puppeteer-like ou html template) |
+| Outreach | Gemini 2.5 Pro com contexto do briefing + ICP |
+| Segmentos dinâmicos | Filtros JSON avaliados server-side contra tabelas existentes |
+| Comparação | Max 5 contas, summary gerado por IA |
+| Enriquecimento | CRM interno first, Firecrawl search opcional, sempre com source tracking |
 
 ### Implementação
 
-Dada a dimensão, implementarei **Fase 1 + Fase 2** numa primeira iteração (fundação + crawl), seguida de **Fase 3 + Fase 4** (briefing + integrações).
+Implementarei **Fase A** primeiro (watchlist + alertas), seguida das fases restantes em sequência. Cada fase é auto-contida e funcional.
 
