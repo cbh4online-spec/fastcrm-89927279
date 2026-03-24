@@ -5,12 +5,16 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useAccountBriefDashboard } from "@/hooks/useAccountBriefDashboard";
 import { useAccountBriefOnboarding } from "@/hooks/useAccountBriefOnboarding";
 import { useAccountBriefWatchlist } from "@/hooks/useAccountBriefWatchlist";
 import { useAccountBriefChangeAlerts } from "@/hooks/useAccountBriefChangeAlerts";
 import { useAccountBriefSegments } from "@/hooks/useAccountBriefSegments";
-import { Briefcase, Plus, Star, TrendingUp, BarChart3, Loader2, ArrowRight, Eye, Bell, Layers, GitCompareArrows, AlertCircle, Clock } from "lucide-react";
+import { useAccountBriefUsage, getMetricLabel } from "@/hooks/useAccountBriefUsage";
+import { useAccountBriefNotifications } from "@/hooks/useAccountBriefNotifications";
+import { useAccountBriefDedupe } from "@/hooks/useAccountBriefDedupe";
+import { Briefcase, Plus, Star, TrendingUp, BarChart3, Loader2, ArrowRight, Eye, Bell, Layers, GitCompareArrows, AlertCircle, Clock, Gauge, AlertTriangle, Copy } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
 const scoreColor = (label: string) => {
