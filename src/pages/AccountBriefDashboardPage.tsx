@@ -81,6 +81,48 @@ export default function AccountBriefDashboardPage() {
             </Button>
           </div>
 
+          {/* Usage / Consumo */}
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="flex-row items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2"><Gauge className="w-4 h-4 text-indigo-500" /> Consumo este mês</CardTitle>
+              <Badge variant="outline" className="text-xs">{currentPeriod}</Badge>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {allMetrics.slice(0, 6).map((m) => (
+                  <div key={m.metric_key} className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">{m.label}</span>
+                      <span className={m.status === "blocked" ? "text-destructive font-medium" : m.status === "danger" ? "text-orange-500" : ""}>
+                        {m.units_limit >= 99999 ? `${m.units_used} / ∞` : `${m.units_used} / ${m.units_limit}`}
+                      </span>
+                    </div>
+                    <Progress value={m.units_limit >= 99999 ? 0 : m.percentage} className="h-1.5" />
+                    {m.status === "warning" && <p className="text-[10px] text-amber-500 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> A aproximar-se do limite</p>}
+                    {m.status === "danger" && <p className="text-[10px] text-orange-500 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Quase no limite</p>}
+                    {m.status === "blocked" && <p className="text-[10px] text-destructive flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Limite atingido</p>}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Alerts row */}
+          {(dupeCount > 0 || notifCount > 0) && (
+            <div className="flex flex-wrap gap-3">
+              {dupeCount > 0 && (
+                <Badge variant="outline" className="gap-1.5 py-1.5 px-3 text-amber-600 border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+                  <Copy className="w-3.5 h-3.5" /> {dupeCount} possíveis duplicados
+                </Badge>
+              )}
+              {notifCount > 0 && (
+                <Badge variant="outline" className="gap-1.5 py-1.5 px-3 text-blue-600 border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+                  <Bell className="w-3.5 h-3.5" /> {notifCount} notificações por ler
+                </Badge>
+              )}
+            </div>
+          )}
+
           {/* Top Scored */}
           <Card className="border-0 shadow-lg">
             <CardHeader className="flex-row items-center justify-between">
