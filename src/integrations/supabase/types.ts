@@ -14,6 +14,945 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_brief_account_sources: {
+        Row: {
+          account_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          source_type: string | null
+          source_value: string | null
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          source_type?: string | null
+          source_value?: string | null
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          source_type?: string | null
+          source_value?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_account_sources_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_account_sources_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_accounts: {
+        Row: {
+          archived_at: string | null
+          commercial_status:
+            | Database["public"]["Enums"]["account_brief_commercial_status"]
+            | null
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          description_short: string | null
+          domain: string
+          executive_summary: string | null
+          favorite: boolean | null
+          id: string
+          last_analysis_at: string | null
+          last_analysis_run_id: string | null
+          name: string
+          normalized_domain: string
+          probable_geography: string | null
+          probable_sector: string | null
+          score_label: string | null
+          tagline: string | null
+          total_score: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          commercial_status?:
+            | Database["public"]["Enums"]["account_brief_commercial_status"]
+            | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description_short?: string | null
+          domain: string
+          executive_summary?: string | null
+          favorite?: boolean | null
+          id?: string
+          last_analysis_at?: string | null
+          last_analysis_run_id?: string | null
+          name: string
+          normalized_domain: string
+          probable_geography?: string | null
+          probable_sector?: string | null
+          score_label?: string | null
+          tagline?: string | null
+          total_score?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          commercial_status?:
+            | Database["public"]["Enums"]["account_brief_commercial_status"]
+            | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description_short?: string | null
+          domain?: string
+          executive_summary?: string | null
+          favorite?: boolean | null
+          id?: string
+          last_analysis_at?: string | null
+          last_analysis_run_id?: string | null
+          name?: string
+          normalized_domain?: string
+          probable_geography?: string | null
+          probable_sector?: string | null
+          score_label?: string | null
+          tagline?: string | null
+          total_score?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_accounts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_analysis_errors: {
+        Row: {
+          account_id: string
+          analysis_run_id: string | null
+          created_at: string
+          error_message: string | null
+          error_type: string | null
+          id: string
+          retryable: boolean | null
+          step_name: string | null
+          url_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          analysis_run_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          error_type?: string | null
+          id?: string
+          retryable?: boolean | null
+          step_name?: string | null
+          url_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          analysis_run_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          error_type?: string | null
+          id?: string
+          retryable?: boolean | null
+          step_name?: string | null
+          url_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_analysis_errors_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_analysis_errors_analysis_run_id_fkey"
+            columns: ["analysis_run_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_analysis_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_analysis_errors_url_id_fkey"
+            columns: ["url_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_urls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_analysis_errors_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_analysis_runs: {
+        Row: {
+          account_id: string
+          correlation_id: string | null
+          created_at: string
+          created_by: string | null
+          duration_ms: number | null
+          error_summary: string | null
+          finished_at: string | null
+          id: string
+          pages_discovered: number | null
+          pages_failed: number | null
+          pages_processed: number | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["account_brief_run_status"] | null
+          trigger_type: string | null
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          correlation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_ms?: number | null
+          error_summary?: string | null
+          finished_at?: string | null
+          id?: string
+          pages_discovered?: number | null
+          pages_failed?: number | null
+          pages_processed?: number | null
+          started_at?: string | null
+          status?:
+            | Database["public"]["Enums"]["account_brief_run_status"]
+            | null
+          trigger_type?: string | null
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          correlation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_ms?: number | null
+          error_summary?: string | null
+          finished_at?: string | null
+          id?: string
+          pages_discovered?: number | null
+          pages_failed?: number | null
+          pages_processed?: number | null
+          started_at?: string | null
+          status?:
+            | Database["public"]["Enums"]["account_brief_run_status"]
+            | null
+          trigger_type?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_analysis_runs_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_analysis_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_briefs: {
+        Row: {
+          account_id: string
+          analysis_run_id: string | null
+          created_at: string
+          executive_summary: string | null
+          id: string
+          identity_json: Json | null
+          offer_json: Json | null
+          outreach_json: Json | null
+          personalization_json: Json | null
+          signals_json: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          analysis_run_id?: string | null
+          created_at?: string
+          executive_summary?: string | null
+          id?: string
+          identity_json?: Json | null
+          offer_json?: Json | null
+          outreach_json?: Json | null
+          personalization_json?: Json | null
+          signals_json?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          analysis_run_id?: string | null
+          created_at?: string
+          executive_summary?: string | null
+          id?: string
+          identity_json?: Json | null
+          offer_json?: Json | null
+          outreach_json?: Json | null
+          personalization_json?: Json | null
+          signals_json?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_briefs_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_briefs_analysis_run_id_fkey"
+            columns: ["analysis_run_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_analysis_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_briefs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_diff_events: {
+        Row: {
+          account_id: string
+          created_at: string
+          current_run_id: string | null
+          diff_label: string | null
+          diff_payload_json: Json | null
+          diff_type: string
+          id: string
+          previous_run_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          current_run_id?: string | null
+          diff_label?: string | null
+          diff_payload_json?: Json | null
+          diff_type: string
+          id?: string
+          previous_run_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          current_run_id?: string | null
+          diff_label?: string | null
+          diff_payload_json?: Json | null
+          diff_type?: string
+          id?: string
+          previous_run_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_diff_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_diff_events_current_run_id_fkey"
+            columns: ["current_run_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_analysis_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_diff_events_previous_run_id_fkey"
+            columns: ["previous_run_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_analysis_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_diff_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_icp_profiles: {
+        Row: {
+          company_type: string | null
+          created_at: string
+          geography: string | null
+          id: string
+          industry: string | null
+          is_default: boolean | null
+          notes: string | null
+          size_band: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          company_type?: string | null
+          created_at?: string
+          geography?: string | null
+          id?: string
+          industry?: string | null
+          is_default?: boolean | null
+          notes?: string | null
+          size_band?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          company_type?: string | null
+          created_at?: string
+          geography?: string | null
+          id?: string
+          industry?: string | null
+          is_default?: boolean | null
+          notes?: string | null
+          size_band?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_icp_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_notes: {
+        Row: {
+          account_id: string
+          author_user_id: string | null
+          created_at: string
+          id: string
+          note_text: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          author_user_id?: string | null
+          created_at?: string
+          id?: string
+          note_text: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          author_user_id?: string | null
+          created_at?: string
+          id?: string
+          note_text?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_notes_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_notes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_page_snapshots: {
+        Row: {
+          account_id: string
+          created_at: string
+          extracted_structured_json: Json | null
+          id: string
+          page_id: string | null
+          snapshot_hash: string | null
+          snapshot_text: string | null
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          extracted_structured_json?: Json | null
+          id?: string
+          page_id?: string | null
+          snapshot_hash?: string | null
+          snapshot_text?: string | null
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          extracted_structured_json?: Json | null
+          id?: string
+          page_id?: string | null
+          snapshot_hash?: string | null
+          snapshot_text?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_page_snapshots_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_page_snapshots_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_page_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_pages: {
+        Row: {
+          account_id: string
+          cleaned_text: string | null
+          crawl_status: string | null
+          created_at: string
+          final_url: string | null
+          http_status: number | null
+          id: string
+          metadata_json: Json | null
+          page_type: string | null
+          raw_text: string | null
+          title: string | null
+          updated_at: string
+          url_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          cleaned_text?: string | null
+          crawl_status?: string | null
+          created_at?: string
+          final_url?: string | null
+          http_status?: number | null
+          id?: string
+          metadata_json?: Json | null
+          page_type?: string | null
+          raw_text?: string | null
+          title?: string | null
+          updated_at?: string
+          url_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          cleaned_text?: string | null
+          crawl_status?: string | null
+          created_at?: string
+          final_url?: string | null
+          http_status?: number | null
+          id?: string
+          metadata_json?: Json | null
+          page_type?: string | null
+          raw_text?: string | null
+          title?: string | null
+          updated_at?: string
+          url_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_pages_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_pages_url_id_fkey"
+            columns: ["url_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_urls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_pages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_profiles: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          selling_sector: string | null
+          team_type: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          selling_sector?: string | null
+          team_type?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          selling_sector?: string | null
+          team_type?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_public_contacts: {
+        Row: {
+          account_id: string
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          linkedin_url: string | null
+          role_title: string | null
+          source_url: string | null
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          linkedin_url?: string | null
+          role_title?: string | null
+          source_url?: string | null
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          linkedin_url?: string | null
+          role_title?: string | null
+          source_url?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_public_contacts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_public_contacts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_score_factors: {
+        Row: {
+          account_id: string
+          analysis_run_id: string | null
+          created_at: string
+          explanation: string | null
+          factor_label: string
+          factor_type: string
+          factor_value: number | null
+          factor_weight: number | null
+          id: string
+          polarity: string | null
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          analysis_run_id?: string | null
+          created_at?: string
+          explanation?: string | null
+          factor_label: string
+          factor_type: string
+          factor_value?: number | null
+          factor_weight?: number | null
+          id?: string
+          polarity?: string | null
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          analysis_run_id?: string | null
+          created_at?: string
+          explanation?: string | null
+          factor_label?: string
+          factor_type?: string
+          factor_value?: number | null
+          factor_weight?: number | null
+          id?: string
+          polarity?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_score_factors_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_score_factors_analysis_run_id_fkey"
+            columns: ["analysis_run_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_analysis_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_score_factors_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_scores: {
+        Row: {
+          account_id: string
+          analysis_run_id: string | null
+          created_at: string
+          growth_score: number | null
+          icp_fit_score: number | null
+          id: string
+          maturity_score: number | null
+          personalization_score: number | null
+          reasoning_short: string | null
+          score_label: string | null
+          total_score: number | null
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          analysis_run_id?: string | null
+          created_at?: string
+          growth_score?: number | null
+          icp_fit_score?: number | null
+          id?: string
+          maturity_score?: number | null
+          personalization_score?: number | null
+          reasoning_short?: string | null
+          score_label?: string | null
+          total_score?: number | null
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          analysis_run_id?: string | null
+          created_at?: string
+          growth_score?: number | null
+          icp_fit_score?: number | null
+          id?: string
+          maturity_score?: number | null
+          personalization_score?: number | null
+          reasoning_short?: string | null
+          score_label?: string | null
+          total_score?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_scores_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_scores_analysis_run_id_fkey"
+            columns: ["analysis_run_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_analysis_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_scores_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_urls: {
+        Row: {
+          account_id: string
+          created_at: string
+          discovery_method: string | null
+          id: string
+          is_active: boolean | null
+          is_manual: boolean | null
+          last_seen_at: string | null
+          page_type: string | null
+          updated_at: string
+          url: string
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          discovery_method?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_manual?: boolean | null
+          last_seen_at?: string | null
+          page_type?: string | null
+          updated_at?: string
+          url: string
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          discovery_method?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_manual?: boolean | null
+          last_seen_at?: string | null
+          page_type?: string | null
+          updated_at?: string
+          url?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_urls_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_urls_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_workspaces: {
+        Row: {
+          created_at: string
+          id: string
+          is_enabled: boolean
+          onboarding_completed_at: string | null
+          settings_json: Json | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          onboarding_completed_at?: string | null
+          settings_json?: Json | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          onboarding_completed_at?: string | null
+          settings_json?: Json | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_workspaces_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_logs: {
         Row: {
           action: string
@@ -46715,6 +47654,18 @@ export type Database = {
       }
     }
     Enums: {
+      account_brief_commercial_status:
+        | "new"
+        | "researching"
+        | "outreach_ready"
+        | "contacted"
+        | "follow_up"
+      account_brief_run_status:
+        | "queued"
+        | "processing"
+        | "completed"
+        | "partial"
+        | "failed"
       activity_profile_type:
         | "formacao_educacao"
         | "produtos"
@@ -47146,6 +48097,20 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_brief_commercial_status: [
+        "new",
+        "researching",
+        "outreach_ready",
+        "contacted",
+        "follow_up",
+      ],
+      account_brief_run_status: [
+        "queued",
+        "processing",
+        "completed",
+        "partial",
+        "failed",
+      ],
       activity_profile_type: [
         "formacao_educacao",
         "produtos",

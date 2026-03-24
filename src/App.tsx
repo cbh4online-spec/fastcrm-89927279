@@ -212,6 +212,15 @@ import RevenueRadarPage from "./pages/RevenueRadarPage";
 import KernelMonitorPage from "./pages/KernelMonitorPage";
 import VisionDuoAcceptPage from "./pages/VisionDuoAcceptPage";
 
+// Account Brief
+import AccountBriefDashboardPage from "./pages/AccountBriefDashboardPage";
+import AccountBriefOnboardingPage from "./pages/AccountBriefOnboardingPage";
+import AccountBriefAccountsPage from "./pages/AccountBriefAccountsPage";
+import AccountBriefAccountDetailPage from "./pages/AccountBriefAccountDetailPage";
+import AccountBriefAnalysisPage from "./pages/AccountBriefAnalysisPage";
+import AccountBriefSettingsPage from "./pages/AccountBriefSettingsPage";
+import AccountBriefAdminPage from "./pages/AccountBriefAdminPage";
+
 // Performance Engine
 import PerformanceDashboardPage from "./pages/performance/PerformanceDashboardPage";
 import PerformanceGoalsPage from "./pages/performance/PerformanceGoalsPage";
@@ -643,6 +652,15 @@ function CRMRoutes() {
                 <Route path="/dashboard/zapier" element={<ZapierPage />} />
                 <Route path="/dashboard/background-jobs" element={<BackgroundJobsPage />} />
                 <Route path="/dashboard/ai-operations" element={<AIOperationsCenterPage />} />
+                
+                {/* Account Brief */}
+                <Route path="/dashboard/account-brief" element={<AccountBriefDashboardPage />} />
+                <Route path="/dashboard/account-brief/onboarding" element={<AccountBriefOnboardingPage />} />
+                <Route path="/dashboard/account-brief/accounts" element={<AccountBriefAccountsPage />} />
+                <Route path="/dashboard/account-brief/accounts/:id" element={<AccountBriefAccountDetailPage />} />
+                <Route path="/dashboard/account-brief/analysis" element={<AccountBriefAnalysisPage />} />
+                <Route path="/dashboard/account-brief/settings" element={<AccountBriefSettingsPage />} />
+                <Route path="/dashboard/admin/account-brief" element={<AccountBriefAdminPage />} />
                 
                 {/* Método Vision */}
                 <Route path="/dashboard/vision" element={<VisionPage />} />
