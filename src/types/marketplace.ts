@@ -19,7 +19,8 @@ export type ModuleCategory =
   | "integrations"     // Integrações
   | "education"        // Educação
   | "operations"       // Operações
-  | "strategy";        // Estratégia
+  | "strategy"         // Estratégia
+  | "intelligence";    // Inteligência Comercial
 
 // Internal implementation types (NEVER shown to customer)
 export type ModuleInternalType = 
@@ -319,6 +320,13 @@ export const CATEGORY_INFO: Record<ModuleCategory, CategoryInfo> = {
     description: "Planeamento estratégico e metodologias de gestão",
     icon: "Target",
     color: "text-rose-500"
+  },
+  intelligence: {
+    id: "intelligence",
+    name: "Inteligência Comercial",
+    description: "Briefings e intelligence B2B para vendas",
+    icon: "Briefcase",
+    color: "text-indigo-500"
   }
 };
 
@@ -1705,5 +1713,56 @@ export const SAMPLE_MODULES: MarketplaceModule[] = [
     created_at: "2026-03-10T00:00:00Z",
     updated_at: "2026-03-10T00:00:00Z",
     published_at: "2026-03-10T00:00:00Z"
+  },
+  {
+    id: "account-brief",
+    slug: "account-brief",
+    name: "Account Brief",
+    tagline: "Inteligência comercial B2B automatizada",
+    description: "Transforme qualquer empresa-alvo num briefing comercial acionável em minutos. Analise websites, extraia sinais de crescimento, score de ICP e prepare outreach personalizado — tudo dentro do FastCRM.",
+    category: "intelligence",
+    icon: "Briefcase",
+    target_audience: "Founders B2B, SDRs, BDRs, agências outbound e consultoras comerciais",
+    expected_results: [
+      "Briefings comerciais em minutos em vez de horas",
+      "Scoring automático de contas por ICP",
+      "Sinais de crescimento e urgência identificados",
+      "Ângulos de personalização prontos para outreach"
+    ],
+    use_cases: [
+      "Preparar reuniões comerciais rapidamente",
+      "Priorizar contas com base em ICP",
+      "Identificar sinais de expansão e urgência",
+      "Gerar emails de outreach personalizados",
+      "Vigiar contas estratégicas com alertas de mudança"
+    ],
+    internal_type: "native_feature",
+    status: "active",
+    version: "1.0.0",
+    permissions: {
+      data_permissions: [
+        { entity: "companies", read: true, write: true, delete: false },
+        { entity: "contacts", read: true, write: true, delete: false }
+      ],
+      workspace_isolation: true,
+      can_send_emails: false,
+      can_send_whatsapp: false,
+      can_create_activities: true,
+      can_trigger_automations: true
+    },
+    pricing: {
+      type: "free",
+      base_price: 0,
+      currency: "EUR"
+    },
+    publisher: "FastCRM",
+    is_featured: true,
+    is_new: true,
+    rating: 4.8,
+    reviews_count: 0,
+    installs_count: 0,
+    created_at: "2026-03-24T00:00:00Z",
+    updated_at: "2026-03-24T00:00:00Z",
+    published_at: "2026-03-24T00:00:00Z"
   }
 ];
