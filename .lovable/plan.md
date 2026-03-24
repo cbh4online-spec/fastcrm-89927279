@@ -1,43 +1,62 @@
 
 
-## Análise: IA Operacional Transversal no FastCRM
+## AI Operations Center — Painel Unificado
 
-### O que JÁ EXISTE (implementado)
+### Objectivo
+Criar uma página `/dashboard/ai-operations` que mostra o estado em tempo real dos 5 sistemas de IA num único dashboard executivo.
 
-Após análise extensiva do código, **a grande maioria do que pedes já está construída**:
+### Layout
 
-| Camada | Estado | Componentes existentes |
-|--------|--------|----------------------|
-| **1. Context OS** | ✅ Completo | 8 blocos (Estratégia, ICP, Ofertas, Equipa, Metas, Processos, Scripts), Context Score, Drift Score, Impact Map, Wizard onboarding |
-| **2. Event System** | ✅ Completo | `eventBus` (mitt), `kernelEmitter`, `context_event_log`, triggers em ~30 tabelas, automações com triggers (lead_created, message_received, etc.) |
-| **3. Decision Layer** | ✅ Completo | Kernel Decision Engine, regras estratégicas (Churn Risk, Funnel Leak, Hot Lead), next best actions, KPI impact |
-| **4. AI Sales Copilot** | ✅ Completo | `OpportunityAIInsightsSection`, `DealIntelligence` (health score, risk drivers, NBA), `AgentQueueStatus`, `EntityMemoryPanel` no detalhe de oportunidade |
-| **5. AI Communications Intelligence** | ✅ Completo | `ConversationIntelligencePanel` na inbox (buying intent, objections, urgency, drop-off risk, suggested next step, tags, alerts) |
-| **6. Daily Brief** | ✅ Completo | `DailyBriefWidget`, `ExecutiveBriefWidget`, Weekly War Room, Revenue Radar, CEO Copilot |
-| **7. Score Layer** | ✅ Completo | Lead Score (com fatores explicáveis), Deal Health Score (com risk drivers), Churn Risk, Conversation Signals (trust_score, churn_risk, close_probability) |
-| **8. UX Dark SaaS** | ✅ Completo | Tema dark premium, DashboardLayout com sidebar dinâmica |
+```text
+┌─────────────────────────────────────────────────────┐
+│  AI Operations Center                    [Refresh]  │
+├─────────┬─────────┬─────────┬─────────┬─────────────┤
+│ Agents  │  IMO AI │ Voice   │ Claude  │ Trigger.dev │
+│ ●Active │ ●Active │ ●Active │ ●Active │ ●Active     │
+│ 12 runs │ Score85 │ 34 TTS  │ 2.4K tk │ 8/12 OK     │
+├─────────┴─────────┴─────────┴─────────┴─────────────┤
+│                                                     │
+│  [Tab: Overview | Agents | IMO | Voice | Claude |   │
+│   Trigger.dev]                                      │
+│                                                     │
+│  Overview: 5 system cards com status, métricas      │
+│  chave, últimas execuções e alertas                 │
+│                                                     │
+│  Cada tab: dados específicos do sistema             │
+└─────────────────────────────────────────────────────┘
+```
 
-### O que FALTA ou pode ser melhorado
+### Dados por sistema
 
-Existem apenas **lacunas menores de integração**, não de funcionalidade:
+| Sistema | Fonte de dados | Métricas |
+|---------|---------------|----------|
+| **AI Agents** | `trigger_job_runs` (type=agent) + `ai_usage_logs` (feature=ai-agent) | Agentes activos, runs 24h, erros, última execução |
+| **IMO AI** | `imo_growth_insights` + `imo_market_insights` | Growth score actual, última análise, freshness |
+| **ElevenLabs** | `voice_audio_cache` + `voice_settings` | TTS gerados, cache hits, enabled/disabled |
+| **Claude/Anthropic** | `ai_usage_logs` (provider=claude) + `ai_settings` | Tokens usados, custo, budget %, modelo activo |
+| **Trigger.dev** | `trigger_job_runs` | Jobs 24h (completed/failed/running), próxima execução |
 
-1. **Secção "Como levar para produção"** — Não existe em nenhuma página. É uma camada de documentação/guia in-app que mostra dados necessários, automações sugeridas e KPIs relevantes para cada módulo.
+### Implementação
 
-2. **Consumo unificado do Context OS pela IA** — Embora o Context OS exista e as edge functions de IA existam, nem todas as funções de IA injectam automaticamente o contexto do workspace (ICP, ofertas, tom de voz) no prompt. Algumas usam, outras não.
+#### 1. Hook `useAIOperationsCenter` (`src/hooks/useAIOperationsCenter.ts`)
+- Agrega queries paralelas (react-query) às 5 fontes de dados
+- Retorna estado normalizado por sistema: `{ status, metrics, lastActivity, alerts }`
+- Status: `operational` | `degraded` | `down` | `unknown` baseado em erros recentes
 
-3. **Response Quality Score** — Mencionado no pedido mas não existe como score isolado. A `ConversationIntelligencePanel` analisa qualidade mas não gera um score numérico persistido.
+#### 2. Página `AIOperationsCenterPage` (`src/pages/AIOperationsCenterPage.tsx`)
+- 5 KPI cards no topo (um por sistema) com indicador de status (dot verde/amarelo/vermelho)
+- Tabs com overview + detalhe por sistema
+- Overview: timeline unificada das últimas 20 actividades de todos os sistemas
+- Cada tab reutiliza componentes existentes onde possível
+- Link rápido para as páginas dedicadas (AI Settings, AI Usage, Background Jobs, IMO AI)
 
----
+#### 3. Rota em `App.tsx`
+- Adicionar `/dashboard/ai-operations` com import lazy
 
-### Recomendação
+#### 4. Navegação
+- Adicionar card de acesso no `AutomationAISettings.tsx`
 
-Dado que **~95% já está implementado**, sugiro focar nas lacunas reais:
-
-**Opção A — Secção "Como levar para produção"**: Adicionar um componente reutilizável `ProductionGuideSection` que aparece no fundo de cada página principal, mostrando checklist de dados necessários, automações activas/sugeridas e KPIs do módulo.
-
-**Opção B — Context Injection padronizado**: Criar um helper partilhado nas edge functions que carrega automaticamente o Context OS (ICP, ofertas, tom de voz, metas) e o injecta como system prompt em todas as chamadas de IA.
-
-**Opção C — Response Quality Score**: Adicionar score numérico (0-100) às respostas enviadas, baseado em tom de voz, personalização e alinhamento com o ICP.
-
-Queres que avance com alguma destas opções, ou preferes uma visão unificada (landing page/hub) que mostre todas estas camadas já existentes num só lugar?
+### Ficheiros
+- **Criar**: `src/hooks/useAIOperationsCenter.ts`, `src/pages/AIOperationsCenterPage.tsx`
+- **Editar**: `src/App.tsx` (rota), `src/components/settings/sections/AutomationAISettings.tsx` (card)
 
