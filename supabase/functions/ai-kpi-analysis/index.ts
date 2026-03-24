@@ -39,13 +39,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { kpiData, industryType } = await req.json() as {
+    const body = await req.json();
+    const { kpiData, industryType } = body as {
       kpiData: CoreKPIs;
       industryType: string;
     };
+    const workspace_id = body.workspace_id ?? body.workspaceId ?? null;
 
     // AI Gate check
-    const _gateWsId = typeof workspaceId !== 'undefined' ? workspaceId : (typeof workspace_id !== 'undefined' ? workspace_id : null);
+    const _gateWsId = workspace_id;
     if (_gateWsId) {
       const gate = await aiGate(_gateWsId, 'medium', 'ai-kpi-analysis');
       if (!gate.allowed) {
@@ -141,15 +143,10 @@ Tipo de negócio: ${industryType}`;
     });
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Payment required" }), {
-          status: 402,
+      const fallback = generateFallbackAnalysis(kpiData);
+      if (response.status === 429 || response.status === 402) {
+        return new Response(JSON.stringify({ ...fallback, _ai_unavailable: true }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
