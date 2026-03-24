@@ -545,7 +545,6 @@ export default function AccountBriefAccountDetailPage() {
                             <Trash2 className="w-3 h-3" />
                           </Button>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">{format(new Date(note.created_at), "dd/MM HH:mm")}</p>
                       </div>
                     ))}
                   </div>
