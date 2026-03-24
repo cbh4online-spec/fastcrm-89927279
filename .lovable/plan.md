@@ -1,150 +1,114 @@
 
 
-## Account Brief — Fase Avançada (7 Fases de Implementação)
+## Fase B — Segmentos, Comparação e Dashboard Evoluído
 
-Evolução do módulo existente com watchlist, alertas, colaboração, PDF, outreach, scoring avançado, comparação, enriquecimento e listas segmentadas.
+### 1. Migration — Novas tabelas
 
----
+```sql
+-- account_brief_segments
+CREATE TABLE account_brief_segments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id),
+  name TEXT NOT NULL,
+  segment_type TEXT DEFAULT 'dynamic', -- dynamic | static
+  filter_json JSONB DEFAULT '{}',
+  is_dynamic BOOLEAN DEFAULT true,
+  member_count INT DEFAULT 0,
+  created_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
 
-### FASE A — Watchlist, Scheduler e Alertas de Mudança
+-- account_brief_segment_members
+CREATE TABLE account_brief_segment_members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id),
+  segment_id UUID NOT NULL REFERENCES account_brief_segments(id) ON DELETE CASCADE,
+  account_id UUID NOT NULL REFERENCES account_brief_accounts(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(segment_id, account_id)
+);
 
-**Migration**: Criar tabelas `account_brief_watchlists` e `account_brief_change_alerts` com RLS por workspace.
+-- account_brief_comparison_runs
+CREATE TABLE account_brief_comparison_runs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL REFERENCES workspaces(id),
+  account_ids JSONB NOT NULL, -- array of account UUIDs
+  summary_json JSONB,
+  created_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
 
-**Edge Functions**:
-- `account-brief-watchlist-scheduler` — consulta watchlists activas com `next_run_at <= now()`, invoca `account-brief-refresh-account` para cada, actualiza `next_run_at` baseado na frequência
-- `account-brief-detect-site-changes` — chamado após refresh, compara runs actual e anterior via dados de `account_brief_briefs`/`account_brief_scores`/`account_brief_pages`, gera alertas classificados por severidade e relevância comercial em `account_brief_change_alerts`
+RLS por `workspace_id` em todas (padrão existente). Índices em `workspace_id`.
 
-**Hooks**: `useAccountBriefWatchlist`, `useAccountBriefAlerts`
+### 2. Edge Function — `account-brief-compare-accounts`
 
-**Páginas**:
-- `/dashboard/account-brief/watchlist` — tabela de contas vigiadas, próxima reanálise, motivo, ações (pausar, remover)
-- `/dashboard/account-brief/alerts` — feed de mudanças recentes com badges de tipo e severidade, filtro por is_read
+Recebe `account_ids` (2-5), busca briefs/scores de cada, envia a **Gemini 2.5 Pro** com tool calling para gerar summary comparativo estruturado:
+- Ranking geral
+- "Melhor aposta", "Mais madura", "Maior urgência", "Maior personalização"
+- Comparação por sub-score, setor, sinais
+- Persiste em `account_brief_comparison_runs`
 
-**UI no detalhe da conta**: Botão "Adicionar à Watchlist" com modal (frequência + motivo). Secção "Alertas de mudança" com timeline.
+### 3. Hook — `useAccountBriefSegments`
 
-**Nav**: Adicionar "Watchlist" e "Alertas" ao grupo Account Brief em nav.v1.ts/nav.v2.ts.
+- CRUD de segmentos
+- `computeMembers` mutation: para segmentos dinâmicos, avalia `filter_json` contra `account_brief_accounts` usando filtros client-side (score, setor, geografia, status, watchlist, favorito)
+- Para segmentos estáticos: add/remove manual de membros
+- Actualiza `member_count`
 
-**Eventos Kernel**: `watchlist_added`, `watchlist_paused`, `watchlist_removed`, `scheduled_reanalysis_completed`, `site_change_detected`, `commercial_change_alert_created`
+### 4. Hook — `useAccountBriefCompare`
 
-**Dashboard**: Novos cards "Contas em Watchlist" e "Alertas Recentes".
+- `compareAccounts` mutation → invoca edge function
+- Query de runs de comparação anteriores
+- Estado de loading
 
----
+### 5. Página — `AccountBriefSegmentsPage`
 
-### FASE B — Listas Segmentadas, Comparação e Dashboard Evoluído
+- Lista de segmentos com nome, tipo (dinâmico/estático), nº membros, data
+- Criar segmento: modal com nome + builder de filtros (reutiliza `AdvancedFilterBuilder` existente com campos adaptados: score, setor, geografia, status, favorito, watchlist)
+- Preview dos membros ao guardar
+- Acções: editar, eliminar, ver membros
+- Empty state premium
 
-**Migration**: Criar tabelas `account_brief_segments`, `account_brief_segment_members`, `account_brief_comparison_runs`.
+### 6. Página — `AccountBriefComparePage`
 
-**Edge Functions**:
-- `account-brief-compute-segment-members` — avalia filtros JSON contra `account_brief_accounts` + scores + watchlist, popula membros
-- `account-brief-compare-accounts` — recebe 2-5 account_ids, agrega scores/briefs/sinais, gera summary comparativo via Gemini 2.5 Pro
+- Selector de contas (search/select, 2-5 contas)
+- Botão "Comparar" → invoca edge function
+- Resultado: tabela lado-a-lado com score, sub-scores, setor, geografia, sinais, outreach
+- Highlights com badges ("Melhor Aposta", "Mais Madura", etc.)
+- Histórico de comparações anteriores
+- Empty state
 
-**Hooks**: `useAccountBriefSegments`, `useAccountBriefCompare`
+### 7. Dashboard Evoluído
 
-**Páginas**:
-- `/dashboard/account-brief/segments` — lista segmentos, contador membros, preview, criar/editar com builder de filtros
-- `/dashboard/account-brief/compare` — seleccionar contas, tabela comparativa lado-a-lado, highlights ("melhor aposta", "mais madura", "maior urgência")
+Adicionar ao `AccountBriefDashboardPage`:
+- Card "Segmentos" com count e link
+- Card "Contas com maior aumento de score" (comparar score actual vs anterior via `account_brief_diff_events`)
+- Card "Contas sem análise" (last_analysis_at IS NULL)
+- Card "Reanálises agendadas hoje" (watchlist com next_run_at hoje)
+- Secção "Recentes" com últimas 5 contas analisadas
 
-**Dashboard evoluído**: Widgets adicionais — contas com maior aumento de score, sinais de hiring, segmentos mais valiosos, reanálises agendadas hoje, contas sem owner.
+### 8. Rotas e Navegação
 
----
+**App.tsx**: Adicionar:
+- `/dashboard/account-brief/segments` → `AccountBriefSegmentsPage`
+- `/dashboard/account-brief/compare` → `AccountBriefComparePage`
 
-### FASE C — Scoring Avançado
+**nav.v1.ts / nav.v2.ts**: Adicionar "Segmentos" (icon: `Layers`) e "Comparar" (icon: `GitCompare`) ao grupo Account Brief.
 
-**Migration**: Adicionar colunas a `account_brief_scores` (`confidence_score`, `strategic_fit_score`, `outbound_readiness_score`, `urgency_score`). Criar `account_brief_score_models` para config de pesos por workspace.
+### Ficheiros
 
-**Edge Functions**:
-- `account-brief-compute-advanced-score` — substitui `compute-score`, adiciona sub-scores de urgency, strategic fit, outbound readiness, confidence. Usa pesos configuráveis do workspace.
-- `account-brief-score-explainer` — gera explicação detalhada via IA dos factores
-
-**Hook**: `useAccountBriefAdvancedScore`
-
-**UI**: Score breakdown visual com barras por sub-score, factores +/-, confiança da análise, comparação de scores entre contas na página de comparação. Painel simples de ajuste de pesos nas definições.
-
----
-
-### FASE D — Geração de Emails de Outreach
-
-**Migration**: Criar `account_brief_outreach_generations` e `account_brief_outreach_templates`.
-
-**Edge Functions**:
-- `account-brief-generate-outreach-email` — recebe account_id + tone + length + tipo (inicial/follow-up), usa briefing + ICP + sinais para gerar subject + body + CTA via Gemini 2.5 Pro. Gera 2-3 variações.
-- `account-brief-save-outreach-template` — persiste geração como template reutilizável
-
-**Hook**: `useAccountBriefOutreach`
-
-**UI no detalhe da conta**: Botão "Gerar Email" → drawer/modal lateral com opções (tom: consultivo/direto/executivo/friendly, comprimento: curto/médio/longo). Preview das variações, botões copiar, guardar como template. Preparar link para Sequências (disabled com tooltip "Em breve").
-
-**Eventos Kernel**: `outreach_generated`, `outreach_template_saved`
-
----
-
-### FASE E — Colaboração em Equipa
-
-**Migration**: Adicionar `owner_user_id` e `assigned_user_id` a `account_brief_accounts`. Criar `account_brief_comments` e `account_brief_activity_log`.
-
-**Hook**: `useAccountBriefCollaboration`
-
-**UI no detalhe**: Selector de owner/assigned_to, secção de comentários com menções (@user), feed de actividade (quem alterou status, score, notas, etc.).
-
-**Lista de contas**: Colunas/filtros por owner e assigned_to. Badge "Sem owner" no dashboard.
-
-**Eventos Kernel**: `account_assigned`, `comment_added`, `owner_changed`
-
----
-
-### FASE F — Exportação PDF
-
-**Migration**: Criar `account_brief_exports` (log de exports).
-
-**Edge Function**: `account-brief-export-pdf` — gera PDF server-side via edge function, guarda em Supabase Storage, retorna URL. Templates: executivo (resumido), completo, comparativo.
-
-**Hook**: `useAccountBriefExports`
-
-**UI**: Botão "Exportar PDF" no detalhe da conta com dropdown (Executivo / Completo). Na comparação: "Exportar Comparação". Página `/dashboard/account-brief/exports` com histórico.
-
----
-
-### FASE G — Enriquecimento Externo
-
-**Migration**: Criar `account_brief_enrichment_runs` e `account_brief_data_sources`.
-
-**Edge Functions**:
-- `account-brief-enrich-account` — cruza com CRM Empresas/Contactos existentes, pesquisa pública via Firecrawl, marca origem de cada dado
-- `account-brief-match-company-record` — sugere empresa CRM existente por domínio/nome
-- `account-brief-suggest-contacts` — sugere contactos públicos relevantes
-
-**Hook**: `useAccountBriefEnrichment`
-
-**UI no detalhe**: Secção "Fontes de dados" com badges (site / inferido / CRM / externo). Toggle de enriquecimento externo nas definições.
-
-**Eventos Kernel**: `external_enrichment_completed`, `company_match_suggested`
-
----
-
-### Ficheiros (resumo)
-
-| Tipo | Criar | Editar |
-|------|-------|--------|
-| **Migrations** | ~4 (agrupadas por fase) | — |
-| **Edge Functions** | ~12 novas | `account-brief-refresh-account` (trigger alertas) |
-| **Hooks** | ~10 novos | — |
-| **Páginas** | 5 novas (watchlist, alerts, segments, compare, exports) | Dashboard, Detail, Accounts, Admin |
-| **Nav** | — | nav.v1.ts, nav.v2.ts (5 novos items) |
-| **Rotas** | — | App.tsx (5 novas rotas) |
-
-### Decisões técnicas
-
-| Aspecto | Decisão |
-|---------|---------|
-| Scheduler watchlist | pg_cron a cada 15min invocando edge function |
-| Alertas | Classificação por IA (Gemini) com severidade + relevância comercial |
-| PDF | Server-side via edge function com HTML→PDF (puppeteer-like ou html template) |
-| Outreach | Gemini 2.5 Pro com contexto do briefing + ICP |
-| Segmentos dinâmicos | Filtros JSON avaliados server-side contra tabelas existentes |
-| Comparação | Max 5 contas, summary gerado por IA |
-| Enriquecimento | CRM interno first, Firecrawl search opcional, sempre com source tracking |
-
-### Implementação
-
-Implementarei **Fase A** primeiro (watchlist + alertas), seguida das fases restantes em sequência. Cada fase é auto-contida e funcional.
+| Ação | Ficheiro |
+|------|----------|
+| Criar | `src/hooks/useAccountBriefSegments.ts` |
+| Criar | `src/hooks/useAccountBriefCompare.ts` |
+| Criar | `src/pages/AccountBriefSegmentsPage.tsx` |
+| Criar | `src/pages/AccountBriefComparePage.tsx` |
+| Criar | `supabase/functions/account-brief-compare-accounts/index.ts` |
+| Criar | Migration (3 tabelas + RLS) |
+| Editar | `src/pages/AccountBriefDashboardPage.tsx` (novos widgets) |
+| Editar | `src/App.tsx` (2 rotas) |
+| Editar | `src/config/nav.v1.ts` (2 items) |
+| Editar | `src/config/nav.v2.ts` (2 items) |
 
