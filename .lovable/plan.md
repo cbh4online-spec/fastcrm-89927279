@@ -1,70 +1,27 @@
 
 
-# Account Brief — Contactos, Redes Sociais e Pessoas
+# Adicionar pesquisa por nome de empresa no Account Brief
 
-## Objetivo
-Expandir o módulo Account Brief para recolher e apresentar informação completa sobre **contactos/pessoas da empresa** e **redes sociais**, tanto ao nível da empresa como das pessoas-chave.
+## Problema
+Atualmente o diálogo "Adicionar Conta" exige domínio como campo obrigatório. O utilizador quer poder adicionar contas apenas pelo nome da empresa (ex: "Zoltrix – Soluções Integradas, Lda"), sem precisar saber o domínio.
 
-## Estado Atual
-- A extração (`account-brief-extract-structured`) já pede `contacts.team_members` (name, role, linkedin) e `public_emails`
-- Os dados são guardados em `account_brief_public_contacts` (campos: contact_name, role_title, linkedin_url, email, source_url)
-- **Falta**: telefone, foto, redes sociais individuais, redes sociais da empresa
-- **Falta**: Secção na UI para mostrar contactos e redes sociais
+## Alterações
 
-## Plano
+### 1. Hook `useAccountBriefAccounts.ts` — tornar domain opcional
+- Alterar `createAccount` para aceitar domain como opcional
+- Se domain não for fornecido, usar string vazia ou placeholder derivado do nome
+- O `normalized_domain` será vazio quando não há domínio
 
-### 1. Migração DB — Expandir tabelas
+### 2. Dialog em `AccountBriefAccountsPage.tsx`
+- Alterar validação: permitir criar conta se tiver **nome OU domínio** (em vez de exigir domínio)
+- Reorganizar campos: Nome primeiro (como campo principal), Domínio segundo (opcional)
+- Texto do placeholder e labels ajustados
+- Botão habilitado quando `newName || newDomain`
 
-**`account_brief_public_contacts`** — adicionar colunas:
-- `phone` (text, nullable)
-- `twitter_url` (text, nullable)
-- `photo_url` (text, nullable)
-- `seniority_level` (text, nullable) — ex: C-Level, VP, Director, Manager
-- `department` (text, nullable) — ex: Sales, Marketing, Engineering
+### 3. Barra de pesquisa existente
+- A pesquisa por nome já funciona (filtro `name.ilike` no hook) — sem alterações necessárias
 
-**`account_brief_accounts`** — adicionar colunas para redes sociais da empresa:
-- `linkedin_url` (text, nullable)
-- `instagram_url` (text, nullable)
-- `facebook_url` (text, nullable)
-- `twitter_url` (text, nullable)
-- `youtube_url` (text, nullable)
-- `tiktok_url` (text, nullable)
-- `phone_main` (text, nullable)
-- `email_main` (text, nullable)
-
-### 2. Edge Function — Expandir prompt de extração
-
-**`account-brief-extract-structured/index.ts`**:
-- Expandir o schema `contacts` do tool call para incluir:
-  - `social_media` (objeto com linkedin, instagram, facebook, twitter, youtube, tiktok da empresa)
-  - `public_phones` (array de strings)
-  - `main_email` (string)
-  - Expandir `team_members` com: phone, twitter, photo_url, seniority_level, department
-- Após extração, guardar redes sociais na tabela `account_brief_accounts` e contactos expandidos em `account_brief_public_contacts`
-
-### 3. Hook — Consultar contactos da conta
-
-**Criar `src/hooks/useAccountBriefContacts.ts`**:
-- Query para listar contactos de `account_brief_public_contacts` por `account_id`
-- Ordenar por seniority (C-Level primeiro)
-
-### 4. UI — Secção de Contactos e Redes Sociais no detalhe da conta
-
-**`AccountBriefAccountDetailPage.tsx`** — adicionar duas secções:
-
-**a) Card "Redes Sociais"** (sidebar):
-- Ícones clicáveis para cada rede social da empresa (LinkedIn, Instagram, Facebook, Twitter, YouTube, TikTok)
-- Email e telefone principais
-
-**b) Card "Pessoas-Chave"** (conteúdo principal):
-- Lista de contactos com: nome, cargo, departamento, nível de senioridade
-- Links para LinkedIn/Twitter individuais
-- Email e telefone quando disponíveis
-- Badge de seniority (C-Level, VP, etc.)
-
-### Ficheiros Afetados
-- **Migração SQL**: nova migração para ALTER TABLE
-- **Edge Function**: `supabase/functions/account-brief-extract-structured/index.ts`
-- **Novo hook**: `src/hooks/useAccountBriefContacts.ts`
-- **UI**: `src/pages/AccountBriefAccountDetailPage.tsx`
+### Ficheiros afetados
+- `src/hooks/useAccountBriefAccounts.ts` — domain opcional no mutationFn
+- `src/pages/AccountBriefAccountsPage.tsx` — reordenar campos, validação flexível
 
