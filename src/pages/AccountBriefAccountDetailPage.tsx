@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useAccountBriefContacts } from "@/hooks/useAccountBriefContacts";
 import { AccountBriefEditDialog } from "@/components/account-brief/AccountBriefEditDialog";
+import { AccountBriefCorporateData } from "@/components/account-brief/AccountBriefCorporateData";
 
 const STATUS_LABELS: Record<string, string> = {
   new: "Nova", researching: "Em pesquisa", outreach_ready: "Pronta p/ outreach",
@@ -341,6 +342,9 @@ export default function AccountBriefAccountDetailPage() {
                   </div>
                 </BriefSection>
               )}
+
+              {/* Corporate Data */}
+              <AccountBriefCorporateData accountId={account.id} accountNif={(account as any).nif} />
 
               {/* Diffs Section */}
               {diffs.length > 0 && (
