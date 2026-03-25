@@ -82,6 +82,7 @@ export type Database = {
           lead_id: string | null
           linkedin_url: string | null
           name: string
+          nif: string | null
           normalized_domain: string
           owner_user_id: string | null
           phone_main: string | null
@@ -118,6 +119,7 @@ export type Database = {
           lead_id?: string | null
           linkedin_url?: string | null
           name: string
+          nif?: string | null
           normalized_domain: string
           owner_user_id?: string | null
           phone_main?: string | null
@@ -154,6 +156,7 @@ export type Database = {
           lead_id?: string | null
           linkedin_url?: string | null
           name?: string
+          nif?: string | null
           normalized_domain?: string
           owner_user_id?: string | null
           phone_main?: string | null
@@ -583,6 +586,75 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "account_brief_comparison_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_brief_corporate_data: {
+        Row: {
+          account_id: string
+          annual_revenue: Json | null
+          capital_social: string | null
+          company_status: string | null
+          created_at: string | null
+          extracted_at: string | null
+          founding_date: string | null
+          id: string
+          legal_nature: string | null
+          managers: Json | null
+          nif: string | null
+          shareholders: Json | null
+          source_url: string | null
+          updated_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          annual_revenue?: Json | null
+          capital_social?: string | null
+          company_status?: string | null
+          created_at?: string | null
+          extracted_at?: string | null
+          founding_date?: string | null
+          id?: string
+          legal_nature?: string | null
+          managers?: Json | null
+          nif?: string | null
+          shareholders?: Json | null
+          source_url?: string | null
+          updated_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          annual_revenue?: Json | null
+          capital_social?: string | null
+          company_status?: string | null
+          created_at?: string | null
+          extracted_at?: string | null
+          founding_date?: string | null
+          id?: string
+          legal_nature?: string | null
+          managers?: Json | null
+          nif?: string | null
+          shareholders?: Json | null
+          source_url?: string | null
+          updated_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_brief_corporate_data_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: true
+            referencedRelation: "account_brief_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_brief_corporate_data_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
