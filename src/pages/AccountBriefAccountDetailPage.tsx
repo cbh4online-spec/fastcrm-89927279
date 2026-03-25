@@ -22,10 +22,12 @@ import {
   Plus, Trash2, Clock, AlertCircle, CheckCircle2, FileText, Target,
   TrendingUp, Briefcase, MessageSquare, Users, Zap, ShieldCheck, BarChart3,
   Building2, Link, ExternalLink, GitCompareArrows, Eye, EyeOff, Bell,
+  Linkedin, Instagram, Facebook, Twitter, Youtube, Phone, Mail, UserCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { useAccountBriefContacts } from "@/hooks/useAccountBriefContacts";
 
 const STATUS_LABELS: Record<string, string> = {
   new: "Nova", researching: "Em pesquisa", outreach_ready: "Pronta p/ outreach",
@@ -102,6 +104,7 @@ export default function AccountBriefAccountDetailPage() {
   const { companies, leads, isSearchingLeads, linkCompany, linkLead, unlinkLead, diffs } = useAccountBriefCRMLink(id, leadSearchTerm);
   const { isWatched, addToWatchlist } = useAccountBriefWatchlist();
   const { alerts: changeAlerts } = useAccountBriefChangeAlerts(id);
+  const { data: contacts = [] } = useAccountBriefContacts(id);
   const [newNote, setNewNote] = useState("");
   const [showCRMLink, setShowCRMLink] = useState(false);
 
@@ -282,6 +285,55 @@ export default function AccountBriefAccountDetailPage() {
               {allObjections.length > 0 && (
                 <BriefSection icon={ShieldCheck} title="Objeções & Pontos de Atenção">
                   <ListItems items={allObjections} />
+                </BriefSection>
+              )}
+
+              {/* Pessoas-Chave */}
+              {contacts.length > 0 && (
+                <BriefSection icon={UserCircle} title="Pessoas-Chave">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {contacts.map((contact) => (
+                      <div key={contact.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm shrink-0">
+                          {contact.contact_name?.substring(0, 2).toUpperCase() || "?"}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{contact.contact_name}</p>
+                          {contact.role_title && <p className="text-xs text-muted-foreground truncate">{contact.role_title}</p>}
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            {contact.seniority_level && contact.seniority_level !== "Other" && (
+                              <Badge variant="secondary" className="text-[10px] h-5">{contact.seniority_level}</Badge>
+                            )}
+                            {contact.department && (
+                              <Badge variant="outline" className="text-[10px] h-5">{contact.department}</Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-2">
+                            {contact.linkedin_url && (
+                              <a href={contact.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                                <Linkedin className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                            {contact.twitter_url && (
+                              <a href={contact.twitter_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                                <Twitter className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                            {contact.email && (
+                              <a href={`mailto:${contact.email}`} className="text-muted-foreground hover:text-foreground">
+                                <Mail className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                            {contact.phone && (
+                              <a href={`tel:${contact.phone}`} className="text-muted-foreground hover:text-foreground">
+                                <Phone className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </BriefSection>
               )}
 
@@ -503,6 +555,67 @@ export default function AccountBriefAccountDetailPage() {
                   ))}
                 </CardContent>
               </Card>
+
+              {/* Social Media */}
+              {((account as any).linkedin_url || (account as any).instagram_url || (account as any).facebook_url || (account as any).twitter_url || (account as any).youtube_url || (account as any).tiktok_url || (account as any).email_main || (account as any).phone_main) && (
+                <Card className="border-0 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-indigo-500" /> Redes Sociais
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      {(account as any).linkedin_url && (
+                        <a href={(account as any).linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted transition text-sm">
+                          <Linkedin className="w-4 h-4 text-blue-600" /> LinkedIn
+                        </a>
+                      )}
+                      {(account as any).instagram_url && (
+                        <a href={(account as any).instagram_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted transition text-sm">
+                          <Instagram className="w-4 h-4 text-pink-500" /> Instagram
+                        </a>
+                      )}
+                      {(account as any).facebook_url && (
+                        <a href={(account as any).facebook_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted transition text-sm">
+                          <Facebook className="w-4 h-4 text-blue-500" /> Facebook
+                        </a>
+                      )}
+                      {(account as any).twitter_url && (
+                        <a href={(account as any).twitter_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted transition text-sm">
+                          <Twitter className="w-4 h-4" /> X
+                        </a>
+                      )}
+                      {(account as any).youtube_url && (
+                        <a href={(account as any).youtube_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted transition text-sm">
+                          <Youtube className="w-4 h-4 text-red-500" /> YouTube
+                        </a>
+                      )}
+                      {(account as any).tiktok_url && (
+                        <a href={(account as any).tiktok_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted transition text-sm">
+                          <Globe className="w-4 h-4" /> TikTok
+                        </a>
+                      )}
+                    </div>
+                    {((account as any).email_main || (account as any).phone_main) && (
+                      <div className="space-y-2 pt-2 border-t border-border">
+                        {(account as any).email_main && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Mail className="w-4 h-4 text-muted-foreground" />
+                            <a href={`mailto:${(account as any).email_main}`} className="hover:underline">{(account as any).email_main}</a>
+                          </div>
+                        )}
+                        {(account as any).phone_main && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Phone className="w-4 h-4 text-muted-foreground" />
+                            <a href={`tel:${(account as any).phone_main}`} className="hover:underline">{(account as any).phone_main}</a>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Notes */}
               <Card className="border-0 shadow-lg">

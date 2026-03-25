@@ -71,22 +71,30 @@ export type Database = {
           created_by: string | null
           description_short: string | null
           domain: string
+          email_main: string | null
           executive_summary: string | null
+          facebook_url: string | null
           favorite: boolean | null
           id: string
+          instagram_url: string | null
           last_analysis_at: string | null
           last_analysis_run_id: string | null
           lead_id: string | null
+          linkedin_url: string | null
           name: string
           normalized_domain: string
           owner_user_id: string | null
+          phone_main: string | null
           probable_geography: string | null
           probable_sector: string | null
           score_label: string | null
           tagline: string | null
+          tiktok_url: string | null
           total_score: number | null
+          twitter_url: string | null
           updated_at: string
           workspace_id: string
+          youtube_url: string | null
         }
         Insert: {
           archived_at?: string | null
@@ -99,22 +107,30 @@ export type Database = {
           created_by?: string | null
           description_short?: string | null
           domain: string
+          email_main?: string | null
           executive_summary?: string | null
+          facebook_url?: string | null
           favorite?: boolean | null
           id?: string
+          instagram_url?: string | null
           last_analysis_at?: string | null
           last_analysis_run_id?: string | null
           lead_id?: string | null
+          linkedin_url?: string | null
           name: string
           normalized_domain: string
           owner_user_id?: string | null
+          phone_main?: string | null
           probable_geography?: string | null
           probable_sector?: string | null
           score_label?: string | null
           tagline?: string | null
+          tiktok_url?: string | null
           total_score?: number | null
+          twitter_url?: string | null
           updated_at?: string
           workspace_id: string
+          youtube_url?: string | null
         }
         Update: {
           archived_at?: string | null
@@ -127,22 +143,30 @@ export type Database = {
           created_by?: string | null
           description_short?: string | null
           domain?: string
+          email_main?: string | null
           executive_summary?: string | null
+          facebook_url?: string | null
           favorite?: boolean | null
           id?: string
+          instagram_url?: string | null
           last_analysis_at?: string | null
           last_analysis_run_id?: string | null
           lead_id?: string | null
+          linkedin_url?: string | null
           name?: string
           normalized_domain?: string
           owner_user_id?: string | null
+          phone_main?: string | null
           probable_geography?: string | null
           probable_sector?: string | null
           score_label?: string | null
           tagline?: string | null
+          tiktok_url?: string | null
           total_score?: number | null
+          twitter_url?: string | null
           updated_at?: string
           workspace_id?: string
+          youtube_url?: string | null
         }
         Relationships: [
           {
@@ -1496,33 +1520,48 @@ export type Database = {
           account_id: string
           contact_name: string | null
           created_at: string
+          department: string | null
           email: string | null
           id: string
           linkedin_url: string | null
+          phone: string | null
+          photo_url: string | null
           role_title: string | null
+          seniority_level: string | null
           source_url: string | null
+          twitter_url: string | null
           workspace_id: string
         }
         Insert: {
           account_id: string
           contact_name?: string | null
           created_at?: string
+          department?: string | null
           email?: string | null
           id?: string
           linkedin_url?: string | null
+          phone?: string | null
+          photo_url?: string | null
           role_title?: string | null
+          seniority_level?: string | null
           source_url?: string | null
+          twitter_url?: string | null
           workspace_id: string
         }
         Update: {
           account_id?: string
           contact_name?: string | null
           created_at?: string
+          department?: string | null
           email?: string | null
           id?: string
           linkedin_url?: string | null
+          phone?: string | null
+          photo_url?: string | null
           role_title?: string | null
+          seniority_level?: string | null
           source_url?: string | null
+          twitter_url?: string | null
           workspace_id?: string
         }
         Relationships: [
