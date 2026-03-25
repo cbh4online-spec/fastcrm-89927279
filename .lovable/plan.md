@@ -1,114 +1,70 @@
 
 
-## Fase B — Segmentos, Comparação e Dashboard Evoluído
+# Account Brief — Contactos, Redes Sociais e Pessoas
 
-### 1. Migration — Novas tabelas
+## Objetivo
+Expandir o módulo Account Brief para recolher e apresentar informação completa sobre **contactos/pessoas da empresa** e **redes sociais**, tanto ao nível da empresa como das pessoas-chave.
 
-```sql
--- account_brief_segments
-CREATE TABLE account_brief_segments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL REFERENCES workspaces(id),
-  name TEXT NOT NULL,
-  segment_type TEXT DEFAULT 'dynamic', -- dynamic | static
-  filter_json JSONB DEFAULT '{}',
-  is_dynamic BOOLEAN DEFAULT true,
-  member_count INT DEFAULT 0,
-  created_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+## Estado Atual
+- A extração (`account-brief-extract-structured`) já pede `contacts.team_members` (name, role, linkedin) e `public_emails`
+- Os dados são guardados em `account_brief_public_contacts` (campos: contact_name, role_title, linkedin_url, email, source_url)
+- **Falta**: telefone, foto, redes sociais individuais, redes sociais da empresa
+- **Falta**: Secção na UI para mostrar contactos e redes sociais
 
--- account_brief_segment_members
-CREATE TABLE account_brief_segment_members (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL REFERENCES workspaces(id),
-  segment_id UUID NOT NULL REFERENCES account_brief_segments(id) ON DELETE CASCADE,
-  account_id UUID NOT NULL REFERENCES account_brief_accounts(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(segment_id, account_id)
-);
+## Plano
 
--- account_brief_comparison_runs
-CREATE TABLE account_brief_comparison_runs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL REFERENCES workspaces(id),
-  account_ids JSONB NOT NULL, -- array of account UUIDs
-  summary_json JSONB,
-  created_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-```
+### 1. Migração DB — Expandir tabelas
 
-RLS por `workspace_id` em todas (padrão existente). Índices em `workspace_id`.
+**`account_brief_public_contacts`** — adicionar colunas:
+- `phone` (text, nullable)
+- `twitter_url` (text, nullable)
+- `photo_url` (text, nullable)
+- `seniority_level` (text, nullable) — ex: C-Level, VP, Director, Manager
+- `department` (text, nullable) — ex: Sales, Marketing, Engineering
 
-### 2. Edge Function — `account-brief-compare-accounts`
+**`account_brief_accounts`** — adicionar colunas para redes sociais da empresa:
+- `linkedin_url` (text, nullable)
+- `instagram_url` (text, nullable)
+- `facebook_url` (text, nullable)
+- `twitter_url` (text, nullable)
+- `youtube_url` (text, nullable)
+- `tiktok_url` (text, nullable)
+- `phone_main` (text, nullable)
+- `email_main` (text, nullable)
 
-Recebe `account_ids` (2-5), busca briefs/scores de cada, envia a **Gemini 2.5 Pro** com tool calling para gerar summary comparativo estruturado:
-- Ranking geral
-- "Melhor aposta", "Mais madura", "Maior urgência", "Maior personalização"
-- Comparação por sub-score, setor, sinais
-- Persiste em `account_brief_comparison_runs`
+### 2. Edge Function — Expandir prompt de extração
 
-### 3. Hook — `useAccountBriefSegments`
+**`account-brief-extract-structured/index.ts`**:
+- Expandir o schema `contacts` do tool call para incluir:
+  - `social_media` (objeto com linkedin, instagram, facebook, twitter, youtube, tiktok da empresa)
+  - `public_phones` (array de strings)
+  - `main_email` (string)
+  - Expandir `team_members` com: phone, twitter, photo_url, seniority_level, department
+- Após extração, guardar redes sociais na tabela `account_brief_accounts` e contactos expandidos em `account_brief_public_contacts`
 
-- CRUD de segmentos
-- `computeMembers` mutation: para segmentos dinâmicos, avalia `filter_json` contra `account_brief_accounts` usando filtros client-side (score, setor, geografia, status, watchlist, favorito)
-- Para segmentos estáticos: add/remove manual de membros
-- Actualiza `member_count`
+### 3. Hook — Consultar contactos da conta
 
-### 4. Hook — `useAccountBriefCompare`
+**Criar `src/hooks/useAccountBriefContacts.ts`**:
+- Query para listar contactos de `account_brief_public_contacts` por `account_id`
+- Ordenar por seniority (C-Level primeiro)
 
-- `compareAccounts` mutation → invoca edge function
-- Query de runs de comparação anteriores
-- Estado de loading
+### 4. UI — Secção de Contactos e Redes Sociais no detalhe da conta
 
-### 5. Página — `AccountBriefSegmentsPage`
+**`AccountBriefAccountDetailPage.tsx`** — adicionar duas secções:
 
-- Lista de segmentos com nome, tipo (dinâmico/estático), nº membros, data
-- Criar segmento: modal com nome + builder de filtros (reutiliza `AdvancedFilterBuilder` existente com campos adaptados: score, setor, geografia, status, favorito, watchlist)
-- Preview dos membros ao guardar
-- Acções: editar, eliminar, ver membros
-- Empty state premium
+**a) Card "Redes Sociais"** (sidebar):
+- Ícones clicáveis para cada rede social da empresa (LinkedIn, Instagram, Facebook, Twitter, YouTube, TikTok)
+- Email e telefone principais
 
-### 6. Página — `AccountBriefComparePage`
+**b) Card "Pessoas-Chave"** (conteúdo principal):
+- Lista de contactos com: nome, cargo, departamento, nível de senioridade
+- Links para LinkedIn/Twitter individuais
+- Email e telefone quando disponíveis
+- Badge de seniority (C-Level, VP, etc.)
 
-- Selector de contas (search/select, 2-5 contas)
-- Botão "Comparar" → invoca edge function
-- Resultado: tabela lado-a-lado com score, sub-scores, setor, geografia, sinais, outreach
-- Highlights com badges ("Melhor Aposta", "Mais Madura", etc.)
-- Histórico de comparações anteriores
-- Empty state
-
-### 7. Dashboard Evoluído
-
-Adicionar ao `AccountBriefDashboardPage`:
-- Card "Segmentos" com count e link
-- Card "Contas com maior aumento de score" (comparar score actual vs anterior via `account_brief_diff_events`)
-- Card "Contas sem análise" (last_analysis_at IS NULL)
-- Card "Reanálises agendadas hoje" (watchlist com next_run_at hoje)
-- Secção "Recentes" com últimas 5 contas analisadas
-
-### 8. Rotas e Navegação
-
-**App.tsx**: Adicionar:
-- `/dashboard/account-brief/segments` → `AccountBriefSegmentsPage`
-- `/dashboard/account-brief/compare` → `AccountBriefComparePage`
-
-**nav.v1.ts / nav.v2.ts**: Adicionar "Segmentos" (icon: `Layers`) e "Comparar" (icon: `GitCompare`) ao grupo Account Brief.
-
-### Ficheiros
-
-| Ação | Ficheiro |
-|------|----------|
-| Criar | `src/hooks/useAccountBriefSegments.ts` |
-| Criar | `src/hooks/useAccountBriefCompare.ts` |
-| Criar | `src/pages/AccountBriefSegmentsPage.tsx` |
-| Criar | `src/pages/AccountBriefComparePage.tsx` |
-| Criar | `supabase/functions/account-brief-compare-accounts/index.ts` |
-| Criar | Migration (3 tabelas + RLS) |
-| Editar | `src/pages/AccountBriefDashboardPage.tsx` (novos widgets) |
-| Editar | `src/App.tsx` (2 rotas) |
-| Editar | `src/config/nav.v1.ts` (2 items) |
-| Editar | `src/config/nav.v2.ts` (2 items) |
+### Ficheiros Afetados
+- **Migração SQL**: nova migração para ALTER TABLE
+- **Edge Function**: `supabase/functions/account-brief-extract-structured/index.ts`
+- **Novo hook**: `src/hooks/useAccountBriefContacts.ts`
+- **UI**: `src/pages/AccountBriefAccountDetailPage.tsx`
 
