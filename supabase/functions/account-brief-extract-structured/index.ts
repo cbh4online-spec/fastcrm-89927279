@@ -52,7 +52,8 @@ Deno.serve(async (req) => {
 CONTEÚDO DAS PÁGINAS:
 ${contentBlocks.join("\n\n")}
 
-Extrai a seguinte informação em formato JSON. Sê factual — se não encontrares dados, usa null. Distingue factos de inferências.`;
+Extrai a seguinte informação em formato JSON. Sê factual — se não encontrares dados, usa null. Distingue factos de inferências.
+Presta especial atenção a: redes sociais da empresa (LinkedIn, Instagram, Facebook, Twitter/X, YouTube, TikTok), emails e telefones públicos, e pessoas-chave da equipa com os seus cargos, departamento, senioridade e contactos individuais.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -138,17 +139,38 @@ Extrai a seguinte informação em formato JSON. Sê factual — se não encontra
                   type: "object",
                   properties: {
                     public_emails: { type: "array", items: { type: "string" } },
+                    public_phones: { type: "array", items: { type: "string" }, description: "Telefones públicos encontrados no site" },
+                    main_email: { type: "string", description: "Email principal de contacto" },
                     has_contact_form: { type: "boolean" },
                     contact_page_url: { type: "string" },
-                    linkedin_url: { type: "string" },
+                    social_media: {
+                      type: "object",
+                      description: "Redes sociais da empresa",
+                      properties: {
+                        linkedin: { type: "string" },
+                        instagram: { type: "string" },
+                        facebook: { type: "string" },
+                        twitter: { type: "string" },
+                        youtube: { type: "string" },
+                        tiktok: { type: "string" },
+                      },
+                      additionalProperties: false,
+                    },
                     team_members: {
                       type: "array",
+                      description: "Pessoas-chave da empresa encontradas no site",
                       items: {
                         type: "object",
                         properties: {
                           name: { type: "string" },
-                          role: { type: "string" },
+                          role: { type: "string", description: "Cargo/título" },
+                          department: { type: "string", description: "Departamento: Sales, Marketing, Engineering, HR, Finance, Operations, etc." },
+                          seniority_level: { type: "string", enum: ["C-Level", "VP", "Director", "Manager", "Senior", "Other"], description: "Nível de senioridade" },
                           linkedin: { type: "string" },
+                          twitter: { type: "string" },
+                          email: { type: "string" },
+                          phone: { type: "string" },
+                          photo_url: { type: "string", description: "URL da foto de perfil se disponível" },
                         },
                         required: ["name"],
                         additionalProperties: false,
@@ -203,17 +225,35 @@ Extrai a seguinte informação em formato JSON. Sê factual — se não encontra
           contact_name: member.name,
           role_title: member.role || null,
           linkedin_url: member.linkedin || null,
+          twitter_url: member.twitter || null,
+          email: member.email || null,
+          phone: member.phone || null,
+          photo_url: member.photo_url || null,
+          seniority_level: member.seniority_level || null,
+          department: member.department || null,
         }, { onConflict: "account_id,contact_name" }).select();
       }
     }
 
-    // Update account with identity data
+    // Update account with identity data + social media + contact info
     const identity = extracted.identity || {};
+    const social = extracted.contacts?.social_media || {};
+    const mainPhone = extracted.contacts?.public_phones?.[0] || null;
+    const mainEmail = extracted.contacts?.main_email || extracted.contacts?.public_emails?.[0] || null;
+
     await supabase.from("account_brief_accounts").update({
       probable_sector: identity.probable_sector || null,
       probable_geography: identity.probable_geography || null,
       description_short: identity.description_short || null,
       tagline: identity.tagline || null,
+      linkedin_url: social.linkedin || null,
+      instagram_url: social.instagram || null,
+      facebook_url: social.facebook || null,
+      twitter_url: social.twitter || null,
+      youtube_url: social.youtube || null,
+      tiktok_url: social.tiktok || null,
+      phone_main: mainPhone,
+      email_main: mainEmail,
       updated_at: new Date().toISOString(),
     }).eq("id", accountId);
 
