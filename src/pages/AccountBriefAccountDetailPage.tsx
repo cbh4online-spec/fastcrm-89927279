@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useAccountBriefContacts } from "@/hooks/useAccountBriefContacts";
+import { AccountBriefEditDialog } from "@/components/account-brief/AccountBriefEditDialog";
 
 const STATUS_LABELS: Record<string, string> = {
   new: "Nova", researching: "Em pesquisa", outreach_ready: "Pronta p/ outreach",
