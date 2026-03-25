@@ -54,11 +54,20 @@ export function useAccountBriefCorporateData(accountId: string | undefined) {
         .maybeSingle();
       if (error) throw error;
       if (!data) return null;
+      const d = data as any;
       return {
-        ...data,
-        shareholders: (data as any).shareholders || [],
-        managers: (data as any).managers || [],
-        annual_revenue: (data as any).annual_revenue || [],
+        id: d.id,
+        account_id: d.account_id,
+        nif: d.nif,
+        shareholders: d.shareholders || [],
+        managers: d.managers || [],
+        annual_revenue: d.annual_revenue || [],
+        capital_social: d.capital_social,
+        legal_nature: d.legal_nature,
+        founding_date: d.founding_date,
+        company_status: d.company_status,
+        source_url: d.source_url,
+        extracted_at: d.extracted_at,
       } as CorporateData;
     },
     enabled: !!accountId,

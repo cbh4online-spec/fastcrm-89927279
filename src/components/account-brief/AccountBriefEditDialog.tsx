@@ -44,6 +44,7 @@ export function AccountBriefEditDialog({ open, onOpenChange, account, onSave, is
         tagline: account.tagline || "",
         probable_sector: account.probable_sector || "",
         probable_geography: account.probable_geography || "",
+        nif: (account as any).nif || "",
         linkedin_url: (account as any).linkedin_url || "",
         instagram_url: (account as any).instagram_url || "",
         facebook_url: (account as any).facebook_url || "",
@@ -76,6 +77,7 @@ export function AccountBriefEditDialog({ open, onOpenChange, account, onSave, is
   const fields: { key: string; label: string; type?: "textarea" | "url" | "email" | "tel" }[] = [
     { key: "name", label: "Nome" },
     { key: "domain", label: "Domínio" },
+    { key: "nif", label: "NIF" },
     { key: "description_short", label: "Descrição curta", type: "textarea" },
     { key: "tagline", label: "Tagline" },
     { key: "probable_sector", label: "Setor" },
