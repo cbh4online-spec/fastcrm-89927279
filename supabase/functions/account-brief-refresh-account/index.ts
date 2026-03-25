@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     if (runError) throw runError;
     const runId = run.id;
 
-    const accountDomain = account.normalized_domain || account.domain;
+    const accountDomain = (account.normalized_domain || account.domain || "").trim();
     if (!accountDomain) {
       await failRun(supabase, runId, "Conta sem domínio — não é possível analisar", startTime);
       return new Response(JSON.stringify({ success: false, error: "Conta sem domínio configurado. Adicione um domínio antes de analisar.", runId }), {
