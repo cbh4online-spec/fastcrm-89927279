@@ -104,6 +104,7 @@ export default function AccountBriefAccountDetailPage() {
   const { companies, leads, isSearchingLeads, linkCompany, linkLead, unlinkLead, diffs } = useAccountBriefCRMLink(id, leadSearchTerm);
   const { isWatched, addToWatchlist } = useAccountBriefWatchlist();
   const { alerts: changeAlerts } = useAccountBriefChangeAlerts(id);
+  const { data: contacts = [] } = useAccountBriefContacts(id);
   const [newNote, setNewNote] = useState("");
   const [showCRMLink, setShowCRMLink] = useState(false);
 
