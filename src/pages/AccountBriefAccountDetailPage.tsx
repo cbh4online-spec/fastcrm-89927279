@@ -22,7 +22,7 @@ import {
   Plus, Trash2, Clock, AlertCircle, CheckCircle2, FileText, Target,
   TrendingUp, Briefcase, MessageSquare, Users, Zap, ShieldCheck, BarChart3,
   Building2, Link, ExternalLink, GitCompareArrows, Eye, EyeOff, Bell,
-  Linkedin, Instagram, Facebook, Twitter, Youtube, Phone, Mail, UserCircle,
+  Linkedin, Instagram, Facebook, Twitter, Youtube, Phone, Mail, UserCircle, Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
