@@ -55,7 +55,7 @@ export const LEAD_AUTOMATION_TEMPLATES: AutomationTemplate[] = [
     trigger: { type: 'lead_created', config: {} },
     conditions: [],
     actions: [
-      { action_type: 'analyze_lead', config: { use_ai: true } },
+      { action_type: 'activate_ai_assistant', config: { use_ai: true } },
       { action_type: 'update_field', config: { field: 'lead_score', method: 'calculate' } },
       { action_type: 'notify', config: { condition: 'score > 80', message: 'Lead de alta qualidade!' } }
     ],
