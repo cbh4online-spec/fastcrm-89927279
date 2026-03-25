@@ -22,12 +22,13 @@ import {
   Plus, Trash2, Clock, AlertCircle, CheckCircle2, FileText, Target,
   TrendingUp, Briefcase, MessageSquare, Users, Zap, ShieldCheck, BarChart3,
   Building2, Link, ExternalLink, GitCompareArrows, Eye, EyeOff, Bell,
-  Linkedin, Instagram, Facebook, Twitter, Youtube, Phone, Mail, UserCircle,
+  Linkedin, Instagram, Facebook, Twitter, Youtube, Phone, Mail, UserCircle, Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useAccountBriefContacts } from "@/hooks/useAccountBriefContacts";
+import { AccountBriefEditDialog } from "@/components/account-brief/AccountBriefEditDialog";
 
 const STATUS_LABELS: Record<string, string> = {
   new: "Nova", researching: "Em pesquisa", outreach_ready: "Pronta p/ outreach",
@@ -107,6 +108,7 @@ export default function AccountBriefAccountDetailPage() {
   const { data: contacts = [] } = useAccountBriefContacts(id);
   const [newNote, setNewNote] = useState("");
   const [showCRMLink, setShowCRMLink] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
 
   if (isLoading) {
     return <DashboardLayout><div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></DashboardLayout>;
@@ -195,6 +197,9 @@ export default function AccountBriefAccountDetailPage() {
                   </Select>
                   <Button variant="ghost" size="icon" onClick={() => toggleFavorite.mutate({ id: account.id, favorite: !account.favorite })}>
                     {account.favorite ? <Star className="w-5 h-5 text-amber-500 fill-amber-500" /> : <StarOff className="w-5 h-5 text-muted-foreground" />}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setShowEdit(true)} className="gap-2">
+                    <Pencil className="w-4 h-4" /> Editar
                   </Button>
                   <Button variant="outline" size="sm" onClick={handleAnalyze} disabled={triggerAnalysis.isPending} className="gap-2">
                     <RefreshCw className={cn("w-4 h-4", triggerAnalysis.isPending && "animate-spin")} /> Analisar
@@ -690,6 +695,18 @@ export default function AccountBriefAccountDetailPage() {
             </div>
           </div>
         </div>
+
+        <AccountBriefEditDialog
+          open={showEdit}
+          onOpenChange={setShowEdit}
+          account={account}
+          onSave={(updates) => {
+            updateAccount.mutate(updates as any, {
+              onSuccess: () => setShowEdit(false),
+            });
+          }}
+          isSaving={updateAccount.isPending}
+        />
       </DashboardLayout>
     </ModuleGuard>
   );
