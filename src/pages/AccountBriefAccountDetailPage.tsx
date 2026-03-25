@@ -695,6 +695,18 @@ export default function AccountBriefAccountDetailPage() {
             </div>
           </div>
         </div>
+
+        <AccountBriefEditDialog
+          open={showEdit}
+          onOpenChange={setShowEdit}
+          account={account}
+          onSave={(updates) => {
+            updateAccount.mutate(updates as any, {
+              onSuccess: () => setShowEdit(false),
+            });
+          }}
+          isSaving={updateAccount.isPending}
+        />
       </DashboardLayout>
     </ModuleGuard>
   );
