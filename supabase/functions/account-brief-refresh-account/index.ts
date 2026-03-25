@@ -50,14 +50,22 @@ Deno.serve(async (req) => {
     if (runError) throw runError;
     const runId = run.id;
 
-    console.log(`[refresh] Starting full pipeline for ${account.domain} (run: ${runId})`);
+    const accountDomain = account.normalized_domain || account.domain;
+    if (!accountDomain) {
+      await failRun(supabase, runId, "Conta sem domínio — não é possível analisar", startTime);
+      return new Response(JSON.stringify({ success: false, error: "Conta sem domínio configurado. Adicione um domínio antes de analisar.", runId }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log(`[refresh] Starting full pipeline for ${accountDomain} (run: ${runId})`);
 
     // Emit Kernel event: analysis_started
     await emitKernelEvent(supabase, workspaceId, "account_brief.analysis_started", accountId, correlationId);
 
     // Step 1: Discover pages
     const discoverRes = await invokeFunction(supabaseUrl, serviceRoleKey, "account-brief-discover-pages", {
-      accountId, workspaceId, domain: account.normalized_domain || account.domain, runId,
+      accountId, workspaceId, domain: accountDomain, runId,
     });
 
     if (!discoverRes.success) {
