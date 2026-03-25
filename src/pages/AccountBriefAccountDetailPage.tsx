@@ -108,6 +108,7 @@ export default function AccountBriefAccountDetailPage() {
   const { data: contacts = [] } = useAccountBriefContacts(id);
   const [newNote, setNewNote] = useState("");
   const [showCRMLink, setShowCRMLink] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
 
   if (isLoading) {
     return <DashboardLayout><div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></DashboardLayout>;
