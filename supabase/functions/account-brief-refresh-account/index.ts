@@ -115,6 +115,14 @@ Deno.serve(async (req) => {
       accountId, workspaceId, extractedData, runId,
     });
 
+    // Step 5.5: Corporate lookup (fire-and-forget, optional)
+    invokeFunction(supabaseUrl, serviceRoleKey, "account-brief-corporate-lookup", {
+      accountId, workspaceId,
+    }).then((res) => {
+      if (res.success) console.log("[refresh] Corporate lookup completed");
+      else console.warn("[refresh] Corporate lookup skipped/failed:", res.error);
+    }).catch((e) => console.warn("[refresh] Corporate lookup error:", e));
+
     const durationMs = Date.now() - startTime;
     const hasFailures = (crawlRes.failed || 0) > 0 || !extractRes.success || !briefRes.success;
     const finalStatus = hasFailures ? "partial" : "completed";
