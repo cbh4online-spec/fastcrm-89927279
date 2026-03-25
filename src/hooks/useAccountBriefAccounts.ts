@@ -67,15 +67,15 @@ export function useAccountBriefAccounts(filters?: AccountFilters) {
   });
 
   const createAccount = useMutation({
-    mutationFn: async ({ name, domain, notes }: { name: string; domain: string; notes?: string }) => {
+    mutationFn: async ({ name, domain, notes }: { name: string; domain?: string; notes?: string }) => {
       if (!workspaceId || !user) throw new Error("Workspace não encontrado");
-      const normalized = domain.replace(/^https?:\/\//, "").replace(/\/.*$/, "").toLowerCase();
+      const normalized = domain ? domain.replace(/^https?:\/\//, "").replace(/\/.*$/, "").toLowerCase() : "";
       const { data, error } = await supabase
         .from("account_brief_accounts")
         .insert({
           workspace_id: workspaceId,
           name: name || normalized,
-          domain,
+          domain: domain || "",
           normalized_domain: normalized,
           created_by: user.id,
         })
