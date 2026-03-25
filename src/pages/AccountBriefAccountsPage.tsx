@@ -47,8 +47,8 @@ export default function AccountBriefAccountsPage() {
   const [newName, setNewName] = useState("");
 
   const handleCreate = async () => {
-    if (!newDomain) return;
-    await createAccount.mutateAsync({ name: newName, domain: newDomain });
+    if (!newName && !newDomain) return;
+    await createAccount.mutateAsync({ name: newName || newDomain, domain: newDomain });
     setNewDomain("");
     setNewName("");
     setDialogOpen(false);
@@ -180,14 +180,14 @@ export default function AccountBriefAccountsPage() {
               </DialogHeader>
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
-                  <Label>Domínio *</Label>
-                  <Input value={newDomain} onChange={(e) => setNewDomain(e.target.value)} placeholder="exemplo.com" />
+                  <Label>Nome da empresa *</Label>
+                  <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ex: Zoltrix – Soluções Integradas, Lda" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Nome da empresa (opcional)</Label>
-                  <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Nome da empresa" />
+                  <Label>Domínio (opcional)</Label>
+                  <Input value={newDomain} onChange={(e) => setNewDomain(e.target.value)} placeholder="exemplo.com" />
                 </div>
-                <Button onClick={handleCreate} disabled={!newDomain || createAccount.isPending} className="w-full gap-2 bg-gradient-to-r from-indigo-600 to-indigo-500">
+                <Button onClick={handleCreate} disabled={(!newName && !newDomain) || createAccount.isPending} className="w-full gap-2 bg-gradient-to-r from-indigo-600 to-indigo-500">
                   {createAccount.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                   Adicionar
                 </Button>
