@@ -198,6 +198,9 @@ export default function AccountBriefAccountDetailPage() {
                   <Button variant="ghost" size="icon" onClick={() => toggleFavorite.mutate({ id: account.id, favorite: !account.favorite })}>
                     {account.favorite ? <Star className="w-5 h-5 text-amber-500 fill-amber-500" /> : <StarOff className="w-5 h-5 text-muted-foreground" />}
                   </Button>
+                  <Button variant="outline" size="sm" onClick={() => setShowEdit(true)} className="gap-2">
+                    <Pencil className="w-4 h-4" /> Editar
+                  </Button>
                   <Button variant="outline" size="sm" onClick={handleAnalyze} disabled={triggerAnalysis.isPending} className="gap-2">
                     <RefreshCw className={cn("w-4 h-4", triggerAnalysis.isPending && "animate-spin")} /> Analisar
                   </Button>
