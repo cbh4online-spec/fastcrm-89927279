@@ -22,10 +22,12 @@ import {
   Plus, Trash2, Clock, AlertCircle, CheckCircle2, FileText, Target,
   TrendingUp, Briefcase, MessageSquare, Users, Zap, ShieldCheck, BarChart3,
   Building2, Link, ExternalLink, GitCompareArrows, Eye, EyeOff, Bell,
+  Linkedin, Instagram, Facebook, Twitter, Youtube, Phone, Mail, UserCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { useAccountBriefContacts } from "@/hooks/useAccountBriefContacts";
 
 const STATUS_LABELS: Record<string, string> = {
   new: "Nova", researching: "Em pesquisa", outreach_ready: "Pronta p/ outreach",
