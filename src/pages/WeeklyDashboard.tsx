@@ -86,6 +86,15 @@ export default function WeeklyDashboard() {
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => setTargetsOpen(true)}
+              className="gap-1.5"
+            >
+              <Target className="h-3.5 w-3.5" />
+              Definir Metas
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={generate}
               disabled={strategyLoading}
               className="gap-1.5"
@@ -95,6 +104,7 @@ export default function WeeklyDashboard() {
             </Button>
           </div>
         </div>
+        <WeeklyTargetsEditor open={targetsOpen} onOpenChange={setTargetsOpen} />
         <div className="space-y-4" id="today-action-plan">
           <div className="flex items-center gap-2 px-1">
             <Lightbulb className="h-4 w-4 text-primary" />
