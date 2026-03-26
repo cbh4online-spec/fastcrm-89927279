@@ -13,7 +13,7 @@ export interface BlockStatus {
 }
 
 const BLOCK_DEFINITIONS = [
-  { key: 'strategy', title: 'Estratégia', icon: '🎯', description: 'Visão, missão, posicionamento e vantagem competitiva', fields: ['business_model', 'business_description'] },
+  { key: 'strategy', title: 'Estratégia', icon: '🎯', description: 'Visão, missão, posicionamento e vantagem competitiva', fields: ['business_model', 'business_description', 'active_strategies'] },
   { key: 'offers', title: 'Ofertas & Produtos', icon: '💼', description: 'O que vendes, para quem, a que preço e com que diferencial', fields: ['offers', 'pricing_model', 'average_ticket'] },
   { key: 'team', title: 'Equipa', icon: '👥', description: 'Quem faz o quê, competências e responsabilidades', fields: ['team_size', 'team_roles'] },
   { key: 'goals', title: 'Metas & OKRs', icon: '🏆', description: 'Objectivos do trimestre, métricas e targets', fields: ['monthly_revenue_target', 'quarterly_revenue_target', 'annual_revenue_target', 'deals_target_monthly'] },
